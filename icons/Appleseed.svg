@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="64"
+   height="64"
+   viewBox="0 0 16.933331 16.933333"
+   version="1.1"
+   id="svg54"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="Appleseed.svg">
+  <defs
+     id="defs48" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="5.6"
+     inkscape:cx="28.493622"
+     inkscape:cy="42.459068"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     units="px"
+     width="49px"
+     inkscape:window-width="1360"
+     inkscape:window-height="739"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata51">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-280.06667)">
+    <g
+       style="fill:#777777"
+       transform="matrix(0.00997276,0,0,0.00917814,-71.332275,266.1431)"
+       id="g6">
+      <path
+         style="fill:#777777"
+         inkscape:connector-curvature="0"
+         d="m 7996.1,1617.5 c 0,0 -160,301.11 -160,480 0,160 80,240 160,240 80,0 160,-80 160,-240 0,-160 -160,-480 -160,-480 z"
+         id="path4" />
+    </g>
+    <g
+       style="fill:#777777"
+       transform="matrix(0.00308175,-0.00948466,0.00872893,0.0028362,-38.125894,357.89078)"
+       id="g10">
+      <path
+         style="fill:#777777"
+         inkscape:connector-curvature="0"
+         d="m 7996.1,1617.5 c 0,0 -160,301.11 -160,480 0,160 80,240 160,240 80,0 160,-80 160,-240 0,-160 -160,-480 -160,-480 z"
+         id="path8" />
+    </g>
+    <g
+       style="fill:#777777"
+       transform="matrix(-0.00806814,-0.00586185,0.00539478,-0.00742527,59.392665,354.66123)"
+       id="g14">
+      <path
+         style="fill:#777777"
+         inkscape:connector-curvature="0"
+         d="m 7996.1,1617.5 c 0,0 -160,301.11 -160,480 0,160 80,240 160,240 80,0 160,-80 160,-240 0,-160 -160,-480 -160,-480 z"
+         id="path12" />
+    </g>
+    <g
+       style="fill:#777777"
+       transform="matrix(-0.00806814,0.00586185,-0.00539478,-0.00742527,86.456074,260.91759)"
+       id="g18">
+      <path
+         style="fill:#777777"
+         inkscape:connector-curvature="0"
+         d="m 7996.1,1617.5 c 0,0 -160,301.11 -160,480 0,160 80,240 160,240 80,0 160,-80 160,-240 0,-160 -160,-480 -160,-480 z"
+         id="path16" />
+    </g>
+    <g
+       style="fill:#ff5a11"
+       transform="matrix(0.00308175,0.00948466,-0.00872893,0.0028362,5.6636208,206.21037)"
+       id="g22">
+      <path
+         style="fill:#ff5a11"
+         inkscape:connector-curvature="0"
+         d="m 7996.1,1617.5 c 0,0 -160,301.11 -160,480 0,160 80,240 160,240 80,0 160,-80 160,-240 0,-160 -160,-480 -160,-480 z"
+         id="path20" />
+    </g>
+  </g>
+</svg>
