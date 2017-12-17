@@ -246,8 +246,7 @@ class Project:
 
             # write camera
             cam = self.writeCamera(obj)
-            template = re.sub("(.*RaytracingCamera.*)",cam,template)
-
+            
             # write objects
             renderobjs = ""
             for view in obj.Group:
@@ -255,7 +254,12 @@ class Project:
                     renderobjs += self.writeObject(obj,view)
                 else:
                     renderobjs += view.ViewResult
-            template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
+            
+            if "RaytracingCamera" in template:
+                template = re.sub("(.*RaytracingCamera.*)",cam,template)
+                template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
+            else:
+                template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
 
             # save page result
             fp = tempfile.mkstemp(prefix=obj.Name,suffix=os.path.splitext(obj.Template)[-1])[1]
