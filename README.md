@@ -35,4 +35,5 @@ Each renderer has some configurations to be set in Edit -> Preferences -> Render
 * Currently the external (open the file to be rendered in the Renderer's GUI)/internal (render directly inside FreeCAD) render mode is not implemented, the external mode will always be used.
 * Add support for Kerkythea (adapt the existing macro)
 * Add support for Blender's Eevee
+* Add support for OpenCasCade's CadRays https://www.opencascade.com/content/cadrays
 
