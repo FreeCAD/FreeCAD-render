@@ -24,7 +24,7 @@
 # It will add all renderer modules specified below at FreeCAD launch, and
 # create the necessary UI controls.
 
-import os,re,tempfile,FreeCAD,importlib
+import sys,os,re,tempfile,FreeCAD,importlib
 
 if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
