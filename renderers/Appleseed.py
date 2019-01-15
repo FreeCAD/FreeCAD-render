@@ -1,3 +1,4 @@
+from __future__ import print_function
 #***************************************************************************
 #*                                                                         *
 #*   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
@@ -95,7 +96,7 @@ def writeCamera(camdata):
     up = rot.multVec(FreeCAD.Vector(0,1,0))
     up = str(up.x)+" "+str(up.y)+" "+str(up.z)
     pos = str(pos.x)+" "+str(pos.y)+" "+str(pos.z)
-    print "cam:",pos," : ",tpos," : ",up
+    print("cam:",pos," : ",tpos," : ",up)
     cam = """
         <camera name="camera" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
