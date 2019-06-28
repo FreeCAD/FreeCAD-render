@@ -152,7 +152,14 @@ def writeObject(viewobj):
     if not alpha:
         alpha = "1.0"
     m = None
-    if obj.isDerivedFrom("Part::Feature"):
+    if hasattr(obj,"Group"):
+        import Draft,Part,MeshPart
+        shps = [o.Shape for o in Draft.getGroupContents(obj) if hasattr(o,"Shape")]
+        m = MeshPart.meshFromShape(Shape=Part.makeCompound(shps), 
+                                   LinearDeflection=0.1, 
+                                   AngularDeflection=0.523599, 
+                                   Relative=False)
+    elif obj.isDerivedFrom("Part::Feature"):
         import MeshPart
         m = MeshPart.meshFromShape(Shape=obj.Shape, 
                                    LinearDeflection=0.1, 
