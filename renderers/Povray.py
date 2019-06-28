@@ -41,7 +41,9 @@
 #    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
 
 
-import FreeCAD,math
+import FreeCAD
+import math
+import re
 
 
 def writeCamera(camdata):
@@ -201,6 +203,7 @@ def writeObject(viewobj):
 
 def render(project,external=True):
 
+    # This is the actual rendering operation
 
     if not project.PageResult:
         return
@@ -211,13 +214,23 @@ def render(project,external=True):
         raise
     if args:
         args += " "
+    if "RenderWidth" in project.PropertiesList:
+        if "+W" in args:
+            args = re.sub("\+W[0-9]+","+W"+str(project.RenderWidth),args)
+        else:
+            args = args + "+W"+str(project.RenderWidth)+" "
+    if "RenderHeight" in project.PropertiesList:
+        if "+H" in args:
+            args = re.sub("\+H[0-9]+","+H"+str(project.RenderHeight),args)
+        else:
+            args = args + "+H"+str(project.RenderHeight)+" "
     import os
     exe = rpath+" "+args+project.PageResult
     print("Executing "+exe)
     os.system(exe)
     import ImageGui
-    print("Saving image as "+imgname)
     imgname = os.path.splitext(project.PageResult)[0]+".png"
+    print("Saving image as "+imgname)
     ImageGui.open(imgname)
     return
 

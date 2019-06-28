@@ -41,7 +41,11 @@
 #    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
 
 
-import FreeCAD,math
+import FreeCAD
+import math
+import os
+import re
+import tempfile
 
 
 def writeCamera(camdata):
@@ -192,6 +196,27 @@ def render(project,external=True):
 
     if not project.PageResult:
         return
+
+    if hasattr(project,"RenderWidth") and hasattr(project,"RenderHeight"):
+        # change image size in template
+        f = open(project.PageResult,"r")
+        t = f.read()
+        f.close()
+        res = re.findall("integer xresolution",t)
+        if res:
+            t = re.sub("\"integer xresolution\".*?\[.*?\]","\"integer xresolution\" ["+str(project.RenderWidth)+"]",t)
+        res = re.findall("integer yresolution",t)
+        if res:
+            t = re.sub("\"integer yresolution\".*?\[.*?\]","\"integer yresolution\" ["+str(project.RenderHeight)+"]",t)
+        if res:
+            fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
+            f = open(fp,"w")
+            f.write(t)
+            f.close()
+            project.PageResult = fp
+            os.remove(fp)
+            FreeCAD.ActiveDocument.recompute()
+
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if external:
         rpath = p.GetString("LuxRenderPath","")
@@ -200,10 +225,10 @@ def render(project,external=True):
         rpath = p.GetString("LuxConsolePath","")
         args = p.GetString("LuxParameters","")
     if not rpath:
-        raise
+        FreeCAD.Console.PrintError("Unable to locate Luxrender executable. Please set the correct path in Edit -> Preferences -> Render")
+        return
     if args:
         args += " "
-    import os
     os.system(rpath+" "+args+project.PageResult)
     return
 

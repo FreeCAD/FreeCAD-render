@@ -31,7 +31,7 @@ from __future__ import print_function
 # A render engine module must contain the following functions:
 #
 #    writeCamera(camdata): returns a string containing an openInventor camera string in renderer format
-#    writeObject(viewobj): returns a string containing a RaytracingView object in renderer format
+#    writeObject(view): returns a string containing a RaytracingView object in renderer format
 #    render(project,external=True): renders the given project, external means if the user wishes to open
 #                                   the render file in an external application/editor or not. If this
 #                                   is not supported by your renderer, you can simply ignore it
@@ -42,7 +42,11 @@ from __future__ import print_function
 #    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
 
 
-import tempfile,FreeCAD,os,math
+import tempfile
+import FreeCAD
+import os
+import math
+import re
 
 
 def writeCamera(camdata):
@@ -96,7 +100,7 @@ def writeCamera(camdata):
     up = rot.multVec(FreeCAD.Vector(0,1,0))
     up = str(up.x)+" "+str(up.y)+" "+str(up.z)
     pos = str(pos.x)+" "+str(pos.y)+" "+str(pos.z)
-    print("cam:",pos," : ",tpos," : ",up)
+    #print("cam:",pos," : ",tpos," : ",up)
     cam = """
         <camera name="camera" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
@@ -232,6 +236,23 @@ def render(project,external=False):
 
     if not project.PageResult:
         return
+        
+    if hasattr(project,"RenderWidth") and hasattr(project,"RenderHeight"):
+        # change image size in template
+        f = open(project.PageResult,"r")
+        t = f.read()
+        f.close()
+        res = re.findall("<parameter name=\"resolution.*?\/>",t)
+        if res:
+            t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(project.RenderWidth)+" "+str(project.RenderHeight)+"\" />")
+            fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
+            f = open(fp,"w")
+            f.write(t)
+            f.close()
+            project.PageResult = fp
+            os.remove(fp)
+            FreeCAD.ActiveDocument.recompute()
+
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if external:
         rpath = p.GetString("AppleseedStudioPath","")
@@ -240,10 +261,10 @@ def render(project,external=False):
         rpath = p.GetString("AppleseedCliPath","")
         args = p.GetString("AppleseedParameters","")
     if not rpath:
-        raise
+        FreeCAD.Console.PrintError("Unable to locate Appleseed executable. Please set the correct path in Edit -> Preferences -> Render")
+        return
     if args:
         args += " "
-    import os
     os.system(rpath+" "+args+project.PageResult)
     return
 

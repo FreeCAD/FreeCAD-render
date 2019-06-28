@@ -95,6 +95,7 @@ static char * Render_xpm[] = {
         commands = Render.RenderCommands
         self.appendToolbar(QT_TRANSLATE_NOOP("Workbench","Render"),commands)
         self.appendMenu(QT_TRANSLATE_NOOP("Workbench","&Render"),commands)
+        FreeCADGui.addIconPath(Render.iconpath)
         FreeCADGui.addPreferencePage(Render.prefpage,"Render")
         Log ('Loading Render module...done\n')
 

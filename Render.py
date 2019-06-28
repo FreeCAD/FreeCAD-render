@@ -30,14 +30,23 @@ if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
     def translate(context, text):
         if sys.version_info.major >= 3:
-            return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8)
+            if hasattr(QtGui.QApplication,"UnicodeUTF8"):
+                return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8)
+            else:
+                return QtGui.QApplication.translate(context, text, None)
         else:
-            return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8).encode("utf8")
+            if hasattr(QtGui.QApplication,"UnicodeUTF8"):
+                return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8).encode("utf8")
+            else:
+                return QtGui.QApplication.translate(context, text, None).encode("utf8")
 else:
     def translate(context,txt):
         return txt
 def QT_TRANSLATE_NOOP(scope, text):
     return text
+
+
+
 
 class RenderProjectCommand:
 
@@ -59,7 +68,7 @@ class RenderProjectCommand:
             project.Label = self.renderer + " Project"
             project.Renderer = self.renderer
             ViewProviderProject(project.ViewObject)
-            filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template','*.*')
+            filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
             if filename:
                 project.Template = filename[0]
             project.ViewObject.Proxy.setCamera()
@@ -174,14 +183,39 @@ class Project:
 
     def __init__(self,obj):
 
-        obj.addProperty("App::PropertyString",       "Renderer",     "Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
-        obj.addProperty("App::PropertyBool",         "DelayedBuild", "Render", QT_TRANSLATE_NOOP("App::Property","If true, the views will be updated on render only"))
-        obj.addProperty("App::PropertyFile",         "Template",     "Render", QT_TRANSLATE_NOOP("App::Property","The template to be use by this rendering"))
-        obj.addProperty("App::PropertyString",       "Camera",       "Render", QT_TRANSLATE_NOOP("App::Property","The camera data to be used"))
-        obj.addProperty("App::PropertyFileIncluded", "PageResult",   "Render", QT_TRANSLATE_NOOP("App::Property","The result file to be sent to the renderer"))
-        obj.addExtension("App::GroupExtensionPython", self)
-        obj.DelayedBuild = True
         obj.Proxy = self
+        self.setProperties(obj)
+
+    def setProperties(self,obj):
+
+        if not "Renderer" in obj.PropertiesList:
+            obj.addProperty("App::PropertyString","Renderer","Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
+        if not "DelayedBuild" in obj.PropertiesList:
+            obj.addProperty("App::PropertyBool","DelayedBuild","Render", QT_TRANSLATE_NOOP("App::Property","If true, the views will be updated on render only"))
+            obj.DelayedBuild = True
+        if not "Template" in obj.PropertiesList:
+            obj.addProperty("App::PropertyFile","Template","Render", QT_TRANSLATE_NOOP("App::Property","The template to be use by this rendering"))
+        if not "Camera" in obj.PropertiesList:
+            obj.addProperty("App::PropertyString","Camera","Render", QT_TRANSLATE_NOOP("App::Property","The camera data to be used"))
+        if not "PageResult" in obj.PropertiesList:
+            obj.addProperty("App::PropertyFileIncluded", "PageResult","Render", QT_TRANSLATE_NOOP("App::Property","The result file to be sent to the renderer"))
+        if not "Group" in obj.PropertiesList:
+            obj.addExtension("App::GroupExtensionPython", self)
+        if not "RenderWidth" in obj.PropertiesList:
+            obj.addProperty("App::PropertyInteger","RenderWidth","Render", QT_TRANSLATE_NOOP("App::Property","The width of the rendered image in pixels"))
+            obj.RenderWidth = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth",800)
+        if not "RenderHeight" in obj.PropertiesList:
+            obj.addProperty("App::PropertyInteger","RenderHeight","Render", QT_TRANSLATE_NOOP("App::Property","The height of the rendered image in pixels"))
+            obj.RenderHeight = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight",600)
+        if not "GroundPlane" in obj.PropertiesList:
+            obj.addProperty("App::PropertyBool","GroundPlane","Render", QT_TRANSLATE_NOOP("App::Property","If true, a default ground plane will be added to the scene"))
+            obj.GroundPlane = False
+        obj.setEditorMode("PageResult",2)
+        obj.setEditorMode("Camera",2)
+
+    def onDocumentRestored(self,obj):
+        
+        self.setProperties(obj)
 
     def execute(self,obj):
 
@@ -229,6 +263,48 @@ class Project:
             else:
                 return renderer.writeObject(view)
 
+    def writeGroundPlane(self,obj):
+        
+        result = ""
+        bbox = FreeCAD.BoundBox()
+        for view in obj.Group:
+            if view.Source and hasattr(view.Source,"Shape") and hasattr(view.Source.Shape,"BoundBox"):
+                bbox.add(view.Source.Shape.BoundBox)
+        if bbox.isValid():
+            import Part
+            margin = bbox.DiagonalLength/2
+            p1 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMin-margin,0)
+            p2 = FreeCAD.Vector(bbox.XMax+margin,bbox.YMin-margin,0)
+            p3 = FreeCAD.Vector(bbox.XMax+margin,bbox.YMax+margin,0)
+            p4 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMax+margin,0)
+
+            # create temporary object. We do this to keep the renderers code as simple as possible:
+            # they only ned to deal with one type of object: RenderView objects
+            dummy1 = FreeCAD.ActiveDocument.addObject("Part::Feature","renderdummy1")
+            dummy1.Shape = Part.Face(Part.makePolygon([p1,p2,p3,p4,p1]))
+            dummy2 = FreeCAD.ActiveDocument.addObject("App::FeaturePython","renderdummy2")
+            View(dummy2)
+            dummy2.Source = dummy1
+            ViewProviderView(dummy2.ViewObject)
+            FreeCAD.ActiveDocument.recompute()
+            
+            if obj.Renderer:
+                try:
+                    renderer = importlib.import_module("renderers."+obj.Renderer)
+                except ImportError:
+                    FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
+                else:
+                    r = renderer.writeObject(dummy2)
+                    if r:
+                        result = r
+            
+            # remove temp objects
+            FreeCAD.ActiveDocument.removeObject(dummy2.Name)
+            FreeCAD.ActiveDocument.removeObject(dummy1.Name)
+            FreeCAD.ActiveDocument.recompute()
+            
+        return result
+                
     def render(self,obj,external=True):
 
         if obj.Renderer:
@@ -253,6 +329,8 @@ class Project:
                     renderobjs += self.writeObject(obj,view)
                 else:
                     renderobjs += view.ViewResult
+            if hasattr(obj,"GroundPlane") and obj.GroundPlane:
+                renderobjs += self.writeGroundPlane(obj)
             
             if "RaytracingCamera" in template:
                 template = re.sub("(.*RaytracingCamera.*)",cam,template)
@@ -276,10 +354,8 @@ class Project:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
                 return ""
             else:
-                try:
-                    return renderer.render(obj,external)
-                except:
-                    FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer))
+                return renderer.render(obj,external)
+                # FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer))
 
 
 class ViewProviderProject:
@@ -402,7 +478,7 @@ if FreeCAD.GuiUp:
     RenderCommands = []
     Renderers = os.listdir(os.path.dirname(__file__)+os.sep+"renderers")
     Renderers = [r for r in Renderers if not ".pyc" in r]
-    Renderers = [r for r in Renderers if not "__init__" in r]
+    Renderers = [r for r in Renderers if not "__" in r]
     Renderers = [os.path.splitext(r)[0] for r in Renderers]
     for renderer in Renderers:
         FreeCADGui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
@@ -413,4 +489,5 @@ if FreeCAD.GuiUp:
     RenderCommands.append('Render_Render')
 
     # This is for InitGui.py because it cannot import os
+    iconpath = os.path.join(os.path.dirname(__file__),"icons")
     prefpage = os.path.join(os.path.dirname(__file__),"ui","RenderSettings.ui")
