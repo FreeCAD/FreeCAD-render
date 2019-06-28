@@ -39,7 +39,6 @@ else:
 def QT_TRANSLATE_NOOP(scope, text):
     return text
 
-
 class RenderProjectCommand:
 
 
@@ -60,7 +59,7 @@ class RenderProjectCommand:
             project.Label = self.renderer + " Project"
             project.Renderer = self.renderer
             ViewProviderProject(project.ViewObject)
-            filename = QtGui.QFileDialog.getOpenFileName(QtGui.qApp.activeWindow(),'Select template','*.*')
+            filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template','*.*')
             if filename:
                 project.Template = filename[0]
             project.ViewObject.Proxy.setCamera()
@@ -238,7 +237,7 @@ class Project:
             template = None
             if obj.Template:
                 if os.path.exists(obj.Template):
-                    f = open(obj.Template,"rb")
+                    f = open(obj.Template,"r")
                     template = f.read()
                     f.close()
             if not template:
@@ -263,7 +262,7 @@ class Project:
 
             # save page result
             fp = tempfile.mkstemp(prefix=obj.Name,suffix=os.path.splitext(obj.Template)[-1])[1]
-            f = open(fp,"wb")
+            f = open(fp,"w")
             f.write(template)
             f.close()
             obj.PageResult = fp

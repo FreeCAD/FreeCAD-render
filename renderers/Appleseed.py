@@ -175,7 +175,7 @@ def writeObject(viewobj):
         return ""
     m.write(meshfile)
     # fix for missing object name (mandatory in Appleseed)
-    f = open(meshfile, "rb")
+    f = open(meshfile, "r")
     contents = f.readlines()
     f.close()
     n = []
@@ -185,7 +185,7 @@ def writeObject(viewobj):
             found = True
             n.append("o "+objname+"\n")
         n.append(l)
-    f = open(meshfile, "wb")
+    f = open(meshfile, "w")
     contents = "".join(n)
     f.write(contents)
     f.close()
