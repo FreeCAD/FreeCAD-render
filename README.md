@@ -23,7 +23,7 @@ At the moment, the following engines are supported:
 
 ## Installation
 
-The Render workbench is part of the [Addons repository](https://github.com/FreeCAD/FreeCAD-addons), and can be installed from menu Tools->Addon Manager in FreeCAD >= 0.17 or using the Addon Installer macro (see repository above) in earlier versions. It can also be installed manually by downloading this repository using the "clone or download" button above. Refer to the [FreeCAD documentation](https://www.freecadweb.org/wiki/How_to_install_additional_workbenches) to learn more.
+The Render workbench is part of the [Addons repository](https://github.com/FreeCAD/FreeCAD-addons), and can be installed from menu Tools->Addon Manager in FreeCAD. It can also be installed manually by downloading this repository using the "clone or download" button above. Refer to the [FreeCAD documentation](https://www.freecadweb.org/wiki/How_to_install_additional_workbenches) to learn more.
 
 ## Usage
 
@@ -33,7 +33,7 @@ Each renderer has some configurations to be set in Edit -> Preferences -> Render
 
 ### Notes on compiling cycles for standalone use
 
-To use the Cycles renderer, Cycles must be compiled as standalone. Instructions [here](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone) or, if you already compile Blender yourself, enable WITH_CYCLES_STANDALONE and WITH_CYCLESSTANDALONE_GUI (I also had to add -lGLU to CMAKE_EXE_LINKER_FLAGS)
+To use the Cycles renderer, Cycles must be compiled as standalone. Instructions [here](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone) or, if you already compile Blender yourself, enable WITH_CYCLES_STANDALONE and WITH_CYCLES_STANDALONE_GUI cmake variables (I also had to add -lGLU to CMAKE_EXE_LINKER_FLAGS)
 
 ### Notes on using Blender
 
