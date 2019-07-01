@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>487</width>
-    <height>492</height>
+    <width>452</width>
+    <height>589</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
    <property name="spacing">
     <number>6</number>
    </property>
-   <item row="1" column="0">
+   <item row="2" column="0">
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Appleseed</string>
@@ -92,7 +92,7 @@
      </layout>
     </widget>
    </item>
-   <item row="4" column="0">
+   <item row="5" column="0">
     <spacer>
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -105,7 +105,7 @@
      </property>
     </spacer>
    </item>
-   <item row="2" column="0">
+   <item row="3" column="0">
     <widget class="QGroupBox" name="groupBox_2">
      <property name="title">
       <string>Luxrender</string>
@@ -154,7 +154,7 @@
      </layout>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="4" column="0">
     <widget class="QGroupBox" name="groupBox_3">
      <property name="title">
       <string>PovRay</string>
@@ -212,21 +212,21 @@
       <string>General</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>Defautl render height</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
+      <item row="1" column="0">
        <widget class="QLabel" name="label_8">
         <property name="text">
          <string>Default render width</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="1" column="1">
        <widget class="Gui::PrefSpinBox" name="spinBox">
         <property name="suffix">
          <string>px</string>
@@ -245,7 +245,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <widget class="Gui::PrefSpinBox" name="spinBox_2">
         <property name="suffix">
          <string>px</string>
@@ -258,6 +258,72 @@
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>RenderHeight</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>Prefix</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_3">
+        <property name="toolTip">
+         <string>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</string>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>Prefix</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="groupBox_5">
+     <property name="title">
+      <string>Cycles</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_10">
+        <property name="text">
+         <string>Cycles executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_12">
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_4">
+        <property name="prefEntry" stdset="0">
+         <cstring>CyclesPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_2">
+        <property name="text">
+         <string>--samples 100</string>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>CyclesParameters</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>

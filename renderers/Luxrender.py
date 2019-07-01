@@ -225,6 +225,9 @@ def render(project,external=True):
             FreeCAD.ActiveDocument.recompute()
 
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    prefix = p.GetString("Prefix","")
+    if prefix:
+        prefix += " "
     if external:
         rpath = p.GetString("LuxRenderPath","")
         args = ""
@@ -236,7 +239,7 @@ def render(project,external=True):
         return
     if args:
         args += " "
-    os.system(rpath+" "+args+project.PageResult)
+    os.system(prefix+rpath+" "+args+project.PageResult)
     return
 
 
