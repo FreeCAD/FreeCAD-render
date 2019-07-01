@@ -19,6 +19,7 @@ At the moment, the following engines are supported:
 * Pov-Ray http://povray.org/
 * Luxrender http://www.luxrender.net/
 * Appleseed http://appleseedhq.net/
+* Cycles https://www.blender.org/
 
 ## Installation
 
@@ -29,6 +30,14 @@ The Render workbench is part of the [Addons repository](https://github.com/FreeC
 The Render workbench works exactly the same way as the [Raytracing Workbench](https://www.freecadweb.org/wiki/Raytracing_Module). You start by creating a Render project using one of the Renderer buttons from the Render Workbench toolbar, then select some of your document objects, and add views of these objects to your Render project, using the Add View button. You can tweak some features of the views (color, transparency, etc) if you want it to appear differently in the render than in the 3D view of FreeCAD, then, with a Render project selected, you only need to press the Render button to start the render.
 
 Each renderer has some configurations to be set in Edit -> Preferences -> Render before being able to use it, namely the path to its executable.
+
+### Notes on compiling cycles for standalone use
+
+To use the Cycles renderer, Cycles must be compiled as standalone. Instructions [here](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone) or, if you already compile Blender yourself, enable WITH_CYCLES_STANDALONE and WITH_CYCLESSTANDALONE_GUI (I also had to add -lGLU to CMAKE_EXE_LINKER_FLAGS)
+
+### Notes on using Blender
+
+Blender is able to import FreeCAD files with materials correctly imported and ready for Cycles too, by installing the FreeCAD importer addon (available for [2.80](https://gist.github.com/yorikvanhavre/680156f59e2b42df8f5f5391cae2660b) and [2.79](https://gist.github.com/yorikvanhavre/e873d51c8f0e307e333fe595c429ba87)). Importing your FreeCAD file in Blender before rendering gives you a lot more options such as placing lights and textures.
 
 ## To Do
 
