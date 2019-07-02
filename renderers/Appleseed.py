@@ -32,9 +32,11 @@ from __future__ import print_function
 #
 #    writeCamera(camdata): returns a string containing an openInventor camera string in renderer format
 #    writeObject(view): returns a string containing a RaytracingView object in renderer format
-#    render(project,external=True): renders the given project, external means if the user wishes to open
-#                                   the render file in an external application/editor or not. If this
-#                                   is not supported by your renderer, you can simply ignore it
+#    render(project,prefix,external,output,width,height): renders the given project, external means 
+#                                                         if the user wishes to open the render file 
+#                                                         in an external application/editor or not. If this
+#                                                         is not supported by your renderer, you can simply 
+#                                                         ignore it
 #
 # Additionally, you might need/want to add:
 #
@@ -53,8 +55,8 @@ def writeCamera(camdata):
 
 
     # this is where you create a piece of text in the format of
-    # your renderer, that represents the camera. You can use the contents
-    # of obj.Camera, which contain a string in OpenInventor format
+    # your renderer, that represents the camera.
+    # camdata contains a string in OpenInventor format
     # ex:
     # #Inventor V2.1 ascii
     #
@@ -146,7 +148,7 @@ def writeObject(viewobj):
                 color = str(color[0])+" "+str(color[1])+" "+str(color[2])
             if "Transparency" in mat.Material:
                 if float(mat.Material["Transparency"]) > 0:
-                    alpha = str(1.0/float(mat.Material["Transparency"]))
+                    alpha = str(1.0-float(mat.Material["Transparency"]))
                 else:
                     alpha = "1.0"
     if obj.ViewObject:
@@ -157,7 +159,7 @@ def writeObject(viewobj):
         if not alpha:
             if hasattr(obj.ViewObject,"Transparency"):
                 if obj.ViewObject.Transparency > 0:
-                    alpha = str(1.0/(float(obj.ViewObject.Transparency)/100.0))
+                    alpha = str(1.0-(float(obj.ViewObject.Transparency)/100.0))
     if not color:
         color = "1.0 1.0 1.0"
     if not alpha:
@@ -238,32 +240,29 @@ def writeObject(viewobj):
     return objdef
 
 
-def render(project,external=False):
+def render(project,prefix,external,output,width,height):
 
 
-    if not project.PageResult:
-        return
-        
-    if hasattr(project,"RenderWidth") and hasattr(project,"RenderHeight"):
-        # change image size in template
-        f = open(project.PageResult,"r")
-        t = f.read()
+    # here you trigger a render by firing the renderer
+    # executable and pasing it the needed arguments, and
+    # the file it needs to render
+
+    # change image size in template
+    f = open(project.PageResult,"r")
+    t = f.read()
+    f.close()
+    res = re.findall("<parameter name=\"resolution.*?\/>",t)
+    if res:
+        t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(width)+" "+str(height)+"\" />")
+        fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
+        f = open(fp,"w")
+        f.write(t)
         f.close()
-        res = re.findall("<parameter name=\"resolution.*?\/>",t)
-        if res:
-            t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(project.RenderWidth)+" "+str(project.RenderHeight)+"\" />")
-            fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
-            f = open(fp,"w")
-            f.write(t)
-            f.close()
-            project.PageResult = fp
-            os.remove(fp)
-            FreeCAD.ActiveDocument.recompute()
+        project.PageResult = fp
+        os.remove(fp)
+        FreeCAD.ActiveDocument.recompute()
 
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = p.GetString("Prefix","")
-    if prefix:
-        prefix += " "
     if external:
         rpath = p.GetString("AppleseedStudioPath","")
         args = ""
@@ -271,10 +270,11 @@ def render(project,external=False):
         rpath = p.GetString("AppleseedCliPath","")
         args = p.GetString("AppleseedParameters","")
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate Appleseed executable. Please set the correct path in Edit -> Preferences -> Render")
+        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
     if args:
         args += " "
+    args += "--output "+output+" "
     os.system(prefix+rpath+" "+args+project.PageResult)
     return
 

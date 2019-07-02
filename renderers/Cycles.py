@@ -32,9 +32,11 @@ from __future__ import print_function
 #
 #    writeCamera(camdata): returns a string containing an openInventor camera string in renderer format
 #    writeObject(view): returns a string containing a RaytracingView object in renderer format
-#    render(project,external=True): renders the given project, external means if the user wishes to open
-#                                   the render file in an external application/editor or not. If this
-#                                   is not supported by your renderer, you can simply ignore it
+#    render(project,prefix,external,output,width,height): renders the given project, external means 
+#                                                         if the user wishes to open the render file 
+#                                                         in an external application/editor or not. If this
+#                                                         is not supported by your renderer, you can simply 
+#                                                         ignore it
 #
 # Additionally, you might need/want to add:
 #
@@ -53,8 +55,8 @@ def writeCamera(camdata):
 
 
     # this is where you create a piece of text in the format of
-    # your renderer, that represents the camera. You can use the contents
-    # of obj.Camera, which contain a string in OpenInventor format
+    # your renderer, that represents the camera.
+    # camdata contains a string in OpenInventor format
     # ex:
     # #Inventor V2.1 ascii
     #
@@ -140,9 +142,9 @@ def writeObject(viewobj):
                 color = str(color[0])+", "+str(color[1])+", "+str(color[2])
             if "Transparency" in mat.Material:
                 if float(mat.Material["Transparency"]) > 0:
-                    alpha = str(1.0/float(mat.Material["Transparency"]))
+                    alpha = 1.0-float(mat.Material["Transparency"])
                 else:
-                    alpha = "1.0"
+                    alpha = 1.0
     if obj.ViewObject:
         if not color:
             if hasattr(obj.ViewObject,"ShapeColor"):
@@ -151,18 +153,24 @@ def writeObject(viewobj):
         if not alpha:
             if hasattr(obj.ViewObject,"Transparency"):
                 if obj.ViewObject.Transparency > 0:
-                    alpha = str(1.0/(float(obj.ViewObject.Transparency)/100.0))
+                    alpha = 1.0-(float(obj.ViewObject.Transparency)/100.0)
     if not color:
         color = "1.0, 1.0, 1.0"
     if not alpha:
-        alpha = "1.0"
+        alpha = 1.0
     bsdfname = objname + "_bsdf"
     matname = objname + "_mat"
-    
+    print(matname,alpha)
     objdata += "    <shader name=\""+matname+"\">\n"
     objdata += "        <diffuse_bsdf name=\""+bsdfname+"\" color=\""+color+"\" />\n"
-    objdata += "        <connect from=\""+bsdfname+" bsdf\" to=\"output surface\" />\n"
-    # TODO: support alpha
+    if alpha < 1:
+        objdata += "        <transparent_bsdf name=\""+bsdfname+"_trans\" color=\"1.0, 1.0, 1.0\" />\n"
+        objdata += "        <mix_closure name=\""+bsdfname+"_mix\" fac=\""+str(alpha)+"\" />\n"
+        objdata += "        <connect from=\""+bsdfname+"_trans bsdf\" to=\""+bsdfname+"_mix closure1\" />\n"
+        objdata += "        <connect from=\""+bsdfname+" bsdf\" to=\""+bsdfname+"_mix closure2\" />\n"
+        objdata += "        <connect from=\""+bsdfname+"_mix closure\" to=\"output surface\" />\n"
+    else:
+        objdata += "        <connect from=\""+bsdfname+" bsdf\" to=\"output surface\" />\n"
     objdata += "    </shader>\n\n"
     
     # mesh
@@ -203,37 +211,28 @@ def writeObject(viewobj):
     return objdata
 
 
-def render(project,external=False):
+def render(project,prefix,external,output,width,height):
 
 
-    if not project.PageResult:
-        return
-    
-    w = 800
-    if hasattr(project,"RenderWidth"): 
-        w = project.RenderWidth
-    h = 600
-    if hasattr(project,"RenderHeight"):
-        h = project.RenderHeight
+    # here you trigger a render by firing the renderer
+    # executable and pasing it the needed arguments, and
+    # the file it needs to render
+
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = p.GetString("Prefix","")
     if prefix:
         prefix += " "
     rpath = p.GetString("CyclesPath","")
     args = p.GetString("CyclesParameters","")
-    imgname = os.path.splitext(project.PageResult)[0]+".png"
-    print("Saving image as "+imgname)
-    args += " --output "+imgname
+    args += " --output "+output
     if not external: 
         args += " --background"
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate Cycles executable. Please set the correct path in Edit -> Preferences -> Render")
+        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
-    args += " --width "+str(w)
-    args += " --height "+str(h)
-    if args:
-        args += " "
-    os.system(prefix+rpath+" "+args+project.PageResult)
-    return
+    args += " --width "+str(width)
+    args += " --height "+str(height)
+    os.system(prefix+rpath+" "+args+" "+project.PageResult)
+    return output
 
 

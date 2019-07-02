@@ -31,9 +31,11 @@
 #
 #    writeCamera(camdata): returns a string containing an openInventor camera string in renderer format
 #    writeObject(view): returns a string containing a RaytracingView object in renderer format
-#    render(project,external=True): renders the given project, external means if the user wishes to open
-#                                   the render file in an external application/editor or not. If this
-#                                   is not supported by your renderer, you can simply ignore it
+#    render(project,prefix,external,output,width,height): renders the given project, external means 
+#                                                         if the user wishes to open the render file 
+#                                                         in an external application/editor or not. If this
+#                                                         is not supported by your renderer, you can simply 
+#                                                         ignore it
 #
 # Additionally, you might need/want to add:
 #
@@ -50,8 +52,8 @@ def writeCamera(camdata):
 
 
     # this is where you create a piece of text in the format of
-    # your renderer, that represents the camera. You can use the contents
-    # of obj.Camera, which contain a string in OpenInventor format
+    # your renderer, that represents the camera.
+    # camdata contains a string in OpenInventor format
     # ex:
     # #Inventor V2.1 ascii
     #
@@ -143,7 +145,7 @@ def writeObject(viewobj):
                 color = str(color[0])+","+str(color[1])+","+str(color[2])
             if "Transparency" in mat.Material:
                 if float(mat.Material["Transparency"]) > 0:
-                    alpha = str(1.0/float(mat.Material["Transparency"]))
+                    alpha = str(1.0-float(mat.Material["Transparency"]))
                 else:
                     alpha = "1.0"
     if obj.ViewObject:
@@ -154,7 +156,7 @@ def writeObject(viewobj):
         if not alpha:
             if hasattr(obj.ViewObject,"Transparency"):
                 if obj.ViewObject.Transparency > 0:
-                    alpha = str(1.0/(float(obj.ViewObject.Transparency)/100.0))
+                    alpha = str(1.0-(float(obj.ViewObject.Transparency)/100.0))
     if not color:
         color = "1.0,1.0,1.0"
     if not alpha:
@@ -208,12 +210,13 @@ def writeObject(viewobj):
     return objdef
 
 
-def render(project,external=True):
+def render(project,prefix,external,output,width,height):
 
-    # This is the actual rendering operation
 
-    if not project.PageResult:
-        return
+    # here you trigger a render by firing the renderer
+    # executable and pasing it the needed arguments, and
+    # the file it needs to render
+
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = p.GetString("Prefix","")
     if prefix:
@@ -221,27 +224,21 @@ def render(project,external=True):
     rpath = p.GetString("PovRayPath","")
     args = p.GetString("PovRayParameters","")
     if not rpath:
-        raise
+        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
+        return
     if args:
         args += " "
-    if "RenderWidth" in project.PropertiesList:
-        if "+W" in args:
-            args = re.sub("\+W[0-9]+","+W"+str(project.RenderWidth),args)
-        else:
-            args = args + "+W"+str(project.RenderWidth)+" "
-    if "RenderHeight" in project.PropertiesList:
-        if "+H" in args:
-            args = re.sub("\+H[0-9]+","+H"+str(project.RenderHeight),args)
-        else:
-            args = args + "+H"+str(project.RenderHeight)+" "
+    if "+W" in args:
+        args = re.sub("\+W[0-9]+","+W"+str(width),args)
+    else:
+        args = args + "+W"+str(width)+" "
+    if "+H" in args:
+        args = re.sub("\+H[0-9]+","+H"+str(height),args)
+    else:
+        args = args + "+H"+str(height)+" "
     import os
-    exe = prefix+rpath+" "+args+project.PageResult
-    print("Executing "+exe)
-    os.system(exe)
-    import ImageGui
+    os.system(prefix+rpath+" "+args+project.PageResult)
     imgname = os.path.splitext(project.PageResult)[0]+".png"
-    print("Saving image as "+imgname)
-    ImageGui.open(imgname)
-    return
+    return imgname
 
 

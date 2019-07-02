@@ -143,7 +143,10 @@ class RenderCommand:
         if not project:
             FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
-        project.Proxy.render(project)
+        img = project.Proxy.render(project)
+        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
+            import ImageGui
+            ImageGui.open(img)
 
 
 class RenderExternalCommand:
@@ -173,7 +176,10 @@ class RenderExternalCommand:
         if not project:
             FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
-        project.Proxy.render(project)
+        img = project.Proxy.render(project,external=True)
+        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
+            import ImageGui
+            ImageGui.open(img)
 
 
 class Project:
@@ -209,6 +215,11 @@ class Project:
             obj.RenderHeight = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight",600)
         if not "GroundPlane" in obj.PropertiesList:
             obj.addProperty("App::PropertyBool","GroundPlane","Render", QT_TRANSLATE_NOOP("App::Property","If true, a default ground plane will be added to the scene"))
+            obj.GroundPlane = False
+        if not "OutputImage" in obj.PropertiesList:
+            obj.addProperty("App::PropertyFile","OutputImage","Render", QT_TRANSLATE_NOOP("App::Property","The image saved by this render"))
+        if not "OpenAfterRender" in obj.PropertiesList:
+            obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
             obj.GroundPlane = False
         obj.setEditorMode("PageResult",2)
         obj.setEditorMode("Camera",2)
@@ -348,14 +359,31 @@ class Project:
             
             FreeCAD.ActiveDocument.recompute()
 
+            # run the rendering
             try:
                 renderer = importlib.import_module("renderers."+obj.Renderer)
             except ImportError:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
-                return ""
+                return
             else:
-                return renderer.render(obj,external)
-                # FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer))
+                if not obj.PageResult:
+                    FreeCAD.Console.PrintError(translate("Render","Error: No page result"))
+                    return
+                p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+                prefix = p.GetString("Prefix","")
+                if prefix:
+                    prefix += " "
+                output = os.path.splitext(obj.PageResult)[0]+".png"
+                if hasattr(obj,"OutputImage") and obj.OutputImage:
+                    output = obj.OutputImage
+                width = 800
+                if hasattr(obj,"RenderWidth") and obj.RenderWidth: 
+                    width = obj.RenderWidth
+                height = 600
+                if hasattr(obj,"RenderHeight") and obj.RenderHeight:
+                    height = obj.RenderHeight
+                return renderer.render(obj,prefix,external,output,width,height)
+                FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer))
 
 
 class ViewProviderProject:
