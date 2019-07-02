@@ -24,7 +24,13 @@
 # It will add all renderer modules specified below at FreeCAD launch, and
 # create the necessary UI controls.
 
-import sys,os,re,tempfile,FreeCAD,importlib
+import sys
+import os
+import re
+import tempfile
+import FreeCAD
+import importlib
+import math
 
 if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
@@ -156,11 +162,13 @@ class RenderExternalCommand:
 
 
     def GetResources(self):
+
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
                 'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Render"),
                 'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
     def Activated(self):
+
         import FreeCADGui
         project = None
         sel = FreeCADGui.Selection.getSelection()
@@ -182,15 +190,18 @@ class RenderExternalCommand:
             ImageGui.open(img)
 
 
+
 class Project:
 
 
     "A rendering project"
 
+
     def __init__(self,obj):
 
         obj.Proxy = self
         self.setProperties(obj)
+
 
     def setProperties(self,obj):
 
@@ -224,13 +235,16 @@ class Project:
         obj.setEditorMode("PageResult",2)
         obj.setEditorMode("Camera",2)
 
+
     def onDocumentRestored(self,obj):
-        
+
         self.setProperties(obj)
+
 
     def execute(self,obj):
 
         return True
+
 
     def onChanged(self,obj,prop):
 
@@ -239,13 +253,49 @@ class Project:
                 for view in obj.Group:
                     view.touch()
 
+
     def setCamera(self,obj):
 
         if FreeCAD.GuiUp:
             import FreeCADGui
             obj.Camera = FreeCADGui.ActiveDocument.ActiveView.getCamera()
 
+
     def writeCamera(self,obj):
+
+        # camdata contains a string in OpenInventor format
+        # ex:
+        # #Inventor V2.1 ascii
+        #
+        #
+        # PerspectiveCamera {
+        #  viewportMapping ADJUST_CAMERA
+        #  position 0 -1.3207401 0.82241058
+        #  orientation 0.99999666 0 0  0.26732138
+        #  nearDistance 1.6108983
+        #  farDistance 6611.4492
+        #  aspectRatio 1
+        #  focalDistance 5
+        #  heightAngle 0.78539819
+        #
+        # }
+        #
+        # or (ortho camera):
+        #
+        # #Inventor V2.1 ascii
+        #
+        #
+        # OrthographicCamera {
+        #  viewportMapping ADJUST_CAMERA
+        #  position 0 0 1
+        #  orientation 0 0 1  0
+        #  nearDistance 0.99900001
+        #  farDistance 1.001
+        #  aspectRatio 1
+        #  focalDistance 5
+        #  height 4.1421356
+        #
+        # }
 
         if not obj.Camera:
             self.setCamera(obj)
@@ -259,7 +309,22 @@ class Project:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
                 return ""
             else:
-                return renderer.writeCamera(obj.Camera)
+
+                if not obj.Camera:
+                    return ""
+                camdata = obj.Camera.split("\n")
+                cam = ""
+                pos = [float(p) for p in camdata[5].split()[-3:]]
+                pos = FreeCAD.Vector(pos)
+                rot = [float(p) for p in camdata[6].split()[-4:]]
+                rot = FreeCAD.Rotation(FreeCAD.Vector(rot[0],rot[1],rot[2]),math.degrees(rot[3]))
+                target = rot.multVec(FreeCAD.Vector(0,0,-1))
+                target.multiply(float(camdata[10].split()[-1]))
+                target = pos.add(target)
+                up = rot.multVec(FreeCAD.Vector(0,1,0))
+
+                return renderer.writeCamera(pos,rot,up,target)
+
 
     def writeObject(self,obj,view):
 
@@ -272,10 +337,65 @@ class Project:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
                 return ""
             else:
-                return renderer.writeObject(view)
+
+                # get color and alpha
+                mat = None
+                color = None
+                alpha = None
+                if view.Material:
+                    mat = view.Material
+                else:
+                    if "Material" in view.Source.PropertiesList:
+                        if view.Source.Material:
+                            mat = view.Source.Material
+                if mat:
+                    if "Material" in mat.PropertiesList:
+                        if "DiffuseColor" in mat.Material:
+                            color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
+                        if "Transparency" in mat.Material:
+                            if float(mat.Material["Transparency"]) > 0:
+                                alpha = 1.0-float(mat.Material["Transparency"])
+                            else:
+                                alpha = 1.0
+                if view.Source.ViewObject:
+                    if not color:
+                        if hasattr(view.Source.ViewObject,"ShapeColor"):
+                            color = view.Source.ViewObject.ShapeColor[:3]
+                    if not alpha:
+                        if hasattr(view.Source.ViewObject,"Transparency"):
+                            if view.Source.ViewObject.Transparency > 0:
+                                alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
+                if not color:
+                    color = (1.0, 1.0, 1.0)
+                if not alpha:
+                    alpha = 1.0
+
+                # get mesh
+                import Draft
+                import Part
+                import MeshPart
+                mesh = None
+                if hasattr(view.Source,"Group"):
+                    shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
+                    mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
+                                               LinearDeflection=0.1,
+                                               AngularDeflection=0.523599,
+                                               Relative=False)
+                elif view.Source.isDerivedFrom("Part::Feature"):
+                    mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
+                                               LinearDeflection=0.1,
+                                               AngularDeflection=0.523599,
+                                               Relative=False)
+                elif view.Source.isDerivedFrom("Mesh::Feature"):
+                    mesh = view.Source.Mesh
+                if not mesh:
+                    return ""
+
+                return renderer.writeObject(view,mesh,color,alpha)
+
 
     def writeGroundPlane(self,obj):
-        
+
         result = ""
         bbox = FreeCAD.BoundBox()
         for view in obj.Group:
@@ -298,24 +418,17 @@ class Project:
             dummy2.Source = dummy1
             ViewProviderView(dummy2.ViewObject)
             FreeCAD.ActiveDocument.recompute()
-            
-            if obj.Renderer:
-                try:
-                    renderer = importlib.import_module("renderers."+obj.Renderer)
-                except ImportError:
-                    FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
-                else:
-                    r = renderer.writeObject(dummy2)
-                    if r:
-                        result = r
-            
+
+            result = self.writeObject(obj,dummy2)
+
             # remove temp objects
             FreeCAD.ActiveDocument.removeObject(dummy2.Name)
             FreeCAD.ActiveDocument.removeObject(dummy1.Name)
             FreeCAD.ActiveDocument.recompute()
-            
+
         return result
-                
+
+
     def render(self,obj,external=True):
 
         if obj.Renderer:
@@ -332,7 +445,7 @@ class Project:
 
             # write camera
             cam = self.writeCamera(obj)
-            
+
             # write objects
             renderobjs = ""
             for view in obj.Group:
@@ -342,7 +455,7 @@ class Project:
                     renderobjs += view.ViewResult
             if hasattr(obj,"GroundPlane") and obj.GroundPlane:
                 renderobjs += self.writeGroundPlane(obj)
-            
+
             if "RaytracingCamera" in template:
                 template = re.sub("(.*RaytracingCamera.*)",cam,template)
                 template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
@@ -356,7 +469,7 @@ class Project:
             f.close()
             obj.PageResult = fp
             os.remove(fp)
-            
+
             FreeCAD.ActiveDocument.recompute()
 
             # run the rendering
@@ -377,7 +490,7 @@ class Project:
                 if hasattr(obj,"OutputImage") and obj.OutputImage:
                     output = obj.OutputImage
                 width = 800
-                if hasattr(obj,"RenderWidth") and obj.RenderWidth: 
+                if hasattr(obj,"RenderWidth") and obj.RenderWidth:
                     width = obj.RenderWidth
                 height = 600
                 if hasattr(obj,"RenderHeight") and obj.RenderHeight:
