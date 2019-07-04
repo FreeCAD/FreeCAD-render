@@ -50,8 +50,8 @@ to its executable.
 
 To use the Cycles renderer, Cycles must be compiled as standalone. 
 The Blender wiki [has a section on how to compile Cycles as standalone](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone)  
-If you already compile Blender yourself, enable `WITH_CYCLES_STANDALONE` and `WITH_CYCLES_STANDALONE_GUI` cmake variables 
-(I also had to add `-lGLU` to `CMAKE_EXE_LINKER_FLAGS`)
+If you already compile Blender yourself, All you need to do is enable `WITH_CYCLES_STANDALONE` and `WITH_CYCLES_STANDALONE_GUI` cmake variables 
+(I also had to add `-lGLU` to `CMAKE_EXE_LINKER_FLAGS`) and you will get a 'cycles' executable compiled together with Blender.
 
 ### Notes on using Blender
 
