@@ -2,6 +2,8 @@
 
 A [FreeCAD](http://www.freecadweb.org) workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines
 
+![](https://yorik.uncreated.net/images/2019/freecad-june-09.jpg)
+
 ## Introduction
 
 The Render workbench is a replacement for the built-in [Raytracing workbench](https://www.freecadweb.org/wiki/Raytracing_Module) of FreeCAD. There are several differences between the two:
