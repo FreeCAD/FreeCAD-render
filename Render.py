@@ -410,7 +410,7 @@ class Project:
             p4 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMax+margin,0)
 
             # create temporary object. We do this to keep the renderers code as simple as possible:
-            # they only ned to deal with one type of object: RenderView objects
+            # they only need to deal with one type of object: RenderView objects
             dummy1 = FreeCAD.ActiveDocument.addObject("Part::Feature","renderdummy1")
             dummy1.Shape = Part.Face(Part.makePolygon([p1,p2,p3,p4,p1]))
             dummy2 = FreeCAD.ActiveDocument.addObject("App::FeaturePython","renderdummy2")
