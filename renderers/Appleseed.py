@@ -95,7 +95,7 @@ def writeObject(viewobj,mesh,color,alpha):
 
     # write the mesh as an obj tempfile
 
-    meshfile = tempfile.mkstemp(suffix=".obj")[1]
+    meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")[1]
     objfile = os.path.splitext(os.path.basename(meshfile))[0]
     mesh.write(meshfile)
 
