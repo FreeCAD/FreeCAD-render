@@ -155,6 +155,7 @@ def render(project,prefix,external,output,width,height):
         return
     if args:
         args += " "
+    FreeCAD.Console.PrintMessage(prefix+rpath+" "+args+project.PageResult+"\n")
     os.system(prefix+rpath+" "+args+project.PageResult)
     return
 
