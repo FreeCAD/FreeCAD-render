@@ -155,7 +155,6 @@ def render(project,prefix,external,output,width,height):
         return
     if args:
         args += " "
-    args += "--output "+output+" "
     os.system(prefix+rpath+" "+args+project.PageResult)
     return
 
