@@ -439,6 +439,8 @@ class Project:
                 if os.path.exists(obj.Template):
                     f = open(obj.Template,"r")
                     template = f.read()
+                    if sys.version_info.major < 3:
+                        template = template.decode("utf8")
                     f.close()
             if not template:
                 return
@@ -465,6 +467,8 @@ class Project:
             # save page result
             fp = tempfile.mkstemp(prefix=obj.Name,suffix=os.path.splitext(obj.Template)[-1])[1]
             f = open(fp,"w")
+            if sys.version_info.major < 3:
+                template = template.encode("utf8")
             f.write(template)
             f.close()
             obj.PageResult = fp
@@ -496,7 +500,7 @@ class Project:
                 if hasattr(obj,"RenderHeight") and obj.RenderHeight:
                     height = obj.RenderHeight
                 return renderer.render(obj,prefix,external,output,width,height)
-                FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer))
+                FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
 
 
 class ViewProviderProject:
