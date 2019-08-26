@@ -70,7 +70,7 @@ mode is not implemented, the external mode will always be used.
 
 ## Feedback
 
-For Feedback, bugs, feature requests, and futher discussion please use the dedicated FreeCAD [forum thread]()
+For Feedback, bugs, feature requests, and further discussion please use the dedicated FreeCAD [forum thread]()
 
 ## Author
 Yorik Can Havre AKA [@yorikvanhavre](https://github.com/yorikvanhavre) ([blog](https://yorik.uncreated.net/))

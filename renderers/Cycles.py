@@ -122,7 +122,7 @@ def writeObject(viewobj,mesh,color,alpha):
 def render(project,prefix,external,output,width,height):
 
     # here you trigger a render by firing the renderer
-    # executable and pasing it the needed arguments, and
+    # executable and passing it the needed arguments, and
     # the file it needs to render
 
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
