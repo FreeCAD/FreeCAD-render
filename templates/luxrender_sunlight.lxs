@@ -87,7 +87,7 @@ AttributeBegin #  "Lamp"
 
 LightGroup "Sunlight"
 
-LightSource "sunsky"
+LightSource "sunsky2"
 	"float gain" [1.000000000000000]
 	"float importance" [2.000000000000000]
 	"integer nsamples" [1]
