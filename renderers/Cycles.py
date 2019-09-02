@@ -90,7 +90,7 @@ def writeObject(viewobj,mesh,color,alpha):
     objdef =      "    <shader name=\""+matname+"\">\n"
     objdef +=     "        <diffuse_bsdf name=\""+bsdfname+"\" color=\""+color+"\" />\n"
     if alpha < 1:
-        objdef += "        <transparent_bsdf name=\""+transname+"_trans\" color=\"1.0, 1.0, 1.0\" />\n"
+        objdef += "        <transparent_bsdf name=\""+transname+"\" color=\"1.0, 1.0, 1.0\" />\n"
         objdef += "        <mix_closure name=\""+mixname+"\" fac=\""+str(alpha)+"\" />\n"
         objdef += "        <connect from=\""+transname+" bsdf\" to=\""+mixname+" closure1\" />\n"
         objdef += "        <connect from=\""+bsdfname+" bsdf\" to=\""+mixname+" closure2\" />\n"
