@@ -137,7 +137,8 @@ def render(project,prefix,external,output,width,height):
     if res:
         t = re.sub("\"integer yresolution\".*?\[.*?\]","\"integer yresolution\" ["+str(height)+"]",t)
     if res:
-        fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
+        fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
+        os.close(fd)
         f = open(fp,"w")
         f.write(t)
         f.close()
