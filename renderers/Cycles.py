@@ -67,6 +67,79 @@ def writeCamera(pos,rot,up,target):
 
     return cam
 
+def writeParameter(name, parameter):
+    if parameter is not None:
+        return name + '="' + parameter + '" '
+    else:
+        return ""
+
+def writeDiffuseShader(matname, material):
+    bsdfname = matname + "_bsdf"
+    transname = matname + "_trans"
+    mixname = matname + "_mix"
+
+    color = material["DiffuseColor"].strip("(").strip(")")
+    alpha = 1.0 - float(material["Transparency"])/100.0
+
+    matdef =      "    <shader " + writeParameter("name", matname) +">\n"
+    matdef +=     "        <diffuse_bsdf " + writeParameter("name", bsdfname) + writeParameter("color", color) +"/>\n"
+    if alpha < 1:
+        matdef += "        <transparent_bsdf " + writeParameter("name", transname) + writeParameter("color","1.0, 1.0, 1.0") + "/>\n"
+        matdef += "        <mix_closure " + writeParameter("name", mixname) + writeParameter("fac", str(alpha)) + "/>\n"
+        matdef += "        <connect " + writeParameter("from", transname+" bsdf") + writeParameter("to", mixname+" closure1") + "/>\n"
+        matdef += "        <connect " + writeParameter("from", bsdfname+" bsdf") + writeParameter("to", mixname+" closure2") +  "/>\n"
+        matdef += "        <connect " + writeParameter("from", mixname+" closure") + writeParameter("to", "output surface") +  "/>\n"
+    else:
+        matdef += "        <connect " + writeParameter("from", bsdfname+" bsdf") + writeParameter("to", "output surface") + "/>\n"
+    matdef +=     "    </shader>\n\n"
+
+    return matdef
+
+def writePrincipledShader(matname, material):
+    bsdfname = matname + "_bsdf"
+    transname = matname + "_trans"
+    mixname = matname + "_mix"
+
+    color = material["DiffuseColor"].strip("(").strip(")")
+    alpha = 1.0 - float(material["Transparency"])/100.0
+    subsurfacecolor = material.get("Principled_SubsurfaceColor")
+    if subsurfacecolor is not None:
+        subsurfacecolor = subsurfacecolor.strip("(").strip(")")
+    
+    # write shader
+    matdef =      "    <shader " + writeParameter("name", matname) +">\n"
+    matdef +=     ("        <principled_bsdf " + writeParameter("name", bsdfname)
+                                              + writeParameter("base_color", color)
+                                              + writeParameter("subsurface_color", subsurfacecolor)
+                                              + writeParameter("transmission", material.get("Principled_Transmission"))
+                                              + writeParameter("ior", material.get("Principled_IOR"))
+                                              + writeParameter("roughness", material.get("Principled_Roughness"))
+                                              + writeParameter("metallic", material.get("Principled_Metallic"))
+                                              + writeParameter("subsurface", material.get("Principled_Subsurface"))
+                                              #+ writeParameter("alpha, "Alpha", 1.0f);
+                                              + writeParameter("specular", material.get("Principled_Specular"))
+                                              + writeParameter("specular_tint", material.get("Principled_SpecularTint"))
+                                              + writeParameter("anisotropic", material.get("Principled_Anisotropic"))
+                                              + writeParameter("sheen", material.get("Principled_Sheen"))
+                                              + writeParameter("sheen_tint", material.get("Principled_SheenTint"))
+                                              + writeParameter("clearcoat", material.get("Principled_Clearcoat"))
+                                              + writeParameter("clearcoat_roughness", material.get("Principled_ClearcoatRoughness"))
+                                              + writeParameter("transmission_roughness", material.get("Principled_TransmissionRoughness"))
+                                              + writeParameter("anisotropic_rotation", material.get("Principled_AnisotropicRotation"))
+                                              #SOCKET_IN_COLOR(emission, "Emission", make_float3(0.0f, 0.0f, 0.0f));
+                                              #SOCKET_IN_VECTOR(subsurface_radius, "Subsurface Radius", make_float3(0.1f, 0.1f, 0.1f));
+                                              + "/>\n")
+    if alpha < 1:
+        matdef += "        <transparent_bsdf " + writeParameter("name", transname) + writeParameter("color","1.0, 1.0, 1.0") + "/>\n"
+        matdef += "        <mix_closure " + writeParameter("name", mixname) + writeParameter("fac", str(alpha)) + "/>\n"
+        matdef += "        <connect " + writeParameter("from", transname+" bsdf") + writeParameter("to", mixname+" closure1") + "/>\n"
+        matdef += "        <connect " + writeParameter("from", bsdfname+" bsdf") + writeParameter("to", mixname+" closure2") +  "/>\n"
+        matdef += "        <connect " + writeParameter("from", mixname+" closure") + writeParameter("to", "output surface") +  "/>\n"
+    else:
+        matdef += "        <connect " + writeParameter("from", bsdfname+" bsdf") + writeParameter("to", "output surface") + "/>\n"
+    matdef +=     "    </shader>\n\n"
+
+    return matdef
 
 def writeObject(name,mesh,material):
 
@@ -76,30 +149,13 @@ def writeObject(name,mesh,material):
     # to write all the data needed by your object (geometry, materials, etc)
     # so make sure you include everything that is needed
 
-    bsdfname = name + "_bsdf"
+
     matname = name + "_mat"
-    transname = name + "_trans"
-    mixname = name + "_mix"
+    #if "RefractionIndex" in material:
+    #    objdef = writePrincipledShader(matname, material)
+    #else:
+    objdef = writePrincipledShader(matname, material)
 
-    # format color data
-
-    color = material["DiffuseColor"].strip("(").strip(")")
-    alpha = 1.0 - float(material["Transparency"])/100.0
-
-    # write shader
-    
-    objdef =      "    <shader name=\""+matname+"\">\n"
-    objdef +=     "        <diffuse_bsdf name=\""+bsdfname+"\" color=\""+color+"\" />\n"
-    if alpha < 1:
-        objdef += "        <transparent_bsdf name=\""+transname+"\" color=\"1.0, 1.0, 1.0\" />\n"
-        objdef += "        <mix_closure name=\""+mixname+"\" fac=\""+str(alpha)+"\" />\n"
-        objdef += "        <connect from=\""+transname+" bsdf\" to=\""+mixname+" closure1\" />\n"
-        objdef += "        <connect from=\""+bsdfname+" bsdf\" to=\""+mixname+" closure2\" />\n"
-        objdef += "        <connect from=\""+mixname+" closure\" to=\"output surface\" />\n"
-    else:
-        objdef += "        <connect from=\""+bsdfname+" bsdf\" to=\"output surface\" />\n"
-    objdef +=     "    </shader>\n\n"
-    
     # write mesh
 
     P = ""
