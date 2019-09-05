@@ -343,6 +343,13 @@ class Project:
                 return multimaterial.Materials[i]
         return None
 
+    def writeWallMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
+        shapes = view.Source.Shape.childShapes()
+        renderstring = ""
+        for i, shape in enumerate(shapes):
+            renderstring += renderer.writeObject(view.Name + "_layer" + str(i), self.meshFromShape(shape), view.Source.Material.Materials[i].Material)
+        return renderstring;
+
     def writeWindowMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
         shapes = view.Source.Shape.childShapes()
         renderstring = ""
@@ -427,7 +434,8 @@ class Project:
                             partType = Draft.getType(view.Source)
                             if partType == "Window":
                                 return self.writeWindowMultiMaterial(renderer,view,mat,color,transparency)
-
+                            elif partType == "Wall":
+                                return self.writeWallMultiMaterial(renderer,view,mat,color,transparency)
                             return renderer.writeObject(view.Name,self.meshFromShape(view.Source.Shape),mat.Materials[0].Material)
                         else:
 
