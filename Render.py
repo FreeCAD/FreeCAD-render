@@ -231,7 +231,7 @@ class Project:
             obj.addProperty("App::PropertyFile","OutputImage","Render", QT_TRANSLATE_NOOP("App::Property","The image saved by this render"))
         if not "OpenAfterRender" in obj.PropertiesList:
             obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
-            obj.GroundPlane = False
+            obj.OpenAfterRender = False
         obj.setEditorMode("PageResult",2)
         obj.setEditorMode("Camera",2)
 
