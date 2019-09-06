@@ -58,6 +58,10 @@ def doRender(project, external=True):
         import ImageGui
         ImageGui.open(img)
 
+class RenderMaterial:
+    def __init__(self, color, alpha):
+        self.color = color
+        self.alpha = alpha
 
 class RenderProjectCommand:
 
@@ -255,7 +259,7 @@ class Project:
         if FreeCAD.GuiUp:
             import FreeCADGui
             obj.Camera = FreeCADGui.ActiveDocument.ActiveView.getCamera()
-
+    
 
     def writeCamera(self,obj):
 
@@ -321,6 +325,45 @@ class Project:
 
                 return renderer.writeCamera(pos,rot,up,target)
 
+    
+    def calculateDefaultMaterialData(self, view):
+        # Calculates the default material data when no material pipeline is in place
+        # Or no material is found otherwise
+        # The default data consists of a color and a alpha value.
+
+        # get color and alpha
+        mat = None
+        color = None
+        alpha = None
+        if view.Material:
+            mat = view.Material
+        else:
+            if "Material" in view.Source.PropertiesList:
+                if view.Source.Material:
+                    mat = view.Source.Material
+        if mat:
+            if "Material" in mat.PropertiesList:
+                if "DiffuseColor" in mat.Material:
+                    color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
+                if "Transparency" in mat.Material:
+                    if float(mat.Material["Transparency"]) > 0:
+                        alpha = 1.0-float(mat.Material["Transparency"])
+                    else:
+                        alpha = 1.0
+        if view.Source.ViewObject:
+            if not color:
+                if hasattr(view.Source.ViewObject,"ShapeColor"):
+                    color = view.Source.ViewObject.ShapeColor[:3]
+            if not alpha:
+                if hasattr(view.Source.ViewObject,"Transparency"):
+                    if view.Source.ViewObject.Transparency > 0:
+                        alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
+        if not color:
+            color = (1.0, 1.0, 1.0)
+        if not alpha:
+            alpha = 1.0
+            
+        return RenderMaterial(color, alpha)
 
     def writeObject(self,obj,view):
 
@@ -333,38 +376,7 @@ class Project:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
                 return ""
             else:
-
-                # get color and alpha
-                mat = None
-                color = None
-                alpha = None
-                if view.Material:
-                    mat = view.Material
-                else:
-                    if "Material" in view.Source.PropertiesList:
-                        if view.Source.Material:
-                            mat = view.Source.Material
-                if mat:
-                    if "Material" in mat.PropertiesList:
-                        if "DiffuseColor" in mat.Material:
-                            color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
-                        if "Transparency" in mat.Material:
-                            if float(mat.Material["Transparency"]) > 0:
-                                alpha = 1.0-float(mat.Material["Transparency"])
-                            else:
-                                alpha = 1.0
-                if view.Source.ViewObject:
-                    if not color:
-                        if hasattr(view.Source.ViewObject,"ShapeColor"):
-                            color = view.Source.ViewObject.ShapeColor[:3]
-                    if not alpha:
-                        if hasattr(view.Source.ViewObject,"Transparency"):
-                            if view.Source.ViewObject.Transparency > 0:
-                                alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
-                if not color:
-                    color = (1.0, 1.0, 1.0)
-                if not alpha:
-                    alpha = 1.0
+                material = self.calculateDefaultMaterialData(view)
 
                 # get mesh
                 import Draft
@@ -387,7 +399,7 @@ class Project:
                 if not mesh:
                     return ""
 
-                return renderer.writeObject(view,mesh,color,alpha)
+                return renderer.writeObject(view,mesh,material)
 
 
     def writeGroundPlane(self,obj):
