@@ -139,7 +139,7 @@ def render(project,prefix,external,output,width,height):
         return
     args += " --width "+str(width)
     args += " --height "+str(height)
-    os.system(prefix+rpath+" "+args+" "+project.PageResult)
+    os.system('"' + prefix+rpath+'" '+args+" "+project.PageResult)
 
     return output
 

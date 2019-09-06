@@ -144,7 +144,8 @@ def render(project,prefix,external,output,width,height):
     else:
         args = args + "+H"+str(height)+" "
     import os
-    os.system(prefix+rpath+" "+args+project.PageResult)
+
+    os.system('"' + prefix+rpath+'" '+args+project.PageResult)
     imgname = os.path.splitext(project.PageResult)[0]+".png"
     
     return imgname
