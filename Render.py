@@ -51,7 +51,12 @@ else:
 def QT_TRANSLATE_NOOP(scope, text):
     return text
 
-
+def doRender(project, external=True):
+    img = project.Proxy.render(project,external)
+    
+    if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
+        import ImageGui
+        ImageGui.open(img)
 
 
 class RenderProjectCommand:
@@ -149,11 +154,7 @@ class RenderCommand:
         if not project:
             FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
-        img = project.Proxy.render(project)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            import ImageGui
-            ImageGui.open(img)
-
+        doRender(project)
 
 class RenderExternalCommand:
 
@@ -184,12 +185,7 @@ class RenderExternalCommand:
         if not project:
             FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
-        img = project.Proxy.render(project,external=True)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            import ImageGui
-            ImageGui.open(img)
-
-
+        doRender(project, external=True)
 
 class Project:
 
@@ -550,7 +546,7 @@ class ViewProviderProject:
 
     def render(self):
         if hasattr(self,"Object"):
-            self.Object.Proxy.render(self.Object)
+            doRender(self.Object)
 
     def claimChildren(self):
         if hasattr(self,"Object"):
