@@ -88,35 +88,16 @@ def writeObject(viewobj,mesh,material):
 
     objname = viewobj.Name
     
-    color = str(material.color[0])+","+str(material.color[1])+","+str(material.color[2])
-
     objdef = ""
     objdef += "#declare " + objname + " = mesh2{\n"
-    objdef += "  vertex_vectors {\n"
-    objdef += "    " + str(len(mesh.Topology[0])) + ",\n"
-    for p in mesh.Topology[0]:
-        objdef += "    <" + str(p.x) + "," + str(p.z) + "," + str(p.y) + ">,\n"
-    objdef += "  }\n"
-    objdef += "  normal_vectors {\n"
-    objdef += "    " + str(len(mesh.Topology[0])) + ",\n"
-    for p in mesh.getPointNormals():
-        objdef += "    <" + str(p.x) + "," + str(p.z) + "," + str(p.y) + ">,\n"
-    objdef += "  }\n"
-    objdef += "  face_indices {\n"
-    objdef += "    " + str(len(mesh.Topology[1])) + ",\n"
-    for t in mesh.Topology[1]:
-        objdef += "    <" + str(t[0]) + "," + str(t[1]) + "," + str(t[2]) + ">,\n"
-    objdef += "  }\n"
+    objdef += createVertexVectors(mesh)
+    objdef += createNormalVectors(mesh)
+    objdef += createFaceIndices(mesh)
     objdef += "}\n"
     
     objdef += "// instance to render\n"
     objdef += "object {" + objname + "\n"
-    objdef += "  texture {\n"
-    objdef += "    pigment {\n"
-    objdef += "      color rgb <" + color + ">\n"
-    objdef += "    }\n"
-    objdef += "    finish {StdFinish }\n"
-    objdef += "  }\n"
+    objdef += createTexture(material)
     objdef += "}\n"
 
     return objdef
@@ -155,3 +136,43 @@ def render(project,prefix,external,output,width,height):
     return imgname
 
 
+# helper methods
+
+def createVertexVectors(mesh):
+    vertexvectors = "  vertex_vectors {\n"
+    vertexvectors += "    " + str(len(mesh.Topology[0])) + ",\n"
+    for p in mesh.Topology[0]:
+        vertexvectors += "    <" + str(p.x) + "," + str(p.z) + "," + str(p.y) + ">,\n"
+    vertexvectors += "  }\n"
+
+    return vertexvectors
+
+def createNormalVectors(mesh):
+    normalvectors = "  normal_vectors {\n"
+    normalvectors += "    " + str(len(mesh.Topology[0])) + ",\n"
+    for p in mesh.getPointNormals():
+        normalvectors += "    <" + str(p.x) + "," + str(p.z) + "," + str(p.y) + ">,\n"
+    normalvectors += "  }\n"
+
+    return normalvectors
+
+def createFaceIndices(mesh):
+    faceindices = "  face_indices {\n"
+    faceindices += "    " + str(len(mesh.Topology[1])) + ",\n"
+    for t in mesh.Topology[1]:
+        faceindices += "    <" + str(t[0]) + "," + str(t[1]) + "," + str(t[2]) + ">,\n"
+    faceindices += "  }\n"
+
+    return faceindices
+
+def createTexture(material):
+    color = str(material.color[0])+","+str(material.color[1])+","+str(material.color[2])
+
+    texture = "  texture {\n"
+    texture += "    pigment {\n"
+    texture += "      color rgb <" + color + ">\n"
+    texture += "    }\n"
+    texture += "    finish {StdFinish }\n"
+    texture += "  }\n"
+
+    return texture
