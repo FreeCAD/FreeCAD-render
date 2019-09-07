@@ -146,7 +146,7 @@ def render(project,prefix,external,output,width,height):
     p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if external:
         rpath = p.GetString("LuxRenderPath","")
-        args = ""
+        args = p.GetString("LuxParameters","")
     else:
         rpath = p.GetString("LuxConsolePath","")
         args = p.GetString("LuxParameters","")
