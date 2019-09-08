@@ -232,6 +232,8 @@ class Project:
         if not "OpenAfterRender" in obj.PropertiesList:
             obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
             obj.OpenAfterRender = False
+        if not "MaterialPipeline" in obj.PropertiesList:
+            obj.addProperty("App::PropertyLinkList","MaterialPipeline","Render", QT_TRANSLATE_NOOP("App::Property","A list of document objects that contribute to the material settings of a given object for rendering"))
         obj.setEditorMode("PageResult",2)
         obj.setEditorMode("Camera",2)
 
@@ -242,6 +244,10 @@ class Project:
 
 
     def execute(self,obj):
+        if hasattr(obj, 'MaterialPipeline') and obj.MaterialPipeline is not None:
+            for materialEnhancer in obj.MaterialPipeline:
+                if not hasattr(materialEnhancer, 'enhanceMaterial') and not hasattr(obj, 'Proxy') and not hasattr(obj.Proxy, 'enhanceMaterial'):
+                    raise AttributeError('Object %s in material pipeline has no "enhanceMaterial" method' % (materialEnhancer.Label,))
 
         return True
 
@@ -364,6 +370,18 @@ class Project:
             alpha = 1.0
             
         return RenderMaterial(color, alpha)
+    
+    def calculateMaterialData(self, obj, view):
+        material = self.calculateDefaultMaterialData(view)
+
+        if hasattr(obj, 'MaterialPipeline') and obj.MaterialPipeline is not None:
+            for materialEnhancer in obj.MaterialPipeline:
+                if hasattr(materialEnhancer, 'enhanceMaterial'):
+                    materialEnhancer.enhanceMaterial(material, view)
+                elif hasattr(materialEnhancer, 'Proxy') and hasattr(materialEnhancer.Proxy, 'enhanceMaterial'):
+                    materialEnhancer.Proxy.enhanceMaterial(material, view)
+
+        return material
 
     def writeObject(self,obj,view):
 
@@ -376,7 +394,7 @@ class Project:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
                 return ""
             else:
-                material = self.calculateDefaultMaterialData(view)
+                material = self.calculateMaterialData(obj, view)
 
                 # get mesh
                 import Draft
