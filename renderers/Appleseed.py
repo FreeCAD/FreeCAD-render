@@ -89,9 +89,14 @@ def writeColor(name, color, alpha):
                 <alpha>
                     %s
                 </alpha>
-            </color>
-            """ % (name, color, alpha)
+            </color>\n""" % (name, color, alpha)
     return coldef
+
+def writeParameter(name, param):
+    if param is not None:
+        return '                <parameter name="%s" value="%s" />\n' % (name, param)
+    else:
+        return ""
 
 def writeLambertianMaterial(name, material):
     colorname = name + "_color"
@@ -112,8 +117,42 @@ def writeLambertianMaterial(name, material):
                 <parameter name="displacement_method" value="bump" />
                 <parameter name="normal_map_up" value="z" />
                 <parameter name="shade_alpha_cutouts" value="false" />
-            </material>
-    """ % (bsdfname, colorname, name, bsdfname)
+            </material>""" % (bsdfname, colorname, name, bsdfname)
+    return matdef
+
+def writePrincipledMaterial(name, material):
+    colorname = name + "_color"
+    bsdfname = name + "_bsdf"
+
+    color = material["DiffuseColor"].strip("(").strip(")").replace(",", " ")
+    alpha = 1.0 - float(material["Transparency"])/100.0
+    clearCoatGloss = material.get("Principled_ClearcoatRoughness")
+    if clearCoatGloss is not None:
+        clearCoatGloss = str(1.0 - float(clearCoatGloss))
+
+    matdef = writeColor(colorname, color, alpha)
+    matdef += ('            <bsdf name="' + bsdfname +'" model="disney_brdf">\n'
+               + writeParameter("base_color", colorname)
+               + writeParameter("subsurface", material.get("Principled_Subsurface"))
+               + writeParameter("metallic", material.get("Principled_Metallic"))
+               + writeParameter("specular", material.get("Principled_Specular"))
+               + writeParameter("specular_tint", material.get("Principled_SpecularTint"))
+               + writeParameter("anisotropic", material.get("Principled_Anisotropic"))
+               + writeParameter("roughness", material.get("Principled_Roughness"))
+               + writeParameter("sheen", material.get("Principled_Sheen"))
+               + writeParameter("sheen_tint", material.get("Principled_SheenTint"))
+               + writeParameter("clearcoat", material.get("Principled_Clearcoat"))
+               + writeParameter("clearcoat_gloss", clearCoatGloss)
+               +'            </bsdf>\n')
+
+    matdef += """            <material name="%s" model="generic_material">
+                <parameter name="bsdf" value="%s" />
+                <parameter name="bump_amplitude" value="1.0" />
+                <parameter name="bump_offset" value="2.0" />
+                <parameter name="displacement_method" value="bump" />
+                <parameter name="normal_map_up" value="z" />
+                <parameter name="shade_alpha_cutouts" value="false" />
+            </material>""" % (name, bsdfname)
     return matdef
 
 def writeObject(name,mesh,material):
@@ -126,13 +165,6 @@ def writeObject(name,mesh,material):
 
     objname = name
     matname = objname + "_mat"
-
-    # format color and alpha
-
-    color = material["DiffuseColor"].strip("(").strip(")").replace(",", " ")
-    alpha = 1.0 - float(material["Transparency"])/100.0
-
-    alpha = str(alpha)
 
     # write the mesh as an obj tempfile
     fd, meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")
@@ -159,7 +191,7 @@ def writeObject(name,mesh,material):
     f.write(contents)
     f.close()
 
-    objdef = writeLambertianMaterial(matname, material)
+    objdef = writePrincipledMaterial(matname, material)
     objdef += """
             <object name="%s" model="mesh_object">
                 <parameter name="filename" value="%s" />
