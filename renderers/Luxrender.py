@@ -48,6 +48,8 @@ import math
 import os
 import re
 import tempfile
+import shlex
+import subprocess
 
 
 def writeCamera(pos,rot,up,target):
@@ -155,8 +157,12 @@ def render(project,prefix,external,output,width,height):
         return
     if args:
         args += " "
-    FreeCAD.Console.PrintMessage(prefix+rpath+" "+args+project.PageResult+"\n")
-    os.system(prefix+rpath+" "+args+project.PageResult)
+
+    # Call Luxrender
+    cmd = prefix+rpath+" "+args+project.PageResult+"\n"
+    FreeCAD.Console.PrintMessage(cmd)
+    try:
+        p = subprocess.Popen(shlex.split(cmd))
+    except OSError as e:
+        FreeCAD.Console.PrintError("Luxrender call failed: '" + e.strerror +"'\n")
     return
-
-
