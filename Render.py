@@ -325,9 +325,45 @@ class Project:
 
                 return renderer.writeCamera(pos,rot,up,target)
 
+    #use a static method instead?
+    def createSimpleMaterial(self,color,transparency):
+        return {"DiffuseColor" : "(" + str(color[0]) + ", " + str(color[1]) + ", " + str(color[2]) + ")",
+                "Transparency" : str(transparency)}
+
+    def meshFromShape(self,shape):
+        import MeshPart
+        return MeshPart.meshFromShape(Shape=shape,
+                                LinearDeflection=0.1,
+                                AngularDeflection=0.523599,
+                                Relative=False)
+
+    def findMaterial(self,name,multimaterial):
+        for i, curName in enumerate(multimaterial.Names):
+            if curName == name:
+                return multimaterial.Materials[i]
+        return None
+
+    def writeWindowMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
+        shapes = view.Source.Shape.childShapes()
+        renderstring = ""
+        for i, shape in enumerate(shapes):
+            winPartName = None
+            winPartType = None
+            if i*5 < len(view.Source.WindowParts):
+                winPartName = view.Source.WindowParts[i*5]
+                winPartType = view.Source.WindowParts[i*5 + 1]
+            mat = None
+            if winPartName is not None:
+                mat = self.findMaterial(winPartName,material)
+            if mat is None and winPartType is not None:
+                mat = self.findMaterial(winPartType,material)
+            if mat is None:
+                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),self.createSimpleMaterial(defaultcolor,defaulttransparency))
+            else:
+                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),mat.Material)
+        return renderstring
 
     def writeObject(self,obj,view):
-
         if not view.Source:
             return ""
         if obj.Renderer:
@@ -338,37 +374,37 @@ class Project:
                 return ""
             else:
 
-                # get color and alpha
+                # get material or default color and alpha
                 mat = None
                 color = None
-                alpha = None
+                transparency = None
+
                 if view.Material:
                     mat = view.Material
                 else:
                     if "Material" in view.Source.PropertiesList:
                         if view.Source.Material:
                             mat = view.Source.Material
-                if mat:
-                    if "Material" in mat.PropertiesList:
-                        if "DiffuseColor" in mat.Material:
-                            color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
-                        if "Transparency" in mat.Material:
-                            if float(mat.Material["Transparency"]) > 0:
-                                alpha = 1.0-float(mat.Material["Transparency"])
-                            else:
-                                alpha = 1.0
+                #if mat:
+                #    if "Material" in mat.PropertiesList:
+                #        if "DiffuseColor" in mat.Material:
+                #            color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
+                #        if "Transparency" in mat.Material:
+                #            if float(mat.Material["Transparency"]) > 0:
+                #                alpha = 1.0-float(mat.Material["Transparency"])
+                #            else:
+                #                alpha = 1.0
+
                 if view.Source.ViewObject:
-                    if not color:
-                        if hasattr(view.Source.ViewObject,"ShapeColor"):
+                    if hasattr(view.Source.ViewObject,"ShapeColor"):
                             color = view.Source.ViewObject.ShapeColor[:3]
-                    if not alpha:
-                        if hasattr(view.Source.ViewObject,"Transparency"):
+                    if hasattr(view.Source.ViewObject,"Transparency"):
                             if view.Source.ViewObject.Transparency > 0:
-                                alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
+                                transparency = 100
                 if not color:
                     color = (1.0, 1.0, 1.0)
-                if not alpha:
-                    alpha = 1.0
+                if not transparency:
+                    transparency = 100
 
                 # get mesh
                 import Draft
@@ -377,22 +413,34 @@ class Project:
                 mesh = None
                 if hasattr(view.Source,"Group"):
                     shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
-                    mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
-                                               LinearDeflection=0.1,
-                                               AngularDeflection=0.523599,
-                                               Relative=False)
+                    mesh = self.meshFromShape(Part.makeCompound(shps))
+                    #TODO: check for multimaterial
+                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else createSimpleMaterial(color,transparency))
+
                 elif view.Source.isDerivedFrom("Part::Feature"):
-                    mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
-                                               LinearDeflection=0.1,
-                                               AngularDeflection=0.523599,
-                                               Relative=False)
+                    if mat:
+                        matType = Draft.getType(mat)
+                        if matType == "Material":
+                            mesh = self.meshFromShape(view.Source.Shape)
+                            return renderer.writeObject(view.Name,mesh,mat.Material)
+                        elif matType == "MultiMaterial":
+                            partType = Draft.getType(view.Source)
+                            if partType == "Window":
+                                return self.writeWindowMultiMaterial(renderer,view,mat,color,transparency)
+
+                            return renderer.writeObject(view.Name,self.meshFromShape(view.Source.Shape),mat.Materials[0].Material)
+                        else:
+
+                            #TODO: display error?
+                            return ""
+                    else:
+                        mesh = self.meshFromShape(view.Source.Shape)
+                        return renderer.writeObject(view.Name,mesh,createSimpleMaterial(color,transparency))
+
                 elif view.Source.isDerivedFrom("Mesh::Feature"):
                     mesh = view.Source.Mesh
-                if not mesh:
-                    return ""
-
-                return renderer.writeObject(view,mesh,color,alpha)
-
+                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else createSimpleMaterial(color,transparency))
+                return ""
 
     def writeGroundPlane(self,obj):
 

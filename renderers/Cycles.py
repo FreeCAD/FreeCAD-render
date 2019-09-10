@@ -31,7 +31,7 @@ from __future__ import print_function
 # A render engine module must contain the following functions:
 #
 #    writeCamera(por,rot,up,target): returns a string containing an openInventor camera string in renderer format
-#    writeObject(view,mesh,color,alpha): returns a string containing a RaytracingView object in renderer format
+#    writeObject(name,mesh,material): returns a string containing a RaytracingView object in renderer format
 #    render(project,prefix,external,output,width,height): renders the given project, external means 
 #                                                         if the user wishes to open the render file 
 #                                                         in an external application/editor or not. If this
@@ -68,7 +68,7 @@ def writeCamera(pos,rot,up,target):
     return cam
 
 
-def writeObject(viewobj,mesh,color,alpha):
+def writeObject(name,mesh,material):
 
     # This is where you write your object/view in the format of your
     # renderer. "obj" is the real 3D object handled by this project, not
@@ -76,15 +76,16 @@ def writeObject(viewobj,mesh,color,alpha):
     # to write all the data needed by your object (geometry, materials, etc)
     # so make sure you include everything that is needed
 
-    bsdfname = viewobj.Name + "_bsdf"
-    matname = viewobj.Name + "_mat"
-    transname = viewobj.Name + "_trans"
-    mixname = viewobj.Name + "_mix"
+    bsdfname = name + "_bsdf"
+    matname = name + "_mat"
+    transname = name + "_trans"
+    mixname = name + "_mix"
 
     # format color data
 
-    color = str(color[0])+", "+str(color[1])+", "+str(color[2])
-    
+    color = material["DiffuseColor"].strip("(").strip(")")
+    alpha = 1.0 - float(material["Transparency"])/100.0
+
     # write shader
     
     objdef =      "    <shader name=\""+matname+"\">\n"
