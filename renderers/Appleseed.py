@@ -170,7 +170,8 @@ def render(project,prefix,external,output,width,height):
     res = re.findall("<parameter name=\"resolution.*?\/>",t)
     if res:
         t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(width)+" "+str(height)+"\" />")
-        fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
+        fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
+        os.close(fd)
         f = open(fp,"w")
         f.write(t)
         f.close()
