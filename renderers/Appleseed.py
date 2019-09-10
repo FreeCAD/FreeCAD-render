@@ -77,6 +77,44 @@ def writeCamera(pos,rot,up,target):
 
     return cam
 
+def writeColor(name, color, alpha):
+    coldef = """
+            <color name="%s">
+                <parameter name="color_space" value="linear_rgb" />
+                <parameter name="multiplier" value="1.0" />
+                <parameter name="wavelength_range" value="400.0 700.0" />
+                <values>
+                    %s
+                </values>
+                <alpha>
+                    %s
+                </alpha>
+            </color>
+            """ % (name, color, alpha)
+    return coldef
+
+def writeLambertianMaterial(name, material):
+    colorname = name + "_color"
+    bsdfname = name + "_bsdf"
+
+    color = material["DiffuseColor"].strip("(").strip(")").replace(",", " ")
+    alpha = 1.0 - float(material["Transparency"])/100.0
+
+    matdef = writeColor(colorname, color, alpha)
+    matdef += """
+            <bsdf name="%s" model="lambertian_brdf">
+                <parameter name="reflectance" value="%s" />
+            </bsdf>
+            <material name="%s" model="generic_material">
+                <parameter name="bsdf" value="%s" />
+                <parameter name="bump_amplitude" value="1.0" />
+                <parameter name="bump_offset" value="2.0" />
+                <parameter name="displacement_method" value="bump" />
+                <parameter name="normal_map_up" value="z" />
+                <parameter name="shade_alpha_cutouts" value="false" />
+            </material>
+    """ % (bsdfname, colorname, name, bsdfname)
+    return matdef
 
 def writeObject(name,mesh,material):
 
@@ -87,8 +125,6 @@ def writeObject(name,mesh,material):
     # so make sure you include everything that is needed
 
     objname = name
-    colorname = objname + "_color"
-    bsdfname = objname + "_bsdf"
     matname = objname + "_mat"
 
     # format color and alpha
@@ -123,43 +159,18 @@ def writeObject(name,mesh,material):
     f.write(contents)
     f.close()
 
-    objdef = """
-            <color name="%s">
-                <parameter name="color_space" value="linear_rgb" />
-                <parameter name="multiplier" value="1.0" />
-                <parameter name="wavelength_range" value="400.0 700.0" />
-                <values>
-                    %s
-                </values>
-                <alpha>
-                    %s
-                </alpha>
-            </color>
-            <bsdf name="%s" model="lambertian_brdf">
-                <parameter name="reflectance" value="%s" />
-            </bsdf>
-            <material name="%s" model="generic_material">
-                <parameter name="bsdf" value="%s" />
-                <parameter name="bump_amplitude" value="1.0" />
-                <parameter name="bump_offset" value="2.0" />
-                <parameter name="displacement_method" value="bump" />
-                <parameter name="normal_map_up" value="z" />
-                <parameter name="shade_alpha_cutouts" value="false" />
-            </material>
+    objdef = writeLambertianMaterial(matname, material)
+    objdef += """
             <object name="%s" model="mesh_object">
                 <parameter name="filename" value="%s" />
             </object>
             <object_instance name="%s.instance" object="%s">
                 <assign_material slot="default" side="front" material="%s" />
                 <assign_material slot="default" side="back" material="%s" />
-            </object_instance>""" % (colorname, color, alpha,
-                                    bsdfname, colorname,
-                                    matname, bsdfname,
-                                    objfile, meshfile,
+            </object_instance>""" % (objfile, meshfile,
                                     objfile+"."+objname,
                                     objfile+"."+objname,
                                     matname, matname)
-
     return objdef
 
 

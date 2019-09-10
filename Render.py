@@ -422,7 +422,7 @@ class Project:
                     shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
                     mesh = self.meshFromShape(Part.makeCompound(shps))
                     #TODO: check for multimaterial
-                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else createSimpleMaterial(color,transparency))
+                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else self.createSimpleMaterial(color,transparency))
 
                 elif view.Source.isDerivedFrom("Part::Feature"):
                     if mat:
@@ -443,11 +443,11 @@ class Project:
                             return ""
                     else:
                         mesh = self.meshFromShape(view.Source.Shape)
-                        return renderer.writeObject(view.Name,mesh,createSimpleMaterial(color,transparency))
+                        return renderer.writeObject(view.Name,mesh,self.createSimpleMaterial(color,transparency))
 
                 elif view.Source.isDerivedFrom("Mesh::Feature"):
                     mesh = view.Source.Mesh
-                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else createSimpleMaterial(color,transparency))
+                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else self.createSimpleMaterial(color,transparency))
                 return ""
 
     def writeGroundPlane(self,obj):
