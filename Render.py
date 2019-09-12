@@ -59,9 +59,15 @@ def doRender(project, external=True):
         ImageGui.open(img)
 
 class RenderMaterial:
+    '''
+    Attributes:
+        uvcoordinates: A list of tuples where each tuple defines the uv coordinates for the vertex at this position'''
     def __init__(self, color, alpha):
         self.color = color
         self.alpha = alpha
+        self.imageTextureFile = None
+        self.uvcoordinates = None
+        self.uvindices = None
 
 class RenderProjectCommand:
 
@@ -371,15 +377,15 @@ class Project:
             
         return RenderMaterial(color, alpha)
     
-    def calculateMaterialData(self, obj, view):
+    def calculateMaterialData(self, obj, view, mesh):
         material = self.calculateDefaultMaterialData(view)
 
         if hasattr(obj, 'MaterialPipeline') and obj.MaterialPipeline is not None:
             for materialEnhancer in obj.MaterialPipeline:
                 if hasattr(materialEnhancer, 'enhanceMaterial'):
-                    materialEnhancer.enhanceMaterial(material, view)
+                    materialEnhancer.enhanceMaterial(material, view, mesh)
                 elif hasattr(materialEnhancer, 'Proxy') and hasattr(materialEnhancer.Proxy, 'enhanceMaterial'):
-                    materialEnhancer.Proxy.enhanceMaterial(material, view)
+                    materialEnhancer.Proxy.enhanceMaterial(material, view, mesh)
 
         return material
 
@@ -394,8 +400,6 @@ class Project:
                 FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
                 return ""
             else:
-                material = self.calculateMaterialData(obj, view)
-
                 # get mesh
                 import Draft
                 import Part
@@ -416,6 +420,8 @@ class Project:
                     mesh = view.Source.Mesh
                 if not mesh:
                     return ""
+
+                material = self.calculateMaterialData(obj, view, mesh)
 
                 return renderer.writeObject(view,mesh,material)
 

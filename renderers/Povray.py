@@ -47,6 +47,13 @@ import FreeCAD
 import math
 import re
 
+BITMAP_TYPE_MAPPING = {
+    '.png': 'png',
+    '.tif': 'tiff',
+    '.gif': 'gif',
+    '.jpeg': 'jpeg',
+    '.jpg': 'jpeg'
+}
 
 def writeCamera(pos,rot,up,target):
 
@@ -92,7 +99,9 @@ def writeObject(viewobj,mesh,material):
     objdef += "#declare " + objname + " = mesh2{\n"
     objdef += createVertexVectors(mesh)
     objdef += createNormalVectors(mesh)
+    objdef += createUvVectors(material)
     objdef += createFaceIndices(mesh)
+    objdef += createUvIndices(material)
     objdef += "}\n"
     
     objdef += "// instance to render\n"
@@ -165,14 +174,59 @@ def createFaceIndices(mesh):
 
     return faceindices
 
+def createUvVectors(material):
+    if material.uvcoordinates is None:
+        return ""
+    
+    uvvectors = "  uv_vectors {"
+    uvvectors += "%s,\n" % (len(material.uvcoordinates), )
+    for uv in material.uvcoordinates:
+        uvvectors += "    <%s,%s>,\n" % (uv[0], uv[1])
+    uvvectors += "}\n"
+
+    return uvvectors
+
+def createUvIndices(material):
+    if material.uvcoordinates is None:
+        return ""
+    
+    uvindices = "  uv_indices {"
+    uvindices += "%s,\n" % (len(material.uvindices), )
+    for uv in material.uvindices:
+        uvindices += "    <%s,%s,%s>,\n" % (uv[0], uv[1], uv[2])
+    uvindices += "}\n"
+
+    return uvindices
+
 def createTexture(material):
-    color = str(material.color[0])+","+str(material.color[1])+","+str(material.color[2])
-
     texture = "  texture {\n"
-    texture += "    pigment {\n"
-    texture += "      color rgb <" + color + ">\n"
-    texture += "    }\n"
-    texture += "    finish {StdFinish }\n"
-    texture += "  }\n"
 
+    if material.imageTextureFile is None:
+        color = str(material.color[0])+","+str(material.color[1])+","+str(material.color[2])
+
+        texture += "    pigment {\n"
+        texture += "      color rgb <" + color + ">\n"
+        texture += "    }\n"
+    else:
+        if material.uvcoordinates is not None:
+            texture += "    uv_mapping\n"    
+        texture += "    pigment {\n"
+        texture += '      image_map { ' + getBitmapType(material.imageTextureFile) + ' "' + material.imageTextureFile + '"}\n'
+        texture += "    }\n"
+    
+    texture += "    finish {StdFinish }\n"
+
+    texture += "  }\n"
     return texture
+
+def getBitmapType(imageTextureFile):
+    import os
+
+    ext = os.path.splitext(imageTextureFile)[1]
+
+    if not ext in BITMAP_TYPE_MAPPING:
+        FreeCAD.Console.PrintError("Unknown bitmap type " + ext)
+
+        return 'sys'
+    else:
+        return BITMAP_TYPE_MAPPING[ext]
