@@ -51,11 +51,13 @@ else:
 def QT_TRANSLATE_NOOP(scope, text):
     return text
 
-
+#TODO: Add validation, required param
 class MaterialHelper:
     def __init__(self, material):
         self.material = material
-    #TODO: Add validation, required param
+
+    def check(self, name):
+        return name in self.material
 
     #The following fns return strings
     def getFloat(self, name):
@@ -90,6 +92,9 @@ class MaterialHelper:
         if retval is not None:
             retval = retval.strip("(").strip(")").replace(",", " ")
         return retval
+
+    def getString(self, name):
+        return self.material.get(name)
 
     #The following fns return floats
     def getNumPercentFloat(self, name):

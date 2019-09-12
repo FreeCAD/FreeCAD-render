@@ -78,18 +78,20 @@ def writeCamera(pos,rot,up,target):
     return cam
 
 def writeColor(name, color, alpha):
-    coldef = """
-            <color name="%s">
-                <parameter name="color_space" value="linear_rgb" />
-                <parameter name="multiplier" value="1.0" />
-                <parameter name="wavelength_range" value="400.0 700.0" />
-                <values>
-                    %s
-                </values>
-                <alpha>
-                    %s
-                </alpha>
-            </color>\n""" % (name, color, alpha)
+    coldef = ""
+    if color is not None and alpha is not None:
+        coldef = """
+                <color name="%s">
+                    <parameter name="color_space" value="linear_rgb" />
+                    <parameter name="multiplier" value="1.0" />
+                    <parameter name="wavelength_range" value="400.0 700.0" />
+                    <values>
+                        %s
+                    </values>
+                    <alpha>
+                        %s
+                    </alpha>
+                </color>\n""" % (name, color, alpha)
     return coldef
 
 def writeParameter(name, param):
@@ -146,6 +148,54 @@ def writePrincipledMaterial(name, material):
             </material>""" % (name, bsdfname)
     return matdef
 
+def writeGlassMaterial(name, material):
+    surfacetransmittance = name + "_surftrans"
+    reflectiontint = name + "_reflecttint" if material.check("Appleseed_Glass_ReflectionTint") else None
+    refractiontint = name + "_refracttint" if material.check("Appleseed_Glass_RefractionTint") else None
+    voltransmittance = name + "_voltrans"if material.check("Appleseed_Glass_VolumeTransmittance") else None
+    volabsorption = name + "_volabs" if material.check("Appleseed_Glass_VolumeAbsorption") else None
+
+    volparam = material.getString("Appleseed_Glass_VolumeParameterization")
+    if volparam is None:
+        volparam = "transmittance"
+
+    bsdfname = name + "_bsdf"
+
+    matdef = writeColor(surfacetransmittance, material.getColorsSpace("Appleseed_Glass_SurfaceTransmittance"), 1.0)
+    matdef += writeColor(reflectiontint, material.getColorsSpace("Appleseed_Glass_ReflectionTint"), 1.0)
+    matdef += writeColor(refractiontint, material.getColorsSpace("Appleseed_Glass_RefractionTint"), 1.0)
+    matdef += writeColor(voltransmittance, material.getColorsSpace("Appleseed_Glass_VolumeTransmittance"), 1.0)
+    matdef += writeColor(volabsorption, material.getColorsSpace("Appleseed_Glass_VolumeAbsorption"), 1.0)
+
+    matdef += ('            <bsdf name="' + bsdfname +'" model="glass_bsdf">\n'
+            + writeParameter("mdf", "ggx")        #This is for older versions of appleseed
+            + writeParameter("surface_transmittance", surfacetransmittance)
+            + writeParameter("reflection_tint", reflectiontint)
+            + writeParameter("refraction_tint", refractiontint)
+            + writeParameter("volume_transmittance", voltransmittance)
+            + writeParameter("volume_absorption", volabsorption)
+            + writeParameter("ior", material.getFloat("Appleseed_Glass_IOR"))
+            + writeParameter("roughness", material.getFloat("Appleseed_Glass_Roughness"))
+            + writeParameter("anisotropy", material.getFloat("Appleseed_Glass_Anisotropy"))
+            + writeParameter("volume_parameterization", volparam)
+            + writeParameter("volume_transmittance_distance", material.getFloat("Appleseed_Glass_VolumeTransmittanceDistance"))
+            + writeParameter("volume_density", material.getFloat("Appleseed_Glass_VolumeDensity"))
+            + writeParameter("volume_scale", material.getFloat("Appleseed_Glass_VolumeScale"))
+            + writeParameter("energy_compensation", material.getFloat("Appleseed_Glass_EnergyCompensation"))
+            +'            </bsdf>\n')
+
+    matdef += """            <material name="%s" model="generic_material">
+                <parameter name="bsdf" value="%s" />
+                <parameter name="bump_amplitude" value="1.0" />
+                <parameter name="bump_offset" value="2.0" />
+                <parameter name="displacement_method" value="bump" />
+                <parameter name="normal_map_up" value="z" />
+                <parameter name="shade_alpha_cutouts" value="false" />
+            </material>""" % (name, bsdfname)
+    return matdef
+
+
+
 def writeObject(name,mesh,material):
 
     # This is where you write your object/view in the format of your
@@ -182,7 +232,16 @@ def writeObject(name,mesh,material):
     f.write(contents)
     f.close()
 
-    objdef = writePrincipledMaterial(matname, material)
+    materialtype = material.getString("Appleseed_Material")
+    if materialtype is not None:
+        materialtype = materialtype.lower()
+    if materialtype == "glass":
+        objdef = writeGlassMaterial(matname, material)
+    elif materialtype == "principled":
+        objdef = writePrincipledMaterial(matname, material)
+    else:
+        objdef = writeLambertianMaterial(matname, material)
+
     objdef += """
             <object name="%s" model="mesh_object">
                 <parameter name="filename" value="%s" />
