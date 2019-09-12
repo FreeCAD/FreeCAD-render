@@ -409,12 +409,16 @@ class Project:
     def writeWindowMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
         shapes = view.Source.Shape.childShapes()
         renderstring = ""
+        windowParts = view.Source.WindowParts
+        if view.Source.CloneOf is not None:
+            windowParts = view.Source.CloneOf.WindowParts
+
         for i, shape in enumerate(shapes):
             winPartName = None
             winPartType = None
-            if i*5 < len(view.Source.WindowParts):
-                winPartName = view.Source.WindowParts[i*5]
-                winPartType = view.Source.WindowParts[i*5 + 1]
+            if i*5 < len(windowParts):
+                winPartName = windowParts[i*5]
+                winPartType = windowParts[i*5 + 1]
             mat = None
             if winPartName is not None:
                 mat = self.findMaterial(winPartName,material)
