@@ -52,6 +52,57 @@ def QT_TRANSLATE_NOOP(scope, text):
     return text
 
 
+class MaterialHelper:
+    def __init__(self, material):
+        self.material = material
+    #TODO: Add validation, required param
+
+    #The following fns return strings
+    def getFloat(self, name):
+        return self.material.get(name)
+
+    def getFloatInverted(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = str(1.0 - float(retval))
+        return retval
+
+    def getPercentFloat(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = str(float(retval)/100.0)
+        return retval
+
+    def getPercentFloatInverted(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = str(1.0 - float(retval)/100.0)
+        return retval
+
+    def getColorsComma(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = retval.strip("(").strip(")")
+        return retval
+
+    def getColorsSpace(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = retval.strip("(").strip(")").replace(",", " ")
+        return retval
+
+    #The following fns return floats
+    def getNumPercentFloat(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = float(retval)/100.0
+        return retval
+
+    def getNumPercentFloatInverted(self, name):
+        retval = self.material.get(name)
+        if retval is not None:
+            retval = 1.0 - float(retval)/100.0
+        return retval
 
 
 class RenderProjectCommand:
@@ -347,7 +398,7 @@ class Project:
         shapes = view.Source.Shape.childShapes()
         renderstring = ""
         for i, shape in enumerate(shapes):
-            renderstring += renderer.writeObject(view.Name + "_layer" + str(i), self.meshFromShape(shape), view.Source.Material.Materials[i].Material)
+            renderstring += renderer.writeObject(view.Name + "_layer" + str(i), self.meshFromShape(shape), MaterialHelper(view.Source.Material.Materials[i].Material))
         return renderstring;
 
     def writeWindowMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
@@ -365,9 +416,9 @@ class Project:
             if mat is None and winPartType is not None:
                 mat = self.findMaterial(winPartType,material)
             if mat is None:
-                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),self.createSimpleMaterial(defaultcolor,defaulttransparency))
+                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),MaterialHelper(self.createSimpleMaterial(defaultcolor,defaulttransparency)))
             else:
-                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),mat.Material)
+                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),MaterialHelper(mat.Material))
         return renderstring
 
     def writeObject(self,obj,view):
@@ -422,32 +473,32 @@ class Project:
                     shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
                     mesh = self.meshFromShape(Part.makeCompound(shps))
                     #TODO: check for multimaterial
-                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else self.createSimpleMaterial(color,transparency))
+                    return renderer.writeObject(view.Name,mesh,MaterialHelper(mat.Material if mat else self.createSimpleMaterial(color,transparency)))
 
                 elif view.Source.isDerivedFrom("Part::Feature"):
                     if mat:
                         matType = Draft.getType(mat)
                         if matType == "Material":
                             mesh = self.meshFromShape(view.Source.Shape)
-                            return renderer.writeObject(view.Name,mesh,mat.Material)
+                            return renderer.writeObject(view.Name,mesh,MaterialHelper(mat.Material))
                         elif matType == "MultiMaterial":
                             partType = Draft.getType(view.Source)
                             if partType == "Window":
                                 return self.writeWindowMultiMaterial(renderer,view,mat,color,transparency)
                             elif partType == "Wall":
                                 return self.writeWallMultiMaterial(renderer,view,mat,color,transparency)
-                            return renderer.writeObject(view.Name,self.meshFromShape(view.Source.Shape),mat.Materials[0].Material)
+                            return renderer.writeObject(view.Name,self.meshFromShape(view.Source.Shape),MaterialHelper(mat.Materials[0].Material))
                         else:
 
                             #TODO: display error?
                             return ""
                     else:
                         mesh = self.meshFromShape(view.Source.Shape)
-                        return renderer.writeObject(view.Name,mesh,self.createSimpleMaterial(color,transparency))
+                        return renderer.writeObject(view.Name,mesh,MaterialHelper(self.createSimpleMaterial(color,transparency)))
 
                 elif view.Source.isDerivedFrom("Mesh::Feature"):
                     mesh = view.Source.Mesh
-                    return renderer.writeObject(view.Name,mesh,mat.Material if mat else self.createSimpleMaterial(color,transparency))
+                    return renderer.writeObject(view.Name,mesh,MaterialHelper(mat.Material if mat else self.createSimpleMaterial(color,transparency)))
                 return ""
 
     def writeGroundPlane(self,obj):

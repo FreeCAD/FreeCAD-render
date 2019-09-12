@@ -77,13 +77,10 @@ def writeObject(name,mesh,material):
     # to write all the data needed by your object (geometry, materials, etc)
     # so make sure you include everything that is needed
 
+    alpha = material.getNumPercentFloatInverted("Transparency")
 
     objdef = ""
     objname = name
-
-    # format color
-    color = material["DiffuseColor"].strip("(").strip(")").replace(","," ")
-    alpha = 1.0 - float(material["Transparency"])/100.0
 
     P = ""
     N = ""
@@ -98,11 +95,11 @@ def writeObject(name,mesh,material):
     # write shader
 
     objdef += "MakeNamedMaterial \"" + objname + "_mat\"\n"
-    objdef += "    \"color Kd\" [" + color + "]\n"
+    objdef += "    \"color Kd\" [" + material.getColorsSpace("DiffuseColor") + "]\n"
     objdef += "    \"float sigma\" [0.2]\n"
     objdef += "    \"string type\" [\"matte\"]\n"
     if alpha < 1.0:
-        objdef += "    \"float transparency\" [\""+str(alpha)+"\"]\n"
+        objdef += "    \"float transparency\" [\"" + str(alpha) +"\"]\n"
     objdef += "\n"
 
     # write mesh

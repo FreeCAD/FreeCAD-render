@@ -78,11 +78,10 @@ def writeDiffuseShader(matname, material):
     transname = matname + "_trans"
     mixname = matname + "_mix"
 
-    color = material["DiffuseColor"].strip("(").strip(")")
-    alpha = 1.0 - float(material["Transparency"])/100.0
+    alpha = material.getNumPercentFloatInverted("Transparency")
 
     matdef =      "    <shader " + writeParameter("name", matname) +">\n"
-    matdef +=     "        <diffuse_bsdf " + writeParameter("name", bsdfname) + writeParameter("color", color) +"/>\n"
+    matdef +=     "        <diffuse_bsdf " + writeParameter("name", bsdfname) + writeParameter("color", material.getColorsComma("DiffuseColor")) +"/>\n"
     if alpha < 1:
         matdef += "        <transparent_bsdf " + writeParameter("name", transname) + writeParameter("color","1.0, 1.0, 1.0") + "/>\n"
         matdef += "        <mix_closure " + writeParameter("name", mixname) + writeParameter("fac", str(alpha)) + "/>\n"
@@ -100,32 +99,28 @@ def writePrincipledShader(matname, material):
     transname = matname + "_trans"
     mixname = matname + "_mix"
 
-    color = material["DiffuseColor"].strip("(").strip(")")
-    alpha = 1.0 - float(material["Transparency"])/100.0
-    subsurfacecolor = material.get("Principled_SubsurfaceColor")
-    if subsurfacecolor is not None:
-        subsurfacecolor = subsurfacecolor.strip("(").strip(")")
-    
+    alpha = material.getNumPercentFloatInverted("Transparency")
+
     # write shader
     matdef =      "    <shader " + writeParameter("name", matname) +">\n"
     matdef +=     ("        <principled_bsdf " + writeParameter("name", bsdfname)
-                                              + writeParameter("base_color", color)
-                                              + writeParameter("subsurface_color", subsurfacecolor)
-                                              + writeParameter("transmission", material.get("Principled_Transmission"))
-                                              + writeParameter("ior", material.get("Principled_IOR"))
-                                              + writeParameter("roughness", material.get("Principled_Roughness"))
-                                              + writeParameter("metallic", material.get("Principled_Metallic"))
-                                              + writeParameter("subsurface", material.get("Principled_Subsurface"))
+                                              + writeParameter("base_color", material.getColorsComma("DiffuseColor"))
+                                              + writeParameter("subsurface_color", material.getColorsComma("Principled_SubsurfaceColor"))
+                                              + writeParameter("transmission", material.getFloat("Principled_Transmission"))
+                                              + writeParameter("ior", material.getFloat("Principled_IOR"))
+                                              + writeParameter("roughness", material.getFloat("Principled_Roughness"))
+                                              + writeParameter("metallic", material.getFloat("Principled_Metallic"))
+                                              + writeParameter("subsurface", material.getFloat("Principled_Subsurface"))
                                               #+ writeParameter("alpha, "Alpha", 1.0f);
-                                              + writeParameter("specular", material.get("Principled_Specular"))
-                                              + writeParameter("specular_tint", material.get("Principled_SpecularTint"))
-                                              + writeParameter("anisotropic", material.get("Principled_Anisotropic"))
-                                              + writeParameter("sheen", material.get("Principled_Sheen"))
-                                              + writeParameter("sheen_tint", material.get("Principled_SheenTint"))
-                                              + writeParameter("clearcoat", material.get("Principled_Clearcoat"))
-                                              + writeParameter("clearcoat_roughness", material.get("Principled_ClearcoatRoughness"))
-                                              + writeParameter("transmission_roughness", material.get("Principled_TransmissionRoughness"))
-                                              + writeParameter("anisotropic_rotation", material.get("Principled_AnisotropicRotation"))
+                                              + writeParameter("specular", material.getFloat("Principled_Specular"))
+                                              + writeParameter("specular_tint", material.getFloat("Principled_SpecularTint"))
+                                              + writeParameter("anisotropic", material.getFloat("Principled_Anisotropic"))
+                                              + writeParameter("sheen", material.getFloat("Principled_Sheen"))
+                                              + writeParameter("sheen_tint", material.getFloat("Principled_SheenTint"))
+                                              + writeParameter("clearcoat", material.getFloat("Principled_Clearcoat"))
+                                              + writeParameter("clearcoat_roughness", material.getFloat("Principled_ClearcoatRoughness"))
+                                              + writeParameter("transmission_roughness", material.getFloat("Principled_TransmissionRoughness"))
+                                              + writeParameter("anisotropic_rotation", material.getFloat("Principled_AnisotropicRotation"))
                                               #SOCKET_IN_COLOR(emission, "Emission", make_float3(0.0f, 0.0f, 0.0f));
                                               #SOCKET_IN_VECTOR(subsurface_radius, "Subsurface Radius", make_float3(0.1f, 0.1f, 0.1f));
                                               + "/>\n")

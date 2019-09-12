@@ -102,10 +102,7 @@ def writeLambertianMaterial(name, material):
     colorname = name + "_color"
     bsdfname = name + "_bsdf"
 
-    color = material["DiffuseColor"].strip("(").strip(")").replace(",", " ")
-    alpha = 1.0 - float(material["Transparency"])/100.0
-
-    matdef = writeColor(colorname, color, alpha)
+    matdef = writeColor(colorname, material.getColorsSpace("DiffuseColor"), material.getPercentFloatInverted("Transparency"))
     matdef += """
             <bsdf name="%s" model="lambertian_brdf">
                 <parameter name="reflectance" value="%s" />
@@ -124,25 +121,19 @@ def writePrincipledMaterial(name, material):
     colorname = name + "_color"
     bsdfname = name + "_bsdf"
 
-    color = material["DiffuseColor"].strip("(").strip(")").replace(",", " ")
-    alpha = 1.0 - float(material["Transparency"])/100.0
-    clearCoatGloss = material.get("Principled_ClearcoatRoughness")
-    if clearCoatGloss is not None:
-        clearCoatGloss = str(1.0 - float(clearCoatGloss))
-
-    matdef = writeColor(colorname, color, alpha)
+    matdef = writeColor(colorname, material.getColorsSpace("DiffuseColor"), material.getPercentFloatInverted("Transparency"))
     matdef += ('            <bsdf name="' + bsdfname +'" model="disney_brdf">\n'
                + writeParameter("base_color", colorname)
-               + writeParameter("subsurface", material.get("Principled_Subsurface"))
-               + writeParameter("metallic", material.get("Principled_Metallic"))
-               + writeParameter("specular", material.get("Principled_Specular"))
-               + writeParameter("specular_tint", material.get("Principled_SpecularTint"))
-               + writeParameter("anisotropic", material.get("Principled_Anisotropic"))
-               + writeParameter("roughness", material.get("Principled_Roughness"))
-               + writeParameter("sheen", material.get("Principled_Sheen"))
-               + writeParameter("sheen_tint", material.get("Principled_SheenTint"))
-               + writeParameter("clearcoat", material.get("Principled_Clearcoat"))
-               + writeParameter("clearcoat_gloss", clearCoatGloss)
+               + writeParameter("subsurface", material.getFloat("Principled_Subsurface"))
+               + writeParameter("metallic", material.getFloat("Principled_Metallic"))
+               + writeParameter("specular", material.getFloat("Principled_Specular"))
+               + writeParameter("specular_tint", material.getFloat("Principled_SpecularTint"))
+               + writeParameter("anisotropic", material.getFloat("Principled_Anisotropic"))
+               + writeParameter("roughness", material.getFloat("Principled_Roughness"))
+               + writeParameter("sheen", material.getFloat("Principled_Sheen"))
+               + writeParameter("sheen_tint", material.getFloat("Principled_SheenTint"))
+               + writeParameter("clearcoat", material.getFloat("Principled_Clearcoat"))
+               + writeParameter("clearcoat_gloss", material.getFloatInverted("Principled_ClearcoatRoughness"))
                +'            </bsdf>\n')
 
     matdef += """            <material name="%s" model="generic_material">
@@ -204,7 +195,6 @@ def writeObject(name,mesh,material):
                                     objfile+"."+objname,
                                     matname, matname)
     return objdef
-
 
 def render(project,prefix,external,output,width,height):
 

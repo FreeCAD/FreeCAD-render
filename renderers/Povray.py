@@ -83,9 +83,6 @@ def writeObject(name,mesh,material):
     # so make sure you include everything that is needed
 
     objname = name
-    
-    color = material["DiffuseColor"].strip("(").strip(")")
-    alpha = 1.0 - float(material["Transparency"])/100.0
 
     objdef = ""
     objdef += "#declare " + objname + " = mesh2{\n"
@@ -110,7 +107,7 @@ def writeObject(name,mesh,material):
     objdef += "object {" + objname + "\n"
     objdef += "  texture {\n"
     objdef += "    pigment {\n"
-    objdef += "      color rgb <" + color + ">\n"
+    objdef += "      color rgb <" + material.getColorsComma("DiffuseColor") + ">\n"
     objdef += "    }\n"
     objdef += "    finish {StdFinish }\n"
     objdef += "  }\n"
