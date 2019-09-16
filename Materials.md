@@ -57,12 +57,21 @@ are designed for ease of use rather than using strictly physical ones. Some impl
 **Appleseed_Glass_EnergyCompensation** | float | This is a way to compensate for energy losses caused by microfacet models
 
 ### LuxCore Metal2
- name | type |description
+ name | type | description
 ------|------|------------
 **LuxCore_Metal2_FresnelColor** | color| reflection color 
 **LuxCore_Metal2_URoughness** | float | roughness value along u coordinate of the material (note: texture coordinates aren't exported yet, use the same value for u & v roughness)
 **LuxCore_Metal2_VRoughness** | float | roughness value along u coordinate of the material 
 
+### LuxCore Rough Glass
+name | type | description
+-----|------|------------
+**LuxCore_RoughGlass_ReflectedColor** | color | reflected color of the material
+**LuxCore_RoughGlass_TransmittedColor** | color | transmitted color of the material
+**LuxCore_RoughGlass_InteriorIOR** | float | index of refraction inside the material
+**LuxCore_RoughGlass_ExteriorIOR** | float | index of refraction outside the material
+**LuxCore_RoughGlass_URoughness** | float | roughness value along u coordinate of the material (texture coordinates currently not supported use the same value for u & v roughness)
+**LuxCore_RoughGlass_VRoughness** | float | roughness value along v coordinate of the material
 
 ## Glossary of Terms
 * Beer-Lambert law: [Beer-Lambert law](https://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law)

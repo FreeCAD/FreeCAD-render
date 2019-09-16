@@ -76,7 +76,6 @@ def writeParameter(pre, post, name, value):
     return ""
 
 def writeMetal2(name, material):
-    alpha = material.getPercentFloatInverted("Transparency")
     matdef = ""
 
     if material.check("LuxCore_Metal2_FresnelColor"):
@@ -85,9 +84,20 @@ def writeMetal2(name, material):
         matdef += writeParameter("scene.textures", "kr", fresnelname, material.getColorsSpace("LuxCore_Metal2_FresnelColor"))
         matdef += writeParameter("scene.materials", "fresnel", name, fresnelname)
     matdef += writeParameter("scene.materials", "type", name, "metal2")
-    matdef += writeParameter("scene.materials", "transparency", name, alpha)
+    matdef += writeParameter("scene.materials", "transparency", name, material.getPercentFloatInverted("Transparency"))
     matdef += writeParameter("scene.materials", "uroughness", name, material.getFloat("LuxCore_Metal2_URoughness"))
     matdef += writeParameter("scene.materials", "vroughness", name, material.getFloat("LuxCore_Metal2_VRoughness"))
+    return matdef
+
+def writeRoughGlass(name, material):
+    matdef = writeParameter("scene.materials", "type", name, "roughglass")
+    matdef += writeParameter("scene.materials", "kr", name, material.getColorsSpace("LuxCore_RoughGlass_ReflectedColor"))
+    matdef += writeParameter("scene.materials", "kt", name, material.getColorsSpace("LuxCore_RoughGlass_TransmittedColor"))
+    matdef += writeParameter("scene.materials", "interiorior", name, material.getFloat("LuxCore_RoughGlass_InteriorIOR"))
+    matdef += writeParameter("scene.materials", "exteriorior", name, material.getFloat("LuxCore_RoughGlass_ExteriorIOR"))
+    matdef += writeParameter("scene.materials", "uroughness", name, material.getFloat("LuxCore_RoughGlass_URoughness"))
+    matdef += writeParameter("scene.materials", "vroughness", name, material.getFloat("LuxCore_RoughGlass_VRoughness"))
+    matdef += writeParameter("scene.materials", "transparency", name, material.getPercentFloatInverted("Transparency"))
     return matdef
 
 def writeMatte(name, material):
@@ -139,6 +149,8 @@ def writeObject(name,mesh,material):
         matType = matType.lower()
     if matType == "metal2":
         objdef += writeMetal2(matname, material)
+    elif matType == "roughglass":
+        objdef += writeRoughGlass(matname, material)
     else:
         objdef += writeMatte(matname, material)
 
