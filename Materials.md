@@ -6,6 +6,7 @@ You can add these in the user defined section of your materials
 name | type | description
 -----|------|------------
 **Appleseed_Material** | string | (lambertian, principled, glass) 
+**LuxCore_Material** | string | (metal2)
 
 ## Shader Definitions
 ### Principled shader
@@ -13,6 +14,7 @@ Source: [Disney's Principled Shader](https://disney-animation.s3.amazonaws.com/l
 
 Sometimes referred to as the disney shader. The principled shader is a widely used PBR BRDF model. The parameters 
 are designed for ease of use rather than using strictly physical ones. Some implementations provide extensions to this model.
+
 #### Core
  name | type | description
 ------|------|------------
@@ -53,6 +55,14 @@ are designed for ease of use rather than using strictly physical ones. Some impl
 **Appleseed_Glass_VolumeDensity** | float | Concentration of the attenuating species
 **Appleseed_Glass_VolumeScale** | float | Extra scaling factor for `VolumeDensity`
 **Appleseed_Glass_EnergyCompensation** | float | This is a way to compensate for energy losses caused by microfacet models
+
+### LuxCore Metal2
+ name | type |description
+------|------|------------
+**LuxCore_Metal2_FresnelColor** | color| reflection color 
+**LuxCore_Metal2_URoughness** | float | roughness value along u coordinate of the material (note: texture coordinates aren't exported yet, use the same value for u & v roughness)
+**LuxCore_Metal2_VRoughness** | float | roughness value along u coordinate of the material 
+
 
 ## Glossary of Terms
 * Beer-Lambert law: [Beer-Lambert law](https://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law)

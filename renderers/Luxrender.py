@@ -70,11 +70,30 @@ def writeCamera(pos,rot,up,target):
     cam += "scene.camera.up = " + up + "\n"
     return cam
 
-def writeMatte(name, material):
+def writeParameter(pre, post, name, value):
+    if value is not None:
+        return pre +"." + name + "." + post + " = " + value + "\n"
+    return ""
+
+def writeMetal2(name, material):
     alpha = material.getPercentFloatInverted("Transparency")
-    matdef = "scene.materials." + name + '.type = "matte"\n'
-    matdef += "scene.materials." + name + ".kd" + " = " + material.getColorsSpace("DiffuseColor") + "\n"
-    matdef += "scene.materials." + name + ".transparency" + " = " + alpha + "\n"
+    matdef = ""
+
+    if material.check("LuxCore_Metal2_FresnelColor"):
+        fresnelname = name + "_fresnel"
+        matdef += writeParameter("scene.textures", "type", fresnelname, "fresnelcolor")
+        matdef += writeParameter("scene.textures", "kr", fresnelname, material.getColorsSpace("LuxCore_Metal2_FresnelColor"))
+        matdef += writeParameter("scene.materials", "fresnel", name, fresnelname)
+    matdef += writeParameter("scene.materials", "type", name, "metal2")
+    matdef += writeParameter("scene.materials", "transparency", name, alpha)
+    matdef += writeParameter("scene.materials", "uroughness", name, material.getFloat("LuxCore_Metal2_URoughness"))
+    matdef += writeParameter("scene.materials", "vroughness", name, material.getFloat("LuxCore_Metal2_VRoughness"))
+    return matdef
+
+def writeMatte(name, material):
+    matdef = writeParameter("scene.materials", "type", name, "matte")
+    matdef += writeParameter("scene.materials", "kd", name, material.getColorsSpace("DiffuseColor"))
+    matdef += writeParameter("scene.materials", "transparency", name, material.getPercentFloatInverted("Transparency"))
     return matdef
 
 #Added a custom ply exporter here because the one in freecad uses a slightly different format
@@ -109,27 +128,23 @@ def writeObject(name,mesh,material):
     alpha = material.getNumPercentFloatInverted("Transparency")
 
     objdef = ""
-    #objname = name
-
-    #P = ""
-    #N = ""
-    #tris = ""
-    #for v in mesh.Topology[0]:
-    #    P += str(v.x) + " " + str(v.y) + " " + str(v.z) + " "
-    #for n in mesh.getPointNormals():
-    #    N += str(n.x) + " " + str(n.y) + " " + str(n.z) + " "
-    #for t in mesh.Topology[1]:
-    #    tris += str(t[0]) + " " + str(t[1]) + " " + str(t[2]) + " "
 
     # write the mesh as a ply tempfile
     fd, meshfile = tempfile.mkstemp(suffix=".ply", prefix="_")
     with os.fdopen(fd, "w", newline='\n') as f:
         f.write(writeMeshPLY(mesh))
 
-    objdef += writeMatte(matname, material)
-    objdef += "scene.objects." + name + ".material = " + matname + "\n"
+    matType = material.getString("LuxCore_Material")
+    if matType is not None:
+        matType = matType.lower()
+    if matType == "metal2":
+        objdef += writeMetal2(matname, material)
+    else:
+        objdef += writeMatte(matname, material)
+
+    objdef += writeParameter("scene.objects", "material", name, matname)
     #TODO: use the new "shape" definition
-    objdef += "scene.objects." + name + ".ply = " + meshfile + "\n"
+    objdef += writeParameter("scene.objects", "ply", name, meshfile)
 
     return objdef
 
@@ -144,22 +159,6 @@ def render(project,prefix,external,output,width,height):
     fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=".scn")
     t = f.read()
     f.close()
-
-    #res = re.findall("integer xresolution",t)
-    #if res:
-    #    t = re.sub("\"integer xresolution\".*?\[.*?\]","\"integer xresolution\" ["+str(width)+"]",t)
-    #res = re.findall("integer yresolution",t)
-    #if res:
-    #    t = re.sub("\"integer yresolution\".*?\[.*?\]","\"integer yresolution\" ["+str(height)+"]",t)
-    #if res:
-    #    fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
-    #    os.close(fd)
-    #    f = open(fp,"w")
-    #    f.write(t)
-    #    f.close()
-    #    project.PageResult = fp
-    #    os.remove(fp)
-    #    FreeCAD.ActiveDocument.recompute()
 
     splitIndex = t.index("#SceneFileMarker")
 
