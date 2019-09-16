@@ -6,7 +6,7 @@ You can add these in the user defined section of your materials
 name | type | description
 -----|------|------------
 **Appleseed_Material** | string | (lambertian, principled, glass) 
-**LuxCore_Material** | string | (metal2)
+**LuxCore_Material** | string | (metal2, roughglass, glossy2)
 
 ## Shader Definitions
 ### Principled shader
@@ -72,6 +72,19 @@ name | type | description
 **LuxCore_RoughGlass_ExteriorIOR** | float | index of refraction outside the material
 **LuxCore_RoughGlass_URoughness** | float | roughness value along u coordinate of the material (texture coordinates currently not supported use the same value for u & v roughness)
 **LuxCore_RoughGlass_VRoughness** | float | roughness value along v coordinate of the material
+
+### LuxCore Glossy2
+name | type | description
+-----|------|------------
+**LuxCore_Glossy2_Diffuse** | color | diffuse color of the material
+**LuxCore_Glossy2_Specular** | color | specular color of the material
+**LuxCore_Glossy2_CoatingAbsorption** | color | coefficient of absorption of the coating layer
+**LuxCore_Glossy2_CoatingIOR** | float | IOR of the coating. IOR overrides specular color if both are specified; specular will turn gray.
+**LuxCore_Glossy2_CoatingDepth** | float | value of the depth (thickness) of the coating layer for absorption effects. (0 = disables) 
+**LuxCore_Glossy2_URoughness** | float | roughness value along u coordinate of the material (texture coordinates currently not supported use the same value for u & v roughness)
+**LuxCore_Glossy2_VRoughness** | float | roughness value along v coordinate of the material
+**LuxCore_Glossy2_Multibounce** | bool | (true, false) The option will simulate light being scattered at the surface by things such as fuzz or fine hair. It is useful when using glossy for a skin or cloth material, and will give a soft, fuzzy appearance. 
+ 
 
 ## Glossary of Terms
 * Beer-Lambert law: [Beer-Lambert law](https://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law)

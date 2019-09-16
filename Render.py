@@ -96,6 +96,15 @@ class MaterialHelper:
     def getString(self, name):
         return self.material.get(name)
 
+    def getBool(self, name):
+        val = self.material.get(name)
+        if val is not None:
+            if val.lower() == "true":
+                return "1"
+            else:
+                return "0"
+        return None
+
     #The following fns return floats
     def getNumPercentFloat(self, name):
         retval = self.material.get(name)

@@ -100,6 +100,18 @@ def writeRoughGlass(name, material):
     matdef += writeParameter("scene.materials", "transparency", name, material.getPercentFloatInverted("Transparency"))
     return matdef
 
+def writeGlossy2(name, material):
+    matdef = writeParameter("scene.materials", "type", name, "glossy2")
+    matdef += writeParameter("scene.materials", "kd", name, material.getColorsSpace("LuxCore_Glossy2_Diffuse"))
+    matdef += writeParameter("scene.materials", "ks", name, material.getColorsSpace("LuxCore_Glossy2_Specular"))
+    matdef += writeParameter("scene.materials", "ka", name, material.getColorsSpace("LuxCore_Glossy2_CoatingAbsorption"))
+    matdef += writeParameter("scene.materials", "index", name, material.getColorsSpace("LuxCore_Glossy2_CoatingIOR"))
+    matdef += writeParameter("scene.materials", "d", name, material.getFloat("LuxCore_Glossy2_CoatingDepth"))
+    matdef += writeParameter("scene.materials", "uroughness", name, material.getFloat("LuxCore_Glossy2_URoughness"))
+    matdef += writeParameter("scene.materials", "vroughness", name, material.getFloat("LuxCore_Glossy2_VRoughness"))
+    matdef += writeParameter("scene.materials", "multibounce", name, material.getBool("LuxCore_Glossy2_Multibounce"))
+    return matdef
+
 def writeMatte(name, material):
     matdef = writeParameter("scene.materials", "type", name, "matte")
     matdef += writeParameter("scene.materials", "kd", name, material.getColorsSpace("DiffuseColor"))
@@ -151,6 +163,8 @@ def writeObject(name,mesh,material):
         objdef += writeMetal2(matname, material)
     elif matType == "roughglass":
         objdef += writeRoughGlass(matname, material)
+    elif matType == "glossy2":
+        objdef += writeGlossy2(matname, material)
     else:
         objdef += writeMatte(matname, material)
 
