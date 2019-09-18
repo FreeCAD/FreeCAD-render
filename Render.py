@@ -297,6 +297,9 @@ class Project:
         if not "OpenAfterRender" in obj.PropertiesList:
             obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
             obj.GroundPlane = False
+        if not "MaterialPipeline" in obj.PropertiesList:
+            obj.addProperty("App::PropertyLinkList","MaterialPipeline","Render", QT_TRANSLATE_NOOP("App::Property","A list of document objects that contribute to the material settings of a given object for rendering"))
+
         obj.setEditorMode("PageResult",2)
         obj.setEditorMode("Camera",2)
 
@@ -307,7 +310,10 @@ class Project:
 
 
     def execute(self,obj):
-
+        if hasattr(obj, 'MaterialPipeline') and obj.MaterialPipeline is not None:
+            for materialEnhancer in obj.MaterialPipeline:
+                if not hasattr(materialEnhancer, 'enhanceMaterial') and not hasattr(obj, 'Proxy') and not hasattr(obj.Proxy, 'enhanceMaterial'):
+                    raise AttributeError('Object %s in material pipeline has no "enhanceMaterial" method' % (materialEnhancer.Label,))
         return True
 
 
@@ -395,6 +401,15 @@ class Project:
         return {"DiffuseColor" : "(" + str(color[0]) + ", " + str(color[1]) + ", " + str(color[2]) + ")",
                 "Transparency" : str(transparency)}
 
+    def getExtraMaterialData(self, obj, view, mesh, material):
+        if hasattr(obj, 'MaterialPipeline') and obj.MaterialPipeline is not None:
+            for materialEnhancer in obj.MaterialPipeline:
+                if hasattr(materialEnhancer, 'enhanceMaterial'):
+                    materialEnhancer.enhanceMaterial(material, view)
+                    materialEnhancer.enhanceMaterial(material, view, mesh)
+                elif hasattr(materialEnhancer, 'Proxy') and hasattr(materialEnhancer.Proxy, 'enhanceMaterial'):
+                    materialEnhancer.Proxy.enhanceMaterial(material, view, mesh)
+
     def meshFromShape(self,shape):
         import MeshPart
         return MeshPart.meshFromShape(Shape=shape,
@@ -408,14 +423,17 @@ class Project:
                 return multimaterial.Materials[i]
         return None
 
-    def writeWallMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
+    def writeWallMultiMaterial(self, renderer, obj, view, material, defaultcolor, defaulttransparency):
         shapes = view.Source.Shape.childShapes()
         renderstring = ""
         for i, shape in enumerate(shapes):
-            renderstring += renderer.writeObject(view.Name + "_layer" + str(i), self.meshFromShape(shape), MaterialHelper(view.Source.Material.Materials[i].Material))
+            mesh = self.meshFromShape(shape)
+            matHelper = MaterialHelper(view.Source.Material.Materials[i].Material)
+            self.getExtraMaterialData(self, obj, view, mesh)
+            renderstring += renderer.writeObject(view.Name + "_layer" + str(i), mesh, matHelper)
         return renderstring;
 
-    def writeWindowMultiMaterial(self,renderer,view,material,defaultcolor,defaulttransparency):
+    def writeWindowMultiMaterial(self, renderer, obj, view, material, defaultcolor, defaulttransparency):
         shapes = view.Source.Shape.childShapes()
         renderstring = ""
         windowParts = view.Source.WindowParts
@@ -434,14 +452,17 @@ class Project:
             if mat is None and winPartType is not None:
                 mat = self.findMaterial(winPartType,material)
             if mat is None:
-                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),MaterialHelper(self.createSimpleMaterial(defaultcolor,defaulttransparency)))
-            else:
-                renderstring += renderer.writeObject(view.Name + str(i),self.meshFromShape(shape),MaterialHelper(mat.Material))
+                mat = self.createSimpleMaterial(defaultcolor, defaulttransparency)
+            matHelper = MaterialHelper(mat.Material)
+            mesh = self.meshFromShape(shape)
+            self.getExtraMaterialData(obj, view, mesh, matHelper)
+            renderstring += renderer.writeObject(view.Name+str(i), mesh, matHelper)
         return renderstring
 
-    def writeObject(self,obj,view):
+    def writeObject(self, obj, view):
         if not view.Source:
             return ""
+
         if obj.Renderer:
             try:
                 renderer = importlib.import_module("renderers."+obj.Renderer)
@@ -461,15 +482,6 @@ class Project:
                     if "Material" in view.Source.PropertiesList:
                         if view.Source.Material:
                             mat = view.Source.Material
-                #if mat:
-                #    if "Material" in mat.PropertiesList:
-                #        if "DiffuseColor" in mat.Material:
-                #            color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
-                #        if "Transparency" in mat.Material:
-                #            if float(mat.Material["Transparency"]) > 0:
-                #                alpha = 1.0-float(mat.Material["Transparency"])
-                #            else:
-                #                alpha = 1.0
 
                 if view.Source.ViewObject:
                     if hasattr(view.Source.ViewObject,"ShapeColor"):
@@ -482,6 +494,11 @@ class Project:
                 if not transparency:
                     transparency = 0
 
+                if mat is not None:
+                    matHelper = MaterialHelper(mat.Material)
+                else:
+                    matHelper = MaterialHelper(self.createSimpleMaterial(color, transparency))
+
                 # get mesh
                 import Draft
                 import Part
@@ -490,37 +507,38 @@ class Project:
                 if hasattr(view.Source,"Group"):
                     shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
                     mesh = self.meshFromShape(Part.makeCompound(shps))
+                    self.getExtraMaterialData(obj, view, mesh, matHelper)
                     #TODO: check for multimaterial
-                    return renderer.writeObject(view.Name,mesh,MaterialHelper(mat.Material if mat else self.createSimpleMaterial(color,transparency)))
+                    return renderer.writeObject(view.Name, mesh, matHelper)
 
                 elif view.Source.isDerivedFrom("Part::Feature"):
                     if mat:
                         matType = Draft.getType(mat)
                         if matType == "Material":
                             mesh = self.meshFromShape(view.Source.Shape)
-                            return renderer.writeObject(view.Name,mesh,MaterialHelper(mat.Material))
+                            self.getExtraMaterialData(obj, view, mesh, matHelper)
+                            return renderer.writeObject(view.Name, mesh, matHelper)
                         elif matType == "MultiMaterial":
                             partType = Draft.getType(view.Source)
                             if partType == "Window":
-                                return self.writeWindowMultiMaterial(renderer,view,mat,color,transparency)
+                                return self.writeWindowMultiMaterial(renderer, obj, view, mat, color, transparency)
                             elif partType == "Wall":
-                                return self.writeWallMultiMaterial(renderer,view,mat,color,transparency)
-                            return renderer.writeObject(view.Name,self.meshFromShape(view.Source.Shape),MaterialHelper(mat.Materials[0].Material))
+                                return self.writeWallMultiMaterial(renderer, obj, view, mat, color, transparency)
+                            return renderer.writeObject(view.Name, self.meshFromShape(view.Source.Shape), matHelper)
                         else:
-
                             #TODO: display error?
                             return ""
                     else:
                         mesh = self.meshFromShape(view.Source.Shape)
-                        return renderer.writeObject(view.Name,mesh,MaterialHelper(self.createSimpleMaterial(color,transparency)))
+                        self.getExtraMaterialData(obj, view, mesh, matHelper)
+                        return renderer.writeObject(view.Name, mesh, matHelper)
 
                 elif view.Source.isDerivedFrom("Mesh::Feature"):
                     mesh = view.Source.Mesh
-                    return renderer.writeObject(view.Name,mesh,MaterialHelper(mat.Material if mat else self.createSimpleMaterial(color,transparency)))
+                    return renderer.writeObject(view.Name, mesh, matHelper)
                 return ""
 
     def writeGroundPlane(self,obj):
-
         result = ""
         bbox = FreeCAD.BoundBox()
         for view in obj.Group:

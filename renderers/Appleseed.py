@@ -194,7 +194,31 @@ def writeGlassMaterial(name, material):
             </material>""" % (name, bsdfname)
     return matdef
 
+def writeOBJFile(name, mesh, material):
+    objdef = "# Created by FreeCAD <http://www.freecadweb.org>\n"
+    
+    objdef += "o "+name+"\n"
 
+    #write positions
+    for v in mesh.Topology[0]:
+        objdef += "v " + str(v[0]) + " " + str(v[1]) + " " + str(v[2]) + "\n"
+
+    for facet in mesh.Facets:
+        objdef += "vn " + str(facet.Normal[0]) + " " + str(facet.Normal[1]) + " " + str(facet.Normal[2]) + "\n"
+
+    uvpresent = hasattr(material, "uvcoordinates") and material.uvcoordinates is not None
+    if uvpresent:
+        for texcoor in material.uvcoordinates:
+            objdef += "vt " + str(texcoor[0]) + " " + str(texcoor[1]) + "\n"
+
+
+    #write faces
+    for i, facet in enumerate(mesh.Topology[1]):
+            objdef += "f "
+            objdef += "%s/%s/%s " % (facet[0]+1, (material.uvindices[i][0]+1 if uvpresent else ""), i+1)
+            objdef += "%s/%s/%s " % (facet[1]+1, (material.uvindices[i][1]+1 if uvpresent else ""), i+1)
+            objdef += "%s/%s/%s\n" % (facet[2]+1, (material.uvindices[i][2]+1 if uvpresent else ""), i+1)
+    return objdef
 
 def writeObject(name,mesh,material):
 
@@ -207,30 +231,16 @@ def writeObject(name,mesh,material):
     objname = name
     matname = objname + "_mat"
 
-    # write the mesh as an obj tempfile
-    fd, meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-    os.close(fd)
-    objfile = os.path.splitext(os.path.basename(meshfile))[0]
     import math
     tmpmesh = mesh.copy()
-    tmpmesh.rotate(-math.pi/2,0,0)
-    tmpmesh.write(meshfile)
+    tmpmesh.rotate(-math.pi/2, 0, 0)
 
-    # fix for missing object name in obj file (mandatory in Appleseed)
-    f = open(meshfile, "r")
-    contents = f.readlines()
-    f.close()
-    n = []
-    found = False
-    for l in contents:
-        if (not found) and l.startswith("f "):
-            found = True
-            n.append("o "+objname+"\n")
-        n.append(l)
-    f = open(meshfile, "w")
-    contents = "".join(n)
-    f.write(contents)
-    f.close()
+    # write the mesh as an obj tempfile
+    fd, meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+    with os.fdopen(fd, "w") as f:
+        f.write(writeOBJFile(objname, tmpmesh, material))
+
+    objfile = os.path.splitext(os.path.basename(meshfile))[0]
 
     materialtype = material.getString("Appleseed_Material")
     if materialtype is not None:
