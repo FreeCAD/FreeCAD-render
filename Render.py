@@ -480,7 +480,7 @@ class Project:
                 if not color:
                     color = (1.0, 1.0, 1.0)
                 if not transparency:
-                    transparency = 100
+                    transparency = 0
 
                 # get mesh
                 import Draft
