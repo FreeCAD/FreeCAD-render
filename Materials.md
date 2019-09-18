@@ -6,7 +6,7 @@ You can add these in the user defined section of your materials
 name | type | description
 -----|------|------------
 **Appleseed_Material** | string | (lambertian, principled, glass) 
-**LuxCore_Material** | string | (metal2, roughglass, glossy2)
+**LuxCore_Material** | string | (metal2, roughglass, glossy2, glass)
 
 ## Shader Definitions
 ### Principled shader
@@ -62,6 +62,15 @@ are designed for ease of use rather than using strictly physical ones. Some impl
 **LuxCore_Metal2_FresnelColor** | color| reflection color 
 **LuxCore_Metal2_URoughness** | float | roughness value along u coordinate of the material (note: texture coordinates aren't exported yet, use the same value for u & v roughness)
 **LuxCore_Metal2_VRoughness** | float | roughness value along u coordinate of the material 
+
+### LuxCore Glass
+name | type | description
+-----|------|------------
+**LuxCore_Glass_Reflectance** | float | reflectance of the material
+**LuxCore_Glass_Transmittance** | float | transmittance of the material
+**LuxCore_Glass_InteriorIOR** | float | index of refraction inside the material
+**LuxCore_Glass_ExteriorIOR** | float | index of refraction outside the material
+**LuxCore_Glass_Dispersion** | float | if defined and > 0.0, enable dispersion. The value is the C term of the [Cauchy's equation](https://en.wikipedia.org/wiki/Cauchy%27s_equation)
 
 ### LuxCore Rough Glass
 name | type | description
