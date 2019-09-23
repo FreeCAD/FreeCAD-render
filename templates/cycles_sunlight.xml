@@ -1,7 +1,7 @@
 <cycles>
 
     <!-- Camera -->
-    <camera width="800" height="500" />
+    <camera width="800" height="600" />
 
     <!--RaytracingCamera-->
 
