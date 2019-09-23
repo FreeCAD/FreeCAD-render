@@ -77,6 +77,48 @@ def writeCamera(pos,rot,up,target):
 
     return cam
 
+def writeTexture(name, filename):
+    if filename is not None:
+        texdef = """
+            <texture name="%s" model="disk_texture_2d">
+                <parameter name="color_space" value="srgb" />
+                <parameter name="filename" value="%s" />
+            </texture>
+            <texture_instance name="%s" texture="%s">
+            </texture_instance>""" % (name, filename, name + "_inst", name)
+        return texdef
+    return ""
+
+#almost any parameter can be overriden by a texture
+#This function writes the info in two parts one that needs to be prepended
+#the other one will be written as the parameter in the material
+def processFloatParameter(name, material, altfn, paramName):
+    texdef = ""
+    paramdef = None
+    filename = material.getFilename(paramName + "_Texture")
+    if filename is not None:
+        texname = name + "_" + paramName
+        texdef = writeTexture(texname, filename)
+        paramdef = texname + "_inst"
+    else:
+        paramdef = altfn(paramName)
+    return (texdef, paramdef)
+
+def processColorParameter(name, material, paramName, alpha = "1.0"):
+    texdef = ""
+    paramdef = None
+    filename = material.getFilename(paramName + "_Texture")
+    if filename is not None:
+        texname = name + "_" + paramName
+        texdef = writeTexture(texname, filename)
+        paramdef = texname + "_inst"
+    else:
+        colorName = name + "_" + paramName
+        texdef = writeColor(colorName, material.getColorsSpace(paramName), alpha)
+        paramdef = colorName
+    return (texdef, paramdef)
+
+
 def writeColor(name, color, alpha):
     coldef = ""
     if color is not None and alpha is not None:
@@ -104,7 +146,9 @@ def writeLambertianMaterial(name, material):
     colorname = name + "_color"
     bsdfname = name + "_bsdf"
 
-    matdef = writeColor(colorname, material.getColorsSpace("DiffuseColor"), material.getPercentFloatInverted("Transparency"))
+    reflectance = processColorParameter(name, material, "DiffuseColor", material.getPercentFloatInverted("Transparency"))
+
+    matdef = reflectance[0]
     matdef += """
             <bsdf name="%s" model="lambertian_brdf">
                 <parameter name="reflectance" value="%s" />
@@ -116,26 +160,49 @@ def writeLambertianMaterial(name, material):
                 <parameter name="displacement_method" value="bump" />
                 <parameter name="normal_map_up" value="z" />
                 <parameter name="shade_alpha_cutouts" value="false" />
-            </material>""" % (bsdfname, colorname, name, bsdfname)
+            </material>""" % (bsdfname, reflectance[1], name, bsdfname)
     return matdef
 
 def writePrincipledMaterial(name, material):
     colorname = name + "_color"
     bsdfname = name + "_bsdf"
 
-    matdef = writeColor(colorname, material.getColorsSpace("DiffuseColor"), material.getPercentFloatInverted("Transparency"))
+    baseColor = processColorParameter(name, material, "DiffuseColor", material.getPercentFloatInverted("Transparency"))
+    subsurface = processFloatParameter(name, material, material.getFloat, "Principled_Subsurface")
+    metallic = processFloatParameter(name, material, material.getFloat, "Principled_Metallic")
+    specular = processFloatParameter(name, material, material.getFloat, "Principled_Specular")
+    specular_tint = processFloatParameter(name, material, material.getFloat, "Principled_SpecularTint")
+    anisotropic = processFloatParameter(name, material, material.getFloat, "Principled_Anisotropic")
+    roughness = processFloatParameter(name, material, material.getFloat, "Principled_Roughness")
+    sheen = processFloatParameter(name, material, material.getFloat, "Principled_Sheen")
+    sheen_tint = processFloatParameter(name, material, material.getFloat, "Principled_SheenTint")
+    clearcoat = processFloatParameter(name, material, material.getFloat, "Principled_Clearcoat")
+    clearcoat_gloss = processFloatParameter(name, material, material.getFloat, "Principled_ClearcoatRoughness")
+
+    matdef = baseColor[0]
+    matdef += subsurface[0]
+    matdef += metallic[0]
+    matdef += specular[0]
+    matdef += specular_tint[0]
+    matdef += anisotropic[0]
+    matdef += roughness[0]
+    matdef += sheen[0]
+    matdef += sheen_tint[0]
+    matdef += clearcoat[0]
+    matdef += clearcoat_gloss[0]
+
     matdef += ('            <bsdf name="' + bsdfname +'" model="disney_brdf">\n'
-               + writeParameter("base_color", colorname)
-               + writeParameter("subsurface", material.getFloat("Principled_Subsurface"))
-               + writeParameter("metallic", material.getFloat("Principled_Metallic"))
-               + writeParameter("specular", material.getFloat("Principled_Specular"))
-               + writeParameter("specular_tint", material.getFloat("Principled_SpecularTint"))
-               + writeParameter("anisotropic", material.getFloat("Principled_Anisotropic"))
-               + writeParameter("roughness", material.getFloat("Principled_Roughness"))
-               + writeParameter("sheen", material.getFloat("Principled_Sheen"))
-               + writeParameter("sheen_tint", material.getFloat("Principled_SheenTint"))
-               + writeParameter("clearcoat", material.getFloat("Principled_Clearcoat"))
-               + writeParameter("clearcoat_gloss", material.getFloatInverted("Principled_ClearcoatRoughness"))
+               + writeParameter("base_color", baseColor[1])
+               + writeParameter("subsurface", subsurface[1])
+               + writeParameter("metallic", metallic[1])
+               + writeParameter("specular", specular[1])
+               + writeParameter("specular_tint", specular_tint[1])
+               + writeParameter("anisotropic", anisotropic[1])
+               + writeParameter("roughness", roughness[1])
+               + writeParameter("sheen", sheen[1])
+               + writeParameter("sheen_tint", sheen_tint[1])
+               + writeParameter("clearcoat", clearcoat[1])
+               + writeParameter("clearcoat_gloss", clearcoat_gloss[1])
                +'            </bsdf>\n')
 
     matdef += """            <material name="%s" model="generic_material">
@@ -161,24 +228,38 @@ def writeGlassMaterial(name, material):
 
     bsdfname = name + "_bsdf"
 
-    matdef = writeColor(surfacetransmittance, material.getColorsSpace("Appleseed_Glass_SurfaceTransmittance"), 1.0)
-    matdef += writeColor(reflectiontint, material.getColorsSpace("Appleseed_Glass_ReflectionTint"), 1.0)
-    matdef += writeColor(refractiontint, material.getColorsSpace("Appleseed_Glass_RefractionTint"), 1.0)
-    matdef += writeColor(voltransmittance, material.getColorsSpace("Appleseed_Glass_VolumeTransmittance"), 1.0)
-    matdef += writeColor(volabsorption, material.getColorsSpace("Appleseed_Glass_VolumeAbsorption"), 1.0)
+    surfacetransmittance = processColorParameter(name, material, "Appleseed_Glass_SurfaceTransmittance")
+    reflectiontint = processColorParameter(name, material, "Appleseed_Glass_ReflectionTint")
+    refractiontint = processColorParameter(name, material, "Appleseed_Glass_RefractionTint")
+    voltransmittance = processColorParameter(name, material, "Appleseed_Glass_VolumeTransmittance")
+    volabsorption = processColorParameter(name, material, "Appleseed_Glass_VolumeAbsorption")
+
+    roughness = processFloatParameter(name, material, material.getFloat, "Appleseed_Glass_Roughness")
+    anisotropy = processFloatParameter(name, material, material.getFloat, "Appleseed_Glass_Anisotropy")
+    volume_transmittance_distance = processFloatParameter(name, material, material.getFloat, "Appleseed_Glass_VolumeTransmittanceDistance")
+
+    matdef = surfacetransmittance[0]
+    matdef += reflectiontint[0]
+    matdef += refractiontint[0]
+    matdef += voltransmittance[0]
+    matdef += volabsorption[0]
+
+    matdef += roughness[0]
+    matdef += anisotropy[0]
+    matdef += volume_transmittance_distance[0]
 
     matdef += ('            <bsdf name="' + bsdfname +'" model="glass_bsdf">\n'
             + writeParameter("mdf", "ggx")        #This is for older versions of appleseed
-            + writeParameter("surface_transmittance", surfacetransmittance)
-            + writeParameter("reflection_tint", reflectiontint)
-            + writeParameter("refraction_tint", refractiontint)
-            + writeParameter("volume_transmittance", voltransmittance)
-            + writeParameter("volume_absorption", volabsorption)
+            + writeParameter("surface_transmittance", surfacetransmittance[1])
+            + writeParameter("reflection_tint", reflectiontint[1])
+            + writeParameter("refraction_tint", refractiontint[1])
+            + writeParameter("volume_transmittance", voltransmittance[1])
+            + writeParameter("volume_absorption", volabsorption[1])
             + writeParameter("ior", material.getFloat("Appleseed_Glass_IOR"))
-            + writeParameter("roughness", material.getFloat("Appleseed_Glass_Roughness"))
-            + writeParameter("anisotropy", material.getFloat("Appleseed_Glass_Anisotropy"))
+            + writeParameter("roughness", roughness[1])
+            + writeParameter("anisotropy", anisotropy[1])
             + writeParameter("volume_parameterization", volparam)
-            + writeParameter("volume_transmittance_distance", material.getFloat("Appleseed_Glass_VolumeTransmittanceDistance"))
+            + writeParameter("volume_transmittance_distance", volume_transmittance_distance[1])
             + writeParameter("volume_density", material.getFloat("Appleseed_Glass_VolumeDensity"))
             + writeParameter("volume_scale", material.getFloat("Appleseed_Glass_VolumeScale"))
             + writeParameter("energy_compensation", material.getFloat("Appleseed_Glass_EnergyCompensation"))
@@ -209,7 +290,7 @@ def writeOBJFile(name, mesh, material):
     uvpresent = hasattr(material, "uvcoordinates") and material.uvcoordinates is not None
     if uvpresent:
         for texcoor in material.uvcoordinates:
-            objdef += "vt " + str(texcoor[0]) + " " + str(texcoor[1]) + "\n"
+            objdef += "vt %f %f\n" % (texcoor[0], texcoor[1])
 
 
     #write faces
