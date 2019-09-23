@@ -105,6 +105,9 @@ class MaterialHelper:
                 return "0"
         return None
 
+    def getFilename(self, name):
+        return self.material.get(name)
+
     #The following fns return floats
     def getNumPercentFloat(self, name):
         retval = self.material.get(name)
@@ -494,7 +497,7 @@ class Project:
                 if not transparency:
                     transparency = 0
 
-                if mat is not None:
+                if mat is not None and hasattr(mat, "Material"):
                     matHelper = MaterialHelper(mat.Material)
                 else:
                     matHelper = MaterialHelper(self.createSimpleMaterial(color, transparency))
@@ -603,7 +606,7 @@ class Project:
 
             if "RaytracingCamera" in template:
                 template = re.sub("(.*RaytracingCamera.*)",cam,template)
-                template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
+                template = re.sub("(.*RaytracingContent.*)",lambda _: renderobjs,template)
             else:
                 template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
 
