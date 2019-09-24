@@ -77,15 +77,15 @@ def writeCamera(pos,rot,up,target):
 
     return cam
 
-def writeTexture(name, filename):
+def writeTexture(name, filename, linear = True):
     if filename is not None:
         texdef = """
             <texture name="%s" model="disk_texture_2d">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="%s" />
                 <parameter name="filename" value="%s" />
             </texture>
             <texture_instance name="%s" texture="%s">
-            </texture_instance>""" % (name, filename, name + "_inst", name)
+            </texture_instance>""" % (name, "linear_rgb" if linear else "srgb", filename, name + "_inst", name)
         return texdef
     return ""
 
@@ -177,7 +177,7 @@ def writePrincipledMaterial(name, material):
     sheen = processFloatParameter(name, material, material.getFloat, "Principled_Sheen")
     sheen_tint = processFloatParameter(name, material, material.getFloat, "Principled_SheenTint")
     clearcoat = processFloatParameter(name, material, material.getFloat, "Principled_Clearcoat")
-    clearcoat_gloss = processFloatParameter(name, material, material.getFloat, "Principled_ClearcoatRoughness")
+    clearcoat_gloss = processFloatParameter(name, material, material.getFloatInverted, "Principled_ClearcoatRoughness")
 
     matdef = baseColor[0]
     matdef += subsurface[0]
