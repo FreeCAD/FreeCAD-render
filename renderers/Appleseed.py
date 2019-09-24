@@ -115,9 +115,9 @@ def processColorParameter(name, material, paramName, alpha = "1.0"):
     else:
         colorName = name + "_" + paramName
         texdef = writeColor(colorName, material.getColorsSpace(paramName), alpha)
-        paramdef = colorName
+        if texdef != "":
+            paramdef = colorName
     return (texdef, paramdef)
-
 
 def writeColor(name, color, alpha):
     coldef = ""

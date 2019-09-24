@@ -151,8 +151,6 @@ class RenderProjectCommand:
 
 
 class RenderViewCommand:
-
-
     "Creates a Raytracing view of the selected object(s) in the selected project or the default project"
 
     def GetResources(self):
@@ -404,14 +402,13 @@ class Project:
         return {"DiffuseColor" : "(" + str(color[0]) + ", " + str(color[1]) + ", " + str(color[2]) + ")",
                 "Transparency" : str(transparency)}
 
-    def getExtraMaterialData(self, obj, view, mesh, material):
+    def getExtraMaterialData(self, obj, mesh, renderMaterial, objectMaterial):
         if hasattr(obj, 'MaterialPipeline') and obj.MaterialPipeline is not None:
             for materialEnhancer in obj.MaterialPipeline:
                 if hasattr(materialEnhancer, 'enhanceMaterial'):
-                    materialEnhancer.enhanceMaterial(material, view)
-                    materialEnhancer.enhanceMaterial(material, view, mesh)
+                    materialEnhancer.enhanceMaterial(renderMaterial, objectMaterial, mesh)
                 elif hasattr(materialEnhancer, 'Proxy') and hasattr(materialEnhancer.Proxy, 'enhanceMaterial'):
-                    materialEnhancer.Proxy.enhanceMaterial(material, view, mesh)
+                    materialEnhancer.Proxy.enhanceMaterial(renderMaterial, objectMaterial, mesh)
 
     def meshFromShape(self,shape):
         import MeshPart
@@ -431,8 +428,9 @@ class Project:
         renderstring = ""
         for i, shape in enumerate(shapes):
             mesh = self.meshFromShape(shape)
-            matHelper = MaterialHelper(view.Source.Material.Materials[i].Material)
-            self.getExtraMaterialData(self, obj, view, mesh)
+            mat = view.Source.Material.Materials[i]
+            matHelper = MaterialHelper(mat.Material)
+            self.getExtraMaterialData(obj, mesh, matHelper, mat)
             renderstring += renderer.writeObject(view.Name + "_layer" + str(i), mesh, matHelper)
         return renderstring;
 
@@ -450,15 +448,16 @@ class Project:
                 winPartName = windowParts[i*5]
                 winPartType = windowParts[i*5 + 1]
             mat = None
-            if winPartName is not None:
-                mat = self.findMaterial(winPartName,material)
-            if mat is None and winPartType is not None:
-                mat = self.findMaterial(winPartType,material)
-            if mat is None:
-                mat = self.createSimpleMaterial(defaultcolor, defaulttransparency)
-            matHelper = MaterialHelper(mat.Material)
             mesh = self.meshFromShape(shape)
-            self.getExtraMaterialData(obj, view, mesh, matHelper)
+            if winPartName is not None:
+                mat = self.findMaterial(winPartName, material)
+            if mat is None and winPartType is not None:
+                mat = self.findMaterial(winPartType, material)
+                matHelper = MaterialHelper(mat.Material)
+                self.getExtraMaterialData(obj, mesh, matHelper, mat)
+            else:
+                mat = self.createSimpleMaterial(defaultcolor, defaulttransparency)
+                matHelper = MaterialHelper(mat)
             renderstring += renderer.writeObject(view.Name+str(i), mesh, matHelper)
         return renderstring
 
@@ -510,7 +509,8 @@ class Project:
                 if hasattr(view.Source,"Group"):
                     shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
                     mesh = self.meshFromShape(Part.makeCompound(shps))
-                    self.getExtraMaterialData(obj, view, mesh, matHelper)
+                    if mat is not None:
+                        self.getExtraMaterialData(obj, mesh, matHelper, mat)
                     #TODO: check for multimaterial
                     return renderer.writeObject(view.Name, mesh, matHelper)
 
@@ -519,7 +519,7 @@ class Project:
                         matType = Draft.getType(mat)
                         if matType == "Material":
                             mesh = self.meshFromShape(view.Source.Shape)
-                            self.getExtraMaterialData(obj, view, mesh, matHelper)
+                            self.getExtraMaterialData(obj, mesh, matHelper, mat)
                             return renderer.writeObject(view.Name, mesh, matHelper)
                         elif matType == "MultiMaterial":
                             partType = Draft.getType(view.Source)
@@ -533,7 +533,6 @@ class Project:
                             return ""
                     else:
                         mesh = self.meshFromShape(view.Source.Shape)
-                        self.getExtraMaterialData(obj, view, mesh, matHelper)
                         return renderer.writeObject(view.Name, mesh, matHelper)
 
                 elif view.Source.isDerivedFrom("Mesh::Feature"):
