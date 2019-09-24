@@ -33,6 +33,15 @@
             <parameter name="environment_shader" value="environment_shader" />
         </environment>
         <assembly name="assembly">
+            <light name="light1" model="sun_light">
+                <parameter name="cast_indirect_light" value="true" />
+                <parameter name="distance" value="149.6" />
+                <parameter name="environment_edf" value="environment_edf" />
+                <parameter name="importance_multiplier" value="1.0" />
+                <parameter name="radiance_multiplier" value="1.0" />
+                <parameter name="size_multiplier" value="1.0" />
+                <parameter name="turbidity" value="2.0" />
+            </light>
             <!--RaytracingContent-->
         </assembly>
         <assembly_instance name="assembly_inst" assembly="assembly">
