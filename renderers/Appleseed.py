@@ -97,7 +97,9 @@ def writeObject(viewobj,mesh,color,alpha):
     alpha = str(alpha)
 
     # write the mesh as an obj tempfile
-    meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")[1]
+
+    fd, meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+    os.close(fd)
     objfile = os.path.splitext(os.path.basename(meshfile))[0]
     import math
     tmpmesh = mesh.copy()
@@ -173,7 +175,8 @@ def render(project,prefix,external,output,width,height):
     res = re.findall("<parameter name=\"resolution.*?\/>",t)
     if res:
         t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(width)+" "+str(height)+"\" />")
-        fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])[1]
+        fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
+        os.close(fd)
         f = open(fp,"w")
         f.write(t)
         f.close()

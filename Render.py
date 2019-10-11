@@ -465,12 +465,13 @@ class Project:
                 template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
 
             # save page result
-            fp = tempfile.mkstemp(prefix=obj.Name,suffix=os.path.splitext(obj.Template)[-1])[1]
+            fh, fp = tempfile.mkstemp(prefix=obj.Name,suffix=os.path.splitext(obj.Template)[-1])
             f = open(fp,"w")
             if sys.version_info.major < 3:
                 template = template.encode("utf8")
             f.write(template)
             f.close()
+            os.close(fh)
             obj.PageResult = fp
             os.remove(fp)
 
