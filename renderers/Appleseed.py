@@ -44,6 +44,9 @@ from __future__ import print_function
 #    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
 
 
+# NOTE: The coordinate system in appleseed uses a different coordinate system.
+# Y and Z are switched and Z is inverted
+
 import tempfile
 import FreeCAD
 import os
@@ -56,9 +59,9 @@ def writeCamera(pos,rot,up,target):
     # this is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
-    target = str(target.x)+" "+str(target.y)+" "+str(target.z)
-    up = str(up.x)+" "+str(up.y)+" "+str(up.z)
-    pos = str(pos.x)+" "+str(pos.y)+" "+str(pos.z)
+    target = str(target.x)+" "+str(target.z)+" "+str(-target.y)
+    up = str(up.x)+" "+str(up.z)+" "+str(-up.y)
+    pos = str(pos.x)+" "+str(pos.z)+" "+str(-pos.y)
 
     cam = """
         <camera name="camera" model="thinlens_camera">
@@ -98,10 +101,12 @@ def writeObject(viewobj,mesh,color,alpha):
     fd, meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")
     os.close(fd)
     objfile = os.path.splitext(os.path.basename(meshfile))[0]
-    mesh.write(meshfile)
+    import math
+    tmpmesh = mesh.copy()
+    tmpmesh.rotate(-math.pi/2,0,0)
+    tmpmesh.write(meshfile)
 
     # fix for missing object name in obj file (mandatory in Appleseed)
-
     f = open(meshfile, "r")
     contents = f.readlines()
     f.close()
