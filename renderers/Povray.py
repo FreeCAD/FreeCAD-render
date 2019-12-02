@@ -117,6 +117,19 @@ def writeObject(viewobj,mesh,color,alpha):
 
     return objdef
 
+def writePointLight(view,location,color,power):
+    # this is where you write the renderer-specific code
+    # to export the point light in the renderer format
+
+
+    # Note: power is of no use for pov-ray
+    objdef = []
+    objdef += "\nlight_source {"
+    objdef += "<{},{},{}> ".format(*location)
+    objdef += "color rgb<{},{},{}>".format(*color)
+    objdef += "}\n\n"
+
+    return ''.join(objdef)
 
 def render(project,prefix,external,output,width,height):
 

@@ -28,9 +28,13 @@ import sys
 import os
 import re
 import tempfile
-import FreeCAD
 import importlib
 import math
+
+import FreeCAD
+import Draft
+import Part
+import MeshPart
 
 if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
@@ -51,6 +55,19 @@ else:
 def QT_TRANSLATE_NOOP(scope, text):
     return text
 
+
+def importRenderer(rdrname):
+    """Dynamically import a renderer module.
+    Returns the module if import succeeds, None otherwise
+
+    rdrname: renderer name (as a string)"""
+
+    try:
+        return importlib.import_module("renderers." + rdrname)
+    except ImportError:
+        errmsg = translate("Render","Error importing renderer '{}'\n").format(rdrname)
+        FreeCAD.Console.PrintError(errmsg)
+        return None
 
 
 
@@ -103,6 +120,8 @@ class RenderViewCommand:
             else:
                 if o.isDerivedFrom("Part::Feature") or o.isDerivedFrom("Mesh::Feature"):
                     objs.append(o)
+                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight']:
+                    objs.append(o)
         if not project:
             for o in FreeCAD.ActiveDocument.Objects:
                 if "Renderer" in o.PropertiesList:
@@ -111,6 +130,7 @@ class RenderViewCommand:
         if not project:
             FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
+
         for obj in objs:
             view = FreeCAD.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
             view.Label = "View of "+ obj.Name
@@ -211,7 +231,7 @@ class Project:
             obj.addProperty("App::PropertyBool","DelayedBuild","Render", QT_TRANSLATE_NOOP("App::Property","If true, the views will be updated on render only"))
             obj.DelayedBuild = True
         if not "Template" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFile","Template","Render", QT_TRANSLATE_NOOP("App::Property","The template to be use by this rendering"))
+            obj.addProperty("App::PropertyFile","Template","Render", QT_TRANSLATE_NOOP("App::Property","The template to be used by this rendering"))
         if not "Camera" in obj.PropertiesList:
             obj.addProperty("App::PropertyString","Camera","Render", QT_TRANSLATE_NOOP("App::Property","The camera data to be used"))
         if not "PageResult" in obj.PropertiesList:
@@ -254,6 +274,8 @@ class Project:
                     view.touch()
 
 
+
+
     def setCamera(self,obj):
 
         if FreeCAD.GuiUp:
@@ -261,7 +283,7 @@ class Project:
             obj.Camera = FreeCADGui.ActiveDocument.ActiveView.getCamera()
 
 
-    def writeCamera(self,obj):
+    def writeCamera(self,obj,renderer):
 
         # camdata contains a string in OpenInventor format
         # ex:
@@ -302,99 +324,122 @@ class Project:
             if not obj.Camera:
                 FreeCAD.Console.PrintError(translate("Render","Unable to set the camera"))
                 return ""
-        if obj.Renderer:
-            try:
-                renderer = importlib.import_module("renderers."+obj.Renderer)
-            except ImportError:
-                FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
-                return ""
-            else:
 
-                if not obj.Camera:
-                    return ""
-                camdata = obj.Camera.split("\n")
-                cam = ""
-                pos = [float(p) for p in camdata[5].split()[-3:]]
-                pos = FreeCAD.Vector(pos)
-                rot = [float(p) for p in camdata[6].split()[-4:]]
-                rot = FreeCAD.Rotation(FreeCAD.Vector(rot[0],rot[1],rot[2]),math.degrees(rot[3]))
-                target = rot.multVec(FreeCAD.Vector(0,0,-1))
-                target.multiply(float(camdata[10].split()[-1]))
-                target = pos.add(target)
-                up = rot.multVec(FreeCAD.Vector(0,1,0))
+        camdata = obj.Camera.split("\n")
+        cam = ""
+        pos = [float(p) for p in camdata[5].split()[-3:]]
+        pos = FreeCAD.Vector(pos)
+        rot = [float(p) for p in camdata[6].split()[-4:]]
+        rot = FreeCAD.Rotation(FreeCAD.Vector(rot[0],rot[1],rot[2]),math.degrees(rot[3]))
+        target = rot.multVec(FreeCAD.Vector(0,0,-1))
+        target.multiply(float(camdata[10].split()[-1]))
+        target = pos.add(target)
+        up = rot.multVec(FreeCAD.Vector(0,1,0))
 
-                return renderer.writeCamera(pos,rot,up,target)
+        return renderer.writeCamera(pos,rot,up,target)
 
 
-    def writeObject(self,obj,view):
+    def writePointLight(self,view,renderer):
+        """Gets a rendering string for a point light object
+
+           This method should be called only by writeObject, as a hook for point lights
+
+           Parameters:
+           view: the view of the point light (contains the point light data)
+           renderer: the renderer module to use (callback)
+
+           Returns: a rendering string, obtained from the renderer module
+        """
+        # get location, color, power
+        pl = view.Source.PropertiesList
+
+        try:
+            location = view.Source.Location
+            color = view.Source.Color
+        except AttributeError:
+            FreeCAD.Console.PrintError(translate("Render","Cannot render Point Light: Missing location and/or color attributes"))
+            return ""
+        power = getattr(view.Source,"RenderingPower",60) # For backward compatibility, we accept missing power...
+
+        # send everything to renderer module
+        return renderer.writePointLight(view,location,color,power)
+
+
+    def writeObject(self,view,renderer):
+        """Gets a rendering string for an object
+
+           Parameters:
+           view: the view of the object (contains the object data)
+           renderer: the renderer module to use (callback)
+        """
 
         if not view.Source:
             return ""
-        if obj.Renderer:
-            try:
-                renderer = importlib.import_module("renderers."+obj.Renderer)
-            except ImportError:
-                FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
-                return ""
-            else:
 
-                # get color and alpha
-                mat = None
-                color = None
-                alpha = None
-                if view.Material:
-                    mat = view.Material
-                else:
-                    if "Material" in view.Source.PropertiesList:
-                        if view.Source.Material:
-                            mat = view.Source.Material
-                if mat:
-                    if "Material" in mat.PropertiesList:
-                        if "DiffuseColor" in mat.Material:
-                            color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
-                        if "Transparency" in mat.Material:
-                            if float(mat.Material["Transparency"]) > 0:
-                                alpha = 1.0-float(mat.Material["Transparency"])
-                            else:
-                                alpha = 1.0
-                if view.Source.ViewObject:
-                    if not color:
-                        if hasattr(view.Source.ViewObject,"ShapeColor"):
-                            color = view.Source.ViewObject.ShapeColor[:3]
-                    if not alpha:
-                        if hasattr(view.Source.ViewObject,"Transparency"):
-                            if view.Source.ViewObject.Transparency > 0:
-                                alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
-                if not color:
-                    color = (1.0, 1.0, 1.0)
-                if not alpha:
-                    alpha = 1.0
+        # point light hook
+        proxy = getattr(view.Source,"Proxy",None)
+        if getattr(proxy,"type",None) == "PointLight":
+            return self.writePointLight(view,renderer)
 
-                # get mesh
-                import Draft
-                import Part
-                import MeshPart
-                mesh = None
-                if hasattr(view.Source,"Group"):
-                    shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
-                    mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
-                                               LinearDeflection=0.1,
-                                               AngularDeflection=0.523599,
-                                               Relative=False)
-                elif view.Source.isDerivedFrom("Part::Feature"):
-                    mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
-                                               LinearDeflection=0.1,
-                                               AngularDeflection=0.523599,
-                                               Relative=False)
-                elif view.Source.isDerivedFrom("Mesh::Feature"):
-                    mesh = view.Source.Mesh
-                if not mesh:
-                    return ""
+        # get color and alpha
+        mat = None
+        color = None
+        alpha = None
+        if view.Material:
+            mat = view.Material
+        else:
+            if "Material" in view.Source.PropertiesList:
+                if view.Source.Material:
+                    mat = view.Source.Material
+        if mat:
+            if "Material" in mat.PropertiesList:
+                if "DiffuseColor" in mat.Material:
+                    color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
+                if "Transparency" in mat.Material:
+                    if float(mat.Material["Transparency"]) > 0:
+                        alpha = 1.0 - float(mat.Material["Transparency"])
+                    else:
+                        alpha = 1.0
 
-                return renderer.writeObject(view,mesh,color,alpha)
+        if view.Source.ViewObject:
+            if not color:
+                if hasattr(view.Source.ViewObject,"ShapeColor"):
+                    color = view.Source.ViewObject.ShapeColor[:3]
+            if not alpha:
+                if hasattr(view.Source.ViewObject,"Transparency"):
+                    if view.Source.ViewObject.Transparency > 0:
+                        alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
+        if not color:
+            color = (1.0, 1.0, 1.0)
+        if not alpha:
+            alpha = 1.0
+
+        # get mesh
+        mesh = None
+        if hasattr(view.Source,"Group"):
+            shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
+            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
+                                       LinearDeflection=0.1,
+                                       AngularDeflection=0.523599,
+                                       Relative=False)
+        elif view.Source.isDerivedFrom("Part::Feature"):
+            mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
+                                       LinearDeflection=0.1,
+                                       AngularDeflection=0.523599,
+                                       Relative=False)
+        elif view.Source.isDerivedFrom("Mesh::Feature"):
+            mesh = view.Source.Mesh
+        if not mesh:
+            return ""
+
+        return renderer.writeObject(view,mesh,color,alpha)
 
 
-    def writeGroundPlane(self,obj):
+    def writeGroundPlane(self,obj,renderer):
+        """Generate a ground plane rendering string for the scene
+
+        For that purpose, dummy objects are temporaly added to the scenegraph and
+        eventually deleted"""
 
         result = ""
         bbox = FreeCAD.BoundBox()
@@ -419,7 +464,7 @@ class Project:
             ViewProviderView(dummy2.ViewObject)
             FreeCAD.ActiveDocument.recompute()
 
-            result = self.writeObject(obj,dummy2)
+            result = self.writeObject(dummy2,renderer)
 
             # remove temp objects
             FreeCAD.ActiveDocument.removeObject(dummy2.Name)
@@ -430,78 +475,90 @@ class Project:
 
 
     def render(self,obj,external=True):
+        """Render the project, calling external renderer
 
-        if obj.Renderer:
+            obj: the project view
+            external: (for future use)"""
 
-            # open template
-            template = None
-            if obj.Template:
-                if os.path.exists(obj.Template):
-                    f = open(obj.Template,"r")
-                    template = f.read()
-                    if sys.version_info.major < 3:
-                        template = template.decode("utf8")
-                    f.close()
-            if not template:
-                return
+        # check some prerequisites...
+        if not obj.Renderer:
+            return
+        if not obj.Template:
+            return
+        if not os.path.exists(obj.Template):
+            return
 
-            # write camera
-            cam = self.writeCamera(obj)
+        # get the renderer module
+        renderer = importRenderer(obj.Renderer)
+        if not renderer:
+            return
 
-            # write objects
-            renderobjs = ""
-            for view in obj.Group:
-                if obj.DelayedBuild:
-                    renderobjs += self.writeObject(obj,view)
-                else:
-                    renderobjs += view.ViewResult
-            if hasattr(obj,"GroundPlane") and obj.GroundPlane:
-                renderobjs += self.writeGroundPlane(obj)
+        # get the rendering template
+        template = None
+        with open(obj.Template,"r") as f:
+            template = f.read()
+        if sys.version_info.major < 3:
+            template = template.decode("utf8")
+        if not template:
+            return
 
-            if "RaytracingCamera" in template:
-                template = re.sub("(.*RaytracingCamera.*)",cam,template)
-                template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
-            else:
-                template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
+        # get a camera string
+        cam = self.writeCamera(obj,renderer)
 
-            # save page result
-            fh, fp = tempfile.mkstemp(prefix=obj.Name,suffix=os.path.splitext(obj.Template)[-1])
-            f = open(fp,"w")
-            if sys.version_info.major < 3:
-                template = template.encode("utf8")
+        # get objects rendering strings (including lights objects)
+        # and add a ground plane if required
+        if obj.DelayedBuild:
+            objstrings = [self.writeObject(view,renderer) for view in obj.Group]
+        else:
+            objstrings = [view.ViewResult for view in obj.Group]
+
+        if hasattr(obj,"GroundPlane") and obj.GroundPlane:
+            objstrings.append(self.writeGroundPlane(obj,renderer))
+
+        renderobjs = ''.join(objstrings)
+
+        # merge all strings (cam, objects, ground plane...) into rendering template
+        if "RaytracingCamera" in template:
+            template = re.sub("(.*RaytracingCamera.*)",cam,template)
+            template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
+        else:
+            template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
+        if sys.version_info.major < 3:
+            template = template.encode("utf8")
+
+        # write merger result into a temporary file
+        fh, fp = tempfile.mkstemp(  prefix=obj.Name,
+                                    suffix=os.path.splitext(obj.Template)[-1])
+        with open(fp,"w") as f:
             f.write(template)
-            f.close()
-            os.close(fh)
-            obj.PageResult = fp
-            os.remove(fp)
+        os.close(fh)
+        obj.PageResult = fp
+        os.remove(fp)
+        if not obj.PageResult:
+            FreeCAD.Console.PrintError(translate("Render","Error: No page result"))
+            return
 
-            FreeCAD.ActiveDocument.recompute()
+        FreeCAD.ActiveDocument.recompute()
 
-            # run the rendering
-            try:
-                renderer = importlib.import_module("renderers."+obj.Renderer)
-            except ImportError:
-                FreeCAD.Console.PrintError(translate("Render","Error importing renderer")+" "+str(obj.Renderer))
-                return
-            else:
-                if not obj.PageResult:
-                    FreeCAD.Console.PrintError(translate("Render","Error: No page result"))
-                    return
-                p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-                prefix = p.GetString("Prefix","")
-                if prefix:
-                    prefix += " "
-                output = os.path.splitext(obj.PageResult)[0]+".png"
-                if hasattr(obj,"OutputImage") and obj.OutputImage:
-                    output = obj.OutputImage
-                width = 800
-                if hasattr(obj,"RenderWidth") and obj.RenderWidth:
-                    width = obj.RenderWidth
-                height = 600
-                if hasattr(obj,"RenderHeight") and obj.RenderHeight:
-                    height = obj.RenderHeight
-                return renderer.render(obj,prefix,external,output,width,height)
-                FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
+        # fetch the rendering parameters
+        p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        prefix = p.GetString("Prefix","")
+        if prefix:
+            prefix += " "
+        output = os.path.splitext(obj.PageResult)[0]+".png"
+        if hasattr(obj,"OutputImage") and obj.OutputImage:
+            output = obj.OutputImage
+        width = 800
+        if hasattr(obj,"RenderWidth") and obj.RenderWidth:
+            width = obj.RenderWidth
+        height = 600
+        if hasattr(obj,"RenderHeight") and obj.RenderHeight:
+            height = obj.RenderHeight
+
+        # run the renderer on the temp file
+        return renderer.render(obj,prefix,external,output,width,height)
+
+        FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
 
 
 class ViewProviderProject:
@@ -565,20 +622,35 @@ class View:
 
     def __init__(self,obj):
 
-        obj.addProperty("App::PropertyLink",         "Source",     "Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
-        obj.addProperty("App::PropertyLink",         "Material",   "Render", QT_TRANSLATE_NOOP("App::Property","The template to be use by this rendering"))
+        obj.addProperty("App::PropertyLink",         "Source",     "Render", QT_TRANSLATE_NOOP("App::Property","The source object of this view"))
+        obj.addProperty("App::PropertyLink",         "Material",   "Render", QT_TRANSLATE_NOOP("App::Property","The material of this view"))
         obj.addProperty("App::PropertyString",       "ViewResult", "Render", QT_TRANSLATE_NOOP("App::Property","The rendering output of this view"))
         obj.Proxy = self
 
     def execute(self,obj):
 
+        # (re)write the ViewResult string if containing project is not 'delayed build'
         for proj in obj.InList:
+            # only for projects with no delayed build...
+            if not hasattr(proj,"DelayedBuild") or proj.DelayedBuild:
+                continue
+
+            # get the renderer module
+            renderer = importRenderer(proj.Renderer)
+            if not renderer:
+                return
+
+            # find the object and write its rendering string
             if hasattr(proj,"Group"):
                 for c in proj.Group:
                     if c == obj:
-                        if not proj.DelayedBuild:
-                            obj.ViewResult = proj.Proxy.writeObject(proj,obj)
-                            break
+                        obj.ViewResult = proj.Proxy.writeObject(obj,renderer)
+                        break
+
+        # TODO the above implementation ('linear search') is certainly very inefficient
+        # when there are many objects: as execute() is triggered for each object,
+        # the total complexity can be O(n²), if I'm not mistaken.
+        # We should look for something more optimized in the future...
 
 
 class ViewProviderView:
