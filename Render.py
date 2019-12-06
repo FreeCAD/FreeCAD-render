@@ -359,7 +359,7 @@ class Project:
         except AttributeError:
             FreeCAD.Console.PrintError(translate("Render","Cannot render Point Light: Missing location and/or color attributes"))
             return ""
-        power = getattr(view.Source,"RenderingPower",60) # For backward compatibility, we accept missing power...
+        power = getattr(view.Source,"RenderingPower",60) # We accept missing power...
 
         # send everything to renderer module
         return renderer.writePointLight(view,location,color,power)

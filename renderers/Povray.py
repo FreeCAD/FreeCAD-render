@@ -43,6 +43,11 @@
 #    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
 
 
+# POV-Ray specific:
+# Tip: please note that POV-Ray coordinate system appears to be different from FreeCAD's
+# one (z and y permuted)
+# See here: https://www.povray.org/documentation/3.7.0/t2_2.html#t2_2_1_1
+
 import FreeCAD
 import math
 import re
@@ -83,7 +88,7 @@ def writeObject(viewobj,mesh,color,alpha):
     # so make sure you include everything that is needed
 
     objname = viewobj.Name
-    
+
     color = str(color[0])+","+str(color[1])+","+str(color[2])
 
     objdef = ""
@@ -125,7 +130,7 @@ def writePointLight(view,location,color,power):
     # Note: power is of no use for pov-ray
     objdef = []
     objdef += "\nlight_source {"
-    objdef += "<{},{},{}> ".format(*location)
+    objdef += "<{},{},{}> ".format(location.x,location.z,location.y)
     objdef += "color rgb<{},{},{}>".format(*color)
     objdef += "}\n\n"
 
