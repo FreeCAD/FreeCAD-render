@@ -119,6 +119,13 @@ def writeObject(viewobj,mesh,color,alpha):
     return objdef
 
 
+def writePointLight(view,location,color,power):
+    # this is where you write the renderer-specific code
+    # to export the point light in the renderer format
+
+    # TODO
+    return ""
+
 def render(project,prefix,external,output,width,height):
 
     # here you trigger a render by firing the renderer
