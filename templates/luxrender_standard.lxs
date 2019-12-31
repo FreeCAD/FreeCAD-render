@@ -65,6 +65,7 @@ Film "fleximage"
 	"integer outlierrejection_k" [2]
 	"integer tilecount" [0]
 	"string tonemapkernel" ["autolinear"]
+	#"string tonemapkernel" ["nop"] # alternative
 
 WorldBegin
 
@@ -87,12 +88,9 @@ AttributeBegin #  "Lamp"
 
 LightGroup "Sky"
 
-LightSource "sky"
-	"float gain" [1.000000000000000]
-	"float importance" [1.000000000000000]
-	"integer nsamples" [1]
-	"float turbidity" [5.200000047683716]
-	"vector sundir" [0.028625251725316 -0.011037390679121 0.040162373334169]
+LightSource "infinite"
+	"float gain" [0.5]
+        "float color" [0.3 0.3 0.3]
 
 AttributeEnd # ""
 WorldEnd
