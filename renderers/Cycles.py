@@ -121,10 +121,30 @@ def writeObject(viewobj,mesh,color,alpha):
 
 def writePointLight(view,location,color,power):
     # this is where you write the renderer-specific code
-    # to export the point light in the renderer format
+    # to export a point light in the renderer format
 
-    # TODO
-    return ""
+    col = "{}, {}, {}".format(*color)
+
+    objdef = list()
+
+    # Write shader
+    objdef.append('    <shader name="{}_shader">'.format(view.Name))
+    objdef.append('        <emission name="{}_emit" color="{}" strength="1" />'\
+            .format(view.Name,col))
+    objdef.append('        <connect from="{}_emit emission" to="output surface" />'\
+            .format(view.Name))
+    objdef.append('    </shader>')
+    objdef.append('\n')
+
+    # Write light
+    objdef.append('    <state shader="{}_shader">'.format(view.Name))
+    objdef.append('        <light type="point" co="{} {} {}" strength="{s} {s} {s}" />'\
+            .format(location.x,location.y,location.z,s=power*100))
+    objdef.append('    </state>')
+    objdef.append('\n')
+
+
+    return "\n".join(objdef)
 
 def render(project,prefix,external,output,width,height):
 
@@ -139,14 +159,16 @@ def render(project,prefix,external,output,width,height):
     rpath = p.GetString("CyclesPath","")
     args = p.GetString("CyclesParameters","")
     args += " --output "+output
-    if not external: 
+    if not external:
         args += " --background"
     if not rpath:
         FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
     args += " --width "+str(width)
     args += " --height "+str(height)
-    os.system(prefix+rpath+" "+args+" "+project.PageResult)
+    cmd = prefix+rpath+" "+args+" "+project.PageResult
+    print(cmd+'\n')
+    os.system(cmd)
 
     return output
 
