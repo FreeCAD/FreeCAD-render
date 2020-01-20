@@ -68,7 +68,6 @@ def writeCamera(pos,rot,up,target):
     cam += up + "\n"
     return cam
 
-
 def writeObject(viewobj,mesh,color,alpha):
 
     # This is where you write your object/view in the format of your
@@ -78,54 +77,70 @@ def writeObject(viewobj,mesh,color,alpha):
     # so make sure you include everything that is needed
 
 
-    objdef = ""
     objname = viewobj.Name
 
     # format color
-    color = str(color[0])+" "+str(color[1])+" "+str(color[2])
+    color = "{} {} {}".format(*color)
 
-    P = ""
-    N = ""
-    tris = ""
-    for v in mesh.Topology[0]:
-        P += str(v.x) + " " + str(v.y) + " " + str(v.z) + " "
-    for n in mesh.getPointNormals():
-        N += str(n.x) + " " + str(n.y) + " " + str(n.z) + " "
-    for t in mesh.Topology[1]:
-        tris += str(t[0]) + " " + str(t[1]) + " " + str(t[2]) + " "
+    # get geometry
+    P = ["{} {} {}".format(v.x, v.y, v.z) for v in mesh.Topology[0]]
+    P = " ".join(P)
+    N = ["{} {} {}".format(n.x, n.y, n.z) for n in mesh.getPointNormals()]
+    N = " ".join(N)
+    tris = ["{} {} {}".format(*t) for t in mesh.Topology[1]]
+    tris = " ".join(tris)
+
+    objdef = list()
 
     # write shader
-
-    objdef += "MakeNamedMaterial \"" + objname + "_mat\"\n"
-    objdef += "    \"color Kd\" [" + color + "]\n"
-    objdef += "    \"float sigma\" [0.2]\n"
-    objdef += "    \"string type\" [\"matte\"]\n"
+    objdef.append('MakeNamedMaterial "{}_mat"'.format(objname))
+    objdef.append('    "color Kd"       [{}]'.format(color))
+    objdef.append('    "float sigma"    [0.2]')
+    objdef.append('    "string type"    ["matte"]')
     if alpha < 1.0:
-        objdef += "    \"float transparency\" [\""+str(alpha)+"\"]\n"
-    objdef += "\n"
+        objdef.append('    "float transparency" ["{}"]'.format(alpha))
+    objdef.append('\n')
 
     # write mesh
+    objdef.append('AttributeBegin # "{}"'.format(objname))
+    objdef.append('Transform [1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]')
+    objdef.append('NamedMaterial "{}_mat"'.format(objname))
+    objdef.append('Shape "mesh"')
+    objdef.append('    "integer triindices" [{}]'.format(tris))
+    objdef.append('    "point P" [{}]'.format(P))
+    objdef.append('    "normal N" [{}]'.format(N))
+    objdef.append('    "bool generatetangents" ["false"]')
+    objdef.append('    "string name" ["{}"]'.format(objname))
+    objdef.append('AttributeEnd # "{}_mat"'.format(objname))
+    objdef.append('\n')
 
-    objdef += "AttributeBegin #  \"" + objname + "\"\n"
-    objdef += "Transform [1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]\n"
-    objdef += "NamedMaterial \"" + objname + "_mat\"\n"
-    objdef += "Shape \"mesh\"\n"
-    objdef += "    \"integer triindices\" [" + tris + "]\n"
-    objdef += "    \"point P\" [" + P + "]\n"
-    objdef += "    \"normal N\" [" + N + "]\n"
-    objdef += "    \"bool generatetangents\" [\"false\"]\n"
-    objdef += "    \"string name\" [\"" + objname + "\"]\n"
-    objdef += "AttributeEnd # \"\"\n"
+    return "\n".join(objdef)
 
-    return objdef
 
 
 def writePointLight(view,location,color,power):
     # this is where you write the renderer-specific code
     # to export the point light in the renderer format
 
-    # TODO
-    return ""
+    # From Luxcore doc:
+    # power is in watts
+    # efficency (sic) is in lumens/watt
+    efficency = 15 # incandescent light bulb ratio (average)
+    gain = 10 # Guesstimated! (don't hesitate to propose a more sensible value)
+
+    objdef = list()
+    objdef.append('AttributeBegin # "{}"'.format(view.Name))
+    objdef.append('Transform [1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]')
+    objdef.append('LightSource "point"')
+    objdef.append('     "float from"        [{:.9f} {:.9f} {:.9f}]'.format(*location))
+    objdef.append('     "color L"           [{:.9f} {:.9f} {:.9f}]'.format(*color))
+    objdef.append('     "float power"       [{:.9f}]'.format(power))
+    objdef.append('     "float efficency"   [{:.9f}]'.format(efficency))
+    objdef.append('     "float gain"        [{:.9f}]'.format(gain))
+    objdef.append('AttributeEnd # "{}"'.format(view.Name))
+    objdef.append('\n')
+
+    return "\n".join(objdef)
 
 def render(project,prefix,external,output,width,height):
 
@@ -167,10 +182,12 @@ def render(project,prefix,external,output,width,height):
         args += " "
 
     # Call Luxrender
-    cmd = prefix+rpath+" "+args+project.PageResult+"\n"
+    cmd = prefix + rpath + " " + args + project.PageResult + "\n"
     FreeCAD.Console.PrintMessage(cmd)
     try:
         p = subprocess.Popen(shlex.split(cmd))
     except OSError as e:
         FreeCAD.Console.PrintError("Luxrender call failed: '" + e.strerror +"'\n")
+
     return
+

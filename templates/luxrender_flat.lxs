@@ -64,8 +64,7 @@ Film "fleximage"
 	"integer flmwriteinterval" [900]
 	"integer outlierrejection_k" [2]
 	"integer tilecount" [0]
-	"string tonemapkernel" ["autolinear"]
-	#"string tonemapkernel" ["nop"] # alternative
+        "string tonemapkernel" ["nop"]
 
 WorldBegin
 
@@ -84,13 +83,4 @@ MakeNamedMaterial "ground"
 
 # Volume File
 
-AttributeBegin #  "Lamp"
-
-LightGroup "Sky"
-
-LightSource "infinite"
-	"float gain" [0.5]
-        "float color" [0.3 0.3 0.3]
-
-AttributeEnd # ""
 WorldEnd
