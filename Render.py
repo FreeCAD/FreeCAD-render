@@ -326,13 +326,26 @@ class Project:
                 return ""
 
         camdata = obj.Camera.split("\n")
+        camdata_dict={}
+
+        # parse to dictionary , so that we are not relying on fixed indexing(allow some minute fluctuations in camdata string format)
+        for entry in camdata:
+                #remove leading whitespace
+                trimmed = entry.lstrip()
+                #test if element is empty                  
+                if not trimmed:
+                        continue
+                values=trimmed.split(" ")
+                #sort camdata list items in dictoionary by their first element
+                camdata_dict[values[0]]=entry
+        
         cam = ""
-        pos = [float(p) for p in camdata[5].split()[-3:]]
-        pos = FreeCAD.Vector(pos)
-        rot = [float(p) for p in camdata[6].split()[-4:]]
-        rot = FreeCAD.Rotation(FreeCAD.Vector(rot[0],rot[1],rot[2]),math.degrees(rot[3]))
+        pos = [float(p) for p in camdata_dict["position"].split()[-3:]]        
+        pos = FreeCAD.Vector(pos)        
+        rot = [float(p) for p in camdata_dict["orientation"].split()[-4:]]        
+        rot = FreeCAD.Rotation(FreeCAD.Vector(rot[0],rot[1],rot[2]),math.degrees(rot[3]))        
         target = rot.multVec(FreeCAD.Vector(0,0,-1))
-        target.multiply(float(camdata[10].split()[-1]))
+        target.multiply(float(camdata_dict["focalDistance"].split()[-1]))#focalDistance ?
         target = pos.add(target)
         up = rot.multVec(FreeCAD.Vector(0,1,0))
 
