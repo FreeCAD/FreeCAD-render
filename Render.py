@@ -36,7 +36,7 @@ import FreeCAD
 import Draft
 import Part
 import MeshPart
-import Camera
+import camera
 
 if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
@@ -96,7 +96,6 @@ class RenderProjectCommand:
             filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
             if filename:
                 project.Template = filename[0]
-            project.ViewObject.Proxy.setCamera()
             FreeCAD.ActiveDocument.recompute()
 
 
@@ -222,7 +221,7 @@ class CameraCommand:
                 'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
 
     def Activated(self):
-        Camera.createCamera()
+        camera.create_camera()
 
 
 class Project:
@@ -265,7 +264,6 @@ class Project:
             obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
             obj.GroundPlane = False
         obj.setEditorMode("PageResult",2)
-        obj.setEditorMode("Camera",2)
 
 
     def onDocumentRestored(self,obj):
@@ -282,12 +280,6 @@ class Project:
             if not obj.DelayedBuild:
                 for view in obj.Group:
                     view.touch()
-
-    def setCamera(self,obj):
-        if FreeCAD.GuiUp:
-            import FreeCADGui
-            obj.Camera = FreeCADGui.ActiveDocument.ActiveView.getCamera()
-
 
     def writeCamera(self, view, renderer):
         """Get a rendering string from a camera. Camera can be either a string in Coin
@@ -486,18 +478,18 @@ class Project:
 
         # get active camera (will be used if no camera is present in the scene)
         if FreeCAD.GuiUp:
-            import FreeCADGui
+            import FreeCADGui as Gui
             dummycamview = SimpleNamespace()
             dummycamview.Source = SimpleNamespace()
-            Camera.setCamFromCoinString(dummycamview.Source,
-                    FreeCADGui.ActiveDocument.ActiveView.getCamera())
+            camera.set_cam_from_coin_string(dummycamview.Source,
+                                            Gui.ActiveDocument.ActiveView.getCamera())
             cam = self.writeCamera(dummycamview,
-                    renderer)
+                                   renderer)
 
         # get objects rendering strings (including lights objects)
         # and add a ground plane if required
         if obj.DelayedBuild:
-            objstrings = [self.writeObject(view,renderer) for view in obj.Group]
+            objstrings = [self.writeObject(view, renderer) for view in obj.Group]
         else:
             objstrings = [view.ViewResult for view in obj.Group]
 
@@ -584,17 +576,9 @@ class ViewProviderProject:
     def setupContextMenu(self,vobj,menu):
         from PySide import QtCore,QtGui
         import FreeCADGui
-        action1 = QtGui.QAction(QtGui.QIcon(":/icons/camera-photo.svg"),
-                QT_TRANSLATE_NOOP("Render","Set to camera current position"),menu)
-        QtCore.QObject.connect(action1,QtCore.SIGNAL("triggered()"),self.setCamera)
+        action1 = QtGui.QAction(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
+        QtCore.QObject.connect(action1,QtCore.SIGNAL("triggered()"),self.render)
         menu.addAction(action1)
-        action2 = QtGui.QAction(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
-        QtCore.QObject.connect(action2,QtCore.SIGNAL("triggered()"),self.render)
-        menu.addAction(action2)
-
-    def setCamera(self):
-        if hasattr(self,"Object"):
-            self.Object.Proxy.setCamera(self.Object)
 
     def render(self):
         if hasattr(self,"Object"):

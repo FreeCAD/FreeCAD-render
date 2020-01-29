@@ -27,8 +27,8 @@ from collections import namedtuple
 from math import degrees, radians
 import shlex
 
-from PySide2.QtWidgets import QAction
-from PySide2.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+from PySide.QtGui import QAction
+from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 from pivy import coin
 
 import FreeCAD
@@ -37,14 +37,14 @@ import Part
 
 # ===========================================================================
 
-def createCamera():
+def create_camera():
     """Create a Camera object in active document"""
 
     fpo = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Camera")
     Camera(fpo)
     viewp = ViewProviderCamera(fpo.ViewObject)
     if FreeCAD.GuiUp:
-        viewp.setCameraFromGui()
+        viewp.set_camera_from_gui()
     FreeCAD.ActiveDocument.recompute()
     return fpo
 
@@ -67,6 +67,12 @@ For more information, see Coin documentation, Camera section.
 Cameras_and_Lights/Cameras.html)
     """
 
+    # Enumeration of allowed values for ViewportMapping parameter (see Coin documentation)
+    # Nota: Keep following tuple in original order, as relationship between values and
+    # indexes matters and is used for reverse transcoding
+    VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME", "CROP_VIEWPORT_LINE_FRAME",
+                           "CROP_VIEWPORT_NO_FRAME", "ADJUST_CAMERA", "LEAVE_ALONE")
+
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
     # PythonFeature object properties
@@ -75,7 +81,7 @@ Cameras_and_Lights/Cameras.html)
             "App::PropertyEnumeration",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Type of projection: Perspective/Orthographic"),
-            ["Perspective", "Orthographic"]),
+            ("Perspective", "Orthographic")),
 
         "Placement": Prop(
             "App::PropertyPlacement",
@@ -87,8 +93,7 @@ Cameras_and_Lights/Cameras.html)
             "App::PropertyEnumeration",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "(See Coin documentation)"),
-            ["ADJUST_CAMERA", "LEAVE_ALONE", "CROP_VIEWPORT_FILL_FRAME",
-             "CROP_VIEWPORT_LINE_FRAME", "CROP_VIEWPORT_NO_FRAME"]),
+            VIEWPORTMAPPINGENUM),
 
         "AspectRatio": Prop(
             "App::PropertyFloat",
@@ -136,7 +141,7 @@ Cameras_and_Lights/Cameras.html)
     # ~PythonFeature object properties
 
     @classmethod
-    def setProperties(cls, fpo):
+    def set_properties(cls, fpo):
         """Set underlying PythonFeature object's properties"""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             fields = cls.PROPERTIES[name]
@@ -154,17 +159,17 @@ Cameras_and_Lights/Cameras.html)
         """
         self.type = "Camera"
         fpo.Proxy = self
-        self.setProperties(fpo)
+        self.set_properties(fpo)
 
     def onDocumentRestored(self, fpo):
         """Callback triggered when document is restored"""
         self.type = "Camera"
         fpo.Proxy = self
-        self.setProperties(fpo)
+        self.set_properties(fpo)
 
     def execute(self, fpo):
         """Callback triggered on document recomputation (mandatory).
-        It mainly draws the camera representation on screen"""
+        It mainly draws the camera graphical representation"""
 
         size = 5
         height = 10
@@ -228,34 +233,31 @@ class ViewProviderCamera:
 
     def setupContextMenu(self, vobj, menu):
         """Setup the context menu associated to the object in tree view"""
-        action1 = QAction(QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),\
-                            menu)
-        QObject.connect(action1,\
-                SIGNAL("triggered()"),\
-                self.setGuiFromCamera)
+        action1 = QAction(QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),
+                          menu)
+        QObject.connect(action1,
+                        SIGNAL("triggered()"),
+                        self.set_gui_from_camera)
         menu.addAction(action1)
 
-        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Set this camera to GUI"),\
-                            menu)
-        QObject.connect(action2,\
-                SIGNAL("triggered()"),\
-                self.setCameraFromGui)
+        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Set this camera to GUI"),
+                          menu)
+        QObject.connect(action2,
+                        SIGNAL("triggered()"),
+                        self.set_camera_from_gui)
         menu.addAction(action2)
 
-    def updateData(self, fp, prop):
+    def updateData(self, fpo, prop):
         """Callback triggered when properties are modified"""
         return
 
-    def setCameraFromGui(self):
+    def set_camera_from_gui(self):
         """Set this camera from GUI camera"""
 
         assert FreeCAD.GuiUp, "Cannot set camera from GUI: GUI is down"
 
         fpo = self.fpo
         node = FreeCADGui.ActiveDocument.ActiveView.getCameraNode()
-
-        VIEWPORTMAPPING = ("CROP_VIEWPORT_FILL_FRAME", "CROP_VIEWPORT_LINE_FRAME",
-                           "CROP_VIEWPORT_NO_FRAME", "ADJUST_CAMERA", " LEAVE_ALONE")
 
         typ = node.getTypeId()
         if typ == coin.SoPerspectiveCamera.getClassTypeId():
@@ -275,9 +277,9 @@ class ViewProviderCamera:
         fpo.FarDistance = float(node.farDistance.getValue())
         fpo.FocalDistance = float(node.focalDistance.getValue())
         fpo.AspectRatio = float(node.aspectRatio.getValue())
-        fpo.ViewportMapping = VIEWPORTMAPPING[node.viewportMapping.getValue()]
+        fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[node.viewportMapping.getValue()]
 
-    def setGuiFromCamera(self):
+    def set_gui_from_camera(self):
         """Set GUI camera to this camera"""
 
         assert FreeCAD.GuiUp, "Cannot set GUI from camera: GUI is down"
@@ -317,7 +319,7 @@ class ViewProviderCamera:
 # ===========================================================================
 
 
-def setCamFromCoinString(cam, camstr):
+def set_cam_from_coin_string(cam, camstr):
     """Set a Camera object from a string containing a camera description in Open Inventor
     format
 
@@ -370,7 +372,7 @@ def setCamFromCoinString(cam, camstr):
         cam.AspectRatio = float(camdict["aspectRatio"][0])
         cam.ViewportMapping = str(camdict["viewportMapping"][0])
     except KeyError as err:
-        raise ValueError("Missing field in camera string: {}".format(err) )
+        raise ValueError("Missing field in camera string: {}".format(err))
 
     # It may happen that near & far distances are not set in camstr...
     try:
@@ -388,27 +390,26 @@ def setCamFromCoinString(cam, camstr):
         cam.HeightAngle = degrees(float(camdict["heightAngle"][0]))
 
 
-def getCoinStringFromCam(cam):
+def get_coin_string_from_cam(cam):
     """Return camera data in Coin string format
 
     cam: a Camera object"""
 
-    def checkEnum(field):
-        'Check if the enum field value is valid'
+    def check_enum(field):
+        """Check if the enum field value is valid"""
         assert getattr(cam, field) in Camera.PROPERTIES[field].Default,\
                 "Invalid %s value" %field
 
-    checkEnum("Projection")
-    checkEnum("ViewportMapping")
+    check_enum("Projection")
+    check_enum("ViewportMapping")
 
     res = list()
     res.append("#Inventor V2.1 ascii\n\n\n")
     res.append("{}Camera {{".format(cam.Projection))
     res.append(" viewportMapping {}".format(cam.ViewportMapping))
     res.append(" position {} {} {}".format(*cam.Placement.Base))
-    res.append(" orientation {} {} {} {}"\
-            .format(*cam.Placement.Rotation.Axis,
-                    cam.Placement.Rotation.Angle))
+    res.append(" orientation {} {} {} {}".format(*cam.Placement.Rotation.Axis,
+                                                 cam.Placement.Rotation.Angle))
     res.append(" nearDistance {}".format(float(cam.NearDistance)))
     res.append(" farDistance {}".format(float(cam.FarDistance)))
     res.append(" aspectRatio {}".format(float(cam.AspectRatio)))
@@ -420,9 +421,10 @@ def getCoinStringFromCam(cam):
     res.append("}\n")
     return '\n'.join(res)
 
-def retrieveLegacyCamera(project):
+def retrieve_legacy_camera(project):
     """For backward compatibility: Retrieve legacy camera information in rendering projects
     and transform it into Camera object"""
-    assert isinstance(project.Camera, str), "Project's Camera property should contain a string"""
-    fpo = createCamera()
-    setCamFromCoinString(fpo, project.Camera)
+    assert isinstance(project.Camera, str),\
+        "Project's Camera property should contain a string"""
+    fpo = create_camera()
+    set_cam_from_coin_string(fpo, project.Camera)
