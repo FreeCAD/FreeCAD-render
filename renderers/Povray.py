@@ -1,85 +1,95 @@
-#***************************************************************************
-#*                                                                         *
-#*   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
-#*                                                                         *
-#*   This program is free software; you can redistribute it and/or modify  *
-#*   it under the terms of the GNU Lesser General Public License (LGPL)    *
-#*   as published by the Free Software Foundation; either version 2 of     *
-#*   the License, or (at your option) any later version.                   *
-#*   for detail see the LICENCE text file.                                 *
-#*                                                                         *
-#*   This program is distributed in the hope that it will be useful,       *
-#*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-#*   GNU Library General Public License for more details.                  *
-#*                                                                         *
-#*   You should have received a copy of the GNU Library General Public     *
-#*   License along with this program; if not, write to the Free Software   *
-#*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
-#*   USA                                                                   *
-#*                                                                         *
-#***************************************************************************
+# ***************************************************************************
+# *                                                                         *
+# *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
+# *                                                                         *
+# *   This program is free software; you can redistribute it and/or modify  *
+# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
+# *   as published by the Free Software Foundation; either version 2 of     *
+# *   the License, or (at your option) any later version.                   *
+# *   for detail see the LICENCE text file.                                 *
+# *                                                                         *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+# *   GNU Library General Public License for more details.                  *
+# *                                                                         *
+# *   You should have received a copy of the GNU Library General Public     *
+# *   License along with this program; if not, write to the Free Software   *
+# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
+# *   USA                                                                   *
+# *                                                                         *
+# ***************************************************************************
 
-# Povray renderer for FreeCAD
+"""POV-Ray renderer for FreeCAD"""
 
 # This file can also be used as a template to add more rendering engines.
-# You will need to make sure your file is named with a same name (case sensitive)
-# That you will use everywhere to describe your renderer, ex: Appleseed or Povray
+# You will need to make sure your file is named with a same name (case
+# sensitive)
+# That you will use everywhere to describe your renderer, ex: Appleseed or
+# Povray
 
 
 # A render engine module must contain the following functions:
 #
-#    writeCamera(por,rot,up,target): returns a string containing an openInventor camera string in renderer format
-#    writeObject(view,mesh,color,alpha): returns a string containing a RaytracingView object in renderer format
-#    render(project,prefix,external,output,width,height): renders the given project, external means 
-#                                                         if the user wishes to open the render file 
-#                                                         in an external application/editor or not. If this
-#                                                         is not supported by your renderer, you can simply 
-#                                                         ignore it
+# write_camera(pos,rot,up,target, name)
+#   returns a string containing an openInventor camera string in renderer
+#   format
+#
+# write_object(view,mesh,color,alpha)
+#   returns a string containing a RaytracingView object in renderer format
+#
+# render(project,prefix,external,output,width,height)
+#   renders the given project
+#   external means if the user wishes to open the render file in an external
+#   application/editor or not. If this is not supported by your renderer, you
+#   can simply ignore it
 #
 # Additionally, you might need/want to add:
-#
-#    Preference page items, that can be used in your functions below
-#    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
+#   Preference page items, that can be used in your functions below
+#   An icon under the name Renderer.svg (where Renderer is the name of your
+#   Renderer
 
 
-# POV-Ray specific:
-# Tip: please note that POV-Ray coordinate system appears to be different from FreeCAD's
-# one (z and y permuted)
+# POV-Ray specific (tip):
+# Please note that POV-Ray coordinate system appears to be different from
+# FreeCAD's one (z and y permuted)
 # See here: https://www.povray.org/documentation/3.7.0/t2_2.html#t2_2_1_1
 
-import FreeCAD
-import math
+import os
 import re
+from textwrap import dedent
+
+import FreeCAD as App
 
 
-def writeCamera(pos,rot,up,target):
+def write_camera(pos, rot, updir, target, name):
+    """Compute a string in the format of POV-Ray, that represents a camera"""
 
-    # this is where you create a piece of text in the format of
+    # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
-    pos = str(pos.x) + "," + str(pos.z) + "," + str(pos.y)
-    target = str(target.x) + "," + str(target.z) +"," + str(target.y)
-    up = str(up.x) + ","  + str(up.z) + "," + str(up.y)
+    snippet = """
+    // Generated by FreeCAD (http://www.freecadweb.org/)
+    // Declares camera '{n}'
+    #declare cam_location = <{p.x},{p.z},{p.y}>;
+    #declare cam_look_at  = <{t.x},{t.z},{t.y}>;
+    #declare cam_sky      = <{u.x},{u.z},{u.y}>;
+    #declare cam_angle    = 45;
+    camera {{
+        location  cam_location
+        look_at   cam_look_at
+        sky       cam_sky
+        angle     cam_angle
+        right     x*800/600
+    }}\n"""
 
-    cam =  "// declares position and view direction\n"
-    cam += "// Generated by FreeCAD (http://www.freecadweb.org/)\n"
-    cam += "#declare cam_location =  <" + pos + ">;\n"
-    cam += "#declare cam_look_at  = <" + target + ">;\n"
-    cam += "#declare cam_sky      = <" + up + ">;\n"
-    cam += "#declare cam_angle    = 45;\n"
-    cam += "camera {\n"
-    cam += "  location  cam_location\n"
-    cam += "  look_at   cam_look_at\n"
-    cam += "  sky       cam_sky\n"
-    cam += "  angle     cam_angle\n"
-    cam += "  right x*800/600\n"
-    cam += "}\n"
-
-    return cam
+    return dedent(snippet).format(n=name, p=pos, t=target, u=updir)
 
 
-def writeObject(viewobj,mesh,color,alpha):
+def write_object(viewobj, mesh, color, alpha):
+    """Compute a string in the format of POV-Ray, that represents a FreeCAD
+    object
+    """
 
     # This is where you write your object/view in the format of your
     # renderer. "obj" is the real 3D object handled by this project, not
@@ -87,90 +97,116 @@ def writeObject(viewobj,mesh,color,alpha):
     # to write all the data needed by your object (geometry, materials, etc)
     # so make sure you include everything that is needed
 
-    objname = viewobj.Name
+    snippet = """
+    // Generated by FreeCAD (http://www.freecadweb.org/)
+    // Declares object '{name}'
+    #declare {name} = mesh2 {{
+        vertex_vectors {{
+            {len_vertices},
+            {vertices}
+        }}
+        normal_vectors {{
+            {len_normals},
+            {normals}
+        }}
+        face_indices {{
+            {len_indices},
+            {indices}
+        }}
+    }}  // {name}
 
-    color = str(color[0])+","+str(color[1])+","+str(color[2])
+    // Instance to render {name}
+    object {{ {name}
+        texture {{
+            pigment {{
+                color rgb {color}
+            }}
+            finish {{StdFinish}}
+        }}
+    }}  // {name}\n"""
 
-    objdef = ""
-    objdef += "#declare " + objname + " = mesh2{\n"
-    objdef += "  vertex_vectors {\n"
-    objdef += "    " + str(len(mesh.Topology[0])) + ",\n"
-    for p in mesh.Topology[0]:
-        objdef += "    <" + str(p.x) + "," + str(p.z) + "," + str(p.y) + ">,\n"
-    objdef += "  }\n"
-    objdef += "  normal_vectors {\n"
-    objdef += "    " + str(len(mesh.Topology[0])) + ",\n"
-    for p in mesh.getPointNormals():
-        objdef += "    <" + str(p.x) + "," + str(p.z) + "," + str(p.y) + ">,\n"
-    objdef += "  }\n"
-    objdef += "  face_indices {\n"
-    objdef += "    " + str(len(mesh.Topology[1])) + ",\n"
-    for t in mesh.Topology[1]:
-        objdef += "    <" + str(t[0]) + "," + str(t[1]) + "," + str(t[2]) + ">,\n"
-    objdef += "  }\n"
-    objdef += "}\n"
-    
-    objdef += "// instance to render\n"
-    objdef += "object {" + objname + "\n"
-    objdef += "  texture {\n"
-    objdef += "    pigment {\n"
-    objdef += "      color rgb <" + color + ">\n"
-    objdef += "    }\n"
-    objdef += "    finish {StdFinish }\n"
-    objdef += "  }\n"
-    objdef += "}\n"
+    colo = "<{},{},{}>".format(*color)
+    vrts = ["<{0.x},{0.z},{0.y}>".format(v) for v in mesh.Topology[0]]
+    nrms = ["<{0.x},{0.z},{0.y}>".format(n) for n in mesh.getPointNormals()]
+    inds = ["<{},{},{}>".format(*i) for i in mesh.Topology[1]]
 
-    return objdef
+    return dedent(snippet).format(name=viewobj.Name,
+                                  len_vertices=len(vrts),
+                                  vertices="\n        ".join(vrts),
+                                  len_normals=len(nrms),
+                                  normals="\n        ".join(nrms),
+                                  len_indices=len(inds),
+                                  indices="\n        ".join(inds),
+                                  color=colo)
 
-def writePointLight(view,location,color,power):
+
+def write_pointlight(view, location, color, power):
+    """Compute a string in the format of POV-Ray, that represents a
+    PointLight object
+    """
     # this is where you write the renderer-specific code
     # to export the point light in the renderer format
 
+    # Note: power is of no use for POV-Ray, as light intensity is determined
+    # by RGB (see POV-Ray documentation)
+    snippet = """
+    // Generated by FreeCAD (http://www.freecadweb.org/)
+    // Declares point light {0}
+    light_source {{
+        <{1.x},{1.z},{1.y}>
+        color rgb<{2[0]},{2[1]},{2[2]}>
+    }}\n"""
 
-    # Note: power is of no use for pov-ray
-    objdef = []
-    objdef += "\nlight_source {"
-    objdef += "<{},{},{}> ".format(location.x,location.z,location.y)
-    objdef += "color rgb<{},{},{}>".format(*color)
-    objdef += "}\n\n"
+    return dedent(snippet).format(view.Name, location, color)
 
-    return ''.join(objdef)
 
-def render(project,prefix,external,output,width,height):
+def render(project, prefix, external, output, width, height):
+    """Run POV-Ray
 
-    # here you trigger a render by firing the renderer
+    Params:
+    - project:  the project to render
+    - prefix:   a prefix string for call (will be inserted before path to Lux)
+    - external: a boolean indicating whether to call UI (true) or console
+                (false) version of Lux
+    - width:    rendered image width, in pixels
+    - height:   rendered image height, in pixels
+
+    Return: path to output image file
+    """
+
+    # Here you trigger a render by firing the renderer
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = p.GetString("Prefix","")
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+
+    prefix = params.GetString("Prefix", "")
     if prefix:
         prefix += " "
-    rpath = p.GetString("PovRayPath","")
-    args = p.GetString("PovRayParameters","")
+
+    rpath = params.GetString("PovRayPath", "")
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
-        return
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render")
+        return ""
+
+    args = params.GetString("PovRayParameters", "")
     if args:
         args += " "
     if "+W" in args:
-        args = re.sub("\+W[0-9]+","+W"+str(width),args)
+        args = re.sub(r"\+W[0-9]+", "+W{}".format(width), args)
     else:
-        args = args + "+W"+str(width)+" "
+        args = args + "+W{} ".format(width)
     if "+H" in args:
-        args = re.sub("\+H[0-9]+","+H"+str(height),args)
+        args = re.sub(r"\+H[0-9]+", "+H{}".format(height), args)
     else:
-        args = args + "+H"+str(height)+" "
+        args = args + "+H{} ".format(height)
     if output:
-        args = args + "+O" + output + " "
-    FreeCAD.Console.PrintError("Renderer command: " + prefix+rpath+" "+args+project.PageResult+"\n")
-    import os
-    os.system(prefix+rpath+" "+args+project.PageResult)
-    if output:
-        imgname = output
-    else:
-        imgname = os.path.splitext(project.PageResult)[0]+".png"
-    
-    return imgname
+        args = args + "+O{} ".format(output)
 
+    cmd = prefix + rpath + " " + args + project.PageResult
+    App.Console.PrintMessage("Renderer command: %s\n" % cmd)
+    os.system(cmd)
 
+    return output if output else os.path.splitext(project.PageResult)[0]+".png"

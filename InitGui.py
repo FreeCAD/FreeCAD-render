@@ -1,36 +1,37 @@
-#***************************************************************************
-#*                                                                         *
-#*   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              * 
-#*                                                                         *
-#*   This program is free software; you can redistribute it and/or modify  *
-#*   it under the terms of the GNU Lesser General Public License (LGPL)    *
-#*   as published by the Free Software Foundation; either version 2 of     *
-#*   the License, or (at your option) any later version.                   *
-#*   for detail see the LICENCE text file.                                 *
-#*                                                                         *
-#*   This program is distributed in the hope that it will be useful,       *
-#*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-#*   GNU Library General Public License for more details.                  *
-#*                                                                         *
-#*   You should have received a copy of the GNU Library General Public     *
-#*   License along with this program; if not, write to the Free Software   *
-#*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
-#*   USA                                                                   *
-#*                                                                         *
-#***************************************************************************
+# ***************************************************************************
+# *                                                                         *
+# *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
+# *                                                                         *
+# *   This program is free software; you can redistribute it and/or modify  *
+# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
+# *   as published by the Free Software Foundation; either version 2 of     *
+# *   the License, or (at your option) any later version.                   *
+# *   for detail see the LICENCE text file.                                 *
+# *                                                                         *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+# *   GNU Library General Public License for more details.                  *
+# *                                                                         *
+# *   You should have received a copy of the GNU Library General Public     *
+# *   License along with this program; if not, write to the Free Software   *
+# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
+# *   USA                                                                   *
+# *                                                                         *
+# ***************************************************************************
+"""Gui initialization module for Render Workbench"""
+
+import FreeCADGui as Gui
 
 
-
-class RenderWorkbench (Workbench):
-
-
-    "the Render Workbench"
+class RenderWorkbench(Gui.Workbench):
+    "The Render Workbench"
 
     def __init__(self):
         self.__class__.MenuText = "Render"
-        self.__class__.ToolTip = "The Render module is a modern replacement for the Raytracing module"
-        self.__class__.Icon='''
+        self.__class__.ToolTip = ("The Render module is a modern replacement"
+                                  " for the Raytracing module")
+        self.__class__.Icon = '''
 /* XPM */
 static char * Render_xpm[] = {
 "16 16 33 1",
@@ -85,23 +86,24 @@ static char * Render_xpm[] = {
 "                "};
 '''
 
-
     def Initialize(self):
+        """When the workbench is first loaded."""
+        # pylint: disable=no-self-use, import-outside-toplevel
+        from PySide.QtCore import QT_TRANSLATE_NOOP
+        from FreeCAD import Console
+        from FreeCADGui import addIconPath, addPreferencePage
+        from Render import RENDER_COMMANDS, ICONPATH, PREFPAGE
 
-        def QT_TRANSLATE_NOOP(scope, text):
-            return text
+        commands = RENDER_COMMANDS
+        self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"), commands)
+        self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"), commands)
+        addIconPath(ICONPATH)
+        addPreferencePage(PREFPAGE, "Render")
+        Console.PrintLog("Loading Render module...done\n")
 
-        import Render
-        commands = Render.RenderCommands
-        self.appendToolbar(QT_TRANSLATE_NOOP("Workbench","Render"),commands)
-        self.appendMenu(QT_TRANSLATE_NOOP("Workbench","&Render"),commands)
-        FreeCADGui.addIconPath(Render.iconpath)
-        FreeCADGui.addPreferencePage(Render.prefpage,"Render")
-        Log ('Loading Render module...done\n')
-
-    def GetClassName(self): 
+    def GetClassName(self):  # pylint: disable=no-self-use
+        """Type of workbench"""
         return "Gui::PythonWorkbench"
 
-FreeCADGui.addWorkbench(RenderWorkbench)
 
-
+Gui.addWorkbench(RenderWorkbench)
