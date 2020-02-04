@@ -161,9 +161,15 @@ def render(project,prefix,external,output,width,height):
         args = re.sub("\+H[0-9]+","+H"+str(height),args)
     else:
         args = args + "+H"+str(height)+" "
+    if output:
+        args = args + "+O" + output + " "
+    FreeCAD.Console.PrintError("Renderer command: " + prefix+rpath+" "+args+project.PageResult+"\n")
     import os
     os.system(prefix+rpath+" "+args+project.PageResult)
-    imgname = os.path.splitext(project.PageResult)[0]+".png"
+    if output:
+        imgname = output
+    else:
+        imgname = os.path.splitext(project.PageResult)[0]+".png"
     
     return imgname
 
