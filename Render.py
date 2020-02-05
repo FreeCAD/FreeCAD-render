@@ -30,11 +30,13 @@ import re
 import tempfile
 import importlib
 import math
+from types import SimpleNamespace
 
 import FreeCAD
 import Draft
 import Part
 import MeshPart
+import camera
 
 if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
@@ -94,7 +96,6 @@ class RenderProjectCommand:
             filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
             if filename:
                 project.Template = filename[0]
-            project.ViewObject.Proxy.setCamera()
             FreeCAD.ActiveDocument.recompute()
 
 
@@ -120,7 +121,7 @@ class RenderViewCommand:
             else:
                 if o.isDerivedFrom("Part::Feature") or o.isDerivedFrom("Mesh::Feature"):
                     objs.append(o)
-                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight']:
+                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight','Camera']:
                     objs.append(o)
         if not project:
             for o in FreeCAD.ActiveDocument.Objects:
@@ -209,6 +210,18 @@ class RenderExternalCommand:
             import ImageGui
             ImageGui.open(img)
 
+class CameraCommand:
+
+    "Create a Camera object"
+
+    def GetResources(self):
+
+        return {'Pixmap'  : ":/icons/camera-photo.svg",
+                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Create Camera"),
+                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
+
+    def Activated(self):
+        camera.create_camera()
 
 
 class Project:
@@ -232,8 +245,6 @@ class Project:
             obj.DelayedBuild = True
         if not "Template" in obj.PropertiesList:
             obj.addProperty("App::PropertyFile","Template","Render", QT_TRANSLATE_NOOP("App::Property","The template to be used by this rendering"))
-        if not "Camera" in obj.PropertiesList:
-            obj.addProperty("App::PropertyString","Camera","Render", QT_TRANSLATE_NOOP("App::Property","The camera data to be used"))
         if not "PageResult" in obj.PropertiesList:
             obj.addProperty("App::PropertyFileIncluded", "PageResult","Render", QT_TRANSLATE_NOOP("App::Property","The result file to be sent to the renderer"))
         if not "Group" in obj.PropertiesList:
@@ -253,7 +264,6 @@ class Project:
             obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
             obj.GroundPlane = False
         obj.setEditorMode("PageResult",2)
-        obj.setEditorMode("Camera",2)
 
 
     def onDocumentRestored(self,obj):
@@ -262,9 +272,7 @@ class Project:
 
 
     def execute(self,obj):
-
         return True
-
 
     def onChanged(self,obj,prop):
 
@@ -273,76 +281,28 @@ class Project:
                 for view in obj.Group:
                     view.touch()
 
+    def writeCamera(self, view, renderer):
+        """Get a rendering string from a camera. Camera can be either a string in Coin
+        format or a Camera object
 
+        Parameters:
+        view: a view of the camera to render.
+        renderer: the renderer module to use
 
+        Returns: a rendering string, obtained from the renderer module
+        """
 
-    def setCamera(self,obj):
+        cam = view.Source
+        aspectRatio = cam.AspectRatio
+        pos = cam.Placement.Base
+        rot = cam.Placement.Rotation
+        target = pos.add(rot.multVec(FreeCAD.Vector(0, 0, -1)).multiply(aspectRatio))
+        up = rot.multVec(FreeCAD.Vector(0, 1, 0))
 
-        if FreeCAD.GuiUp:
-            import FreeCADGui
-            obj.Camera = FreeCADGui.ActiveDocument.ActiveView.getCamera()
-
-
-    def writeCamera(self,obj,renderer):
-
-        # camdata contains a string in OpenInventor format
-        # ex:
-        # #Inventor V2.1 ascii
-        #
-        #
-        # PerspectiveCamera {
-        #  viewportMapping ADJUST_CAMERA
-        #  position 0 -1.3207401 0.82241058
-        #  orientation 0.99999666 0 0  0.26732138
-        #  nearDistance 1.6108983
-        #  farDistance 6611.4492
-        #  aspectRatio 1
-        #  focalDistance 5
-        #  heightAngle 0.78539819
-        #
-        # }
-        #
-        # or (ortho camera):
-        #
-        # #Inventor V2.1 ascii
-        #
-        #
-        # OrthographicCamera {
-        #  viewportMapping ADJUST_CAMERA
-        #  position 0 0 1
-        #  orientation 0 0 1  0
-        #  nearDistance 0.99900001
-        #  farDistance 1.001
-        #  aspectRatio 1
-        #  focalDistance 5
-        #  height 4.1421356
-        #
-        # }
-
-        if not obj.Camera:
-            self.setCamera(obj)
-            if not obj.Camera:
-                FreeCAD.Console.PrintError(translate("Render","Unable to set the camera"))
-                return ""
-
-        camdata = obj.Camera.split("\n")
-        cam = ""
-        pos = [float(p) for p in camdata[5].split()[-3:]]
-        pos = FreeCAD.Vector(pos)
-        rot = [float(p) for p in camdata[6].split()[-4:]]
-        rot = FreeCAD.Rotation(FreeCAD.Vector(rot[0],rot[1],rot[2]),math.degrees(rot[3]))
-        target = rot.multVec(FreeCAD.Vector(0,0,-1))
-        target.multiply(float(camdata[10].split()[-1]))
-        target = pos.add(target)
-        up = rot.multVec(FreeCAD.Vector(0,1,0))
-
-        return renderer.writeCamera(pos,rot,up,target)
-
+        return renderer.writeCamera(pos, rot, up, target)
 
     def writePointLight(self,view,renderer):
         """Gets a rendering string for a point light object
-
-           This method should be called only by writeObject, as a hook for point lights
 
            Parameters:
            view: the view of the point light (contains the point light data)
@@ -365,21 +325,8 @@ class Project:
         return renderer.writePointLight(view,location,color,power)
 
 
-    def writeObject(self,view,renderer):
-        """Gets a rendering string for an object
-
-           Parameters:
-           view: the view of the object (contains the object data)
-           renderer: the renderer module to use (callback)
-        """
-
-        if not view.Source:
-            return ""
-
-        # point light hook
-        proxy = getattr(view.Source,"Proxy",None)
-        if getattr(proxy,"type",None) == "PointLight":
-            return self.writePointLight(view,renderer)
+    def writeMesh(self,view,renderer):
+        """Get a rendering string for a mesh object"""
 
         # get color and alpha
         mat = None
@@ -433,6 +380,33 @@ class Project:
             return ""
 
         return renderer.writeObject(view,mesh,color,alpha)
+
+
+    def writeObject(self,view,renderer):
+        """Gets a rendering string for the view of an object
+
+           Parameters:
+           view: the view of the object (contains the object data)
+           renderer: the renderer module to use (callback)
+        """
+
+        if not view.Source:
+            return ""
+
+        # Special objects: camera, lights etc.
+        try:
+            objtype = view.Source.Proxy.type
+        except AttributeError:
+            pass
+        else:
+            if objtype == "PointLight":
+                return self.writePointLight(view, renderer)
+            if objtype == "Camera":
+                return self.writeCamera(view, renderer)
+
+        # Mesh
+        return self.writeMesh(view, renderer)
+
 
 
     def writeGroundPlane(self,obj,renderer):
@@ -502,13 +476,20 @@ class Project:
         if not template:
             return
 
-        # get a camera string
-        cam = self.writeCamera(obj,renderer)
+        # get active camera (will be used if no camera is present in the scene)
+        if FreeCAD.GuiUp:
+            import FreeCADGui as Gui
+            dummycamview = SimpleNamespace()
+            dummycamview.Source = SimpleNamespace()
+            camera.set_cam_from_coin_string(dummycamview.Source,
+                                            Gui.ActiveDocument.ActiveView.getCamera())
+            cam = self.writeCamera(dummycamview,
+                                   renderer)
 
         # get objects rendering strings (including lights objects)
         # and add a ground plane if required
         if obj.DelayedBuild:
-            objstrings = [self.writeObject(view,renderer) for view in obj.Group]
+            objstrings = [self.writeObject(view, renderer) for view in obj.Group]
         else:
             objstrings = [view.ViewResult for view in obj.Group]
 
@@ -595,16 +576,9 @@ class ViewProviderProject:
     def setupContextMenu(self,vobj,menu):
         from PySide import QtCore,QtGui
         import FreeCADGui
-        action1 = QtGui.QAction(QtGui.QIcon(":/icons/camera-photo.svg"),"Save camera position",menu)
-        QtCore.QObject.connect(action1,QtCore.SIGNAL("triggered()"),self.setCamera)
+        action1 = QtGui.QAction(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
+        QtCore.QObject.connect(action1,QtCore.SIGNAL("triggered()"),self.render)
         menu.addAction(action1)
-        action2 = QtGui.QAction(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
-        QtCore.QObject.connect(action2,QtCore.SIGNAL("triggered()"),self.render)
-        menu.addAction(action2)
-
-    def setCamera(self):
-        if hasattr(self,"Object"):
-            self.Object.Proxy.setCamera(self.Object)
 
     def render(self):
         if hasattr(self,"Object"):
@@ -701,6 +675,8 @@ if FreeCAD.GuiUp:
     for renderer in Renderers:
         FreeCADGui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
         RenderCommands.append('Render_'+renderer)
+    FreeCADGui.addCommand('Render_Camera', CameraCommand())
+    RenderCommands.append('Render_Camera')
     FreeCADGui.addCommand('Render_View', RenderViewCommand())
     RenderCommands.append('Render_View')
     FreeCADGui.addCommand('Render_Render', RenderCommand())
