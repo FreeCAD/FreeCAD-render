@@ -187,6 +187,7 @@ class Camera:
         self.set_properties(fpo)
 
     def execute(self, fpo):
+        # pylint: disable=no-self-use
         """Callback triggered on document recomputation (mandatory).
         It mainly draws the camera graphical representation"""
 
@@ -232,10 +233,12 @@ class ViewProviderCamera:
         self.fpo = vobj.Object
 
     def getDisplayModes(self, _):
+        # pylint: disable=no-self-use
         """Return a list of display modes (callback)"""
         return ["Shaded"]
 
     def getDefaultDisplayMode(self):
+        # pylint: disable=no-self-use
         """Return the name of the default display mode (callback)
 
         The returned mode must be defined in getDisplayModes.
@@ -253,6 +256,7 @@ class ViewProviderCamera:
         return mode
 
     def getIcon(self):
+        # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)"""
         return ":/icons/camera-photo.svg"
 
