@@ -666,21 +666,21 @@ if FreeCAD.GuiUp:
 
     import FreeCADGui
 
-    RenderCommands = []
+    RENDER_COMMANDS = []
     Renderers = os.listdir(os.path.dirname(__file__)+os.sep+"renderers")
     Renderers = [r for r in Renderers if not ".pyc" in r]
     Renderers = [r for r in Renderers if not "__" in r]
     Renderers = [os.path.splitext(r)[0] for r in Renderers]
     for renderer in Renderers:
         FreeCADGui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
-        RenderCommands.append('Render_'+renderer)
+        RENDER_COMMANDS.append('Render_'+renderer)
     FreeCADGui.addCommand('Render_Camera', CameraCommand())
-    RenderCommands.append('Render_Camera')
+    RENDER_COMMANDS.append('Render_Camera')
     FreeCADGui.addCommand('Render_View', RenderViewCommand())
-    RenderCommands.append('Render_View')
+    RENDER_COMMANDS.append('Render_View')
     FreeCADGui.addCommand('Render_Render', RenderCommand())
-    RenderCommands.append('Render_Render')
+    RENDER_COMMANDS.append('Render_Render')
 
     # This is for InitGui.py because it cannot import os
-    iconpath = os.path.join(os.path.dirname(__file__),"icons")
-    prefpage = os.path.join(os.path.dirname(__file__),"ui","RenderSettings.ui")
+    ICONPATH = os.path.join(os.path.dirname(__file__),"icons")
+    PREFPAGE = os.path.join(os.path.dirname(__file__),"ui","RenderSettings.ui")

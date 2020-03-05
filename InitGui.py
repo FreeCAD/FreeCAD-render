@@ -91,11 +91,11 @@ static char * Render_xpm[] = {
             return text
 
         import Render
-        commands = Render.RenderCommands
+        commands = Render.RENDER_COMMANDS
         self.appendToolbar(QT_TRANSLATE_NOOP("Workbench","Render"),commands)
         self.appendMenu(QT_TRANSLATE_NOOP("Workbench","&Render"),commands)
-        FreeCADGui.addIconPath(Render.iconpath)
-        FreeCADGui.addPreferencePage(Render.prefpage,"Render")
+        FreeCADGui.addIconPath(Render.ICONPATH)
+        FreeCADGui.addPreferencePage(Render.PREFPAGE,"Render")
         Log ('Loading Render module...done\n')
 
     def GetClassName(self): 
