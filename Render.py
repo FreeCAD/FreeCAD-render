@@ -104,10 +104,9 @@ class Project:
 
     def __init__(self, obj):
         obj.Proxy = self
-        self.setProperties(obj)
+        self.set_properties(obj)
 
-
-    def setProperties(self, obj):
+    def set_properties(self, obj):
         """Set underlying FeaturePython object's properties"""
         if not "Renderer" in obj.PropertiesList:
             obj.addProperty("App::PropertyString","Renderer","Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
@@ -147,9 +146,8 @@ class Project:
 
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
-
         """Code to be executed when document is restored (callback)"""
-        self.setProperties(obj)
+        self.set_properties(obj)
 
     def execute(self, obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
@@ -291,7 +289,7 @@ class Project:
 
 
 
-    def writeGroundPlane(self, obj, renderer):
+    def write_groundplane(self, obj, renderer):
         """Generate a ground plane rendering string for the scene
 
         For that purpose, dummy objects are temporarily added to the document
@@ -383,8 +381,8 @@ class Project:
         else:
             objstrings = [view.ViewResult for view in obj.Group]
 
-        if hasattr(obj,"GroundPlane") and obj.GroundPlane:
-            objstrings.append(self.writeGroundPlane(obj,renderer))
+        if hasattr(obj, "GroundPlane") and obj.GroundPlane:
+            objstrings.append(self.write_groundplane(obj, renderer))
 
         renderobjs = ''.join(objstrings)
 
