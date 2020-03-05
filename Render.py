@@ -102,13 +102,12 @@ def importRenderer(rdrname):
 class Project:
     """A rendering project"""
 
-    def __init__(self,obj):
-
+    def __init__(self, obj):
         obj.Proxy = self
         self.setProperties(obj)
 
 
-    def setProperties(self,obj):
+    def setProperties(self, obj):
         """Set underlying FeaturePython object's properties"""
         if not "Renderer" in obj.PropertiesList:
             obj.addProperty("App::PropertyString","Renderer","Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
@@ -147,18 +146,18 @@ class Project:
 
 
 
-    def onDocumentRestored(self,obj):  # pylint: disable=no-self-use
+    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
 
         """Code to be executed when document is restored (callback)"""
         self.setProperties(obj)
 
-    def execute(self,obj):  # pylint: disable=no-self-use
+    def execute(self, obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
         (callback, mandatory)
         """
         return True
 
-    def onChanged(self,obj,prop):  # pylint: disable=no-self-use
+    def onChanged(self, obj, prop):  # pylint: disable=no-self-use
         """Code to be executed when a property of the FeaturePython object is
         changed (callback)
         """
@@ -184,7 +183,7 @@ class Project:
 
         return renderer.write_camera(pos, rot, up, target, "")
 
-    def writePointLight(self,view,renderer):
+    def writePointLight(self, view, renderer):
         """Gets a rendering string for a point light object
 
            Parameters:
@@ -208,7 +207,7 @@ class Project:
         return renderer.write_pointlight(view,location,color,power)
 
 
-    def writeMesh(self,view,renderer):
+    def writeMesh(self, view, renderer):
         """Get a rendering string for a mesh object"""
 
         # get color and alpha
@@ -265,7 +264,7 @@ class Project:
         return renderer.write_object(view,mesh,color,alpha)
 
 
-    def writeObject(self,view,renderer):
+    def writeObject(self, view, renderer):
         """Gets a rendering string for the view of an object
 
            Parameters:
@@ -292,7 +291,7 @@ class Project:
 
 
 
-    def writeGroundPlane(self,obj,renderer):
+    def writeGroundPlane(self, obj, renderer):
         """Generate a ground plane rendering string for the scene
 
         For that purpose, dummy objects are temporarily added to the document
@@ -335,7 +334,7 @@ class Project:
 
         return result
 
-    def render(self,obj,external=True):
+    def render(self, obj, external=True):
         """Render the project, calling external renderer
 
         obj: the project view provider
@@ -436,10 +435,10 @@ class Project:
 class ViewProviderProject:
     """View provider for rendering project object"""
 
-    def __init__(self,vobj):
+    def __init__(self, vobj):
         vobj.Proxy = self
 
-    def attach(self,vobj):  # pylint: disable=no-self-use
+    def attach(self, vobj):  # pylint: disable=no-self-use
         """Code to be executed when object is created/restored (callback)"""
         self.Object = vobj.Object
         return True
@@ -447,10 +446,10 @@ class ViewProviderProject:
     def __getstate__(self):
         return None
 
-    def __setstate__(self,state):
+    def __setstate__(self, state):
         return None
 
-    def getDisplayModes(self,vobj):  # pylint: disable=no-self-use
+    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
         """Return a list of display modes (callback)"""
         return ["Default"]
 
@@ -460,7 +459,7 @@ class ViewProviderProject:
         """
         return "Default"
 
-    def setDisplayMode(self,mode):  # pylint: disable=no-self-use
+    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
         """Map the display mode defined in attach with those defined in
         getDisplayModes (callback).
 
@@ -477,7 +476,7 @@ class ViewProviderProject:
         """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(os.path.dirname(__file__),"icons","RenderProject.svg")
 
-    def setupContextMenu(self,vobj,menu):  # pylint: disable=no-self-use
+    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
         """Setup the context menu associated to the object in tree view
         (callback)"""
         action1 = QAction(QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
@@ -505,7 +504,7 @@ class View:
         obj.addProperty("App::PropertyString",       "ViewResult", "Render", QT_TRANSLATE_NOOP("App::Property","The rendering output of this view"))
         obj.Proxy = self
 
-    def execute(self,obj):  # pylint: disable=no-self-use
+    def execute(self, obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
         (callback, mandatory)
 
@@ -539,20 +538,20 @@ class View:
 class ViewProviderView:
     """ViewProvider of rendering view object"""
 
-    def __init__(self,vobj):
+    def __init__(self, vobj):
         vobj.Proxy = self
 
-    def attach(self,vobj):  # pylint: disable=no-self-use
+    def attach(self, vobj):  # pylint: disable=no-self-use
         """Code to be executed when object is created/restored (callback)"""
         self.Object = vobj.Object
 
     def __getstate__(self):
         return None
 
-    def __setstate__(self,state):
+    def __setstate__(self, state):
         return None
 
-    def getDisplayModes(self,vobj):  # pylint: disable=no-self-use
+    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
         """Return a list of display modes (callback)"""
         return ["Default"]
 
@@ -562,7 +561,7 @@ class ViewProviderView:
         """
         return "Default"
 
-    def setDisplayMode(self,mode):  # pylint: disable=no-self-use
+    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
         """Map the display mode defined in attach with those defined in
         getDisplayModes (callback).
 
@@ -614,7 +613,7 @@ class RenderProjectCommand:
     The renderer parameter must be a valid rendering module name
     """
 
-    def __init__(self,renderer):
+    def __init__(self, renderer):
         # renderer must be a valid rendering module name (string)
         self.renderer = renderer
 
