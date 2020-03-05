@@ -178,34 +178,35 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = p.GetString("Prefix","")
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+
+    prefix = params.GetString("Prefix", "")
     if prefix:
         prefix += " "
-    rpath = p.GetString("PovRayPath","")
-    args = p.GetString("PovRayParameters","")
+
+    rpath = params.GetString("PovRayPath", "")
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
-        return
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render")
+        return ""
+
+    args = params.GetString("PovRayParameters", "")
     if args:
         args += " "
     if "+W" in args:
-        args = re.sub("\+W[0-9]+","+W"+str(width),args)
+        args = re.sub(r"\+W[0-9]+", "+W{}".format(width), args)
     else:
-        args = args + "+W"+str(width)+" "
+        args = args + "+W{} ".format(width)
     if "+H" in args:
-        args = re.sub("\+H[0-9]+","+H"+str(height),args)
+        args = re.sub(r"\+H[0-9]+", "+H{}".format(height), args)
     else:
-        args = args + "+H"+str(height)+" "
+        args = args + "+H{} ".format(height)
     if output:
-        args = args + "+O" + output + " "
-    App.Console.PrintError("Renderer command: " + prefix+rpath+" "+args+project.PageResult+"\n")
-    os.system(prefix+rpath+" "+args+project.PageResult)
-    if output:
-        imgname = output
-    else:
-        imgname = os.path.splitext(project.PageResult)[0]+".png"
-    
-    return imgname
+        args = args + "+O{} ".format(output)
 
+    cmd = prefix + rpath + " " + args + project.PageResult
+    App.Console.PrintMessage("Renderer command: %s\n" % cmd)
+    os.system(cmd)
 
+    return output if output else os.path.splitext(project.PageResult)[0]+".png"
