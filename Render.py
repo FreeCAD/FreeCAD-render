@@ -688,6 +688,7 @@ class RenderCommand:
     """Render a selected Render project"""
 
     def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
         return {'Pixmap'  : os.path.join(WBDIR, "icons","Render.svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
