@@ -492,10 +492,11 @@ class ViewProviderProject:
 
     def __init__(self, vobj):
         vobj.Proxy = self
+        self.object = vobj.Object
 
     def attach(self, vobj):  # pylint: disable=no-self-use
         """Code to be executed when object is created/restored (callback)"""
-        self.Object = vobj.Object
+        self.object = vobj.Object
         return True
 
     def __getstate__(self):
@@ -541,13 +542,13 @@ class ViewProviderProject:
 
     def render(self):
         """Render project (call proxy render)"""
-        if hasattr(self,"Object"):
-            self.Object.Proxy.render(self.Object)
+        if hasattr(self,"object"):
+            self.object.Proxy.render(self.object)
 
     def claimChildren(self):
         """Deliver the children belonging to this object (callback)"""
-        if hasattr(self,"Object"):
-            return self.Object.Group
+        if hasattr(self,"object"):
+            return self.object.Group
 
 
 class View:
