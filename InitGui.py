@@ -29,8 +29,9 @@ class RenderWorkbench(Gui.Workbench):
 
     def __init__(self):
         self.__class__.MenuText = "Render"
-        self.__class__.ToolTip = "The Render module is a modern replacement for the Raytracing module"
-        self.__class__.Icon='''
+        self.__class__.ToolTip = ("The Render module is a modern replacement"
+                                  " for the Raytracing module")
+        self.__class__.Icon = '''
 /* XPM */
 static char * Render_xpm[] = {
 "16 16 33 1",
@@ -85,7 +86,6 @@ static char * Render_xpm[] = {
 "                "};
 '''
 
-
     def Initialize(self):
         """When the workbench is first loaded."""
         # pylint: disable=no-self-use, import-outside-toplevel
@@ -95,15 +95,15 @@ static char * Render_xpm[] = {
         from Render import RENDER_COMMANDS, ICONPATH, PREFPAGE
 
         commands = RENDER_COMMANDS
-        self.appendToolbar(QT_TRANSLATE_NOOP("Workbench","Render"),commands)
-        self.appendMenu(QT_TRANSLATE_NOOP("Workbench","&Render"),commands)
-        FreeCADGui.addIconPath(ICONPATH)
-        FreeCADGui.addPreferencePage(PREFPAGE,"Render")
-        Log ('Loading Render module...done\n')
+        self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"), commands)
+        self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"), commands)
+        addIconPath(ICONPATH)
+        addPreferencePage(PREFPAGE, "Render")
+        Console.PrintLog("Loading Render module...done\n")
 
-    def GetClassName(self):
+    def GetClassName(self):  # pylint: disable=no-self-use
+        """Type of workbench"""
         return "Gui::PythonWorkbench"
 
+
 Gui.addWorkbench(RenderWorkbench)
-
-
