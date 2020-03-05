@@ -510,15 +510,22 @@ class Project:
         prefix = params.GetString("Prefix", "")
         if prefix:
             prefix += " "
-        output = os.path.splitext(obj.PageResult)[0]+".png"
-        if hasattr(obj,"OutputImage") and obj.OutputImage:
+
+        try:
             output = obj.OutputImage
-        width = 800
-        if hasattr(obj,"RenderWidth") and obj.RenderWidth:
-            width = obj.RenderWidth
-        height = 600
-        if hasattr(obj,"RenderHeight") and obj.RenderHeight:
-            height = obj.RenderHeight
+            assert output
+        except (AttributeError, AssertionError):
+            output = os.path.splitext(obj.PageResult)[0] + ".png"
+
+        try:
+            width = int(obj.RenderWidth)
+        except (AttributeError, ValueError, TypeError):
+            width = 800
+
+        try:
+            height = int(obj.RenderHeight)
+        except (AttributeError, ValueError, TypeError):
+            height = 600
 
         # Run the renderer on the generated temp file, with rendering params
         img = renderer.render(obj, prefix, external, output, width, height)
