@@ -108,42 +108,99 @@ class Project:
 
     def set_properties(self, obj):
         """Set underlying FeaturePython object's properties"""
-        if not "Renderer" in obj.PropertiesList:
-            obj.addProperty("App::PropertyString","Renderer","Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
-        if not "DelayedBuild" in obj.PropertiesList:
-            obj.addProperty("App::PropertyBool","DelayedBuild","Render", QT_TRANSLATE_NOOP("App::Property","If true, the views will be updated on render only"))
+        if "Renderer" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyString",
+                "Renderer",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The name of the raytracing engine to use"))
+
+        if "DelayedBuild" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyBool",
+                "DelayedBuild",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "If true, the views will be updated on render only"))
             obj.DelayedBuild = True
-        if not "Template" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFile","Template","Render", QT_TRANSLATE_NOOP("App::Property","The template to be used by this rendering"))
-        if not "PageResult" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFileIncluded", "PageResult","Render", QT_TRANSLATE_NOOP("App::Property","The result file to be sent to the renderer"))
-        if not "Group" in obj.PropertiesList:
+
+        if "Template" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFile",
+                "Template",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The template to be used by this rendering"))
+
+        if "PageResult" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFileIncluded",
+                "PageResult",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The result file to be sent to the renderer"))
+
+        if "Group" not in obj.PropertiesList:
             obj.addExtension("App::GroupExtensionPython", self)
-        if not "RenderWidth" in obj.PropertiesList:
-            obj.addProperty("App::PropertyInteger","RenderWidth","Render", QT_TRANSLATE_NOOP("App::Property","The width of the rendered image in pixels"))
-            obj.RenderWidth = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth",800)
-        if not "RenderHeight" in obj.PropertiesList:
-            obj.addProperty("App::PropertyInteger","RenderHeight","Render", QT_TRANSLATE_NOOP("App::Property","The height of the rendered image in pixels"))
-            obj.RenderHeight = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight",600)
-        if not "GroundPlane" in obj.PropertiesList:
-            obj.addProperty("App::PropertyBool","GroundPlane","Render", QT_TRANSLATE_NOOP("App::Property","If true, a default ground plane will be added to the scene"))
+
+        if "RenderWidth" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyInteger",
+                "RenderWidth",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The width of the rendered image in pixels"))
+            parname = "User parameter:BaseApp/Preferences/Mod/Render"
+            obj.RenderWidth = App.ParamGet(parname).GetInt("RenderWidth", 800)
+
+        if "RenderHeight" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyInteger",
+                "RenderHeight",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The height of the rendered image in pixels"))
+            par = "User parameter:BaseApp/Preferences/Mod/Render"
+            obj.RenderHeight = App.ParamGet(par).GetInt("RenderHeight", 600)
+
+        if "GroundPlane" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyBool",
+                "GroundPlane",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "If true, a default ground plane will be added to the "
+                    "scene"))
             obj.GroundPlane = False
-        if not "OutputImage" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFile","OutputImage","Render", QT_TRANSLATE_NOOP("App::Property","The image saved by this render"))
-        if not "OpenAfterRender" in obj.PropertiesList:
-            obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
+
+        if "OutputImage" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFile",
+                "OutputImage",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The image saved by this render"))
+
+        if "OpenAfterRender" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyBool",
+                "OpenAfterRender",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "If true, the rendered image is opened in FreeCAD after "
+                    "the rendering is finished"))
             obj.GroundPlane = False
-        obj.setEditorMode("PageResult",2)
-
-
-
-
-
-
-
-
-
-
+        obj.setEditorMode("PageResult", 2)
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
         """Code to be executed when document is restored (callback)"""
