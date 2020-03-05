@@ -452,14 +452,14 @@ class Project:
         assert (obj.Template and os.path.exists(obj.Template)),\
             "Cannot render project: Template not found"
         template = None
-        with open(obj.Template,"r") as f:
-            template = f.read()
+        with open(obj.Template, "r") as template_file:
+            template = template_file.read()
         if sys.version_info.major < 3:
             template = template.decode("utf8")
         if not template:
             return
 
-        # get active camera (will be used if no camera is present in the scene)
+        # Get a default camera, to be used if no camera is present in the scene
         if App.GuiUp:
             dummycamview = SimpleNamespace()
             dummycamview.Source = SimpleNamespace()
@@ -468,7 +468,7 @@ class Project:
             cam = self.writeCamera(dummycamview,
                                    renderer)
 
-        # get objects rendering strings (including lights objects)
+        # Get objects rendering strings (including lights, cameras...)
         # and add a ground plane if required
         if obj.DelayedBuild:
             objstrings = [self.writeObject(view, renderer) for view in obj.Group]
@@ -480,23 +480,25 @@ class Project:
 
         renderobjs = ''.join(objstrings)
 
-        # merge all strings (cam, objects, ground plane...) into rendering template
+        # Merge all strings (cam, objects, ground plane...) into rendering
+        # template
         if "RaytracingCamera" in template:
-            template = re.sub("(.*RaytracingCamera.*)",cam,template)
-            template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
+            template = re.sub("(.*RaytracingCamera.*)", cam, template)
+            template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
         else:
-            template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
-        if sys.version_info.major < 3:
-            template = template.encode("utf8")
+            template = re.sub("(.*RaytracingContent.*)",
+                              cam + "\n" + renderobjs, template)
+        template = (template.encode("utf8") if sys.version_info.major < 3
+                    else template)
 
-        # write merger result into a temporary file
-        fh, fp = mkstemp(  prefix=obj.Name,
-                                    suffix=os.path.splitext(obj.Template)[-1])
-        with open(fp,"w") as f:
-            f.write(template)
-        os.close(fh)
-        obj.PageResult = fp
-        os.remove(fp)
+        # Write instantiated template into a temporary file
+        fhandle, fpath = mkstemp(prefix=obj.Name,
+                                 suffix=os.path.splitext(obj.Template)[-1])
+        with open(fpath, "w") as fobj:
+            fobj.write(template)
+        os.close(fhandle)
+        obj.PageResult = fpath
+        os.remove(fpath)
         if not obj.PageResult:
             App.Console.PrintError(translate("Render","Error: No page result"))
             return
