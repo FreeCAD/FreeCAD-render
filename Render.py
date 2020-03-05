@@ -220,6 +220,38 @@ class Project:
             for view in obj.Group:
                 view.touch()
 
+    @staticmethod
+    def create(document, renderer, template=""):
+        """Factory method to create a new rendering project.
+
+        This method creates a new rendering project in a given FreeCAD
+        Document.
+        Providing a Document is mandatory: no rendering project should be
+        created "off-ground".
+        The method also creates the FeaturePython and the ViewProviderProject
+        objects related to the new rendering project.
+
+        Params:
+        document:        the document where the project is to be created
+        renderer:        the path to the renderer module to associate with
+                         project
+        template (opt.): the path to the rendering template to associate with
+                         project
+
+        Returns: the newly created Project, the related FeaturePython object
+                 and the related ViewProviderProject
+        """
+        rdr = str(renderer)
+        project_fpo = document.addObject("App::FeaturePython",
+                                         "%sProject" % rdr)
+        project = Project(project_fpo)
+        project_fpo.Label = "%s Project" % rdr
+        project_fpo.Renderer = rdr
+        project_fpo.Template = str(template)
+        viewp = ViewProviderProject(project_fpo.ViewObject)
+        return project, project_fpo, viewp
+
+
     def writeCamera(self, view, renderer):
         """Get a rendering string from a camera. Camera can be either a string in Coin
         format or a Camera object
@@ -693,17 +725,20 @@ class RenderProjectCommand:
         """Code to be executed when command is run (callback)
         Creates a new rendering project into active document
         """
-        if self.renderer:
-            project = App.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
-            Project(project)
-            project.Label = self.renderer + " Project"
-            project.Renderer = self.renderer
-            ViewProviderProject(project.ViewObject)
-            filename = QFileDialog.getOpenFileName(Gui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
-            if filename:
-                project.Template = filename[0]
-            App.ActiveDocument.recompute()
+        assert self.renderer, "Error: no renderer in command"
 
+        # Get rendering template
+        templates_folder = os.path.join(WBDIR, "templates")
+        template_path = QFileDialog.getOpenFileName(
+            Gui.getMainWindow(), "Select template", templates_folder, "*.*")
+        template = template_path[0] if template_path else ""
+        if not template:
+            return
+
+        # Create project
+        Project.create(App.ActiveDocument, self.renderer, template)
+
+        App.ActiveDocument.recompute()
 
 
 class RenderViewCommand:
