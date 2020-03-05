@@ -60,13 +60,30 @@ importer addon (available for [2.80](https://gist.github.com/yorikvanhavre/68015
 [2.79](https://gist.github.com/yorikvanhavre/e873d51c8f0e307e333fe595c429ba87)). Importing your FreeCAD file in Blender before 
 rendering gives you a lot more options such as placing lights and textures.
 
-## To Do
+
+
+## Contributing
+
+Any contributions are welcome! Feel free to post PR to this project.
+
+### Code of Conduct
+This project is covered by FreeCAD [Code of Conduct](https://github.com/FreeCAD/FreeCAD/blob/master/CODE_OF_CONDUCT.md).
+
+### To Do (not exhaustive)
 
 * Currently the external (open the file to be rendered in the Renderer's GUI)/internal (render directly inside FreeCAD) render 
 mode is not implemented, the external mode will always be used.
 * Add support for Kerkythea (adapt the existing macro)
 * Add support for Blender's Eevee
 * Add support for OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
+
+### Notes on Code Quality
+
+In order to make this module easy to read, maintain and extend by everyone, we strive to sustain a good level of code quality.
+In particular, we try to ensure that the code complies with PEP8 / PEP257. Therefore,
+* If you post contributions (thank you very much!), please enforce PEP8 / PEP257 on your production, and run pylint and flake8 before sending PR. A specific pylintrc file, with general PEP8 rules and some specific tweaks related to FreeCAD framework, is provided for that purpose in the project directory.
+* If you see anything that could be improved in terms of code quality (PEP compliance, pythonicity, coding best practices...), or simply readability (comments, documentation...), do not hesitate to post propositions!
+
 
 ## Feedback
 
