@@ -618,9 +618,13 @@ class RenderProjectCommand:
 
     def GetResources(self):
         """Command's resources (callback)"""
-        return {'Pixmap'  : os.path.join(WBDIR, "icons",self.renderer+".svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
+        rdr = self.renderer
+        return {
+            "Pixmap": os.path.join(WBDIR, "icons", rdr + ".svg"),
+            "MenuText": QT_TRANSLATE_NOOP("Render", "%s Project") % rdr,
+            "ToolTip": QT_TRANSLATE_NOOP("Render", "Creates a %s "
+                                                   "project") % rdr
+            }
 
     def Activated(self):
         """Code to be executed when command is run (callback)
@@ -645,9 +649,15 @@ class RenderViewCommand:
     """
 
     def GetResources(self):  # pylint: disable=no-self-use
-        return {'Pixmap'  : os.path.join(WBDIR, "icons","RenderView.svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Create View"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
+        """Command's resources (callback)"""
+        return {
+            "Pixmap": os.path.join(WBDIR, "icons", "RenderView.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("Render", "Create View"),
+            "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                         "Creates a Render view of the "
+                                         "selected object(s) in the selected "
+                                         "project or the default project")
+            }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
@@ -687,9 +697,12 @@ class RenderCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Command's resources (callback)"""
-        return {'Pixmap'  : os.path.join(WBDIR, "icons","Render.svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
+        return {"Pixmap": os.path.join(WBDIR, "icons", "Render.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Render"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Performs the render of a "
+                                             "selected project or the default "
+                                             "project")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
@@ -751,9 +764,11 @@ class CameraCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Command's resources (callback)"""
 
-        return {'Pixmap'  : ":/icons/camera-photo.svg",
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Create Camera"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
+        return {"Pixmap": ":/icons/camera-photo.svg",
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Camera"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Create a Camera object from the"
+                                             "current camera position")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
