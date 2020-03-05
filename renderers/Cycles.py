@@ -50,13 +50,10 @@
 #   Renderer
 
 
-
-from __future__ import print_function
-import tempfile
-import FreeCAD
 import os
-import math
-import re
+from math import degrees
+
+import FreeCAD as App
 
 
 def write_camera(pos, rot, updir, target, name):
@@ -67,7 +64,7 @@ def write_camera(pos, rot, updir, target, name):
 
     up = updir
     pos = str(pos.x)+" "+str(pos.y)+" "+str(pos.z)
-    rot = str(math.degrees(rot.Angle))+" "+str(rot.Axis.x)+" "+str(rot.Axis.y)+" "+str(rot.Axis.z)
+    rot = str(degrees(rot.Angle))+" "+str(rot.Axis.x)+" "+str(rot.Axis.y)+" "+str(rot.Axis.z)
 
     # cam rotation is angle(deg) axisx axisy axisz
     # scale needs to have z inverted to behave like a decent camera. No idea what they have been doing at blender :)
@@ -185,7 +182,7 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = p.GetString("Prefix","")
     if prefix:
         prefix += " "
@@ -195,7 +192,7 @@ def render(project, prefix, external, output, width, height):
     if not external:
         args += " --background"
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
+        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
     args += " --width "+str(width)
     args += " --height "+str(height)
