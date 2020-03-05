@@ -185,38 +185,40 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    # change image size in template
-    f = open(project.PageResult,"r")
-    t = f.read()
-    f.close()
-    res = re.findall("<parameter name=\"resolution.*?\/>",t)
+    # Change image size in template
+    with open(project.PageResult, "r") as f:
+        template = f.read()
+    res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
     if res:
-        t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(width)+" "+str(height)+"\" />")
-        fd, fp = mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
-        os.close(fd)
-        f = open(fp,"w")
-        f.write(t)
-        f.close()
-        project.PageResult = fp
-        os.remove(fp)
+        snippet = '<parameter name="resolution" value="{} {}"/>'
+        template = template.replace(res[0], snippet.format(width, height))
+        f_handle, f_path = mkstemp(
+            prefix=project.Name,
+            suffix=os.path.splitext(project.Template)[-1])
+        os.close(f_handle)
+        with open(f_path, "w") as f:
+            f.write(template)
+        project.PageResult = f_path
+        os.remove(f_path)
         App.ActiveDocument.recompute()
 
-    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    # Prepare parameters
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if external:
-        rpath = p.GetString("AppleseedStudioPath","")
+        rpath = params.GetString("AppleseedStudioPath", "")
         args = ""
     else:
-        rpath = p.GetString("AppleseedCliPath","")
-        args = p.GetString("AppleseedParameters","")
+        rpath = params.GetString("AppleseedCliPath", "")
+        args = params.GetString("AppleseedParameters", "")
         if args:
             args += " "
-        args += "--output "+output
+        args += "--output " + output
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
-        return
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render")
+        return ""
     if args:
         args += " "
-    os.system(prefix+rpath+" "+args+project.PageResult)
-    return
-
-
+    os.system(prefix + rpath + " " + args + project.PageResult)
+    return output
