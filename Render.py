@@ -393,20 +393,25 @@ class Project:
         result = ""
         bbox = App.BoundBox()
         for view in obj.Group:
-            if view.Source and hasattr(view.Source,"Shape") and hasattr(view.Source.Shape,"BoundBox"):
+            try:
                 bbox.add(view.Source.Shape.BoundBox)
+            except AttributeError:
+                pass
         if bbox.isValid():
-            margin = bbox.DiagonalLength/2
-            p1 = App.Vector(bbox.XMin-margin,bbox.YMin-margin,0)
-            p2 = App.Vector(bbox.XMax+margin,bbox.YMin-margin,0)
-            p3 = App.Vector(bbox.XMax+margin,bbox.YMax+margin,0)
-            p4 = App.Vector(bbox.XMin-margin,bbox.YMax+margin,0)
-
-            # create temporary object. We do this to keep the renderers code as simple as possible:
-            # they only need to deal with one type of object: RenderView objects
-            dummy1 = App.ActiveDocument.addObject("Part::Feature","renderdummy1")
-            dummy1.Shape = Part.Face(Part.makePolygon([p1,p2,p3,p4,p1]))
-            dummy2 = App.ActiveDocument.addObject("App::FeaturePython","renderdummy2")
+            # Create temporary object. We do this to keep renderers codes as
+            # simple as possible: they only need to deal with one type of
+            # object: RenderView objects
+            margin = bbox.DiagonalLength / 2
+            vertices = [App.Vector(bbox.XMin - margin, bbox.YMin - margin, 0),
+                        App.Vector(bbox.XMax + margin, bbox.YMin - margin, 0),
+                        App.Vector(bbox.XMax + margin, bbox.YMax + margin, 0),
+                        App.Vector(bbox.XMin - margin, bbox.YMax + margin, 0)]
+            vertices.append(vertices[0])  # Close the polyline...
+            dummy1 = App.ActiveDocument.addObject("Part::Feature",
+                                                  "dummygroundplane1")
+            dummy1.Shape = Part.Face(Part.makePolygon(vertices))
+            dummy2 = App.ActiveDocument.addObject("App::FeaturePython",
+                                                  "dummygroundplane2")
             View(dummy2)
             dummy2.Source = dummy1
             ViewProviderView(dummy2.ViewObject)
@@ -858,22 +863,17 @@ class RenderCommand:
         # Find project
         project = None
         sel = Gui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
+        for obj in sel:
+            if "Renderer" in obj.PropertiesList:
+                project = obj
                 break
         if not project:
-            for o in App.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-        img = project.Proxy.render(project)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            ImageGui.open(img)
+            for obj in App.ActiveDocument.Objects:
+                if "Renderer" in obj.PropertiesList:
+                    return
 
+        # Render (and display if required)
+        project.Proxy.render(project, external=True)
 
 class RenderExternalCommand:
 
