@@ -513,10 +513,18 @@ class Project:
         if hasattr(obj,"RenderHeight") and obj.RenderHeight:
             height = obj.RenderHeight
 
-        # run the renderer on the temp file
-        return renderer.render(obj,prefix,external,output,width,height)
+        # Run the renderer on the generated temp file, with rendering params
+        img = renderer.render(obj, prefix, external, output, width, height)
 
-        App.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
+        # Open result in GUI if relevant
+        try:
+            if img and obj.OpenAfterRender:
+                ImageGui.open(img)
+        except (AttributeError, NameError):
+            pass
+
+        # And eventually return result path
+        return img
 
 
 class ViewProviderProject:
