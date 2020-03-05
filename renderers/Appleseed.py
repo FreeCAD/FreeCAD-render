@@ -66,24 +66,26 @@ def write_camera(pos, rot, updir, target, name):
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
-    up = updir
-    target = str(target.x)+" "+str(target.z)+" "+str(-target.y)
-    up = str(up.x)+" "+str(up.z)+" "+str(-up.y)
-    pos = str(pos.x)+" "+str(pos.z)+" "+str(-pos.y)
-
-    cam = """
+    snippet = """
         <camera name="camera" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
+            <parameter name="film_height" value="0.032" />
             <parameter name="aspect_ratio" value="1.7" />
-            <parameter name="horizontal_fov" value="80" />
+            <parameter name="horizontal_fov" value="40" />
             <parameter name="shutter_open_time" value="0" />
             <parameter name="shutter_close_time" value="1" />
+            <parameter name="focal_distance" value="1" />
+            <parameter name="f_stop" value="8" />
             <transform>
-                <look_at origin="%s" target="%s" up="%s" />
+                <look_at origin="{} {} {}"
+                         target="{} {} {}"
+                         up="{} {} {}" />
             </transform>
-        </camera>""" % (pos, target, up)
+        </camera>"""
 
-    return cam
+    return snippet.format(pos.x, pos.z, -pos.y,
+                          target.x, target.z, -target.y,
+                          updir.x, updir.z, -updir.y)
 
 
 def write_object(viewobj, mesh, color, alpha):
