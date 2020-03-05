@@ -170,24 +170,24 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = p.GetString("Prefix","")
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    prefix = params.GetString("Prefix", "")
     if prefix:
         prefix += " "
-    rpath = p.GetString("CyclesPath","")
-    args = p.GetString("CyclesParameters","")
-    args += " --output "+output
+    rpath = params.GetString("CyclesPath", "")
+    args = params.GetString("CyclesParameters", "")
+    args += " --output " + output
     if not external:
         args += " --background"
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
-        return
-    args += " --width "+str(width)
-    args += " --height "+str(height)
-    cmd = prefix+rpath+" "+args+" "+project.PageResult
-    print(cmd+'\n')
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render")
+        return ""
+    args += " --width " + str(width)
+    args += " --height " + str(height)
+    cmd = prefix + rpath + " " + args + " " + project.PageResult
+    App.Console.PrintMessage(cmd+'\n')
     os.system(cmd)
 
     return output
-
-
