@@ -56,8 +56,12 @@ class Camera:
     # Enumeration of allowed values for ViewportMapping parameter (see Coin
     # documentation)
     # Nota: Keep following tuple in original order, as relationship between
-    VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME", "CROP_VIEWPORT_LINE_FRAME",
-                           "CROP_VIEWPORT_NO_FRAME", "ADJUST_CAMERA", "LEAVE_ALONE")
+    # values and indexes matters and is used for reverse transcoding
+    VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME",
+                           "CROP_VIEWPORT_LINE_FRAME",
+                           "CROP_VIEWPORT_NO_FRAME",
+                           "ADJUST_CAMERA",
+                           "LEAVE_ALONE")
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
@@ -66,7 +70,8 @@ class Camera:
         "Projection": Prop(
             "App::PropertyEnumeration",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Type of projection: Perspective/Orthographic"),
+            QT_TRANSLATE_NOOP("Render",
+                              "Type of projection: Perspective/Orthographic"),
             ("Perspective", "Orthographic")),
 
         "Placement": Prop(
@@ -116,7 +121,8 @@ class Camera:
         "HeightAngle": Prop(
             "App::PropertyAngle",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Height angle, for perspective camera"),
+            QT_TRANSLATE_NOOP("Render",
+                              "Height angle, for perspective camera"),
             60),
 
         "Shape": Prop(
@@ -132,10 +138,9 @@ class Camera:
     def set_properties(cls, fpo):
         """Set underlying FeaturePython object's properties"""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            fields = cls.PROPERTIES[name]
-            prop = fpo.addProperty(fields.Type, name, fields.Group, fields.Doc, 0)
-            setattr(prop, name, fields.Default)
-
+            spec = cls.PROPERTIES[name]
+            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            setattr(prop, name, spec.Default)
 
     def __init__(self, fpo):
         """Camera Initializer
@@ -272,7 +277,8 @@ class ViewProviderCamera:
                         self.set_gui_from_camera)
         menu.addAction(action1)
 
-        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Set this camera to GUI"),
+        action2 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Set this camera to GUI"),
                           menu)
         QObject.connect(action2,
                         SIGNAL("triggered()"),
@@ -288,10 +294,8 @@ class ViewProviderCamera:
         """Set this camera from GUI camera"""
 
         assert App.GuiUp, "Cannot set camera from GUI: GUI is down"
-
         fpo = self.fpo
         node = Gui.ActiveDocument.ActiveView.getCameraNode()
-
         typ = node.getTypeId()
         if typ == coin.SoPerspectiveCamera.getClassTypeId():
             fpo.Projection = "Perspective"
@@ -310,7 +314,8 @@ class ViewProviderCamera:
         fpo.FarDistance = float(node.farDistance.getValue())
         fpo.FocalDistance = float(node.focalDistance.getValue())
         fpo.AspectRatio = float(node.aspectRatio.getValue())
-        fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[node.viewportMapping.getValue()]
+        index = node.viewportMapping.getValue()
+        fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[index]
 
     def set_gui_from_camera(self):
         """Set GUI camera to this camera"""
@@ -346,7 +351,6 @@ class ViewProviderCamera:
     def __setstate__(self, state):
         """Called while restoring document"""
         return None
-
 
 
 # ===========================================================================
@@ -391,17 +395,17 @@ def set_cam_from_coin_string(cam, camstr):
     """
 
     # Split, clean and tokenize
-    camdata = [y for y in [shlex.split(x, comments=True)\
-                            for x in camstr.split('\n')] if y]
-    camdict = {y[0]:y[1:] for y in camdata}
+    camdata = [y for y in [shlex.split(x, comments=True)
+                           for x in camstr.split('\n')] if y]
+    camdict = {y[0]: y[1:] for y in camdata}
 
-    cam.Projection = camdata[0][0][0:-6] # Data block should start with Cam Type...
+    cam.Projection = camdata[0][0][0:-6]  # Data should start with Cam Type...
     assert cam.Projection in ('Perspective', 'Orthographic'),\
         "Invalid camera header in camera string"
     try:
         pos = App.Vector(camdict["position"][0:3])
         rot = App.Rotation(App.Vector(camdict["orientation"][0:3]),
-                               degrees(float(camdict["orientation"][3])))
+                           degrees(float(camdict["orientation"][3])))
         cam.Placement = App.Placement(pos, rot)
         cam.FocalDistance = float(camdict["focalDistance"][0])
         cam.AspectRatio = float(camdict["aspectRatio"][0])
@@ -433,7 +437,7 @@ def get_coin_string_from_cam(cam):
     def check_enum(field):
         """Check if the enum field value is valid"""
         assert getattr(cam, field) in Camera.PROPERTIES[field].Default,\
-                "Invalid %s value" %field
+            "Invalid %s value" % field
 
     check_enum("Projection")
     check_enum("ViewportMapping")
@@ -456,6 +460,7 @@ def get_coin_string_from_cam(cam):
     res.append("}\n")
     return '\n'.join(res)
 
+
 def retrieve_legacy_camera(project):
     """For backward compatibility: Retrieve legacy camera information in
     rendering projects and transform it into Camera object
@@ -469,6 +474,7 @@ def retrieve_legacy_camera(project):
 # A default camera...
 DEFAULT_CAMERA_STRING = """\
 #Inventor V2.1 ascii
+
 OrthographicCamera {
   viewportMapping ADJUST_CAMERA
   position -0 -0 100
