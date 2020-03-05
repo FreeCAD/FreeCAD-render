@@ -26,35 +26,30 @@
 import sys
 import os
 import re
-import tempfile
-import importlib
-import math
+from os import path
+from importlib import import_module
+from tempfile import mkstemp
 from types import SimpleNamespace
+from operator import attrgetter
 
-import FreeCAD
+from PySide.QtGui import QAction, QIcon, QFileDialog
+from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+import FreeCAD as App
+import FreeCADGui as Gui
 import Draft
 import Part
 import MeshPart
+try:
+    import ImageGui
+except ImportError:
+    pass
+try:
+    from draftutils.translate import translate  # 0.19
+except ImportError:
+    from Draft import translate  # 0.18
+
 import camera
 
-if FreeCAD.GuiUp:
-    from PySide import QtCore, QtGui
-    def translate(context, text):
-        if sys.version_info.major >= 3:
-            if hasattr(QtGui.QApplication,"UnicodeUTF8"):
-                return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8)
-            else:
-                return QtGui.QApplication.translate(context, text, None)
-        else:
-            if hasattr(QtGui.QApplication,"UnicodeUTF8"):
-                return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8).encode("utf8")
-            else:
-                return QtGui.QApplication.translate(context, text, None).encode("utf8")
-else:
-    def translate(context,txt):
-        return txt
-def QT_TRANSLATE_NOOP(scope, text):
-    return text
 
 
 def importRenderer(rdrname):
@@ -64,10 +59,10 @@ def importRenderer(rdrname):
     rdrname: renderer name (as a string)"""
 
     try:
-        return importlib.import_module("renderers." + rdrname)
+        return import_module("renderers." + rdrname)
     except ImportError:
         errmsg = translate("Render","Error importing renderer '{}'\n").format(rdrname)
-        FreeCAD.Console.PrintError(errmsg)
+        App.Console.PrintError(errmsg)
         return None
 
 
@@ -82,20 +77,20 @@ class RenderProjectCommand:
 
     def GetResources(self):
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons",self.renderer+".svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
+                'MenuText': QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
 
     def Activated(self):
         if self.renderer:
-            project = FreeCAD.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
+            project = App.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
             Project(project)
             project.Label = self.renderer + " Project"
             project.Renderer = self.renderer
             ViewProviderProject(project.ViewObject)
-            filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
+            filename = QFileDialog.getOpenFileName(Gui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
             if filename:
                 project.Template = filename[0]
-            FreeCAD.ActiveDocument.recompute()
+            App.ActiveDocument.recompute()
 
 
 
@@ -106,14 +101,13 @@ class RenderViewCommand:
 
     def GetResources(self):
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Create View"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Create View"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
 
     def Activated(self):
-        import FreeCADGui
         project = None
         objs = []
-        sel = FreeCADGui.Selection.getSelection()
+        sel = Gui.Selection.getSelection()
         for o in sel:
             if "Renderer" in o.PropertiesList:
                 project = o
@@ -123,22 +117,22 @@ class RenderViewCommand:
                 if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight','Camera']:
                     objs.append(o)
         if not project:
-            for o in FreeCAD.ActiveDocument.Objects:
+            for o in App.ActiveDocument.Objects:
                 if "Renderer" in o.PropertiesList:
                     project = o
                     break
         if not project:
-            FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
 
         for obj in objs:
-            view = FreeCAD.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
+            view = App.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
             view.Label = "View of "+ obj.Name
             View(view)
             view.Source = obj
             project.addObject(view)
             ViewProviderView(view.ViewObject)
-        FreeCAD.ActiveDocument.recompute()
+        App.ActiveDocument.recompute()
 
 
 
@@ -150,28 +144,26 @@ class RenderCommand:
 
     def GetResources(self):
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
     def Activated(self):
-        import FreeCADGui
         project = None
-        sel = FreeCADGui.Selection.getSelection()
+        sel = Gui.Selection.getSelection()
         for o in sel:
             if "Renderer" in o.PropertiesList:
                 project = o
                 break
         if not project:
-            for o in FreeCAD.ActiveDocument.Objects:
+            for o in App.ActiveDocument.Objects:
                 if "Renderer" in o.PropertiesList:
                     project = o
                     break
         if not project:
-            FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
         img = project.Proxy.render(project)
         if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            import ImageGui
             ImageGui.open(img)
 
 
@@ -184,29 +176,27 @@ class RenderExternalCommand:
     def GetResources(self):
 
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
     def Activated(self):
 
-        import FreeCADGui
         project = None
-        sel = FreeCADGui.Selection.getSelection()
+        sel = Gui.Selection.getSelection()
         for o in sel:
             if "Renderer" in o.PropertiesList:
                 project = o
                 break
         if not project:
-            for o in FreeCAD.ActiveDocument.Objects:
+            for o in App.ActiveDocument.Objects:
                 if "Renderer" in o.PropertiesList:
                     project = o
                     break
         if not project:
-            FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
             return
         img = project.Proxy.render(project,external=True)
         if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            import ImageGui
             ImageGui.open(img)
 
 class CameraCommand:
@@ -216,8 +206,8 @@ class CameraCommand:
     def GetResources(self):
 
         return {'Pixmap'  : ":/icons/camera-photo.svg",
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Create Camera"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Create Camera"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
 
     def Activated(self):
         camera.Camera.create()
@@ -250,10 +240,10 @@ class Project:
             obj.addExtension("App::GroupExtensionPython", self)
         if not "RenderWidth" in obj.PropertiesList:
             obj.addProperty("App::PropertyInteger","RenderWidth","Render", QT_TRANSLATE_NOOP("App::Property","The width of the rendered image in pixels"))
-            obj.RenderWidth = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth",800)
+            obj.RenderWidth = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth",800)
         if not "RenderHeight" in obj.PropertiesList:
             obj.addProperty("App::PropertyInteger","RenderHeight","Render", QT_TRANSLATE_NOOP("App::Property","The height of the rendered image in pixels"))
-            obj.RenderHeight = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight",600)
+            obj.RenderHeight = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight",600)
         if not "GroundPlane" in obj.PropertiesList:
             obj.addProperty("App::PropertyBool","GroundPlane","Render", QT_TRANSLATE_NOOP("App::Property","If true, a default ground plane will be added to the scene"))
             obj.GroundPlane = False
@@ -295,8 +285,8 @@ class Project:
         aspectRatio = cam.AspectRatio
         pos = cam.Placement.Base
         rot = cam.Placement.Rotation
-        target = pos.add(rot.multVec(FreeCAD.Vector(0, 0, -1)).multiply(aspectRatio))
-        up = rot.multVec(FreeCAD.Vector(0, 1, 0))
+        target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(aspectRatio))
+        up = rot.multVec(App.Vector(0, 1, 0))
 
         return renderer.write_camera(pos, rot, up, target, "")
 
@@ -316,7 +306,7 @@ class Project:
             location = view.Source.Location
             color = view.Source.Color
         except AttributeError:
-            FreeCAD.Console.PrintError(translate("Render","Cannot render Point Light: Missing location and/or color attributes"))
+            App.Console.PrintError(translate("Render","Cannot render Point Light: Missing location and/or color attributes"))
             return ""
         power = getattr(view.Source,"Power",60) # We accept missing Power (default value: 60)...
 
@@ -415,34 +405,33 @@ class Project:
         eventually deleted"""
 
         result = ""
-        bbox = FreeCAD.BoundBox()
+        bbox = App.BoundBox()
         for view in obj.Group:
             if view.Source and hasattr(view.Source,"Shape") and hasattr(view.Source.Shape,"BoundBox"):
                 bbox.add(view.Source.Shape.BoundBox)
         if bbox.isValid():
-            import Part
             margin = bbox.DiagonalLength/2
-            p1 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMin-margin,0)
-            p2 = FreeCAD.Vector(bbox.XMax+margin,bbox.YMin-margin,0)
-            p3 = FreeCAD.Vector(bbox.XMax+margin,bbox.YMax+margin,0)
-            p4 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMax+margin,0)
+            p1 = App.Vector(bbox.XMin-margin,bbox.YMin-margin,0)
+            p2 = App.Vector(bbox.XMax+margin,bbox.YMin-margin,0)
+            p3 = App.Vector(bbox.XMax+margin,bbox.YMax+margin,0)
+            p4 = App.Vector(bbox.XMin-margin,bbox.YMax+margin,0)
 
             # create temporary object. We do this to keep the renderers code as simple as possible:
             # they only need to deal with one type of object: RenderView objects
-            dummy1 = FreeCAD.ActiveDocument.addObject("Part::Feature","renderdummy1")
+            dummy1 = App.ActiveDocument.addObject("Part::Feature","renderdummy1")
             dummy1.Shape = Part.Face(Part.makePolygon([p1,p2,p3,p4,p1]))
-            dummy2 = FreeCAD.ActiveDocument.addObject("App::FeaturePython","renderdummy2")
+            dummy2 = App.ActiveDocument.addObject("App::FeaturePython","renderdummy2")
             View(dummy2)
             dummy2.Source = dummy1
             ViewProviderView(dummy2.ViewObject)
-            FreeCAD.ActiveDocument.recompute()
+            App.ActiveDocument.recompute()
 
             result = self.writeObject(dummy2,renderer)
 
             # remove temp objects
-            FreeCAD.ActiveDocument.removeObject(dummy2.Name)
-            FreeCAD.ActiveDocument.removeObject(dummy1.Name)
-            FreeCAD.ActiveDocument.recompute()
+            App.ActiveDocument.removeObject(dummy2.Name)
+            App.ActiveDocument.removeObject(dummy1.Name)
+            App.ActiveDocument.recompute()
 
         return result
 
@@ -476,8 +465,7 @@ class Project:
             return
 
         # get active camera (will be used if no camera is present in the scene)
-        if FreeCAD.GuiUp:
-            import FreeCADGui as Gui
+        if App.GuiUp:
             dummycamview = SimpleNamespace()
             dummycamview.Source = SimpleNamespace()
             camera.set_cam_from_coin_string(dummycamview.Source,
@@ -507,7 +495,7 @@ class Project:
             template = template.encode("utf8")
 
         # write merger result into a temporary file
-        fh, fp = tempfile.mkstemp(  prefix=obj.Name,
+        fh, fp = mkstemp(  prefix=obj.Name,
                                     suffix=os.path.splitext(obj.Template)[-1])
         with open(fp,"w") as f:
             f.write(template)
@@ -515,13 +503,13 @@ class Project:
         obj.PageResult = fp
         os.remove(fp)
         if not obj.PageResult:
-            FreeCAD.Console.PrintError(translate("Render","Error: No page result"))
+            App.Console.PrintError(translate("Render","Error: No page result"))
             return
 
-        FreeCAD.ActiveDocument.recompute()
+        App.ActiveDocument.recompute()
 
         # fetch the rendering parameters
-        p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
         prefix = p.GetString("Prefix","")
         if prefix:
             prefix += " "
@@ -538,7 +526,7 @@ class Project:
         # run the renderer on the temp file
         return renderer.render(obj,prefix,external,output,width,height)
 
-        FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
+        App.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
 
 
 class ViewProviderProject:
@@ -573,10 +561,8 @@ class ViewProviderProject:
         return os.path.join(os.path.dirname(__file__),"icons","RenderProject.svg")
 
     def setupContextMenu(self,vobj,menu):
-        from PySide import QtCore,QtGui
-        import FreeCADGui
-        action1 = QtGui.QAction(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
-        QtCore.QObject.connect(action1,QtCore.SIGNAL("triggered()"),self.render)
+        action1 = QAction(QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
+        QObject.connect(action1,SIGNAL("triggered()"),self.render)
         menu.addAction(action1)
 
     def render(self):
@@ -662,9 +648,8 @@ class ViewProviderView:
 
 
 
-if FreeCAD.GuiUp:
+if App.GuiUp:
 
-    import FreeCADGui
 
     RENDER_COMMANDS = []
     Renderers = os.listdir(os.path.dirname(__file__)+os.sep+"renderers")
@@ -672,13 +657,13 @@ if FreeCAD.GuiUp:
     Renderers = [r for r in Renderers if not "__" in r]
     Renderers = [os.path.splitext(r)[0] for r in Renderers]
     for renderer in Renderers:
-        FreeCADGui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
+        Gui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
         RENDER_COMMANDS.append('Render_'+renderer)
-    FreeCADGui.addCommand('Render_Camera', CameraCommand())
+    Gui.addCommand('Render_Camera', CameraCommand())
     RENDER_COMMANDS.append('Render_Camera')
-    FreeCADGui.addCommand('Render_View', RenderViewCommand())
+    Gui.addCommand('Render_View', RenderViewCommand())
     RENDER_COMMANDS.append('Render_View')
-    FreeCADGui.addCommand('Render_Render', RenderCommand())
+    Gui.addCommand('Render_Render', RenderCommand())
     RENDER_COMMANDS.append('Render_Render')
 
     # This is for InitGui.py because it cannot import os
