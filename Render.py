@@ -675,9 +675,9 @@ class RenderProjectCommand:
     The renderer parameter must be a valid rendering module name
     """
 
-    def __init__(self, renderer):
+    def __init__(self, renderer: str):
         # renderer must be a valid rendering module name (string)
-        self.renderer = renderer
+        self.renderer = str(renderer)
 
     def GetResources(self):
         """Command's resources (callback)"""
