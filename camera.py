@@ -431,3 +431,17 @@ def retrieve_legacy_camera(project):
         "Project's Camera property should contain a string"""
     fpo = create_camera()
     set_cam_from_coin_string(fpo, project.Camera)
+
+
+# A default camera...
+DEFAULT_CAMERA_STRING = """\
+#Inventor V2.1 ascii
+OrthographicCamera {
+  viewportMapping ADJUST_CAMERA
+  position -0 -0 100
+  orientation 0 0 1  0
+  aspectRatio 1
+  focalDistance 100
+  height 100
+}
+"""
