@@ -435,14 +435,6 @@ class Project:
         Returns output file path
         """
 
-        # check some prerequisites...
-        if not obj.Renderer:
-            return
-        if not obj.Template:
-            return
-        if not os.path.exists(obj.Template):
-            return
-
         # get the renderer module
         renderer = importRenderer(obj.Renderer)
         if not renderer:
@@ -456,8 +448,6 @@ class Project:
             template = template_file.read()
         if sys.version_info.major < 3:
             template = template.decode("utf8")
-        if not template:
-            return
 
         # Get a default camera, to be used if no camera is present in the scene
         if App.GuiUp:
@@ -478,7 +468,7 @@ class Project:
         if hasattr(obj, "GroundPlane") and obj.GroundPlane:
             objstrings.append(self.write_groundplane(obj, renderer))
 
-        renderobjs = ''.join(objstrings)
+        renderobjs = '\n'.join(objstrings)
 
         # Merge all strings (cam, objects, ground plane...) into rendering
         # template
@@ -499,9 +489,7 @@ class Project:
         os.close(fhandle)
         obj.PageResult = fpath
         os.remove(fpath)
-        if not obj.PageResult:
-            App.Console.PrintError(translate("Render","Error: No page result"))
-            return
+        assert obj.PageResult, "Rendering error: No page result"
 
         App.ActiveDocument.recompute()
 
