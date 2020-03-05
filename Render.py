@@ -298,7 +298,7 @@ class Project:
         target = pos.add(rot.multVec(FreeCAD.Vector(0, 0, -1)).multiply(aspectRatio))
         up = rot.multVec(FreeCAD.Vector(0, 1, 0))
 
-        return renderer.writeCamera(pos, rot, up, target)
+        return renderer.write_camera(pos, rot, up, target, "")
 
     def writePointLight(self,view,renderer):
         """Gets a rendering string for a point light object
@@ -321,7 +321,7 @@ class Project:
         power = getattr(view.Source,"Power",60) # We accept missing Power (default value: 60)...
 
         # send everything to renderer module
-        return renderer.writePointLight(view,location,color,power)
+        return renderer.write_pointlight(view,location,color,power)
 
 
     def writeMesh(self,view,renderer):
@@ -378,7 +378,7 @@ class Project:
         if not mesh:
             return ""
 
-        return renderer.writeObject(view,mesh,color,alpha)
+        return renderer.write_object(view,mesh,color,alpha)
 
 
     def writeObject(self,view,renderer):

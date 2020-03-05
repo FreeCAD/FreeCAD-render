@@ -22,24 +22,31 @@
 # Appleseed renderer for FreeCAD
 
 # This file can also be used as a template to add more rendering engines.
-# You will need to make sure your file is named with a same name (case sensitive)
-# That you will use everywhere to describe your renderer, ex: Appleseed or Povray
+# You will need to make sure your file is named with a same name (case
+# sensitive)
+# That you will use everywhere to describe your renderer, ex: Appleseed or
+# Povray
 
 
 # A render engine module must contain the following functions:
 #
-#    writeCamera(por,rot,up,target): returns a string containing an openInventor camera string in renderer format
-#    writeObject(view,mesh,color,alpha): returns a string containing a RaytracingView object in renderer format
-#    render(project,prefix,external,output,width,height): renders the given project, external means
-#                                                         if the user wishes to open the render file
-#                                                         in an external application/editor or not. If this
-#                                                         is not supported by your renderer, you can simply
-#                                                         ignore it
+# write_camera(pos, rot, up, target, name)
+#   returns a string containing an openInventor camera string in renderer
+#   format
+#
+# write_object(view, mesh, color, alpha)
+#   returns a string containing a RaytracingView object in renderer format
+#
+# render(project, prefix, external, output, width, height)
+#   renders the given project
+#   external means if the user wishes to open the render file in an external
+#   application/editor or not. If this is not supported by your renderer, you
+#   can simply ignore it
 #
 # Additionally, you might need/want to add:
-#
-#    Preference page items, that can be used in your functions below
-#    An icon under the name Renderer.svg (where Renderer is the name of your Renderer
+#   Preference page items, that can be used in your functions below
+#   An icon under the name Renderer.svg (where Renderer is the name of your
+#   Renderer
 
 
 # NOTE: The coordinate system in appleseed uses a different coordinate system.
@@ -53,11 +60,13 @@ import math
 import re
 
 
-def writeCamera(pos,rot,up,target):
+
+def write_camera(pos, rot, updir, target, name):
 
     # this is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
+    up = updir
     target = str(target.x)+" "+str(target.z)+" "+str(-target.y)
     up = str(up.x)+" "+str(up.z)+" "+str(-up.y)
     pos = str(pos.x)+" "+str(pos.z)+" "+str(-pos.y)
@@ -77,7 +86,7 @@ def writeCamera(pos,rot,up,target):
     return cam
 
 
-def writeObject(viewobj,mesh,color,alpha):
+def write_object(viewobj, mesh, color, alpha):
 
     # This is where you write your object/view in the format of your
     # renderer. "obj" is the real 3D object handled by this project, not
@@ -161,14 +170,15 @@ def writeObject(viewobj,mesh,color,alpha):
     return objdef
 
 
-def writePointLight(view,location,color,power):
+def write_pointlight(view, location, color, power):
     # this is where you write the renderer-specific code
     # to export the point light in the renderer format
 
     # TODO
     return ""
 
-def render(project,prefix,external,output,width,height):
+
+def render(project, prefix, external, output, width, height):
 
     # here you trigger a render by firing the renderer
     # executable and passing it the needed arguments, and
