@@ -474,12 +474,13 @@ class ViewProviderProject:
 
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(os.path.dirname(__file__),"icons","RenderProject.svg")
+        return os.path.join(WBDIR, "icons", "RenderProject.svg")
 
     def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
         """Setup the context menu associated to the object in tree view
         (callback)"""
-        action1 = QAction(QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
+        icon = QIcon(os.path.join(WBDIR, "icons", "Render.svg"))
+        action1 = QAction(icon, "Render", menu)
         QObject.connect(action1,SIGNAL("triggered()"),self.render)
         menu.addAction(action1)
 
@@ -576,7 +577,7 @@ class ViewProviderView:
 
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(os.path.dirname(__file__),"icons","RenderViewTree.svg")
+        return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
 
 
 
@@ -619,7 +620,7 @@ class RenderProjectCommand:
 
     def GetResources(self):
         """Command's resources (callback)"""
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons",self.renderer+".svg"),
+        return {'Pixmap'  : os.path.join(WBDIR, "icons",self.renderer+".svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
 
@@ -646,7 +647,7 @@ class RenderViewCommand:
     """
 
     def GetResources(self):  # pylint: disable=no-self-use
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
+        return {'Pixmap'  : os.path.join(WBDIR, "icons","RenderView.svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Create View"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
 
@@ -687,7 +688,7 @@ class RenderCommand:
     """Render a selected Render project"""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
+        return {'Pixmap'  : os.path.join(WBDIR, "icons","Render.svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
