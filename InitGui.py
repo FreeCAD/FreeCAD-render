@@ -21,7 +21,10 @@
 # ***************************************************************************
 """Gui initialization module for Render Workbench"""
 
-class RenderWorkbench (Workbench):
+import FreeCADGui as Gui
+
+
+class RenderWorkbench(Gui.Workbench):
     "The Render Workbench"
 
     def __init__(self):
@@ -85,20 +88,22 @@ static char * Render_xpm[] = {
 
     def Initialize(self):
         """When the workbench is first loaded."""
-        def QT_TRANSLATE_NOOP(scope, text):
-            return text
+        # pylint: disable=no-self-use, import-outside-toplevel
+        from PySide.QtCore import QT_TRANSLATE_NOOP
+        from FreeCAD import Console
+        from FreeCADGui import addIconPath, addPreferencePage
+        from Render import RENDER_COMMANDS, ICONPATH, PREFPAGE
 
-        import Render
-        commands = Render.RENDER_COMMANDS
+        commands = RENDER_COMMANDS
         self.appendToolbar(QT_TRANSLATE_NOOP("Workbench","Render"),commands)
         self.appendMenu(QT_TRANSLATE_NOOP("Workbench","&Render"),commands)
-        FreeCADGui.addIconPath(Render.ICONPATH)
-        FreeCADGui.addPreferencePage(Render.PREFPAGE,"Render")
+        FreeCADGui.addIconPath(ICONPATH)
+        FreeCADGui.addPreferencePage(PREFPAGE,"Render")
         Log ('Loading Render module...done\n')
 
-    def GetClassName(self): 
+    def GetClassName(self):
         return "Gui::PythonWorkbench"
 
-FreeCADGui.addWorkbench(RenderWorkbench)
+Gui.addWorkbench(RenderWorkbench)
 
 
