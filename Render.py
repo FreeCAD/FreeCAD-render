@@ -80,19 +80,6 @@ RENDERERS = [  # External renderers
 ICONPATH = os.path.join(WBDIR, "icons")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 
-def importRenderer(rdrname):
-    """Dynamically import a renderer module.
-    Returns the module if import succeeds, None otherwise
-
-    rdrname: renderer name (as a string)"""
-
-    try:
-        return import_module("renderers." + rdrname)
-    except ImportError:
-        errmsg = translate("Render","Error importing renderer '{}'\n").format(rdrname)
-        App.Console.PrintError(errmsg)
-        return None
-
 
 # ===========================================================================
 #                     Core rendering objects (Project and View)
@@ -251,133 +238,6 @@ class Project:
         viewp = ViewProviderProject(project_fpo.ViewObject)
         return project, project_fpo, viewp
 
-
-    def writeCamera(self, view, renderer):
-        """Get a rendering string from a camera. Camera can be either a string in Coin
-        format or a Camera object
-        Parameters:
-        view: a view of the camera to render.
-        renderer: the renderer module to use
-        Returns: a rendering string, obtained from the renderer module
-        """
-
-        cam = view.Source
-        aspectRatio = cam.AspectRatio
-        pos = cam.Placement.Base
-        rot = cam.Placement.Rotation
-        target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(aspectRatio))
-        up = rot.multVec(App.Vector(0, 1, 0))
-
-        return renderer.write_camera(pos, rot, up, target, "")
-
-    def writePointLight(self, view, renderer):
-        """Gets a rendering string for a point light object
-
-           Parameters:
-           view: the view of the point light (contains the point light data)
-           renderer: the renderer module to use (callback)
-
-           Returns: a rendering string, obtained from the renderer module
-        """
-        # get location, color, power
-        pl = view.Source.PropertiesList
-
-        try:
-            location = view.Source.Location
-            color = view.Source.Color
-        except AttributeError:
-            App.Console.PrintError(translate("Render","Cannot render Point Light: Missing location and/or color attributes"))
-            return ""
-        power = getattr(view.Source,"Power",60) # We accept missing Power (default value: 60)...
-
-        # send everything to renderer module
-        return renderer.write_pointlight(view,location,color,power)
-
-
-    def writeMesh(self, view, renderer):
-        """Get a rendering string for a mesh object"""
-
-        # get color and alpha
-        mat = None
-        color = None
-        alpha = None
-        if view.Material:
-            mat = view.Material
-        else:
-            if "Material" in view.Source.PropertiesList:
-                if view.Source.Material:
-                    mat = view.Source.Material
-        if mat:
-            if "Material" in mat.PropertiesList:
-                if "DiffuseColor" in mat.Material:
-                    color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
-                if "Transparency" in mat.Material:
-                    if float(mat.Material["Transparency"]) > 0:
-                        alpha = 1.0 - float(mat.Material["Transparency"])
-                    else:
-                        alpha = 1.0
-
-        if view.Source.ViewObject:
-            if not color:
-                if hasattr(view.Source.ViewObject,"ShapeColor"):
-                    color = view.Source.ViewObject.ShapeColor[:3]
-            if not alpha:
-                if hasattr(view.Source.ViewObject,"Transparency"):
-                    if view.Source.ViewObject.Transparency > 0:
-                        alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
-        if not color:
-            color = (1.0, 1.0, 1.0)
-        if not alpha:
-            alpha = 1.0
-
-        # get mesh
-        mesh = None
-        if hasattr(view.Source,"Group"):
-            shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
-            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
-                                       LinearDeflection=0.1,
-                                       AngularDeflection=0.523599,
-                                       Relative=False)
-        elif view.Source.isDerivedFrom("Part::Feature"):
-            mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
-                                       LinearDeflection=0.1,
-                                       AngularDeflection=0.523599,
-                                       Relative=False)
-        elif view.Source.isDerivedFrom("Mesh::Feature"):
-            mesh = view.Source.Mesh
-        if not mesh:
-            return ""
-
-        return renderer.write_object(view,mesh,color,alpha)
-
-
-    def writeObject(self, view, renderer):
-        """Gets a rendering string for the view of an object
-
-           Parameters:
-           view: the view of the object (contains the object data)
-           renderer: the renderer module to use (callback)
-        """
-
-        if not view.Source:
-            return ""
-
-        # Special objects: camera, lights etc.
-        try:
-            objtype = view.Source.Proxy.type
-        except AttributeError:
-            pass
-        else:
-            if objtype == "PointLight":
-                return self.writePointLight(view, renderer)
-            if objtype == "Camera":
-                return self.writeCamera(view, renderer)
-
-        # Mesh
-        return self.writeMesh(view, renderer)
-
-
-
     def write_groundplane(self, obj, renderer):
         """Generate a ground plane rendering string for the scene
 
@@ -417,7 +277,7 @@ class Project:
             ViewProviderView(dummy2.ViewObject)
             App.ActiveDocument.recompute()
 
-            result = self.writeObject(dummy2,renderer)
+            result = renderer.get_rendering_string(dummy2)
 
             # Remove temp objects
             App.ActiveDocument.removeObject(dummy2.Name)
@@ -435,10 +295,14 @@ class Project:
         Returns output file path
         """
 
-        # get the renderer module
-        renderer = importRenderer(obj.Renderer)
-        if not renderer:
-            return
+        # Get a handle to renderer module
+        try:
+            renderer = RendererHandler(obj.Renderer)
+        except ModuleNotFoundError:
+            msg = "Cannot render project: Renderer '%s' not found"\
+                    % obj.Renderer
+            App.Console.PrintError(msg)
+            return ""
 
         # Get the rendering template
         assert (obj.Template and os.path.exists(obj.Template)),\
@@ -451,19 +315,20 @@ class Project:
 
         # Get a default camera, to be used if no camera is present in the scene
         if App.GuiUp:
+            camstr = Gui.ActiveDocument.ActiveView.getCamera()
             dummycamview = SimpleNamespace()
             dummycamview.Source = SimpleNamespace()
-            camera.set_cam_from_coin_string(dummycamview.Source,
-                                            Gui.ActiveDocument.ActiveView.getCamera())
-            cam = self.writeCamera(dummycamview,
-                                   renderer)
+            dummycamview.Source.Proxy = SimpleNamespace()
+            dummycamview.Source.Proxy.type = "Camera"
+            dummycamview.Name = "Default_Camera"
+            camera.set_cam_from_coin_string(dummycamview.Source, camstr)
+            cam = renderer.get_rendering_string(dummycamview)
 
         # Get objects rendering strings (including lights, cameras...)
         # and add a ground plane if required
-        if obj.DelayedBuild:
-            objstrings = [self.writeObject(view, renderer) for view in obj.Group]
-        else:
-            objstrings = [view.ViewResult for view in obj.Group]
+        viewresult = (renderer.get_rendering_string if obj.DelayedBuild
+                      else attrgetter("ViewResult"))
+        objstrings = [viewresult(view) for view in obj.Group]
 
         if hasattr(obj, "GroundPlane") and obj.GroundPlane:
             objstrings.append(self.write_groundplane(obj, renderer))
@@ -625,28 +490,18 @@ class View:
         Write or rewrite the ViewResult string if containing project is not
         'delayed build'
         """
-        # (re)write the ViewResult string if containing project is not 'delayed build'
-        for proj in obj.InList:
-            # only for projects with no delayed build...
-            if not hasattr(proj,"DelayedBuild") or proj.DelayedBuild:
+        # Loop through View's containing projects, not DelayedBuild
+        for proj in [x for x in obj.InList
+                     if not getattr(x, "DelayedBuild", True)
+                     and obj in getattr(x, "Group", [])
+                     and hasattr(x, "Renderer")]:
+            try:
+                renderer = RendererHandler(proj.Renderer)
+            except ModuleNotFoundError:
                 continue
 
-            # get the renderer module
-            renderer = importRenderer(proj.Renderer)
-            if not renderer:
-                return
-
-            # find the object and write its rendering string
-            if hasattr(proj,"Group"):
-                for c in proj.Group:
-                    if c == obj:
-                        obj.ViewResult = proj.Proxy.writeObject(obj,renderer)
-                        break
-
-        # TODO the above implementation ('linear search') is certainly very inefficient
-        # when there are many objects: as execute() is triggered for each object,
-        # the total complexity can be O(n²), if I'm not mistaken.
-        # We should look for something more optimized in the future...
+            # obj.ViewResult = proj.Proxy.write_object(obj, renderer)
+            obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
     def create(fcd_obj, project):
@@ -725,28 +580,189 @@ class ViewProviderView:
         return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
 
 
+# ===========================================================================
+#                            Renderer Handler
+# ===========================================================================
 
 
+class RendererHandler:
+    """This class provides simplified access to external renderers modules.
 
+    This class implements a simplified interface to external renderer module
+    (façade design pattern).
+    It requires a valid external renderer name for initialization, and
+    provides:
+    - a method to run the external renderer on a renderer-format file
+    - a method to get a rendering string from an object's View, taking care of
+      selecting the right method in renderer module according to
+    view object's type.
+    """
+    def __init__(self, rdrname):
+        self.renderer_name = str(rdrname)
 
+        try:
+            self.renderer_module = import_module("renderers." + rdrname)
+        except ModuleNotFoundError:
+            msg = translate(
+                "Render", "Import Error: Renderer '%s' not found\n") % rdrname
+            App.Console.PrintError(msg)
+            raise
 
+    def render(self, project, prefix, external, output, width, height):
+        """Run the external renderer
 
+        This method merely calls external renderer's 'render' method
 
+        Params:
+        - project:  the project to render
+        - prefix:   a prefix string for call (will be inserted before path to
+                    renderer)
+        - external: a boolean indicating whether to call UI (true) or console
+                    (false) version of renderer
+        - width:    rendered image width, in pixels
+        - height:   rendered image height, in pixels
 
+        Return:     path to image file generated, or None if no image has been
+                    issued by external renderer
+        """
+        return self.renderer_module.render(project,
+                                           prefix,
+                                           external,
+                                           output,
+                                           width,
+                                           height)
 
+    def get_rendering_string(self, view):
+        """Provide a rendering string for the view of an object
 
+        This method selects the specialized rendering method adapted for
+        'view', according to its underlying object type, and calls it.
 
+        Parameters:
+        view: the view of the object to render
 
+        Returns: a rendering string in the format of the external renderer
+        for the supplied 'view'
+        """
 
+        if not view.Source:
+            return ""
 
+        # Special objects: camera, lights etc.
+        try:
+            objtype = view.Source.Proxy.type
+        except AttributeError:
+            pass
+        else:
+            if objtype == "PointLight":
+                return self._render_pointlight(view)
+            if objtype == "Camera":
+                return self._render_camera(view)
 
+        # General objects
+        return self._render_object(view)
 
+    def _render_object(self, view):
+        """Get a rendering string for a generic FreeCAD object"""
+        # get color and alpha
+        mat = None
+        color = None
+        alpha = None
+        if view.Material:
+            mat = view.Material
+        elif "Material" in view.Source.PropertiesList and view.Source.Material:
+            mat = view.Source.Material
+        if mat:
+            if "Material" in mat.PropertiesList:
+                if "DiffuseColor" in mat.Material:
+                    color = mat.Material["DiffuseColor"]\
+                               .strip("(")\
+                               .strip(")")\
+                               .split(",")[:3]
+                if "Transparency" in mat.Material:
+                    if float(mat.Material["Transparency"]) > 0:
+                        alpha = 1.0 - float(mat.Material["Transparency"])
+                    else:
+                        alpha = 1.0
 
+        if view.Source.ViewObject:
+            vobj = view.Source.ViewObject
+            if not color:
+                if hasattr(vobj, "ShapeColor"):
+                    color = vobj.ShapeColor[:3]
+            if not alpha:
+                if hasattr(vobj, "Transparency"):
+                    if vobj.Transparency > 0:
+                        alpha = 1.0 - float(vobj.Transparency) / 100.0
+        if not color:
+            color = (1.0, 1.0, 1.0)
+        if not alpha:
+            alpha = 1.0
 
+        # get mesh
+        mesh = None
+        if hasattr(view.Source, "Group"):
+            shps = [o.Shape for o in Draft.getGroupContents(view.Source)
+                    if hasattr(o, "Shape")]
+            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
+                                          LinearDeflection=0.1,
+                                          AngularDeflection=0.523599,
+                                          Relative=False)
+        elif view.Source.isDerivedFrom("Part::Feature"):
+            mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
+                                          LinearDeflection=0.1,
+                                          AngularDeflection=0.523599,
+                                          Relative=False)
+        elif view.Source.isDerivedFrom("Mesh::Feature"):
+            mesh = view.Source.Mesh
+        if not mesh:
+            return ""
 
+        return self.renderer_module.write_object(view, mesh, color, alpha)
 
+    def _render_camera(self, view):
+        """Provide a rendering string for a camera.
 
+        Parameters:
+        view: a (valid) view of the camera to render.
 
+        Returns: a rendering string, obtained from the renderer module
+        """
+        cam = view.Source
+        asp_ratio = cam.AspectRatio
+        pos = cam.Placement.Base
+        rot = cam.Placement.Rotation
+        target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
+        updir = rot.multVec(App.Vector(0, 1, 0))
+        name = view.Name
+        return self.renderer_module.write_camera(pos, rot, updir, target, name)
+
+    def _render_pointlight(self, view):
+        """Gets a rendering string for a point light object
+
+        Parameters:
+        view: the view of the point light (contains the point light data)
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        # get location, color, power
+        try:
+            location = view.Source.Location
+            color = view.Source.Color
+        except AttributeError:
+            App.Console.PrintError(translate("Render",
+                                             "Cannot render Point Light: "
+                                             "Missing location and/or color "
+                                             "attributes"))
+            return ""
+        # we accept missing Power (default value: 60)...
+        power = getattr(view.Source, "Power", 60)
+
+        # send everything to renderer module
+        return self.renderer_module.write_pointlight(view,
+                                                     location,
+                                                     color,
+                                                     power)
 
 
 # ===========================================================================
