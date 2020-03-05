@@ -138,18 +138,27 @@ class Project:
         obj.setEditorMode("PageResult",2)
 
 
-    def onDocumentRestored(self,obj):
 
+
+
+
+
+
+
+
+
+    def onDocumentRestored(self,obj):  # pylint: disable=no-self-use
+
+        """Code to be executed when document is restored (callback)"""
         self.setProperties(obj)
 
-
-    def execute(self,obj):
+    def execute(self,obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
         (callback, mandatory)
         """
         return True
 
-    def onChanged(self,obj,prop):
+    def onChanged(self,obj,prop):  # pylint: disable=no-self-use
         """Code to be executed when a property of the FeaturePython object is
         changed (callback)
         """
@@ -430,7 +439,7 @@ class ViewProviderProject:
     def __init__(self,vobj):
         vobj.Proxy = self
 
-    def attach(self,vobj):
+    def attach(self,vobj):  # pylint: disable=no-self-use
         """Code to be executed when object is created/restored (callback)"""
         self.Object = vobj.Object
         return True
@@ -441,17 +450,17 @@ class ViewProviderProject:
     def __setstate__(self,state):
         return None
 
-    def getDisplayModes(self,vobj):
+    def getDisplayModes(self,vobj):  # pylint: disable=no-self-use
         """Return a list of display modes (callback)"""
         return ["Default"]
 
-    def getDefaultDisplayMode(self):
+    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
         """Return the name of the default display mode (callback).
         This display mode  must be defined in getDisplayModes.
         """
         return "Default"
 
-    def setDisplayMode(self,mode):
+    def setDisplayMode(self,mode):  # pylint: disable=no-self-use
         """Map the display mode defined in attach with those defined in
         getDisplayModes (callback).
 
@@ -464,11 +473,11 @@ class ViewProviderProject:
         """Define the visibility of the object in the tree view (callback)"""
         return True
 
-    def getIcon(self):
+    def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(os.path.dirname(__file__),"icons","RenderProject.svg")
 
-    def setupContextMenu(self,vobj,menu):
+    def setupContextMenu(self,vobj,menu):  # pylint: disable=no-self-use
         """Setup the context menu associated to the object in tree view
         (callback)"""
         action1 = QAction(QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
@@ -496,7 +505,7 @@ class View:
         obj.addProperty("App::PropertyString",       "ViewResult", "Render", QT_TRANSLATE_NOOP("App::Property","The rendering output of this view"))
         obj.Proxy = self
 
-    def execute(self,obj):
+    def execute(self,obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
         (callback, mandatory)
 
@@ -533,7 +542,7 @@ class ViewProviderView:
     def __init__(self,vobj):
         vobj.Proxy = self
 
-    def attach(self,vobj):
+    def attach(self,vobj):  # pylint: disable=no-self-use
         """Code to be executed when object is created/restored (callback)"""
         self.Object = vobj.Object
 
@@ -543,17 +552,17 @@ class ViewProviderView:
     def __setstate__(self,state):
         return None
 
-    def getDisplayModes(self,vobj):
+    def getDisplayModes(self,vobj):  # pylint: disable=no-self-use
         """Return a list of display modes (callback)"""
         return ["Default"]
 
-    def getDefaultDisplayMode(self):
+    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
         """Return the name of the default display mode (callback).
         This display mode  must be defined in getDisplayModes.
         """
         return "Default"
 
-    def setDisplayMode(self,mode):
+    def setDisplayMode(self,mode):  # pylint: disable=no-self-use
         """Map the display mode defined in attach with those defined in
         getDisplayModes (callback).
 
@@ -562,11 +571,11 @@ class ViewProviderView:
         """
         return mode
 
-    def isShow(self):
+    def isShow(self):  # pylint: disable=no-self-use
         """Define the visibility of the object in the tree view (callback)"""
         return True
 
-    def getIcon(self):
+    def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(os.path.dirname(__file__),"icons","RenderViewTree.svg")
 
@@ -637,12 +646,12 @@ class RenderViewCommand:
     project or the default project
     """
 
-    def GetResources(self):
+    def GetResources(self):  # pylint: disable=no-self-use
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Create View"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
 
-    def Activated(self):
+    def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
         project = None
         objs = []
@@ -678,12 +687,12 @@ class RenderViewCommand:
 class RenderCommand:
     """Render a selected Render project"""
 
-    def GetResources(self):
+    def GetResources(self):  # pylint: disable=no-self-use
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
-    def Activated(self):
+    def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
         # Find project
         project = None
@@ -711,13 +720,13 @@ class RenderExternalCommand:
     "Sends a selected Render project"
 
 
-    def GetResources(self):
+    def GetResources(self):  # pylint: disable=no-self-use
 
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
-    def Activated(self):
+    def Activated(self):  # pylint: disable=no-self-use
 
         project = None
         sel = Gui.Selection.getSelection()
@@ -740,14 +749,14 @@ class RenderExternalCommand:
 class CameraCommand:
     """Create a Camera object"""
 
-    def GetResources(self):
+    def GetResources(self):  # pylint: disable=no-self-use
         """Command's resources (callback)"""
 
         return {'Pixmap'  : ":/icons/camera-photo.svg",
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Create Camera"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
 
-    def Activated(self):
+    def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
         camera.Camera.create()
 
