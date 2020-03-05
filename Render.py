@@ -875,37 +875,6 @@ class RenderCommand:
         # Render (and display if required)
         project.Proxy.render(project, external=True)
 
-class RenderExternalCommand:
-
-
-    "Sends a selected Render project"
-
-
-    def GetResources(self):  # pylint: disable=no-self-use
-
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
-
-    def Activated(self):  # pylint: disable=no-self-use
-
-        project = None
-        sel = Gui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-                break
-        if not project:
-            for o in App.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-        img = project.Proxy.render(project,external=True)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            ImageGui.open(img)
 
 class CameraCommand:
     """Create a Camera object"""
