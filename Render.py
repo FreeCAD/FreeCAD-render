@@ -220,7 +220,7 @@ class CameraCommand:
                 'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
 
     def Activated(self):
-        camera.create_camera()
+        camera.Camera.create()
 
 
 class Project:

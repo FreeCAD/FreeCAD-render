@@ -38,19 +38,6 @@ import Part
 # ===========================================================================
 
 
-def create_camera():
-    """Create a Camera object in active document"""
-
-    fpo = App.ActiveDocument.addObject("Part::FeaturePython", "Camera")
-    Camera(fpo)
-    viewp = ViewProviderCamera(fpo.ViewObject)
-    if App.GuiUp:
-        viewp.set_camera_from_gui()
-    App.ActiveDocument.recompute()
-    return fpo
-
-# ===========================================================================
-
 class Camera:
 
     """A camera for rendering.
@@ -163,6 +150,34 @@ Cameras_and_Lights/Cameras.html)
         self.type = "Camera"
         fpo.Proxy = self
         self.set_properties(fpo)
+
+    @staticmethod
+    def create(document=None):
+        """Create a Camera object in a document
+        Factory method to create a new camera object.
+        The camera is created into the active document (default).
+        Optionally, it is possible to specify a target document, in that case
+        the camera is created in the given document.
+        If Gui is up, the camera is initialized to current active camera;
+        otherwise it is set to DEFAULT_CAMERA_STRING.
+        This method also create the FeaturePython and the ViewProviderCamera
+        related objects.
+        Params:
+        document: the document where to create camera (optional)
+        Returns:
+        The newly created Camera object, the FeaturePython object and the
+        ViewProviderCamera object"""
+
+        doc = document if document else App.ActiveDocument
+        fpo = doc.addObject("Part::FeaturePython", "Camera")
+        cam = Camera(fpo)
+        viewp = ViewProviderCamera(fpo.ViewObject)
+        if App.GuiUp:
+            viewp.set_camera_from_gui()
+        else:
+            set_cam_from_coin_string(fpo, DEFAULT_CAMERA_STRING)
+        App.ActiveDocument.recompute()
+        return cam, fpo, viewp
 
     def onDocumentRestored(self, fpo):
         """Callback triggered when document is restored"""
@@ -429,7 +444,7 @@ def retrieve_legacy_camera(project):
     and transform it into Camera object"""
     assert isinstance(project.Camera, str),\
         "Project's Camera property should contain a string"""
-    fpo = create_camera()
+    _, fpo, _ = Camera.create()
     set_cam_from_coin_string(fpo, project.Camera)
 
 
