@@ -549,9 +549,10 @@ class ViewProviderProject:
 
     def render(self):
         """Render project (call proxy render)"""
-        if hasattr(self,"object"):
+        try:
             self.object.Proxy.render(self.object)
-
+        except AttributeError as err:
+            App.Console.PrintError("Cannot render: {}".format(err))
 
 
 class View:
