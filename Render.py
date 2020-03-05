@@ -638,6 +638,37 @@ class View:
         # the total complexity can be O(n²), if I'm not mistaken.
         # We should look for something more optimized in the future...
 
+    @staticmethod
+    def create(fcd_obj, project):
+        """Factory method to create a new rendering object in a given project.
+
+        This method creates a new rendering object in a given rendering
+        project, for a given FreeCAD object (of any type: Mesh, Part...).
+        Please note that providing a Project is mandatory: no rendering
+        view should be created "off-ground". Moreover, project's document
+        and FreeCAD object document should be the same.
+        The method also creates the FeaturePython and the ViewProviderView
+        objects related to the new rendering view.
+
+        Params:
+        fcdobj:     the FreeCAD object for which the rendering view is to be
+                    created
+        project:    the rendering project in which the view is to be created
+
+        Returns:    the newly created View, the related FeaturePython object
+                    and the related ViewProviderView object
+        """
+        doc = project.Document
+        assert doc == fcd_obj.Document,\
+            "Unable to create View: Project and Object not in same document"
+        fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
+        fpo.Label = "View of %s" % fcd_obj.Name
+        view = View(fpo)
+        fpo.Source = fcd_obj
+        project.addObject(fpo)
+        viewp = ViewProviderView(fpo.ViewObject)
+        return view, fpo, viewp
+
 
 class ViewProviderView:
     """ViewProvider of rendering view object"""
@@ -773,32 +804,33 @@ class RenderViewCommand:
         project = None
         objs = []
         sel = Gui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
+        # Find project and objects to add to project
+        for obj in sel:
+            if "Renderer" in obj.PropertiesList:
+                project = obj
             else:
-                if o.isDerivedFrom("Part::Feature") or o.isDerivedFrom("Mesh::Feature"):
-                    objs.append(o)
-                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight','Camera']:
-                    objs.append(o)
+                if (obj.isDerivedFrom("Part::Feature")
+                        or obj.isDerivedFrom("Mesh::Feature")):
+                    objs.append(obj)
+                if (obj.isDerivedFrom("App::FeaturePython")
+                        and hasattr(obj.Proxy, "type")
+                        and obj.Proxy.type in ['PointLight', 'Camera']):
+                    objs.append(obj)
         if not project:
-            for o in App.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
+            for obj in App.ActiveDocument.Objects:
+                if "Renderer" in obj.PropertiesList:
+                    project = obj
                     break
         if not project:
-            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            App.Console.PrintError(translate("Render",
+                                             "Unable to find a valid project "
+                                             "in selection or document"))
             return
 
+        # Add objects (as views) to the project
         for obj in objs:
-            view = App.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
-            view.Label = "View of "+ obj.Name
-            View(view)
-            view.Source = obj
-            project.addObject(view)
-            ViewProviderView(view.ViewObject)
+            View.create(obj, project)
         App.ActiveDocument.recompute()
-
 
 
 class RenderCommand:
