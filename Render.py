@@ -314,15 +314,15 @@ class Project:
             template = template.decode("utf8")
 
         # Get a default camera, to be used if no camera is present in the scene
-        if App.GuiUp:
-            camstr = Gui.ActiveDocument.ActiveView.getCamera()
-            dummycamview = SimpleNamespace()
-            dummycamview.Source = SimpleNamespace()
-            dummycamview.Source.Proxy = SimpleNamespace()
-            dummycamview.Source.Proxy.type = "Camera"
-            dummycamview.Name = "Default_Camera"
-            camera.set_cam_from_coin_string(dummycamview.Source, camstr)
-            cam = renderer.get_rendering_string(dummycamview)
+        camstr = (Gui.ActiveDocument.ActiveView.getCamera() if App.GuiUp
+                  else camera.DEFAULT_CAMERA_STRING)
+        dummycamview = SimpleNamespace()
+        dummycamview.Source = SimpleNamespace()
+        dummycamview.Source.Proxy = SimpleNamespace()
+        dummycamview.Source.Proxy.type = "Camera"
+        dummycamview.Name = "Default_Camera"
+        camera.set_cam_from_coin_string(dummycamview.Source, camstr)
+        cam = renderer.get_rendering_string(dummycamview)
 
         # Get objects rendering strings (including lights, cameras...)
         # and add a ground plane if required
