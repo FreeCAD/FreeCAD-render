@@ -108,31 +108,25 @@ def write_object(viewobj, mesh, color, alpha):
     color = str(color[0])+" "+str(color[1])+" "+str(color[2])
     alpha = str(alpha)
 
-    # write the mesh as an obj tempfile
-
-    fd, meshfile = mkstemp(suffix=".obj", prefix="_")
-    os.close(fd)
-    objfile = os.path.splitext(os.path.basename(meshfile))[0]
+    # Write the mesh as an OBJ tempfile
+    f_handle, meshfile = mkstemp(suffix=".obj", prefix="_")
+    os.close(f_handle)
     tmpmesh = mesh.copy()
-    tmpmesh.rotate(-pi/2,0,0)
+    tmpmesh.rotate(-pi/2, 0, 0)
     tmpmesh.write(meshfile)
 
-    # fix for missing object name in obj file (mandatory in Appleseed)
-    f = open(meshfile, "r")
-    contents = f.readlines()
-    f.close()
-    n = []
-    found = False
-    for l in contents:
-        if (not found) and l.startswith("f "):
-            found = True
-            n.append("o "+objname+"\n")
-        n.append(l)
-    f = open(meshfile, "w")
-    contents = "".join(n)
-    f.write(contents)
-    f.close()
+    # Fix missing object name in OBJ file (mandatory in Appleseed)
+    # We want to insert a 'o ...' statement before the first 'f ...'
+    with open(meshfile, "r") as f:
+        buffer = f.readlines()
 
+    i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
+    buffer.insert(i, "o %s\n" % viewobj.Name)
+
+    with open(meshfile, "w") as f:
+        f.write("".join(buffer))
+
+    objfile = os.path.splitext(os.path.basename(meshfile))[0]
     objdef = """
             <color name="%s">
                 <parameter name="color_space" value="linear_rgb" />
