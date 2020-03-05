@@ -168,23 +168,30 @@ def render(project, prefix, external, output, width, height):
     # the file it needs to render
 
     # change image size in template
-    f = open(project.PageResult,"r")
-    t = f.read()
-    f.close()
-    res = re.findall("integer xresolution",t)
+    with open(project.PageResult, "r") as f:
+        template = f.read()
+
+    res = re.findall("integer xresolution", template)
     if res:
-        t = re.sub("\"integer xresolution\".*?\[.*?\]","\"integer xresolution\" ["+str(width)+"]",t)
-    res = re.findall("integer yresolution",t)
+        template = re.sub(r'"integer xresolution".*?\[.*?\]',
+                          '"integer xresolution" [{}]'.format(width),
+                          template)
+
+    res = re.findall("integer yresolution", template)
     if res:
-        t = re.sub("\"integer yresolution\".*?\[.*?\]","\"integer yresolution\" ["+str(height)+"]",t)
+        template = re.sub(r'"integer yresolution".*?\[.*?\]',
+                          '"integer yresolution" [{}]'.format(height),
+                          template)
+
     if res:
-        fd, fp = mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
-        os.close(fd)
-        f = open(fp,"w")
-        f.write(t)
-        f.close()
-        project.PageResult = fp
-        os.remove(fp)
+        f_handle, f_path = mkstemp(
+            prefix=project.Name,
+            suffix=os.path.splitext(project.Template)[-1])
+        os.close(f_handle)
+        with open(f_path, "w") as f:
+            f.write(template)
+        project.PageResult = f_path
+        os.remove(f_path)
         App.ActiveDocument.recompute()
 
     p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
