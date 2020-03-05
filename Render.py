@@ -51,6 +51,14 @@ except ImportError:
 import camera
 
 
+WBDIR = os.path.dirname(__file__)  # Workbench root directory
+RENDERERS = [  # External renderers
+    path.splitext(r)[0] for r in os.listdir(path.join(WBDIR, "renderers"))
+    if not (".pyc" in r or "__" in r)]
+# Paths to GUI resources
+# This is for InitGui.py because it cannot import os
+ICONPATH = os.path.join(WBDIR, "icons")
+PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 
 def importRenderer(rdrname):
     """Dynamically import a renderer module.
@@ -648,24 +656,17 @@ class ViewProviderView:
 
 
 
+# If Gui is up, create the FreeCAD commands
 if App.GuiUp:
-
-
+    # Add commands
     RENDER_COMMANDS = []
-    Renderers = os.listdir(os.path.dirname(__file__)+os.sep+"renderers")
-    Renderers = [r for r in Renderers if not ".pyc" in r]
-    Renderers = [r for r in Renderers if not "__" in r]
-    Renderers = [os.path.splitext(r)[0] for r in Renderers]
-    for renderer in Renderers:
-        Gui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
-        RENDER_COMMANDS.append('Render_'+renderer)
-    Gui.addCommand('Render_Camera', CameraCommand())
-    RENDER_COMMANDS.append('Render_Camera')
-    Gui.addCommand('Render_View', RenderViewCommand())
-    RENDER_COMMANDS.append('Render_View')
-    Gui.addCommand('Render_Render', RenderCommand())
-    RENDER_COMMANDS.append('Render_Render')
+    for rend in RENDERERS:
+        Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
+        RENDER_COMMANDS.append('Render_' + rend)
+    for cmd in (("Camera", CameraCommand()),
+                ("View", RenderViewCommand()),
+                ("Render", RenderCommand())):
+        Gui.addCommand(cmd[0], cmd[1])
+        RENDER_COMMANDS.append(cmd[0])
 
-    # This is for InitGui.py because it cannot import os
-    ICONPATH = os.path.join(os.path.dirname(__file__),"icons")
-    PREFPAGE = os.path.join(os.path.dirname(__file__),"ui","RenderSettings.ui")
+# vim: foldmethod=indent
