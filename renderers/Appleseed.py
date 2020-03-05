@@ -53,13 +53,12 @@
 # NOTE: The coordinate system in Appleseed uses a different coordinate system.
 # Y and Z are switched and Z is inverted
 
-from __future__ import print_function
-import tempfile
-import FreeCAD
 import os
-import math
 import re
+from tempfile import mkstemp
+from math import pi
 
+import FreeCAD as App
 
 
 def write_camera(pos, rot, updir, target, name):
@@ -109,12 +108,11 @@ def write_object(viewobj, mesh, color, alpha):
 
     # write the mesh as an obj tempfile
 
-    fd, meshfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+    fd, meshfile = mkstemp(suffix=".obj", prefix="_")
     os.close(fd)
     objfile = os.path.splitext(os.path.basename(meshfile))[0]
-    import math
     tmpmesh = mesh.copy()
-    tmpmesh.rotate(-math.pi/2,0,0)
+    tmpmesh.rotate(-pi/2,0,0)
     tmpmesh.write(meshfile)
 
     # fix for missing object name in obj file (mandatory in Appleseed)
@@ -209,16 +207,16 @@ def render(project, prefix, external, output, width, height):
     res = re.findall("<parameter name=\"resolution.*?\/>",t)
     if res:
         t = t.replace(res[0],"<parameter name=\"resolution\" value=\""+str(width)+" "+str(height)+"\" />")
-        fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
+        fd, fp = mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
         os.close(fd)
         f = open(fp,"w")
         f.write(t)
         f.close()
         project.PageResult = fp
         os.remove(fp)
-        FreeCAD.ActiveDocument.recompute()
+        App.ActiveDocument.recompute()
 
-    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if external:
         rpath = p.GetString("AppleseedStudioPath","")
         args = ""
@@ -229,7 +227,7 @@ def render(project, prefix, external, output, width, height):
             args += " "
         args += "--output "+output
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
+        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
     if args:
         args += " "
