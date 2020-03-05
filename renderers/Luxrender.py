@@ -194,26 +194,23 @@ def render(project, prefix, external, output, width, height):
         os.remove(f_path)
         App.ActiveDocument.recompute()
 
-    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    if external:
-        rpath = p.GetString("LuxRenderPath","")
-        args = p.GetString("LuxParameters","")
-    else:
-        rpath = p.GetString("LuxConsolePath","")
-        args = p.GetString("LuxParameters","")
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    args = params.GetString("LuxParameters", "")
+    rpath = params.GetString("LuxRenderPath" if external
+                             else "LuxConsolePath", "")
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render")
         return
-    if args:
-        args += " "
 
     # Call Luxrender
-    cmd = prefix + rpath + " " + args + project.PageResult + "\n"
+    cmd = prefix + rpath + " " + args + " " + project.PageResult + "\n"
     App.Console.PrintMessage(cmd)
     try:
-        p = Popen(shlex.split(cmd))
-    except OSError as e:
-        App.Console.PrintError("Luxrender call failed: '" + e.strerror +"'\n")
+        Popen(shlex.split(cmd))
+    except OSError as err:
+        msg = "Luxrender call failed: '" + err.strerror + "'\n"
+        App.Console.PrintError(msg)
 
     return
-
