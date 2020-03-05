@@ -19,9 +19,20 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-# This module handles all the external renderers implemented as Python modules.
-# It will add all renderer modules specified below at FreeCAD launch, and
-# create the necessary UI controls.
+
+
+"""This is Render workbench main module.
+
+It provides the necessary objects to deal with rendering:
+- GUI Commands
+- Rendering Projects and Views
+- A RendererHandler class to simplify access to external renderers modules
+
+On initialization, this module will retrieve all renderer modules and create
+the necessary UI controls.
+"""
+
+
 # ===========================================================================
 #                                   Imports
 # ===========================================================================
@@ -89,10 +100,7 @@ def importRenderer(rdrname):
 
 
 class Project:
-
-
-    "A rendering project"
-
+    """A rendering project"""
 
     def __init__(self,obj):
 
@@ -101,7 +109,7 @@ class Project:
 
 
     def setProperties(self,obj):
-
+        """Set underlying FeaturePython object's properties"""
         if not "Renderer" in obj.PropertiesList:
             obj.addProperty("App::PropertyString","Renderer","Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
         if not "DelayedBuild" in obj.PropertiesList:
@@ -136,23 +144,25 @@ class Project:
 
 
     def execute(self,obj):
+        """Code to be executed on document recomputation
+        (callback, mandatory)
+        """
         return True
 
     def onChanged(self,obj,prop):
-
-        if prop == "DelayedBuild":
-            if not obj.DelayedBuild:
-                for view in obj.Group:
-                    view.touch()
+        """Code to be executed when a property of the FeaturePython object is
+        changed (callback)
+        """
+        if prop == "DelayedBuild" and not obj.DelayedBuild:
+            for view in obj.Group:
+                view.touch()
 
     def writeCamera(self, view, renderer):
         """Get a rendering string from a camera. Camera can be either a string in Coin
         format or a Camera object
-
         Parameters:
         view: a view of the camera to render.
         renderer: the renderer module to use
-
         Returns: a rendering string, obtained from the renderer module
         """
 
@@ -276,9 +286,15 @@ class Project:
     def writeGroundPlane(self,obj,renderer):
         """Generate a ground plane rendering string for the scene
 
-        For that purpose, dummy objects are temporaly added to the scenegraph and
-        eventually deleted"""
+        For that purpose, dummy objects are temporarily added to the document
+        and eventually deleted
 
+        Params:
+        obj:        the underlying FeaturePython object
+        renderer:   the renderer handler
+
+        Returns:    the rendering string for the ground plane
+        """
         result = ""
         bbox = App.BoundBox()
         for view in obj.Group:
@@ -303,19 +319,21 @@ class Project:
 
             result = self.writeObject(dummy2,renderer)
 
-            # remove temp objects
+            # Remove temp objects
             App.ActiveDocument.removeObject(dummy2.Name)
             App.ActiveDocument.removeObject(dummy1.Name)
             App.ActiveDocument.recompute()
 
         return result
 
-
     def render(self,obj,external=True):
         """Render the project, calling external renderer
 
-            obj: the project view
-            external: (for future use)"""
+        obj: the project view provider
+        external: switch between internal/external version of renderer
+
+        Returns output file path
+        """
 
         # check some prerequisites...
         if not obj.Renderer:
@@ -330,7 +348,9 @@ class Project:
         if not renderer:
             return
 
-        # get the rendering template
+        # Get the rendering template
+        assert (obj.Template and os.path.exists(obj.Template)),\
+            "Cannot render project: Template not found"
         template = None
         with open(obj.Template,"r") as f:
             template = f.read()
@@ -383,9 +403,9 @@ class Project:
 
         App.ActiveDocument.recompute()
 
-        # fetch the rendering parameters
-        p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-        prefix = p.GetString("Prefix","")
+        # Fetch the rendering parameters
+        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        prefix = params.GetString("Prefix", "")
         if prefix:
             prefix += " "
         output = os.path.splitext(obj.PageResult)[0]+".png"
@@ -405,12 +425,13 @@ class Project:
 
 
 class ViewProviderProject:
-
+    """View provider for rendering project object"""
 
     def __init__(self,vobj):
         vobj.Proxy = self
 
     def attach(self,vobj):
+        """Code to be executed when object is created/restored (callback)"""
         self.Object = vobj.Object
         return True
 
@@ -421,38 +442,52 @@ class ViewProviderProject:
         return None
 
     def getDisplayModes(self,vobj):
+        """Return a list of display modes (callback)"""
         return ["Default"]
 
     def getDefaultDisplayMode(self):
+        """Return the name of the default display mode (callback).
+        This display mode  must be defined in getDisplayModes.
+        """
         return "Default"
 
     def setDisplayMode(self,mode):
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback).
+
+        Since they have the same names nothing needs to be done.
+        This method is optional
+        """
         return mode
 
-    def isShow(self):
+    def isShow(self):  # pylint: disable=no-self-use
+        """Define the visibility of the object in the tree view (callback)"""
         return True
 
     def getIcon(self):
+        """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(os.path.dirname(__file__),"icons","RenderProject.svg")
 
     def setupContextMenu(self,vobj,menu):
+        """Setup the context menu associated to the object in tree view
+        (callback)"""
         action1 = QAction(QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
         QObject.connect(action1,SIGNAL("triggered()"),self.render)
         menu.addAction(action1)
 
     def render(self):
+        """Render project (call proxy render)"""
         if hasattr(self,"Object"):
             self.Object.Proxy.render(self.Object)
 
     def claimChildren(self):
+        """Deliver the children belonging to this object (callback)"""
         if hasattr(self,"Object"):
             return self.Object.Group
 
 
 class View:
-
-
-    "A rendering view"
+    """A rendering view of FreeCAD object"""
 
     def __init__(self,obj):
 
@@ -462,7 +497,12 @@ class View:
         obj.Proxy = self
 
     def execute(self,obj):
+        """Code to be executed on document recomputation
+        (callback, mandatory)
 
+        Write or rewrite the ViewResult string if containing project is not
+        'delayed build'
+        """
         # (re)write the ViewResult string if containing project is not 'delayed build'
         for proj in obj.InList:
             # only for projects with no delayed build...
@@ -488,12 +528,13 @@ class View:
 
 
 class ViewProviderView:
-
+    """ViewProvider of rendering view object"""
 
     def __init__(self,vobj):
         vobj.Proxy = self
 
     def attach(self,vobj):
+        """Code to be executed when object is created/restored (callback)"""
         self.Object = vobj.Object
 
     def __getstate__(self):
@@ -503,18 +544,30 @@ class ViewProviderView:
         return None
 
     def getDisplayModes(self,vobj):
+        """Return a list of display modes (callback)"""
         return ["Default"]
 
     def getDefaultDisplayMode(self):
+        """Return the name of the default display mode (callback).
+        This display mode  must be defined in getDisplayModes.
+        """
         return "Default"
 
     def setDisplayMode(self,mode):
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback).
+
+        Since they have the same names nothing needs to be done. This method
+        is optional
+        """
         return mode
 
     def isShow(self):
+        """Define the visibility of the object in the tree view (callback)"""
         return True
 
     def getIcon(self):
+        """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(os.path.dirname(__file__),"icons","RenderViewTree.svg")
 
 
@@ -548,19 +601,24 @@ class ViewProviderView:
 
 
 class RenderProjectCommand:
-
-
-    "Creates a rendering project. The renderer parameter must be a valid rendering module"
+    """"Creates a rendering project.
+    The renderer parameter must be a valid rendering module name
+    """
 
     def __init__(self,renderer):
+        # renderer must be a valid rendering module name (string)
         self.renderer = renderer
 
     def GetResources(self):
+        """Command's resources (callback)"""
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons",self.renderer+".svg"),
                 'MenuText': QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
 
     def Activated(self):
+        """Code to be executed when command is run (callback)
+        Creates a new rendering project into active document
+        """
         if self.renderer:
             project = App.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
             Project(project)
@@ -575,9 +633,9 @@ class RenderProjectCommand:
 
 
 class RenderViewCommand:
-
-
-    "Creates a Raytracing view of the selected object(s) in the selected project or the default project"
+    """Creates a Raytracing view of the selected object(s) in the selected
+    project or the default project
+    """
 
     def GetResources(self):
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
@@ -585,6 +643,7 @@ class RenderViewCommand:
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
 
     def Activated(self):
+        """Code to be executed when command is run (callback)"""
         project = None
         objs = []
         sel = Gui.Selection.getSelection()
@@ -617,10 +676,7 @@ class RenderViewCommand:
 
 
 class RenderCommand:
-
-
-    "Renders a selected Render project"
-
+    """Render a selected Render project"""
 
     def GetResources(self):
         return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
@@ -628,6 +684,8 @@ class RenderCommand:
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
 
     def Activated(self):
+        """Code to be executed when command is run (callback)"""
+        # Find project
         project = None
         sel = Gui.Selection.getSelection()
         for o in sel:
@@ -680,16 +738,17 @@ class RenderExternalCommand:
             ImageGui.open(img)
 
 class CameraCommand:
-
-    "Create a Camera object"
+    """Create a Camera object"""
 
     def GetResources(self):
+        """Command's resources (callback)"""
 
         return {'Pixmap'  : ":/icons/camera-photo.svg",
                 'MenuText': QT_TRANSLATE_NOOP("Render", "Create Camera"),
                 'ToolTip' : QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
 
     def Activated(self):
+        """Code to be executed when command is run (callback)"""
         camera.Camera.create()
 
 
