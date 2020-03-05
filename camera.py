@@ -27,25 +27,26 @@ from collections import namedtuple
 from math import degrees, radians
 import shlex
 
+from pivy import coin
 from PySide.QtGui import QAction
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
-from pivy import coin
-
-import FreeCAD
-import FreeCADGui
+import FreeCAD as App
+import FreeCADGui as Gui
 import Part
 
+
 # ===========================================================================
+
 
 def create_camera():
     """Create a Camera object in active document"""
 
-    fpo = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Camera")
+    fpo = App.ActiveDocument.addObject("Part::FeaturePython", "Camera")
     Camera(fpo)
     viewp = ViewProviderCamera(fpo.ViewObject)
-    if FreeCAD.GuiUp:
+    if App.GuiUp:
         viewp.set_camera_from_gui()
-    FreeCAD.ActiveDocument.recompute()
+    App.ActiveDocument.recompute()
     return fpo
 
 # ===========================================================================
@@ -87,7 +88,9 @@ Cameras_and_Lights/Cameras.html)
             "App::PropertyPlacement",
             "",
             QT_TRANSLATE_NOOP("Render", "Placement of camera"),
-            FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(0, 0, 1), 0)),
+            App.Placement(App.Vector(0, 0, 0),
+                          App.Vector(0, 0, 1),
+                          0)),
 
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
@@ -254,10 +257,10 @@ class ViewProviderCamera:
     def set_camera_from_gui(self):
         """Set this camera from GUI camera"""
 
-        assert FreeCAD.GuiUp, "Cannot set camera from GUI: GUI is down"
+        assert App.GuiUp, "Cannot set camera from GUI: GUI is down"
 
         fpo = self.fpo
-        node = FreeCADGui.ActiveDocument.ActiveView.getCameraNode()
+        node = Gui.ActiveDocument.ActiveView.getCameraNode()
 
         typ = node.getTypeId()
         if typ == coin.SoPerspectiveCamera.getClassTypeId():
@@ -269,9 +272,9 @@ class ViewProviderCamera:
         else:
             raise ValueError("Unknown camera type")
 
-        pos = FreeCAD.Vector(node.position.getValue())
-        rot = FreeCAD.Rotation(*node.orientation.getValue().getValue())
-        fpo.Placement = FreeCAD.Placement(pos, rot)
+        pos = App.Vector(node.position.getValue())
+        rot = App.Rotation(*node.orientation.getValue().getValue())
+        fpo.Placement = App.Placement(pos, rot)
 
         fpo.NearDistance = float(node.nearDistance.getValue())
         fpo.FarDistance = float(node.farDistance.getValue())
@@ -282,13 +285,13 @@ class ViewProviderCamera:
     def set_gui_from_camera(self):
         """Set GUI camera to this camera"""
 
-        assert FreeCAD.GuiUp, "Cannot set GUI from camera: GUI is down"
+        assert App.GuiUp, "Cannot set GUI from camera: GUI is down"
 
         fpo = self.fpo
 
-        FreeCADGui.ActiveDocument.ActiveView.setCameraType(fpo.Projection)
+        Gui.ActiveDocument.ActiveView.setCameraType(fpo.Projection)
 
-        node = FreeCADGui.ActiveDocument.ActiveView.getCameraNode()
+        node = Gui.ActiveDocument.ActiveView.getCameraNode()
 
         node.position.setValue(fpo.Placement.Base)
         rot = fpo.Placement.Rotation
@@ -364,10 +367,10 @@ def set_cam_from_coin_string(cam, camstr):
     assert cam.Projection in ('Perspective', 'Orthographic'),\
         "Invalid camera header in camera string"
     try:
-        pos = FreeCAD.Vector(camdict["position"][0:3])
-        rot = FreeCAD.Rotation(FreeCAD.Vector(camdict["orientation"][0:3]),
+        pos = App.Vector(camdict["position"][0:3])
+        rot = App.Rotation(App.Vector(camdict["orientation"][0:3]),
                                degrees(float(camdict["orientation"][3])))
-        cam.Placement = FreeCAD.Placement(pos, rot)
+        cam.Placement = App.Placement(pos, rot)
         cam.FocalDistance = float(camdict["focalDistance"][0])
         cam.AspectRatio = float(camdict["aspectRatio"][0])
         cam.ViewportMapping = str(camdict["viewportMapping"][0])
