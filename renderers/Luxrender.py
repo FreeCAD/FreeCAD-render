@@ -50,14 +50,14 @@
 #   Renderer
 
 
-import FreeCAD
-import math
 import os
 import re
-import tempfile
 import shlex
-import subprocess
+from tempfile import mkstemp
+from subprocess import Popen
+from textwrap import dedent
 
+import FreeCAD as App
 
 
 def write_camera(pos, rot, updir, target, name):
@@ -187,16 +187,16 @@ def render(project, prefix, external, output, width, height):
     if res:
         t = re.sub("\"integer yresolution\".*?\[.*?\]","\"integer yresolution\" ["+str(height)+"]",t)
     if res:
-        fd, fp = tempfile.mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
+        fd, fp = mkstemp(prefix=project.Name,suffix=os.path.splitext(project.Template)[-1])
         os.close(fd)
         f = open(fp,"w")
         f.write(t)
         f.close()
         project.PageResult = fp
         os.remove(fp)
-        FreeCAD.ActiveDocument.recompute()
+        App.ActiveDocument.recompute()
 
-    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if external:
         rpath = p.GetString("LuxRenderPath","")
         args = p.GetString("LuxParameters","")
@@ -204,18 +204,18 @@ def render(project, prefix, external, output, width, height):
         rpath = p.GetString("LuxConsolePath","")
         args = p.GetString("LuxParameters","")
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
+        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
     if args:
         args += " "
 
     # Call Luxrender
     cmd = prefix + rpath + " " + args + project.PageResult + "\n"
-    FreeCAD.Console.PrintMessage(cmd)
+    App.Console.PrintMessage(cmd)
     try:
-        p = subprocess.Popen(shlex.split(cmd))
+        p = Popen(shlex.split(cmd))
     except OSError as e:
-        FreeCAD.Console.PrintError("Luxrender call failed: '" + e.strerror +"'\n")
+        App.Console.PrintError("Luxrender call failed: '" + e.strerror +"'\n")
 
     return
 
