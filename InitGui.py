@@ -19,12 +19,10 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-
+"""Gui initialization module for Render Workbench"""
 
 class RenderWorkbench (Workbench):
-
-
-    "the Render Workbench"
+    "The Render Workbench"
 
     def __init__(self):
         self.__class__.MenuText = "Render"
@@ -86,7 +84,7 @@ static char * Render_xpm[] = {
 
 
     def Initialize(self):
-
+        """When the workbench is first loaded."""
         def QT_TRANSLATE_NOOP(scope, text):
             return text
 
