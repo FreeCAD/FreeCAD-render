@@ -601,10 +601,11 @@ class ViewProviderView:
 
     def __init__(self, vobj):
         vobj.Proxy = self
+        self.object = None
 
     def attach(self, vobj):  # pylint: disable=no-self-use
         """Code to be executed when object is created/restored (callback)"""
-        self.Object = vobj.Object
+        self.object = vobj.Object
 
     def __getstate__(self):
         return None
