@@ -55,9 +55,11 @@
 # FreeCAD's one (z and y permuted)
 # See here: https://www.povray.org/documentation/3.7.0/t2_2.html#t2_2_1_1
 
-import FreeCAD
-import math
+import os
 import re
+from textwrap import dedent
+
+import FreeCAD as App
 
 
 def write_camera(pos, rot, updir, target, name):
@@ -169,14 +171,14 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    p = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = p.GetString("Prefix","")
     if prefix:
         prefix += " "
     rpath = p.GetString("PovRayPath","")
     args = p.GetString("PovRayParameters","")
     if not rpath:
-        FreeCAD.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
+        App.Console.PrintError("Unable to locate renderer executable. Please set the correct path in Edit -> Preferences -> Render")
         return
     if args:
         args += " "
@@ -190,8 +192,7 @@ def render(project, prefix, external, output, width, height):
         args = args + "+H"+str(height)+" "
     if output:
         args = args + "+O" + output + " "
-    FreeCAD.Console.PrintError("Renderer command: " + prefix+rpath+" "+args+project.PageResult+"\n")
-    import os
+    App.Console.PrintError("Renderer command: " + prefix+rpath+" "+args+project.PageResult+"\n")
     os.system(prefix+rpath+" "+args+project.PageResult)
     if output:
         imgname = output
