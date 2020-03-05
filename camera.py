@@ -39,31 +39,29 @@ import Part
 
 
 class Camera:
-
     """A camera for rendering.
 
-This object allows to record camera settings from the Coin camera, and to reuse them
-for rendering.
+    This object allows to record camera settings from the Coin camera, and to
+    reuse them for rendering.
 
-Camera Orientation is defined by a Rotation Axis and a Rotation Angle, applied to
-'default camera'.
-Default camera looks from (0,0,1) towards the origin, and the up direction
-is (0,1,0).
+    Camera Orientation is defined by a Rotation Axis and a Rotation Angle,
+    applied to 'default camera'.
+    Default camera looks from (0,0,1) towards the origin, and the up direction
+    is (0,1,0).
 
-For more information, see Coin documentation, Camera section.
-(https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/\
-Cameras_and_Lights/Cameras.html)
+    For more information, see Coin documentation, Camera section.
+    <https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/Cameras_and_Lights/Cameras.html>
     """
 
-    # Enumeration of allowed values for ViewportMapping parameter (see Coin documentation)
-    # Nota: Keep following tuple in original order, as relationship between values and
-    # indexes matters and is used for reverse transcoding
+    # Enumeration of allowed values for ViewportMapping parameter (see Coin
+    # documentation)
+    # Nota: Keep following tuple in original order, as relationship between
     VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME", "CROP_VIEWPORT_LINE_FRAME",
                            "CROP_VIEWPORT_NO_FRAME", "ADJUST_CAMERA", "LEAVE_ALONE")
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
-    # PythonFeature object properties
+    # FeaturePython object properties
     PROPERTIES = {
         "Projection": Prop(
             "App::PropertyEnumeration",
@@ -128,11 +126,11 @@ Cameras_and_Lights/Cameras.html)
             None),
 
     }
-    # ~PythonFeature object properties
+    # ~FeaturePython object properties
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying PythonFeature object's properties"""
+        """Set underlying FeaturePython object's properties"""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             fields = cls.PROPERTIES[name]
             prop = fpo.addProperty(fields.Type, name, fields.Group, fields.Doc, 0)
@@ -140,8 +138,7 @@ Cameras_and_Lights/Cameras.html)
 
 
     def __init__(self, fpo):
-        """
-        Camera Initializer
+        """Camera Initializer
 
         Arguments
         ---------
@@ -154,16 +151,20 @@ Cameras_and_Lights/Cameras.html)
     @staticmethod
     def create(document=None):
         """Create a Camera object in a document
+
         Factory method to create a new camera object.
         The camera is created into the active document (default).
         Optionally, it is possible to specify a target document, in that case
         the camera is created in the given document.
+
         If Gui is up, the camera is initialized to current active camera;
         otherwise it is set to DEFAULT_CAMERA_STRING.
         This method also create the FeaturePython and the ViewProviderCamera
         related objects.
+
         Params:
         document: the document where to create camera (optional)
+
         Returns:
         The newly created Camera object, the FeaturePython object and the
         ViewProviderCamera object"""
@@ -224,34 +225,43 @@ class ViewProviderCamera:
 
     def __init__(self, vobj):
         vobj.Proxy = self
-        self.fpo = vobj.Object # Related FeaturePython object
+        self.fpo = vobj.Object  # Related FeaturePython object
 
     def attach(self, vobj):
-        """Callback triggered when object is created/restored"""
+        """Code executed when object is created/restored (callback)"""
         self.fpo = vobj.Object
 
     def getDisplayModes(self, _):
-        """Return a list of display modes"""
+        """Return a list of display modes (callback)"""
         return ["Shaded"]
 
     def getDefaultDisplayMode(self):
-        """Return the name of the default display mode.  It must be defined in
-        getDisplayModes."""
+        """Return the name of the default display mode (callback)
+
+        The returned mode must be defined in getDisplayModes.
+        """
         return "Shaded"
 
     def setDisplayMode(self, mode):
-        """Map the display mode defined in attach with those defined in getDisplayModes.
+        # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback)
+
         Since they have the same names nothing needs to be done.
-        This method is optional."""
+        This method is optional.
+        """
         return mode
 
     def getIcon(self):
-        """Return the icon which will appear in the tree view."""
+        """Return the icon which will appear in the tree view (callback)"""
         return ":/icons/camera-photo.svg"
 
     def setupContextMenu(self, vobj, menu):
-        """Setup the context menu associated to the object in tree view"""
-        action1 = QAction(QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),
+        """Setup the context menu associated to the object in tree view
+        (callback)
+        """
+        action1 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Set GUI to this camera"),
                           menu)
         QObject.connect(action1,
                         SIGNAL("triggered()"),
@@ -266,7 +276,8 @@ class ViewProviderCamera:
         menu.addAction(action2)
 
     def updateData(self, fpo, prop):
-        """Callback triggered when properties are modified"""
+        # pylint: disable=no-self-use
+        """Code executed when properties are modified (callback)"""
         return
 
     def set_camera_from_gui(self):
@@ -338,9 +349,10 @@ class ViewProviderCamera:
 
 
 def set_cam_from_coin_string(cam, camstr):
-    """Set a Camera object from a string containing a camera description in Open Inventor
-    format
+    """Set a Camera object from a string containing a camera description in
+    Open Inventor format
 
+    cam: a Camera FeaturePython object
     camstr: a string in OpenInventor format, ex:
     #Inventor V2.1 ascii
 
@@ -371,7 +383,8 @@ def set_cam_from_coin_string(cam, camstr):
      focalDistance 5
      height 4.1421356
 
-    }"""
+    }
+    """
 
     # Split, clean and tokenize
     camdata = [y for y in [shlex.split(x, comments=True)\
@@ -440,10 +453,11 @@ def get_coin_string_from_cam(cam):
     return '\n'.join(res)
 
 def retrieve_legacy_camera(project):
-    """For backward compatibility: Retrieve legacy camera information in rendering projects
-    and transform it into Camera object"""
+    """For backward compatibility: Retrieve legacy camera information in
+    rendering projects and transform it into Camera object
+    """
     assert isinstance(project.Camera, str),\
-        "Project's Camera property should contain a string"""
+        "Project's Camera property should contain a string"
     _, fpo, _ = Camera.create()
     set_cam_from_coin_string(fpo, project.Camera)
 
