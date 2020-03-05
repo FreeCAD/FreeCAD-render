@@ -537,7 +537,7 @@ class ViewProviderProject:
         (callback)"""
         icon = QIcon(os.path.join(WBDIR, "icons", "Render.svg"))
         action1 = QAction(icon, "Render", menu)
-        QObject.connect(action1,SIGNAL("triggered()"),self.render)
+        QObject.connect(action1, SIGNAL("triggered()"), self.render)
         menu.addAction(action1)
 
     def claimChildren(self):  # pylint: disable=no-self-use
