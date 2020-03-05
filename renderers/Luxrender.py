@@ -19,7 +19,6 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-# Luxrender renderer for FreeCAD
 
 """Luxrender renderer for FreeCAD"""
 
@@ -62,8 +61,8 @@ import subprocess
 
 
 def write_camera(pos, rot, updir, target, name):
-
-    # this is where you create a piece of text in the format of
+    """Compute a string in the format of Luxrender, that represents a camera"""
+    # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
     up = updir
@@ -80,7 +79,9 @@ def write_camera(pos, rot, updir, target, name):
 
 
 def write_object(viewobj, mesh, color, alpha):
-
+    """Compute a string in the format of Luxrender, that represents a FreeCAD
+    object
+    """
     # This is where you write your object/view in the format of your
     # renderer. "obj" is the real 3D object handled by this project, not
     # the project itself. This is your only opportunity
@@ -131,7 +132,10 @@ def write_object(viewobj, mesh, color, alpha):
 
 
 def write_pointlight(view, location, color, power):
-    # this is where you write the renderer-specific code
+    """Compute a string in the format of Luxrender, that represents a
+    PointLight object
+    """
+    # This is where you write the renderer-specific code
     # to export the point light in the renderer format
 
     # From Luxcore doc:
@@ -156,8 +160,19 @@ def write_pointlight(view, location, color, power):
 
 
 def render(project, prefix, external, output, width, height):
+    """Run Luxrender
 
-    # here you trigger a render by firing the renderer
+    Params:
+    - project:  the project to render
+    - prefix:   a prefix string for call (will be inserted before path to Lux)
+    - external: a boolean indicating whether to call UI (true) or console
+                (false) version of Lux
+    - width:    rendered image width, in pixels
+    - height:   rendered image height, in pixels
+
+    Return: void
+    """
+    # Here you trigger a render by firing the renderer
     # executable and passing it the needed arguments, and
     # the file it needs to render
 

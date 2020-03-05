@@ -20,7 +20,7 @@
 # *                                                                         *
 # ***************************************************************************
 
-# Cycles renderer for FreeCAD
+"""Cycles renderer for FreeCAD"""
 
 # This file can also be used as a template to add more rendering engines.
 # You will need to make sure your file is named with a same name (case
@@ -60,8 +60,9 @@ import re
 
 
 def write_camera(pos, rot, updir, target, name):
+    """Compute a string in the format of Cycles, that represents a camera"""
 
-    # this is where you create a piece of text in the format of
+    # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
     up = updir
@@ -78,7 +79,9 @@ def write_camera(pos, rot, updir, target, name):
 
 
 def write_object(viewobj, mesh, color, alpha):
-
+    """Compute a string in the format of Cycles, that represents a FreeCAD
+    object
+    """
     # This is where you write your object/view in the format of your
     # renderer. "obj" is the real 3D object handled by this project, not
     # the project itself. This is your only opportunity
@@ -134,7 +137,10 @@ def write_object(viewobj, mesh, color, alpha):
 
 
 def write_pointlight(view, location, color, power):
-    # this is where you write the renderer-specific code
+    """Compute a string in the format of Cycles, that represents a
+    PointLight object
+    """
+    # This is where you write the renderer-specific code
     # to export a point light in the renderer format
 
     col = "{}, {}, {}".format(*color)
@@ -160,9 +166,22 @@ def write_pointlight(view, location, color, power):
 
     return "\n".join(objdef)
 
-def render(project, prefix, external, output, width, height):
 
-    # here you trigger a render by firing the renderer
+def render(project, prefix, external, output, width, height):
+    """Run Cycles
+
+    Params:
+    - project:  the project to render
+    - prefix:   a prefix string for call (will be inserted before path to Lux)
+    - external: a boolean indicating whether to call UI (true) or console
+                (false) version of Lux
+    - width:    rendered image width, in pixels
+    - height:   rendered image height, in pixels
+
+    Return: path to output image file
+    """
+
+    # Here you trigger a render by firing the renderer
     # executable and passing it the needed arguments, and
     # the file it needs to render
 

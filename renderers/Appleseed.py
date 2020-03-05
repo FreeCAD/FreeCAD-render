@@ -19,7 +19,8 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-# Appleseed renderer for FreeCAD
+
+"""Appleseed renderer for FreeCAD"""
 
 # This file can also be used as a template to add more rendering engines.
 # You will need to make sure your file is named with a same name (case
@@ -49,7 +50,7 @@
 #   Renderer
 
 
-# NOTE: The coordinate system in appleseed uses a different coordinate system.
+# NOTE: The coordinate system in Appleseed uses a different coordinate system.
 # Y and Z are switched and Z is inverted
 
 from __future__ import print_function
@@ -62,8 +63,8 @@ import re
 
 
 def write_camera(pos, rot, updir, target, name):
-
-    # this is where you create a piece of text in the format of
+    """Compute a string in the format of Appleseed, that represents a camera"""
+    # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
 
     up = updir
@@ -87,7 +88,9 @@ def write_camera(pos, rot, updir, target, name):
 
 
 def write_object(viewobj, mesh, color, alpha):
-
+    """Compute a string in the format of Appleseed, that represents a FreeCAD
+    object
+    """
     # This is where you write your object/view in the format of your
     # renderer. "obj" is the real 3D object handled by this project, not
     # the project itself. This is your only opportunity
@@ -171,7 +174,10 @@ def write_object(viewobj, mesh, color, alpha):
 
 
 def write_pointlight(view, location, color, power):
-    # this is where you write the renderer-specific code
+    """Compute a string in the format of Appleseed, that represents a
+    PointLight object
+    """
+    # This is where you write the renderer-specific code
     # to export the point light in the renderer format
 
     # TODO
@@ -179,8 +185,20 @@ def write_pointlight(view, location, color, power):
 
 
 def render(project, prefix, external, output, width, height):
+    """Run Appleseed
 
-    # here you trigger a render by firing the renderer
+    Params:
+    - project:  the project to render
+    - prefix:   a prefix string for call (will be inserted before path to
+                renderer)
+    - external: a boolean indicating whether to call UI (true) or console
+                (false) version of renderder
+    - width:    rendered image width, in pixels
+    - height:   rendered image height, in pixels
+
+    Return:     path to output image file
+    """
+    # Here you trigger a render by firing the renderer
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
