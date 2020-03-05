@@ -22,6 +22,10 @@
 # This module handles all the external renderers implemented as Python modules.
 # It will add all renderer modules specified below at FreeCAD launch, and
 # create the necessary UI controls.
+# ===========================================================================
+#                                   Imports
+# ===========================================================================
+
 
 import sys
 import os
@@ -51,6 +55,11 @@ except ImportError:
 import camera
 
 
+# ===========================================================================
+#                                 Constants
+# ===========================================================================
+
+
 WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RENDERERS = [  # External renderers
     path.splitext(r)[0] for r in os.listdir(path.join(WBDIR, "renderers"))
@@ -74,151 +83,9 @@ def importRenderer(rdrname):
         return None
 
 
-
-class RenderProjectCommand:
-
-
-    "Creates a rendering project. The renderer parameter must be a valid rendering module"
-
-    def __init__(self,renderer):
-        self.renderer = renderer
-
-    def GetResources(self):
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons",self.renderer+".svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
-
-    def Activated(self):
-        if self.renderer:
-            project = App.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
-            Project(project)
-            project.Label = self.renderer + " Project"
-            project.Renderer = self.renderer
-            ViewProviderProject(project.ViewObject)
-            filename = QFileDialog.getOpenFileName(Gui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
-            if filename:
-                project.Template = filename[0]
-            App.ActiveDocument.recompute()
-
-
-
-class RenderViewCommand:
-
-
-    "Creates a Raytracing view of the selected object(s) in the selected project or the default project"
-
-    def GetResources(self):
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Create View"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
-
-    def Activated(self):
-        project = None
-        objs = []
-        sel = Gui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-            else:
-                if o.isDerivedFrom("Part::Feature") or o.isDerivedFrom("Mesh::Feature"):
-                    objs.append(o)
-                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight','Camera']:
-                    objs.append(o)
-        if not project:
-            for o in App.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-
-        for obj in objs:
-            view = App.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
-            view.Label = "View of "+ obj.Name
-            View(view)
-            view.Source = obj
-            project.addObject(view)
-            ViewProviderView(view.ViewObject)
-        App.ActiveDocument.recompute()
-
-
-
-class RenderCommand:
-
-
-    "Renders a selected Render project"
-
-
-    def GetResources(self):
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
-
-    def Activated(self):
-        project = None
-        sel = Gui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-                break
-        if not project:
-            for o in App.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-        img = project.Proxy.render(project)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            ImageGui.open(img)
-
-
-class RenderExternalCommand:
-
-
-    "Sends a selected Render project"
-
-
-    def GetResources(self):
-
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
-
-    def Activated(self):
-
-        project = None
-        sel = Gui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-                break
-        if not project:
-            for o in App.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-        img = project.Proxy.render(project,external=True)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            ImageGui.open(img)
-
-class CameraCommand:
-
-    "Create a Camera object"
-
-    def GetResources(self):
-
-        return {'Pixmap'  : ":/icons/camera-photo.svg",
-                'MenuText': QT_TRANSLATE_NOOP("Render", "Create Camera"),
-                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
-
-    def Activated(self):
-        camera.Camera.create()
+# ===========================================================================
+#                     Core rendering objects (Project and View)
+# ===========================================================================
 
 
 class Project:
@@ -652,8 +519,183 @@ class ViewProviderView:
 
 
 
-# Load available renderers and create the FreeCAD commands
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ===========================================================================
+#                               GUI Commands
+# ===========================================================================
+
+
+class RenderProjectCommand:
+
+
+    "Creates a rendering project. The renderer parameter must be a valid rendering module"
+
+    def __init__(self,renderer):
+        self.renderer = renderer
+
+    def GetResources(self):
+        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons",self.renderer+".svg"),
+                'MenuText': QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
+
+    def Activated(self):
+        if self.renderer:
+            project = App.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
+            Project(project)
+            project.Label = self.renderer + " Project"
+            project.Renderer = self.renderer
+            ViewProviderProject(project.ViewObject)
+            filename = QFileDialog.getOpenFileName(Gui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
+            if filename:
+                project.Template = filename[0]
+            App.ActiveDocument.recompute()
+
+
+
+class RenderViewCommand:
+
+
+    "Creates a Raytracing view of the selected object(s) in the selected project or the default project"
+
+    def GetResources(self):
+        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Create View"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
+
+    def Activated(self):
+        project = None
+        objs = []
+        sel = Gui.Selection.getSelection()
+        for o in sel:
+            if "Renderer" in o.PropertiesList:
+                project = o
+            else:
+                if o.isDerivedFrom("Part::Feature") or o.isDerivedFrom("Mesh::Feature"):
+                    objs.append(o)
+                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight','Camera']:
+                    objs.append(o)
+        if not project:
+            for o in App.ActiveDocument.Objects:
+                if "Renderer" in o.PropertiesList:
+                    project = o
+                    break
+        if not project:
+            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            return
+
+        for obj in objs:
+            view = App.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
+            view.Label = "View of "+ obj.Name
+            View(view)
+            view.Source = obj
+            project.addObject(view)
+            ViewProviderView(view.ViewObject)
+        App.ActiveDocument.recompute()
+
+
+
+class RenderCommand:
+
+
+    "Renders a selected Render project"
+
+
+    def GetResources(self):
+        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
+
+    def Activated(self):
+        project = None
+        sel = Gui.Selection.getSelection()
+        for o in sel:
+            if "Renderer" in o.PropertiesList:
+                project = o
+                break
+        if not project:
+            for o in App.ActiveDocument.Objects:
+                if "Renderer" in o.PropertiesList:
+                    project = o
+                    break
+        if not project:
+            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            return
+        img = project.Proxy.render(project)
+        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
+            ImageGui.open(img)
+
+
+class RenderExternalCommand:
+
+
+    "Sends a selected Render project"
+
+
+    def GetResources(self):
+
+        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Render"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
+
+    def Activated(self):
+
+        project = None
+        sel = Gui.Selection.getSelection()
+        for o in sel:
+            if "Renderer" in o.PropertiesList:
+                project = o
+                break
+        if not project:
+            for o in App.ActiveDocument.Objects:
+                if "Renderer" in o.PropertiesList:
+                    project = o
+                    break
+        if not project:
+            App.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
+            return
+        img = project.Proxy.render(project,external=True)
+        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
+            ImageGui.open(img)
+
+class CameraCommand:
+
+    "Create a Camera object"
+
+    def GetResources(self):
+
+        return {'Pixmap'  : ":/icons/camera-photo.svg",
+                'MenuText': QT_TRANSLATE_NOOP("Render", "Create Camera"),
+                'ToolTip' : QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
+
+    def Activated(self):
+        camera.Camera.create()
+
+
+# ===========================================================================
+#                            Module initialization
+# ===========================================================================
 
 
 # If Gui is up, create the FreeCAD commands
