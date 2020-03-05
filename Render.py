@@ -590,11 +590,22 @@ class ViewProviderProject:
 class View:
     """A rendering view of FreeCAD object"""
 
-    def __init__(self,obj):
-
-        obj.addProperty("App::PropertyLink",         "Source",     "Render", QT_TRANSLATE_NOOP("App::Property","The source object of this view"))
-        obj.addProperty("App::PropertyLink",         "Material",   "Render", QT_TRANSLATE_NOOP("App::Property","The material of this view"))
-        obj.addProperty("App::PropertyString",       "ViewResult", "Render", QT_TRANSLATE_NOOP("App::Property","The rendering output of this view"))
+    def __init__(self, obj):
+        obj.addProperty("App::PropertyLink",
+                        "Source",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The source object of this view"))
+        obj.addProperty("App::PropertyLink",
+                        "Material",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The material of this view"))
+        obj.addProperty("App::PropertyString",
+                        "ViewResult",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The rendering output of this view"))
         obj.Proxy = self
 
     def execute(self, obj):  # pylint: disable=no-self-use
