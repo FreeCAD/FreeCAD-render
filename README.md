@@ -74,5 +74,3 @@ For Feedback, bugs, feature requests, and further discussion please use the dedi
 
 ## Author
 Yorik Can Havre AKA [@yorikvanhavre](https://github.com/yorikvanhavre) ([blog](https://yorik.uncreated.net/))
-
-## License
