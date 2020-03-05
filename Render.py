@@ -540,15 +540,18 @@ class ViewProviderProject:
         QObject.connect(action1,SIGNAL("triggered()"),self.render)
         menu.addAction(action1)
 
+    def claimChildren(self):  # pylint: disable=no-self-use
+        """Deliver the children belonging to this object (callback)"""
+        try:
+            return self.object.Group
+        except AttributeError:
+            pass
+
     def render(self):
         """Render project (call proxy render)"""
         if hasattr(self,"object"):
             self.object.Proxy.render(self.object)
 
-    def claimChildren(self):
-        """Deliver the children belonging to this object (callback)"""
-        if hasattr(self,"object"):
-            return self.object.Group
 
 
 class View:
