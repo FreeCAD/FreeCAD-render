@@ -1,393 +1,648 @@
-#***************************************************************************
-#*                                                                         *
-#*   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
-#*                                                                         *
-#*   This program is free software; you can redistribute it and/or modify  *
-#*   it under the terms of the GNU Lesser General Public License (LGPL)    *
-#*   as published by the Free Software Foundation; either version 2 of     *
-#*   the License, or (at your option) any later version.                   *
-#*   for detail see the LICENCE text file.                                 *
-#*                                                                         *
-#*   This program is distributed in the hope that it will be useful,       *
-#*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-#*   GNU Library General Public License for more details.                  *
-#*                                                                         *
-#*   You should have received a copy of the GNU Library General Public     *
-#*   License along with this program; if not, write to the Free Software   *
-#*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
-#*   USA                                                                   *
-#*                                                                         *
-#***************************************************************************
+# ***************************************************************************
+# *                                                                         *
+# *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
+# *                                                                         *
+# *   This program is free software; you can redistribute it and/or modify  *
+# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
+# *   as published by the Free Software Foundation; either version 2 of     *
+# *   the License, or (at your option) any later version.                   *
+# *   for detail see the LICENCE text file.                                 *
+# *                                                                         *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+# *   GNU Library General Public License for more details.                  *
+# *                                                                         *
+# *   You should have received a copy of the GNU Library General Public     *
+# *   License along with this program; if not, write to the Free Software   *
+# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
+# *   USA                                                                   *
+# *                                                                         *
+# ***************************************************************************
 
-# This module handles all the external renderers implemented as Python modules.
-# It will add all renderer modules specified below at FreeCAD launch, and
-# create the necessary UI controls.
+
+"""This is Render workbench main module.
+
+It provides the necessary objects to deal with rendering:
+- GUI Commands
+- Rendering Projects and Views
+- A RendererHandler class to simplify access to external renderers modules
+
+On initialization, this module will retrieve all renderer modules and create
+the necessary UI controls.
+"""
+
+
+# ===========================================================================
+#                                   Imports
+# ===========================================================================
+
 
 import sys
 import os
 import re
-import tempfile
-import importlib
-import math
+from os import path
+from importlib import import_module
+from tempfile import mkstemp
 from types import SimpleNamespace
+from operator import attrgetter
 
-import FreeCAD
+from PySide.QtGui import QAction, QIcon, QFileDialog
+from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+import FreeCAD as App
+import FreeCADGui as Gui
 import Draft
 import Part
 import MeshPart
+try:
+    import ImageGui
+except ImportError:
+    pass
+try:
+    from draftutils.translate import translate  # 0.19
+except ImportError:
+    from Draft import translate  # 0.18
+
 import camera
 
-if FreeCAD.GuiUp:
-    from PySide import QtCore, QtGui
-    def translate(context, text):
-        if sys.version_info.major >= 3:
-            if hasattr(QtGui.QApplication,"UnicodeUTF8"):
-                return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8)
-            else:
-                return QtGui.QApplication.translate(context, text, None)
-        else:
-            if hasattr(QtGui.QApplication,"UnicodeUTF8"):
-                return QtGui.QApplication.translate(context, text, None, QtGui.QApplication.UnicodeUTF8).encode("utf8")
-            else:
-                return QtGui.QApplication.translate(context, text, None).encode("utf8")
-else:
-    def translate(context,txt):
-        return txt
-def QT_TRANSLATE_NOOP(scope, text):
-    return text
+
+# ===========================================================================
+#                                 Constants
+# ===========================================================================
 
 
-def importRenderer(rdrname):
-    """Dynamically import a renderer module.
-    Returns the module if import succeeds, None otherwise
-
-    rdrname: renderer name (as a string)"""
-
-    try:
-        return importlib.import_module("renderers." + rdrname)
-    except ImportError:
-        errmsg = translate("Render","Error importing renderer '{}'\n").format(rdrname)
-        FreeCAD.Console.PrintError(errmsg)
-        return None
+WBDIR = os.path.dirname(__file__)  # Workbench root directory
+RENDERERS = [  # External renderers
+    path.splitext(r)[0] for r in os.listdir(path.join(WBDIR, "renderers"))
+    if not (".pyc" in r or "__" in r)]
+# Paths to GUI resources
+# This is for InitGui.py because it cannot import os
+ICONPATH = os.path.join(WBDIR, "icons")
+PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 
 
-
-class RenderProjectCommand:
-
-
-    "Creates a rendering project. The renderer parameter must be a valid rendering module"
-
-    def __init__(self,renderer):
-        self.renderer = renderer
-
-    def GetResources(self):
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons",self.renderer+".svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "%s Project") % self.renderer,
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Creates a %s project") % self.renderer}
-
-    def Activated(self):
-        if self.renderer:
-            project = FreeCAD.ActiveDocument.addObject("App::FeaturePython",self.renderer+"Project")
-            Project(project)
-            project.Label = self.renderer + " Project"
-            project.Renderer = self.renderer
-            ViewProviderProject(project.ViewObject)
-            filename = QtGui.QFileDialog.getOpenFileName(FreeCADGui.getMainWindow(),'Select template',os.path.join(os.path.dirname(__file__),"templates"),'*.*')
-            if filename:
-                project.Template = filename[0]
-            FreeCAD.ActiveDocument.recompute()
-
-
-
-class RenderViewCommand:
-
-
-    "Creates a Raytracing view of the selected object(s) in the selected project or the default project"
-
-    def GetResources(self):
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","RenderView.svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Create View"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Creates a Render view of the selected object(s) in the selected project or the default project")}
-
-    def Activated(self):
-        import FreeCADGui
-        project = None
-        objs = []
-        sel = FreeCADGui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-            else:
-                if o.isDerivedFrom("Part::Feature") or o.isDerivedFrom("Mesh::Feature"):
-                    objs.append(o)
-                if o.isDerivedFrom("App::FeaturePython") and o.Proxy.type in ['PointLight','Camera']:
-                    objs.append(o)
-        if not project:
-            for o in FreeCAD.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-
-        for obj in objs:
-            view = FreeCAD.ActiveDocument.addObject("App::FeaturePython",obj.Name+"View")
-            view.Label = "View of "+ obj.Name
-            View(view)
-            view.Source = obj
-            project.addObject(view)
-            ViewProviderView(view.ViewObject)
-        FreeCAD.ActiveDocument.recompute()
-
-
-
-class RenderCommand:
-
-
-    "Renders a selected Render project"
-
-
-    def GetResources(self):
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
-
-    def Activated(self):
-        import FreeCADGui
-        project = None
-        sel = FreeCADGui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-                break
-        if not project:
-            for o in FreeCAD.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-        img = project.Proxy.render(project)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            import ImageGui
-            ImageGui.open(img)
-
-
-class RenderExternalCommand:
-
-
-    "Sends a selected Render project"
-
-
-    def GetResources(self):
-
-        return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","Render.svg"),
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Render"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Performs the render of a selected project or the default project")}
-
-    def Activated(self):
-
-        import FreeCADGui
-        project = None
-        sel = FreeCADGui.Selection.getSelection()
-        for o in sel:
-            if "Renderer" in o.PropertiesList:
-                project = o
-                break
-        if not project:
-            for o in FreeCAD.ActiveDocument.Objects:
-                if "Renderer" in o.PropertiesList:
-                    project = o
-                    break
-        if not project:
-            FreeCAD.Console.PrintError(translate("Render","Unable to find a valid project in selection or document"))
-            return
-        img = project.Proxy.render(project,external=True)
-        if img and hasattr(project,"OpenAfterRender") and project.OpenAfterRender:
-            import ImageGui
-            ImageGui.open(img)
-
-class CameraCommand:
-
-    "Create a Camera object"
-
-    def GetResources(self):
-
-        return {'Pixmap'  : ":/icons/camera-photo.svg",
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("Render", "Create Camera"),
-                'ToolTip' : QtCore.QT_TRANSLATE_NOOP("Render", "Create a Camera object from the current camera position")}
-
-    def Activated(self):
-        camera.create_camera()
+# ===========================================================================
+#                     Core rendering objects (Project and View)
+# ===========================================================================
 
 
 class Project:
+    """A rendering project"""
 
-
-    "A rendering project"
-
-
-    def __init__(self,obj):
-
+    def __init__(self, obj):
         obj.Proxy = self
-        self.setProperties(obj)
+        self.set_properties(obj)
 
+    def set_properties(self, obj):
+        """Set underlying FeaturePython object's properties"""
+        if "Renderer" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyString",
+                "Renderer",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The name of the raytracing engine to use"))
 
-    def setProperties(self,obj):
-
-        if not "Renderer" in obj.PropertiesList:
-            obj.addProperty("App::PropertyString","Renderer","Render", QT_TRANSLATE_NOOP("App::Property","The name of the raytracing engine to use"))
-        if not "DelayedBuild" in obj.PropertiesList:
-            obj.addProperty("App::PropertyBool","DelayedBuild","Render", QT_TRANSLATE_NOOP("App::Property","If true, the views will be updated on render only"))
+        if "DelayedBuild" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyBool",
+                "DelayedBuild",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "If true, the views will be updated on render only"))
             obj.DelayedBuild = True
-        if not "Template" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFile","Template","Render", QT_TRANSLATE_NOOP("App::Property","The template to be used by this rendering"))
-        if not "PageResult" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFileIncluded", "PageResult","Render", QT_TRANSLATE_NOOP("App::Property","The result file to be sent to the renderer"))
-        if not "Group" in obj.PropertiesList:
+
+        if "Template" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFile",
+                "Template",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The template to be used by this rendering"))
+
+        if "PageResult" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFileIncluded",
+                "PageResult",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The result file to be sent to the renderer"))
+
+        if "Group" not in obj.PropertiesList:
             obj.addExtension("App::GroupExtensionPython", self)
-        if not "RenderWidth" in obj.PropertiesList:
-            obj.addProperty("App::PropertyInteger","RenderWidth","Render", QT_TRANSLATE_NOOP("App::Property","The width of the rendered image in pixels"))
-            obj.RenderWidth = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth",800)
-        if not "RenderHeight" in obj.PropertiesList:
-            obj.addProperty("App::PropertyInteger","RenderHeight","Render", QT_TRANSLATE_NOOP("App::Property","The height of the rendered image in pixels"))
-            obj.RenderHeight = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight",600)
-        if not "GroundPlane" in obj.PropertiesList:
-            obj.addProperty("App::PropertyBool","GroundPlane","Render", QT_TRANSLATE_NOOP("App::Property","If true, a default ground plane will be added to the scene"))
+
+        if "RenderWidth" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyInteger",
+                "RenderWidth",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The width of the rendered image in pixels"))
+            parname = "User parameter:BaseApp/Preferences/Mod/Render"
+            obj.RenderWidth = App.ParamGet(parname).GetInt("RenderWidth", 800)
+
+        if "RenderHeight" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyInteger",
+                "RenderHeight",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The height of the rendered image in pixels"))
+            par = "User parameter:BaseApp/Preferences/Mod/Render"
+            obj.RenderHeight = App.ParamGet(par).GetInt("RenderHeight", 600)
+
+        if "GroundPlane" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyBool",
+                "GroundPlane",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "If true, a default ground plane will be added to the "
+                    "scene"))
             obj.GroundPlane = False
-        if not "OutputImage" in obj.PropertiesList:
-            obj.addProperty("App::PropertyFile","OutputImage","Render", QT_TRANSLATE_NOOP("App::Property","The image saved by this render"))
-        if not "OpenAfterRender" in obj.PropertiesList:
-            obj.addProperty("App::PropertyBool","OpenAfterRender","Render", QT_TRANSLATE_NOOP("App::Property","If true, the rendered image is opened in FreeCAD after the rendering is finished"))
+
+        if "OutputImage" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFile",
+                "OutputImage",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "The image saved by this render"))
+
+        if "OpenAfterRender" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyBool",
+                "OpenAfterRender",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "If true, the rendered image is opened in FreeCAD after "
+                    "the rendering is finished"))
             obj.GroundPlane = False
-        obj.setEditorMode("PageResult",2)
+        obj.setEditorMode("PageResult", 2)
 
+    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
+        """Code to be executed when document is restored (callback)"""
+        self.set_properties(obj)
 
-    def onDocumentRestored(self,obj):
-
-        self.setProperties(obj)
-
-
-    def execute(self,obj):
+    def execute(self, obj):  # pylint: disable=no-self-use
+        """Code to be executed on document recomputation
+        (callback, mandatory)
+        """
         return True
 
-    def onChanged(self,obj,prop):
+    def onChanged(self, obj, prop):  # pylint: disable=no-self-use
+        """Code to be executed when a property of the FeaturePython object is
+        changed (callback)
+        """
+        if prop == "DelayedBuild" and not obj.DelayedBuild:
+            for view in obj.Group:
+                view.touch()
 
-        if prop == "DelayedBuild":
-            if not obj.DelayedBuild:
-                for view in obj.Group:
-                    view.touch()
+    @staticmethod
+    def create(document, renderer, template=""):
+        """Factory method to create a new rendering project.
 
-    def writeCamera(self, view, renderer):
-        """Get a rendering string from a camera. Camera can be either a string in Coin
-        format or a Camera object
+        This method creates a new rendering project in a given FreeCAD
+        Document.
+        Providing a Document is mandatory: no rendering project should be
+        created "off-ground".
+        The method also creates the FeaturePython and the ViewProviderProject
+        objects related to the new rendering project.
 
-        Parameters:
-        view: a view of the camera to render.
-        renderer: the renderer module to use
+        Params:
+        document:        the document where the project is to be created
+        renderer:        the path to the renderer module to associate with
+                         project
+        template (opt.): the path to the rendering template to associate with
+                         project
 
-        Returns: a rendering string, obtained from the renderer module
+        Returns: the newly created Project, the related FeaturePython object
+                 and the related ViewProviderProject
+        """
+        rdr = str(renderer)
+        project_fpo = document.addObject("App::FeaturePython",
+                                         "%sProject" % rdr)
+        project = Project(project_fpo)
+        project_fpo.Label = "%s Project" % rdr
+        project_fpo.Renderer = rdr
+        project_fpo.Template = str(template)
+        viewp = ViewProviderProject(project_fpo.ViewObject)
+        return project, project_fpo, viewp
+
+    def write_groundplane(self, obj, renderer):
+        """Generate a ground plane rendering string for the scene
+
+        For that purpose, dummy objects are temporarily added to the document
+        and eventually deleted
+
+        Params:
+        obj:        the underlying FeaturePython object
+        renderer:   the renderer handler
+
+        Returns:    the rendering string for the ground plane
+        """
+        result = ""
+        bbox = App.BoundBox()
+        for view in obj.Group:
+            try:
+                bbox.add(view.Source.Shape.BoundBox)
+            except AttributeError:
+                pass
+        if bbox.isValid():
+            # Create temporary object. We do this to keep renderers codes as
+            # simple as possible: they only need to deal with one type of
+            # object: RenderView objects
+            margin = bbox.DiagonalLength / 2
+            vertices = [App.Vector(bbox.XMin - margin, bbox.YMin - margin, 0),
+                        App.Vector(bbox.XMax + margin, bbox.YMin - margin, 0),
+                        App.Vector(bbox.XMax + margin, bbox.YMax + margin, 0),
+                        App.Vector(bbox.XMin - margin, bbox.YMax + margin, 0)]
+            vertices.append(vertices[0])  # Close the polyline...
+            dummy1 = App.ActiveDocument.addObject("Part::Feature",
+                                                  "dummygroundplane1")
+            dummy1.Shape = Part.Face(Part.makePolygon(vertices))
+            dummy2 = App.ActiveDocument.addObject("App::FeaturePython",
+                                                  "dummygroundplane2")
+            View(dummy2)
+            dummy2.Source = dummy1
+            ViewProviderView(dummy2.ViewObject)
+            App.ActiveDocument.recompute()
+
+            result = renderer.get_rendering_string(dummy2)
+
+            # Remove temp objects
+            App.ActiveDocument.removeObject(dummy2.Name)
+            App.ActiveDocument.removeObject(dummy1.Name)
+            App.ActiveDocument.recompute()
+
+        return result
+
+    def render(self, obj, external=True):
+        """Render the project, calling external renderer
+
+        obj: the project view provider
+        external: switch between internal/external version of renderer
+
+        Returns output file path
         """
 
-        cam = view.Source
-        aspectRatio = cam.AspectRatio
-        pos = cam.Placement.Base
-        rot = cam.Placement.Rotation
-        target = pos.add(rot.multVec(FreeCAD.Vector(0, 0, -1)).multiply(aspectRatio))
-        up = rot.multVec(FreeCAD.Vector(0, 1, 0))
+        # Get a handle to renderer module
+        try:
+            renderer = RendererHandler(obj.Renderer)
+        except ModuleNotFoundError:
+            msg = "Cannot render project: Renderer '%s' not found"\
+                    % obj.Renderer
+            App.Console.PrintError(msg)
+            return ""
 
-        return renderer.writeCamera(pos, rot, up, target)
+        # Get the rendering template
+        assert (obj.Template and os.path.exists(obj.Template)),\
+            "Cannot render project: Template not found"
+        template = None
+        with open(obj.Template, "r") as template_file:
+            template = template_file.read()
+        if sys.version_info.major < 3:
+            template = template.decode("utf8")
 
-    def writePointLight(self,view,renderer):
-        """Gets a rendering string for a point light object
+        # Get a default camera, to be used if no camera is present in the scene
+        camstr = (Gui.ActiveDocument.ActiveView.getCamera() if App.GuiUp
+                  else camera.DEFAULT_CAMERA_STRING)
+        dummycamview = SimpleNamespace()
+        dummycamview.Source = SimpleNamespace()
+        dummycamview.Source.Proxy = SimpleNamespace()
+        dummycamview.Source.Proxy.type = "Camera"
+        dummycamview.Name = "Default_Camera"
+        camera.set_cam_from_coin_string(dummycamview.Source, camstr)
+        cam = renderer.get_rendering_string(dummycamview)
 
-           Parameters:
-           view: the view of the point light (contains the point light data)
-           renderer: the renderer module to use (callback)
+        # Get objects rendering strings (including lights, cameras...)
+        # and add a ground plane if required
+        viewresult = (renderer.get_rendering_string if obj.DelayedBuild
+                      else attrgetter("ViewResult"))
+        objstrings = [viewresult(view) for view in obj.Group]
 
-           Returns: a rendering string, obtained from the renderer module
-        """
-        # get location, color, power
-        pl = view.Source.PropertiesList
+        if hasattr(obj, "GroundPlane") and obj.GroundPlane:
+            objstrings.append(self.write_groundplane(obj, renderer))
+
+        renderobjs = '\n'.join(objstrings)
+
+        # Merge all strings (cam, objects, ground plane...) into rendering
+        # template
+        if "RaytracingCamera" in template:
+            template = re.sub("(.*RaytracingCamera.*)", cam, template)
+            template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
+        else:
+            template = re.sub("(.*RaytracingContent.*)",
+                              cam + "\n" + renderobjs, template)
+        template = (template.encode("utf8") if sys.version_info.major < 3
+                    else template)
+
+        # Write instantiated template into a temporary file
+        fhandle, fpath = mkstemp(prefix=obj.Name,
+                                 suffix=os.path.splitext(obj.Template)[-1])
+        with open(fpath, "w") as fobj:
+            fobj.write(template)
+        os.close(fhandle)
+        obj.PageResult = fpath
+        os.remove(fpath)
+        assert obj.PageResult, "Rendering error: No page result"
+
+        App.ActiveDocument.recompute()
+
+        # Fetch the rendering parameters
+        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        prefix = params.GetString("Prefix", "")
+        if prefix:
+            prefix += " "
 
         try:
-            location = view.Source.Location
-            color = view.Source.Color
+            output = obj.OutputImage
+            assert output
+        except (AttributeError, AssertionError):
+            output = os.path.splitext(obj.PageResult)[0] + ".png"
+
+        try:
+            width = int(obj.RenderWidth)
+        except (AttributeError, ValueError, TypeError):
+            width = 800
+
+        try:
+            height = int(obj.RenderHeight)
+        except (AttributeError, ValueError, TypeError):
+            height = 600
+
+        # Run the renderer on the generated temp file, with rendering params
+        img = renderer.render(obj, prefix, external, output, width, height)
+
+        # Open result in GUI if relevant
+        try:
+            if img and obj.OpenAfterRender:
+                ImageGui.open(img)
+        except (AttributeError, NameError):
+            pass
+
+        # And eventually return result path
+        return img
+
+
+class ViewProviderProject:
+    """View provider for rendering project object"""
+
+    def __init__(self, vobj):
+        vobj.Proxy = self
+        self.object = vobj.Object
+
+    def attach(self, vobj):  # pylint: disable=no-self-use
+        """Code to be executed when object is created/restored (callback)"""
+        self.object = vobj.Object
+        return True
+
+    def __getstate__(self):
+        return None
+
+    def __setstate__(self, state):
+        return None
+
+    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
+        """Return a list of display modes (callback)"""
+        return ["Default"]
+
+    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback).
+        This display mode  must be defined in getDisplayModes.
+        """
+        return "Default"
+
+    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback).
+
+        Since they have the same names nothing needs to be done.
+        This method is optional
+        """
+        return mode
+
+    def isShow(self):  # pylint: disable=no-self-use
+        """Define the visibility of the object in the tree view (callback)"""
+        return True
+
+    def getIcon(self):  # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)."""
+        return os.path.join(WBDIR, "icons", "RenderProject.svg")
+
+    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
+        """Setup the context menu associated to the object in tree view
+        (callback)"""
+        icon = QIcon(os.path.join(WBDIR, "icons", "Render.svg"))
+        action1 = QAction(icon, "Render", menu)
+        QObject.connect(action1, SIGNAL("triggered()"), self.render)
+        menu.addAction(action1)
+
+    def claimChildren(self):  # pylint: disable=no-self-use
+        """Deliver the children belonging to this object (callback)"""
+        try:
+            return self.object.Group
         except AttributeError:
-            FreeCAD.Console.PrintError(translate("Render","Cannot render Point Light: Missing location and/or color attributes"))
-            return ""
-        power = getattr(view.Source,"Power",60) # We accept missing Power (default value: 60)...
+            pass
 
-        # send everything to renderer module
-        return renderer.writePointLight(view,location,color,power)
-
-
-    def writeMesh(self,view,renderer):
-        """Get a rendering string for a mesh object"""
-
-        # get color and alpha
-        mat = None
-        color = None
-        alpha = None
-        if view.Material:
-            mat = view.Material
-        else:
-            if "Material" in view.Source.PropertiesList:
-                if view.Source.Material:
-                    mat = view.Source.Material
-        if mat:
-            if "Material" in mat.PropertiesList:
-                if "DiffuseColor" in mat.Material:
-                    color = mat.Material["DiffuseColor"].strip("(").strip(")").split(",")[:3]
-                if "Transparency" in mat.Material:
-                    if float(mat.Material["Transparency"]) > 0:
-                        alpha = 1.0 - float(mat.Material["Transparency"])
-                    else:
-                        alpha = 1.0
-
-        if view.Source.ViewObject:
-            if not color:
-                if hasattr(view.Source.ViewObject,"ShapeColor"):
-                    color = view.Source.ViewObject.ShapeColor[:3]
-            if not alpha:
-                if hasattr(view.Source.ViewObject,"Transparency"):
-                    if view.Source.ViewObject.Transparency > 0:
-                        alpha = 1.0-(float(view.Source.ViewObject.Transparency)/100.0)
-        if not color:
-            color = (1.0, 1.0, 1.0)
-        if not alpha:
-            alpha = 1.0
-
-        # get mesh
-        mesh = None
-        if hasattr(view.Source,"Group"):
-            shps = [o.Shape for o in Draft.getGroupContents(view.Source) if hasattr(o,"Shape")]
-            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
-                                       LinearDeflection=0.1,
-                                       AngularDeflection=0.523599,
-                                       Relative=False)
-        elif view.Source.isDerivedFrom("Part::Feature"):
-            mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
-                                       LinearDeflection=0.1,
-                                       AngularDeflection=0.523599,
-                                       Relative=False)
-        elif view.Source.isDerivedFrom("Mesh::Feature"):
-            mesh = view.Source.Mesh
-        if not mesh:
-            return ""
-
-        return renderer.writeObject(view,mesh,color,alpha)
+    def render(self):
+        """Render project (call proxy render)"""
+        try:
+            self.object.Proxy.render(self.object)
+        except AttributeError as err:
+            App.Console.PrintError("Cannot render: {}".format(err))
 
 
-    def writeObject(self,view,renderer):
-        """Gets a rendering string for the view of an object
+class View:
+    """A rendering view of FreeCAD object"""
 
-           Parameters:
-           view: the view of the object (contains the object data)
-           renderer: the renderer module to use (callback)
+    def __init__(self, obj):
+        obj.addProperty("App::PropertyLink",
+                        "Source",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The source object of this view"))
+        obj.addProperty("App::PropertyLink",
+                        "Material",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The material of this view"))
+        obj.addProperty("App::PropertyString",
+                        "ViewResult",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The rendering output of this view"))
+        obj.Proxy = self
+
+    def execute(self, obj):  # pylint: disable=no-self-use
+        """Code to be executed on document recomputation
+        (callback, mandatory)
+
+        Write or rewrite the ViewResult string if containing project is not
+        'delayed build'
+        """
+        # Loop through View's containing projects, not DelayedBuild
+        for proj in [x for x in obj.InList
+                     if not getattr(x, "DelayedBuild", True)
+                     and obj in getattr(x, "Group", [])
+                     and hasattr(x, "Renderer")]:
+            try:
+                renderer = RendererHandler(proj.Renderer)
+            except ModuleNotFoundError:
+                continue
+
+            # obj.ViewResult = proj.Proxy.write_object(obj, renderer)
+            obj.ViewResult = renderer.get_rendering_string(obj)
+
+    @staticmethod
+    def create(fcd_obj, project):
+        """Factory method to create a new rendering object in a given project.
+
+        This method creates a new rendering object in a given rendering
+        project, for a given FreeCAD object (of any type: Mesh, Part...).
+        Please note that providing a Project is mandatory: no rendering
+        view should be created "off-ground". Moreover, project's document
+        and FreeCAD object document should be the same.
+        The method also creates the FeaturePython and the ViewProviderView
+        objects related to the new rendering view.
+
+        Params:
+        fcdobj:     the FreeCAD object for which the rendering view is to be
+                    created
+        project:    the rendering project in which the view is to be created
+
+        Returns:    the newly created View, the related FeaturePython object
+                    and the related ViewProviderView object
+        """
+        doc = project.Document
+        assert doc == fcd_obj.Document,\
+            "Unable to create View: Project and Object not in same document"
+        fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
+        fpo.Label = "View of %s" % fcd_obj.Name
+        view = View(fpo)
+        fpo.Source = fcd_obj
+        project.addObject(fpo)
+        viewp = ViewProviderView(fpo.ViewObject)
+        return view, fpo, viewp
+
+
+class ViewProviderView:
+    """ViewProvider of rendering view object"""
+
+    def __init__(self, vobj):
+        vobj.Proxy = self
+        self.object = None
+
+    def attach(self, vobj):  # pylint: disable=no-self-use
+        """Code to be executed when object is created/restored (callback)"""
+        self.object = vobj.Object
+
+    def __getstate__(self):
+        return None
+
+    def __setstate__(self, state):
+        return None
+
+    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
+        """Return a list of display modes (callback)"""
+        return ["Default"]
+
+    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback).
+        This display mode  must be defined in getDisplayModes.
+        """
+        return "Default"
+
+    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback).
+
+        Since they have the same names nothing needs to be done. This method
+        is optional
+        """
+        return mode
+
+    def isShow(self):  # pylint: disable=no-self-use
+        """Define the visibility of the object in the tree view (callback)"""
+        return True
+
+    def getIcon(self):  # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)."""
+        return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
+
+
+# ===========================================================================
+#                            Renderer Handler
+# ===========================================================================
+
+
+class RendererHandler:
+    """This class provides simplified access to external renderers modules.
+
+    This class implements a simplified interface to external renderer module
+    (façade design pattern).
+    It requires a valid external renderer name for initialization, and
+    provides:
+    - a method to run the external renderer on a renderer-format file
+    - a method to get a rendering string from an object's View, taking care of
+      selecting the right method in renderer module according to
+    view object's type.
+    """
+    def __init__(self, rdrname):
+        self.renderer_name = str(rdrname)
+
+        try:
+            self.renderer_module = import_module("renderers." + rdrname)
+        except ModuleNotFoundError:
+            msg = translate(
+                "Render", "Import Error: Renderer '%s' not found\n") % rdrname
+            App.Console.PrintError(msg)
+            raise
+
+    def render(self, project, prefix, external, output, width, height):
+        """Run the external renderer
+
+        This method merely calls external renderer's 'render' method
+
+        Params:
+        - project:  the project to render
+        - prefix:   a prefix string for call (will be inserted before path to
+                    renderer)
+        - external: a boolean indicating whether to call UI (true) or console
+                    (false) version of renderer
+        - width:    rendered image width, in pixels
+        - height:   rendered image height, in pixels
+
+        Return:     path to image file generated, or None if no image has been
+                    issued by external renderer
+        """
+        return self.renderer_module.render(project,
+                                           prefix,
+                                           external,
+                                           output,
+                                           width,
+                                           height)
+
+    def get_rendering_string(self, view):
+        """Provide a rendering string for the view of an object
+
+        This method selects the specialized rendering method adapted for
+        'view', according to its underlying object type, and calls it.
+
+        Parameters:
+        view: the view of the object to render
+
+        Returns: a rendering string in the format of the external renderer
+        for the supplied 'view'
         """
 
         if not view.Source:
@@ -400,288 +655,273 @@ class Project:
             pass
         else:
             if objtype == "PointLight":
-                return self.writePointLight(view, renderer)
+                return self._render_pointlight(view)
             if objtype == "Camera":
-                return self.writeCamera(view, renderer)
+                return self._render_camera(view)
 
-        # Mesh
-        return self.writeMesh(view, renderer)
+        # General objects
+        return self._render_object(view)
+
+    def _render_object(self, view):
+        """Get a rendering string for a generic FreeCAD object"""
+        # get color and alpha
+        mat = None
+        color = None
+        alpha = None
+        if view.Material:
+            mat = view.Material
+        elif "Material" in view.Source.PropertiesList and view.Source.Material:
+            mat = view.Source.Material
+        if mat:
+            if "Material" in mat.PropertiesList:
+                if "DiffuseColor" in mat.Material:
+                    color = mat.Material["DiffuseColor"]\
+                               .strip("(")\
+                               .strip(")")\
+                               .split(",")[:3]
+                if "Transparency" in mat.Material:
+                    if float(mat.Material["Transparency"]) > 0:
+                        alpha = 1.0 - float(mat.Material["Transparency"])
+                    else:
+                        alpha = 1.0
+
+        if view.Source.ViewObject:
+            vobj = view.Source.ViewObject
+            if not color:
+                if hasattr(vobj, "ShapeColor"):
+                    color = vobj.ShapeColor[:3]
+            if not alpha:
+                if hasattr(vobj, "Transparency"):
+                    if vobj.Transparency > 0:
+                        alpha = 1.0 - float(vobj.Transparency) / 100.0
+        if not color:
+            color = (1.0, 1.0, 1.0)
+        if not alpha:
+            alpha = 1.0
+
+        # get mesh
+        mesh = None
+        if hasattr(view.Source, "Group"):
+            shps = [o.Shape for o in Draft.getGroupContents(view.Source)
+                    if hasattr(o, "Shape")]
+            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
+                                          LinearDeflection=0.1,
+                                          AngularDeflection=0.523599,
+                                          Relative=False)
+        elif view.Source.isDerivedFrom("Part::Feature"):
+            mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
+                                          LinearDeflection=0.1,
+                                          AngularDeflection=0.523599,
+                                          Relative=False)
+        elif view.Source.isDerivedFrom("Mesh::Feature"):
+            mesh = view.Source.Mesh
+        if not mesh:
+            return ""
+
+        return self.renderer_module.write_object(view, mesh, color, alpha)
+
+    def _render_camera(self, view):
+        """Provide a rendering string for a camera.
+
+        Parameters:
+        view: a (valid) view of the camera to render.
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        cam = view.Source
+        asp_ratio = cam.AspectRatio
+        pos = cam.Placement.Base
+        rot = cam.Placement.Rotation
+        target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
+        updir = rot.multVec(App.Vector(0, 1, 0))
+        name = view.Name
+        return self.renderer_module.write_camera(pos, rot, updir, target, name)
+
+    def _render_pointlight(self, view):
+        """Gets a rendering string for a point light object
+
+        Parameters:
+        view: the view of the point light (contains the point light data)
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        # get location, color, power
+        try:
+            location = view.Source.Location
+            color = view.Source.Color
+        except AttributeError:
+            App.Console.PrintError(translate("Render",
+                                             "Cannot render Point Light: "
+                                             "Missing location and/or color "
+                                             "attributes"))
+            return ""
+        # we accept missing Power (default value: 60)...
+        power = getattr(view.Source, "Power", 60)
+
+        # send everything to renderer module
+        return self.renderer_module.write_pointlight(view,
+                                                     location,
+                                                     color,
+                                                     power)
 
 
-
-    def writeGroundPlane(self,obj,renderer):
-        """Generate a ground plane rendering string for the scene
-
-        For that purpose, dummy objects are temporaly added to the scenegraph and
-        eventually deleted"""
-
-        result = ""
-        bbox = FreeCAD.BoundBox()
-        for view in obj.Group:
-            if view.Source and hasattr(view.Source,"Shape") and hasattr(view.Source.Shape,"BoundBox"):
-                bbox.add(view.Source.Shape.BoundBox)
-        if bbox.isValid():
-            import Part
-            margin = bbox.DiagonalLength/2
-            p1 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMin-margin,0)
-            p2 = FreeCAD.Vector(bbox.XMax+margin,bbox.YMin-margin,0)
-            p3 = FreeCAD.Vector(bbox.XMax+margin,bbox.YMax+margin,0)
-            p4 = FreeCAD.Vector(bbox.XMin-margin,bbox.YMax+margin,0)
-
-            # create temporary object. We do this to keep the renderers code as simple as possible:
-            # they only need to deal with one type of object: RenderView objects
-            dummy1 = FreeCAD.ActiveDocument.addObject("Part::Feature","renderdummy1")
-            dummy1.Shape = Part.Face(Part.makePolygon([p1,p2,p3,p4,p1]))
-            dummy2 = FreeCAD.ActiveDocument.addObject("App::FeaturePython","renderdummy2")
-            View(dummy2)
-            dummy2.Source = dummy1
-            ViewProviderView(dummy2.ViewObject)
-            FreeCAD.ActiveDocument.recompute()
-
-            result = self.writeObject(dummy2,renderer)
-
-            # remove temp objects
-            FreeCAD.ActiveDocument.removeObject(dummy2.Name)
-            FreeCAD.ActiveDocument.removeObject(dummy1.Name)
-            FreeCAD.ActiveDocument.recompute()
-
-        return result
+# ===========================================================================
+#                               GUI Commands
+# ===========================================================================
 
 
-    def render(self,obj,external=True):
-        """Render the project, calling external renderer
+class RenderProjectCommand:
+    """"Creates a rendering project.
+    The renderer parameter must be a valid rendering module name
+    """
 
-            obj: the project view
-            external: (for future use)"""
+    def __init__(self, renderer: str):
+        # renderer must be a valid rendering module name (string)
+        self.renderer = str(renderer)
 
-        # check some prerequisites...
-        if not obj.Renderer:
-            return
-        if not obj.Template:
-            return
-        if not os.path.exists(obj.Template):
-            return
+    def GetResources(self):
+        """Command's resources (callback)"""
+        rdr = self.renderer
+        return {
+            "Pixmap": os.path.join(WBDIR, "icons", rdr + ".svg"),
+            "MenuText": QT_TRANSLATE_NOOP("Render", "%s Project") % rdr,
+            "ToolTip": QT_TRANSLATE_NOOP("Render", "Creates a %s "
+                                                   "project") % rdr
+            }
 
-        # get the renderer module
-        renderer = importRenderer(obj.Renderer)
-        if not renderer:
-            return
+    def Activated(self):
+        """Code to be executed when command is run (callback)
+        Creates a new rendering project into active document
+        """
+        assert self.renderer, "Error: no renderer in command"
 
-        # get the rendering template
-        template = None
-        with open(obj.Template,"r") as f:
-            template = f.read()
-        if sys.version_info.major < 3:
-            template = template.decode("utf8")
+        # Get rendering template
+        templates_folder = os.path.join(WBDIR, "templates")
+        template_path = QFileDialog.getOpenFileName(
+            Gui.getMainWindow(), "Select template", templates_folder, "*.*")
+        template = template_path[0] if template_path else ""
         if not template:
             return
 
-        # get active camera (will be used if no camera is present in the scene)
-        if FreeCAD.GuiUp:
-            import FreeCADGui as Gui
-            dummycamview = SimpleNamespace()
-            dummycamview.Source = SimpleNamespace()
-            camera.set_cam_from_coin_string(dummycamview.Source,
-                                            Gui.ActiveDocument.ActiveView.getCamera())
-            cam = self.writeCamera(dummycamview,
-                                   renderer)
+        # Create project
+        Project.create(App.ActiveDocument, self.renderer, template)
 
-        # get objects rendering strings (including lights objects)
-        # and add a ground plane if required
-        if obj.DelayedBuild:
-            objstrings = [self.writeObject(view, renderer) for view in obj.Group]
-        else:
-            objstrings = [view.ViewResult for view in obj.Group]
+        App.ActiveDocument.recompute()
 
-        if hasattr(obj,"GroundPlane") and obj.GroundPlane:
-            objstrings.append(self.writeGroundPlane(obj,renderer))
 
-        renderobjs = ''.join(objstrings)
+class RenderViewCommand:
+    """Creates a Raytracing view of the selected object(s) in the selected
+    project or the default project
+    """
 
-        # merge all strings (cam, objects, ground plane...) into rendering template
-        if "RaytracingCamera" in template:
-            template = re.sub("(.*RaytracingCamera.*)",cam,template)
-            template = re.sub("(.*RaytracingContent.*)",renderobjs,template)
-        else:
-            template = re.sub("(.*RaytracingContent.*)",cam+"\n"+renderobjs,template)
-        if sys.version_info.major < 3:
-            template = template.encode("utf8")
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+        return {
+            "Pixmap": os.path.join(WBDIR, "icons", "RenderView.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("Render", "Create View"),
+            "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                         "Creates a Render view of the "
+                                         "selected object(s) in the selected "
+                                         "project or the default project")
+            }
 
-        # write merger result into a temporary file
-        fh, fp = tempfile.mkstemp(  prefix=obj.Name,
-                                    suffix=os.path.splitext(obj.Template)[-1])
-        with open(fp,"w") as f:
-            f.write(template)
-        os.close(fh)
-        obj.PageResult = fp
-        os.remove(fp)
-        if not obj.PageResult:
-            FreeCAD.Console.PrintError(translate("Render","Error: No page result"))
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        project = None
+        objs = []
+        sel = Gui.Selection.getSelection()
+        # Find project and objects to add to project
+        for obj in sel:
+            if "Renderer" in obj.PropertiesList:
+                project = obj
+            else:
+                if (obj.isDerivedFrom("Part::Feature")
+                        or obj.isDerivedFrom("Mesh::Feature")):
+                    objs.append(obj)
+                if (obj.isDerivedFrom("App::FeaturePython")
+                        and hasattr(obj.Proxy, "type")
+                        and obj.Proxy.type in ['PointLight', 'Camera']):
+                    objs.append(obj)
+        if not project:
+            for obj in App.ActiveDocument.Objects:
+                if "Renderer" in obj.PropertiesList:
+                    project = obj
+                    break
+        if not project:
+            App.Console.PrintError(translate("Render",
+                                             "Unable to find a valid project "
+                                             "in selection or document"))
             return
 
-        FreeCAD.ActiveDocument.recompute()
-
-        # fetch the rendering parameters
-        p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-        prefix = p.GetString("Prefix","")
-        if prefix:
-            prefix += " "
-        output = os.path.splitext(obj.PageResult)[0]+".png"
-        if hasattr(obj,"OutputImage") and obj.OutputImage:
-            output = obj.OutputImage
-        width = 800
-        if hasattr(obj,"RenderWidth") and obj.RenderWidth:
-            width = obj.RenderWidth
-        height = 600
-        if hasattr(obj,"RenderHeight") and obj.RenderHeight:
-            height = obj.RenderHeight
-
-        # run the renderer on the temp file
-        return renderer.render(obj,prefix,external,output,width,height)
-
-        FreeCAD.Console.PrintError(translate("Render","Error while executing renderer")+" "+str(obj.Renderer) + ": " + traceback.format_exc()+"\n")
+        # Add objects (as views) to the project
+        for obj in objs:
+            View.create(obj, project)
+        App.ActiveDocument.recompute()
 
 
-class ViewProviderProject:
+class RenderCommand:
+    """Render a selected Render project"""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+        return {"Pixmap": os.path.join(WBDIR, "icons", "Render.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Render"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Performs the render of a "
+                                             "selected project or the default "
+                                             "project")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        # Find project
+        project = None
+        sel = Gui.Selection.getSelection()
+        for obj in sel:
+            if "Renderer" in obj.PropertiesList:
+                project = obj
+                break
+        if not project:
+            for obj in App.ActiveDocument.Objects:
+                if "Renderer" in obj.PropertiesList:
+                    return
+
+        # Render (and display if required)
+        project.Proxy.render(project, external=True)
 
 
-    def __init__(self,vobj):
-        vobj.Proxy = self
+class CameraCommand:
+    """Create a Camera object"""
 
-    def attach(self,vobj):
-        self.Object = vobj.Object
-        return True
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
 
-    def __getstate__(self):
-        return None
+        return {"Pixmap": ":/icons/camera-photo.svg",
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Camera"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Create a Camera object from the"
+                                             "current camera position")}
 
-    def __setstate__(self,state):
-        return None
-
-    def getDisplayModes(self,vobj):
-        return ["Default"]
-
-    def getDefaultDisplayMode(self):
-        return "Default"
-
-    def setDisplayMode(self,mode):
-        return mode
-
-    def isShow(self):
-        return True
-
-    def getIcon(self):
-        return os.path.join(os.path.dirname(__file__),"icons","RenderProject.svg")
-
-    def setupContextMenu(self,vobj,menu):
-        from PySide import QtCore,QtGui
-        import FreeCADGui
-        action1 = QtGui.QAction(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Render.svg")),"Render",menu)
-        QtCore.QObject.connect(action1,QtCore.SIGNAL("triggered()"),self.render)
-        menu.addAction(action1)
-
-    def render(self):
-        if hasattr(self,"Object"):
-            self.Object.Proxy.render(self.Object)
-
-    def claimChildren(self):
-        if hasattr(self,"Object"):
-            return self.Object.Group
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        camera.Camera.create()
 
 
-class View:
+# ===========================================================================
+#                            Module initialization
+# ===========================================================================
 
 
-    "A rendering view"
+# If Gui is up, create the FreeCAD commands
+if App.GuiUp:
+    # Add commands
+    RENDER_COMMANDS = []
+    for rend in RENDERERS:
+        Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
+        RENDER_COMMANDS.append('Render_' + rend)
+    for cmd in (("Camera", CameraCommand()),
+                ("View", RenderViewCommand()),
+                ("Render", RenderCommand())):
+        Gui.addCommand(cmd[0], cmd[1])
+        RENDER_COMMANDS.append(cmd[0])
 
-    def __init__(self,obj):
-
-        obj.addProperty("App::PropertyLink",         "Source",     "Render", QT_TRANSLATE_NOOP("App::Property","The source object of this view"))
-        obj.addProperty("App::PropertyLink",         "Material",   "Render", QT_TRANSLATE_NOOP("App::Property","The material of this view"))
-        obj.addProperty("App::PropertyString",       "ViewResult", "Render", QT_TRANSLATE_NOOP("App::Property","The rendering output of this view"))
-        obj.Proxy = self
-
-    def execute(self,obj):
-
-        # (re)write the ViewResult string if containing project is not 'delayed build'
-        for proj in obj.InList:
-            # only for projects with no delayed build...
-            if not hasattr(proj,"DelayedBuild") or proj.DelayedBuild:
-                continue
-
-            # get the renderer module
-            renderer = importRenderer(proj.Renderer)
-            if not renderer:
-                return
-
-            # find the object and write its rendering string
-            if hasattr(proj,"Group"):
-                for c in proj.Group:
-                    if c == obj:
-                        obj.ViewResult = proj.Proxy.writeObject(obj,renderer)
-                        break
-
-        # TODO the above implementation ('linear search') is certainly very inefficient
-        # when there are many objects: as execute() is triggered for each object,
-        # the total complexity can be O(n²), if I'm not mistaken.
-        # We should look for something more optimized in the future...
-
-
-class ViewProviderView:
-
-
-    def __init__(self,vobj):
-        vobj.Proxy = self
-
-    def attach(self,vobj):
-        self.Object = vobj.Object
-
-    def __getstate__(self):
-        return None
-
-    def __setstate__(self,state):
-        return None
-
-    def getDisplayModes(self,vobj):
-        return ["Default"]
-
-    def getDefaultDisplayMode(self):
-        return "Default"
-
-    def setDisplayMode(self,mode):
-        return mode
-
-    def isShow(self):
-        return True
-
-    def getIcon(self):
-        return os.path.join(os.path.dirname(__file__),"icons","RenderViewTree.svg")
-
-
-
-# Load available renderers and create the FreeCAD commands
-
-
-
-if FreeCAD.GuiUp:
-
-    import FreeCADGui
-
-    RenderCommands = []
-    Renderers = os.listdir(os.path.dirname(__file__)+os.sep+"renderers")
-    Renderers = [r for r in Renderers if not ".pyc" in r]
-    Renderers = [r for r in Renderers if not "__" in r]
-    Renderers = [os.path.splitext(r)[0] for r in Renderers]
-    for renderer in Renderers:
-        FreeCADGui.addCommand('Render_'+renderer, RenderProjectCommand(renderer))
-        RenderCommands.append('Render_'+renderer)
-    FreeCADGui.addCommand('Render_Camera', CameraCommand())
-    RenderCommands.append('Render_Camera')
-    FreeCADGui.addCommand('Render_View', RenderViewCommand())
-    RenderCommands.append('Render_View')
-    FreeCADGui.addCommand('Render_Render', RenderCommand())
-    RenderCommands.append('Render_Render')
-
-    # This is for InitGui.py because it cannot import os
-    iconpath = os.path.join(os.path.dirname(__file__),"icons")
-    prefpage = os.path.join(os.path.dirname(__file__),"ui","RenderSettings.ui")
+# vim: foldmethod=indent

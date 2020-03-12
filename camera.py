@@ -1,24 +1,24 @@
-#***************************************************************************
-#*                                                                         *
-#*   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
-#*                                                                         *
-#*   This program is free software; you can redistribute it and/or modify  *
-#*   it under the terms of the GNU Lesser General Public License (LGPL)    *
-#*   as published by the Free Software Foundation; either version 2 of     *
-#*   the License, or (at your option) any later version.                   *
-#*   for detail see the LICENCE text file.                                 *
-#*                                                                         *
-#*   This program is distributed in the hope that it will be useful,       *
-#*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-#*   GNU Library General Public License for more details.                  *
-#*                                                                         *
-#*   You should have received a copy of the GNU Library General Public     *
-#*   License along with this program; if not, write to the Free Software   *
-#*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
-#*   USA                                                                   *
-#*                                                                         *
-#***************************************************************************
+# ***************************************************************************
+# *                                                                         *
+# *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *                                                                         *
+# *   This program is free software; you can redistribute it and/or modify  *
+# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
+# *   as published by the Free Software Foundation; either version 2 of     *
+# *   the License, or (at your option) any later version.                   *
+# *   for detail see the LICENCE text file.                                 *
+# *                                                                         *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+# *   GNU Library General Public License for more details.                  *
+# *                                                                         *
+# *   You should have received a copy of the GNU Library General Public     *
+# *   License along with this program; if not, write to the Free Software   *
+# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
+# *   USA                                                                   *
+# *                                                                         *
+# ***************************************************************************
 
 """This module implements a Camera object, which allows to take a snapshot
 of Coin Camera settings and use them later for rendering"""
@@ -27,67 +27,60 @@ from collections import namedtuple
 from math import degrees, radians
 import shlex
 
+from pivy import coin
 from PySide.QtGui import QAction
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
-from pivy import coin
-
-import FreeCAD
-import FreeCADGui
+import FreeCAD as App
+import FreeCADGui as Gui
 import Part
 
-# ===========================================================================
-
-def create_camera():
-    """Create a Camera object in active document"""
-
-    fpo = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Camera")
-    Camera(fpo)
-    viewp = ViewProviderCamera(fpo.ViewObject)
-    if FreeCAD.GuiUp:
-        viewp.set_camera_from_gui()
-    FreeCAD.ActiveDocument.recompute()
-    return fpo
 
 # ===========================================================================
+
 
 class Camera:
-
     """A camera for rendering.
 
-This object allows to record camera settings from the Coin camera, and to reuse them
-for rendering.
+    This object allows to record camera settings from the Coin camera, and to
+    reuse them for rendering.
 
-Camera Orientation is defined by a Rotation Axis and a Rotation Angle, applied to
-'default camera'.
-Default camera looks from (0,0,1) towards the origin, and the up direction
-is (0,1,0).
+    Camera Orientation is defined by a Rotation Axis and a Rotation Angle,
+    applied to 'default camera'.
+    Default camera looks from (0,0,1) towards the origin, and the up direction
+    is (0,1,0).
 
-For more information, see Coin documentation, Camera section.
-(https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/\
-Cameras_and_Lights/Cameras.html)
+    For more information, see Coin documentation, Camera section.
+    <https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/Cameras_and_Lights/Cameras.html>
     """
 
-    # Enumeration of allowed values for ViewportMapping parameter (see Coin documentation)
-    # Nota: Keep following tuple in original order, as relationship between values and
-    # indexes matters and is used for reverse transcoding
-    VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME", "CROP_VIEWPORT_LINE_FRAME",
-                           "CROP_VIEWPORT_NO_FRAME", "ADJUST_CAMERA", "LEAVE_ALONE")
+    # Enumeration of allowed values for ViewportMapping parameter (see Coin
+    # documentation)
+    # Nota: Keep following tuple in original order, as relationship between
+    # values and indexes matters and is used for reverse transcoding
+    VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME",
+                           "CROP_VIEWPORT_LINE_FRAME",
+                           "CROP_VIEWPORT_NO_FRAME",
+                           "ADJUST_CAMERA",
+                           "LEAVE_ALONE")
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
-    # PythonFeature object properties
+    # FeaturePython object properties
     PROPERTIES = {
         "Projection": Prop(
             "App::PropertyEnumeration",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Type of projection: Perspective/Orthographic"),
+            QT_TRANSLATE_NOOP("Render",
+                              "Type of projection: Perspective/Orthographic"),
             ("Perspective", "Orthographic")),
 
         "Placement": Prop(
             "App::PropertyPlacement",
             "",
             QT_TRANSLATE_NOOP("Render", "Placement of camera"),
-            FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(0, 0, 1), 0)),
+            App.Placement(App.Vector(0, 0, 0),
+                          App.Vector(0, 0, 1),
+                          0)),
 
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
@@ -128,7 +121,8 @@ Cameras_and_Lights/Cameras.html)
         "HeightAngle": Prop(
             "App::PropertyAngle",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Height angle, for perspective camera"),
+            QT_TRANSLATE_NOOP("Render",
+                              "Height angle, for perspective camera"),
             60),
 
         "Shape": Prop(
@@ -138,20 +132,18 @@ Cameras_and_Lights/Cameras.html)
             None),
 
     }
-    # ~PythonFeature object properties
+    # ~FeaturePython object properties
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying PythonFeature object's properties"""
+        """Set underlying FeaturePython object's properties"""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            fields = cls.PROPERTIES[name]
-            prop = fpo.addProperty(fields.Type, name, fields.Group, fields.Doc, 0)
-            setattr(prop, name, fields.Default)
-
+            spec = cls.PROPERTIES[name]
+            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            setattr(prop, name, spec.Default)
 
     def __init__(self, fpo):
-        """
-        Camera Initializer
+        """Camera Initializer
 
         Arguments
         ---------
@@ -161,6 +153,38 @@ Cameras_and_Lights/Cameras.html)
         fpo.Proxy = self
         self.set_properties(fpo)
 
+    @staticmethod
+    def create(document=None):
+        """Create a Camera object in a document
+
+        Factory method to create a new camera object.
+        The camera is created into the active document (default).
+        Optionally, it is possible to specify a target document, in that case
+        the camera is created in the given document.
+
+        If Gui is up, the camera is initialized to current active camera;
+        otherwise it is set to DEFAULT_CAMERA_STRING.
+        This method also create the FeaturePython and the ViewProviderCamera
+        related objects.
+
+        Params:
+        document: the document where to create camera (optional)
+
+        Returns:
+        The newly created Camera object, the FeaturePython object and the
+        ViewProviderCamera object"""
+
+        doc = document if document else App.ActiveDocument
+        fpo = doc.addObject("Part::FeaturePython", "Camera")
+        cam = Camera(fpo)
+        viewp = ViewProviderCamera(fpo.ViewObject)
+        if App.GuiUp:
+            viewp.set_camera_from_gui()
+        else:
+            set_cam_from_coin_string(fpo, DEFAULT_CAMERA_STRING)
+        App.ActiveDocument.recompute()
+        return cam, fpo, viewp
+
     def onDocumentRestored(self, fpo):
         """Callback triggered when document is restored"""
         self.type = "Camera"
@@ -168,6 +192,7 @@ Cameras_and_Lights/Cameras.html)
         self.set_properties(fpo)
 
     def execute(self, fpo):
+        # pylint: disable=no-self-use
         """Callback triggered on document recomputation (mandatory).
         It mainly draws the camera graphical representation"""
 
@@ -206,41 +231,54 @@ class ViewProviderCamera:
 
     def __init__(self, vobj):
         vobj.Proxy = self
-        self.fpo = vobj.Object # Related FeaturePython object
+        self.fpo = vobj.Object  # Related FeaturePython object
 
     def attach(self, vobj):
-        """Callback triggered when object is created/restored"""
+        """Code executed when object is created/restored (callback)"""
         self.fpo = vobj.Object
 
     def getDisplayModes(self, _):
-        """Return a list of display modes"""
+        # pylint: disable=no-self-use
+        """Return a list of display modes (callback)"""
         return ["Shaded"]
 
     def getDefaultDisplayMode(self):
-        """Return the name of the default display mode.  It must be defined in
-        getDisplayModes."""
+        # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback)
+
+        The returned mode must be defined in getDisplayModes.
+        """
         return "Shaded"
 
     def setDisplayMode(self, mode):
-        """Map the display mode defined in attach with those defined in getDisplayModes.
+        # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback)
+
         Since they have the same names nothing needs to be done.
-        This method is optional."""
+        This method is optional.
+        """
         return mode
 
     def getIcon(self):
-        """Return the icon which will appear in the tree view."""
+        # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)"""
         return ":/icons/camera-photo.svg"
 
     def setupContextMenu(self, vobj, menu):
-        """Setup the context menu associated to the object in tree view"""
-        action1 = QAction(QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),
+        """Setup the context menu associated to the object in tree view
+        (callback)
+        """
+        action1 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Set GUI to this camera"),
                           menu)
         QObject.connect(action1,
                         SIGNAL("triggered()"),
                         self.set_gui_from_camera)
         menu.addAction(action1)
 
-        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Set this camera to GUI"),
+        action2 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Set this camera to GUI"),
                           menu)
         QObject.connect(action2,
                         SIGNAL("triggered()"),
@@ -248,17 +286,16 @@ class ViewProviderCamera:
         menu.addAction(action2)
 
     def updateData(self, fpo, prop):
-        """Callback triggered when properties are modified"""
+        # pylint: disable=no-self-use
+        """Code executed when properties are modified (callback)"""
         return
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera"""
 
-        assert FreeCAD.GuiUp, "Cannot set camera from GUI: GUI is down"
-
+        assert App.GuiUp, "Cannot set camera from GUI: GUI is down"
         fpo = self.fpo
-        node = FreeCADGui.ActiveDocument.ActiveView.getCameraNode()
-
+        node = Gui.ActiveDocument.ActiveView.getCameraNode()
         typ = node.getTypeId()
         if typ == coin.SoPerspectiveCamera.getClassTypeId():
             fpo.Projection = "Perspective"
@@ -269,26 +306,27 @@ class ViewProviderCamera:
         else:
             raise ValueError("Unknown camera type")
 
-        pos = FreeCAD.Vector(node.position.getValue())
-        rot = FreeCAD.Rotation(*node.orientation.getValue().getValue())
-        fpo.Placement = FreeCAD.Placement(pos, rot)
+        pos = App.Vector(node.position.getValue())
+        rot = App.Rotation(*node.orientation.getValue().getValue())
+        fpo.Placement = App.Placement(pos, rot)
 
         fpo.NearDistance = float(node.nearDistance.getValue())
         fpo.FarDistance = float(node.farDistance.getValue())
         fpo.FocalDistance = float(node.focalDistance.getValue())
         fpo.AspectRatio = float(node.aspectRatio.getValue())
-        fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[node.viewportMapping.getValue()]
+        index = node.viewportMapping.getValue()
+        fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[index]
 
     def set_gui_from_camera(self):
         """Set GUI camera to this camera"""
 
-        assert FreeCAD.GuiUp, "Cannot set GUI from camera: GUI is down"
+        assert App.GuiUp, "Cannot set GUI from camera: GUI is down"
 
         fpo = self.fpo
 
-        FreeCADGui.ActiveDocument.ActiveView.setCameraType(fpo.Projection)
+        Gui.ActiveDocument.ActiveView.setCameraType(fpo.Projection)
 
-        node = FreeCADGui.ActiveDocument.ActiveView.getCameraNode()
+        node = Gui.ActiveDocument.ActiveView.getCameraNode()
 
         node.position.setValue(fpo.Placement.Base)
         rot = fpo.Placement.Rotation
@@ -315,14 +353,14 @@ class ViewProviderCamera:
         return None
 
 
-
 # ===========================================================================
 
 
 def set_cam_from_coin_string(cam, camstr):
-    """Set a Camera object from a string containing a camera description in Open Inventor
-    format
+    """Set a Camera object from a string containing a camera description in
+    Open Inventor format
 
+    cam: a Camera FeaturePython object
     camstr: a string in OpenInventor format, ex:
     #Inventor V2.1 ascii
 
@@ -353,21 +391,22 @@ def set_cam_from_coin_string(cam, camstr):
      focalDistance 5
      height 4.1421356
 
-    }"""
+    }
+    """
 
     # Split, clean and tokenize
-    camdata = [y for y in [shlex.split(x, comments=True)\
-                            for x in camstr.split('\n')] if y]
-    camdict = {y[0]:y[1:] for y in camdata}
+    camdata = [y for y in [shlex.split(x, comments=True)
+                           for x in camstr.split('\n')] if y]
+    camdict = {y[0]: y[1:] for y in camdata}
 
-    cam.Projection = camdata[0][0][0:-6] # Data block should start with Cam Type...
+    cam.Projection = camdata[0][0][0:-6]  # Data should start with Cam Type...
     assert cam.Projection in ('Perspective', 'Orthographic'),\
         "Invalid camera header in camera string"
     try:
-        pos = FreeCAD.Vector(camdict["position"][0:3])
-        rot = FreeCAD.Rotation(FreeCAD.Vector(camdict["orientation"][0:3]),
-                               degrees(float(camdict["orientation"][3])))
-        cam.Placement = FreeCAD.Placement(pos, rot)
+        pos = App.Vector(camdict["position"][0:3])
+        rot = App.Rotation(App.Vector(camdict["orientation"][0:3]),
+                           degrees(float(camdict["orientation"][3])))
+        cam.Placement = App.Placement(pos, rot)
         cam.FocalDistance = float(camdict["focalDistance"][0])
         cam.AspectRatio = float(camdict["aspectRatio"][0])
         cam.ViewportMapping = str(camdict["viewportMapping"][0])
@@ -398,7 +437,7 @@ def get_coin_string_from_cam(cam):
     def check_enum(field):
         """Check if the enum field value is valid"""
         assert getattr(cam, field) in Camera.PROPERTIES[field].Default,\
-                "Invalid %s value" %field
+            "Invalid %s value" % field
 
     check_enum("Projection")
     check_enum("ViewportMapping")
@@ -421,10 +460,27 @@ def get_coin_string_from_cam(cam):
     res.append("}\n")
     return '\n'.join(res)
 
+
 def retrieve_legacy_camera(project):
-    """For backward compatibility: Retrieve legacy camera information in rendering projects
-    and transform it into Camera object"""
+    """For backward compatibility: Retrieve legacy camera information in
+    rendering projects and transform it into Camera object
+    """
     assert isinstance(project.Camera, str),\
-        "Project's Camera property should contain a string"""
-    fpo = create_camera()
+        "Project's Camera property should contain a string"
+    _, fpo, _ = Camera.create()
     set_cam_from_coin_string(fpo, project.Camera)
+
+
+# A default camera...
+DEFAULT_CAMERA_STRING = """\
+#Inventor V2.1 ascii
+
+OrthographicCamera {
+  viewportMapping ADJUST_CAMERA
+  position -0 -0 100
+  orientation 0 0 1  0
+  aspectRatio 1
+  focalDistance 100
+  height 100
+}
+"""
