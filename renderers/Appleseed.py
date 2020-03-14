@@ -153,7 +153,7 @@ def write_object(viewobj, mesh, color, alpha):
                           c=color,
                           a=alpha,
                           o=os.path.splitext(os.path.basename(objfile))[0],
-                          f=objfile)
+                          f=objfile.encode("unicode_escape").decode("utf-8"))
 
 
 def write_pointlight(view, location, color, power):
