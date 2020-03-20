@@ -66,12 +66,15 @@ def write_camera(pos, rot, updir, target, name):
     """Compute a string in the format of Appleseed, that represents a camera"""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
+    #
+    # NOTE 'aspect_ratio' will be set at rendering time, when resolution is
+    # known. So, at this stage, we just insert a macro-identifier named
+    # @@ASPECT_RATIO@@, to be replaced by an actual value in 'render' function
 
     snippet = """
         <camera name="camera" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
-            <parameter name="film_height" value="0.032" />
-            <parameter name="aspect_ratio" value="1.7" />
+            <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
             <parameter name="horizontal_fov" value="40" />
             <parameter name="shutter_open_time" value="0" />
             <parameter name="shutter_close_time" value="1" />
@@ -203,22 +206,24 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    # Change image size in template
+    # Change image size in template and adjust camera ratio
     with open(project.PageResult, "r") as f:
         template = f.read()
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
     if res:
         snippet = '<parameter name="resolution" value="{} {}"/>'
         template = template.replace(res[0], snippet.format(width, height))
-        f_handle, f_path = mkstemp(
-            prefix=project.Name,
-            suffix=os.path.splitext(project.Template)[-1])
-        os.close(f_handle)
-        with open(f_path, "w") as f:
-            f.write(template)
-        project.PageResult = f_path
-        os.remove(f_path)
-        App.ActiveDocument.recompute()
+    aspect_ratio = width / height if height else 1.0
+    template = template.replace("@@ASPECT_RATIO@@", str(aspect_ratio))
+    f_handle, f_path = mkstemp(
+        prefix=project.Name,
+        suffix=os.path.splitext(project.Template)[-1])
+    os.close(f_handle)
+    with open(f_path, "w") as f:
+        f.write(template)
+    project.PageResult = f_path
+    os.remove(f_path)
+    App.ActiveDocument.recompute()
 
     # Prepare parameters
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
