@@ -57,7 +57,6 @@ import os
 import re
 from tempfile import mkstemp
 from math import pi
-from types import SimpleNamespace
 
 import FreeCAD as App
 
@@ -81,15 +80,15 @@ def write_camera(pos, rot, updir, target, name):
             <parameter name="focal_distance" value="1" />
             <parameter name="f_stop" value="8" />
             <transform>
-                <look_at origin="{} {} {}"
-                         target="{} {} {}"
-                         up="{} {} {}" />
+                <look_at origin="{o.x} {o.y} {o.z}"
+                         target="{t.x} {t.y} {t.z}"
+                         up="{u.x} {u.y} {u.z}" />
             </transform>
         </camera>"""
 
-    return snippet.format(pos.x, pos.z, -pos.y,
-                          target.x, target.z, -target.y,
-                          updir.x, updir.z, -updir.y)
+    return snippet.format(o=_transform(pos),
+                          t=_transform(target),
+                          u=_transform(updir))
 
 
 def write_object(viewobj, mesh, color, alpha):
@@ -246,10 +245,20 @@ def render(project, prefix, external, output, width, height):
     os.system(prefix + rpath + " " + args + project.PageResult)
     return output
 
-def _transform(v):
-    """Transform vector from FreeCAD coordinates to Appleseed coordinates"""
-    res = SimpleNamespace()
-    res.x = v.x
-    res.y = v.z
-    res.z = -v.y
-    return res
+
+def _transform(vec):
+    """Convert a vector from FreeCAD coordinates into Appleseed ones"
+
+    Appleseed uses a different coordinate system than FreeCAD.
+    Compared to FreeCAD, Y and Z are switched and Z is inverted.
+    This function converts a vector from FreeCAD system to Appleseed one.
+
+    Parameters
+    ----------
+    vec: vector to convert, in FreeCAD coordinates
+
+    Returns
+    -------
+    A vector in Appleseed coordinates
+    """
+    return App.Vector(vec.x, vec.z, -vec.y)
