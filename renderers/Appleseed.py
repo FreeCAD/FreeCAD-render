@@ -71,7 +71,7 @@ def write_camera(pos, rot, updir, target, name):
     # @@ASPECT_RATIO@@, to be replaced by an actual value in 'render' function
 
     snippet = """
-        <camera name="camera" model="thinlens_camera">
+        <camera name="{n}" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
             <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
             <parameter name="horizontal_fov" value="40" />
@@ -86,7 +86,8 @@ def write_camera(pos, rot, updir, target, name):
             </transform>
         </camera>"""
 
-    return snippet.format(o=_transform(pos),
+    return snippet.format(n=name,
+                          o=_transform(pos),
                           t=_transform(target),
                           u=_transform(updir))
 
@@ -205,15 +206,42 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    # Change image size in template and adjust camera ratio
+    # Make various adjustments on file:
+    # Change image size in template, adjust camera ratio, reorganize cameras
+    # declarations and specify default camera
     with open(project.PageResult, "r") as f:
         template = f.read()
+
+    # Change image size
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
     if res:
         snippet = '<parameter name="resolution" value="{} {}"/>'
         template = template.replace(res[0], snippet.format(width, height))
+
+    # Adjust cameras aspect ratio, in accordance with width & height
     aspect_ratio = width / height if height else 1.0
     template = template.replace("@@ASPECT_RATIO@@", str(aspect_ratio))
+
+    # Gather cameras declarations in scene block
+    # (as Project.render may not respect Appleseed input file grammar on this
+    # particular point...)
+    pattern = re.compile(r"(?m)^ *<camera.*>[\s\S]*?<\/camera>\n")
+    cams = '\n'.join(pattern.findall(template))
+    template = pattern.sub("", template)
+    pos = re.search(r"<scene>\n", template).end()
+    template = template[:pos] + cams + template[pos:]
+
+    # Define default camera
+    res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
+    if res:
+        default_cam = res[-1]  # Take last match
+        snippet = '<parameter name="camera" value="{}" />'
+        template = re.sub(
+            r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
+            snippet.format(default_cam),
+            template)
+
+    # Write resulting output to file
     f_handle, f_path = mkstemp(
         prefix=project.Name,
         suffix=os.path.splitext(project.Template)[-1])
@@ -259,6 +287,6 @@ def _transform(vec):
 
     Returns
     -------
-    A vector in Appleseed coordinates
+    The transformed vector, in Appleseed coordinates
     """
     return App.Vector(vec.x, vec.z, -vec.y)
