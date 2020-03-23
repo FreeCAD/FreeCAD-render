@@ -57,6 +57,7 @@ import os
 import re
 from tempfile import mkstemp
 from math import pi
+from types import SimpleNamespace
 
 import FreeCAD as App
 
@@ -162,9 +163,26 @@ def write_pointlight(view, location, color, power):
     """
     # This is where you write the renderer-specific code
     # to export the point light in the renderer format
+    snippet = """
+        <color name="{n}_color">
+            <parameter name="color_space" value="linear_rgb" />
+            <parameter name="multiplier" value="1.0" />
+            <parameter name="wavelength_range" value="400.0 700.0" />
+            <values> {c[0]} {c[1]} {c[2]} </values>
+            <alpha> 1.0 </alpha>
+        </color>
+        <light name="{n}" model="point_light">
+            <parameter name="intensity" value="{n}_color" />
+            <parameter name="intensity_multiplier" value="{p}" />
+            <transform>
+                <translation value="{t.x} {t.y} {t.z}"/>
+            </transform>
+        </light>"""
 
-    # TODO
-    return ""
+    return snippet.format(n=view.Name,
+                          c=color,
+                          p=power * 3,  # guesstimated factor...
+                          t=_transform(location))
 
 
 def render(project, prefix, external, output, width, height):
@@ -222,3 +240,11 @@ def render(project, prefix, external, output, width, height):
         args += " "
     os.system(prefix + rpath + " " + args + project.PageResult)
     return output
+
+def _transform(v):
+    """Transform vector from FreeCAD coordinates to Appleseed coordinates"""
+    res = SimpleNamespace()
+    res.x = v.x
+    res.y = v.z
+    res.z = -v.y
+    return res
