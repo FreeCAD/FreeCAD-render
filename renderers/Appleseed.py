@@ -57,7 +57,6 @@ import os
 import re
 from tempfile import mkstemp
 from math import pi
-from types import SimpleNamespace
 
 import FreeCAD as App
 
@@ -66,27 +65,31 @@ def write_camera(pos, rot, updir, target, name):
     """Compute a string in the format of Appleseed, that represents a camera"""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
+    #
+    # NOTE 'aspect_ratio' will be set at rendering time, when resolution is
+    # known. So, at this stage, we just insert a macro-identifier named
+    # @@ASPECT_RATIO@@, to be replaced by an actual value in 'render' function
 
     snippet = """
-        <camera name="camera" model="thinlens_camera">
+        <camera name="{n}" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
-            <parameter name="film_height" value="0.032" />
-            <parameter name="aspect_ratio" value="1.7" />
+            <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
             <parameter name="horizontal_fov" value="40" />
             <parameter name="shutter_open_time" value="0" />
             <parameter name="shutter_close_time" value="1" />
             <parameter name="focal_distance" value="1" />
             <parameter name="f_stop" value="8" />
             <transform>
-                <look_at origin="{} {} {}"
-                         target="{} {} {}"
-                         up="{} {} {}" />
+                <look_at origin="{o.x} {o.y} {o.z}"
+                         target="{t.x} {t.y} {t.z}"
+                         up="{u.x} {u.y} {u.z}" />
             </transform>
         </camera>"""
 
-    return snippet.format(pos.x, pos.z, -pos.y,
-                          target.x, target.z, -target.y,
-                          updir.x, updir.z, -updir.y)
+    return snippet.format(n=name,
+                          o=_transform(pos),
+                          t=_transform(target),
+                          u=_transform(updir))
 
 
 def write_object(viewobj, mesh, color, alpha):
@@ -203,22 +206,51 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    # Change image size in template
+    # Make various adjustments on file:
+    # Change image size in template, adjust camera ratio, reorganize cameras
+    # declarations and specify default camera
     with open(project.PageResult, "r") as f:
         template = f.read()
+
+    # Change image size
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
     if res:
         snippet = '<parameter name="resolution" value="{} {}"/>'
         template = template.replace(res[0], snippet.format(width, height))
-        f_handle, f_path = mkstemp(
-            prefix=project.Name,
-            suffix=os.path.splitext(project.Template)[-1])
-        os.close(f_handle)
-        with open(f_path, "w") as f:
-            f.write(template)
-        project.PageResult = f_path
-        os.remove(f_path)
-        App.ActiveDocument.recompute()
+
+    # Adjust cameras aspect ratio, in accordance with width & height
+    aspect_ratio = width / height if height else 1.0
+    template = template.replace("@@ASPECT_RATIO@@", str(aspect_ratio))
+
+    # Gather cameras declarations in scene block
+    # (as Project.render may not respect Appleseed input file grammar on this
+    # particular point...)
+    pattern = re.compile(r"(?m)^ *<camera.*>[\s\S]*?<\/camera>\n")
+    cams = '\n'.join(pattern.findall(template))
+    template = pattern.sub("", template)
+    pos = re.search(r"<scene>\n", template).end()
+    template = template[:pos] + cams + template[pos:]
+
+    # Define default camera
+    res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
+    if res:
+        default_cam = res[-1]  # Take last match
+        snippet = '<parameter name="camera" value="{}" />'
+        template = re.sub(
+            r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
+            snippet.format(default_cam),
+            template)
+
+    # Write resulting output to file
+    f_handle, f_path = mkstemp(
+        prefix=project.Name,
+        suffix=os.path.splitext(project.Template)[-1])
+    os.close(f_handle)
+    with open(f_path, "w") as f:
+        f.write(template)
+    project.PageResult = f_path
+    os.remove(f_path)
+    App.ActiveDocument.recompute()
 
     # Prepare parameters
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
@@ -241,10 +273,20 @@ def render(project, prefix, external, output, width, height):
     os.system(prefix + rpath + " " + args + project.PageResult)
     return output
 
-def _transform(v):
-    """Transform vector from FreeCAD coordinates to Appleseed coordinates"""
-    res = SimpleNamespace()
-    res.x = v.x
-    res.y = v.z
-    res.z = -v.y
-    return res
+
+def _transform(vec):
+    """Convert a vector from FreeCAD coordinates into Appleseed ones"
+
+    Appleseed uses a different coordinate system than FreeCAD.
+    Compared to FreeCAD, Y and Z are switched and Z is inverted.
+    This function converts a vector from FreeCAD system to Appleseed one.
+
+    Parameters
+    ----------
+    vec: vector to convert, in FreeCAD coordinates
+
+    Returns
+    -------
+    The transformed vector, in Appleseed coordinates
+    """
+    return App.Vector(vec.x, vec.z, -vec.y)
