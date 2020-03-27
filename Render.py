@@ -89,12 +89,34 @@ PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 class Project:
     """A rendering project"""
 
+    # Related FeaturePython object has to be stored in a class variable,
+    # (not in an instance variable...), otherwise it causes trouble in
+    # serialization...
+    _fpos = dict()
+
     def __init__(self, obj):
         obj.Proxy = self
         self.set_properties(obj)
 
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
+
     def set_properties(self, obj):
-        """Set underlying FeaturePython object's properties"""
+        """Set underlying FeaturePython object's properties
+
+        Parameters
+        ----------
+        obj: FeaturePython Object related to this project
+        """
+        self.fpo = obj
+
         if "Renderer" not in obj.PropertiesList:
             obj.addProperty(
                 "App::PropertyString",
@@ -229,6 +251,7 @@ class Project:
                  and the related ViewProviderProject
         """
         rdr = str(renderer)
+        assert document, "Document must not be None"
         project_fpo = document.addObject("App::FeaturePython",
                                          "%sProject" % rdr)
         project = Project(project_fpo)
@@ -238,21 +261,24 @@ class Project:
         viewp = ViewProviderProject(project_fpo.ViewObject)
         return project, project_fpo, viewp
 
-    def write_groundplane(self, obj, renderer):
+    def write_groundplane(self, renderer):
         """Generate a ground plane rendering string for the scene
 
         For that purpose, dummy objects are temporarily added to the document
-        and eventually deleted
+        which the project belongs to, and eventually deleted
 
-        Params:
-        obj:        the underlying FeaturePython object
+        Parameters
+        ----------
         renderer:   the renderer handler
 
-        Returns:    the rendering string for the ground plane
+        Returns
+        -------
+        The rendering string for the ground plane
         """
         result = ""
+        doc = self.fpo.Document
         bbox = App.BoundBox()
-        for view in obj.Group:
+        for view in self.fpo.Group:
             try:
                 bbox.add(view.Source.Shape.BoundBox)
             except AttributeError:
@@ -267,33 +293,35 @@ class Project:
                         App.Vector(bbox.XMax + margin, bbox.YMax + margin, 0),
                         App.Vector(bbox.XMin - margin, bbox.YMax + margin, 0)]
             vertices.append(vertices[0])  # Close the polyline...
-            dummy1 = App.ActiveDocument.addObject("Part::Feature",
-                                                  "dummygroundplane1")
+            dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
-            dummy2 = App.ActiveDocument.addObject("App::FeaturePython",
-                                                  "dummygroundplane2")
+            dummy2 = doc.addObject("App::FeaturePython", "dummygroundplane2")
             View(dummy2)
             dummy2.Source = dummy1
             ViewProviderView(dummy2.ViewObject)
-            App.ActiveDocument.recompute()
+            doc.recompute()
 
             result = renderer.get_rendering_string(dummy2)
 
             # Remove temp objects
-            App.ActiveDocument.removeObject(dummy2.Name)
-            App.ActiveDocument.removeObject(dummy1.Name)
-            App.ActiveDocument.recompute()
+            doc.removeObject(dummy2.Name)
+            doc.removeObject(dummy1.Name)
+            doc.recompute()
 
         return result
 
-    def render(self, obj, external=True):
+    def render(self, external=True):
         """Render the project, calling external renderer
 
-        obj: the project view provider
+        Parameters
+        ----------
         external: switch between internal/external version of renderer
 
-        Returns output file path
+        Returns
+        -------
+        Output file path
         """
+        obj = self.fpo
 
         # Get a handle to renderer module
         try:
@@ -331,7 +359,7 @@ class Project:
         objstrings = [viewresult(view) for view in obj.Group]
 
         if hasattr(obj, "GroundPlane") and obj.GroundPlane:
-            objstrings.append(self.write_groundplane(obj, renderer))
+            objstrings.append(self.write_groundplane(renderer))
 
         renderobjs = '\n'.join(objstrings)
 
@@ -457,7 +485,7 @@ class ViewProviderProject:
     def render(self):
         """Render project (call proxy render)"""
         try:
-            self.object.Proxy.render(self.object)
+            self.object.Proxy.render()
         except AttributeError as err:
             App.Console.PrintError("Cannot render: {}".format(err))
 
@@ -886,7 +914,7 @@ class RenderCommand:
                     return
 
         # Render (and display if required)
-        project.Proxy.render(project, external=True)
+        project.Proxy.render()
 
 
 class CameraCommand:
