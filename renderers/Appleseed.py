@@ -55,8 +55,10 @@
 
 import os
 import re
+import shlex
 from tempfile import mkstemp
 from math import pi
+from subprocess import Popen
 
 import FreeCAD as App
 
@@ -270,12 +272,21 @@ def render(project, prefix, external, output, width, height):
         return ""
     if args:
         args += " "
-    os.system(prefix + rpath + " " + args + project.PageResult)
+
+    # Call Appleseed (asynchronously)
+    cmd = prefix + rpath + " " + args + " " + project.PageResult + "\n"
+    App.Console.PrintMessage(cmd)
+    try:
+        Popen(shlex.split(cmd))
+    except OSError as err:
+        msg = "Appleseed call failed: '" + err.strerror + "'\n"
+        App.Console.PrintError(msg)
+
     return output
 
 
 def _transform(vec):
-    """Convert a vector from FreeCAD coordinates into Appleseed ones"
+    """Convert a vector from FreeCAD coordinates into Appleseed ones
 
     Appleseed uses a different coordinate system than FreeCAD.
     Compared to FreeCAD, Y and Z are switched and Z is inverted.
