@@ -64,6 +64,7 @@ except ImportError:
     from Draft import translate  # 0.18
 
 import camera
+import lights
 
 
 # ===========================================================================
@@ -926,13 +927,28 @@ class CameraCommand:
         return {"Pixmap": ":/icons/camera-photo.svg",
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Create Camera"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Create a Camera object from the"
-                                             "current camera position")}
+                                             "Creates a Camera object from "
+                                             "the current camera position")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
         camera.Camera.create()
 
+
+class PointLightCommand:
+    """Create a Point Light object"""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "PointLight.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Point Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Creates a Point Light object")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        lights.PointLight.create()
 
 # ===========================================================================
 #                            Module initialization
@@ -946,10 +962,15 @@ if App.GuiUp:
     for rend in RENDERERS:
         Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
         RENDER_COMMANDS.append('Render_' + rend)
+    RENDER_COMMANDS.append("Separator")
     for cmd in (("Camera", CameraCommand()),
-                ("View", RenderViewCommand()),
+                ("PointLight", PointLightCommand())):
+        Gui.addCommand(*cmd)
+        RENDER_COMMANDS.append(cmd[0])
+    RENDER_COMMANDS.append("Separator")
+    for cmd in (("View", RenderViewCommand()),
                 ("Render", RenderCommand())):
-        Gui.addCommand(cmd[0], cmd[1])
+        Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
 
 # vim: foldmethod=indent
