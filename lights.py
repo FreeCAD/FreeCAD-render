@@ -98,8 +98,7 @@ class PointLight:
             "Light",
             QT_TRANSLATE_NOOP("Render", "Light representation radius.\n"
                                         "Note: This parameter has no impact "
-                                        "on rendering"
-                                        ),
+                                        "on rendering"),
             2.0),
 
     }

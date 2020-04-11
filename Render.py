@@ -358,7 +358,8 @@ class Project:
         viewresult = (renderer.get_rendering_string
                       if obj.DelayedBuild
                       else attrgetter("ViewResult"))
-        objstrings = [viewresult(view) for view in obj.Group if view.Source.Visibility]
+        objstrings = [viewresult(view) for view in obj.Group
+                      if view.Source.Visibility]
 
         if hasattr(obj, "GroundPlane") and obj.GroundPlane:
             objstrings.append(self.write_groundplane(renderer))
