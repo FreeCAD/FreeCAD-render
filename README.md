@@ -71,11 +71,21 @@ This project is covered by FreeCAD [Code of Conduct](https://github.com/FreeCAD/
 
 ### To Do (not exhaustive)
 
-* Currently the external (open the file to be rendered in the Renderer's GUI)/internal (render directly inside FreeCAD) render 
-mode is not implemented, the external mode will always be used.
-* Add support for Kerkythea (adapt the existing macro)
-* Add support for Blender's Eevee
-* Add support for OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
+* Add some more lighting functionalities:
+  - Directional lights ("sun")
+  - Howek-Wilkie skylight
+  - Area lights
+  - Image-based lighting
+* Add material support, including UV-textures
+* Make handling of big projects easier:
+  - Allow "one-click" import of groups into rendering projects
+  - Create "convert to another renderer" functionality on rendering project
+* Currently the external (open the file to be rendered in the Renderer's GUI)/internal (render directly inside FreeCAD) render mode is not implemented, the external mode will always be used.
+* Add support for more renderers
+  - Yafaray 
+  - Kerkythea (adapt the existing macro)
+  - Blender's Eevee
+  - OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
 
 ### Notes on Code Quality
 
