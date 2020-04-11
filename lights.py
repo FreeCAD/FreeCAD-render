@@ -93,6 +93,15 @@ class PointLight:
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
             60.0),
 
+        "Radius": Prop(
+            "App::PropertyLength",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Light representation radius.\n"
+                                        "Note: This parameter has no impact "
+                                        "on rendering"
+                                        ),
+            2.0),
+
     }
     # ~FeaturePython object properties
 
@@ -155,7 +164,7 @@ class PointLight:
 class ViewProviderPointLight:
     """View Provider of PointLight class"""
 
-    SHAPE = make_star(radius=2)
+    SHAPE = make_star(radius=1)
 
     def __init__(self, vobj):
         """Initializer
@@ -177,6 +186,7 @@ class ViewProviderPointLight:
         # pylint: disable=attribute-defined-outside-init
 
         self.fpo = vobj.Object
+        PointLight.set_properties(self.fpo)
 
         # Here we create coin representation, which is in 2 parts: a light,
         # and a geometry (the latter being a lineset embedded inside a switch)
@@ -217,6 +227,7 @@ class ViewProviderPointLight:
         self._update_location(self.fpo)
         self._update_color(self.fpo)
         self._update_power(self.fpo)
+        self._update_radius(self.fpo)
 
     def onDelete(self, feature, subelements):
         """Code executed when object is deleted (callback)"""
@@ -280,6 +291,7 @@ class ViewProviderPointLight:
             "Location": ViewProviderPointLight._update_location,
             "Power": ViewProviderPointLight._update_power,
             "Color": ViewProviderPointLight._update_color,
+            "Radius": ViewProviderPointLight._update_radius,
         }
 
         try:
@@ -305,6 +317,11 @@ class ViewProviderPointLight:
         color = fpo.Color[:3]
         self.coin.material.diffuseColor.setValue(color)
         self.coin.light.color.setValue(color)
+
+    def _update_radius(self, fpo):
+        """Update pointlight radius"""
+        scale = [fpo.Radius] * 3
+        self.coin.transform.scaleFactor.setValue(scale)
 
     def __getstate__(self):
         """Called while saving the document"""
