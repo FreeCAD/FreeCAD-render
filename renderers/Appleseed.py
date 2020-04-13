@@ -103,12 +103,12 @@ def write_arealight(name, pos, size_u, size_v, color, power):
             <color name="{n}_color">
                 <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
-                <parameter name="wavelength_range" value="400.0 700.0" />
+                <parameter name="alpha" value="0.0" />
                 <values> {c[0]} {c[1]} {c[2]} </values>
             </color>
             <edf name="{n}_edf" model="diffuse_edf">
-                <parameter name="radiance" value="1.0" />
-                <parameter name="radiance_multiplier" value="1.0" />
+                <parameter name="radiance" value="{n}_color" />
+                <parameter name="radiance_multiplier" value="{p}" />
                 <parameter name="exposure" value="0.0" />
                 <parameter name="cast_indirect_light" value="true" />
                 <parameter name="importance_multiplier" value="1.0" />
@@ -144,7 +144,8 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                           v=size_v,
                           t=_transform(pos.Base),
                           r=_transform(pos.Rotation.Axis),
-                          a=degrees(pos.Rotation.Angle))
+                          a=degrees(pos.Rotation.Angle),
+                          p=power * 3)  # guesstimated factor
 
 
 def write_object(viewobj, mesh, color, alpha):

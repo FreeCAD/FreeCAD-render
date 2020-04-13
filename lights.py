@@ -488,8 +488,8 @@ class ViewProviderAreaLight:
         self.coin.node.addChild(self.coin.material)
         self.coin.drawstyle = coin.SoDrawStyle()
         self.coin.drawstyle.style = coin.SoDrawStyle.FILLED
-        self.coin.drawstyle.lineWidth = 1
-        self.coin.drawstyle.linePattern = 0xaaaa
+        # self.coin.drawstyle.lineWidth = 1
+        # self.coin.drawstyle.linePattern = 0xaaaa
         self.coin.node.addChild(self.coin.drawstyle)
         self.coin.coords = coin.SoCoordinate3()
 
@@ -614,6 +614,7 @@ class ViewProviderAreaLight:
         """Update arealight color"""
         color = fpo.Color[:3]
         self.coin.material.emissiveColor.setValue(color)
+        self.coin.material.diffuseColor.setValue(color)
         self.coin.light.color.setValue(color)
 
     def _update_size(self, fpo):
