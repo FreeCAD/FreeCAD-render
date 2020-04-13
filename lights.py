@@ -33,9 +33,12 @@ from collections import namedtuple
 from types import SimpleNamespace
 from os import path
 import itertools
+import functools
 import math
 
 from pivy import coin
+from PySide.QtGui import QAction
+from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -321,6 +324,302 @@ class ViewProviderPointLight:
         """Update pointlight radius"""
         scale = [fpo.Radius] * 3
         self.coin.transform.scaleFactor.setValue(scale)
+
+    def __getstate__(self):
+        """Called while saving the document"""
+        return None
+
+    def __setstate__(self, state):
+        """Called while restoring document"""
+        return None
+
+
+# ===========================================================================
+#                           Area Light object
+# ===========================================================================
+
+
+class AreaLight:
+    """An area light"""
+
+    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+
+    # FeaturePython object properties
+    PROPERTIES = {
+        "Placement": Prop(
+            "App::PropertyPlacement",
+            "",
+            QT_TRANSLATE_NOOP("Render", "Placement of camera"),
+            App.Placement(App.Vector(0, 0, 0),
+                          App.Vector(0, 0, 1),
+                          0)),
+
+        "SizeU": Prop(
+            "App::PropertyLength",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Size on U axis"),
+            4.0),
+
+        "SizeV": Prop(
+            "App::PropertyLength",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Size on V axis"),
+            2.0),
+
+        "Color": Prop(
+            "App::PropertyColor",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Color of light"),
+            (1.0, 1.0, 1.0)),
+
+        "Power": Prop(
+            "App::PropertyFloat",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Rendering power"),
+            60.0),
+
+    }
+    # ~FeaturePython object properties
+
+    def __init__(self, fpo):
+        """AreaLight initializer
+
+        Parameters
+        ----------
+        fpo: a FeaturePython object created with FreeCAD.addObject
+        """
+        self.type = "AreaLight"
+        fpo.Proxy = self
+        self.set_properties(fpo)
+
+    @classmethod
+    def set_properties(cls, fpo):
+        """Set underlying FeaturePython object's properties"""
+        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
+            spec = cls.PROPERTIES[name]
+            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            setattr(prop, name, spec.Default)
+
+    @staticmethod
+    def create(document=None):
+        """Create an AreaLight object in a document
+
+        Factory method to create a new arealight object.
+        The light is created into the active document (default).
+        Optionally, it is possible to specify a target document, in that case
+        the light is created in the given document.
+
+        This method also create the FeaturePython and the
+        ViewProvider related objects.
+
+        Params:
+        document: the document where to create arealight (optional)
+
+        Returns:
+        The newly created PointLight object, FeaturePython object and
+        ViewProvider object"""
+
+        doc = document if document else App.ActiveDocument
+        fpo = doc.addObject("App::FeaturePython", "AreaLight")
+        lgt = AreaLight(fpo)
+        viewp = ViewProviderAreaLight(fpo.ViewObject)
+        App.ActiveDocument.recompute()
+        return lgt, fpo, viewp
+
+    def onDocumentRestored(self, fpo):
+        """Callback triggered when document is restored"""
+        self.type = "AreaLight"
+        fpo.Proxy = self
+        self.set_properties(fpo)
+
+    def execute(self, fpo):
+        # pylint: disable=no-self-use
+        """Callback triggered on document recomputation (mandatory)."""
+
+
+class ViewProviderAreaLight:
+    """View Provider of PointLight class"""
+
+    SHAPE = ((-0.5, -0.5, 0),
+             (0.5, -0.5, 0),
+             (0.5, 0.5, 0),
+             (-0.5, 0.5, 0),
+             (-0.5, -0.5, 0))
+
+    def __init__(self, vobj):
+        """Initializer
+
+        Parameters:
+        -----------
+        vobj: related ViewProviderDocumentObject
+        """
+        vobj.Proxy = self
+        self.fpo = vobj.Object  # Related FeaturePython object
+
+    def attach(self, vobj):
+        """Code executed when object is created/restored (callback)
+
+        Parameters:
+        -----------
+        vobj: related ViewProviderDocumentObject
+        """
+        # pylint: disable=attribute-defined-outside-init
+
+        self.fpo = vobj.Object
+        AreaLight.set_properties(self.fpo)
+
+        # Here we create coin representation, which is in 2 parts: a light,
+        # and a geometry, the former being a point light, the latter being a
+        # faceset embedded in a switch)
+
+        self.coin = SimpleNamespace()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+
+        # Create pointlight in scenegraph
+        self.coin.light = coin.SoPointLight()
+        scene.insertChild(self.coin.light, 0)  # Insert frontwise
+
+        # Create geometry in scenegraph
+        self.coin.geometry = coin.SoSwitch()
+        self.coin.node = coin.SoSeparator()
+        self.coin.transform = coin.SoTransform()
+        self.coin.node.addChild(self.coin.transform)
+        self.coin.material = coin.SoMaterial()
+        self.coin.node.addChild(self.coin.material)
+        self.coin.drawstyle = coin.SoDrawStyle()
+        self.coin.drawstyle.style = coin.SoDrawStyle.FILLED
+        self.coin.drawstyle.lineWidth = 1
+        self.coin.drawstyle.linePattern = 0xaaaa
+        self.coin.node.addChild(self.coin.drawstyle)
+        self.coin.coords = coin.SoCoordinate3()
+
+        self.coin.coords = coin.SoCoordinate3()
+        self.coin.coords.point.setValues(0, len(self.SHAPE), self.SHAPE)
+        self.coin.node.addChild(self.coin.coords)
+        self.coin.faceset = coin.SoFaceSet()
+        self.coin.faceset.numVertices.setValues(0, 1, [5])
+        self.coin.node.addChild(self.coin.faceset)
+
+        self.coin.geometry.addChild(self.coin.node)
+        self.coin.geometry.whichChild.setValue(coin.SO_SWITCH_ALL)
+        scene.addChild(self.coin.geometry)  # Insert back
+        vobj.addDisplayMode(self.coin.geometry, "Shaded")
+
+        # Update coin elements with actual object properties
+        self._update_placement(self.fpo)
+        self._update_color(self.fpo)
+        self._update_power(self.fpo)
+        self._update_size(self.fpo)
+
+    def onDelete(self, feature, subelements):
+        """Code executed when object is deleted (callback)"""
+        # Delete coin representation
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        scene.removeChild(self.coin.geometry)
+        scene.removeChild(self.coin.light)
+        return True  # If False, the object wouldn't be deleted
+
+    def getDisplayModes(self, _):
+        # pylint: disable=no-self-use
+        """Return a list of display modes (callback)"""
+        return ["Shaded", "Wireframe"]
+
+    def getDefaultDisplayMode(self):
+        # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback)
+
+        The returned mode must be defined in getDisplayModes.
+        """
+        return "Shaded"
+
+    def setDisplayMode(self, mode):
+        # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback)
+
+        Since they have the same names nothing needs to be done.
+        This method is optional.
+        """
+        return mode
+
+    def getIcon(self):
+        # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)"""
+        return path.join(path.dirname(__file__), "icons", "AreaLight.svg")
+
+    def onChanged(self, vpdo, prop):
+        """Code executed when a ViewProvider's property got modified (callback)
+
+        Parameters:
+        -----------
+        vpdo: related ViewProviderDocumentObject (where properties are stored)
+        prop: property name (as a string)
+        """
+        if prop == "Visibility":
+            self.coin.light.on.setValue(vpdo.Visibility)
+            self.coin.geometry.whichChild =\
+                coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+
+    def setupContextMenu(self, vobj, menu):
+        """Setup the context menu associated to the object in tree view
+        (callback)
+        """
+        action1 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Point at..."),
+                          menu)
+        QObject.connect(action1,
+                        SIGNAL("triggered()"),
+                        self.point_at)
+        menu.addAction(action1)
+
+    def updateData(self, fpo, prop):
+        """Code executed when a FeaturePython's property got modified
+        (callback)
+
+        Parameters:
+        -----------
+        fpo: related FeaturePython object
+        prop: property name
+        """
+        switcher = {
+            "Placement": ViewProviderAreaLight._update_placement,
+            "Power": ViewProviderAreaLight._update_power,
+            "Color": ViewProviderAreaLight._update_color,
+            "SizeU": ViewProviderAreaLight._update_size,
+            "SizeV": ViewProviderAreaLight._update_size,
+        }
+
+        try:
+            update_method = switcher[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            update_method(self, fpo)
+
+    def _update_placement(self, fpo):
+        """Update arealight location"""
+        location = fpo.Placement.Base[:3]
+        self.coin.transform.translation.setValue(location)
+        angle = float(fpo.Placement.Rotation.Angle)
+        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
+        self.coin.transform.rotation.setValue(axis, angle)
+        self.coin.light.location.setValue(location)
+
+    def _update_power(self, fpo):
+        """Update arealight power"""
+        intensity = fpo.Power / 100 if fpo.Power <= 100 else 1
+        self.coin.light.intensity.setValue(intensity)
+
+    def _update_color(self, fpo):
+        """Update arealight color"""
+        color = fpo.Color[:3]
+        self.coin.material.emissiveColor.setValue(color)
+        self.coin.light.color.setValue(color)
+
+    def _update_size(self, fpo):
+        """Update arealight size"""
+        size = (fpo.SizeU, fpo.SizeV, 0)
+        self.coin.transform.scaleFactor.setValue(size)
 
     def __getstate__(self):
         """Called while saving the document"""
