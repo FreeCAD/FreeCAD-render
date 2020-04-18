@@ -488,8 +488,6 @@ class ViewProviderAreaLight:
         self.coin.node.addChild(self.coin.material)
         self.coin.drawstyle = coin.SoDrawStyle()
         self.coin.drawstyle.style = coin.SoDrawStyle.FILLED
-        # self.coin.drawstyle.lineWidth = 1
-        # self.coin.drawstyle.linePattern = 0xaaaa
         self.coin.node.addChild(self.coin.drawstyle)
         self.coin.coords = coin.SoCoordinate3()
 
