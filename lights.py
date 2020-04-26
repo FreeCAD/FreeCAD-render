@@ -381,6 +381,8 @@ class AreaLight:
     }
     # ~FeaturePython object properties
 
+    _fpos = dict()  # FeaturePython objects
+
     def __init__(self, fpo):
         """AreaLight initializer
 
@@ -390,7 +392,18 @@ class AreaLight:
         """
         self.type = "AreaLight"
         fpo.Proxy = self
+        self.fpo = fpo
         self.set_properties(fpo)
+
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
 
     @classmethod
     def set_properties(cls, fpo):
@@ -430,11 +443,30 @@ class AreaLight:
         """Callback triggered when document is restored"""
         self.type = "AreaLight"
         fpo.Proxy = self
+        self.fpo = fpo
         self.set_properties(fpo)
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
         """Callback triggered on document recomputation (mandatory)."""
+
+    def point_at(self, point):
+        """Make Area light point at a given target point
+
+        Parameters:
+        -----------
+        point -- point to point at (must have x, y, z properties)
+        """
+        fpo = self.fpo
+        current_normal = fpo.Placement.Rotation.multVec(App.Vector(0, 0, 1))
+        base = fpo.Placement.Base
+        new_normal = App.Vector(point.x - base.x, point.y - base.y, point.z - base.z)
+        axis = current_normal.cross(new_normal)
+        if not axis.Length:  # axis is null vector?
+            return
+        angle = math.degrees(new_normal.getAngle(current_normal))
+        rotation = App.Rotation(axis, angle)
+        fpo.Placement.Rotation = rotation * fpo.Placement.Rotation
 
 
 class ViewProviderAreaLight:
@@ -620,6 +652,38 @@ class ViewProviderAreaLight:
         size = (fpo.SizeU, fpo.SizeV, 0)
         self.coin.transform.scaleFactor.setValue(size)
 
+    def point_at(self):
+        """Make this area light point at another object
+
+        User will be requested to select an object to point at"""
+        App.Console.PrintMessage(QT_TRANSLATE_NOOP("Render", "[Point at] Please select target (on geometry)\n"))
+        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb)
+
+    def _point_at_cb(self, event_cb):
+        """Point at callback
+
+        Parameters:
+        event_cb -- coin event callback
+        """
+        event = event_cb.getEvent()
+        if event.getState() == coin.SoMouseButtonEvent.DOWN and event.getButton() == coin.SoMouseButtonEvent.BUTTON1:
+            # Get point
+            picked_point = event_cb.getPickedPoint()
+            try:
+                point = App.Vector(picked_point.getPoint())
+            except AttributeError:
+                # No picked point (outside geometry)
+                App.Console.PrintMessage(QT_TRANSLATE_NOOP("Render", "[Point at] Target outside geometry -- Aborting\n"))
+            else:
+                # Make underlying object point at target point
+                self.fpo.Proxy.point_at(point)
+                App.Console.PrintMessage(QT_TRANSLATE_NOOP("Render", "[Point at] Now pointing at ({0.x}, {0.y}, {0.z})\n".format(point)))
+            finally:
+                # Remove coin event catcher
+                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
+
+
+
     def __getstate__(self):
         """Called while saving the document"""
         return None
@@ -627,3 +691,4 @@ class ViewProviderAreaLight:
     def __setstate__(self, state):
         """Called while restoring document"""
         return None
+
