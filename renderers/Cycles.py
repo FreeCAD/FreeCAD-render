@@ -22,6 +22,13 @@
 
 """Cycles renderer for FreeCAD"""
 
+# Suggested documentation links:
+# NOTE Standalone Cycles is experimental, so documentation should be searched
+# mainly directly in code (via reverse engineering). Here are some links:
+# https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone
+# https://developer.blender.org/diffusion/C/browse/master/src/render/nodes.cpp
+
+
 import os
 from math import degrees
 

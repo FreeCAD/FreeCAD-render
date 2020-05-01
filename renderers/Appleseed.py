@@ -22,7 +22,11 @@
 
 """Appleseed renderer for FreeCAD"""
 
-# NOTE: The coordinate system in Appleseed uses a different coordinate system.
+# Suggested documentation links:
+# https://github.com/appleseedhq/appleseed/wiki
+# https://github.com/appleseedhq/appleseed/wiki/Built-in-Entities
+
+# NOTE The coordinate system in Appleseed uses a different coordinate system.
 # Y and Z are switched and Z is inverted
 
 import os
