@@ -33,13 +33,11 @@ from collections import namedtuple
 from types import SimpleNamespace
 from os import path
 import itertools
-import functools
 import math
 
 from pivy import coin
 from PySide.QtGui import QAction
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
-from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
@@ -460,9 +458,12 @@ class AreaLight:
         fpo = self.fpo
         current_normal = fpo.Placement.Rotation.multVec(App.Vector(0, 0, 1))
         base = fpo.Placement.Base
-        new_normal = App.Vector(point.x - base.x, point.y - base.y, point.z - base.z)
+        new_normal = App.Vector(point.x - base.x,
+                                point.y - base.y,
+                                point.z - base.z)
         axis = current_normal.cross(new_normal)
-        if not axis.Length:  # axis is null vector?
+        if not axis.Length:
+            # Don't try to rotate if axis is a null vector...
             return
         angle = math.degrees(new_normal.getAngle(current_normal))
         rotation = App.Rotation(axis, angle)
@@ -487,6 +488,7 @@ class ViewProviderAreaLight:
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
+        self.callback = None  # For point_at method
 
     def attach(self, vobj):
         """Code executed when object is created/restored (callback)
@@ -656,33 +658,44 @@ class ViewProviderAreaLight:
         """Make this area light point at another object
 
         User will be requested to select an object to point at"""
-        App.Console.PrintMessage(QT_TRANSLATE_NOOP("Render", "[Point at] Please select target (on geometry)\n"))
-        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb)
+        msg = QT_TRANSLATE_NOOP("Render",
+                                "[Point at] Please select target "
+                                "(on geometry)\n")
+        App.Console.PrintMessage(msg)
+        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
+            coin.SoMouseButtonEvent.getClassTypeId(),
+            self._point_at_cb)
 
     def _point_at_cb(self, event_cb):
         """Point at callback
 
         Parameters:
-        event_cb -- coin event callback
+        event_cb -- coin event callback object
         """
         event = event_cb.getEvent()
-        if event.getState() == coin.SoMouseButtonEvent.DOWN and event.getButton() == coin.SoMouseButtonEvent.BUTTON1:
+        if (event.getState() == coin.SoMouseButtonEvent.DOWN and
+                event.getButton() == coin.SoMouseButtonEvent.BUTTON1):
             # Get point
             picked_point = event_cb.getPickedPoint()
             try:
                 point = App.Vector(picked_point.getPoint())
             except AttributeError:
                 # No picked point (outside geometry)
-                App.Console.PrintMessage(QT_TRANSLATE_NOOP("Render", "[Point at] Target outside geometry -- Aborting\n"))
+                msg = QT_TRANSLATE_NOOP("Render",
+                                        "[Point at] Target outside geometry "
+                                        "-- Aborting\n")
+                App.Console.PrintMessage(msg)
             else:
                 # Make underlying object point at target point
                 self.fpo.Proxy.point_at(point)
-                App.Console.PrintMessage(QT_TRANSLATE_NOOP("Render", "[Point at] Now pointing at ({0.x}, {0.y}, {0.z})\n".format(point)))
+                msg = QT_TRANSLATE_NOOP("Render",
+                                        "[Point at] Now pointing at "
+                                        "({0.x}, {0.y}, {0.z})\n")
+                App.Console.PrintMessage(msg.format(point))
             finally:
                 # Remove coin event catcher
-                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
-
-
+                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
+                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
 
     def __getstate__(self):
         """Called while saving the document"""
@@ -691,4 +704,3 @@ class ViewProviderAreaLight:
     def __setstate__(self, state):
         """Called while restoring document"""
         return None
-

@@ -155,7 +155,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
     Area Light object
     """
     efficency = 150
-    gain = 100  # Guesstimated! (don't hesitate to propose more sensible values)
+    gain = 100  # Guesstimated!
 
     # We have to transpose 'pos' to make it fit for Lux
     # As 'transpose' method is in-place, we first make a copy
@@ -181,7 +181,6 @@ def write_arealight(name, pos, size_u, size_v, color, power):
         "string name" ["{n}"]
     AttributeEnd # {n}
     \n"""
-    # TODO there is a scale problem (seems to be half too small)
     return dedent(snippet).format(n=name,
                                   t=trans,
                                   L=color,

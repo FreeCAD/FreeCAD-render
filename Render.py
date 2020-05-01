@@ -748,10 +748,14 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        # TODO suppress 'view' as argument to write_pointlight
+        # TODO suppress 'view' as argument to write_object
         # (replace with name)
-        return self._call_renderer("write_object", view,
-                                   view, mesh, color, alpha)
+        return self._call_renderer("write_object",
+                                   view,
+                                   view,
+                                   mesh,
+                                   color,
+                                   alpha)
 
     def _render_camera(self, view):
         """Provide a rendering string for a camera.
@@ -821,8 +825,14 @@ class RendererHandler:
             return ""
 
         # Send everything to renderer module
-        return self._call_renderer("write_arealight", view,
-                                   name, placement, size_u, size_v, color, power)
+        return self._call_renderer("write_arealight",
+                                   view,
+                                   name,
+                                   placement,
+                                   size_u,
+                                   size_v,
+                                   color,
+                                   power)
 
     def _call_renderer(self, method, view, *args):
         """Calls a render method of the renderer module
