@@ -196,6 +196,8 @@ class Camera:
         """Callback triggered on document recomputation (mandatory).
         It mainly draws the camera graphical representation"""
 
+        # Use pivy.coin rather than Part (as it is not a Part...)
+        # and move it to ViewProvider...
         size = 5
         height = 10
         # Square

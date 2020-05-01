@@ -153,7 +153,8 @@ callbacks=GetResources,
           render,
           write_camera,
           write_object,
-          write_pointlight
+          write_pointlight,
+          write_arealight
 
 
 [FORMAT]

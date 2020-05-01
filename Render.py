@@ -679,19 +679,18 @@ class RendererHandler:
         if not view.Source:
             return ""
 
-        # Special objects: camera, lights etc.
         try:
             objtype = view.Source.Proxy.type
         except AttributeError:
-            pass
-        else:
-            if objtype == "PointLight":
-                return self._render_pointlight(view)
-            if objtype == "Camera":
-                return self._render_camera(view)
+            objtype = "Object"
 
-        # General objects
-        return self._render_object(view)
+        switcher = {
+            "Object": RendererHandler._render_object,
+            "PointLight": RendererHandler._render_pointlight,
+            "Camera": RendererHandler._render_camera,
+            "AreaLight": RendererHandler._render_arealight
+            }
+        return switcher[objtype](self, view)
 
     def _render_object(self, view):
         """Get a rendering string for a generic FreeCAD object"""
@@ -749,7 +748,14 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        return self.renderer_module.write_object(view, mesh, color, alpha)
+        # TODO suppress 'view' as argument to write_object
+        # (replace with name)
+        return self._call_renderer("write_object",
+                                   view,
+                                   view,
+                                   mesh,
+                                   color,
+                                   alpha)
 
     def _render_camera(self, view):
         """Provide a rendering string for a camera.
@@ -766,7 +772,8 @@ class RendererHandler:
         target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
         updir = rot.multVec(App.Vector(0, 1, 0))
         name = view.Name
-        return self.renderer_module.write_camera(pos, rot, updir, target, name)
+        return self._call_renderer("write_camera", view,
+                                   pos, rot, updir, target, name)
 
     def _render_pointlight(self, view):
         """Gets a rendering string for a point light object
@@ -790,10 +797,64 @@ class RendererHandler:
         power = getattr(view.Source, "Power", 60)
 
         # send everything to renderer module
-        return self.renderer_module.write_pointlight(view,
-                                                     location,
-                                                     color,
-                                                     power)
+        # TODO suppress 'view' as argument to write_pointlight
+        # (replace with name)
+        return self._call_renderer("write_pointlight", view,
+                                   view, location, color, power)
+
+    def _render_arealight(self, view):
+        """Gets a rendering string for an area light object
+
+        Parameters:
+        view: the view of the point light (contains the point light data)
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        # Get properties
+        try:
+            name = str(view.Source.Name)
+            placement = view.Source.Placement
+            color = view.Source.Color
+            power = float(view.Source.Power)
+            size_u = float(view.Source.SizeU)
+            size_v = float(view.Source.SizeV)
+        except AttributeError:
+            App.Console.PrintError(
+                translate("Render",
+                          "Cannot render Point Light: Missing attributes"))
+            return ""
+
+        # Send everything to renderer module
+        return self._call_renderer("write_arealight",
+                                   view,
+                                   name,
+                                   placement,
+                                   size_u,
+                                   size_v,
+                                   color,
+                                   power)
+
+    def _call_renderer(self, method, view, *args):
+        """Calls a render method of the renderer module
+
+        Parameters:
+        -----------
+        method: the method to render (as a string)
+        view: the view of the object to render
+        args: the arguments to pass to the method
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        try:
+            render = getattr(self.renderer_module, method)
+        except AttributeError:
+            msg = translate("Render",
+                            "Warning: Cannot render view '%s'. "
+                            "Render module '%s' has no method '%s'\n")
+            name = getattr(view, "Name", "<No name>")
+            App.Console.PrintWarning(msg % (name, self.renderer_name, method))
+            return ""
+        return render(*args)
 
 
 # ===========================================================================
@@ -871,7 +932,9 @@ class RenderViewCommand:
                     objs.append(obj)
                 if (obj.isDerivedFrom("App::FeaturePython")
                         and hasattr(obj.Proxy, "type")
-                        and obj.Proxy.type in ['PointLight', 'Camera']):
+                        and obj.Proxy.type in ['PointLight',
+                                               'Camera',
+                                               'AreaLight']):
                     objs.append(obj)
         if not project:
             for obj in App.ActiveDocument.Objects:
@@ -952,6 +1015,22 @@ class PointLightCommand:
         """Code to be executed when command is run (callback)"""
         lights.PointLight.create()
 
+
+class AreaLightCommand:
+    """Create an Area Light object"""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "AreaLight.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Area Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Creates an Area Light object")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        lights.AreaLight.create()
+
 # ===========================================================================
 #                            Module initialization
 # ===========================================================================
@@ -966,7 +1045,8 @@ if App.GuiUp:
         RENDER_COMMANDS.append('Render_' + rend)
     RENDER_COMMANDS.append("Separator")
     for cmd in (("Camera", CameraCommand()),
-                ("PointLight", PointLightCommand())):
+                ("PointLight", PointLightCommand()),
+                ("AreaLight", AreaLightCommand())):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
     RENDER_COMMANDS.append("Separator")
