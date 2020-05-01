@@ -1,4 +1,4 @@
-# Renderers plug-ins directory
+# Renderers plug-ins
 This is the renderers plug-ins directory.
 
 ## How FreeCAD-render works with external renderers
@@ -14,7 +14,7 @@ FreeCAD-render builds the input file by instantiating a *template* with *descrip
 ## How to add support for a new external renderer
 ### Files required
 To add support for a new renderer, you will need to add at least 3 files:
-- A renderer plug-in file,
+- A renderer plug-in module,
 - An icon file,
 - One or more templates file(s),
 
@@ -27,34 +27,34 @@ To add support for a new renderer, you will need to add at least 3 files:
 Optionally, but in a strongly recommended way, you will also add a few entries in module's Preferences.
 In particular, it is strongly recommended to include the following parameters:
 - the path to the external renderer executable (optionally splitted into CLI and GUI executablesp pathes, if the renderer provides both),
-- the command line parameters.
+- the renderer command line parameters.
 
 
 ### Renderer plug-in
 #### Naming
  
-You will need to make sure your plugin file is named with the same name (case sensitive)
+You need to make sure your plugin file is named with the same name (case sensitive)
 that you will use everywhere to describe your renderer. Examples: `Appleseed.py` or
 `Povray.py`
 
 #### Contents
-The module must contain the following functions:
+The plugin must contain the following functions:
 
-* `write_object(view, mesh, color, alpha)`
+* `write_object(name, mesh, color, alpha)`
 
-Expected behaviour: return a string containing a mesh object description in renderer format
+Expected behaviour: return a string containing a mesh object description in renderer SDL
 
 * `write_camera(pos, rot, up, target, name)`
 
-Expected behaviour: return a string containing a camera description in renderer format
+Expected behaviour: return a string containing a camera description in renderer SDL
 
-* `write_pointlight(view, location, color, power)`
+* `write_pointlight(name, pos, color, power)`
 
-Expected behaviour: return a string containing an point light description in renderer format
+Expected behaviour: return a string containing an point light description in renderer SDL
 
 * `write_arealight(name, pos, size_u, size_v, color, power)`
 
-Expected behaviour: return a string containing an area light description in renderer format
+Expected behaviour: return a string containing an area light description in renderer SDL
 
 * `render(project, prefix, external, output, width, height)`
 
@@ -62,8 +62,8 @@ Expected behaviour: render the given project, by calling the external renderer.
 This function is in charge of writing the renderer input file, and calling the external renderer executable. It should return the path to the generated image file.
 
 #### Guidelines
-- Before starting, have a look at other existing renderers plug-ins. You can use one of them as a template for a new plugin
-- Use Python's Format Specification Mini Language in `write_*` functions
+- Before writing a new plug-in, have a look at other existing renderers plug-ins. You can use one of them as a template for a new plugin
+- Use Python's Format Specification Mini Language in `write_*` functions to build SDL strings (avoid concatenation approach).
 - Carefully read your renderer documentation, especially the Scene Description Language chapters. For future reviewing, do not hesitate to add links to the documentation in your code, as comments.
 - Pay attention to the coordinates systems. External renderers may use different coordinates than FreeCAD (inverted coordinates etc.)
 
@@ -79,8 +79,8 @@ Example: `appleseed_standard.appleseed`
 #### Naming
 The name of the icon file should be the same as the plug-in file. Example: `Appleseed.svg`.
 
-Recommended format is Scalable Vector Graphics (SVG).
+Recommended icon format is Scalable Vector Graphics (SVG).
 
 ### Preferences
 
-Preferences settings are declared in `ui/RenderSetting.ui` file
+Preferences settings are implemented in `ui/RenderSetting.ui` file

@@ -748,11 +748,11 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        # TODO suppress 'view' as argument to write_object
-        # (replace with name)
+        name = str(view.Source.Name)
+
         return self._call_renderer("write_object",
                                    view,
-                                   view,
+                                   name,
                                    mesh,
                                    color,
                                    alpha)
@@ -773,7 +773,7 @@ class RendererHandler:
         updir = rot.multVec(App.Vector(0, 1, 0))
         name = view.Name
         return self._call_renderer("write_camera", view,
-                                   pos, rot, updir, target, name)
+                                   name, pos, rot, updir, target)
 
     def _render_pointlight(self, view):
         """Gets a rendering string for a point light object
@@ -785,6 +785,7 @@ class RendererHandler:
         """
         # get location, color, power
         try:
+            name = str(view.Source.Name)
             location = view.Source.Location
             color = view.Source.Color
         except AttributeError:
@@ -797,10 +798,8 @@ class RendererHandler:
         power = getattr(view.Source, "Power", 60)
 
         # send everything to renderer module
-        # TODO suppress 'view' as argument to write_pointlight
-        # (replace with name)
         return self._call_renderer("write_pointlight", view,
-                                   view, location, color, power)
+                                   name, location, color, power)
 
     def _render_arealight(self, view):
         """Gets a rendering string for an area light object
@@ -846,7 +845,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         try:
-            render = getattr(self.renderer_module, method)
+            renderer_method = getattr(self.renderer_module, method)
         except AttributeError:
             msg = translate("Render",
                             "Warning: Cannot render view '%s'. "
@@ -854,7 +853,7 @@ class RendererHandler:
             name = getattr(view, "Name", "<No name>")
             App.Console.PrintWarning(msg % (name, self.renderer_name, method))
             return ""
-        return render(*args)
+        return renderer_method(*args)
 
 
 # ===========================================================================
