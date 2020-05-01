@@ -351,7 +351,9 @@ class Project:
         dummycamview.Source = SimpleNamespace()
         dummycamview.Source.Proxy = SimpleNamespace()
         dummycamview.Source.Proxy.type = "Camera"
-        dummycamview.Name = "Default_Camera"
+        dummycamview.Source.Name = "Default_Camera"
+        dummycamview.Source.Label = "Default_Camera"
+        dummycamview.Name = "Default_CameraView"
         camera.set_cam_from_coin_string(dummycamview.Source, camstr)
         cam = renderer.get_rendering_string(dummycamview)
 
@@ -560,7 +562,9 @@ class View:
         assert doc == fcd_obj.Document,\
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
-        fpo.Label = "View of %s" % fcd_obj.Name
+        # fpo.Label = "View of %s" % fcd_obj.Name
+        proj_name = project.Label.replace(" ","")
+        fpo.Label = "{o}@{r}".format(o=fcd_obj.Label, r=proj_name)
         view = View(fpo)
         fpo.Source = fcd_obj
         project.addObject(fpo)
@@ -686,15 +690,17 @@ class RendererHandler:
         except AttributeError:
             objtype = "Object"
 
+        name = str(view.Source.Name)
+
         switcher = {
             "Object": RendererHandler._render_object,
             "PointLight": RendererHandler._render_pointlight,
             "Camera": RendererHandler._render_camera,
             "AreaLight": RendererHandler._render_arealight
             }
-        return switcher[objtype](self, view)
+        return switcher[objtype](self, name, view)
 
-    def _render_object(self, view):
+    def _render_object(self, name, view):
         """Get a rendering string for a generic FreeCAD object"""
         # get color and alpha
         mat = None
@@ -750,7 +756,6 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        name = str(view.Source.Name)
 
         return self._call_renderer("write_object",
                                    view,
@@ -759,7 +764,7 @@ class RendererHandler:
                                    color,
                                    alpha)
 
-    def _render_camera(self, view):
+    def _render_camera(self, name, view):
         """Provide a rendering string for a camera.
 
         Parameters:
@@ -773,11 +778,10 @@ class RendererHandler:
         rot = cam.Placement.Rotation
         target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
         updir = rot.multVec(App.Vector(0, 1, 0))
-        name = view.Name
         return self._call_renderer("write_camera", view,
                                    name, pos, rot, updir, target)
 
-    def _render_pointlight(self, view):
+    def _render_pointlight(self, name, view):
         """Gets a rendering string for a point light object
 
         Parameters:
@@ -787,7 +791,6 @@ class RendererHandler:
         """
         # get location, color, power
         try:
-            name = str(view.Source.Name)
             location = view.Source.Location
             color = view.Source.Color
         except AttributeError:
@@ -803,7 +806,7 @@ class RendererHandler:
         return self._call_renderer("write_pointlight", view,
                                    name, location, color, power)
 
-    def _render_arealight(self, view):
+    def _render_arealight(self, name, view):
         """Gets a rendering string for an area light object
 
         Parameters:
@@ -813,7 +816,6 @@ class RendererHandler:
         """
         # Get properties
         try:
-            name = str(view.Source.Name)
             placement = view.Source.Placement
             color = view.Source.Color
             power = float(view.Source.Power)
