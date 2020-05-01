@@ -748,11 +748,11 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        # TODO suppress 'view' as argument to write_object
-        # (replace with name)
+        name = view.Name
+
         return self._call_renderer("write_object",
                                    view,
-                                   view,
+                                   name,
                                    mesh,
                                    color,
                                    alpha)
@@ -846,7 +846,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         try:
-            render = getattr(self.renderer_module, method)
+            renderer_method = getattr(self.renderer_module, method)
         except AttributeError:
             msg = translate("Render",
                             "Warning: Cannot render view '%s'. "
@@ -854,7 +854,7 @@ class RendererHandler:
             name = getattr(view, "Name", "<No name>")
             App.Console.PrintWarning(msg % (name, self.renderer_name, method))
             return ""
-        return render(*args)
+        return renderer_method(*args)
 
 
 # ===========================================================================

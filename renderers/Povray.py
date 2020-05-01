@@ -61,7 +61,7 @@ def write_camera(pos, rot, updir, target, name):
     return dedent(snippet).format(n=name, p=pos, t=target, u=updir)
 
 
-def write_object(viewobj, mesh, color, alpha):
+def write_object(name, mesh, color, alpha):
     """Compute a string in the format of POV-Ray, that represents a FreeCAD
     object
     """
@@ -105,7 +105,7 @@ def write_object(viewobj, mesh, color, alpha):
     nrms = ["<{0.x},{0.z},{0.y}>".format(n) for n in mesh.getPointNormals()]
     inds = ["<{},{},{}>".format(*i) for i in mesh.Topology[1]]
 
-    return dedent(snippet).format(name=viewobj.Name,
+    return dedent(snippet).format(name=name,
                                   len_vertices=len(vrts),
                                   vertices="\n        ".join(vrts),
                                   len_normals=len(nrms),

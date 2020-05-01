@@ -54,7 +54,7 @@ def write_camera(pos, rot, updir, target, name):
     return dedent(snippet).format(name, pos, target, updir)
 
 
-def write_object(viewobj, mesh, color, alpha):
+def write_object(name, mesh, color, alpha):
     """Compute a string in the format of Luxrender, that represents a FreeCAD
     object
     """
@@ -88,7 +88,7 @@ def write_object(viewobj, mesh, color, alpha):
     AttributeEnd  # {name}
     """
 
-    return dedent(snippet).format(name=viewobj.Name,
+    return dedent(snippet).format(name=name,
                                   colo=color,
                                   trsp=alpha if alpha < 1.0 else 1.0,
                                   inds=" ".join(tris),

@@ -126,7 +126,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                           p=radiance * 100)  # guesstimated factor
 
 
-def write_object(viewobj, mesh, color, alpha):
+def write_object(name, mesh, color, alpha):
     """Compute a string in the format of Appleseed, that represents a FreeCAD
     object
     """
@@ -149,7 +149,7 @@ def write_object(viewobj, mesh, color, alpha):
         buffer = f.readlines()
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    buffer.insert(i, "o %s\n" % viewobj.Name)
+    buffer.insert(i, "o %s\n" % name)
 
     with open(objfile, "w") as f:
         f.write("".join(buffer))
@@ -187,7 +187,7 @@ def write_object(viewobj, mesh, color, alpha):
                                  material="{n}_mat" />
             </object_instance>"""
 
-    return snippet.format(n=viewobj.Name,
+    return snippet.format(n=name,
                           c=color,
                           a=alpha,
                           o=os.path.splitext(os.path.basename(objfile))[0],

@@ -55,7 +55,7 @@ def write_camera(pos, rot, updir, target, name):
     return snippet.format(n=name, a=degrees(rot.Angle), r=rot.Axis, p=pos)
 
 
-def write_object(viewobj, mesh, color, alpha):
+def write_object(name, mesh, color, alpha):
     """Compute a string in the format of Cycles, that represents a FreeCAD
     object
     """
@@ -95,7 +95,7 @@ def write_object(viewobj, mesh, color, alpha):
     verts = ["{} {} {}".format(*v) for v in mesh.Topology[1]]
     nverts = ["3"] * len(verts)
 
-    return snippet.format(n=viewobj.Name,
+    return snippet.format(n=name,
                           c=color,
                           a=alpha,
                           p="  ".join(points),
