@@ -22,6 +22,9 @@
 
 """POV-Ray renderer for FreeCAD"""
 
+# Suggested documentation link:
+# https://www.povray.org/documentation/3.7.0/r3_0.html#r3_1
+
 # NOTE:
 # Please note that POV-Ray coordinate system appears to be different from
 # FreeCAD's one (z and y permuted)

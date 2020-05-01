@@ -22,6 +22,13 @@
 
 """Luxrender renderer for FreeCAD"""
 
+# Suggested links to renderer documentation:
+# NOTE As LuxRender has been deprecated in favor of LuxCore, LuxRender's
+# documentation is quite rare. Best documentation seems to be found directly in
+# the code of LuxCore importer for LuxRender, by reverse engineering,
+# and additionnally in LuxCore's documentation. Here are such links:
+# https://github.com/LuxCoreRender/LuxCore/blob/master/src/luxcore/luxparser/luxparse.cpp
+# https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.3
 
 import os
 import re
