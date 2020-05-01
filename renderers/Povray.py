@@ -37,7 +37,7 @@ from textwrap import dedent
 import FreeCAD as App
 
 
-def write_camera(pos, rot, updir, target, name):
+def write_camera(name, pos, rot, updir, target):
     """Compute a string in the format of POV-Ray, that represents a camera"""
 
     # This is where you create a piece of text in the format of

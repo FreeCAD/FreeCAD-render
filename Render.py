@@ -773,7 +773,7 @@ class RendererHandler:
         updir = rot.multVec(App.Vector(0, 1, 0))
         name = view.Name
         return self._call_renderer("write_camera", view,
-                                   pos, rot, updir, target, name)
+                                   name, pos, rot, updir, target)
 
     def _render_pointlight(self, view):
         """Gets a rendering string for a point light object

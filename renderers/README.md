@@ -38,7 +38,7 @@ that you will use everywhere to describe your renderer. Examples: `Appleseed.py`
 `Povray.py`
 
 #### Contents
-The module must contain the following functions:
+The plugin must contain the following functions:
 
 * `write_object(name, mesh, color, alpha)`
 
