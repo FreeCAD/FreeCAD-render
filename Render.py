@@ -41,7 +41,6 @@ the necessary UI controls.
 import sys
 import os
 import re
-from os import path
 from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -79,11 +78,8 @@ RDRDIR = os.path.join(WBDIR, "renderers")
 ICONDIR = os.path.join(WBDIR, "icons")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 # Renderers list
-# RENDERERS = [  # External renderers
-    # path.splitext(r)[0] for r in os.listdir(path.join(WBDIR, "renderers"))
-    # if not (".pyc" in r or "__" in r)]
 RENDERERS = [x.group(1)
-             for x in map(lambda x: re.match("^([A-Z].*)\.py$", x),
+             for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
                           os.listdir(RDRDIR))
              if x]
 
