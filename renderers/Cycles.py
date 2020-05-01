@@ -103,7 +103,7 @@ def write_object(name, mesh, color, alpha):
                           v="  ".join(verts))
 
 
-def write_pointlight(view, location, color, power):
+def write_pointlight(name, pos, color, power):
     """Compute a string in the format of Cycles, that represents a
     PointLight object
     """
@@ -125,9 +125,9 @@ def write_pointlight(view, location, color, power):
                strength="1 1 1"/>
     </state>\n"""
 
-    return snippet.format(n=view.Name,
+    return snippet.format(n=name,
                           c=color,
-                          p=location,
+                          p=pos,
                           s=power*100)
 
 

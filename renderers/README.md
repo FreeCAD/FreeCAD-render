@@ -40,21 +40,21 @@ that you will use everywhere to describe your renderer. Examples: `Appleseed.py`
 #### Contents
 The module must contain the following functions:
 
-* `write_object(view, mesh, color, alpha)`
+* `write_object(name, mesh, color, alpha)`
 
-Expected behaviour: return a string containing a mesh object description in renderer format
+Expected behaviour: return a string containing a mesh object description in renderer SDL
 
 * `write_camera(pos, rot, up, target, name)`
 
-Expected behaviour: return a string containing a camera description in renderer format
+Expected behaviour: return a string containing a camera description in renderer SDL
 
-* `write_pointlight(view, location, color, power)`
+* `write_pointlight(name, pos, color, power)`
 
-Expected behaviour: return a string containing an point light description in renderer format
+Expected behaviour: return a string containing an point light description in renderer SDL
 
 * `write_arealight(name, pos, size_u, size_v, color, power)`
 
-Expected behaviour: return a string containing an area light description in renderer format
+Expected behaviour: return a string containing an area light description in renderer SDL
 
 * `render(project, prefix, external, output, width, height)`
 

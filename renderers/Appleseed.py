@@ -194,7 +194,7 @@ def write_object(name, mesh, color, alpha):
                           f=objfile.encode("unicode_escape").decode("utf-8"))
 
 
-def write_pointlight(view, location, color, power):
+def write_pointlight(name, pos, color, power):
     """Compute a string in the format of Appleseed, that represents a
     PointLight object
     """
@@ -217,10 +217,10 @@ def write_pointlight(view, location, color, power):
                 </transform>
             </light>"""
 
-    return snippet.format(n=view.Name,
+    return snippet.format(n=name,
                           c=color,
                           p=power * 3,  # guesstimated factor...
-                          t=_transform(location))
+                          t=_transform(pos))
 
 
 def render(project, prefix, external, output, width, height):

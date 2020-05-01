@@ -115,11 +115,11 @@ def write_object(name, mesh, color, alpha):
                                   color=colo)
 
 
-def write_pointlight(view, location, color, power):
+def write_pointlight(name, pos, color, power):
     """Compute a string in the format of POV-Ray, that represents a
     PointLight object
     """
-    # this is where you write the renderer-specific code
+    # This is where you write the renderer-specific code
     # to export the point light in the renderer format
 
     # Note: power is of no use for POV-Ray, as light intensity is determined
@@ -132,7 +132,7 @@ def write_pointlight(view, location, color, power):
         color rgb<{2[0]},{2[1]},{2[2]}>
     }}\n"""
 
-    return dedent(snippet).format(view.Name, location, color)
+    return dedent(snippet).format(name, pos, color)
 
 
 def write_arealight(name, pos, size_u, size_v, color, power):

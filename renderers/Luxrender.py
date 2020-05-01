@@ -96,7 +96,7 @@ def write_object(name, mesh, color, alpha):
                                   nrms=" ".join(norms))
 
 
-def write_pointlight(view, location, color, power):
+def write_pointlight(name, pos, color, power):
     """Compute a string in the format of Luxrender, that represents a
     PointLight object
     """
@@ -122,8 +122,8 @@ def write_pointlight(view, location, color, power):
     AttributeEnd # {n}
     \n"""
 
-    return dedent(snippet).format(n=view.Name,
-                                  f=location,
+    return dedent(snippet).format(n=name,
+                                  f=pos,
                                   L=color,
                                   p=power,
                                   e=efficency,

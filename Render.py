@@ -748,7 +748,7 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        name = view.Name
+        name = str(view.Source.Name)
 
         return self._call_renderer("write_object",
                                    view,
@@ -785,6 +785,7 @@ class RendererHandler:
         """
         # get location, color, power
         try:
+            name = str(view.Source.Name)
             location = view.Source.Location
             color = view.Source.Color
         except AttributeError:
@@ -797,10 +798,8 @@ class RendererHandler:
         power = getattr(view.Source, "Power", 60)
 
         # send everything to renderer module
-        # TODO suppress 'view' as argument to write_pointlight
-        # (replace with name)
         return self._call_renderer("write_pointlight", view,
-                                   view, location, color, power)
+                                   name, location, color, power)
 
     def _render_arealight(self, view):
         """Gets a rendering string for an area light object
