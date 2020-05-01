@@ -22,35 +22,7 @@
 
 """POV-Ray renderer for FreeCAD"""
 
-# This file can also be used as a template to add more rendering engines.
-# You will need to make sure your file is named with a same name (case
-# sensitive)
-# That you will use everywhere to describe your renderer, ex: Appleseed or
-# Povray
-
-
-# A render engine module must contain the following functions:
-#
-# write_camera(pos,rot,up,target, name)
-#   returns a string containing an openInventor camera string in renderer
-#   format
-#
-# write_object(view,mesh,color,alpha)
-#   returns a string containing a RaytracingView object in renderer format
-#
-# render(project,prefix,external,output,width,height)
-#   renders the given project
-#   external means if the user wishes to open the render file in an external
-#   application/editor or not. If this is not supported by your renderer, you
-#   can simply ignore it
-#
-# Additionally, you might need/want to add:
-#   Preference page items, that can be used in your functions below
-#   An icon under the name Renderer.svg (where Renderer is the name of your
-#   Renderer
-
-
-# POV-Ray specific (tip):
+# NOTE:
 # Please note that POV-Ray coordinate system appears to be different from
 # FreeCAD's one (z and y permuted)
 # See here: https://www.povray.org/documentation/3.7.0/t2_2.html#t2_2_1_1
