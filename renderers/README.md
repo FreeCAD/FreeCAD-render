@@ -22,10 +22,10 @@ To add support for a new renderer, you will need to add at least 3 files:
 | Icon             | 1         | ../icons       | Image (png, svg...)  |
 | Templates        | 1 or more | ../templates   | Your renderer format | 
 
-On an optional but strongly recommended basis, you may also want to add some entries in module's Preferences page.
+Optionally, but in a strongly recommended way, you will also add a few entries in module's Preferences.
 In particular, it is strongly recommended to include the following parameters:
-- the path to the external renderer executable (optionnally splitted into CLI and GUI executables, if the renderer supports so),
-- the basic command line parameters.
+- the path to the external renderer executable (optionally splitted into CLI and GUI executablesp pathes, if the renderer provides both),
+- the command line parameters.
 
 
 ### Renderer plug-in
@@ -65,10 +65,10 @@ This function is in charge of writing the renderer input file, and calling the e
 - Carefully read your renderer documentation. For future reviewing, do not hesitate to add links to the documentation in your code, as comments.
 - Pay attention to the coordinates systems. External renderers may use different coordinates than FreeCAD (inverted coordinates etc.)
 
-### Template file
+### Templates
 
 #### Naming
-The name of the file should contain a reference to your renderer, and then a reference to the use case the template addresses.
+The name of the file should contain a reference to your renderer, and then a reference to the use case which the template addresses.
 The file extension should be the extension expected by the renderer in its input file.
 Example: `appleseed_standard.appleseed`
 
@@ -78,3 +78,7 @@ Example: `appleseed_standard.appleseed`
 The name of the icon file should be the same as the plug-in file. Example: `Appleseed.svg`.
 
 Recommended format is Scalable Vector Graphics (SVG).
+
+### Preferences
+
+Preferences settings are declared in `ui/RenderSetting.ui` file
