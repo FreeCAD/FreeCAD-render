@@ -41,7 +41,6 @@ the necessary UI controls.
 import sys
 import os
 import re
-from os import path
 from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -72,14 +71,17 @@ import lights
 # ===========================================================================
 
 
-WBDIR = os.path.dirname(__file__)  # Workbench root directory
-RENDERERS = [  # External renderers
-    path.splitext(r)[0] for r in os.listdir(path.join(WBDIR, "renderers"))
-    if not (".pyc" in r or "__" in r)]
 # Paths to GUI resources
 # This is for InitGui.py because it cannot import os
-ICONPATH = os.path.join(WBDIR, "icons")
+WBDIR = os.path.dirname(__file__)  # Workbench root directory
+RDRDIR = os.path.join(WBDIR, "renderers")
+ICONDIR = os.path.join(WBDIR, "icons")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
+# Renderers list
+RENDERERS = [x.group(1)
+             for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
+                          os.listdir(RDRDIR))
+             if x]
 
 
 # ===========================================================================

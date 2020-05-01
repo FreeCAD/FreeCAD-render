@@ -92,12 +92,12 @@ static char * Render_xpm[] = {
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from FreeCAD import Console
         from FreeCADGui import addIconPath, addPreferencePage
-        from Render import RENDER_COMMANDS, ICONPATH, PREFPAGE
+        from Render import RENDER_COMMANDS, ICONDIR, PREFPAGE
 
         commands = RENDER_COMMANDS
         self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"), commands)
         self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"), commands)
-        addIconPath(ICONPATH)
+        addIconPath(ICONDIR)
         addPreferencePage(PREFPAGE, "Render")
         Console.PrintLog("Loading Render module...done\n")
 

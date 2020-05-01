@@ -34,8 +34,13 @@ In particular, it is strongly recommended to include the following parameters:
 #### Naming
  
 You need to make sure your plugin file is named with the same name (case sensitive)
-that you will use everywhere to describe your renderer. Examples: `Appleseed.py` or
-`Povray.py`
+that you will use everywhere to describe your renderer. 
+
+This name must start with a capital letter, and have a '.py' extension.
+
+Examples: `Appleseed.py` or `Povray.py`
+
+Valid plugins are collected in `Render.RENDERERS` constant (in Render.py) at workbench initialization. In case of trouble, you can check this variable to debug your naming.
 
 #### Contents
 The plugin must contain the following functions:
