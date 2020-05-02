@@ -41,6 +41,7 @@ the necessary UI controls.
 import sys
 import os
 import re
+import itertools
 from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -313,6 +314,40 @@ class Project:
 
         return result
 
+    def add_objects(self, objs):
+        """Add objects as new views to the project
+
+        This method can handle objects groups, recursively.
+
+        This function checks if each object is renderable before adding it,
+        via 'RendererHandler.is_renderable'; if not, a warning is issued and
+        the faulty object is ignored.
+
+        Parameters
+        objs -- an iterable on FreeCAD objects to add to project
+        """
+
+        def add_to_group(objs, group):
+            for obj in objs:
+                if obj.isDerivedFrom("App::DocumentObjectGroup"):
+                    assert obj != group  # Just in case...
+                    label = View.view_label(obj, group)
+                    new_group = App.ActiveDocument.addObject(
+                        "App::DocumentObjectGroup", label)
+                    new_group.Label = label
+                    group.addObject(new_group)
+                    add_to_group(obj.Group, new_group)
+                elif RendererHandler.is_renderable(obj):
+                    View.create(obj, group)
+                else:
+                    msg = translate(
+                        "Render",
+                        "Unable to create rendering view for object {}\n")
+                    App.Console.PrintWarning(msg.format(obj.Label))
+
+        # Here starts add_objects
+        add_to_group(iter(objs), self.fpo)
+
     def render(self, external=True):
         """Render the project, calling external renderer
 
@@ -498,7 +533,7 @@ class ViewProviderProject:
 
 
 class View:
-    """A rendering view of FreeCAD object"""
+    """A rendering view of a FreeCAD object"""
 
     def __init__(self, obj):
         obj.addProperty("App::PropertyLink",
@@ -539,6 +574,13 @@ class View:
             obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
+    def view_label(obj, proj):
+        """Give a standard view label for an object"""
+        proj_name = proj.Label.replace(" ", "")
+        res = "{o}@{p}".format(o=obj.Label, p=proj_name)
+        return res
+
+    @staticmethod
     def create(fcd_obj, project):
         """Factory method to create a new rendering object in a given project.
 
@@ -562,9 +604,7 @@ class View:
         assert doc == fcd_obj.Document,\
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
-        # fpo.Label = "View of %s" % fcd_obj.Name
-        proj_name = project.Label.replace(" ","")
-        fpo.Label = "{o}@{r}".format(o=fcd_obj.Label, r=proj_name)
+        fpo.Label = View.view_label(fcd_obj, project)
         view = View(fpo)
         fpo.Source = fcd_obj
         project.addObject(fpo)
@@ -669,6 +709,42 @@ class RendererHandler:
                                            width,
                                            height)
 
+    @staticmethod
+    def is_renderable(obj):
+        """Determine if an object is renderable
+
+        This is a weak test: we just check if the object belongs to a
+        class we would know how to handle - no further verification
+        is made on the consistency of the object data against
+        get_rendering_string requirements"""
+
+        try:
+            res = (obj.isDerivedFrom("Part::Feature") or
+                   obj.isDerivedFrom("Mesh::Feature") or
+                   (obj.isDerivedFrom("App::FeaturePython") and
+                    obj.Proxy.type in ["PointLight", "Camera", "AreaLight"]))
+        except AttributeError:
+            res = False
+
+        return res
+
+    @staticmethod
+    def is_project(obj):
+        """Determine if an object is a rendering project
+
+        This is a weak test: we just check if the object looks like
+        something we could know how to handle - no further verification
+        is made on the consistency of the object data against
+        render requirements"""
+
+        try:
+            res = (obj.isDerivedFrom("App::FeaturePython") and
+                   "Renderer" in obj.PropertiesList)
+        except AttributeError:
+            res = False
+
+        return res
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object
 
@@ -756,7 +832,6 @@ class RendererHandler:
         if not mesh:
             return ""
 
-
         return self._call_renderer("write_object",
                                    view,
                                    name,
@@ -778,8 +853,13 @@ class RendererHandler:
         rot = cam.Placement.Rotation
         target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
         updir = rot.multVec(App.Vector(0, 1, 0))
-        return self._call_renderer("write_camera", view,
-                                   name, pos, rot, updir, target)
+        return self._call_renderer("write_camera",
+                                   view,
+                                   name,
+                                   pos,
+                                   rot,
+                                   updir,
+                                   target)
 
     def _render_pointlight(self, name, view):
         """Gets a rendering string for a point light object
@@ -803,8 +883,12 @@ class RendererHandler:
         power = getattr(view.Source, "Power", 60)
 
         # send everything to renderer module
-        return self._call_renderer("write_pointlight", view,
-                                   name, location, color, power)
+        return self._call_renderer("write_pointlight",
+                                   view,
+                                   name,
+                                   location,
+                                   color,
+                                   power)
 
     def _render_arealight(self, name, view):
         """Gets a rendering string for an area light object
@@ -922,37 +1006,30 @@ class RenderViewCommand:
 
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
-        project = None
-        objs = []
-        sel = Gui.Selection.getSelection()
-        # Find project and objects to add to project
-        for obj in sel:
-            if "Renderer" in obj.PropertiesList:
-                project = obj
-            else:
-                if (obj.isDerivedFrom("Part::Feature")
-                        or obj.isDerivedFrom("Mesh::Feature")):
-                    objs.append(obj)
-                if (obj.isDerivedFrom("App::FeaturePython")
-                        and hasattr(obj.Proxy, "type")
-                        and obj.Proxy.type in ['PointLight',
-                                               'Camera',
-                                               'AreaLight']):
-                    objs.append(obj)
-        if not project:
-            for obj in App.ActiveDocument.Objects:
-                if "Renderer" in obj.PropertiesList:
-                    project = obj
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render",
-                                             "Unable to find a valid project "
-                                             "in selection or document"))
+
+        # First, split selection into objects and projects
+        selection = Gui.Selection.getSelection()
+        objs, projs = [], []
+        for item in selection:
+            (projs if RendererHandler.is_project(item) else objs).append(item)
+
+        # Then, get target project.
+        # We first look among projects in the selection
+        # and, if none, we fall back on active document's projects
+        activedoc_projects = filter(RendererHandler.is_project,
+                                    App.ActiveDocument.Objects)
+        try:
+            target_project = next(itertools.chain(projs, activedoc_projects))
+        except StopIteration:
+            msg = translate(
+                "Render",
+                "Unable to find a valid project in selection or document\n")
+            App.Console.PrintError(msg)
             return
 
-        # Add objects (as views) to the project
-        for obj in objs:
-            View.create(obj, project)
+        # Finally, add objects to target project and recompute
+        target_project.Proxy.add_objects(objs)
+
         App.ActiveDocument.recompute()
 
 
