@@ -230,7 +230,7 @@ class Project:
         changed (callback)
         """
         if prop == "DelayedBuild" and not obj.DelayedBuild:
-            for view in obj.Group:
+            for view in obj.Proxy.all_views():
                 view.touch()
 
     @staticmethod
@@ -328,6 +328,10 @@ class Project:
         """
 
         def add_to_group(objs, group):
+            """Add objects as views to a group
+
+            objs -- FreeCAD objects to add
+            group -- The  group (App::DocumentObjectGroup) to add to"""
             for obj in objs:
                 if obj.isDerivedFrom("App::DocumentObjectGroup"):
                     assert obj != group  # Just in case...
@@ -348,6 +352,21 @@ class Project:
         # Here starts add_objects
         add_to_group(iter(objs), self.fpo)
 
+    def all_views(self):
+        """Give the list of all views contained in the project"""
+        def all_group_objs(group):
+            """Returns all objects in group (recursively exploding
+            subgroups)
+            """
+            res = []
+            for obj in group.Group:
+                res.extend(
+                    [obj] if not obj.isDerivedFrom("App::DocumentObjectGroup")
+                    else all_group_objs(obj)
+                    )
+            return res
+        return all_group_objs(self.fpo)
+
     def render(self, external=True):
         """Render the project, calling external renderer
 
@@ -365,9 +384,8 @@ class Project:
         try:
             renderer = RendererHandler(obj.Renderer)
         except ModuleNotFoundError:
-            msg = "Cannot render project: Renderer '%s' not found"\
-                    % obj.Renderer
-            App.Console.PrintError(msg)
+            msg = "Cannot render project: Renderer '%s' not found\n"
+            App.Console.PrintError(msg % obj.Renderer)
             return ""
 
         # Get the rendering template
@@ -393,20 +411,19 @@ class Project:
         cam = renderer.get_rendering_string(dummycamview)
 
         # Get objects rendering strings (including lights, cameras...)
-        # and add a ground plane if required
-        viewresult = (renderer.get_rendering_string
-                      if obj.DelayedBuild
-                      else attrgetter("ViewResult"))
-        objstrings = [viewresult(view) for view in obj.Group
-                      if view.Source.Visibility]
+        views = self.all_views()
+        get_rdr_string =\
+            renderer.get_rendering_string if obj.DelayedBuild\
+            else attrgetter("ViewResult")
+        objstrings = [get_rdr_string(v) for v in views if v.Source.Visibility]
 
-        if hasattr(obj, "GroundPlane") and obj.GroundPlane:
+        # Add a ground plane if required
+        if getattr(obj, "GroundPlane", False):
             objstrings.append(self.write_groundplane(renderer))
-
-        renderobjs = '\n'.join(objstrings)
 
         # Merge all strings (cam, objects, ground plane...) into rendering
         # template
+        renderobjs = '\n'.join(objstrings)
         if "RaytracingCamera" in template:
             template = re.sub("(.*RaytracingCamera.*)", cam, template)
             template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
@@ -560,18 +577,17 @@ class View:
         Write or rewrite the ViewResult string if containing project is not
         'delayed build'
         """
-        # Loop through View's containing projects, not DelayedBuild
-        for proj in [x for x in obj.InList
-                     if not getattr(x, "DelayedBuild", True)
-                     and obj in getattr(x, "Group", [])
-                     and hasattr(x, "Renderer")]:
-            try:
-                renderer = RendererHandler(proj.Renderer)
-            except ModuleNotFoundError:
-                continue
+        # Find containing project and check DelayedBuild is false
+        try:
+            proj = next(x for x in obj.InListRecursive
+                        if RendererHandler.is_project(x))
+            assert not proj.DelayedBuild
+        except (StopIteration, AttributeError, AssertionError):
+            return
 
-            # obj.ViewResult = proj.Proxy.write_object(obj, renderer)
-            obj.ViewResult = renderer.get_rendering_string(obj)
+        # Get object rendering string and set ViewResult property
+        renderer = RendererHandler(proj.Renderer)
+        obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
     def view_label(obj, proj):
