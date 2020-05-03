@@ -848,6 +848,11 @@ class RendererHandler:
         if not mesh:
             return ""
 
+        if not (mesh.Topology[0] and mesh.Topology[1] and
+                mesh.getPointNormals()):
+            # Empty topology makes some renderers crash at parsing...
+            return ""
+
         return self._call_renderer("write_object",
                                    view,
                                    name,
