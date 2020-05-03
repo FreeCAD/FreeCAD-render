@@ -216,7 +216,7 @@ def render(project, prefix, external, output, width, height):
     if not rpath:
         App.Console.PrintError("Unable to locate renderer executable. "
                                "Please set the correct path in "
-                               "Edit -> Preferences -> Render")
+                               "Edit -> Preferences -> Render\n")
         return ""
     args += " --width " + str(width)
     args += " --height " + str(height)

@@ -384,7 +384,8 @@ class Project:
         try:
             renderer = RendererHandler(obj.Renderer)
         except ModuleNotFoundError:
-            msg = "Cannot render project: Renderer '%s' not found\n"
+            msg = translate(
+                "Render", "Cannot render project: Renderer '%s' not found\n")
             App.Console.PrintError(msg % obj.Renderer)
             return ""
 
@@ -805,7 +806,7 @@ class RendererHandler:
 
             res = switcher[objtype](self, name, view)
 
-        except (AttributeError, TypeError, AssertionError) as err :
+        except (AttributeError, TypeError, AssertionError) as err:
             msg = translate(
                 "Render",
                 "Cannot render view '{0}': {1}. Skipping...\n")
@@ -921,7 +922,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         # get location, color
-        location = view.Source.Location
+        location = App.Base.Vector(view.Source.Location)
         color = view.Source.Color
 
         # we accept missing Power (default value: 60)...
