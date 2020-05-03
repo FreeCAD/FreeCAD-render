@@ -384,7 +384,8 @@ class Project:
         try:
             renderer = RendererHandler(obj.Renderer)
         except ModuleNotFoundError:
-            msg = "Cannot render project: Renderer '%s' not found\n"
+            msg = translate(
+                "Render", "Cannot render project: Renderer '%s' not found\n")
             App.Console.PrintError(msg % obj.Renderer)
             return ""
 
@@ -921,7 +922,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         # get location, color
-        location = view.Source.Location
+        location = App.Base.Vector(view.Source.Location)
         color = view.Source.Color
 
         # we accept missing Power (default value: 60)...
