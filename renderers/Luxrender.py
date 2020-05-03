@@ -26,7 +26,8 @@
 # NOTE As LuxRender has been deprecated in favor of LuxCore, LuxRender's
 # documentation is quite rare. Best documentation seems to be found directly in
 # the code of LuxCore importer for LuxRender, by reverse engineering,
-# and additionnally in LuxCore's documentation. Here are such links:
+# and additionnally in LuxCore's documentation. Here are links to such
+# resources:
 # https://github.com/LuxCoreRender/LuxCore/blob/master/src/luxcore/luxparser/luxparse.cpp
 # https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.3
 
@@ -87,7 +88,7 @@ def write_object(name, mesh, color, alpha):
                                   nrms=" ".join(norms))
 
 
-def write_camera(name, pos, rot, updir, target):
+def write_camera(name, pos, updir, target):
     """Compute a string in the format of Luxrender, that represents a camera"""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
@@ -98,7 +99,7 @@ def write_camera(name, pos, rot, updir, target):
     LookAt   {1.x} {1.y} {1.z}   {2.x} {2.y} {2.z}   {3.x} {3.y} {3.z}
     \n"""
 
-    return dedent(snippet).format(name, pos, target, updir)
+    return dedent(snippet).format(name, pos.Base, target, updir)
 
 
 def write_pointlight(name, pos, color, power):

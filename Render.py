@@ -397,18 +397,21 @@ class Project:
         if sys.version_info.major < 3:
             template = template.decode("utf8")
 
-        # Get a default camera, to be used if no camera is present in the scene
+        # Build a default camera, to be used if no camera is present in the
+        # scene
         camstr = (Gui.ActiveDocument.ActiveView.getCamera() if App.GuiUp
                   else camera.DEFAULT_CAMERA_STRING)
-        dummycamview = SimpleNamespace()
-        dummycamview.Source = SimpleNamespace()
-        dummycamview.Source.Proxy = SimpleNamespace()
-        dummycamview.Source.Proxy.type = "Camera"
-        dummycamview.Source.Name = "Default_Camera"
-        dummycamview.Source.Label = "Default_Camera"
-        dummycamview.Name = "Default_CameraView"
-        camera.set_cam_from_coin_string(dummycamview.Source, camstr)
-        cam = renderer.get_rendering_string(dummycamview)
+        defaultcamview = SimpleNamespace()
+        defaultcamview.Source = SimpleNamespace()
+        defaultcamview.Source.Proxy = SimpleNamespace()
+        defaultcamview.Source.Proxy.type = "Camera"
+        defaultcamview.Source.Name = "Default_Camera"
+        defaultcamview.Source.Label = "Default_Camera"
+        defaultcamview.Name = "Default_CameraView"
+        defaultcamview.Label = View.view_label(defaultcamview.Source, obj)
+        camera.set_cam_from_coin_string(defaultcamview.Source, camstr)
+        cam = renderer.get_rendering_string(defaultcamview)
+        del defaultcamview, camstr
 
         # Get objects rendering strings (including lights, cameras...)
         views = self.all_views()
@@ -546,7 +549,8 @@ class ViewProviderProject:
         try:
             self.object.Proxy.render()
         except AttributeError as err:
-            App.Console.PrintError("Cannot render: {}".format(err))
+            msg = translate("Render", "Cannot render: {}\n")
+            App.Console.PrintError(msg.format(err))
 
 
 class View:
@@ -591,9 +595,17 @@ class View:
 
     @staticmethod
     def view_label(obj, proj):
-        """Give a standard view label for an object"""
-        proj_name = proj.Label.replace(" ", "")
-        res = "{o}@{p}".format(o=obj.Label, p=proj_name)
+        """Give a standard view label for an object
+
+        obj -- object for which the view is build
+        proj -- project in which the view will be inserted
+
+        Both obj and proj should have valid Label attribute"""
+        obj_label = str(obj.Label)
+        proj_label = str(proj.Label)
+
+        proj_label2 = proj_label.replace(" ", "")
+        res = "{o}@{p}".format(o=obj_label, p=proj_label2)
         return res
 
     @staticmethod
@@ -796,8 +808,9 @@ class RendererHandler:
         except (AttributeError, TypeError, AssertionError) as err :
             msg = translate(
                 "Render",
-                "Cannot render '{0}' ('{1}'): skipping...\n")
-            App.Console.PrintWarning(msg.format(view.Label, err))
+                "Cannot render view '{0}': {1}. Skipping...\n")
+            App.Console.PrintWarning(msg.format(
+                getattr(view, "Label", "<No label>"), err))
             return ""
 
         else:
@@ -863,8 +876,9 @@ class RendererHandler:
 
         assert mesh, translate("Render", "Cannot find mesh data")
         assert mesh.Topology[0] and mesh.Topology[1],\
-            translate("Render", "Mesh has empty topology")
-        assert mesh.getPointNormals(), translate("Render", "Mesh has no normals")
+            translate("Render", "Mesh topology is empty")
+        assert mesh.getPointNormals(),\
+            translate("Render", "Mesh topology has no normals")
 
         return self._call_renderer("write_object",
                                    name,
@@ -884,15 +898,14 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         cam = view.Source
-        asp_ratio = float(cam.AspectRatio)
-        pos = cam.Placement.Base
-        rot = cam.Placement.Rotation
-        target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
-        updir = rot.multVec(App.Vector(0, 1, 0))
+        a_ratio = float(cam.AspectRatio)
+        pos = App.Base.Placement(cam.Placement)
+        target = pos.Base.add(
+            pos.Rotation.multVec(App.Vector(0, 0, -1)).multiply(a_ratio))
+        updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         return self._call_renderer("write_camera",
                                    name,
                                    pos,
-                                   rot,
                                    updir,
                                    target)
 

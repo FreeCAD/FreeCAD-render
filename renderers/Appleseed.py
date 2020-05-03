@@ -112,7 +112,7 @@ def write_object(name, mesh, color, alpha):
                           f=objfile.encode("unicode_escape").decode("utf-8"))
 
 
-def write_camera(name, pos, rot, updir, target):
+def write_camera(name, pos, updir, target):
     """Compute a string in the format of Appleseed, that represents a camera"""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
@@ -138,7 +138,7 @@ def write_camera(name, pos, rot, updir, target):
         </camera>"""
 
     return snippet.format(n=name,
-                          o=_transform(pos),
+                          o=_transform(pos.Base),
                           t=_transform(target),
                           u=_transform(updir))
 

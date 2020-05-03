@@ -96,7 +96,7 @@ def write_object(name, mesh, color, alpha):
                                   color=colo)
 
 
-def write_camera(name, pos, rot, updir, target):
+def write_camera(name, pos, updir, target):
     """Compute a string in the format of POV-Ray, that represents a camera"""
 
     # This is where you create a piece of text in the format of
@@ -117,7 +117,7 @@ def write_camera(name, pos, rot, updir, target):
         right     x*800/600
     }}\n"""
 
-    return dedent(snippet).format(n=name, p=pos, t=target, u=updir)
+    return dedent(snippet).format(n=name, p=pos.Base, t=target, u=updir)
 
 
 def write_pointlight(name, pos, color, power):
