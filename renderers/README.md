@@ -49,7 +49,7 @@ The plugin must contain the following functions:
 
 Expected behaviour: return a string containing a mesh object description in renderer SDL
 
-* `write_camera(name, pos, rot, up, target)`
+* `write_camera(name, pos, up, target)`
 
 Expected behaviour: return a string containing a camera description in renderer SDL
 
