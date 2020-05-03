@@ -806,7 +806,7 @@ class RendererHandler:
 
             res = switcher[objtype](self, name, view)
 
-        except (AttributeError, TypeError, AssertionError) as err :
+        except (AttributeError, TypeError, AssertionError) as err:
             msg = translate(
                 "Render",
                 "Cannot render view '{0}': {1}. Skipping...\n")
