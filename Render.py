@@ -774,26 +774,41 @@ class RendererHandler:
         for the supplied 'view'
         """
 
-        if not view.Source:
+        try:
+            source = view.Source
+
+            try:
+                objtype = source.Proxy.type
+            except AttributeError:
+                objtype = "Object"
+
+            name = str(source.Name)
+
+            switcher = {
+                "Object": RendererHandler._render_object,
+                "PointLight": RendererHandler._render_pointlight,
+                "Camera": RendererHandler._render_camera,
+                "AreaLight": RendererHandler._render_arealight
+                }
+
+            res = switcher[objtype](self, name, view)
+
+        except (AttributeError, TypeError, AssertionError) as err :
+            msg = translate(
+                "Render",
+                "Cannot render '{0}' ('{1}'): skipping...\n")
+            App.Console.PrintWarning(msg.format(view.Label, err))
             return ""
 
-        try:
-            objtype = view.Source.Proxy.type
-        except AttributeError:
-            objtype = "Object"
-
-        name = str(view.Source.Name)
-
-        switcher = {
-            "Object": RendererHandler._render_object,
-            "PointLight": RendererHandler._render_pointlight,
-            "Camera": RendererHandler._render_camera,
-            "AreaLight": RendererHandler._render_arealight
-            }
-        return switcher[objtype](self, name, view)
+        else:
+            return res
 
     def _render_object(self, name, view):
-        """Get a rendering string for a generic FreeCAD object"""
+        """Get a rendering string for a generic FreeCAD object
+
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+        """
         # get color and alpha
         mat = None
         color = None
@@ -845,16 +860,13 @@ class RendererHandler:
                                           Relative=False)
         elif view.Source.isDerivedFrom("Mesh::Feature"):
             mesh = view.Source.Mesh
-        if not mesh:
-            return ""
 
-        if not (mesh.Topology[0] and mesh.Topology[1] and
-                mesh.getPointNormals()):
-            # Empty topology makes some renderers crash at parsing...
-            return ""
+        assert mesh, translate("Render", "Cannot find mesh data")
+        assert mesh.Topology[0] and mesh.Topology[1],\
+            translate("Render", "Mesh has empty topology")
+        assert mesh.getPointNormals(), translate("Render", "Mesh has no normals")
 
         return self._call_renderer("write_object",
-                                   view,
                                    name,
                                    mesh,
                                    color,
@@ -863,19 +875,21 @@ class RendererHandler:
     def _render_camera(self, name, view):
         """Provide a rendering string for a camera.
 
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+
         Parameters:
         view: a (valid) view of the camera to render.
 
         Returns: a rendering string, obtained from the renderer module
         """
         cam = view.Source
-        asp_ratio = cam.AspectRatio
+        asp_ratio = float(cam.AspectRatio)
         pos = cam.Placement.Base
         rot = cam.Placement.Rotation
         target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
         updir = rot.multVec(App.Vector(0, 1, 0))
         return self._call_renderer("write_camera",
-                                   view,
                                    name,
                                    pos,
                                    rot,
@@ -885,27 +899,23 @@ class RendererHandler:
     def _render_pointlight(self, name, view):
         """Gets a rendering string for a point light object
 
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+
         Parameters:
         view: the view of the point light (contains the point light data)
 
         Returns: a rendering string, obtained from the renderer module
         """
-        # get location, color, power
-        try:
-            location = view.Source.Location
-            color = view.Source.Color
-        except AttributeError:
-            App.Console.PrintError(translate("Render",
-                                             "Cannot render Point Light: "
-                                             "Missing location and/or color "
-                                             "attributes"))
-            return ""
+        # get location, color
+        location = view.Source.Location
+        color = view.Source.Color
+
         # we accept missing Power (default value: 60)...
         power = getattr(view.Source, "Power", 60)
 
         # send everything to renderer module
         return self._call_renderer("write_pointlight",
-                                   view,
                                    name,
                                    location,
                                    color,
@@ -914,27 +924,23 @@ class RendererHandler:
     def _render_arealight(self, name, view):
         """Gets a rendering string for an area light object
 
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+
         Parameters:
         view: the view of the point light (contains the point light data)
 
         Returns: a rendering string, obtained from the renderer module
         """
         # Get properties
-        try:
-            placement = view.Source.Placement
-            color = view.Source.Color
-            power = float(view.Source.Power)
-            size_u = float(view.Source.SizeU)
-            size_v = float(view.Source.SizeV)
-        except AttributeError:
-            App.Console.PrintError(
-                translate("Render",
-                          "Cannot render Point Light: Missing attributes"))
-            return ""
+        placement = App.Base.Placement(view.Source.Placement)
+        color = view.Source.Color
+        power = float(view.Source.Power)
+        size_u = float(view.Source.SizeU)
+        size_v = float(view.Source.SizeV)
 
         # Send everything to renderer module
         return self._call_renderer("write_arealight",
-                                   view,
                                    name,
                                    placement,
                                    size_u,
@@ -942,26 +948,17 @@ class RendererHandler:
                                    color,
                                    power)
 
-    def _call_renderer(self, method, view, *args):
+    def _call_renderer(self, method, *args):
         """Calls a render method of the renderer module
 
         Parameters:
         -----------
-        method: the method to render (as a string)
-        view: the view of the object to render
+        method: the method to call (as a string)
         args: the arguments to pass to the method
 
         Returns: a rendering string, obtained from the renderer module
         """
-        try:
-            renderer_method = getattr(self.renderer_module, method)
-        except AttributeError:
-            msg = translate("Render",
-                            "Warning: Cannot render view '%s'. "
-                            "Render module '%s' has no method '%s'\n")
-            name = getattr(view, "Name", "<No name>")
-            App.Console.PrintWarning(msg % (name, self.renderer_name, method))
-            return ""
+        renderer_method = getattr(self.renderer_module, method)
         return renderer_method(*args)
 
 
