@@ -88,7 +88,7 @@ def write_object(name, mesh, color, alpha):
                           v="  ".join(verts))
 
 
-def write_camera(name, pos, rot, updir, target):
+def write_camera(name, pos, updir, target):
     """Compute a string in the format of Cycles, that represents a camera"""
 
     # This is where you create a piece of text in the format of
@@ -105,7 +105,10 @@ def write_camera(name, pos, rot, updir, target):
         <camera type="perspective"/>
     </transform>"""
 
-    return snippet.format(n=name, a=degrees(rot.Angle), r=rot.Axis, p=pos)
+    return snippet.format(n=name,
+                          a=degrees(pos.Rotation.Angle),
+                          r=pos.Rotation.Axis,
+                          p=pos.Base)
 
 
 def write_pointlight(name, pos, color, power):
