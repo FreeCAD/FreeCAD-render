@@ -41,6 +41,7 @@ the necessary UI controls.
 import sys
 import os
 import re
+import itertools
 from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -229,7 +230,7 @@ class Project:
         changed (callback)
         """
         if prop == "DelayedBuild" and not obj.DelayedBuild:
-            for view in obj.Group:
+            for view in obj.Proxy.all_views():
                 view.touch()
 
     @staticmethod
@@ -313,6 +314,59 @@ class Project:
 
         return result
 
+    def add_objects(self, objs):
+        """Add objects as new views to the project
+
+        This method can handle objects groups, recursively.
+
+        This function checks if each object is renderable before adding it,
+        via 'RendererHandler.is_renderable'; if not, a warning is issued and
+        the faulty object is ignored.
+
+        Parameters
+        objs -- an iterable on FreeCAD objects to add to project
+        """
+
+        def add_to_group(objs, group):
+            """Add objects as views to a group
+
+            objs -- FreeCAD objects to add
+            group -- The  group (App::DocumentObjectGroup) to add to"""
+            for obj in objs:
+                if obj.isDerivedFrom("App::DocumentObjectGroup"):
+                    assert obj != group  # Just in case...
+                    label = View.view_label(obj, group)
+                    new_group = App.ActiveDocument.addObject(
+                        "App::DocumentObjectGroup", label)
+                    new_group.Label = label
+                    group.addObject(new_group)
+                    add_to_group(obj.Group, new_group)
+                elif RendererHandler.is_renderable(obj):
+                    View.create(obj, group)
+                else:
+                    msg = translate(
+                        "Render",
+                        "Unable to create rendering view for object {}\n")
+                    App.Console.PrintWarning(msg.format(obj.Label))
+
+        # Here starts add_objects
+        add_to_group(iter(objs), self.fpo)
+
+    def all_views(self):
+        """Give the list of all views contained in the project"""
+        def all_group_objs(group):
+            """Returns all objects in group (recursively exploding
+            subgroups)
+            """
+            res = []
+            for obj in group.Group:
+                res.extend(
+                    [obj] if not obj.isDerivedFrom("App::DocumentObjectGroup")
+                    else all_group_objs(obj)
+                    )
+            return res
+        return all_group_objs(self.fpo)
+
     def render(self, external=True):
         """Render the project, calling external renderer
 
@@ -330,9 +384,8 @@ class Project:
         try:
             renderer = RendererHandler(obj.Renderer)
         except ModuleNotFoundError:
-            msg = "Cannot render project: Renderer '%s' not found"\
-                    % obj.Renderer
-            App.Console.PrintError(msg)
+            msg = "Cannot render project: Renderer '%s' not found\n"
+            App.Console.PrintError(msg % obj.Renderer)
             return ""
 
         # Get the rendering template
@@ -351,25 +404,26 @@ class Project:
         dummycamview.Source = SimpleNamespace()
         dummycamview.Source.Proxy = SimpleNamespace()
         dummycamview.Source.Proxy.type = "Camera"
-        dummycamview.Name = "Default_Camera"
+        dummycamview.Source.Name = "Default_Camera"
+        dummycamview.Source.Label = "Default_Camera"
+        dummycamview.Name = "Default_CameraView"
         camera.set_cam_from_coin_string(dummycamview.Source, camstr)
         cam = renderer.get_rendering_string(dummycamview)
 
         # Get objects rendering strings (including lights, cameras...)
-        # and add a ground plane if required
-        viewresult = (renderer.get_rendering_string
-                      if obj.DelayedBuild
-                      else attrgetter("ViewResult"))
-        objstrings = [viewresult(view) for view in obj.Group
-                      if view.Source.Visibility]
+        views = self.all_views()
+        get_rdr_string =\
+            renderer.get_rendering_string if obj.DelayedBuild\
+            else attrgetter("ViewResult")
+        objstrings = [get_rdr_string(v) for v in views if v.Source.Visibility]
 
-        if hasattr(obj, "GroundPlane") and obj.GroundPlane:
+        # Add a ground plane if required
+        if getattr(obj, "GroundPlane", False):
             objstrings.append(self.write_groundplane(renderer))
-
-        renderobjs = '\n'.join(objstrings)
 
         # Merge all strings (cam, objects, ground plane...) into rendering
         # template
+        renderobjs = '\n'.join(objstrings)
         if "RaytracingCamera" in template:
             template = re.sub("(.*RaytracingCamera.*)", cam, template)
             template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
@@ -496,7 +550,7 @@ class ViewProviderProject:
 
 
 class View:
-    """A rendering view of FreeCAD object"""
+    """A rendering view of a FreeCAD object"""
 
     def __init__(self, obj):
         obj.addProperty("App::PropertyLink",
@@ -523,18 +577,24 @@ class View:
         Write or rewrite the ViewResult string if containing project is not
         'delayed build'
         """
-        # Loop through View's containing projects, not DelayedBuild
-        for proj in [x for x in obj.InList
-                     if not getattr(x, "DelayedBuild", True)
-                     and obj in getattr(x, "Group", [])
-                     and hasattr(x, "Renderer")]:
-            try:
-                renderer = RendererHandler(proj.Renderer)
-            except ModuleNotFoundError:
-                continue
+        # Find containing project and check DelayedBuild is false
+        try:
+            proj = next(x for x in obj.InListRecursive
+                        if RendererHandler.is_project(x))
+            assert not proj.DelayedBuild
+        except (StopIteration, AttributeError, AssertionError):
+            return
 
-            # obj.ViewResult = proj.Proxy.write_object(obj, renderer)
-            obj.ViewResult = renderer.get_rendering_string(obj)
+        # Get object rendering string and set ViewResult property
+        renderer = RendererHandler(proj.Renderer)
+        obj.ViewResult = renderer.get_rendering_string(obj)
+
+    @staticmethod
+    def view_label(obj, proj):
+        """Give a standard view label for an object"""
+        proj_name = proj.Label.replace(" ", "")
+        res = "{o}@{p}".format(o=obj.Label, p=proj_name)
+        return res
 
     @staticmethod
     def create(fcd_obj, project):
@@ -560,7 +620,7 @@ class View:
         assert doc == fcd_obj.Document,\
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
-        fpo.Label = "View of %s" % fcd_obj.Name
+        fpo.Label = View.view_label(fcd_obj, project)
         view = View(fpo)
         fpo.Source = fcd_obj
         project.addObject(fpo)
@@ -665,6 +725,42 @@ class RendererHandler:
                                            width,
                                            height)
 
+    @staticmethod
+    def is_renderable(obj):
+        """Determine if an object is renderable
+
+        This is a weak test: we just check if the object belongs to a
+        class we would know how to handle - no further verification
+        is made on the consistency of the object data against
+        get_rendering_string requirements"""
+
+        try:
+            res = (obj.isDerivedFrom("Part::Feature") or
+                   obj.isDerivedFrom("Mesh::Feature") or
+                   (obj.isDerivedFrom("App::FeaturePython") and
+                    obj.Proxy.type in ["PointLight", "Camera", "AreaLight"]))
+        except AttributeError:
+            res = False
+
+        return res
+
+    @staticmethod
+    def is_project(obj):
+        """Determine if an object is a rendering project
+
+        This is a weak test: we just check if the object looks like
+        something we could know how to handle - no further verification
+        is made on the consistency of the object data against
+        render requirements"""
+
+        try:
+            res = (obj.isDerivedFrom("App::FeaturePython") and
+                   "Renderer" in obj.PropertiesList)
+        except AttributeError:
+            res = False
+
+        return res
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object
 
@@ -686,15 +782,17 @@ class RendererHandler:
         except AttributeError:
             objtype = "Object"
 
+        name = str(view.Source.Name)
+
         switcher = {
             "Object": RendererHandler._render_object,
             "PointLight": RendererHandler._render_pointlight,
             "Camera": RendererHandler._render_camera,
             "AreaLight": RendererHandler._render_arealight
             }
-        return switcher[objtype](self, view)
+        return switcher[objtype](self, name, view)
 
-    def _render_object(self, view):
+    def _render_object(self, name, view):
         """Get a rendering string for a generic FreeCAD object"""
         # get color and alpha
         mat = None
@@ -750,7 +848,10 @@ class RendererHandler:
         if not mesh:
             return ""
 
-        name = str(view.Source.Name)
+        if not (mesh.Topology[0] and mesh.Topology[1] and
+                mesh.getPointNormals()):
+            # Empty topology makes some renderers crash at parsing...
+            return ""
 
         return self._call_renderer("write_object",
                                    view,
@@ -759,7 +860,7 @@ class RendererHandler:
                                    color,
                                    alpha)
 
-    def _render_camera(self, view):
+    def _render_camera(self, name, view):
         """Provide a rendering string for a camera.
 
         Parameters:
@@ -773,11 +874,15 @@ class RendererHandler:
         rot = cam.Placement.Rotation
         target = pos.add(rot.multVec(App.Vector(0, 0, -1)).multiply(asp_ratio))
         updir = rot.multVec(App.Vector(0, 1, 0))
-        name = view.Name
-        return self._call_renderer("write_camera", view,
-                                   name, pos, rot, updir, target)
+        return self._call_renderer("write_camera",
+                                   view,
+                                   name,
+                                   pos,
+                                   rot,
+                                   updir,
+                                   target)
 
-    def _render_pointlight(self, view):
+    def _render_pointlight(self, name, view):
         """Gets a rendering string for a point light object
 
         Parameters:
@@ -787,7 +892,6 @@ class RendererHandler:
         """
         # get location, color, power
         try:
-            name = str(view.Source.Name)
             location = view.Source.Location
             color = view.Source.Color
         except AttributeError:
@@ -800,10 +904,14 @@ class RendererHandler:
         power = getattr(view.Source, "Power", 60)
 
         # send everything to renderer module
-        return self._call_renderer("write_pointlight", view,
-                                   name, location, color, power)
+        return self._call_renderer("write_pointlight",
+                                   view,
+                                   name,
+                                   location,
+                                   color,
+                                   power)
 
-    def _render_arealight(self, view):
+    def _render_arealight(self, name, view):
         """Gets a rendering string for an area light object
 
         Parameters:
@@ -813,7 +921,6 @@ class RendererHandler:
         """
         # Get properties
         try:
-            name = str(view.Source.Name)
             placement = view.Source.Placement
             color = view.Source.Color
             power = float(view.Source.Power)
@@ -920,37 +1027,30 @@ class RenderViewCommand:
 
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
-        project = None
-        objs = []
-        sel = Gui.Selection.getSelection()
-        # Find project and objects to add to project
-        for obj in sel:
-            if "Renderer" in obj.PropertiesList:
-                project = obj
-            else:
-                if (obj.isDerivedFrom("Part::Feature")
-                        or obj.isDerivedFrom("Mesh::Feature")):
-                    objs.append(obj)
-                if (obj.isDerivedFrom("App::FeaturePython")
-                        and hasattr(obj.Proxy, "type")
-                        and obj.Proxy.type in ['PointLight',
-                                               'Camera',
-                                               'AreaLight']):
-                    objs.append(obj)
-        if not project:
-            for obj in App.ActiveDocument.Objects:
-                if "Renderer" in obj.PropertiesList:
-                    project = obj
-                    break
-        if not project:
-            App.Console.PrintError(translate("Render",
-                                             "Unable to find a valid project "
-                                             "in selection or document"))
+
+        # First, split selection into objects and projects
+        selection = Gui.Selection.getSelection()
+        objs, projs = [], []
+        for item in selection:
+            (projs if RendererHandler.is_project(item) else objs).append(item)
+
+        # Then, get target project.
+        # We first look among projects in the selection
+        # and, if none, we fall back on active document's projects
+        activedoc_projects = filter(RendererHandler.is_project,
+                                    App.ActiveDocument.Objects)
+        try:
+            target_project = next(itertools.chain(projs, activedoc_projects))
+        except StopIteration:
+            msg = translate(
+                "Render",
+                "Unable to find a valid project in selection or document\n")
+            App.Console.PrintError(msg)
             return
 
-        # Add objects (as views) to the project
-        for obj in objs:
-            View.create(obj, project)
+        # Finally, add objects to target project and recompute
+        target_project.Proxy.add_objects(objs)
+
         App.ActiveDocument.recompute()
 
 
