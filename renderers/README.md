@@ -4,7 +4,7 @@ This is the renderers plug-ins directory.
 ## How FreeCAD-render works with external renderers
 To obtain a rendering, given a specific external renderer, FreeCAD-render writes a file (the *input file*) in renderer format and runs the external renderer on this file. As a result, the external renderer outputs an image file.
 
-The input file is written in what is called a *Scene Description Language (SDL)*, which is specific to the renderer.
+The input file is written in a so-called *Scene Description Language (SDL)*, which is specific to the renderer.
 
 FreeCAD-render builds the input file by instantiating a *template* with *descriptions* of FreeCAD objects in renderer SDL:
 * The template basically contains placeholders sections to be filled with objects descriptions, following the general structure expected by the renderer, and also contains predefined settings designed for given use cases: standard scene, sunlight scene...
