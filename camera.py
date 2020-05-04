@@ -25,6 +25,7 @@ of Coin Camera settings and use them later for rendering"""
 
 from collections import namedtuple
 from math import degrees, radians
+from types import SimpleNamespace
 import shlex
 
 from pivy import coin
@@ -32,7 +33,6 @@ from PySide.QtGui import QAction
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
-import Part
 
 
 # ===========================================================================
@@ -125,11 +125,12 @@ class Camera:
                               "Height angle, for perspective camera"),
             60),
 
-        "Shape": Prop(
-            "Part::PropertyPartShape",
-            "",
-            QT_TRANSLATE_NOOP("Render", "Shape of the camera"),
-            None),
+        # TODO delete
+        # "Shape": Prop(
+            # "Part::PropertyPartShape",
+            # "",
+            # QT_TRANSLATE_NOOP("Render", "Shape of the camera"),
+            # None),
 
     }
     # ~FeaturePython object properties
@@ -175,7 +176,7 @@ class Camera:
         ViewProviderCamera object"""
 
         doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("Part::FeaturePython", "Camera")
+        fpo = doc.addObject("App::FeaturePython", "Camera")
         cam = Camera(fpo)
         viewp = ViewProviderCamera(fpo.ViewObject)
         if App.GuiUp:
@@ -196,34 +197,6 @@ class Camera:
         """Callback triggered on document recomputation (mandatory).
         It mainly draws the camera graphical representation"""
 
-        # Use pivy.coin rather than Part (as it is not a Part...)
-        # and move it to ViewProvider...
-        size = 5
-        height = 10
-        # Square
-        poly1 = Part.makePolygon([(-size * 2, size, 0),
-                                  (size * 2, size, 0),
-                                  (size * 2, -size, 0),
-                                  (-size * 2, -size, 0),
-                                  (-size * 2, size, 0)])
-        # Triangle 1
-        poly2 = Part.makePolygon([(-size * 2, size, 0),
-                                  (0, 0, height * 2),
-                                  (-size * 2, -size, 0),
-                                  (-size * 2, size, 0)])
-        # Triangle 2
-        poly3 = Part.makePolygon([(size * 2, size, 0),
-                                  (0, 0, height * 2),
-                                  (size * 2, -size, 0),
-                                  (size * 2, size, 0)])
-        # Arrow (up direction)
-        poly4 = Part.makePolygon([(-size * 1.8, 1.2 * size, 0),
-                                  (0, 1.4 * size, 0),
-                                  (size * 1.8, 1.2 * size, 0),
-                                  (-size * 1.8, 1.2 * size, 0)])
-
-        fpo.Shape = Part.makeCompound([poly1, poly2, poly3, poly4])
-
 
 # ===========================================================================
 
@@ -237,7 +210,106 @@ class ViewProviderCamera:
 
     def attach(self, vobj):
         """Code executed when object is created/restored (callback)"""
+        # pylint: disable=attribute-defined-outside-init
+
         self.fpo = vobj.Object
+
+        # Here we create a coin representation
+        self.coin = SimpleNamespace()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+
+        size = 5
+        height = 10
+
+        self.coin.geometry = coin.SoSwitch()
+        self.coin.node = coin.SoSeparator()
+        self.coin.transform = coin.SoTransform()
+        self.coin.node.addChild(self.coin.transform)
+        self.coin.material = coin.SoMaterial()
+        self.coin.node.addChild(self.coin.material)
+        self.coin.drawstyle = coin.SoDrawStyle()
+        self.coin.drawstyle.style = coin.SoDrawStyle.LINES
+        self.coin.drawstyle.lineWidth = 1
+        self.coin.drawstyle.linePattern = 0xaaaa
+        self.coin.node.addChild(self.coin.drawstyle)
+        self.coin.coords = coin.SoCoordinate3()
+        self.coin.coords.point.setValues(
+            0, 15,
+            [(-size * 2, +size, 0),          # Front rectangle
+             (+size * 2, +size, 0),          # Front rectangle
+             (+size * 2, -size, 0),          # Front rectangle
+             (-size * 2, -size, 0),          # Front rectangle
+             (-size * 2, +size, 0),          # Front rectangle
+             (-size * 2, +size, 0),          # Left triangle
+             (0, 0, height * 2),             # Left triangle
+             (-size * 2, -size, 0),          # Left triangle
+             (+size * 2, +size, 0),          # Right triangle
+             (0, 0, height * 2),             # Right triangle
+             (+size * 2, -size, 0),          # Right triangle
+             (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+             (0, 1.4 * +size, 0),            # Up triangle (arrow)
+             (+size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+             (-size * 1.8, 1.2 * +size, 0)]  # Up triangle (arrow)
+        )
+        self.coin.node.addChild(self.coin.coords)
+        self.coin.lineset = coin.SoLineSet()
+        self.coin.lineset.numVertices.setValues(0, 4, [5, 3, 3, 4])
+        self.coin.node.addChild(self.coin.lineset)
+
+        self.coin.geometry.addChild(self.coin.node)
+        self.coin.geometry.whichChild.setValue(coin.SO_SWITCH_ALL)
+        scene.addChild(self.coin.geometry)  # Insert back
+        vobj.addDisplayMode(self.coin.geometry, "Shaded")
+
+        # Update coin elements with actual object properties
+        self._update_placement(self.fpo)
+
+    def onDelete(self, feature, subelements):
+        """Code executed when object is deleted (callback)"""
+        # Delete coin representation
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        scene.removeChild(self.coin.geometry)
+        return True  # If False, the object wouldn't be deleted
+
+    def onChanged(self, vpdo, prop):
+        """Code executed when a ViewProvider's property got modified (callback)
+
+        Parameters:
+        -----------
+        vpdo: related ViewProviderDocumentObject (where properties are stored)
+        prop: property name (as a string)
+        """
+        if prop == "Visibility":
+            self.coin.geometry.whichChild =\
+                coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+
+    def updateData(self, fpo, prop):
+        """Code executed when a FeaturePython's property got modified
+        (callback)
+
+        Parameters:
+        -----------
+        fpo: related FeaturePython object
+        prop: property name
+        """
+        switcher = {
+            "Placement": ViewProviderCamera._update_placement,
+        }
+
+        try:
+            update_method = switcher[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            update_method(self, fpo)
+
+    def _update_placement(self, fpo):
+        """Update camera location"""
+        location = fpo.Placement.Base[:3]
+        self.coin.transform.translation.setValue(location)
+        angle = float(fpo.Placement.Rotation.Angle)
+        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
+        self.coin.transform.rotation.setValue(axis, angle)
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
@@ -286,11 +358,6 @@ class ViewProviderCamera:
                         SIGNAL("triggered()"),
                         self.set_camera_from_gui)
         menu.addAction(action2)
-
-    def updateData(self, fpo, prop):
-        # pylint: disable=no-self-use
-        """Code executed when properties are modified (callback)"""
-        return
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera"""
