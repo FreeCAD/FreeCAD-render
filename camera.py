@@ -46,8 +46,8 @@ class Camera:
 
     Camera Orientation is defined by a Rotation Axis and a Rotation Angle,
     applied to 'default camera'.
-    Default camera looks from (0,0,1) towards the origin, and the up direction
-    is (0,1,0).
+    Default camera looks from (0,0,1) towards the origin (target is (0,0,-1),
+    and the up direction is (0,1,0).
 
     For more information, see Coin documentation, Camera section.
     <https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/Cameras_and_Lights/Cameras.html>
@@ -125,15 +125,10 @@ class Camera:
                               "Height angle, for perspective camera"),
             60),
 
-        # TODO delete
-        # "Shape": Prop(
-            # "Part::PropertyPartShape",
-            # "",
-            # QT_TRANSLATE_NOOP("Render", "Shape of the camera"),
-            # None),
-
     }
     # ~FeaturePython object properties
+
+    _fpos = dict()  # FeaturePython objects
 
     @classmethod
     def set_properties(cls, fpo):
@@ -152,7 +147,18 @@ class Camera:
         """
         self.type = "Camera"
         fpo.Proxy = self
+        self.fpo = fpo
         self.set_properties(fpo)
+
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
 
     @staticmethod
     def create(document=None):
@@ -190,6 +196,7 @@ class Camera:
         """Callback triggered when document is restored"""
         self.type = "Camera"
         fpo.Proxy = self
+        self.fpo = fpo
         self.set_properties(fpo)
 
     def execute(self, fpo):
@@ -197,6 +204,27 @@ class Camera:
         """Callback triggered on document recomputation (mandatory).
         It mainly draws the camera graphical representation"""
 
+    def point_at(self, point):
+        """Make camera point at a given target point
+
+        Parameters:
+        -----------
+        point -- point to point at (must have x, y, z properties)
+        """
+        fpo = self.fpo
+        current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
+        base = fpo.Placement.Base
+        new_target = App.Vector(point.x - base.x,
+                                point.y - base.y,
+                                point.z - base.z)
+        axis = current_target.cross(new_target)
+        if not axis.Length:
+            # Don't try to rotate if axis is a null vector...
+            return
+        angle = degrees(new_target.getAngle(current_target))
+        rotation = App.Rotation(axis, angle)
+
+        fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 # ===========================================================================
 
@@ -207,6 +235,7 @@ class ViewProviderCamera:
     def __init__(self, vobj):
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
+        self.callback = None  # For point_at method
 
     def attach(self, vobj):
         """Code executed when object is created/restored (callback)"""
@@ -359,6 +388,14 @@ class ViewProviderCamera:
                         self.set_camera_from_gui)
         menu.addAction(action2)
 
+        action3 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Point at..."),
+                          menu)
+        QObject.connect(action3,
+                        SIGNAL("triggered()"),
+                        self.point_at)
+        menu.addAction(action3)
+
     def set_camera_from_gui(self):
         """Set this camera from GUI camera"""
 
@@ -420,6 +457,49 @@ class ViewProviderCamera:
     def __setstate__(self, state):
         """Called while restoring document"""
         return None
+
+    def point_at(self):
+        """Make this camera point at another object
+
+        User will be requested to select an object to point at"""
+        msg = QT_TRANSLATE_NOOP("Render",
+                                "[Point at] Please select target "
+                                "(on geometry)\n")
+        App.Console.PrintMessage(msg)
+        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
+            coin.SoMouseButtonEvent.getClassTypeId(),
+            self._point_at_cb)
+
+    def _point_at_cb(self, event_cb):
+        """Point at callback
+
+        Parameters:
+        event_cb -- coin event callback object
+        """
+        event = event_cb.getEvent()
+        if (event.getState() == coin.SoMouseButtonEvent.DOWN and
+                event.getButton() == coin.SoMouseButtonEvent.BUTTON1):
+            # Get point
+            picked_point = event_cb.getPickedPoint()
+            try:
+                point = App.Vector(picked_point.getPoint())
+            except AttributeError:
+                # No picked point (outside geometry)
+                msg = QT_TRANSLATE_NOOP("Render",
+                                        "[Point at] Target outside geometry "
+                                        "-- Aborting\n")
+                App.Console.PrintMessage(msg)
+            else:
+                # Make underlying object point at target point
+                self.fpo.Proxy.point_at(point)
+                msg = QT_TRANSLATE_NOOP("Render",
+                                        "[Point at] Now pointing at "
+                                        "({0.x}, {0.y}, {0.z})\n")
+                App.Console.PrintMessage(msg.format(point))
+            finally:
+                # Remove coin event catcher
+                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
+                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
 
 
 # ===========================================================================
