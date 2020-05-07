@@ -25,6 +25,7 @@ of Coin Camera settings and use them later for rendering"""
 
 from collections import namedtuple
 from math import degrees, radians
+from types import SimpleNamespace
 import shlex
 
 from pivy import coin
@@ -32,7 +33,6 @@ from PySide.QtGui import QAction
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
-import Part
 
 
 # ===========================================================================
@@ -46,8 +46,8 @@ class Camera:
 
     Camera Orientation is defined by a Rotation Axis and a Rotation Angle,
     applied to 'default camera'.
-    Default camera looks from (0,0,1) towards the origin, and the up direction
-    is (0,1,0).
+    Default camera looks from (0,0,1) towards the origin (target is (0,0,-1),
+    and the up direction is (0,1,0).
 
     For more information, see Coin documentation, Camera section.
     <https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/Cameras_and_Lights/Cameras.html>
@@ -125,14 +125,10 @@ class Camera:
                               "Height angle, for perspective camera"),
             60),
 
-        "Shape": Prop(
-            "Part::PropertyPartShape",
-            "",
-            QT_TRANSLATE_NOOP("Render", "Shape of the camera"),
-            None),
-
     }
     # ~FeaturePython object properties
+
+    _fpos = dict()  # FeaturePython objects
 
     @classmethod
     def set_properties(cls, fpo):
@@ -151,7 +147,18 @@ class Camera:
         """
         self.type = "Camera"
         fpo.Proxy = self
+        self.fpo = fpo
         self.set_properties(fpo)
+
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
 
     @staticmethod
     def create(document=None):
@@ -175,7 +182,7 @@ class Camera:
         ViewProviderCamera object"""
 
         doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("Part::FeaturePython", "Camera")
+        fpo = doc.addObject("App::FeaturePython", "Camera")
         cam = Camera(fpo)
         viewp = ViewProviderCamera(fpo.ViewObject)
         if App.GuiUp:
@@ -189,6 +196,7 @@ class Camera:
         """Callback triggered when document is restored"""
         self.type = "Camera"
         fpo.Proxy = self
+        self.fpo = fpo
         self.set_properties(fpo)
 
     def execute(self, fpo):
@@ -196,34 +204,27 @@ class Camera:
         """Callback triggered on document recomputation (mandatory).
         It mainly draws the camera graphical representation"""
 
-        # Use pivy.coin rather than Part (as it is not a Part...)
-        # and move it to ViewProvider...
-        size = 5
-        height = 10
-        # Square
-        poly1 = Part.makePolygon([(-size * 2, size, 0),
-                                  (size * 2, size, 0),
-                                  (size * 2, -size, 0),
-                                  (-size * 2, -size, 0),
-                                  (-size * 2, size, 0)])
-        # Triangle 1
-        poly2 = Part.makePolygon([(-size * 2, size, 0),
-                                  (0, 0, height * 2),
-                                  (-size * 2, -size, 0),
-                                  (-size * 2, size, 0)])
-        # Triangle 2
-        poly3 = Part.makePolygon([(size * 2, size, 0),
-                                  (0, 0, height * 2),
-                                  (size * 2, -size, 0),
-                                  (size * 2, size, 0)])
-        # Arrow (up direction)
-        poly4 = Part.makePolygon([(-size * 1.8, 1.2 * size, 0),
-                                  (0, 1.4 * size, 0),
-                                  (size * 1.8, 1.2 * size, 0),
-                                  (-size * 1.8, 1.2 * size, 0)])
+    def point_at(self, point):
+        """Make camera point at a given target point
 
-        fpo.Shape = Part.makeCompound([poly1, poly2, poly3, poly4])
+        Parameters:
+        -----------
+        point -- point to point at (must have x, y, z properties)
+        """
+        fpo = self.fpo
+        current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
+        base = fpo.Placement.Base
+        new_target = App.Vector(point.x - base.x,
+                                point.y - base.y,
+                                point.z - base.z)
+        axis = current_target.cross(new_target)
+        if not axis.Length:
+            # Don't try to rotate if axis is a null vector...
+            return
+        angle = degrees(new_target.getAngle(current_target))
+        rotation = App.Rotation(axis, angle)
 
+        fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 # ===========================================================================
 
@@ -234,10 +235,110 @@ class ViewProviderCamera:
     def __init__(self, vobj):
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
+        self.callback = None  # For point_at method
 
     def attach(self, vobj):
         """Code executed when object is created/restored (callback)"""
+        # pylint: disable=attribute-defined-outside-init
+
         self.fpo = vobj.Object
+
+        # Here we create a coin representation
+        self.coin = SimpleNamespace()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+
+        size = 5
+        height = 10
+
+        self.coin.geometry = coin.SoSwitch()
+        self.coin.node = coin.SoSeparator()
+        self.coin.transform = coin.SoTransform()
+        self.coin.node.addChild(self.coin.transform)
+        self.coin.material = coin.SoMaterial()
+        self.coin.node.addChild(self.coin.material)
+        self.coin.drawstyle = coin.SoDrawStyle()
+        self.coin.drawstyle.style = coin.SoDrawStyle.LINES
+        self.coin.drawstyle.lineWidth = 1
+        self.coin.drawstyle.linePattern = 0xaaaa
+        self.coin.node.addChild(self.coin.drawstyle)
+        self.coin.coords = coin.SoCoordinate3()
+        self.coin.coords.point.setValues(
+            0, 15,
+            [(-size * 2, +size, 0),          # Front rectangle
+             (+size * 2, +size, 0),          # Front rectangle
+             (+size * 2, -size, 0),          # Front rectangle
+             (-size * 2, -size, 0),          # Front rectangle
+             (-size * 2, +size, 0),          # Front rectangle
+             (-size * 2, +size, 0),          # Left triangle
+             (0, 0, height * 2),             # Left triangle
+             (-size * 2, -size, 0),          # Left triangle
+             (+size * 2, +size, 0),          # Right triangle
+             (0, 0, height * 2),             # Right triangle
+             (+size * 2, -size, 0),          # Right triangle
+             (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+             (0, 1.4 * +size, 0),            # Up triangle (arrow)
+             (+size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+             (-size * 1.8, 1.2 * +size, 0)]  # Up triangle (arrow)
+        )
+        self.coin.node.addChild(self.coin.coords)
+        self.coin.lineset = coin.SoLineSet()
+        self.coin.lineset.numVertices.setValues(0, 4, [5, 3, 3, 4])
+        self.coin.node.addChild(self.coin.lineset)
+
+        self.coin.geometry.addChild(self.coin.node)
+        self.coin.geometry.whichChild.setValue(coin.SO_SWITCH_ALL)
+        scene.addChild(self.coin.geometry)  # Insert back
+        vobj.addDisplayMode(self.coin.geometry, "Shaded")
+
+        # Update coin elements with actual object properties
+        self._update_placement(self.fpo)
+
+    def onDelete(self, feature, subelements):
+        """Code executed when object is deleted (callback)"""
+        # Delete coin representation
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        scene.removeChild(self.coin.geometry)
+        return True  # If False, the object wouldn't be deleted
+
+    def onChanged(self, vpdo, prop):
+        """Code executed when a ViewProvider's property got modified (callback)
+
+        Parameters:
+        -----------
+        vpdo: related ViewProviderDocumentObject (where properties are stored)
+        prop: property name (as a string)
+        """
+        if prop == "Visibility":
+            self.coin.geometry.whichChild =\
+                coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+
+    def updateData(self, fpo, prop):
+        """Code executed when a FeaturePython's property got modified
+        (callback)
+
+        Parameters:
+        -----------
+        fpo: related FeaturePython object
+        prop: property name
+        """
+        switcher = {
+            "Placement": ViewProviderCamera._update_placement,
+        }
+
+        try:
+            update_method = switcher[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            update_method(self, fpo)
+
+    def _update_placement(self, fpo):
+        """Update camera location"""
+        location = fpo.Placement.Base[:3]
+        self.coin.transform.translation.setValue(location)
+        angle = float(fpo.Placement.Rotation.Angle)
+        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
+        self.coin.transform.rotation.setValue(axis, angle)
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
@@ -287,10 +388,13 @@ class ViewProviderCamera:
                         self.set_camera_from_gui)
         menu.addAction(action2)
 
-    def updateData(self, fpo, prop):
-        # pylint: disable=no-self-use
-        """Code executed when properties are modified (callback)"""
-        return
+        action3 = QAction(QT_TRANSLATE_NOOP("Render",
+                                            "Point at..."),
+                          menu)
+        QObject.connect(action3,
+                        SIGNAL("triggered()"),
+                        self.point_at)
+        menu.addAction(action3)
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera"""
@@ -353,6 +457,49 @@ class ViewProviderCamera:
     def __setstate__(self, state):
         """Called while restoring document"""
         return None
+
+    def point_at(self):
+        """Make this camera point at another object
+
+        User will be requested to select an object to point at"""
+        msg = QT_TRANSLATE_NOOP("Render",
+                                "[Point at] Please select target "
+                                "(on geometry)\n")
+        App.Console.PrintMessage(msg)
+        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
+            coin.SoMouseButtonEvent.getClassTypeId(),
+            self._point_at_cb)
+
+    def _point_at_cb(self, event_cb):
+        """Point at callback
+
+        Parameters:
+        event_cb -- coin event callback object
+        """
+        event = event_cb.getEvent()
+        if (event.getState() == coin.SoMouseButtonEvent.DOWN and
+                event.getButton() == coin.SoMouseButtonEvent.BUTTON1):
+            # Get point
+            picked_point = event_cb.getPickedPoint()
+            try:
+                point = App.Vector(picked_point.getPoint())
+            except AttributeError:
+                # No picked point (outside geometry)
+                msg = QT_TRANSLATE_NOOP("Render",
+                                        "[Point at] Target outside geometry "
+                                        "-- Aborting\n")
+                App.Console.PrintMessage(msg)
+            else:
+                # Make underlying object point at target point
+                self.fpo.Proxy.point_at(point)
+                msg = QT_TRANSLATE_NOOP("Render",
+                                        "[Point at] Now pointing at "
+                                        "({0.x}, {0.y}, {0.z})\n")
+                App.Console.PrintMessage(msg.format(point))
+            finally:
+                # Remove coin event catcher
+                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
+                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
 
 
 # ===========================================================================
