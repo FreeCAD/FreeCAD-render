@@ -140,8 +140,8 @@ def write_arealight(name, pos, size_u, size_v, color, power):
     """Compute a string in the format of Luxrender, that represents an
     Area Light object
     """
-    efficency = 150
-    gain = 100  # Guesstimated!
+    efficency = 15
+    gain = 10  # Guesstimated!
 
     # We have to transpose 'pos' to make it fit for Lux
     # As 'transpose' method is in-place, we first make a copy
