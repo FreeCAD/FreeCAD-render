@@ -104,6 +104,8 @@ The plugin must contain the following functions:
   | --------------- | ----------------------------- | --------------------------------------------------
   | **name**        | str                           | Area light name
   | **pos**         | App.Placement                 | Area light placement (origin & rotation)
+  | **size\_u**     | int                           | Width of the area light
+  | **size\_v**     | int                           | Height of the area light
   | **color**       | tuple (3 floats)              | RGB color of the area light
   | **power**       | float                         | Power of the area light
 
