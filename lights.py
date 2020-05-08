@@ -467,7 +467,7 @@ class AreaLight:
             return
         angle = math.degrees(new_normal.getAngle(current_normal))
         rotation = App.Rotation(axis, angle)
-        fpo.Placement.Rotation = rotation * fpo.Placement.Rotation
+        fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 
 class ViewProviderAreaLight:
