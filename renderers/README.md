@@ -47,24 +47,86 @@ The plugin must contain the following functions:
 
 * `write_object(name, mesh, color, alpha)`
 
-Expected behaviour: return a string containing a mesh object description in renderer SDL
+  Expected behaviour:  
+  Return a string containing a mesh object description in renderer SDL
+
+  Input parameters:
+
+  | Parameter       | Type                            | Description
+  | --------------- | -----------------------------   | --------------------------------------------------
+  | **name**        | str                             | Object name
+  | **mesh**        | Mesh.Mesh (Mesh::Feature)       | Mesh description
+  | **color**       | tuple (3 floats)                | RGB color of the object
+  | **alpha**       | float                           | Alpha component (transparency) of the object color
+
+  &nbsp;
 
 * `write_camera(name, pos, up, target)`
 
-Expected behaviour: return a string containing a camera description in renderer SDL
+  Expected behaviour:  
+  Return a string containing a camera description in renderer SDL
+
+  Input parameters:
+
+  | Parameter       | Type                          | Description
+  | --------------- | ----------------------------- | --------------------------------------------------
+  | **name**        | str                           | Camera name
+  | **pos**         | FreeCAD.Placement             | Camera placement (origin & rotation)
+  | **up**          | FreeCAD.Vector                | Camera up direction
+  | **target**      | FreeCAD.Vector                | Camera target direction
+
+  &nbsp;
 
 * `write_pointlight(name, pos, color, power)`
 
-Expected behaviour: return a string containing an point light description in renderer SDL
+  Expected behaviour:  
+  Return a string containing a point light description in renderer SDL
+
+  Input parameters:
+
+  | Parameter       | Type                          | Description
+  | --------------- | ----------------------------- | --------------------------------------------------
+  | **name**        | str                           | Point light name
+  | **pos**         | App.Vector                    | Point light position
+  | **color**       | tuple (3 floats)              | RGB color of the point light
+  | **power**       | float                         | Power of the point light
+
+  &nbsp;
 
 * `write_arealight(name, pos, size_u, size_v, color, power)`
 
-Expected behaviour: return a string containing an area light description in renderer SDL
+  Expected behaviour:  
+  Return a string containing an area light description in renderer SDL
+
+  Input parameters:
+
+  | Parameter       | Type                          | Description
+  | --------------- | ----------------------------- | --------------------------------------------------
+  | **name**        | str                           | Area light name
+  | **pos**         | App.Placement                 | Area light placement (origin & rotation)
+  | **color**       | tuple (3 floats)              | RGB color of the area light
+  | **power**       | float                         | Power of the area light
+
+  &nbsp;
 
 * `render(project, prefix, external, output, width, height)`
 
-Expected behaviour: render the given project, by calling the external renderer.
-This function is in charge of writing the renderer input file, and calling the external renderer executable. It should return the path to the generated image file.
+  Expected behaviour:  
+  Render the given project, by calling the external renderer.
+  This function is in charge of writing the renderer input file, and calling the external renderer executable. It should return the path to the generated image file.
+
+  Input parameters:
+
+  | Parameter       | Type                          | Description
+  | --------------- | ----------------------------- | --------------------------------------------------
+  | **project**     | Render.Project                | Project to render
+  | **prefix**      | str                           | A prefix string for call (to be inserted before path to renderer)
+  | **external**    | bool                          | A flag indicating whether to call UI (true) or console (false) version of renderer
+  | **output**      | str                           | Output file name
+  | **width**       | int                           | Output width, in pixels
+  | **height**      | int                           | Output height, in pixels
+
+  &nbsp;
 
 #### Guidelines
 - Before writing a new plug-in, have a look at other existing renderers plug-ins. You can use one of them as a template for a new plugin
