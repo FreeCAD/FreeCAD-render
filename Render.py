@@ -782,10 +782,10 @@ class RendererHandler:
         """Provide a rendering string for the view of an object
 
         This method selects the specialized rendering method adapted for
-        'view', according to its underlying object type, and calls it.
+        'view', according to its source object type, and calls it.
 
         Parameters:
-        view: the view of the object to render
+        view -- the view of the object to render
 
         Returns: a rendering string in the format of the external renderer
         for the supplied 'view'
@@ -827,15 +827,23 @@ class RendererHandler:
 
         This method follows EAFP idiom and will raise exceptions if something
         goes wrong (missing attribute, inconsistent data...)
+
+        Parameters:
+        name -- the name of the object
+        view -- a view of the object to render
+
+        Returns: a rendering string, obtained from the renderer module
         """
+        source = view.Source
+
         # get color and alpha
         mat = None
         color = None
         alpha = None
         if view.Material:
             mat = view.Material
-        elif "Material" in view.Source.PropertiesList and view.Source.Material:
-            mat = view.Source.Material
+        elif "Material" in source.PropertiesList and source.Material:
+            mat = source.Material
         if mat:
             if "Material" in mat.PropertiesList:
                 if "DiffuseColor" in mat.Material:
@@ -849,8 +857,8 @@ class RendererHandler:
                     else:
                         alpha = 1.0
 
-        if view.Source.ViewObject:
-            vobj = view.Source.ViewObject
+        if source.ViewObject:
+            vobj = source.ViewObject
             if not color:
                 if hasattr(vobj, "ShapeColor"):
                     color = vobj.ShapeColor[:3]
@@ -865,22 +873,23 @@ class RendererHandler:
 
         # get mesh
         mesh = None
-        if hasattr(view.Source, "Group"):
-            shps = [o.Shape for o in Draft.getGroupContents(view.Source)
+        if hasattr(source, "Group"):
+            shps = [o.Shape for o in Draft.getGroupContents(source)
                     if hasattr(o, "Shape")]
             mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
                                           LinearDeflection=0.1,
                                           AngularDeflection=0.523599,
                                           Relative=False)
-        elif view.Source.isDerivedFrom("Part::Feature"):
-            mesh = MeshPart.meshFromShape(Shape=view.Source.Shape,
+        elif source.isDerivedFrom("Part::Feature"):
+            mesh = MeshPart.meshFromShape(Shape=source.Shape,
                                           LinearDeflection=0.1,
                                           AngularDeflection=0.523599,
                                           Relative=False)
-        elif view.Source.isDerivedFrom("Mesh::Feature"):
-            mesh = view.Source.Mesh
+        elif source.isDerivedFrom("Mesh::Feature"):
+            mesh = source.Mesh
 
-        assert mesh, translate("Render", "Cannot find mesh data")
+        assert mesh,\
+            translate("Render", "Cannot find mesh data")
         assert mesh.Topology[0] and mesh.Topology[1],\
             translate("Render", "Mesh topology is empty")
         assert mesh.getPointNormals(),\
@@ -899,13 +908,14 @@ class RendererHandler:
         goes wrong (missing attribute, inconsistent data...)
 
         Parameters:
-        view: a (valid) view of the camera to render.
+        name -- the name of the camera
+        view -- a view of the camera to render
 
         Returns: a rendering string, obtained from the renderer module
         """
-        cam = view.Source
-        a_ratio = float(cam.AspectRatio)
-        pos = App.Base.Placement(cam.Placement)
+        source = view.Source
+        a_ratio = float(source.AspectRatio)
+        pos = App.Base.Placement(source.Placement)
         target = pos.Base.add(
             pos.Rotation.multVec(App.Vector(0, 0, -1)).multiply(a_ratio))
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
@@ -927,12 +937,14 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        source = view.Source
+
         # get location, color
-        location = App.Base.Vector(view.Source.Location)
-        color = view.Source.Color
+        location = App.Base.Vector(source.Location)
+        color = source.Color
 
         # we accept missing Power (default value: 60)...
-        power = getattr(view.Source, "Power", 60)
+        power = getattr(source, "Power", 60)
 
         # send everything to renderer module
         return self._call_renderer("write_pointlight",
@@ -954,11 +966,12 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         # Get properties
-        placement = App.Base.Placement(view.Source.Placement)
-        color = view.Source.Color
-        power = float(view.Source.Power)
-        size_u = float(view.Source.SizeU)
-        size_v = float(view.Source.SizeV)
+        source = view.Source
+        placement = App.Base.Placement(source.Placement)
+        color = source.Color
+        power = float(source.Power)
+        size_u = float(source.SizeU)
+        size_v = float(source.SizeV)
 
         # Send everything to renderer module
         return self._call_renderer("write_arealight",
@@ -987,7 +1000,8 @@ class RendererHandler:
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
-        assert turbidity >=0, "Negative turbidity"
+        assert turbidity >= 0,\
+            translate("Render", "Negative turbidity")
 
         return self._call_renderer("write_sunskylight",
                                    name,
@@ -1175,6 +1189,7 @@ class AreaLightCommand:
     def Activated(self):  # pylint: disable=no-self-use
         """Code to be executed when command is run (callback)"""
         lights.AreaLight.create()
+
 
 class SunskyLightCommand:
     """Create an Sunsky Light object"""

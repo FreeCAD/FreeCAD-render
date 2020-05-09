@@ -734,8 +734,8 @@ class SunskyLight:
                 "Atmospheric haziness (turbidity can go from 1.0 to 30+. 2-6 "
                 "are most useful for clear days)"),
             2.0),
-# TODO
-# Add Ground albedo?
+        # TODO
+        # Add Ground albedo?
     }
     # ~FeaturePython object properties
 
@@ -829,7 +829,6 @@ class ViewProviderSunskyLight:
         self.coin.light = coin.SoDirectionalLight()
         scene.insertChild(self.coin.light, 0)  # Insert frontwise
         vobj.addDisplayMode(self.coin.light, "Shaded")
-        return
 
     def onDelete(self, feature, subelements):
         """Code executed when object is deleted (callback)"""
@@ -859,7 +858,6 @@ class ViewProviderSunskyLight:
         This method is optional.
         """
         return mode
-
 
     def setupContextMenu(self, vobj, menu):
         # pylint: disable=no-self-use
