@@ -922,7 +922,8 @@ class RendererHandler:
         goes wrong (missing attribute, inconsistent data...)
 
         Parameters:
-        view: the view of the point light (contains the point light data)
+        name -- the name of the point light
+        view -- the view of the point light (contains the light data)
 
         Returns: a rendering string, obtained from the renderer module
         """
@@ -947,7 +948,8 @@ class RendererHandler:
         goes wrong (missing attribute, inconsistent data...)
 
         Parameters:
-        view: the view of the point light (contains the point light data)
+        name -- the name of the area light
+        view -- the view of the area light (contains the light data)
 
         Returns: a rendering string, obtained from the renderer module
         """
@@ -968,18 +970,30 @@ class RendererHandler:
                                    power)
 
     def _render_sunskylight(self, name, view):
-        """Gets a rendering string for an area light object
+        """Gets a rendering string for a sunsky light object
 
         This method follows EAFP idiom and will raise exceptions if something
         goes wrong (missing attribute, inconsistent data...)
 
         Parameters:
-        view: the view of the point light (contains the point light data)
+        name -- the name of the sunsky light
+        view -- the view of the sunsky light (contains the light data)
 
         Returns: a rendering string, obtained from the renderer module
         """
-        # TODO
-        return ""
+        src = view.Source
+        direction = App.Vector(src.SunDirection)
+        turbidity = float(src.Turbidity)
+        # Distance from the sun:
+        distance = App.Units.parseQuantity("151000000 km").Value
+
+        assert turbidity >=0, "Negative turbidity"
+
+        return self._call_renderer("write_sunskylight",
+                                   name,
+                                   direction,
+                                   distance,
+                                   turbidity)
 
     def _call_renderer(self, method, *args):
         """Calls a render method of the renderer module
