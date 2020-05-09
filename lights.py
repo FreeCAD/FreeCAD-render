@@ -723,7 +723,8 @@ class SunskyLight:
             "Light",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Direction of sun -- (0,0,-1) is zenith"),
+                "Direction of sun from observer's point of view "
+                "-- (0,0,1) is zenith"),
             App.Vector(0, 0, -1)),
 
         "Turbidity": Prop(
@@ -903,7 +904,8 @@ class ViewProviderSunskyLight:
 
     def _update_direction(self, fpo):
         """Update sunsky light direction"""
-        direction = fpo.SunDirection[:3]
+        sundir = fpo.SunDirection
+        direction = (-sundir.x, -sundir.y, -sundir.z)
         self.coin.light.direction.setValue(direction)
 
     def __getstate__(self):
