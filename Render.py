@@ -1003,6 +1003,9 @@ class RendererHandler:
         assert turbidity >= 0,\
             translate("Render", "Negative turbidity")
 
+        assert direction.Length,\
+            translate("Render", "Sun direction is null")
+
         return self._call_renderer("write_sunskylight",
                                    name,
                                    direction,
