@@ -704,3 +704,214 @@ class ViewProviderAreaLight:
     def __setstate__(self, state):
         """Called while restoring document"""
         return None
+
+
+# ===========================================================================
+#                           Sunsky Light object
+# ===========================================================================
+
+
+class SunskyLight:
+    """A sunsky light - Hosek-Wilkie"""
+
+    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+
+    # FeaturePython object properties
+    PROPERTIES = {
+        "SunDirection": Prop(
+            "App::PropertyVector",
+            "Light",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Direction of sun -- (0,0,-1) is zenith"),
+            App.Vector(0, 0, -1)),
+
+        "Turbidity": Prop(
+            "App::PropertyFloat",
+            "Light",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Atmospheric haziness (turbidity can go from 1.0 to 30+. 2-6 "
+                "are most useful for clear days)"),
+            2.0),
+# TODO
+# Add Ground albedo?
+    }
+    # ~FeaturePython object properties
+
+    def __init__(self, fpo):
+        """PointLight initializer
+
+        Parameters
+        ----------
+        fpo: a FeaturePython object created with FreeCAD.addObject
+        """
+        self.type = "SunskyLight"
+        fpo.Proxy = self
+        self.set_properties(fpo)
+
+    @classmethod
+    def set_properties(cls, fpo):
+        """Set underlying FeaturePython object's properties"""
+        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
+            spec = cls.PROPERTIES[name]
+            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            setattr(prop, name, spec.Default)
+
+    @staticmethod
+    def create(document=None):
+        """Create a SunskyLight object in a document
+
+        Factory method to create a new sunsky light object.
+        The light is created into the active document (default).
+        Optionally, it is possible to specify a target document, in that case
+        the light is created in the given document.
+
+        This method also create the FeaturePython and the
+        ViewProviderPointLight related objects.
+
+        Params:
+        document: the document where to create pointlight (optional)
+
+        Returns:
+        The newly created SunskyLight object, FeaturePython object and
+        ViewProviderSunskyLight object"""
+
+        doc = document if document else App.ActiveDocument
+        fpo = doc.addObject("App::FeaturePython", "SunskyLight")
+        lgt = SunskyLight(fpo)
+        viewp = ViewProviderSunskyLight(fpo.ViewObject)
+        App.ActiveDocument.recompute()
+        return lgt, fpo, viewp
+
+    def onDocumentRestored(self, fpo):
+        """Callback triggered when document is restored"""
+        self.type = "SunskyLight"
+        fpo.Proxy = self
+        self.set_properties(fpo)
+
+    def execute(self, fpo):
+        # pylint: disable=no-self-use
+        """Callback triggered on document recomputation (mandatory)."""
+
+
+class ViewProviderSunskyLight:
+    """View Provider of SunskyLight class"""
+
+    def __init__(self, vobj):
+        """Initializer
+
+        Parameters:
+        -----------
+        vobj: related ViewProviderDocumentObject
+        """
+        vobj.Proxy = self
+        self.fpo = vobj.Object  # Related FeaturePython object
+
+    def attach(self, vobj):
+        """Code executed when object is created/restored (callback)
+
+        Parameters:
+        -----------
+        vobj: related ViewProviderDocumentObject
+        """
+        # pylint: disable=attribute-defined-outside-init
+
+        self.fpo = vobj.Object
+        SunskyLight.set_properties(self.fpo)
+
+        # Here we create coin representation, which is a directional light,
+
+        self.coin = SimpleNamespace()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+
+        # Create pointlight in scenegraph
+        self.coin.light = coin.SoDirectionalLight()
+        scene.insertChild(self.coin.light, 0)  # Insert frontwise
+        vobj.addDisplayMode(self.coin.light, "Shaded")
+        return
+
+    def onDelete(self, feature, subelements):
+        """Code executed when object is deleted (callback)"""
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        scene.removeChild(self.coin.light)
+        return True  # If False, the object wouldn't be deleted
+
+    def getDisplayModes(self, _):
+        # pylint: disable=no-self-use
+        """Return a list of display modes (callback)"""
+        return ["Shaded", "Wireframe"]
+
+    def getDefaultDisplayMode(self):
+        # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback)
+
+        The returned mode must be defined in getDisplayModes.
+        """
+        return "Shaded"
+
+    def setDisplayMode(self, mode):
+        # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback)
+
+        Since they have the same names nothing needs to be done.
+        This method is optional.
+        """
+        return mode
+
+
+    def setupContextMenu(self, vobj, menu):
+        # pylint: disable=no-self-use
+        """Setup the context menu associated to the object in tree view
+        (callback)
+        """
+
+    def getIcon(self):
+        # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)"""
+        return path.join(path.dirname(__file__), "icons", "SunskyLight.svg")
+
+    def onChanged(self, vpdo, prop):
+        """Code executed when a ViewProvider's property got modified (callback)
+
+        Parameters:
+        -----------
+        vpdo: related ViewProviderDocumentObject (where properties are stored)
+        prop: property name (as a string)
+        """
+        if prop == "Visibility":
+            self.coin.light.on.setValue(vpdo.Visibility)
+
+    def updateData(self, fpo, prop):
+        """Code executed when a FeaturePython's property got modified
+        (callback)
+
+        Parameters:
+        -----------
+        fpo: related FeaturePython object
+        prop: property name
+        """
+        switcher = {
+            "SunDirection": ViewProviderSunskyLight._update_direction,
+        }
+
+        try:
+            update_method = switcher[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            update_method(self, fpo)
+
+    def _update_direction(self, fpo):
+        """Update sunsky light direction"""
+        direction = fpo.SunDirection[:3]
+        self.coin.light.direction.setValue(direction)
+
+    def __getstate__(self):
+        """Called while saving the document"""
+        return None
+
+    def __setstate__(self, state):
+        """Called while restoring document"""
+        return None

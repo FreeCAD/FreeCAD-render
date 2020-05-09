@@ -752,7 +752,10 @@ class RendererHandler:
             res = (obj.isDerivedFrom("Part::Feature") or
                    obj.isDerivedFrom("Mesh::Feature") or
                    (obj.isDerivedFrom("App::FeaturePython") and
-                    obj.Proxy.type in ["PointLight", "Camera", "AreaLight"]))
+                    obj.Proxy.type in ["PointLight",
+                                       "Camera",
+                                       "AreaLight",
+                                       "SunskyLight"]))
         except AttributeError:
             res = False
 
@@ -802,7 +805,8 @@ class RendererHandler:
                 "Object": RendererHandler._render_object,
                 "PointLight": RendererHandler._render_pointlight,
                 "Camera": RendererHandler._render_camera,
-                "AreaLight": RendererHandler._render_arealight
+                "AreaLight": RendererHandler._render_arealight,
+                "SunskyLight": RendererHandler._render_sunskylight
                 }
 
             res = switcher[objtype](self, name, view)
@@ -962,6 +966,20 @@ class RendererHandler:
                                    size_v,
                                    color,
                                    power)
+
+    def _render_sunskylight(self, name, view):
+        """Gets a rendering string for an area light object
+
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+
+        Parameters:
+        view: the view of the point light (contains the point light data)
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        # TODO
+        return ""
 
     def _call_renderer(self, method, *args):
         """Calls a render method of the renderer module
@@ -1144,6 +1162,21 @@ class AreaLightCommand:
         """Code to be executed when command is run (callback)"""
         lights.AreaLight.create()
 
+class SunskyLightCommand:
+    """Create an Sunsky Light object"""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "SunskyLight.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Sunsky Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Creates a Sunsky Light object")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        lights.SunskyLight.create()
+
 # ===========================================================================
 #                            Module initialization
 # ===========================================================================
@@ -1159,7 +1192,8 @@ if App.GuiUp:
     RENDER_COMMANDS.append("Separator")
     for cmd in (("Camera", CameraCommand()),
                 ("PointLight", PointLightCommand()),
-                ("AreaLight", AreaLightCommand())):
+                ("AreaLight", AreaLightCommand()),
+                ("SunskyLight", SunskyLightCommand())):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
     RENDER_COMMANDS.append("Separator")
