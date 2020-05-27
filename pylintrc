@@ -154,7 +154,8 @@ callbacks=GetResources,
           write_camera,
           write_object,
           write_pointlight,
-          write_arealight
+          write_arealight,
+          write_sunsky
 
 
 [FORMAT]
