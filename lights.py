@@ -732,11 +732,9 @@ class SunskyLight:
             "Light",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Atmospheric haziness (turbidity can go from 1.0 to 30+. 2-6 "
+                "Atmospheric haziness (turbidity can go from 2.0 to 30+. 2-6 "
                 "are most useful for clear days)"),
             2.0),
-        # TODO
-        # Add Ground albedo?
     }
     # ~FeaturePython object properties
 
