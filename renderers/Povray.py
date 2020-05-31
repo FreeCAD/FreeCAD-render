@@ -32,7 +32,6 @@
 
 import os
 import re
-import math
 from textwrap import dedent
 
 import FreeCAD as App
@@ -173,6 +172,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                                   v=axis2,
                                   a=size_1,
                                   b=size_2)
+
 
 def write_sunskylight(name, direction, distance, turbidity):
     """Compute a string in the format of Povray, that represents an
