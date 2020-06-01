@@ -224,6 +224,11 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
+    msg = "WARNING: LuxRender is deprecated and will no longer be maintained."\
+          "You should consider transferring your rendering project to LuxCore"\
+          "\n"
+    App.Console.PrintWarning(msg)
+
     # change image size in template
     with open(project.PageResult, "r") as f:
         template = f.read()

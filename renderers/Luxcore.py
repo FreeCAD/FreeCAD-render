@@ -227,7 +227,3 @@ def render(project, prefix, external, output, width, height):
         App.Console.PrintError(msg)
 
     return
-
-
-# TODO
-# Deprecate luxrender (icons, warnings etc.)
