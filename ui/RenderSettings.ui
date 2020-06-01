@@ -7,19 +7,139 @@
     <x>0</x>
     <y>0</y>
     <width>452</width>
-    <height>589</height>
+    <height>682</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Render preferences</string>
   </property>
   <layout class="QGridLayout" name="gridLayout1">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>9</number>
+   </property>
+   <property name="topMargin">
+    <number>9</number>
+   </property>
+   <property name="rightMargin">
+    <number>9</number>
+   </property>
+   <property name="bottomMargin">
     <number>9</number>
    </property>
    <property name="spacing">
     <number>6</number>
    </property>
+   <item row="4" column="0">
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>PovRay</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>PovRay executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_3" native="true">
+        <property name="toolTip">
+         <string>The path to the Pov-Ray executable</string>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>PovRayPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit">
+        <property name="toolTip">
+         <string>Optional parameters to be passed to Pov-Ray when rendering</string>
+        </property>
+        <property name="text">
+         <string>+P +A</string>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>PovRayParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <spacer>
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="groupBox_5">
+     <property name="title">
+      <string>Cycles</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_10">
+        <property name="text">
+         <string>Cycles executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_12">
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_4" native="true">
+        <property name="prefEntry" stdset="0">
+         <cstring>CyclesPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_2">
+        <property name="text">
+         <string>--samples 100</string>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>CyclesParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
    <item row="2" column="0">
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
@@ -86,94 +206,6 @@
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <spacer>
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="3" column="0">
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
-      <string>Luxrender</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Luxrender UI path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Luxrender command (cli) path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser" native="true">
-        <property name="toolTip">
-         <string>The path to the Luxrender console (luxconsole) executable</string>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxConsolePath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_2" native="true">
-        <property name="toolTip">
-         <string>The path to the luxrender UI executable</string>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxRenderPath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_4">
-        <property name="toolTip">
-         <string>Optional parameters to be passed to Luxrender when rendering</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxParameters</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_13">
-        <property name="text">
-         <string>Render parameters</string>
         </property>
        </widget>
       </item>
@@ -261,30 +293,33 @@
      </layout>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QGroupBox" name="groupBox_5">
+   <item row="3" column="0">
+    <widget class="QGroupBox" name="groupBox_2">
      <property name="title">
-      <string>Cycles</string>
+      <string>LuxCore</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_10">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>Cycles executable path</string>
+         <string>LuxCore UI path</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_12">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>Render parameters</string>
+         <string>LuxCore command (cli) path</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_4" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser" native="true">
+        <property name="toolTip">
+         <string>The path to the Luxrender console (luxconsole) executable</string>
+        </property>
         <property name="prefEntry" stdset="0">
-         <cstring>CyclesPath</cstring>
+         <cstring>LuxCoreConsolePath</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
@@ -292,67 +327,116 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_2">
-        <property name="text">
-         <string>--samples 100</string>
+       <widget class="Gui::PrefFileChooser" name="fileChooser_2" native="true">
+        <property name="toolTip">
+         <string>The path to the luxrender UI executable</string>
         </property>
         <property name="prefEntry" stdset="0">
-         <cstring>CyclesParameters</cstring>
+         <cstring>LuxCorePath</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_4">
+        <property name="toolTip">
+         <string>Optional parameters to be passed to Luxrender when rendering</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxCoreParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>Render parameters</string>
         </property>
        </widget>
       </item>
      </layout>
     </widget>
    </item>
-   <item row="4" column="0">
-    <widget class="QGroupBox" name="groupBox_3">
+   <item row="5" column="0">
+    <widget class="QGroupBox" name="groupBox_6">
      <property name="title">
-      <string>PovRay</string>
+      <string>LuxRender (deprecated)</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_6">
+     <layout class="QGridLayout" name="gridLayout_6">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_14">
         <property name="text">
-         <string>PovRay executable path</string>
+         <string>LuxRender UI path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_15">
+        <property name="text">
+         <string>LuxRender command (cli) path</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_3" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_5" native="true">
         <property name="toolTip">
-         <string>The path to the Pov-Ray executable</string>
+         <string>The path to the Luxrender console (luxconsole) executable</string>
         </property>
         <property name="prefEntry" stdset="0">
-         <cstring>PovRayPath</cstring>
+         <cstring>LuxConsolePath</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Render parameters</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_6" native="true">
         <property name="toolTip">
-         <string>Optional parameters to be passed to Pov-Ray when rendering</string>
-        </property>
-        <property name="text">
-         <string>+P +A</string>
+         <string>The path to the luxrender UI executable</string>
         </property>
         <property name="prefEntry" stdset="0">
-         <cstring>PovRayParameters</cstring>
+         <cstring>LuxRenderPath</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_5">
+        <property name="toolTip">
+         <string>Optional parameters to be passed to Luxrender when rendering</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_16">
+        <property name="text">
+         <string>Render parameters</string>
         </property>
        </widget>
       </item>
