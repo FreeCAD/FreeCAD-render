@@ -83,7 +83,7 @@ RENDERERS = [x.group(1)
              for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
                           os.listdir(RDRDIR))
              if x]
-
+DEPRECATED_RENDERERS = ["Luxrender"]
 
 # ===========================================================================
 #                     Core rendering objects (Project and View)
@@ -1219,6 +1219,8 @@ if App.GuiUp:
     # Add commands
     RENDER_COMMANDS = []
     for rend in RENDERERS:
+        if rend in DEPRECATED_RENDERERS:
+            continue
         Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
         RENDER_COMMANDS.append('Render_' + rend)
     RENDER_COMMANDS.append("Separator")
