@@ -22,6 +22,13 @@
 
 """Luxrender renderer for FreeCAD"""
 
+# CAVEAT: THIS RENDERER PLUGIN IS DEPRECATED, DO NOT SPEND TIME ON IT...
+#
+# This LuxRender plugin has been deprecated and replaced by a new LuxCore
+# module, as LuxRender software has been deprecated in favor of LuxCore.
+# Therefore, this module should not be maintained...
+
+
 # Suggested links to renderer documentation:
 # NOTE As LuxRender has been deprecated in favor of LuxCore, LuxRender's
 # documentation is quite rare. Best documentation seems to be found directly in
@@ -45,6 +52,7 @@ import FreeCAD as App
 #                             Write functions
 # ===========================================================================
 
+# CAVEAT: THIS RENDERER PLUGIN IS DEPRECATED, DO NOT SPEND TIME ON IT...
 
 def write_object(name, mesh, color, alpha):
     """Compute a string in the format of Luxrender, that represents a FreeCAD
@@ -207,6 +215,9 @@ def write_sunskylight(name, direction, distance, turbidity):
 # ===========================================================================
 
 
+# CAVEAT: THIS RENDERER PLUGIN IS DEPRECATED, DO NOT SPEND TIME ON IT...
+
+
 def render(project, prefix, external, output, width, height):
     """Run Luxrender
 
@@ -224,9 +235,9 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    msg = "WARNING: LuxRender is deprecated and will no longer be maintained."\
-          "You should consider transferring your rendering project to LuxCore"\
-          "\n"
+    msg = "WARNING: LuxRender renderer is DEPRECATED and will no longer be "\
+          "maintained. You should consider transferring your rendering "\
+          "project to LuxCore renderer...\n"
     App.Console.PrintWarning(msg)
 
     # change image size in template
