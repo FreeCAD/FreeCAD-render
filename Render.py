@@ -1209,6 +1209,22 @@ class SunskyLightCommand:
         """Code to be executed when command is run (callback)"""
         lights.SunskyLight.create()
 
+class ImageLightCommand:
+    """Create an Image Light object"""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "ImageLight.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Image Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Creates an Image Light object")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        lights.ImageLight.create()
+
+
 # ===========================================================================
 #                            Module initialization
 # ===========================================================================
@@ -1227,7 +1243,9 @@ if App.GuiUp:
     for cmd in (("Camera", CameraCommand()),
                 ("PointLight", PointLightCommand()),
                 ("AreaLight", AreaLightCommand()),
-                ("SunskyLight", SunskyLightCommand())):
+                ("SunskyLight", SunskyLightCommand()),
+                ("ImageLight", ImageLightCommand()),
+               ):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
     RENDER_COMMANDS.append("Separator")
