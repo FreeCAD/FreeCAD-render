@@ -755,7 +755,8 @@ class RendererHandler:
                     obj.Proxy.type in ["PointLight",
                                        "Camera",
                                        "AreaLight",
-                                       "SunskyLight"]))
+                                       "SunskyLight",
+                                       "ImageLight"]))
         except AttributeError:
             res = False
 
@@ -806,7 +807,8 @@ class RendererHandler:
                 "PointLight": RendererHandler._render_pointlight,
                 "Camera": RendererHandler._render_camera,
                 "AreaLight": RendererHandler._render_arealight,
-                "SunskyLight": RendererHandler._render_sunskylight
+                "SunskyLight": RendererHandler._render_sunskylight,
+                "ImageLight": RendererHandler._render_imagelight,
                 }
 
             res = switcher[objtype](self, name, view)
@@ -1011,6 +1013,25 @@ class RendererHandler:
                                    direction,
                                    distance,
                                    turbidity)
+
+    def _render_imagelight(self, name, view):
+        """Gets a rendering string for an image light object
+
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+
+        Parameters:
+        name -- the name of the image light
+        view -- the view of the image light (contains the light data)
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        src = view.Source
+        image = src.ImageFile
+
+        return self._call_renderer("write_imagelight",
+                                   name,
+                                   image)
 
     def _call_renderer(self, method, *args):
         """Calls a render method of the renderer module
