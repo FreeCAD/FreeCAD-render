@@ -26,7 +26,7 @@ At the moment, the following engines are supported:
 
 * [Pov-Ray](https://povray.org/)  
 * LuxRender (deprecated in favor of LuxCoreRender)
-* [LuxCoreRender] (https://luxcorerender.org/)
+* [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net) 
 * Blender [Cycles](https://www.cycles-renderer.org/) 
 
