@@ -265,6 +265,33 @@ def write_sunskylight(name, direction, distance, turbidity):
                           t=turbidity)
 
 
+def write_imagelight(name, image):
+    """Compute a string in the format of Appleseed, that represents an
+    Image-Based Light object
+    """
+    # TODO update README.md
+    snippet = """
+        <texture name="{n}_tex" model="disk_texture_2d">
+            <parameter name="filename" value="{f}" />
+            <parameter name="color_space" value="srgb" />
+        </texture>
+        <texture_instance name="{n}_tex_ins" texture="{n}_tex">
+        </texture_instance>
+        <environment_edf name="{n}_env_edf" model="latlong_map_environment_edf">
+            <parameter name="radiance" value="{n}_tex_ins" />
+        </environment_edf>
+        <environment_shader name="{n}_env_shdr" model="edf_environment_shader">
+            <parameter name="environment_edf" value="{n}_env_edf" />
+        </environment_shader>
+        <environment name="{n}_env" model="generic_environment">
+            <parameter name="environment_edf" value="{n}_env_edf" />
+            <parameter name="environment_shader" value="{n}_env_shdr" />
+        </environment>
+    """
+    return snippet.format(n=name,
+                          f=image)
+
+
 # ===========================================================================
 #                              Render function
 # ===========================================================================
@@ -314,6 +341,8 @@ def render(project, prefix, external, output, width, height):
     template = move_elements("environment_edf", "scene", template)
     template = move_elements("environment_shader", "scene", template)
     template = move_elements("environment", "scene", template, True)
+    template = move_elements("texture", "scene", template)
+    template = move_elements("texture_instance", "scene", template)
 
     # Change image size
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
