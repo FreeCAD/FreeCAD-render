@@ -157,6 +157,7 @@ def write_sunskylight(name, direction, distance, turbidity):
                                   t=turbidity,
                                   d=direction)
 
+
 def write_imagelight(name, image):
     """Compute a string in the format of LuxCore, that represents an
     image light object

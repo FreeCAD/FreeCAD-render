@@ -1230,6 +1230,7 @@ class SunskyLightCommand:
         """Code to be executed when command is run (callback)"""
         lights.SunskyLight.create()
 
+
 class ImageLightCommand:
     """Create an Image Light object"""
 
@@ -1265,8 +1266,7 @@ if App.GuiUp:
                 ("PointLight", PointLightCommand()),
                 ("AreaLight", AreaLightCommand()),
                 ("SunskyLight", SunskyLightCommand()),
-                ("ImageLight", ImageLightCommand()),
-               ):
+                ("ImageLight", ImageLightCommand()),):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
     RENDER_COMMANDS.append("Separator")
