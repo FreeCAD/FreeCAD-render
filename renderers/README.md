@@ -111,6 +111,20 @@ The plugin must contain the following functions:
 
   &nbsp;
 
+* `write_imagelight(name, image)`
+
+  Expected behaviour:  
+  Return a string containing an image-based light description in renderer SDL
+
+  Input parameters:
+
+  | Parameter       | Type                          | Description
+  | --------------- | ----------------------------- | --------------------------------------------------
+  | **name**        | str                           | Image light name
+  | **image**       | str                           | Image light file path
+
+  &nbsp;
+
 * `render(project, prefix, external, output, width, height)`
 
   Expected behaviour:  
