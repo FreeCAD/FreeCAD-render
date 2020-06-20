@@ -158,6 +158,19 @@ def write_sunskylight(name, direction, distance, turbidity):
                                   d=direction)
 
 
+def write_imagelight(name, image):
+    """Compute a string in the format of LuxCore, that represents an
+    image light object
+    """
+    snippet = """
+    scene.lights.{n}.type = infinite
+    scene.lights.{n}.transformation = -1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+    scene.lights.{n}.file = "{f}"
+    """
+    return dedent(snippet).format(n=name,
+                                  f=image)
+
+
 # ===========================================================================
 #                              Render function
 # ===========================================================================
