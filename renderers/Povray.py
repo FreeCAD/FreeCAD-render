@@ -223,6 +223,10 @@ def write_imagelight(name, image):
     // Declares image-based light {n}
     // hdr environment -----------------------
     sky_sphere{{
+        matrix < -1, 0, 0,
+                  0, 1, 0,
+                  0, 0, 1,
+                  0, 0, 0 >
         pigment{{
             image_map{{ hdr "{f}"
                        gamma 1
