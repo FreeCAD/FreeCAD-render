@@ -55,10 +55,6 @@ def write_object(name, mesh, color, alpha):
             {len_vertices},
             {vertices}
         }}
-        normal_vectors {{
-            {len_normals},
-            {normals}
-        }}
         face_indices {{
             {len_indices},
             {indices}
@@ -77,14 +73,11 @@ def write_object(name, mesh, color, alpha):
 
     colo = "<{},{},{}>".format(*color)
     vrts = ["<{0.x},{0.z},{0.y}>".format(v) for v in mesh.Topology[0]]
-    nrms = ["<{0.x},{0.z},{0.y}>".format(n) for n in mesh.getPointNormals()]
     inds = ["<{},{},{}>".format(*i) for i in mesh.Topology[1]]
 
     return dedent(snippet).format(name=name,
                                   len_vertices=len(vrts),
                                   vertices="\n        ".join(vrts),
-                                  len_normals=len(nrms),
-                                  normals="\n        ".join(nrms),
                                   len_indices=len(inds),
                                   indices="\n        ".join(inds),
                                   color=colo)
