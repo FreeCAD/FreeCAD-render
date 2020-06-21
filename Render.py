@@ -282,7 +282,7 @@ class Project:
         result = ""
         doc = self.fpo.Document
         bbox = App.BoundBox()
-        for view in self.fpo.Group:
+        for view in self.all_views():
             try:
                 bbox.add(view.Source.Shape.BoundBox)
             except AttributeError:
