@@ -25,10 +25,10 @@ Raytracing workbench, they are fully compatible. Appleseed templates are created
 At the moment, the following engines are supported:
 
 * [Pov-Ray](https://povray.org/)  
-* LuxRender (deprecated in favor of LuxCoreRender)
 * [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net) 
-* Blender [Cycles](https://www.cycles-renderer.org/) 
+* [Blender Cycles](https://www.cycles-renderer.org/)
+* LuxRender (deprecated in favor of LuxCoreRender)
 
 ## Installation
 
