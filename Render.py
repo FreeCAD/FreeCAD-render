@@ -42,6 +42,7 @@ import sys
 import os
 import re
 import itertools
+import collections
 from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -65,6 +66,7 @@ except ImportError:
 
 import camera
 import lights
+import materials
 
 
 # ===========================================================================
@@ -843,42 +845,50 @@ class RendererHandler:
         """
         source = view.Source
 
-        # get color and alpha
-        mat = None
-        color = None
-        alpha = None
-        if view.Material:
-            mat = view.Material
-        elif "Material" in source.PropertiesList and source.Material:
-            mat = source.Material
-        if mat:
-            if "Material" in mat.PropertiesList:
-                if "DiffuseColor" in mat.Material:
-                    color = mat.Material["DiffuseColor"]\
-                               .strip("(")\
-                               .strip(")")\
-                               .split(",")[:3]
-                if "Transparency" in mat.Material:
-                    if float(mat.Material["Transparency"]) > 0:
-                        alpha = 1.0 - float(mat.Material["Transparency"])
-                    else:
-                        alpha = 1.0
+        def shape_color(fcd_object):
+            """Get the RGBA color for a FreeCAD object as seen in viewport
 
-        if source.ViewObject:
-            vobj = source.ViewObject
-            if not color:
-                if hasattr(vobj, "ShapeColor"):
-                    color = vobj.ShapeColor[:3]
-            if not alpha:
-                if hasattr(vobj, "Transparency"):
-                    if vobj.Transparency > 0:
-                        alpha = 1.0 - float(vobj.Transparency) / 100.0
-        if not color:
-            color = (1.0, 1.0, 1.0)
-        if not alpha:
-            alpha = 1.0
+            If the object does not hold any color data, a default
+            RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
 
-        # get mesh
+            Parameters:
+            fcd_object -- the FreeCAD object
+
+            Returns:
+            The RGBA color, as a (named) tuple
+            """
+            try:
+                shape_color = fcd_object.ViewObject.ShapeColor[:3]
+            except (AttributeError, IndexError):
+                shape_color = (1.0, 1.0, 1.0)
+
+            try:  # Get viewport alpha as fallback
+                assert 0 <= fcd_object.ViewObject.Transparency <= 100
+                shape_alpha = 1.0 - fcd_object.ViewObject.Transparency / 100
+            except (AttributeError, IndexError, AssertionError):
+                shape_alpha = 1.0
+            RGBA = collections.namedtuple("RGBA", "r g b a")
+            return RGBA(*shape_color, shape_alpha)
+
+        # Get FreeCAD material
+        # We look first at the view, then at the object itself
+        # If none is relevant, we fall back to an empty dict
+        for obj in (view, source):
+            try:
+                freecad_material = obj.Material.Material
+                break
+            except AttributeError:
+                continue
+        else:
+            freecad_material = dict()
+
+        # Get rendering material
+        rendering_material = materials.get_rendering_material(
+            material=freecad_material,
+            renderer=self.renderer_name,
+            default_color=shape_color(source))
+
+        # Get mesh
         mesh = None
         if hasattr(source, "Group"):
             shps = [o.Shape for o in Draft.getGroupContents(source)
@@ -895,6 +905,7 @@ class RendererHandler:
         elif source.isDerivedFrom("Mesh::Feature"):
             mesh = source.Mesh
 
+        # Check a few conditions
         assert mesh,\
             translate("Render", "Cannot find mesh data")
         assert mesh.Topology[0] and mesh.Topology[1],\
@@ -902,11 +913,11 @@ class RendererHandler:
         assert mesh.getPointNormals(),\
             translate("Render", "Mesh topology has no normals")
 
+        # Call renderer
         return self._call_renderer("write_object",
                                    name,
                                    mesh,
-                                   color,
-                                   alpha)
+                                   rendering_material)
 
     def _render_camera(self, name, view):
         """Provide a rendering string for a camera.

@@ -42,7 +42,7 @@ import FreeCAD as App
 # ===========================================================================
 
 
-def write_object(name, mesh, color, alpha):
+def write_object(name, mesh, material):
     """Compute a string in the format of POV-Ray, that represents a FreeCAD
     object
     """
@@ -71,7 +71,7 @@ def write_object(name, mesh, color, alpha):
         }}
     }}  // {name}\n"""
 
-    colo = "<{},{},{}>".format(*color)
+    colo = "<{c.r},{c.g},{c.b}>".format(c=material.color)
     vrts = ["<{0.x},{0.z},{0.y}>".format(v) for v in mesh.Topology[0]]
     inds = ["<{},{},{}>".format(*i) for i in mesh.Topology[1]]
 

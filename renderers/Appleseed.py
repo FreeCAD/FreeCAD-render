@@ -44,16 +44,10 @@ import FreeCAD as App
 # ===========================================================================
 
 
-def write_object(name, mesh, color, alpha):
+def write_object(name, mesh, material):
     """Compute a string in the format of Appleseed, that represents a FreeCAD
     object
     """
-    # This is where you write your object/view in the format of your
-    # renderer. "obj" is the real 3D object handled by this project, not
-    # the project itself. This is your only opportunity
-    # to write all the data needed by your object (geometry, materials, etc)
-    # so make sure you include everything that is needed
-
     # Write the mesh as an OBJ tempfile
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
@@ -79,8 +73,8 @@ def write_object(name, mesh, color, alpha):
                 <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
-                <values> {c[0]} {c[1]} {c[2]} </values>
-                <alpha> {a} </alpha>
+                <values> {c.r} {c.g} {c.b} </values>
+                <alpha> {c.a} </alpha>
             </color>
             <bsdf name="{n}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{n}_color" />
@@ -106,8 +100,7 @@ def write_object(name, mesh, color, alpha):
             </object_instance>"""
 
     return snippet.format(n=name,
-                          c=color,
-                          a=alpha,
+                          c=material.color,
                           o=os.path.splitext(os.path.basename(objfile))[0],
                           f=objfile.encode("unicode_escape").decode("utf-8"))
 

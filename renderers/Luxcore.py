@@ -40,7 +40,7 @@ import FreeCAD as App
 # ===========================================================================
 
 
-def write_object(name, mesh, color, alpha):
+def write_object(name, mesh, material):
     """Compute a string in the format of LuxCore, that represents a FreeCAD
     object
     """
@@ -50,8 +50,8 @@ def write_object(name, mesh, color, alpha):
 
     snippet = """
     scene.materials.{n}.type = matte
-    scene.materials.{n}.kd = {c[0]} {c[1]} {c[2]}
-    scene.materials.{n}.transparency = {t}
+    scene.materials.{n}.kd = {c.r} {c.g} {c.b}
+    scene.materials.{n}.transparency = {c.a}
     scene.objects.{n}.type = inlinedmesh
     scene.objects.{n}.vertices = {p}
     scene.objects.{n}.faces = {f}
@@ -59,8 +59,7 @@ def write_object(name, mesh, color, alpha):
     scene.objects.{n}.transformation = 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
     """
     return dedent(snippet).format(n=name,
-                                  c=color,
-                                  t=alpha if alpha < 1.0 else 1.0,
+                                  c=material.color,
                                   p=" ".join(points),
                                   f=" ".join(tris))
 

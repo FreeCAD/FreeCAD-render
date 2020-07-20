@@ -54,15 +54,12 @@ import FreeCAD as App
 
 # CAVEAT: THIS RENDERER PLUGIN IS DEPRECATED, DO NOT SPEND TIME ON IT...
 
-def write_object(name, mesh, color, alpha):
+def write_object(name, mesh, material):
     """Compute a string in the format of Luxrender, that represents a FreeCAD
     object
     """
-    # This is where you write your object/view in the format of your
-    # renderer. "obj" is the real 3D object handled by this project, not
-    # the project itself. This is your only opportunity
-    # to write all the data needed by your object (geometry, materials, etc)
-    # so make sure you include everything that is needed
+    color = material.color
+    alpha = material.color.a
 
     points = ["{0.x} {0.y} {0.z}".format(v) for v in mesh.Topology[0]]
     norms = ["{0.x} {0.y} {0.z}".format(n) for n in mesh.getPointNormals()]
