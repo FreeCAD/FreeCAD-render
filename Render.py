@@ -43,6 +43,7 @@ import os
 import re
 import itertools
 import collections
+import traceback
 from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -823,9 +824,16 @@ class RendererHandler:
         except (AttributeError, TypeError, AssertionError) as err:
             msg = translate(
                 "Render",
-                "[Render] Cannot render view '{0}': {1}. Skipping...\n")
-            view_label = getattr(view, "Label", "<No label>")
-            App.Console.PrintWarning(msg.format(view_label, err))
+                "[Render] Cannot render view '{0}': {1} (file {2}, line {3} in {4}). "
+                "Skipping...\n")
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            framestack = traceback.extract_tb(exc_traceback)[-1]
+            App.Console.PrintWarning(msg.format(
+                getattr(view, "Label", "<No label>"),
+                err,
+                framestack.filename,
+                framestack.lineno,
+                framestack.name))
             return ""
 
         else:
