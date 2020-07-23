@@ -29,7 +29,7 @@ import os
 import shlex
 from tempfile import mkstemp
 from subprocess import Popen
-from textwrap import dedent
+from textwrap import dedent, indent
 import configparser
 
 import FreeCAD as App
@@ -198,7 +198,7 @@ def _write_material_passthrough(name, material):
     sent as passthrough
     """
     assert material.passthrough.renderer == "Luxcore"
-    snippet = material.passthrough.string
+    snippet = indent(material.passthrough.string, "    ")
     return snippet.format(n=name, c=material.color)
 
 

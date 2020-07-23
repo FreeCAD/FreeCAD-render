@@ -99,16 +99,19 @@ def get_rendering_material(material, renderer, default_color):
 
     res = types.SimpleNamespace()  # Result
 
-    # TODO Add a level of object for specific parameters
-
     # Try renderer Passthrough
     try:
-        string = str(mat["Render.{}.Passthrough".format(renderer)])
+        lines = [str(mat["Render.{}.0001".format(renderer)])]
     except KeyError:
         pass
     else:
+        for lineno in range(2, 9999):
+            key = "Render.{r}.{i:04}".format(r=renderer, i=lineno)
+            line = str(mat.get(key, ""))
+            if line:
+                lines.append(line)
         res.passthrough = types.SimpleNamespace()
-        res.passthrough.string = string
+        res.passthrough.string = "\n".join(lines)
         res.passthrough.renderer = renderer
         res.shadertype = "Passthrough"
         res.color = default_color
@@ -165,7 +168,7 @@ def get_rendering_material(material, renderer, default_color):
     else:
         res.diffuse = types.SimpleNamespace()
         res.diffuse.color = diffusecolor
-        res.diffuse.alpha = 1.0 - float(mat.get("Transparency"), "0")
+        res.diffuse.alpha = 1.0 - float(mat.get("Transparency", "0"))
         res.shadertype = "Diffuse"
         res.color = RGBA(*diffusecolor, res.diffuse.alpha)
         return res
