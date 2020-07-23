@@ -34,6 +34,8 @@ import configparser
 
 import FreeCAD as App
 
+# TODO Reorder defs
+
 
 # ===========================================================================
 #                             Write functions
@@ -45,21 +47,20 @@ def write_object(name, mesh, material):
     object
     """
 
+    snippet_mat = _write_material(name, material)
+
     points = ["{0.x} {0.y} {0.z}".format(v) for v in mesh.Topology[0]]
     tris = ["{} {} {}".format(*t) for t in mesh.Topology[1]]
 
-    snippet = """
-    scene.materials.{n}.type = matte
-    scene.materials.{n}.kd = {c.r} {c.g} {c.b}
-    scene.materials.{n}.transparency = {c.a}
+    snippet_obj = """
     scene.objects.{n}.type = inlinedmesh
     scene.objects.{n}.vertices = {p}
     scene.objects.{n}.faces = {f}
     scene.objects.{n}.material = {n}
     scene.objects.{n}.transformation = 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
     """
+    snippet = snippet_mat + snippet_obj
     return dedent(snippet).format(n=name,
-                                  c=material.color,
                                   p=" ".join(points),
                                   f=" ".join(tris))
 
@@ -168,6 +169,117 @@ def write_imagelight(name, image):
     """
     return dedent(snippet).format(n=name,
                                   f=image)
+
+
+# ===========================================================================
+#                              Material implementation
+# ===========================================================================
+
+
+def _write_material(name, material):
+    """Compute a string in the renderer SDL, to represent a material
+
+    This function should never fail: if the material is not recognized,
+    a fallback material is provided
+    """
+    try:
+        snippet_mat = MATERIALS[material.shadertype](name, material)
+    except KeyError:
+        msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
+               "material\n")
+        App.Console.PrintWarning(msg.format(name, material.shadertype))
+        snippet_mat = _write_material_fallback(name, material.color)
+    finally:
+        return snippet_mat
+
+
+def _write_material_passthrough(name, material):
+    """Compute a string in the renderer SDL, to represent a material
+    sent as passthrough
+    """
+    assert material.passthrough.renderer == "Luxcore"
+    snippet = material.passthrough.string
+    return snippet.format(n=name, c=material.color)
+
+
+def _write_material_glass(name, material):
+    """Compute a string in the renderer SDL, to represent a glass material"""
+    snippet = """
+    scene.materials.{n}.type = glass
+    scene.materials.{n}.kt = {c.r} {c.g} {c.b}
+    scene.materials.{n}.interiorior = {i}
+    """
+    return snippet.format(n=name,
+                          c=material.glass.color,
+                          i=material.glass.ior)
+
+
+def _write_material_disney(name, material):
+    """Compute a string in the renderer SDL, to represent a Disney material"""
+    snippet = """
+    scene.materials.{0}.type = disney
+    scene.materials.{0}.basecolor = {1.r} {1.g} {1.b}
+    scene.materials.{0}.subsurface = {2}
+    scene.materials.{0}.metallic = {3}
+    scene.materials.{0}.specular = {4}
+    scene.materials.{0}.speculartint = {5}
+    scene.materials.{0}.roughness = {6}
+    scene.materials.{0}.anisotropic = {7}
+    scene.materials.{0}.sheen = {8}
+    scene.materials.{0}.sheentint = {9}
+    scene.materials.{0}.clearcoat = {10}
+    scene.materials.{0}.clearcoatgloss = {11}
+    """
+    return snippet.format(name,
+                          material.disney.basecolor,
+                          material.disney.subsurface,
+                          material.disney.metallic,
+                          material.disney.specular,
+                          material.disney.speculartint,
+                          material.disney.roughness,
+                          material.disney.anisotropic,
+                          material.disney.sheen,
+                          material.disney.sheentint,
+                          material.disney.clearcoat,
+                          material.disney.clearcoatgloss)
+
+
+def _write_material_diffuse(name, material):
+    """Compute a string in the renderer SDL, to represent a Diffuse material"""
+    snippet = """
+    scene.materials.{n}.type = matte
+    scene.materials.{n}.kd = {c.r} {c.g} {c.b}
+    """
+    return snippet.format(n=name,
+                          c=material.diffuse.color)
+
+
+def _write_material_fallback(name, material):
+    """Compute a string in the renderer SDL, for a fallback material.
+
+    Fallback material is a simple Diffuse material"""
+    try:
+        red = float(material.color.r)
+        grn = float(material.color.g)
+        blu = float(material.color.b)
+        assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
+    except (AttributeError, ValueError, TypeError, AssertionError):
+        red, grn, blu = 1, 1, 1
+    snippet = """
+    scene.materials.{n}.type = matte
+    scene.materials.{n}.kd = {r} {g} {b}
+    """
+    return snippet.format(n=name,
+                          r=red,
+                          g=grn,
+                          b=blu)
+
+
+MATERIALS = {
+        "Passthrough": _write_material_passthrough,
+        "Glass": _write_material_glass,
+        "Disney": _write_material_disney,
+        "Diffuse": _write_material_diffuse}
 
 
 # ===========================================================================
