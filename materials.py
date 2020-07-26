@@ -160,7 +160,20 @@ def get_rendering_material(material, renderer, default_color):
         res.color = RGBA(*basecolor, 1.0)
         return res
 
-    # Try with Coin-like parameters
+    # Try Diffuse
+    try:
+        diffusecolor = str2rgb(mat["Render.Diffuse.Color"])
+    except KeyError:
+        pass
+    else:
+        res.diffuse = types.SimpleNamespace()
+        res.diffuse.color = diffusecolor
+        res.diffuse.alpha = 1.0
+        res.shadertype = "Diffuse"
+        res.color = RGBA(*diffusecolor, res.diffuse.alpha)
+        return res
+
+    # Try with Coin-like parameters (backward compatibility)
     try:
         diffusecolor = str2rgb(mat["DiffuseColor"])
     except KeyError:
@@ -168,7 +181,8 @@ def get_rendering_material(material, renderer, default_color):
     else:
         res.diffuse = types.SimpleNamespace()
         res.diffuse.color = diffusecolor
-        res.diffuse.alpha = 1.0 - float(mat.get("Transparency", "0"))
+        transparency = float(mat.get("Transparency", "0"))
+        res.diffuse.alpha = 1.0 - transparency
         res.shadertype = "Diffuse"
         res.color = RGBA(*diffusecolor, res.diffuse.alpha)
         return res
