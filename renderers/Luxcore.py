@@ -175,6 +175,7 @@ def write_imagelight(name, image):
 #                              Material implementation
 # ===========================================================================
 
+# TODO Fix normals issue (see Gauge test file, with mirror)
 
 def _write_material(name, material):
     """Compute a string in the renderer SDL, to represent a material
