@@ -826,7 +826,7 @@ class RendererHandler:
                 "Render",
                 "[Render] Cannot render view '{0}': {1} (file {2}, line {3} in {4}). "
                 "Skipping...\n")
-            exc_type, exc_value, exc_traceback = sys.exc_info()
+            _, _, exc_traceback = sys.exc_info()
             framestack = traceback.extract_tb(exc_traceback)[-1]
             App.Console.PrintWarning(msg.format(
                 getattr(view, "Label", "<No label>"),

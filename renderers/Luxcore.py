@@ -190,8 +190,7 @@ def _write_material(name, material):
                "material\n")
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.color)
-    finally:
-        return snippet_mat
+    return snippet_mat
 
 
 def _write_material_passthrough(name, material):
