@@ -56,6 +56,7 @@ import FreeCADGui as Gui
 import Draft
 import Part
 import MeshPart
+import ArchMaterial
 try:
     import ImageGui
 except ImportError:
@@ -1294,6 +1295,11 @@ if App.GuiUp:
                 ("ImageLight", ImageLightCommand()),):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
+    RENDER_COMMANDS.append("Separator")
+    # pylint: disable=protected-access
+    Gui.addCommand("Material", ArchMaterial._CommandArchMaterial())
+    # pylint: enable=protected-access
+    RENDER_COMMANDS.append("Material")
     RENDER_COMMANDS.append("Separator")
     for cmd in (("View", RenderViewCommand()),
                 ("Render", RenderCommand())):
