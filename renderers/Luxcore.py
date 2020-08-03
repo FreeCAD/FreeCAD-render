@@ -34,8 +34,6 @@ import configparser
 
 import FreeCAD as App
 
-# TODO Reorder defs
-
 
 # ===========================================================================
 #                             Write functions

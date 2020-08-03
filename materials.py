@@ -31,6 +31,7 @@
 import collections
 import types
 import ast
+import functools
 
 import FreeCAD as App
 
@@ -52,6 +53,8 @@ def get_rendering_material(material, renderer, default_color):
     The workflow is the following:
     - If the material card contains a renderer-specific Passthrough field, the
     dictionary is built with those parameters
+    - Otherwise, if the material card contains a Glass shader set of
+    parameters, the dictionary is built with those parameters
     - Otherwise, if the material card contains a Diffuse shader set of
     parameters, the dictionary is built with those parameters
     - Otherwise, if the material card contains Disney-principled shader
@@ -91,17 +94,31 @@ def get_rendering_material(material, renderer, default_color):
     collected from the material card)
     """
 
-    def str2rgb(string):
-        """Convert a ({r},{g},{b})-like string into RGB object"""
-        float_tuple = map(float, ast.literal_eval(string))
-        return RGB._make(float_tuple)
-
     def debug(msg):
         """Print debug message"""
         # NB: 'name' is defined in outer scope
         msg = "[Render][Material] '{n}': {m}\n".format(n=name, m=msg)
         App.Console.PrintLog(msg)
 
+    def str2rgb(string):
+        """Convert a ({r},{g},{b})-like string into RGB object"""
+        float_tuple = map(float, ast.literal_eval(string))
+        return RGB._make(float_tuple)
+
+    def get_float(material, param_prefix, param_name, default=0.0):
+        """Get float value in material dictionary"""
+        return material.get(param_prefix + param_name, default)
+
+    def build_diffuse(diffusecolor, alpha=1.0):
+        """Build diffuse material"""
+        res.diffuse = types.SimpleNamespace()
+        res.diffuse.color = diffusecolor
+        res.diffuse.alpha = alpha
+        res.shadertype = "Diffuse"
+        res.color = RGBA(*diffusecolor, res.diffuse.alpha)
+        return res
+
+    # get_rendering_material starts here
     mat = dict(material)
     renderer = str(renderer)
     name = mat.get("Name", "<Unnamed Material>")
@@ -112,16 +129,14 @@ def get_rendering_material(material, renderer, default_color):
 
     # Try renderer Passthrough
     try:
-        lines = [str(mat["Render.{}.0001".format(renderer)])]
+        lines = [mat["Render.{}.0001".format(renderer)]]
     except KeyError:
         pass
     else:
-        debug("Found valid Passthrough")
-        for lineno in range(2, 9999):
-            key = "Render.{r}.{i:04}".format(r=renderer, i=lineno)
-            line = str(mat.get(key, ""))
-            if line:
-                lines.append(line)
+        debug("Found valid Passthrough - returning")
+        passthru_keys = ["Render.{}.{:04}".format(renderer, i)
+                         for i in range(2, 9999)]
+        lines += [mat[k] for k in passthru_keys if k in mat.keys()]
         res.passthrough = types.SimpleNamespace()
         res.passthrough.string = "\n".join(lines)
         res.passthrough.renderer = renderer
@@ -136,7 +151,7 @@ def get_rendering_material(material, renderer, default_color):
     except KeyError:
         pass
     else:
-        debug("Found valid Glass")
+        debug("Found valid Glass - returning")
         res.glass = types.SimpleNamespace()
         res.glass.ior = ior
         res.glass.color = str2rgb(mat.get("Render.Glass.Color", "(1,1,1)"))
@@ -152,22 +167,22 @@ def get_rendering_material(material, renderer, default_color):
     except KeyError:
         pass
     else:
-        debug("Found valid Disney")
+        debug("Found valid Disney - returning")
         res.disney = types.SimpleNamespace()
         res.disney.basecolor = basecolor
-        res.disney.subsurface = float(mat.get("Render.Disney.Subsurface", "0"))
-        res.disney.metallic = float(mat.get("Render.Disney.Metallic", "0"))
-        res.disney.specular = float(mat.get("Render.Disney.Specular", "0"))
-        res.disney.speculartint = \
-            float(mat.get("Render.Disney.SpecularTint", "0"))
-        res.disney.roughness = float(mat.get("Render.Disney.Roughness", "0"))
-        res.disney.anisotropic = \
-            float(mat.get("Render.Disney.Anisotropic", "0"))
-        res.disney.sheen = float(mat.get("Render.Disney.Sheen", "0"))
-        res.disney.sheentint = float(mat.get("Render.Disney.SheenTint", "0"))
-        res.disney.clearcoat = float(mat.get("Render.Disney.ClearCoat", "0"))
-        res.disney.clearcoatgloss = \
-            float(mat.get("Render.Disney.ClearCoatGloss", "0"))
+        prefix = "Render.Disney."
+        getf = functools.partial(get_float, mat, prefix)
+        res.disney.subsurface = getf("Subsurface")
+        res.disney.metallic = getf("Metallic")
+        res.disney.specular = getf("Specular")
+        res.disney.speculartint = getf("SpecularTint")
+        res.disney.roughness = getf("Roughness")
+        res.disney.anisotropic = getf("Anisotropic")
+        res.disney.sheen = getf("Sheen")
+        res.disney.sheentint = getf("SheenTint")
+        res.disney.clearcoat = getf("ClearCoat")
+        res.disney.clearcoatgloss = getf("ClearCoatGloss")
+
         res.shadertype = "Disney"
         res.color = RGBA(*basecolor, 1.0)
         return res
@@ -178,13 +193,8 @@ def get_rendering_material(material, renderer, default_color):
     except KeyError:
         pass
     else:
-        debug("Found valid Diffuse")
-        res.diffuse = types.SimpleNamespace()
-        res.diffuse.color = diffusecolor
-        res.diffuse.alpha = 1.0
-        res.shadertype = "Diffuse"
-        res.color = RGBA(*diffusecolor, res.diffuse.alpha)
-        return res
+        debug("Found valid Diffuse - returning")
+        return build_diffuse(diffusecolor)
 
     # Escalation to Father
     debug("No valid material definition - trying father material")
@@ -194,13 +204,12 @@ def get_rendering_material(material, renderer, default_color):
     except (KeyError, AssertionError):
         # No father
         debug("No valid father")
-        pass
     else:
         # Retrieve all valid materials
         materials = (o.Material for o in App.ActiveDocument.Objects
                      if o.isDerivedFrom("App::MaterialObjectPython") and
-                        hasattr(o, "Material") and
-                        isinstance(o.Material, dict))
+                     hasattr(o, "Material") and
+                     isinstance(o.Material, dict))
         # Find father material
         try:
             father = next(m for m in materials
@@ -220,13 +229,8 @@ def get_rendering_material(material, renderer, default_color):
         pass
     else:
         debug("Fallback to Coin-like parameters")
-        res.diffuse = types.SimpleNamespace()
-        res.diffuse.color = diffusecolor
-        transparency = float(mat.get("Transparency", "0"))
-        res.diffuse.alpha = 1.0 - transparency
-        res.shadertype = "Diffuse"
-        res.color = RGBA(*diffusecolor, res.diffuse.alpha)
-        return res
+        return build_diffuse(diffusecolor,
+                             1.0 - float(mat.get("Transparency", "0")))
 
     # Default color
     try:
@@ -237,9 +241,4 @@ def get_rendering_material(material, renderer, default_color):
         diffusealpha = 1.0
     else:
         debug("Fallback to default color")
-        res.diffuse = types.SimpleNamespace()
-        res.diffuse.color = diffusecolor
-        res.diffuse.alpha = diffusealpha
-        res.shadertype = "Diffuse"
-        res.color = RGBA(*diffusecolor, diffusealpha)
-        return res
+        return build_diffuse(diffusecolor, diffusealpha)
