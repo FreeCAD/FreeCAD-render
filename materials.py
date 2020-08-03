@@ -32,6 +32,8 @@ import collections
 import types
 import ast
 
+import FreeCAD as App
+
 
 # ===========================================================================
 #                        rendering_material construction
@@ -43,23 +45,23 @@ RGBA = collections.namedtuple("RGB", "r g b a")
 
 # TODO Document expected material card syntax in README
 def get_rendering_material(material, renderer, default_color):
-    # TODO Update docstring
-    # TODO Add log instructions (to help debug)
     """This function implements rendering material logic.
 
     It extracts a data class of rendering parameters from a FreeCAD material
     card.
     The workflow is the following:
-    - If the material card contains a renderer-specific passthrough field, the
+    - If the material card contains a renderer-specific Passthrough field, the
     dictionary is built with those parameters
+    - Otherwise, if the material card contains a Diffuse shader set of
+    parameters, the dictionary is built with those parameters
     - Otherwise, if the material card contains Disney-principled shader
     parameters, the dictionary is built with those parameters
-    - Otherwise, if the material card contains a Graphic section, the
-    dictionary contains the related parameters (Diffuse, Transparency). This
-    is a backward compatibility fallback
     - Otherwise, if the material card contains a valid 'father' field, the
     above process is applied to the father card
-    - Otherwise, a white matte material is returned
+    - Otherwise, if the material card contains a Graphic section
+    (diffusecolor), a Diffuse material is built and the dictionary contains
+    the related parameters . This is a backward compatibility fallback
+    - Otherwise, a Diffuse material made with default_color is returned
 
     Parameters:
     material -- a FreeCAD material, as a dictionary of properties/values
@@ -94,8 +96,17 @@ def get_rendering_material(material, renderer, default_color):
         float_tuple = map(float, ast.literal_eval(string))
         return RGB._make(float_tuple)
 
+    def debug(msg):
+        """Print debug message"""
+        # NB: 'name' is defined in outer scope
+        msg = "[Render][Material] '{n}': {m}\n".format(n=name, m=msg)
+        App.Console.PrintLog(msg)
+
     mat = dict(material)
     renderer = str(renderer)
+    name = mat.get("Name", "<Unnamed Material>")
+
+    debug("Starting material computation")
 
     res = types.SimpleNamespace()  # Result
 
@@ -105,6 +116,7 @@ def get_rendering_material(material, renderer, default_color):
     except KeyError:
         pass
     else:
+        debug("Found valid Passthrough")
         for lineno in range(2, 9999):
             key = "Render.{r}.{i:04}".format(r=renderer, i=lineno)
             line = str(mat.get(key, ""))
@@ -124,6 +136,7 @@ def get_rendering_material(material, renderer, default_color):
     except KeyError:
         pass
     else:
+        debug("Found valid Glass")
         res.glass = types.SimpleNamespace()
         res.glass.ior = ior
         res.glass.color = str2rgb(mat.get("Render.Glass.Color", "(1,1,1)"))
@@ -137,10 +150,9 @@ def get_rendering_material(material, renderer, default_color):
     try:
         basecolor = str2rgb(mat["Render.Disney.BaseColor"])
     except KeyError:
-        # TODO Issue a warning if one of the Disney parameters is present
-        # without any BaseColor ?
         pass
     else:
+        debug("Found valid Disney")
         res.disney = types.SimpleNamespace()
         res.disney.basecolor = basecolor
         res.disney.subsurface = float(mat.get("Render.Disney.Subsurface", "0"))
@@ -166,6 +178,7 @@ def get_rendering_material(material, renderer, default_color):
     except KeyError:
         pass
     else:
+        debug("Found valid Diffuse")
         res.diffuse = types.SimpleNamespace()
         res.diffuse.color = diffusecolor
         res.diffuse.alpha = 1.0
@@ -173,12 +186,40 @@ def get_rendering_material(material, renderer, default_color):
         res.color = RGBA(*diffusecolor, res.diffuse.alpha)
         return res
 
+    # Escalation to Father
+    debug("No valid material definition - trying father material")
+    try:
+        father_name = mat["Father"]
+        assert father_name
+    except (KeyError, AssertionError):
+        # No father
+        debug("No valid father")
+        pass
+    else:
+        # Retrieve all valid materials
+        materials = (o.Material for o in App.ActiveDocument.Objects
+                     if o.isDerivedFrom("App::MaterialObjectPython") and
+                        hasattr(o, "Material") and
+                        isinstance(o.Material, dict))
+        # Find father material
+        try:
+            father = next(m for m in materials
+                          if m.get("Name", "") == father_name)
+        except StopIteration:
+            msg = "Found father material name ('{}') but "\
+                  "did not find this material in active document"
+            debug(msg.format(father_name))
+        else:
+            debug("Escalate to father material '{}'".format(father_name))
+            return get_rendering_material(father, renderer, default_color)
+
     # Try with Coin-like parameters (backward compatibility)
     try:
         diffusecolor = str2rgb(mat["DiffuseColor"])
     except KeyError:
         pass
     else:
+        debug("Fallback to Coin-like parameters")
         res.diffuse = types.SimpleNamespace()
         res.diffuse.color = diffusecolor
         transparency = float(mat.get("Transparency", "0"))
@@ -186,8 +227,6 @@ def get_rendering_material(material, renderer, default_color):
         res.shadertype = "Diffuse"
         res.color = RGBA(*diffusecolor, res.diffuse.alpha)
         return res
-
-    # TODO Escalation to Father
 
     # Default color
     try:
@@ -197,6 +236,7 @@ def get_rendering_material(material, renderer, default_color):
         diffusecolor = RGB(1.0, 1.0, 1.0)
         diffusealpha = 1.0
     else:
+        debug("Fallback to default color")
         res.diffuse = types.SimpleNamespace()
         res.diffuse.color = diffusecolor
         res.diffuse.alpha = diffusealpha
