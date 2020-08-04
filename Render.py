@@ -333,7 +333,9 @@ class Project:
             objs -- FreeCAD objects to add
             group -- The  group (App::DocumentObjectGroup) to add to"""
             for obj in objs:
-                if obj.isDerivedFrom("App::DocumentObjectGroup"):
+                if (obj.isDerivedFrom("App::DocumentObjectGroup") or
+                   (obj.isDerivedFrom("App::GeometryPython") and
+                    obj.Proxy.Type=="BuildingPart")):
                     assert obj != group  # Just in case...
                     label = View.view_label(obj, group)
                     new_group = App.ActiveDocument.addObject(
@@ -346,7 +348,8 @@ class Project:
                 else:
                     msg = translate(
                         "Render",
-                        "Unable to create rendering view for object {}\n")
+                        "[Render] Unable to create rendering view for object "
+                        "'{}': unhandled object type\n")
                     App.Console.PrintWarning(msg.format(obj.Label))
 
         # Here starts add_objects
@@ -385,7 +388,8 @@ class Project:
             renderer = RendererHandler(obj.Renderer)
         except ModuleNotFoundError:
             msg = translate(
-                "Render", "Cannot render project: Renderer '%s' not found\n")
+                "Render",
+                "[Render] Cannot render project: Renderer '%s' not found\n")
             App.Console.PrintError(msg % obj.Renderer)
             return ""
 
@@ -551,7 +555,7 @@ class ViewProviderProject:
         try:
             self.object.Proxy.render()
         except AttributeError as err:
-            msg = translate("Render", "Cannot render: {}\n")
+            msg = translate("Render", "[Render] Cannot render: {}\n")
             App.Console.PrintError(msg.format(err))
 
 
@@ -711,7 +715,8 @@ class RendererHandler:
             self.renderer_module = import_module("renderers." + rdrname)
         except ModuleNotFoundError:
             msg = translate(
-                "Render", "Import Error: Renderer '%s' not found\n") % rdrname
+                "Render",
+                "[Render] Import Error: Renderer '%s' not found\n") % rdrname
             App.Console.PrintError(msg)
             raise
 
@@ -816,9 +821,9 @@ class RendererHandler:
         except (AttributeError, TypeError, AssertionError) as err:
             msg = translate(
                 "Render",
-                "Cannot render view '{0}': {1}. Skipping...\n")
-            App.Console.PrintWarning(msg.format(
-                getattr(view, "Label", "<No label>"), err))
+                "[Render] Cannot render view '{0}': {1}. Skipping...\n")
+            view_label = getattr(view, "Label", "<No label>")
+            App.Console.PrintWarning(msg.format(view_label, err))
             return ""
 
         else:
@@ -1126,7 +1131,8 @@ class RenderViewCommand:
         except StopIteration:
             msg = translate(
                 "Render",
-                "Unable to find a valid project in selection or document\n")
+                "[Render] Unable to find a valid project in selection "
+                "or document\n")
             App.Console.PrintError(msg)
             return
 
