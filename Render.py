@@ -333,7 +333,9 @@ class Project:
             objs -- FreeCAD objects to add
             group -- The  group (App::DocumentObjectGroup) to add to"""
             for obj in objs:
-                if obj.isDerivedFrom("App::DocumentObjectGroup"):
+                if (obj.isDerivedFrom("App::DocumentObjectGroup") or
+                   (obj.isDerivedFrom("App::GeometryPython") and
+                    obj.Proxy.Type=="BuildingPart")):
                     assert obj != group  # Just in case...
                     label = View.view_label(obj, group)
                     new_group = App.ActiveDocument.addObject(
