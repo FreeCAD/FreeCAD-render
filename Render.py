@@ -347,7 +347,7 @@ class Project:
                     msg = translate(
                         "Render",
                         "[Render] Unable to create rendering view for object "
-                        "{}: unhandled object type\n")
+                        "'{}': unhandled object type\n")
                     App.Console.PrintWarning(msg.format(obj.Label))
 
         # Here starts add_objects
