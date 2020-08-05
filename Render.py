@@ -318,7 +318,7 @@ class Project:
 
         return result
 
-    def add_objects(self, objs):
+    def add_views(self, objs):
         """Add objects as new views to the project
 
         This method can handle objects groups, recursively.
@@ -356,7 +356,7 @@ class Project:
                         "'{}': unhandled object type\n")
                     App.Console.PrintWarning(msg.format(obj.Label))
 
-        # Here starts add_objects
+        # Here starts add_views
         add_to_group(iter(objs), self.fpo)
 
     def all_views(self):
@@ -1157,7 +1157,7 @@ class RenderViewCommand:
             return
 
         # Finally, add objects to target project and recompute
-        target_project.Proxy.add_objects(objs)
+        target_project.Proxy.add_views(objs)
 
         App.ActiveDocument.recompute()
 
