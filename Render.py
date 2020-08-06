@@ -345,6 +345,13 @@ class Project:
                     new_group = App.ActiveDocument.addObject(
                         "App::DocumentObjectGroup", label)
                     new_group.Label = label
+                    new_group.addProperty(
+                        "App::PropertyLink",
+                        "Source",
+                        "Render",
+                        QT_TRANSLATE_NOOP("App::Property",
+                                          "The source object of this group"))
+                    new_group.Source = obj  # For debug purpose...
                     group.addObject(new_group)
                     add_to_group(obj.Group, new_group)
                 elif RendererHandler.is_renderable(obj):
