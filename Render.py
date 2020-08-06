@@ -573,7 +573,34 @@ class ViewProviderProject:
 class View:
     """A rendering view of a FreeCAD object"""
 
+    # Related FeaturePython object has to be stored in a class variable,
+    # (not in an instance variable...), otherwise it causes trouble in
+    # serialization...
+    _fpos = dict()
+
     def __init__(self, obj):
+        obj.Proxy = self
+        self.set_properties(obj)
+
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
+
+    def set_properties(self, obj):
+        """Set underlying FeaturePython object's properties
+
+        Parameters
+        ----------
+        obj: FeaturePython Object related to this project
+        """
+        self.fpo = obj
+
         obj.addProperty("App::PropertyLink",
                         "Source",
                         "Render",
@@ -589,7 +616,10 @@ class View:
                         "Render",
                         QT_TRANSLATE_NOOP("App::Property",
                                           "The rendering output of this view"))
-        obj.Proxy = self
+
+    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
+        """Code to be executed when document is restored (callback)"""
+        self.set_properties(obj)
 
     def execute(self, obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
@@ -655,6 +685,51 @@ class View:
         project.addObject(fpo)
         viewp = ViewProviderView(fpo.ViewObject)
         return view, fpo, viewp
+
+    def get_freecad_material(self):
+        """Get the freecad material that can be associated with a view
+
+        Steps are the following (stop when a valid material is found):
+        1. Look into the view object
+        2. Look into the source object
+        Returns None if no material is found
+        """
+        view = self.fpo
+
+        for obj in (view, view.Source):
+            try:
+                res = obj.Material
+                assert res
+            except (AttributeError, AssertionError):
+                continue
+            else:
+                return res
+        return None  # Negative search
+
+    def get_shape_color(self):
+        """Get the RGBA color for a FreeCAD object as seen in viewport
+
+        If the object does not hold any color data, a default
+        RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
+
+        Returns:
+        The RGBA color, as a (named) tuple
+        """
+        source = self.fpo.Source
+        # Get RGB
+        try:
+            shape_color = source.ViewObject.ShapeColor[:3]
+        except (AttributeError, IndexError):
+            shape_color = (1.0, 1.0, 1.0)
+
+        # Get alpha
+        try:
+            assert 0 <= source.ViewObject.Transparency <= 100
+            shape_alpha = 1.0 - source.ViewObject.Transparency / 100
+        except (AttributeError, IndexError, AssertionError):
+            shape_alpha = 1.0
+        RGBA = collections.namedtuple("RGBA", "r g b a")
+        return RGBA(*shape_color, shape_alpha)
 
 
 class ViewProviderView:
@@ -859,50 +934,15 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+
+
         source = view.Source
-
-        def shape_color(fcd_object):
-            """Get the RGBA color for a FreeCAD object as seen in viewport
-
-            If the object does not hold any color data, a default
-            RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
-
-            Parameters:
-            fcd_object -- the FreeCAD object
-
-            Returns:
-            The RGBA color, as a (named) tuple
-            """
-            try:
-                shape_color = fcd_object.ViewObject.ShapeColor[:3]
-            except (AttributeError, IndexError):
-                shape_color = (1.0, 1.0, 1.0)
-
-            try:  # Get viewport alpha as fallback
-                assert 0 <= fcd_object.ViewObject.Transparency <= 100
-                shape_alpha = 1.0 - fcd_object.ViewObject.Transparency / 100
-            except (AttributeError, IndexError, AssertionError):
-                shape_alpha = 1.0
-            RGBA = collections.namedtuple("RGBA", "r g b a")
-            return RGBA(*shape_color, shape_alpha)
-
-        # Get FreeCAD material
-        # We look first at the view, then at the object itself
-        # If none is relevant, we fall back to an empty dict
-        for obj in (view, source):
-            try:
-                freecad_material = obj.Material.Material
-                break
-            except AttributeError:
-                continue
-        else:
-            freecad_material = dict()
 
         # Get rendering material
         rendering_material = materials.get_rendering_material(
-            material=freecad_material,
+            material=view.Proxy.get_freecad_material(),
             renderer=self.renderer_name,
-            default_color=shape_color(source))
+            default_color=view.Proxy.get_shape_color())
 
         # Get mesh
         mesh = None

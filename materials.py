@@ -118,8 +118,16 @@ def get_rendering_material(material, renderer, default_color):
         res.color = RGBA(*diffusecolor, res.diffuse.alpha)
         return res
 
+    # TODO Handle Multimaterial
+
     # get_rendering_material starts here
-    mat = dict(material)
+    try:
+        mat = dict(material.Material)
+    except Exception:
+        name = "<Unnamed Material>"
+        debug("Not a valid material")
+        mat = dict()
+
     renderer = str(renderer)
     name = mat.get("Name", "<Unnamed Material>")
 
