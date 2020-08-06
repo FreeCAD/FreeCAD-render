@@ -89,6 +89,18 @@ RENDERERS = [x.group(1)
              if x]
 DEPRECATED_RENDERERS = ["Luxrender"]
 
+
+# ===========================================================================
+#                     Core rendering objects (Project and View)
+# ===========================================================================
+
+
+def debug(domain, object_name, msg):
+    """Print debug message"""
+    msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
+    App.Console.PrintLog(msg)
+
+
 # ===========================================================================
 #                     Core rendering objects (Project and View)
 # ===========================================================================
@@ -936,6 +948,7 @@ class RendererHandler:
         """
 
 
+        debug("Object", name, "Processing")
         source = view.Source
 
         # Get rendering material
@@ -1011,6 +1024,9 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+
+        debug("PointLight", name, "Processing")
+
         source = view.Source
 
         # get location, color
@@ -1039,6 +1055,9 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+
+        debug("AreaLight", name, "Processing")
+
         # Get properties
         source = view.Source
         placement = App.Base.Placement(source.Placement)
@@ -1068,6 +1087,7 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        debug("SunskyLight", name, "Processing")
         src = view.Source
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
@@ -1098,6 +1118,7 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        debug("ImageLight", name, "Processing")
         src = view.Source
         image = src.ImageFile
 
