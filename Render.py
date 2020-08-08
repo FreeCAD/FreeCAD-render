@@ -48,6 +48,7 @@ from importlib import import_module
 from tempfile import mkstemp
 from types import SimpleNamespace
 from operator import attrgetter
+from typing import overload
 
 from PySide.QtGui import QAction, QIcon, QFileDialog
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
@@ -100,6 +101,16 @@ def debug(domain, object_name, msg):
     msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
     App.Console.PrintLog(msg)
 
+def getproxyattr(obj, name, default):
+    """Get attribute on object's proxy
+
+    Behaves like getattr, but on Proxy property, and with mandatory default...
+    """
+    try:
+        res = getattr(obj.Proxy, name, default)
+    except AttributeError:
+        res = default
+    return res
 
 # ===========================================================================
 #                     Core rendering objects (Project and View)
@@ -898,10 +909,12 @@ class RendererHandler:
         try:
             source = view.Source
 
-            try:
-                objtype = source.Proxy.type
-            except AttributeError:
-                objtype = "Object"
+            objtype = getproxyattr(source, "type", "Object")
+            # TODO delete
+            # try:
+                # objtype = source.Proxy.type
+            # except AttributeError:
+                # objtype = "Object"
 
             name = str(source.Name)
 
@@ -946,20 +959,121 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        def check_meshes(objs):
+            assert objs,\
+                translate("Render", "Nothing to render")
+            for obj in objs:
+                mesh = obj[1]
+                assert mesh,\
+                    translate("Render", "Cannot find mesh data")
+                assert mesh.Topology[0] and mesh.Topology[1],\
+                    translate("Render", "Mesh topology is empty")
+                assert mesh.getPointNormals(),\
+                    translate("Render", "Mesh topology has no normals")
 
-
-        debug("Object", name, "Processing")
+        # Get objects properties
         source = view.Source
+        label = getattr(source, "Label", name)
+        debug("Object", label, "Processing")
+        freecad_material = view.Proxy.get_freecad_material()
+        default_color = view.Proxy.get_shape_color()
+        renderer_name = self.renderer_name
+        # TODO use partial for get_rendering_material
+        # TODO use partial for meshFromShape
 
-        # Get rendering material
-        rendering_material = materials.get_rendering_material(
-            material=view.Proxy.get_freecad_material(),
-            renderer=self.renderer_name,
-            default_color=view.Proxy.get_shape_color())
+        # Build objects list
+        # Each item being a tuple (name, mesh, material)
+        if hasattr(source, "Group"):
+            debug("Object", label, "'Group' detected")
+            shps = (o.Shape for o in Draft.getGroupContents(source)
+                    if hasattr(o, "Shape"))
+            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
+                                          LinearDeflection=0.1,
+                                          AngularDeflection=0.523599,
+                                          Relative=False)
+            material = materials.get_rendering_material(
+                freecad_material, renderer_name, default_color)
+            objs = [(name, mesh, material)]
+        elif (source.isDerivedFrom("Part::Feature") and
+              getproxyattr(source, "Type", "") == "Window"):
+            debug("Object", label, "'Window' detected")
+
+            # Objects names
+            subnames = source.WindowParts[0::5]  # Names every 5th item...
+            names = ("%s#%s" % (name, s) for s in subnames)
+
+            # Objects meshes
+            meshes = (MeshPart.meshFromShape(Shape=shape,
+                                             LinearDeflection=0.1,
+                                             AngularDeflection=0.523599,
+                                             Relative=False)
+                      for shape in source.Shape.childShapes())
+
+            # Objects materials
+            # freecad_material should be a multimaterial
+            assert (freecad_material.isDerivedFrom("App::FeaturePython")
+                    and freecad_material.Proxy.Type == "MultiMaterial"),\
+                   "Not a multimaterial"
+            materials_dict = dict(
+                zip(freecad_material.Names, freecad_material.Materials))
+            mats = (materials.get_rendering_material(materials_dict[n],
+                                                     renderer_name,
+                                                     default_color)
+                    for n in subnames)
+
+            objs = list(zip(names, meshes, mats))
+        elif source.isDerivedFrom("Part::Feature"):
+            debug("Object", label, "'Part::Feature' detected")
+            mesh = MeshPart.meshFromShape(Shape=source.Shape,
+                                          LinearDeflection=0.1,
+                                          AngularDeflection=0.523599,
+                                          Relative=False)
+            material = materials.get_rendering_material(
+                freecad_material, renderer_name, default_color)
+            objs = [(name, mesh, material)]
+        elif source.isDerivedFrom("Mesh::Feature"):
+            debug("Object", label, "'Mesh::Feature' detected")
+            mesh = source.Mesh
+            material = materials.get_rendering_material(
+                freecad_material, renderer_name, default_color)
+            objs = [(name, mesh, material)]
+        else:
+            msg = translate("Render", "Unhandled object type")
+            raise TypeError(msg)
+
+        # Check objects
+        check_meshes(objs)
+
+        # Call renderer on objects, concatenate and return
+        res = [self._call_renderer("write_object",*obj) for obj in objs]
+        return ''.join(res)
+
+
+    def _render_object_old(self, name, view):
+        # OLD VERSION
+        # TODO Delete
+        """Get a rendering string for a generic FreeCAD object
+
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...)
+
+        Parameters:
+        name -- the name of the object
+        view -- a view of the object to render
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+
+
+        source = view.Source
+        label = getattr(source, "Label", name)
+
+        debug("Object", label, "Processing")
 
         # Get mesh
         mesh = None
         if hasattr(source, "Group"):
+            debug("Object", label, "'Group' detected")
             shps = [o.Shape for o in Draft.getGroupContents(source)
                     if hasattr(o, "Shape")]
             mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
@@ -967,11 +1081,13 @@ class RendererHandler:
                                           AngularDeflection=0.523599,
                                           Relative=False)
         elif source.isDerivedFrom("Part::Feature"):
+            debug("Object", label, "'Part::Feature' detected")
             mesh = MeshPart.meshFromShape(Shape=source.Shape,
                                           LinearDeflection=0.1,
                                           AngularDeflection=0.523599,
                                           Relative=False)
         elif source.isDerivedFrom("Mesh::Feature"):
+            debug("Object", label, "'Mesh::Feature' detected")
             mesh = source.Mesh
 
         # Check a few conditions
@@ -981,6 +1097,12 @@ class RendererHandler:
             translate("Render", "Mesh topology is empty")
         assert mesh.getPointNormals(),\
             translate("Render", "Mesh topology has no normals")
+
+        # Get rendering material
+        rendering_material = materials.get_rendering_material(
+            material=view.Proxy.get_freecad_material(),
+            renderer=self.renderer_name,
+            default_color=view.Proxy.get_shape_color())
 
         # Call renderer
         return self._call_renderer("write_object",
