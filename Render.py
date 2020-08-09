@@ -986,19 +986,21 @@ class RendererHandler:
                                               AngularDeflection=0.523599,
                                               Relative=False)
 
-            is_group = hasattr(obj, "Group")
-            is_partfeature = obj.isDerivedFrom("Part::Feature")
-            is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
-            objtype = getproxyattr(obj, "Type", "")
+            obj_is_group = hasattr(obj, "Group")
+            obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
+            obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
+            obj_type = getproxyattr(obj, "Type", "")
 
-            if is_group:
+            # Group
+            if obj_is_group:
                 debug("Object", label, "'Group' detected")
                 shps = [o.Shape for o in Draft.getGroupContents(obj)
                         if hasattr(o, "Shape")]
                 mesh = meshfromshape(Shape=Part.makeCompound(shps))
                 renderables = [Renderable(name, mesh, material)]
 
-            elif is_partfeature and objtype == "Window":
+            # Window
+            elif obj_is_partfeature and obj_type == "Window":
                 debug("Object", label, "'Window' detected")
 
                 # Subobjects names
@@ -1010,27 +1012,51 @@ class RendererHandler:
                           for s in obj.Shape.childShapes())
 
                 # Subobjects materials
-                # material must be a multimaterial
-                assert (material.isDerivedFrom("App::FeaturePython")
-                        and material.Proxy.Type == "MultiMaterial"),\
-                       "Not a multimaterial"
-                materials_dict = dict(zip(material.Names, material.Materials))
-                mats = (materials_dict[s] for s in subnames)
+                # material should be a multimaterial or None
+                if material is not None:
+                    assert (material.isDerivedFrom("App::FeaturePython")
+                            and material.Proxy.Type == "MultiMaterial"),\
+                           "Not a multimaterial"
+                    mats_dict = dict(zip(material.Names, material.Materials))
+                    mats = (mats_dict[s] for s in subnames)
+                else:
+                    mats = [None] * len(subnames)
 
                 # Build renderables
-                renderables = [Renderable(*r)
-                               for r in zip(names, meshes, mats)]
+                renderables = \
+                    [Renderable(*r) for r in zip(names, meshes, mats)]
 
-            elif is_partfeature:
+            # PathArray
+            elif obj_is_partfeature and obj_type == "PathArray":
+                debug("Object", label, "'PathArray' detected")
+                material = (obj.Base.Material if obj.Base.Material is not None
+                            else material)  # We may override view material...
+                base_rends = get_renderables(obj.Base, obj.Base.Name, material)
+                base_plc = obj.Placement
+                renderables = []
+                for counter, plc in enumerate(obj.PlacementList):
+                    # Apply placement to base renderables
+                    for old_rend in base_rends:
+                        mesh = old_rend.mesh.copy()
+                        mesh.transform(plc.toMatrix())
+                        mesh.transform(base_plc.toMatrix())
+                        subname = "%s#%s#%s" % (name, old_rend.name, counter)
+                        new_rend = Renderable(subname, mesh, old_rend.material)
+                        renderables.append(new_rend)
+
+            # Plain part
+            elif obj_is_partfeature:
                 debug("Object", label, "'Part::Feature' detected")
                 mesh = meshfromshape(Shape=obj.Shape)
                 renderables = [Renderable(name, mesh, material)]
 
-            elif is_meshfeature:
+            # Mesh
+            elif obj_is_meshfeature:
                 debug("Object", label, "'Mesh::Feature' detected")
                 mesh = obj.Mesh
                 renderables = [Renderable(name, mesh, material)]
 
+            # Unhandled
             else:
                 renderables = []
                 msg = translate("Render", "Unhandled object type")
