@@ -51,6 +51,8 @@ def write_object(name, mesh, material):
     object
     """
     # Write the mesh as an OBJ tempfile
+    # Known bug: mesh.Placement must be null, otherwise computation is wrong
+    # due to special Appleseed coordinate system (to be fixed)
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
     tmpmesh = mesh.copy()
