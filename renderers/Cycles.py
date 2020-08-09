@@ -330,7 +330,7 @@ def _write_material_disney(name, material):
                           material.disney.sheen,
                           material.disney.sheentint,
                           material.disney.clearcoat,
-                          1 - material.disney.clearcoatgloss)
+                          1 - float(material.disney.clearcoatgloss))
 
 
 def _write_material_diffuse(name, material):
