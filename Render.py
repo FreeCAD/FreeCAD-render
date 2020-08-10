@@ -866,13 +866,14 @@ class RendererHandler:
 
         try:
             res = (obj.isDerivedFrom("Part::Feature") or
+                   obj.isDerivedFrom("App::Link") or
                    obj.isDerivedFrom("Mesh::Feature") or
                    (obj.isDerivedFrom("App::FeaturePython") and
-                    obj.Proxy.type in ["PointLight",
-                                       "Camera",
-                                       "AreaLight",
-                                       "SunskyLight",
-                                       "ImageLight"]))
+                    getproxyattr(obj, "type", "") in ["PointLight",
+                                                      "Camera",
+                                                      "AreaLight",
+                                                      "SunskyLight",
+                                                      "ImageLight"]))
         except AttributeError:
             res = False
 
@@ -981,12 +982,17 @@ class RendererHandler:
             Returns:
             A list of renderables
             """
+            # TODO Apply scale in links and PathArray
+            # TODO material should be upper_material (the material from upper level)
+            # TODO and we should have an upper_defaultcolor too
+            # TODO Handle deflection
             meshfromshape = functools.partial(MeshPart.meshFromShape,
                                               LinearDeflection=0.1,
                                               AngularDeflection=0.523599,
                                               Relative=False)
 
             obj_is_group = hasattr(obj, "Group")
+            obj_is_applink = obj.isDerivedFrom("App::Link")
             obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
             obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
             obj_type = getproxyattr(obj, "Type", "")
@@ -998,6 +1004,20 @@ class RendererHandler:
                         if hasattr(o, "Shape")]
                 mesh = meshfromshape(Shape=Part.makeCompound(shps))
                 renderables = [Renderable(name, mesh, material)]
+
+            # Link (plain)
+            elif obj_is_applink and not obj.ElementCount:
+                debug("Object", label, "'Link (plain)' detected")
+                base_rends = get_renderables(obj.LinkedObject, name, material)
+                renderables = []
+                link_plc_mat = obj.LinkPlacement.toMatrix()
+                for rend in base_rends:
+                    new_name = "%s#%s" % (name, rend.name)
+                    new_mesh = rend.mesh.copy()
+                    if not obj.LinkTransform:
+                        new_mesh.transform(link_plc_mat)
+                    new_rend = Renderable(new_name, new_mesh, rend.material)
+                    renderables.append(new_rend)
 
             # Window
             elif obj_is_partfeature and obj_type == "Window":
@@ -1012,7 +1032,7 @@ class RendererHandler:
                           for s in obj.Shape.childShapes())
 
                 # Subobjects materials
-                # material should be a multimaterial or None
+                # 'material' should be a multimaterial or None
                 if material is not None:
                     assert (material.isDerivedFrom("App::FeaturePython")
                             and material.Proxy.Type == "MultiMaterial"),\
@@ -1028,6 +1048,8 @@ class RendererHandler:
 
             # PathArray
             elif obj_is_partfeature and obj_type == "PathArray":
+                # TODO Handle ExpandArray == true
+                # TODO Handle Scale
                 debug("Object", label, "'PathArray' detected")
                 material = (obj.Base.Material if obj.Base.Material is not None
                             else material)  # We may override view material...
