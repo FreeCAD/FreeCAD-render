@@ -983,12 +983,10 @@ class RendererHandler:
             A list of renderables
             """
             # TODO Apply scale in Links and PathArray
-            # TODO Handle ExpandArray == true for PathArray
             # TODO material should be upper_material (the material from upper level) and we should have an upper_defaultcolor too
             # TODO Handle deflection
             # TODO Handle obj_is_applink and obj.ElementCount > 0
             # TODO Handle other Array types
-            # TODO Handle visibility in Arrays
             # TODO Test with 0.18
             meshfromshape = functools.partial(MeshPart.meshFromShape,
                                               LinearDeflection=0.1,
@@ -1060,7 +1058,8 @@ class RendererHandler:
                 if not obj.ExpandArray:
                     base_rends = get_renderables(obj.Base, obj.Base.Name, material)
                     base_plc = obj.Placement
-                    for counter, plc in enumerate(obj.PlacementList):
+                    placements = itertools.compress(obj.PlacementList, obj.VisibilityList)
+                    for counter, plc in enumerate(placements):
                         # Apply placement to base renderables
                         for old_rend in base_rends:
                             mesh = old_rend.mesh.copy()
@@ -1082,7 +1081,6 @@ class RendererHandler:
                             new_mesh.transform(element.Placement.toMatrix())
                             new_rend = Renderable(old_rend.name, new_mesh, old_rend.material)
                             renderables.append(new_rend)
-                print(renderables)
 
             # Plain part
             elif obj_is_partfeature:
