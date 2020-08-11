@@ -982,10 +982,14 @@ class RendererHandler:
             Returns:
             A list of renderables
             """
-            # TODO Apply scale in links and PathArray
-            # TODO material should be upper_material (the material from upper level)
-            # TODO and we should have an upper_defaultcolor too
+            # TODO Apply scale in Links and PathArray
+            # TODO Handle ExpandArray == true for PathArray
+            # TODO material should be upper_material (the material from upper level) and we should have an upper_defaultcolor too
             # TODO Handle deflection
+            # TODO Handle obj_is_applink and obj.ElementCount > 0
+            # TODO Handle other Array types
+            # TODO Handle visibility in Arrays
+            # TODO Test with 0.18
             meshfromshape = functools.partial(MeshPart.meshFromShape,
                                               LinearDeflection=0.1,
                                               AngularDeflection=0.523599,
@@ -1046,25 +1050,39 @@ class RendererHandler:
                 renderables = \
                     [Renderable(*r) for r in zip(names, meshes, mats)]
 
-            # PathArray
-            elif obj_is_partfeature and obj_type == "PathArray":
-                # TODO Handle ExpandArray == true
-                # TODO Handle Scale
-                debug("Object", label, "'PathArray' detected")
+            # Array, PathArray
+            elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
+                debug("Object", label, "'%s' detected" % obj_type)
                 material = (obj.Base.Material if obj.Base.Material is not None
                             else material)  # We may override view material...
-                base_rends = get_renderables(obj.Base, obj.Base.Name, material)
-                base_plc = obj.Placement
+
                 renderables = []
-                for counter, plc in enumerate(obj.PlacementList):
-                    # Apply placement to base renderables
-                    for old_rend in base_rends:
-                        mesh = old_rend.mesh.copy()
-                        mesh.transform(plc.toMatrix())
-                        mesh.transform(base_plc.toMatrix())
-                        subname = "%s#%s#%s" % (name, old_rend.name, counter)
-                        new_rend = Renderable(subname, mesh, old_rend.material)
-                        renderables.append(new_rend)
+                if not obj.ExpandArray:
+                    base_rends = get_renderables(obj.Base, obj.Base.Name, material)
+                    base_plc = obj.Placement
+                    for counter, plc in enumerate(obj.PlacementList):
+                        # Apply placement to base renderables
+                        for old_rend in base_rends:
+                            mesh = old_rend.mesh.copy()
+                            mesh.transform(plc.toMatrix())
+                            mesh.transform(base_plc.toMatrix())
+                            subname = "%s#%s#%s" % (name, old_rend.name, counter)
+                            new_rend = Renderable(subname, mesh, old_rend.material)
+                            renderables.append(new_rend)
+                else:
+                    base_plc = obj.Placement.toMatrix()
+                    elements = itertools.compress(obj.ElementList, obj.VisibilityList)
+                    for element in elements:
+                        # element should be a App::LinkElement...
+                        assert element.isDerivedFrom("App::LinkElement")
+                        base_rends = get_renderables(element.LinkedObject, element.Name, material)
+                        for old_rend in base_rends:
+                            new_mesh = old_rend.mesh.copy()
+                            new_mesh.transform(base_plc)
+                            new_mesh.transform(element.Placement.toMatrix())
+                            new_rend = Renderable(old_rend.name, new_mesh, old_rend.material)
+                            renderables.append(new_rend)
+                print(renderables)
 
             # Plain part
             elif obj_is_partfeature:
