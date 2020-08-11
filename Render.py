@@ -1014,7 +1014,7 @@ class RendererHandler:
                 renderables = []
                 link_plc_mat = obj.LinkPlacement.toMatrix()
                 for rend in base_rends:
-                    new_name = "%s#%s" % (name, rend.name)
+                    new_name = "%s_%s" % (name, rend.name)
                     new_mesh = rend.mesh.copy()
                     if not obj.LinkTransform:
                         new_mesh.transform(link_plc_mat)
@@ -1027,7 +1027,7 @@ class RendererHandler:
 
                 # Subobjects names
                 subnames = obj.WindowParts[0::5]  # Names every 5th item...
-                names = ("%s#%s" % (name, s) for s in subnames)
+                names = ("%s_%s" % (name, s) for s in subnames)
 
                 # Subobjects meshes
                 meshes = (meshfromshape(Shape=s)
@@ -1065,7 +1065,7 @@ class RendererHandler:
                             mesh = old_rend.mesh.copy()
                             mesh.transform(plc.toMatrix())
                             mesh.transform(base_plc.toMatrix())
-                            subname = "%s#%s#%s" % (name, old_rend.name, counter)
+                            subname = "%s_%s_%s" % (name, old_rend.name, counter)
                             new_rend = Renderable(subname, mesh, old_rend.material)
                             renderables.append(new_rend)
                 else:
