@@ -1013,12 +1013,14 @@ class RendererHandler:
                 base_rends = get_renderables(obj.LinkedObject, name, material)
                 renderables = []
                 link_plc_mat = obj.LinkPlacement.toMatrix()
-                for rend in base_rends:
-                    new_name = "%s_%s" % (name, rend.name)
-                    new_mesh = rend.mesh.copy()
+                for old_rend in base_rends:
+                    new_name = "%s_%s" % (name, old_rend.name)
+                    new_mesh = old_rend.mesh.copy()
                     if not obj.LinkTransform:
                         new_mesh.transform(link_plc_mat)
-                    new_rend = Renderable(new_name, new_mesh, rend.material)
+                    new_rend = Renderable(new_name,
+                                          new_mesh,
+                                          old_rend.material)
                     renderables.append(new_rend)
 
             # Window
@@ -1056,30 +1058,42 @@ class RendererHandler:
 
                 renderables = []
                 if not obj.ExpandArray:
-                    base_rends = get_renderables(obj.Base, obj.Base.Name, material)
+                    base_rends = get_renderables(obj.Base,
+                                                 obj.Base.Name,
+                                                 material)
                     base_plc = obj.Placement
-                    placements = itertools.compress(obj.PlacementList, obj.VisibilityList)
+                    placements = itertools.compress(obj.PlacementList,
+                                                    obj.VisibilityList)
                     for counter, plc in enumerate(placements):
                         # Apply placement to base renderables
                         for old_rend in base_rends:
                             mesh = old_rend.mesh.copy()
                             mesh.transform(plc.toMatrix())
                             mesh.transform(base_plc.toMatrix())
-                            subname = "%s_%s_%s" % (name, old_rend.name, counter)
-                            new_rend = Renderable(subname, mesh, old_rend.material)
+                            subname = "%s_%s_%s" % (name,
+                                                    old_rend.name,
+                                                    counter)
+                            new_rend = Renderable(subname,
+                                                  mesh,
+                                                  old_rend.material)
                             renderables.append(new_rend)
                 else:
                     base_plc = obj.Placement.toMatrix()
-                    elements = itertools.compress(obj.ElementList, obj.VisibilityList)
+                    elements = itertools.compress(obj.ElementList,
+                                                  obj.VisibilityList)
                     for element in elements:
                         # element should be a App::LinkElement...
                         assert element.isDerivedFrom("App::LinkElement")
-                        base_rends = get_renderables(element.LinkedObject, element.Name, material)
+                        base_rends = get_renderables(element.LinkedObject,
+                                                     element.Name,
+                                                     material)
                         for old_rend in base_rends:
                             new_mesh = old_rend.mesh.copy()
                             new_mesh.transform(base_plc)
                             new_mesh.transform(element.Placement.toMatrix())
-                            new_rend = Renderable(old_rend.name, new_mesh, old_rend.material)
+                            new_rend = Renderable(old_rend.name,
+                                                  new_mesh,
+                                                  old_rend.material)
                             renderables.append(new_rend)
 
             # Plain part
