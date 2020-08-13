@@ -960,7 +960,7 @@ class RendererHandler:
 
         Renderable = collections.namedtuple("Renderable", "name mesh material")
 
-        def get_renderables(obj, name, material):
+        def get_renderables(obj, name, upper_material):
             """Get the renderables from an object
 
             A renderable is a tuple (name, mesh, material). There can be
@@ -972,10 +972,11 @@ class RendererHandler:
             Parameters:
             obj -- the FreeCAD object from which to extract the renderables
             name -- the name of the object
-            material -- the FreeCAD material associated with the object
+            upper_material -- the FreeCAD material inherited from the upper
+                              level
 
             Notes about material:
-            - the freecad material (material) may be a multimaterial
+            - the freecad material (material) can be a multimaterial
             - the subobjects may have their own materials, in which case the
               submaterials will override the material parameter
 
@@ -983,7 +984,7 @@ class RendererHandler:
             A list of renderables
             """
             # TODO Apply scale in Links and PathArray
-            # TODO material should be upper_material (the material from upper level) and we should have an upper_defaultcolor too
+            # TODO Should have an upper_defaultcolor too
             # TODO Handle deflection
             # TODO Handle obj_is_applink and obj.ElementCount > 0
             # TODO Handle other Array types
@@ -999,83 +1000,67 @@ class RendererHandler:
             obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
             obj_type = getproxyattr(obj, "Type", "")
 
+            base_mat = (getattr(obj, "Material", None)
+                        if upper_material is None else upper_material)
+            base_mat_is_multimat = (
+                base_mat is not None and
+                base_mat.isDerivedFrom("App::FeaturePython") and
+                base_mat.Proxy.Type == "MultiMaterial")
+
             # Group
             if obj_is_group:
                 debug("Object", label, "'Group' detected")
                 shps = [o.Shape for o in Draft.getGroupContents(obj)
                         if hasattr(o, "Shape")]
                 mesh = meshfromshape(Shape=Part.makeCompound(shps))
-                renderables = [Renderable(name, mesh, material)]
+                renderables = [Renderable(name, mesh, base_mat)]
 
             # Link (plain)
             elif obj_is_applink and not obj.ElementCount:
                 debug("Object", label, "'Link (plain)' detected")
-                base_rends = get_renderables(obj.LinkedObject, name, material)
+                base_rends = get_renderables(obj.LinkedObject, name, base_mat)
                 renderables = []
                 link_plc_mat = obj.LinkPlacement.toMatrix()
                 for old_rend in base_rends:
                     new_name = "%s_%s" % (name, old_rend.name)
                     new_mesh = old_rend.mesh.copy()
+                    new_mat = (old_rend.material
+                               if base_mat is None or base_mat_is_multimat
+                               else base_mat)
                     if not obj.LinkTransform:
                         new_mesh.transform(link_plc_mat)
                     new_rend = Renderable(new_name,
                                           new_mesh,
-                                          old_rend.material)
+                                          new_mat)
                     renderables.append(new_rend)
-
-            # Window
-            elif obj_is_partfeature and obj_type == "Window":
-                debug("Object", label, "'Window' detected")
-
-                # Subobjects names
-                subnames = obj.WindowParts[0::5]  # Names every 5th item...
-                names = ("%s_%s" % (name, s) for s in subnames)
-
-                # Subobjects meshes
-                meshes = (meshfromshape(Shape=s)
-                          for s in obj.Shape.childShapes())
-
-                # Subobjects materials
-                # 'material' should be a multimaterial or None
-                if material is not None:
-                    assert (material.isDerivedFrom("App::FeaturePython")
-                            and material.Proxy.Type == "MultiMaterial"),\
-                           "Not a multimaterial"
-                    mats_dict = dict(zip(material.Names, material.Materials))
-                    mats = (mats_dict[s] for s in subnames)
-                else:
-                    mats = [None] * len(subnames)
-
-                # Build renderables
-                renderables = \
-                    [Renderable(*r) for r in zip(names, meshes, mats)]
 
             # Array, PathArray
             elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
                 debug("Object", label, "'%s' detected" % obj_type)
-                material = (obj.Base.Material if obj.Base.Material is not None
-                            else material)  # We may override view material...
 
                 renderables = []
                 if not obj.ExpandArray:
                     base_rends = get_renderables(obj.Base,
                                                  obj.Base.Name,
-                                                 material)
+                                                 base_mat)
                     base_plc = obj.Placement
                     placements = itertools.compress(obj.PlacementList,
                                                     obj.VisibilityList)
                     for counter, plc in enumerate(placements):
                         # Apply placement to base renderables
                         for old_rend in base_rends:
-                            mesh = old_rend.mesh.copy()
-                            mesh.transform(plc.toMatrix())
-                            mesh.transform(base_plc.toMatrix())
+                            new_mesh = old_rend.mesh.copy()
+                            new_mesh.transform(plc.toMatrix())
+                            new_mesh.transform(base_plc.toMatrix())
                             subname = "%s_%s_%s" % (name,
                                                     old_rend.name,
                                                     counter)
+                            new_mat = (old_rend.material
+                                       if base_mat is None or base_mat_is_multimat
+                                       else base_mat)
                             new_rend = Renderable(subname,
-                                                  mesh,
-                                                  old_rend.material)
+                                                  new_mesh,
+                                                  new_mat)
                             renderables.append(new_rend)
                 else:
                     base_plc = obj.Placement.toMatrix()
@@ -1091,22 +1076,49 @@ class RendererHandler:
                             new_mesh = old_rend.mesh.copy()
                             new_mesh.transform(base_plc)
                             new_mesh.transform(element.Placement.toMatrix())
+                            new_mat = (old_rend.material
+                                       if base_mat is None or base_mat_is_multimat
+                                       else base_mat)
                             new_rend = Renderable(old_rend.name,
                                                   new_mesh,
-                                                  old_rend.material)
+                                                  new_mat)
                             renderables.append(new_rend)
+
+            # Window
+            elif obj_is_partfeature and obj_type == "Window":
+                debug("Object", label, "'Window' detected")
+
+                # Subobjects names
+                subnames = obj.WindowParts[0::5]  # Names every 5th item...
+                names = ["%s_%s" % (name, s) for s in subnames]
+
+                # Subobjects meshes
+                meshes = [meshfromshape(Shape=s)
+                          for s in obj.Shape.childShapes()]
+
+                # Subobjects materials
+                # 'base_mat' should be a multimaterial or None
+                if base_mat is not None:
+                    assert base_mat_is_multimat, "Multimaterial expected"
+                    mats_dict = dict(zip(base_mat.Names, base_mat.Materials))
+                    mats = [mats_dict[s] for s in subnames]
+                else:
+                    mats = [None] * len(subnames)
+                # Build renderables
+                renderables = \
+                    [Renderable(r[0], r[1], r[2]) for r in zip(names, meshes, mats)]
 
             # Plain part
             elif obj_is_partfeature:
                 debug("Object", label, "'Part::Feature' detected")
                 mesh = meshfromshape(Shape=obj.Shape)
-                renderables = [Renderable(name, mesh, material)]
+                renderables = [Renderable(name, mesh, base_mat)]
 
             # Mesh
             elif obj_is_meshfeature:
                 debug("Object", label, "'Mesh::Feature' detected")
                 mesh = obj.Mesh
-                renderables = [Renderable(name, mesh, material)]
+                renderables = [Renderable(name, mesh, base_mat)]
 
             # Unhandled
             else:
@@ -1136,7 +1148,7 @@ class RendererHandler:
 
         # Build renderables list from object
         # A renderable is a tuple (name, mesh, material)
-        material = view.Proxy.get_freecad_material()
+        material = view.Material
         renderables = get_renderables(source, name, material)
 
         # Check renderables
