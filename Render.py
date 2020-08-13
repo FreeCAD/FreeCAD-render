@@ -1056,7 +1056,8 @@ class RendererHandler:
                                                     old_rend.name,
                                                     counter)
                             new_mat = (old_rend.material
-                                       if base_mat is None or base_mat_is_multimat
+                                       if (base_mat is None
+                                           or base_mat_is_multimat)
                                        else base_mat)
                             new_rend = Renderable(subname,
                                                   new_mesh,
@@ -1077,7 +1078,8 @@ class RendererHandler:
                             new_mesh.transform(base_plc)
                             new_mesh.transform(element.Placement.toMatrix())
                             new_mat = (old_rend.material
-                                       if base_mat is None or base_mat_is_multimat
+                                       if (base_mat is None
+                                           or base_mat_is_multimat)
                                        else base_mat)
                             new_rend = Renderable(old_rend.name,
                                                   new_mesh,
@@ -1106,7 +1108,7 @@ class RendererHandler:
                     mats = [None] * len(subnames)
                 # Build renderables
                 renderables = \
-                    [Renderable(r[0], r[1], r[2]) for r in zip(names, meshes, mats)]
+                    [Renderable(*r) for r in zip(names, meshes, mats)]
 
             # Plain part
             elif obj_is_partfeature:
