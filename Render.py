@@ -1046,7 +1046,8 @@ class RendererHandler:
                         for old_rend in base_rends:
                             new_mesh = old_rend.mesh.copy()
                             new_mesh.transform(plc.toMatrix())
-                            new_mesh.transform(base_plc.toMatrix())
+                            if obj.LinkTransform:
+                                new_mesh.transform(base_plc.toMatrix())
                             subname = "%s_%s_%s" % (name,
                                                     old_rend.name,
                                                     counter)
