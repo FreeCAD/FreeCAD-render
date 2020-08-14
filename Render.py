@@ -1037,8 +1037,10 @@ class RendererHandler:
                                                  obj.Base.Name,
                                                  base_mat)
                     base_plc = obj.Placement
-                    placements = itertools.compress(obj.PlacementList,
-                                                    obj.VisibilityList)
+                    placements = (itertools.compress(obj.PlacementList,
+                                                     obj.VisibilityList)
+                                  if obj.VisibilityList
+                                  else obj.PlacementList)
                     for counter, plc in enumerate(placements):
                         # Apply placement to base renderables
                         for old_rend in base_rends:
