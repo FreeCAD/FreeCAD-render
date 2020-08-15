@@ -996,7 +996,7 @@ class RendererHandler:
                         if (upper_material is None or upper_mat_is_multimat)
                         else upper_material)
 
-            def get_renderables_from_elementlist(obj, upper_material):
+            def get_rends_from_elementlist(obj, upper_material):
                 """Get renderables from an object containing a list of elements
 
                 The list of elements must be in the ElementList property of the
@@ -1005,15 +1005,13 @@ class RendererHandler:
                 """
                 renderables = []
                 base_plc_matrix = obj.Placement.toMatrix()
-                elementlist = obj.ElementList
-                visibilitylist = obj.VisibilityList
-                elements = it.compress(elementlist, visibilitylist)
+                elements = it.compress(obj.ElementList, obj.VisibilityList)
+
                 for element in elements:
                     assert element.isDerivedFrom("App::LinkElement")
                     base_rends = get_renderables(element.LinkedObject,
                                                  element.Name,
                                                  upper_material)
-                    # element_plc_matrix = element.Placement.toMatrix()
                     element_plc_matrix = element.LinkPlacement.toMatrix()
                     linkedobject_plc_inverse_matrix = \
                         element.LinkedObject.Placement.inverse().toMatrix()
@@ -1069,7 +1067,7 @@ class RendererHandler:
             # Link (array)
             elif obj_is_applink and obj.ElementCount:
                 debug("Object", label, "'Link (array)' detected")
-                renderables = get_renderables_from_elementlist(obj, base_mat)
+                renderables = get_rends_from_elementlist(obj, base_mat)
 
             # Array, PathArray
             elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
@@ -1081,7 +1079,8 @@ class RendererHandler:
                                                  obj.Base.Name,
                                                  base_mat)
                     base_plc = obj.Placement
-                    base_inv_plc_matrix = obj.Base.Placement.inverse().toMatrix()
+                    base_inv_plc_matrix = \
+                        obj.Base.Placement.inverse().toMatrix()
                     placements = (
                         it.compress(obj.PlacementList, obj.VisibilityList)
                         if obj.VisibilityList
@@ -1100,8 +1099,7 @@ class RendererHandler:
                             new_rend = Renderable(subname, new_mesh, new_mat)
                             renderables.append(new_rend)
                 else:
-                    renderables = \
-                        get_renderables_from_elementlist(obj, base_mat)
+                    renderables = get_rends_from_elementlist(obj, base_mat)
 
             # Window
             elif obj_is_partfeature and obj_type == "Window":
