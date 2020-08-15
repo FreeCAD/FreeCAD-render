@@ -42,6 +42,7 @@ import functools
 import MeshPart
 
 from renderutils import translate, debug, getproxyattr
+from rendermaterials import is_multimat
 
 
 Renderable = collections.namedtuple("Renderable", "name mesh material")
@@ -75,12 +76,6 @@ def get_renderables(obj, name, upper_material):
                                       LinearDeflection=0.1,
                                       AngularDeflection=0.523599,
                                       Relative=False)
-
-    def is_multimat(material):
-        """Check if a material is a multimaterial"""
-        return (material is not None and
-                material.isDerivedFrom("App::FeaturePython") and
-                material.Proxy.Type == "MultiMaterial")
 
     def get_material(base_renderable, upper_material):
         """Get material from a base renderable and an upper material"""

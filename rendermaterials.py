@@ -250,3 +250,10 @@ def get_rendering_material(material, renderer, default_color):
     else:
         debug("Fallback to default color")
         return build_diffuse(diffusecolor, diffusealpha)
+
+
+def is_multimat(obj):
+    """Check if a material is a multimaterial"""
+    return (obj is not None and
+            obj.isDerivedFrom("App::FeaturePython") and
+            obj.Proxy.Type == "MultiMaterial")
