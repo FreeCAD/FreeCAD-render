@@ -20,8 +20,7 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements the Renderable object, an atomic entity for
-rendering.
+"""This module implements the Renderable object, an atomic rendering entity.
 
 A Renderable is a tuple (name, mesh, material). It is a convenient object
 to send to renderers.
@@ -30,24 +29,30 @@ module also provides the function to convert FreeCAD objects into collection of
 Renderables
 """
 
+# TODO Apply scale in Links and PathArray
 
 # ===========================================================================
 #                                   Imports
 # ===========================================================================
 
-import itertools as it
-import collections
 
+import itertools
+import collections
 
 from renderutils import translate, debug, getproxyattr
 from rendermaterials import is_multimat
+
+
+# ===========================================================================
+#                                   Exports
+# ===========================================================================
 
 
 Renderable = collections.namedtuple("Renderable", "name mesh material")
 
 
 def get_renderables(obj, name, upper_material, mesher):
-    """Get the renderables from a FreeCAD object
+    """Get the renderables from a FreeCAD object.
 
     A renderable is a tuple (name, mesh, material). There can be
     several renderables for one object, for instance if the object is a
@@ -62,64 +67,16 @@ def get_renderables(obj, name, upper_material, mesher):
                       level
     mesher -- a callable which can convert a shape into a mesh
 
-    Notes about material:
-    - the freecad material (material) can be a multimaterial
-    - the subobjects may have their own materials, in which case the
-      submaterials will override the material parameter
-
     Returns:
     A list of renderables
     """
-    # TODO Apply scale in Links and PathArray
-    def get_material(base_renderable, upper_material):
-        """Get material from a base renderable and an upper material"""
-        upper_mat_is_multimat = is_multimat(upper_material)
-
-        return (base_renderable.material
-                if (upper_material is None or upper_mat_is_multimat)
-                else upper_material)
-
-    def get_rends_from_elementlist(obj, upper_material):
-        """Get renderables from an object containing a list of elements
-
-        The list of elements must be in the ElementList property of the
-        object.
-        This function is useful for Link arrays and expanded Arrays
-        """
-        renderables = []
-        base_plc_matrix = obj.Placement.toMatrix()
-        elements = it.compress(obj.ElementList, obj.VisibilityList)
-
-        for element in elements:
-            assert element.isDerivedFrom("App::LinkElement")
-            base_rends = get_renderables(element.LinkedObject,
-                                         element.Name,
-                                         upper_material,
-                                         mesher)
-            element_plc_matrix = element.LinkPlacement.toMatrix()
-            linkedobject_plc_inverse_matrix = \
-                element.LinkedObject.Placement.inverse().toMatrix()
-            for base_rend in base_rends:
-                new_mesh = base_rend.mesh.copy()
-                if not obj.LinkTransform:
-                    new_mesh.transform(linkedobject_plc_inverse_matrix)
-                new_mesh.transform(base_plc_matrix)
-                new_mesh.transform(element_plc_matrix)
-                new_mat = get_material(base_rend, base_mat)
-                new_name = base_rend.name
-                new_rend = Renderable(new_name, new_mesh, new_mat)
-                renderables.append(new_rend)
-
-        return renderables
-
-    obj_is_group = hasattr(obj, "Group")
     obj_is_applink = obj.isDerivedFrom("App::Link")
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
     obj_type = getproxyattr(obj, "Type", "")
 
-    base_mat = (getattr(obj, "Material", None)
-                if upper_material is None else upper_material)
+    mat = (getattr(obj, "Material", None)
+           if upper_material is None else upper_material)
     del upper_material  # Should not be used after this point...
 
     label = getattr(obj, "Label", name)
@@ -127,93 +84,34 @@ def get_renderables(obj, name, upper_material, mesher):
     # Link (plain)
     if obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
-        base_rends = get_renderables(obj.LinkedObject, name, base_mat, mesher)
-        renderables = []
-        link_plc_matrix = obj.LinkPlacement.toMatrix()
-        linkedobject_plc_inverse_matrix = \
-            obj.LinkedObject.Placement.inverse().toMatrix()
-        for base_rend in base_rends:
-            new_name = "%s_%s" % (name, base_rend.name)
-            new_mesh = base_rend.mesh.copy()
-            new_mat = get_material(base_rend, base_mat)
-            if not obj.LinkTransform:
-                new_mesh.transform(linkedobject_plc_inverse_matrix)
-            new_mesh.transform(link_plc_matrix)
-            new_rend = Renderable(new_name, new_mesh, new_mat)
-            renderables.append(new_rend)
+        renderables = _get_rends_from_plainapplink(obj, name, mat, mesher)
 
     # Link (array)
     elif obj_is_applink and obj.ElementCount:
         debug("Object", label, "'Link (array)' detected")
-        renderables = get_rends_from_elementlist(obj, base_mat)
+        renderables = _get_rends_from_elementlist(obj, name, mat, mesher)
 
     # Array, PathArray
     elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
         debug("Object", label, "'%s' detected" % obj_type)
-        renderables = []
-
-        if not obj.ExpandArray:
-            base_rends = get_renderables(obj.Base,
-                                         obj.Base.Name,
-                                         base_mat,
-                                         mesher)
-            base_plc = obj.Placement
-            base_inv_plc_matrix = \
-                obj.Base.Placement.inverse().toMatrix()
-            placements = (
-                it.compress(obj.PlacementList, obj.VisibilityList)
-                if obj.VisibilityList
-                else obj.PlacementList)
-            for counter, plc in enumerate(placements):
-                # Apply placement to base renderables
-                for base_rend in base_rends:
-                    new_mesh = base_rend.mesh.copy()
-                    if not obj.LinkTransform:
-                        new_mesh.transform(base_inv_plc_matrix)
-                    new_mesh.transform(plc.toMatrix())
-                    new_mesh.transform(base_plc.toMatrix())
-                    subname = "%s_%s_%s" % \
-                        (name, base_rend.name, counter)
-                    new_mat = get_material(base_rend, base_mat)
-                    new_rend = Renderable(subname, new_mesh, new_mat)
-                    renderables.append(new_rend)
-        else:
-            renderables = get_rends_from_elementlist(obj, base_mat)
+        renderables = (_get_rends_from_array(obj, name, mat, mesher)
+                       if not obj.ExpandArray else
+                       _get_rends_from_elementlist(obj, name, mat, mesher))
 
     # Window
     elif obj_is_partfeature and obj_type == "Window":
         debug("Object", label, "'Window' detected")
-
-        # Subobjects names
-        subnames = obj.WindowParts[0::5]  # Names every 5th item...
-        names = ["%s_%s" % (name, s) for s in subnames]
-
-        # Subobjects meshes
-        meshes = [mesher(s) for s in obj.Shape.childShapes()]
-
-        # Subobjects materials
-        # 'base_mat' should be a multimaterial or None
-        if base_mat is not None:
-            assert is_multimat(base_mat), "Multimaterial expected"
-            mats_dict = dict(zip(base_mat.Names, base_mat.Materials))
-            mats = [mats_dict[s] for s in subnames]
-        else:
-            mats = [None] * len(subnames)
-        # Build renderables
-        renderables = \
-            [Renderable(*r) for r in zip(names, meshes, mats)]
+        renderables = _get_rends_from_window(obj, name, mat, mesher)
 
     # Plain part
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        mesh = mesher(obj.Shape)
-        renderables = [Renderable(name, mesh, base_mat)]
+        renderables = [Renderable(name, mesher(obj.Shape), mat)]
 
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
-        mesh = obj.Mesh
-        renderables = [Renderable(name, mesh, base_mat)]
+        renderables = [Renderable(name, obj.Mesh, mat)]
 
     # Unhandled
     else:
@@ -225,7 +123,7 @@ def get_renderables(obj, name, upper_material, mesher):
 
 
 def check_renderables(renderables):
-    """Assert compliance of a list of renderables"""
+    """Assert compliance of a list of renderables."""
     assert renderables,\
         translate("Render", "Nothing to render")
     for renderable in renderables:
@@ -236,3 +134,158 @@ def check_renderables(renderables):
             translate("Render", "Mesh topology is empty")
         assert mesh.getPointNormals(),\
             translate("Render", "Mesh topology has no normals")
+
+
+# ===========================================================================
+#                              Locals (helpers)
+# ===========================================================================
+
+
+def _get_rends_from_elementlist(obj, name, material, mesher):
+    """Get renderables from an object containing a list of elements.
+
+    The list of elements must be in the ElementList property of the
+    object.
+    This function is useful for Link Arrays and expanded Arrays
+
+    Parameters:
+    obj -- the container object
+    name -- the name assigned to the container object for rendering
+    material -- the material for the container object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for the array object
+    """
+    renderables = []
+    base_plc_matrix = obj.Placement.toMatrix()
+    elements = itertools.compress(obj.ElementList, obj.VisibilityList)
+
+    for element in elements:
+        assert element.isDerivedFrom("App::LinkElement")
+        elem_name = "%s_%s" % (name, element.Name)
+        base_rends = get_renderables(element.LinkedObject,
+                                     elem_name,
+                                     material,
+                                     mesher)
+        element_plc_matrix = element.LinkPlacement.toMatrix()
+        linkedobject_plc_inverse_matrix = \
+            element.LinkedObject.Placement.inverse().toMatrix()
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            if not obj.LinkTransform:
+                new_mesh.transform(linkedobject_plc_inverse_matrix)
+            new_mesh.transform(base_plc_matrix)
+            new_mesh.transform(element_plc_matrix)
+            new_mat = _get_material(base_rend, material)
+            new_name = base_rend.name
+            new_rend = Renderable(new_name, new_mesh, new_mat)
+            renderables.append(new_rend)
+
+    return renderables
+
+
+def _get_rends_from_plainapplink(obj, name, material, mesher):
+    """Get renderables from an App::Link where Count==0.
+
+    Parameters:
+    obj -- the App::Link object
+    name -- the name assigned to the Link Array object for rendering
+    material -- the material for the Link Array object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for the array object
+    """
+    base_rends = get_renderables(obj.LinkedObject, name, material, mesher)
+    renderables = []
+    link_plc_matrix = obj.LinkPlacement.toMatrix()
+    linkedobject_plc_inverse_matrix = \
+        obj.LinkedObject.Placement.inverse().toMatrix()
+    for base_rend in base_rends:
+        new_name = "%s_%s" % (name, base_rend.name)
+        new_mesh = base_rend.mesh.copy()
+        new_mat = _get_material(base_rend, material)
+        if not obj.LinkTransform:
+            new_mesh.transform(linkedobject_plc_inverse_matrix)
+        new_mesh.transform(link_plc_matrix)
+        new_rend = Renderable(new_name, new_mesh, new_mat)
+        renderables.append(new_rend)
+    return renderables
+
+
+def _get_rends_from_array(obj, name, material, mesher):
+    """Get renderables from an array which is not expanded.
+
+    Parameters:
+    obj -- the Array object
+    name -- the name assigned to the Array object for rendering
+    material -- the material for the Array object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for the Window object
+    """
+    renderables = []
+    base_rends = get_renderables(obj.Base,
+                                 obj.Base.Name,
+                                 material,
+                                 mesher)
+    base_plc = obj.Placement
+    base_inv_plc_matrix = obj.Base.Placement.inverse().toMatrix()
+    placements = (itertools.compress(obj.PlacementList, obj.VisibilityList)
+                  if obj.VisibilityList else obj.PlacementList)
+    for counter, plc in enumerate(placements):
+        # Apply placement to base renderables
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            if not obj.LinkTransform:
+                new_mesh.transform(base_inv_plc_matrix)
+            new_mesh.transform(plc.toMatrix())
+            new_mesh.transform(base_plc.toMatrix())
+            subname = "%s_%s_%s" % (name, base_rend.name, counter)
+            new_mat = _get_material(base_rend, material)
+            new_rend = Renderable(subname, new_mesh, new_mat)
+            renderables.append(new_rend)
+    return renderables
+
+
+def _get_rends_from_window(obj, name, material, mesher):
+    """Get renderables from an Window object (from Arch workbench).
+
+    Parameters:
+    obj -- the Window object
+    name -- the name assigned to the Window object for rendering
+    material -- the material for the Window object (should be a
+                multimaterial)
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for the Window object
+    """
+    # Subobjects names
+    subnames = obj.WindowParts[0::5]  # Names every 5th item...
+    names = ["%s_%s" % (name, s) for s in subnames]
+
+    # Subobjects meshes
+    meshes = [mesher(s) for s in obj.Shape.childShapes()]
+
+    # Subobjects materials
+    if material is not None:
+        assert is_multimat(material), "Multimaterial expected"
+        mats_dict = dict(zip(material.Names, material.Materials))
+        mats = [mats_dict[s] for s in subnames]
+    else:
+        mats = [None] * len(subnames)
+
+    # Build renderables
+    return [Renderable(*r) for r in zip(names, meshes, mats)]
+
+
+def _get_material(base_renderable, upper_material):
+    """Get material from a base renderable and an upper material."""
+    upper_mat_is_multimat = is_multimat(upper_material)
+
+    return (base_renderable.material
+            if (upper_material is None or upper_mat_is_multimat)
+            else upper_material)
