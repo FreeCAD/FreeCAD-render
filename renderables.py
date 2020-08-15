@@ -227,27 +227,27 @@ def _get_rends_from_array(obj, name, material, mesher):
     A list of renderables for the Window object
     """
     renderables = []
-    base_rends = get_renderables(obj.Base,
-                                 obj.Base.Name,
-                                 material,
-                                 mesher)
-    base_plc = obj.Placement
-    base_inv_plc_matrix = obj.Base.Placement.inverse().toMatrix()
+    base = obj.Base
+    base_rends = get_renderables(base, base.Name, material, mesher)
+    obj_plc_matrix = obj.Placement.toMatrix()
+    base_inv_plc_matrix = base.Placement.inverse().toMatrix()
     placements = (itertools.compress(obj.PlacementList, obj.VisibilityList)
                   if obj.VisibilityList else obj.PlacementList)
-    for counter, plc in enumerate(placements):
-        # Apply placement to base renderables
-        for base_rend in base_rends:
-            new_mesh = base_rend.mesh.copy()
-            if not obj.LinkTransform:
-                new_mesh.transform(base_inv_plc_matrix)
-            new_mesh.transform(plc.toMatrix())
-            new_mesh.transform(base_plc.toMatrix())
-            subname = "%s_%s_%s" % (name, base_rend.name, counter)
-            new_mat = _get_material(base_rend, material)
-            new_rend = Renderable(subname, new_mesh, new_mat)
-            renderables.append(new_rend)
-    return renderables
+
+    def new_rend(enum_plc, base_rend):
+        counter, plc = enum_plc
+        new_mesh = base_rend.mesh.copy()
+        if not obj.LinkTransform:
+            new_mesh.transform(base_inv_plc_matrix)
+        new_mesh.transform(plc.toMatrix())
+        new_mesh.transform(obj_plc_matrix)
+        subname = "%s_%s_%s" % (name, base_rend.name, counter)
+        new_mat = _get_material(base_rend, material)
+        return Renderable(subname, new_mesh, new_mat)
+
+    rends = itertools.product(enumerate(placements), base_rends)
+
+    return [new_rend(*r) for r in rends]
 
 
 def _get_rends_from_window(obj, name, material, mesher):
