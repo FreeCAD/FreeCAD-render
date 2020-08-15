@@ -40,8 +40,6 @@ import collections
 import functools
 
 import MeshPart
-import Draft
-import Part
 
 from renderutils import translate, debug, getproxyattr
 
@@ -136,16 +134,8 @@ def get_renderables(obj, name, upper_material):
 
     label = getattr(obj, "Label", name)
 
-    # Group
-    if obj_is_group:
-        debug("Object", label, "'Group' detected")
-        shps = [o.Shape for o in Draft.getGroupContents(obj)
-                if hasattr(o, "Shape")]
-        mesh = meshfromshape(Shape=Part.makeCompound(shps))
-        renderables = [Renderable(name, mesh, base_mat)]
-
     # Link (plain)
-    elif obj_is_applink and not obj.ElementCount:
+    if obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
         base_rends = get_renderables(obj.LinkedObject, name, base_mat)
         renderables = []
