@@ -55,6 +55,7 @@ from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
 import Part
+import MeshPart
 import ArchMaterial
 try:
     import ImageGui
@@ -930,7 +931,11 @@ class RendererHandler:
 
         # Build a list of renderables from the object
         material = view.Material
-        rends = renderables.get_renderables(source, name, material)
+        mesher = functools.partial(MeshPart.meshFromShape,
+                                   LinearDeflection=0.1,
+                                   AngularDeflection=0.523599,
+                                   Relative=False)
+        rends = renderables.get_renderables(source, name, material, mesher)
 
         # Check renderables
         renderables.check_renderables(rends)

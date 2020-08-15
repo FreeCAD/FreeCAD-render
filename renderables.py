@@ -37,9 +37,7 @@ Renderables
 
 import itertools as it
 import collections
-import functools
 
-import MeshPart
 
 from renderutils import translate, debug, getproxyattr
 from rendermaterials import is_multimat
@@ -48,7 +46,7 @@ from rendermaterials import is_multimat
 Renderable = collections.namedtuple("Renderable", "name mesh material")
 
 
-def get_renderables(obj, name, upper_material):
+def get_renderables(obj, name, upper_material, mesher):
     """Get the renderables from a FreeCAD object
 
     A renderable is a tuple (name, mesh, material). There can be
@@ -62,6 +60,7 @@ def get_renderables(obj, name, upper_material):
     name -- the name of the object
     upper_material -- the FreeCAD material inherited from the upper
                       level
+    mesher -- a callable which can convert a shape into a mesh
 
     Notes about material:
     - the freecad material (material) can be a multimaterial
@@ -72,11 +71,6 @@ def get_renderables(obj, name, upper_material):
     A list of renderables
     """
     # TODO Apply scale in Links and PathArray
-    meshfromshape = functools.partial(MeshPart.meshFromShape,
-                                      LinearDeflection=0.1,
-                                      AngularDeflection=0.523599,
-                                      Relative=False)
-
     def get_material(base_renderable, upper_material):
         """Get material from a base renderable and an upper material"""
         upper_mat_is_multimat = is_multimat(upper_material)
@@ -100,7 +94,8 @@ def get_renderables(obj, name, upper_material):
             assert element.isDerivedFrom("App::LinkElement")
             base_rends = get_renderables(element.LinkedObject,
                                          element.Name,
-                                         upper_material)
+                                         upper_material,
+                                         mesher)
             element_plc_matrix = element.LinkPlacement.toMatrix()
             linkedobject_plc_inverse_matrix = \
                 element.LinkedObject.Placement.inverse().toMatrix()
@@ -132,7 +127,7 @@ def get_renderables(obj, name, upper_material):
     # Link (plain)
     if obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
-        base_rends = get_renderables(obj.LinkedObject, name, base_mat)
+        base_rends = get_renderables(obj.LinkedObject, name, base_mat, mesher)
         renderables = []
         link_plc_matrix = obj.LinkPlacement.toMatrix()
         linkedobject_plc_inverse_matrix = \
@@ -160,7 +155,8 @@ def get_renderables(obj, name, upper_material):
         if not obj.ExpandArray:
             base_rends = get_renderables(obj.Base,
                                          obj.Base.Name,
-                                         base_mat)
+                                         base_mat,
+                                         mesher)
             base_plc = obj.Placement
             base_inv_plc_matrix = \
                 obj.Base.Placement.inverse().toMatrix()
@@ -193,8 +189,7 @@ def get_renderables(obj, name, upper_material):
         names = ["%s_%s" % (name, s) for s in subnames]
 
         # Subobjects meshes
-        meshes = [meshfromshape(Shape=s)
-                  for s in obj.Shape.childShapes()]
+        meshes = [mesher(s) for s in obj.Shape.childShapes()]
 
         # Subobjects materials
         # 'base_mat' should be a multimaterial or None
@@ -211,7 +206,7 @@ def get_renderables(obj, name, upper_material):
     # Plain part
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        mesh = meshfromshape(Shape=obj.Shape)
+        mesh = mesher(obj.Shape)
         renderables = [Renderable(name, mesh, base_mat)]
 
     # Mesh
