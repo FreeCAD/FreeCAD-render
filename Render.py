@@ -41,7 +41,7 @@ the necessary UI controls.
 import sys
 import os
 import re
-import itertools
+import itertools as it
 import functools
 import collections
 import traceback
@@ -977,15 +977,58 @@ class RendererHandler:
             A list of renderables
             """
             # TODO Apply scale in Links and PathArray
-            # TODO Should have an upper_defaultcolor too
-            # TODO Handle deflection
-            # TODO Handle obj_is_applink and obj.ElementCount > 0
-            # TODO Handle other Array types
-            # TODO Test with 0.18
             meshfromshape = functools.partial(MeshPart.meshFromShape,
                                               LinearDeflection=0.1,
                                               AngularDeflection=0.523599,
                                               Relative=False)
+
+            def is_multimat(material):
+                """Check if a material is a multimaterial"""
+                return (material is not None and
+                        material.isDerivedFrom("App::FeaturePython") and
+                        material.Proxy.Type == "MultiMaterial")
+
+            def get_material(base_renderable, upper_material):
+                """Get material from a base renderable and an upper material"""
+                upper_mat_is_multimat = is_multimat(upper_material)
+
+                return (base_renderable.material
+                        if (upper_material is None or upper_mat_is_multimat)
+                        else upper_material)
+
+            def get_renderables_from_elementlist(obj, upper_material):
+                """Get renderables from an object containing a list of elements
+
+                The list of elements must be in the ElementList property of the
+                object.
+                This function is useful for Link arrays and expanded Arrays
+                """
+                renderables = []
+                base_plc_matrix = obj.Placement.toMatrix()
+                elementlist = obj.ElementList
+                visibilitylist = obj.VisibilityList
+                elements = it.compress(elementlist, visibilitylist)
+                for element in elements:
+                    assert element.isDerivedFrom("App::LinkElement")
+                    base_rends = get_renderables(element.LinkedObject,
+                                                 element.Name,
+                                                 upper_material)
+                    # element_plc_matrix = element.Placement.toMatrix()
+                    element_plc_matrix = element.LinkPlacement.toMatrix()
+                    linkedobject_plc_inverse_matrix = \
+                        element.LinkedObject.Placement.inverse().toMatrix()
+                    for base_rend in base_rends:
+                        new_mesh = base_rend.mesh.copy()
+                        if not obj.LinkTransform:
+                            new_mesh.transform(linkedobject_plc_inverse_matrix)
+                        new_mesh.transform(base_plc_matrix)
+                        new_mesh.transform(element_plc_matrix)
+                        new_mat = get_material(base_rend, base_mat)
+                        new_name = base_rend.name
+                        new_rend = Renderable(new_name, new_mesh, new_mat)
+                        renderables.append(new_rend)
+
+                return renderables
 
             obj_is_group = hasattr(obj, "Group")
             obj_is_applink = obj.isDerivedFrom("App::Link")
@@ -995,10 +1038,7 @@ class RendererHandler:
 
             base_mat = (getattr(obj, "Material", None)
                         if upper_material is None else upper_material)
-            base_mat_is_multimat = (
-                base_mat is not None and
-                base_mat.isDerivedFrom("App::FeaturePython") and
-                base_mat.Proxy.Type == "MultiMaterial")
+            del upper_material  # Should not be used after this point...
 
             # Group
             if obj_is_group:
@@ -1013,74 +1053,55 @@ class RendererHandler:
                 debug("Object", label, "'Link (plain)' detected")
                 base_rends = get_renderables(obj.LinkedObject, name, base_mat)
                 renderables = []
-                link_plc_mat = obj.LinkPlacement.toMatrix()
-                for old_rend in base_rends:
-                    new_name = "%s_%s" % (name, old_rend.name)
-                    new_mesh = old_rend.mesh.copy()
-                    new_mat = (old_rend.material
-                               if base_mat is None or base_mat_is_multimat
-                               else base_mat)
+                link_plc_matrix = obj.LinkPlacement.toMatrix()
+                linkedobject_plc_inverse_matrix = \
+                    obj.LinkedObject.Placement.inverse().toMatrix()
+                for base_rend in base_rends:
+                    new_name = "%s_%s" % (name, base_rend.name)
+                    new_mesh = base_rend.mesh.copy()
+                    new_mat = get_material(base_rend, base_mat)
                     if not obj.LinkTransform:
-                        new_mesh.transform(link_plc_mat)
-                    new_rend = Renderable(new_name,
-                                          new_mesh,
-                                          new_mat)
+                        new_mesh.transform(linkedobject_plc_inverse_matrix)
+                    new_mesh.transform(link_plc_matrix)
+                    new_rend = Renderable(new_name, new_mesh, new_mat)
                     renderables.append(new_rend)
+
+            # Link (array)
+            elif obj_is_applink and obj.ElementCount:
+                debug("Object", label, "'Link (array)' detected")
+                renderables = get_renderables_from_elementlist(obj, base_mat)
 
             # Array, PathArray
             elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
                 debug("Object", label, "'%s' detected" % obj_type)
-
                 renderables = []
+
                 if not obj.ExpandArray:
                     base_rends = get_renderables(obj.Base,
                                                  obj.Base.Name,
                                                  base_mat)
                     base_plc = obj.Placement
-                    placements = (itertools.compress(obj.PlacementList,
-                                                     obj.VisibilityList)
-                                  if obj.VisibilityList
-                                  else obj.PlacementList)
+                    base_inv_plc_matrix = obj.Base.Placement.inverse().toMatrix()
+                    placements = (
+                        it.compress(obj.PlacementList, obj.VisibilityList)
+                        if obj.VisibilityList
+                        else obj.PlacementList)
                     for counter, plc in enumerate(placements):
                         # Apply placement to base renderables
-                        for old_rend in base_rends:
-                            new_mesh = old_rend.mesh.copy()
+                        for base_rend in base_rends:
+                            new_mesh = base_rend.mesh.copy()
+                            if not obj.LinkTransform:
+                                new_mesh.transform(base_inv_plc_matrix)
                             new_mesh.transform(plc.toMatrix())
-                            if obj.LinkTransform:
-                                new_mesh.transform(base_plc.toMatrix())
-                            subname = "%s_%s_%s" % (name,
-                                                    old_rend.name,
-                                                    counter)
-                            new_mat = (old_rend.material
-                                       if (base_mat is None
-                                           or base_mat_is_multimat)
-                                       else base_mat)
-                            new_rend = Renderable(subname,
-                                                  new_mesh,
-                                                  new_mat)
+                            new_mesh.transform(base_plc.toMatrix())
+                            subname = "%s_%s_%s" % \
+                                (name, base_rend.name, counter)
+                            new_mat = get_material(base_rend, base_mat)
+                            new_rend = Renderable(subname, new_mesh, new_mat)
                             renderables.append(new_rend)
                 else:
-                    base_plc = obj.Placement.toMatrix()
-                    elements = itertools.compress(obj.ElementList,
-                                                  obj.VisibilityList)
-                    for element in elements:
-                        # element should be a App::LinkElement...
-                        assert element.isDerivedFrom("App::LinkElement")
-                        base_rends = get_renderables(element.LinkedObject,
-                                                     element.Name,
-                                                     material)
-                        for old_rend in base_rends:
-                            new_mesh = old_rend.mesh.copy()
-                            new_mesh.transform(base_plc)
-                            new_mesh.transform(element.Placement.toMatrix())
-                            new_mat = (old_rend.material
-                                       if (base_mat is None
-                                           or base_mat_is_multimat)
-                                       else base_mat)
-                            new_rend = Renderable(old_rend.name,
-                                                  new_mesh,
-                                                  new_mat)
-                            renderables.append(new_rend)
+                    renderables = \
+                        get_renderables_from_elementlist(obj, base_mat)
 
             # Window
             elif obj_is_partfeature and obj_type == "Window":
@@ -1097,7 +1118,7 @@ class RendererHandler:
                 # Subobjects materials
                 # 'base_mat' should be a multimaterial or None
                 if base_mat is not None:
-                    assert base_mat_is_multimat, "Multimaterial expected"
+                    assert is_multimat(base_mat), "Multimaterial expected"
                     mats_dict = dict(zip(base_mat.Names, base_mat.Materials))
                     mats = [mats_dict[s] for s in subnames]
                 else:
@@ -1390,7 +1411,7 @@ class RenderViewCommand:
         activedoc_projects = filter(RendererHandler.is_project,
                                     App.ActiveDocument.Objects)
         try:
-            target_project = next(itertools.chain(projs, activedoc_projects))
+            target_project = next(it.chain(projs, activedoc_projects))
         except StopIteration:
             msg = translate(
                 "Render",
