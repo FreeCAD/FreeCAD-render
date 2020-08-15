@@ -195,23 +195,23 @@ def _get_rends_from_plainapplink(obj, name, material, mesher):
     mesher -- a callable object which converts a shape into a mesh
 
     Returns:
-    A list of renderables for the array object
+    A list of renderables for the object
     """
-    base_rends = get_renderables(obj.LinkedObject, name, material, mesher)
-    renderables = []
+    linkedobj = obj.LinkedObject
+    base_rends = get_renderables(linkedobj, name, material, mesher)
     link_plc_matrix = obj.LinkPlacement.toMatrix()
-    linkedobject_plc_inverse_matrix = \
-        obj.LinkedObject.Placement.inverse().toMatrix()
-    for base_rend in base_rends:
+    linkedobj_plc_inverse_matrix = linkedobj.Placement.inverse().toMatrix()
+
+    def new_rend(base_rend):
         new_name = "%s_%s" % (name, base_rend.name)
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
         if not obj.LinkTransform:
-            new_mesh.transform(linkedobject_plc_inverse_matrix)
+            new_mesh.transform(linkedobj_plc_inverse_matrix)
         new_mesh.transform(link_plc_matrix)
-        new_rend = Renderable(new_name, new_mesh, new_mat)
-        renderables.append(new_rend)
-    return renderables
+        return Renderable(new_name, new_mesh, new_mat)
+
+    return [new_rend(r) for r in base_rends]
 
 
 def _get_rends_from_array(obj, name, material, mesher):
