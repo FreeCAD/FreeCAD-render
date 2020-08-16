@@ -62,7 +62,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, debug, getproxyattr
+from renderutils import translate, debug, getproxyattr, RGBA
 import camera
 import lights
 import rendermaterials
@@ -593,21 +593,26 @@ class View:
         """
         self.fpo = obj
 
-        obj.addProperty("App::PropertyLink",
-                        "Source",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The source object of this view"))
-        obj.addProperty("App::PropertyLink",
-                        "Material",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The material of this view"))
-        obj.addProperty("App::PropertyString",
-                        "ViewResult",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The rendering output of this view"))
+        if "Source" not in obj.PropertiesList:
+            obj.addProperty("App::PropertyLink",
+                            "Source",
+                            "Render",
+                            QT_TRANSLATE_NOOP("App::Property",
+                                              "The source object of this view"))
+
+        if "Material" not in obj.PropertiesList:
+            obj.addProperty("App::PropertyLink",
+                            "Material",
+                            "Render",
+                            QT_TRANSLATE_NOOP("App::Property",
+                                              "The material of this view"))
+
+        if "ViewResult" not in obj.PropertiesList:
+            obj.addProperty("App::PropertyString",
+                            "ViewResult",
+                            "Render",
+                            QT_TRANSLATE_NOOP("App::Property",
+                                              "The rendering output of this view"))
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
         """Code to be executed when document is restored (callback)"""
@@ -678,26 +683,6 @@ class View:
         viewp = ViewProviderView(fpo.ViewObject)
         return view, fpo, viewp
 
-    def get_freecad_material(self):
-        """Get the freecad material that can be associated with a view
-
-        Steps are the following (stop when a valid material is found):
-        1. Look into the view object
-        2. Look into the source object
-        Returns None if no material is found
-        """
-        view = self.fpo
-
-        for obj in (view, view.Source):
-            try:
-                res = obj.Material
-                assert res
-            except (AttributeError, AssertionError):
-                continue
-            else:
-                return res
-        return None  # Negative search
-
     def get_shape_color(self):
         """Get the RGBA color for a FreeCAD object as seen in viewport
 
@@ -720,7 +705,6 @@ class View:
             shape_alpha = 1.0 - source.ViewObject.Transparency / 100
         except (AttributeError, IndexError, AssertionError):
             shape_alpha = 1.0
-        RGBA = collections.namedtuple("RGBA", "r g b a")
         return RGBA(*shape_color, shape_alpha)
 
 
