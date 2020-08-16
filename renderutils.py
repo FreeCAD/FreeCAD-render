@@ -22,6 +22,8 @@
 
 """This module implements some helpers for Render module"""
 
+import collections
+import ast
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -50,3 +52,14 @@ def getproxyattr(obj, name, default):
     except AttributeError:
         res = default
     return res
+
+
+RGB = collections.namedtuple("RGB", "r g b")
+RGBA = collections.namedtuple("RGB", "r g b a")
+
+
+def str2rgb(string):
+    """Convert a ({r},{g},{b})-like string into RGB object"""
+    float_tuple = map(float, ast.literal_eval(string))
+    return RGB._make(float_tuple)
+

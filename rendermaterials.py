@@ -24,7 +24,7 @@
 # TODO Feature to add a Material property (App::PropertyLink) to a shape
 
 # ===========================================================================
-#                           Module imports
+#                           Imports
 # ===========================================================================
 
 
@@ -35,16 +35,15 @@ import functools
 
 import FreeCAD as App
 
+from renderutils import RGB, str2rgb, debug as ru_debug
+
 
 # ===========================================================================
-#                        rendering_material construction
+#                                   Export
 # ===========================================================================
-
-RGB = collections.namedtuple("RGB", "r g b")
-RGBA = collections.namedtuple("RGB", "r g b a")
-
 
 # TODO Document expected material card syntax in README
+# TODO Use a cache, do not recompute each time
 def get_rendering_material(material, renderer, default_color):
     """This function implements rendering material logic.
 
@@ -94,42 +93,19 @@ def get_rendering_material(material, renderer, default_color):
     collected from the material card)
     """
 
-    def debug(msg):
-        """Print debug message"""
-        # NB: 'name' is defined in outer scope
-        msg = "[Render][Material] '{n}': {m}\n".format(n=name, m=msg)
-        App.Console.PrintLog(msg)
 
-    def str2rgb(string):
-        """Convert a ({r},{g},{b})-like string into RGB object"""
-        float_tuple = map(float, ast.literal_eval(string))
-        return RGB._make(float_tuple)
-
-    def get_float(material, param_prefix, param_name, default=0.0):
-        """Get float value in material dictionary"""
-        return material.get(param_prefix + param_name, default)
-
-    def build_diffuse(diffusecolor, alpha=1.0):
-        """Build diffuse material"""
-        res.diffuse = types.SimpleNamespace()
-        res.diffuse.color = diffusecolor
-        res.diffuse.alpha = alpha
-        res.shadertype = "Diffuse"
-        res.color = RGBA(*diffusecolor, res.diffuse.alpha)
-        return res
-
-    # TODO Handle Multimaterial
-
+    # TODO Test if Material is None (to avoid unnecessary treatments)
     # get_rendering_material starts here
+
     try:
         mat = dict(material.Material)
     except Exception:
         name = "<Unnamed Material>"
-        debug("Not a valid material")
         mat = dict()
 
     renderer = str(renderer)
     name = mat.get("Name", "<Unnamed Material>")
+    debug = functools.partial(ru_debug, "Material", name)
 
     debug("Starting material computation")
 
@@ -179,7 +155,7 @@ def get_rendering_material(material, renderer, default_color):
         res.disney = types.SimpleNamespace()
         res.disney.basecolor = basecolor
         prefix = "Render.Disney."
-        getf = functools.partial(get_float, mat, prefix)
+        getf = functools.partial(_get_float, mat, prefix)
         res.disney.subsurface = getf("Subsurface")
         res.disney.metallic = getf("Metallic")
         res.disney.specular = getf("Specular")
@@ -202,7 +178,7 @@ def get_rendering_material(material, renderer, default_color):
         pass
     else:
         debug("Found valid Diffuse - returning")
-        return build_diffuse(diffusecolor)
+        return _build_diffuse(diffusecolor)
 
     # Escalation to Father
     debug("No valid material definition - trying father material")
@@ -237,19 +213,20 @@ def get_rendering_material(material, renderer, default_color):
         pass
     else:
         debug("Fallback to Coin-like parameters")
-        return build_diffuse(diffusecolor,
-                             1.0 - float(mat.get("Transparency", "0")))
+        return _build_diffuse(diffusecolor,
+                              1.0 - float(mat.get("Transparency", "0")))
 
     # Default color
     try:
         diffusecolor = RGB(*default_color[:3])
         diffusealpha = default_color[3]
     except IndexError:
+        # TODO Default should not be pure white
         diffusecolor = RGB(1.0, 1.0, 1.0)
         diffusealpha = 1.0
     else:
         debug("Fallback to default color")
-        return build_diffuse(diffusecolor, diffusealpha)
+        return _build_diffuse(diffusecolor, diffusealpha)
 
 
 def is_multimat(obj):
@@ -257,3 +234,24 @@ def is_multimat(obj):
     return (obj is not None and
             obj.isDerivedFrom("App::FeaturePython") and
             obj.Proxy.Type == "MultiMaterial")
+
+
+# ===========================================================================
+#                            Locals (helpers)
+# ===========================================================================
+
+
+def _build_diffuse(diffusecolor, alpha=1.0):
+    """Build diffuse material from a simple RGB color"""
+    res = types.SimpleNamespace()
+    res.diffuse = types.SimpleNamespace()
+    res.diffuse.color = diffusecolor
+    res.diffuse.alpha = alpha
+    res.shadertype = "Diffuse"
+    res.color = RGBA(*diffusecolor, res.diffuse.alpha)
+    return res
+
+
+def _get_float(material, param_prefix, param_name, default=0.0):
+    """Get float value in material dictionary"""
+    return material.get(param_prefix + param_name, default)
