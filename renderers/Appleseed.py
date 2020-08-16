@@ -87,7 +87,6 @@ def write_object(name, mesh, material):
     snippet = snippet_mat + snippet_obj
 
     return snippet.format(n=name,
-                          c=material.color,
                           o=os.path.splitext(os.path.basename(objfile))[0],
                           f=objfile.encode("unicode_escape").decode("utf-8"))
 
@@ -288,7 +287,7 @@ def _write_material(name, material):
         msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
                "material\n")
         App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.color)
+        snippet_mat = _write_material_fallback(name, material.default_color)
     return snippet_mat
 
 
@@ -298,7 +297,7 @@ def _write_material_passthrough(name, material):
     """
     assert material.passthrough.renderer == "Appleseed"
     snippet = indent(material.passthrough.string, "    ")
-    return snippet.format(n=name, c=material.color)
+    return snippet.format(n=name, c=material.default_color)
 
 
 def _write_material_glass(name, material):

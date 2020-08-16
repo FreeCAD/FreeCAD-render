@@ -187,7 +187,7 @@ def _write_material(name, material):
         msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
                "material\n")
         App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.color)
+        snippet_mat = _write_material_fallback(name, material.default_color)
     return snippet_mat
 
 
@@ -197,7 +197,7 @@ def _write_material_passthrough(name, material):
     """
     assert material.passthrough.renderer == "Luxcore"
     snippet = indent(material.passthrough.string, "    ")
-    return snippet.format(n=name, c=material.color)
+    return snippet.format(n=name, c=material.default_color)
 
 
 def _write_material_glass(name, material):
@@ -257,9 +257,9 @@ def _write_material_fallback(name, material):
 
     Fallback material is a simple Diffuse material"""
     try:
-        red = float(material.color.r)
-        grn = float(material.color.g)
-        blu = float(material.color.b)
+        red = float(material.default_color.r)
+        grn = float(material.default_color.g)
+        blu = float(material.default_color.b)
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
