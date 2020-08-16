@@ -108,6 +108,8 @@ def get_rendering_material(material, renderer, default_color):
     collected from the material card)
     """
     # TODO Test if Material is valid (to avoid unnecessary treatments)
+
+    # Initialize
     try:
         mat = dict(material.Material)
     except (KeyError, AttributeError):
@@ -211,6 +213,7 @@ def is_multimat(obj):
     return (obj is not None and
             obj.isDerivedFrom("App::FeaturePython") and
             obj.Proxy.Type == "MultiMaterial")
+
 
 def get_default_color(material):
     """Provide a default color for a material (as a fallback)."""

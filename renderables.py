@@ -226,7 +226,6 @@ def _get_rends_from_array(obj, name, material, mesher):
     Returns:
     A list of renderables for the Window object
     """
-    renderables = []
     base = obj.Base
     base_rends = get_renderables(base, base.Name, material, mesher)
     obj_plc_matrix = obj.Placement.toMatrix()

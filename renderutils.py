@@ -62,4 +62,3 @@ def str2rgb(string):
     """Convert a ({r},{g},{b})-like string into RGB object"""
     float_tuple = map(float, ast.literal_eval(string))
     return RGB._make(float_tuple)
-
