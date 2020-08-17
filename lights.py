@@ -712,7 +712,7 @@ class ViewProviderAreaLight:
 
 
 class SunskyLight:
-    """A sunsky light - Hosek-Wilkie"""
+    """A sun+sky light - Hosek-Wilkie"""
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
@@ -905,6 +905,161 @@ class ViewProviderSunskyLight:
         sundir = fpo.SunDirection
         direction = (-sundir.x, -sundir.y, -sundir.z)
         self.coin.light.direction.setValue(direction)
+
+    def __getstate__(self):
+        """Called while saving the document"""
+        return None
+
+    def __setstate__(self, state):
+        """Called while restoring document"""
+        return None
+
+
+# ===========================================================================
+#                           Image-Based Light object
+# ===========================================================================
+
+
+class ImageLight:
+    """An image-based light"""
+
+    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+
+    # FeaturePython object properties
+    PROPERTIES = {
+        "ImageFile": Prop(
+            "App::PropertyFileIncluded",
+            "Light",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Image file (included in document)"),
+            ""),
+    }
+    # ~FeaturePython object properties
+
+    def __init__(self, fpo):
+        """PointLight initializer
+
+        Parameters
+        ----------
+        fpo: a FeaturePython object created with FreeCAD.addObject
+        """
+        self.type = "ImageLight"
+        fpo.Proxy = self
+        self.set_properties(fpo)
+
+    @classmethod
+    def set_properties(cls, fpo):
+        """Set underlying FeaturePython object's properties"""
+        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
+            spec = cls.PROPERTIES[name]
+            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            setattr(prop, name, spec.Default)
+
+    @staticmethod
+    def create(document=None):
+        """Create a ImageLight object in a document
+
+        Factory method to create a new image light object.
+        The light is created into the active document (default).
+        Optionally, it is possible to specify a target document, in that case
+        the light is created in the given document.
+
+        This method also create the FeaturePython and the
+        ViewProviderImageLight related objects.
+
+        Params:
+        document: the document where to create image light (optional)
+
+        Returns:
+        The newly created ImageLight object, FeaturePython object and
+        ViewProviderImageLight object"""
+
+        doc = document if document else App.ActiveDocument
+        fpo = doc.addObject("App::FeaturePython", "ImageLight")
+        lgt = ImageLight(fpo)
+        viewp = ViewProviderImageLight(fpo.ViewObject)
+        App.ActiveDocument.recompute()
+        return lgt, fpo, viewp
+
+    def onDocumentRestored(self, fpo):
+        """Callback triggered when document is restored"""
+        self.type = "ImageLight"
+        fpo.Proxy = self
+        self.set_properties(fpo)
+
+    def execute(self, fpo):
+        # pylint: disable=no-self-use
+        """Callback triggered on document recomputation (mandatory)."""
+
+
+class ViewProviderImageLight:
+    """View Provider of ImageLight class"""
+
+    def __init__(self, vobj):
+        """Initializer
+
+        Parameters:
+        -----------
+        vobj: related ViewProviderDocumentObject
+        """
+        vobj.Proxy = self
+        self.fpo = vobj.Object  # Related FeaturePython object
+
+    def attach(self, vobj):
+        """Code executed when object is created/restored (callback)
+
+        Parameters:
+        -----------
+        vobj: related ViewProviderDocumentObject
+        """
+        # pylint: disable=attribute-defined-outside-init
+
+        self.fpo = vobj.Object
+        ImageLight.set_properties(self.fpo)
+
+        # Here we create coin representation
+        # NB: Coin representation is blank, as Coin does not handle
+        # image-based lighting (the node is a dummy SoInfo)
+        self.coin = SimpleNamespace()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        self.coin.dummy = coin.SoInfo()
+        scene.addChild(self.coin.dummy)
+        vobj.addDisplayMode(self.coin.dummy, "Shaded")
+
+    def getDisplayModes(self, _):
+        # pylint: disable=no-self-use
+        """Return a list of display modes (callback)"""
+        return ["Shaded", "Wireframe"]
+
+    def getDefaultDisplayMode(self):
+        # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback)
+
+        The returned mode must be defined in getDisplayModes.
+        """
+        return "Shaded"
+
+    def setDisplayMode(self, mode):
+        # pylint: disable=no-self-use
+        """Map the display mode defined in attach with those defined in
+        getDisplayModes (callback)
+
+        Since they have the same names nothing needs to be done.
+        This method is optional.
+        """
+        return mode
+
+    def setupContextMenu(self, vobj, menu):
+        # pylint: disable=no-self-use
+        """Setup the context menu associated to the object in tree view
+        (callback)
+        """
+
+    def getIcon(self):
+        # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)"""
+        return path.join(path.dirname(__file__), "icons", "ImageLight.svg")
 
     def __getstate__(self):
         """Called while saving the document"""

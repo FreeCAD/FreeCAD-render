@@ -41,8 +41,7 @@ the necessary UI controls.
 import sys
 import os
 import re
-import itertools
-from importlib import import_module
+import itertools as it
 from tempfile import mkstemp
 from types import SimpleNamespace
 from operator import attrgetter
@@ -51,18 +50,15 @@ from PySide.QtGui import QAction, QIcon, QFileDialog
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
-import Draft
 import Part
-import MeshPart
+import ArchMaterial
 try:
     import ImageGui
 except ImportError:
     pass
-try:
-    from draftutils.translate import translate  # 0.19
-except ImportError:
-    from Draft import translate  # 0.18
 
+from renderutils import translate, getproxyattr, RGBA
+from rendererhandler import RendererHandler
 import camera
 import lights
 
@@ -84,6 +80,7 @@ RENDERERS = [x.group(1)
                           os.listdir(RDRDIR))
              if x]
 DEPRECATED_RENDERERS = ["Luxrender"]
+
 
 # ===========================================================================
 #                     Core rendering objects (Project and View)
@@ -282,7 +279,7 @@ class Project:
         result = ""
         doc = self.fpo.Document
         bbox = App.BoundBox()
-        for view in self.fpo.Group:
+        for view in self.all_views():
             try:
                 bbox.add(view.Source.Shape.BoundBox)
             except AttributeError:
@@ -314,7 +311,7 @@ class Project:
 
         return result
 
-    def add_objects(self, objs):
+    def add_views(self, objs):
         """Add objects as new views to the project
 
         This method can handle objects groups, recursively.
@@ -333,7 +330,9 @@ class Project:
             objs -- FreeCAD objects to add
             group -- The  group (App::DocumentObjectGroup) to add to"""
             for obj in objs:
-                if obj.isDerivedFrom("App::DocumentObjectGroup"):
+                if (obj.isDerivedFrom("App::DocumentObjectGroup") or
+                        (obj.isDerivedFrom("App::GeometryPython") and
+                         getproxyattr(obj, "Type", "") == "BuildingPart")):
                     assert obj != group  # Just in case...
                     label = View.view_label(obj, group)
                     new_group = App.ActiveDocument.addObject(
@@ -346,10 +345,11 @@ class Project:
                 else:
                     msg = translate(
                         "Render",
-                        "Unable to create rendering view for object {}\n")
+                        "[Render] Unable to create rendering view for object "
+                        "'{}': unhandled object type\n")
                     App.Console.PrintWarning(msg.format(obj.Label))
 
-        # Here starts add_objects
+        # Here starts add_views
         add_to_group(iter(objs), self.fpo)
 
     def all_views(self):
@@ -385,7 +385,8 @@ class Project:
             renderer = RendererHandler(obj.Renderer)
         except ModuleNotFoundError:
             msg = translate(
-                "Render", "Cannot render project: Renderer '%s' not found\n")
+                "Render",
+                "[Render] Cannot render project: Renderer '%s' not found\n")
             App.Console.PrintError(msg % obj.Renderer)
             return ""
 
@@ -551,30 +552,68 @@ class ViewProviderProject:
         try:
             self.object.Proxy.render()
         except AttributeError as err:
-            msg = translate("Render", "Cannot render: {}\n")
+            msg = translate("Render", "[Render] Cannot render: {}\n")
             App.Console.PrintError(msg.format(err))
 
 
 class View:
     """A rendering view of a FreeCAD object"""
 
+    # Related FeaturePython object has to be stored in a class variable,
+    # (not in an instance variable...), otherwise it causes trouble in
+    # serialization...
+    _fpos = dict()
+
     def __init__(self, obj):
-        obj.addProperty("App::PropertyLink",
-                        "Source",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The source object of this view"))
-        obj.addProperty("App::PropertyLink",
-                        "Material",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The material of this view"))
-        obj.addProperty("App::PropertyString",
-                        "ViewResult",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The rendering output of this view"))
         obj.Proxy = self
+        self.set_properties(obj)
+
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
+
+    def set_properties(self, obj):
+        """Set underlying FeaturePython object's properties
+
+        Parameters
+        ----------
+        obj: FeaturePython Object related to this project
+        """
+        self.fpo = obj
+
+        if "Source" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyLink",
+                "Source",
+                "Render",
+                QT_TRANSLATE_NOOP("App::Property",
+                                  "The source object of this view"))
+
+        if "Material" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyLink",
+                "Material",
+                "Render",
+                QT_TRANSLATE_NOOP("App::Property",
+                                  "The material of this view"))
+
+        if "ViewResult" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyString",
+                "ViewResult",
+                "Render",
+                QT_TRANSLATE_NOOP("App::Property",
+                                  "The rendering output of this view"))
+
+    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
+        """Code to be executed when document is restored (callback)"""
+        self.set_properties(obj)
 
     def execute(self, obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
@@ -641,6 +680,30 @@ class View:
         viewp = ViewProviderView(fpo.ViewObject)
         return view, fpo, viewp
 
+    def get_shape_color(self):
+        """Get the RGBA color for a FreeCAD object as seen in viewport
+
+        If the object does not hold any color data, a default
+        RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
+
+        Returns:
+        The RGBA color, as a (named) tuple
+        """
+        source = self.fpo.Source
+        # Get RGB
+        try:
+            shape_color = source.ViewObject.ShapeColor[:3]
+        except (AttributeError, IndexError):
+            shape_color = (1.0, 1.0, 1.0)
+
+        # Get alpha
+        try:
+            assert 0 <= source.ViewObject.Transparency <= 100
+            shape_alpha = 1.0 - source.ViewObject.Transparency / 100
+        except (AttributeError, IndexError, AssertionError):
+            shape_alpha = 1.0
+        return RGBA(*shape_color, shape_alpha)
+
 
 class ViewProviderView:
     """ViewProvider of rendering view object"""
@@ -685,345 +748,6 @@ class ViewProviderView:
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
-
-
-# ===========================================================================
-#                            Renderer Handler
-# ===========================================================================
-
-
-class RendererHandler:
-    """This class provides simplified access to external renderers modules.
-
-    This class implements a simplified interface to external renderer module
-    (façade design pattern).
-    It requires a valid external renderer name for initialization, and
-    provides:
-    - a method to run the external renderer on a renderer-format file
-    - a method to get a rendering string from an object's View, taking care of
-      selecting the right method in renderer module according to
-    view object's type.
-    """
-    def __init__(self, rdrname):
-        self.renderer_name = str(rdrname)
-
-        try:
-            self.renderer_module = import_module("renderers." + rdrname)
-        except ModuleNotFoundError:
-            msg = translate(
-                "Render", "Import Error: Renderer '%s' not found\n") % rdrname
-            App.Console.PrintError(msg)
-            raise
-
-    def render(self, project, prefix, external, output, width, height):
-        """Run the external renderer
-
-        This method merely calls external renderer's 'render' method
-
-        Params:
-        - project:  the project to render
-        - prefix:   a prefix string for call (will be inserted before path to
-                    renderer)
-        - external: a boolean indicating whether to call UI (true) or console
-                    (false) version of renderer
-        - width:    rendered image width, in pixels
-        - height:   rendered image height, in pixels
-
-        Return:     path to image file generated, or None if no image has been
-                    issued by external renderer
-        """
-        return self.renderer_module.render(project,
-                                           prefix,
-                                           external,
-                                           output,
-                                           width,
-                                           height)
-
-    @staticmethod
-    def is_renderable(obj):
-        """Determine if an object is renderable
-
-        This is a weak test: we just check if the object belongs to a
-        class we would know how to handle - no further verification
-        is made on the consistency of the object data against
-        get_rendering_string requirements"""
-
-        try:
-            res = (obj.isDerivedFrom("Part::Feature") or
-                   obj.isDerivedFrom("Mesh::Feature") or
-                   (obj.isDerivedFrom("App::FeaturePython") and
-                    obj.Proxy.type in ["PointLight",
-                                       "Camera",
-                                       "AreaLight",
-                                       "SunskyLight"]))
-        except AttributeError:
-            res = False
-
-        return res
-
-    @staticmethod
-    def is_project(obj):
-        """Determine if an object is a rendering project
-
-        This is a weak test: we just check if the object looks like
-        something we could know how to handle - no further verification
-        is made on the consistency of the object data against
-        render requirements"""
-
-        try:
-            res = (obj.isDerivedFrom("App::FeaturePython") and
-                   "Renderer" in obj.PropertiesList)
-        except AttributeError:
-            res = False
-
-        return res
-
-    def get_rendering_string(self, view):
-        """Provide a rendering string for the view of an object
-
-        This method selects the specialized rendering method adapted for
-        'view', according to its source object type, and calls it.
-
-        Parameters:
-        view -- the view of the object to render
-
-        Returns: a rendering string in the format of the external renderer
-        for the supplied 'view'
-        """
-
-        try:
-            source = view.Source
-
-            try:
-                objtype = source.Proxy.type
-            except AttributeError:
-                objtype = "Object"
-
-            name = str(source.Name)
-
-            switcher = {
-                "Object": RendererHandler._render_object,
-                "PointLight": RendererHandler._render_pointlight,
-                "Camera": RendererHandler._render_camera,
-                "AreaLight": RendererHandler._render_arealight,
-                "SunskyLight": RendererHandler._render_sunskylight
-                }
-
-            res = switcher[objtype](self, name, view)
-
-        except (AttributeError, TypeError, AssertionError) as err:
-            msg = translate(
-                "Render",
-                "Cannot render view '{0}': {1}. Skipping...\n")
-            App.Console.PrintWarning(msg.format(
-                getattr(view, "Label", "<No label>"), err))
-            return ""
-
-        else:
-            return res
-
-    def _render_object(self, name, view):
-        """Get a rendering string for a generic FreeCAD object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the object
-        view -- a view of the object to render
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        source = view.Source
-
-        # get color and alpha
-        mat = None
-        color = None
-        alpha = None
-        if view.Material:
-            mat = view.Material
-        elif "Material" in source.PropertiesList and source.Material:
-            mat = source.Material
-        if mat:
-            if "Material" in mat.PropertiesList:
-                if "DiffuseColor" in mat.Material:
-                    color = mat.Material["DiffuseColor"]\
-                               .strip("(")\
-                               .strip(")")\
-                               .split(",")[:3]
-                if "Transparency" in mat.Material:
-                    if float(mat.Material["Transparency"]) > 0:
-                        alpha = 1.0 - float(mat.Material["Transparency"])
-                    else:
-                        alpha = 1.0
-
-        if source.ViewObject:
-            vobj = source.ViewObject
-            if not color:
-                if hasattr(vobj, "ShapeColor"):
-                    color = vobj.ShapeColor[:3]
-            if not alpha:
-                if hasattr(vobj, "Transparency"):
-                    if vobj.Transparency > 0:
-                        alpha = 1.0 - float(vobj.Transparency) / 100.0
-        if not color:
-            color = (1.0, 1.0, 1.0)
-        if not alpha:
-            alpha = 1.0
-
-        # get mesh
-        mesh = None
-        if hasattr(source, "Group"):
-            shps = [o.Shape for o in Draft.getGroupContents(source)
-                    if hasattr(o, "Shape")]
-            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
-                                          LinearDeflection=0.1,
-                                          AngularDeflection=0.523599,
-                                          Relative=False)
-        elif source.isDerivedFrom("Part::Feature"):
-            mesh = MeshPart.meshFromShape(Shape=source.Shape,
-                                          LinearDeflection=0.1,
-                                          AngularDeflection=0.523599,
-                                          Relative=False)
-        elif source.isDerivedFrom("Mesh::Feature"):
-            mesh = source.Mesh
-
-        assert mesh,\
-            translate("Render", "Cannot find mesh data")
-        assert mesh.Topology[0] and mesh.Topology[1],\
-            translate("Render", "Mesh topology is empty")
-        assert mesh.getPointNormals(),\
-            translate("Render", "Mesh topology has no normals")
-
-        return self._call_renderer("write_object",
-                                   name,
-                                   mesh,
-                                   color,
-                                   alpha)
-
-    def _render_camera(self, name, view):
-        """Provide a rendering string for a camera.
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the camera
-        view -- a view of the camera to render
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        source = view.Source
-        a_ratio = float(source.AspectRatio)
-        pos = App.Base.Placement(source.Placement)
-        target = pos.Base.add(
-            pos.Rotation.multVec(App.Vector(0, 0, -1)).multiply(a_ratio))
-        updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
-        return self._call_renderer("write_camera",
-                                   name,
-                                   pos,
-                                   updir,
-                                   target)
-
-    def _render_pointlight(self, name, view):
-        """Gets a rendering string for a point light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the point light
-        view -- the view of the point light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        source = view.Source
-
-        # get location, color
-        location = App.Base.Vector(source.Location)
-        color = source.Color
-
-        # we accept missing Power (default value: 60)...
-        power = getattr(source, "Power", 60)
-
-        # send everything to renderer module
-        return self._call_renderer("write_pointlight",
-                                   name,
-                                   location,
-                                   color,
-                                   power)
-
-    def _render_arealight(self, name, view):
-        """Gets a rendering string for an area light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the area light
-        view -- the view of the area light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        # Get properties
-        source = view.Source
-        placement = App.Base.Placement(source.Placement)
-        color = source.Color
-        power = float(source.Power)
-        size_u = float(source.SizeU)
-        size_v = float(source.SizeV)
-
-        # Send everything to renderer module
-        return self._call_renderer("write_arealight",
-                                   name,
-                                   placement,
-                                   size_u,
-                                   size_v,
-                                   color,
-                                   power)
-
-    def _render_sunskylight(self, name, view):
-        """Gets a rendering string for a sunsky light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the sunsky light
-        view -- the view of the sunsky light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        src = view.Source
-        direction = App.Vector(src.SunDirection)
-        turbidity = float(src.Turbidity)
-        # Distance from the sun:
-        distance = App.Units.parseQuantity("151000000 km").Value
-
-        assert turbidity >= 0,\
-            translate("Render", "Negative turbidity")
-
-        assert direction.Length,\
-            translate("Render", "Sun direction is null")
-
-        return self._call_renderer("write_sunskylight",
-                                   name,
-                                   direction,
-                                   distance,
-                                   turbidity)
-
-    def _call_renderer(self, method, *args):
-        """Calls a render method of the renderer module
-
-        Parameters:
-        -----------
-        method: the method to call (as a string)
-        args: the arguments to pass to the method
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        renderer_method = getattr(self.renderer_module, method)
-        return renderer_method(*args)
 
 
 # ===========================================================================
@@ -1101,16 +825,17 @@ class RenderViewCommand:
         activedoc_projects = filter(RendererHandler.is_project,
                                     App.ActiveDocument.Objects)
         try:
-            target_project = next(itertools.chain(projs, activedoc_projects))
+            target_project = next(it.chain(projs, activedoc_projects))
         except StopIteration:
             msg = translate(
                 "Render",
-                "Unable to find a valid project in selection or document\n")
+                "[Render] Unable to find a valid project in selection "
+                "or document\n")
             App.Console.PrintError(msg)
             return
 
         # Finally, add objects to target project and recompute
-        target_project.Proxy.add_objects(objs)
+        target_project.Proxy.add_views(objs)
 
         App.ActiveDocument.recompute()
 
@@ -1209,6 +934,23 @@ class SunskyLightCommand:
         """Code to be executed when command is run (callback)"""
         lights.SunskyLight.create()
 
+
+class ImageLightCommand:
+    """Create an Image Light object"""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "ImageLight.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Image Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Creates an Image Light object")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        lights.ImageLight.create()
+
+
 # ===========================================================================
 #                            Module initialization
 # ===========================================================================
@@ -1227,9 +969,15 @@ if App.GuiUp:
     for cmd in (("Camera", CameraCommand()),
                 ("PointLight", PointLightCommand()),
                 ("AreaLight", AreaLightCommand()),
-                ("SunskyLight", SunskyLightCommand())):
+                ("SunskyLight", SunskyLightCommand()),
+                ("ImageLight", ImageLightCommand()),):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
+    RENDER_COMMANDS.append("Separator")
+    # pylint: disable=protected-access
+    Gui.addCommand("Material", ArchMaterial._CommandArchMaterial())
+    # pylint: enable=protected-access
+    RENDER_COMMANDS.append("Material")
     RENDER_COMMANDS.append("Separator")
     for cmd in (("View", RenderViewCommand()),
                 ("Render", RenderCommand())):

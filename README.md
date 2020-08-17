@@ -25,9 +25,10 @@ Raytracing workbench, they are fully compatible. Appleseed templates are created
 At the moment, the following engines are supported:
 
 * [Pov-Ray](https://povray.org/)  
-* Luxrender 
+* [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net) 
-* Blender [Cycles](https://www.cycles-renderer.org/) 
+* [Blender Cycles](https://www.cycles-renderer.org/)
+* LuxRender (deprecated in favor of LuxCoreRender)
 
 ## Installation
 
@@ -72,16 +73,13 @@ This project is covered by FreeCAD [Code of Conduct](https://github.com/FreeCAD/
 ### To Do (not exhaustive)
 
 * Add some more lighting functionalities:
-  - Directional lights ("sun")
-  - Howek-Wilkie skylight (in progress)
-  - Image-based lighting
+  - Spot lights
 * Add material support, including UV-textures
 * Make handling of big projects easier:
   - Create "convert to another renderer" functionality on rendering project
 * Currently the external (open the file to be rendered in the Renderer's GUI)/internal (render directly inside FreeCAD) render mode is not implemented, the external mode will always be used.
 * Add support for more renderers
   - Yafaray
-  - LuxCore (presently only legacy LuxRender is supported)
   - Kerkythea (adapt the existing macro)
   - Blender's Eevee
   - OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
