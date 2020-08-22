@@ -46,7 +46,9 @@ from tempfile import mkstemp
 from types import SimpleNamespace
 from operator import attrgetter
 
-from PySide.QtGui import QAction, QIcon, QFileDialog, QLineEdit, QDoubleValidator, QPushButton, QColorDialog, QPixmap, QColor, QDoubleSpinBox
+from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
+                          QDoubleValidator, QPushButton, QColorDialog, QPixmap,
+                          QColor)
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -978,28 +980,37 @@ class MaterialSettingsCommand:
 
 
 class ColorPicker(QPushButton):
-    def __init__(self, color = QColor(127, 127, 127)):
+    """A color picker widget.
+
+    This widget provides a button, with a colored square icon, which triggers
+    a color dialog when it is pressed
+    """
+    def __init__(self, color=QColor(127, 127, 127)):
         super(ColorPicker, self).__init__()
         self.color = QColor(color)
         self._set_icon(self.color)
         self.pressed.connect(self.on_button_pressed)
 
     def on_button_pressed(self):
+        """Respond to button pressed event (callback)"""
         color = QColorDialog.getColor(initial=self.color)
         if color.isValid():
             self.color = color
             self._set_icon(color)
 
     def _set_icon(self, color):
+        """Set the colored square icon"""
         colorpix = QPixmap(16, 16)
-        colorpix.fill(self.color)
+        colorpix.fill(color)
         self.setIcon(QIcon(colorpix))
 
     def set_color(self, color):
+        """Set widget color value"""
         self.color = QColor(color)
         self._set_icon(self.color)
 
     def get_color_text(self):
+        """Get widget color value, in text form"""
         color = self.color
         return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
 
@@ -1015,13 +1026,14 @@ class MaterialSettingsTaskPanel():
                                    for obj in App.ActiveDocument.Objects
                                    if rendermaterials.is_valid_material(obj)}
         self.material_combo.addItems(self.existing_materials.keys())
-        self.material_combo.currentTextChanged.connect(self._on_material_name_changed)
-
+        self.material_combo.currentTextChanged.connect(
+            self.on_material_name_changed)
 
         # Initialize material type combo
         self.material_type_combo = self.form.FieldsLayout.itemAt(1).widget()
         self.material_type_combo.addItems(rendermaterials.STD_MATERIALS)
-        self.material_type_combo.currentTextChanged.connect(self._on_material_type_changed)
+        self.material_type_combo.currentTextChanged.connect(
+            self.on_material_type_changed)
         self._set_fields_visible(False)
         self.fields = []
 
@@ -1035,7 +1047,8 @@ class MaterialSettingsTaskPanel():
         else:
             self.material_combo.setCurrentText(selected_material)
 
-    def _on_material_name_changed(self, material_name):
+    def on_material_name_changed(self, material_name):
+        """Respond to material name changed event."""
         # Get material type
         try:
             material = self.existing_materials[material_name]
@@ -1050,25 +1063,29 @@ class MaterialSettingsTaskPanel():
         else:
             self.material_type_combo.setCurrentText(material_type)
 
-    def _on_material_type_changed(self, material_type):
+    def on_material_type_changed(self, material_type):
+        """Respond to material type changed event."""
         # Get parameters list
         try:
             params = rendermaterials.STD_MATERIALS_PARAMETERS[material_type]
         except KeyError:
             self._delete_fields()
         else:
-            self.material_type = material_type
             self._delete_fields()
+            mat_name = self.material_combo.currentText()
             for param in params:
-                value = self.existing_materials[self.material_combo.currentText()].Material.get("Render.{}.{}".format(material_type, param.name))
+                value = self.existing_materials[mat_name].Material.get(
+                    "Render.{}.{}".format(material_type, param.name))
                 self._add_field(param, value)
 
     def _set_fields_visible(self, flag):
+        """Make all task panel's fields visible/invisible (acc. flag)."""
         for index in range(self.form.FieldsLayout.count()):
             item = self.form.FieldsLayout.itemAt(index)
             item.widget().setVisible(flag)
 
     def _add_field(self, param, value):
+        """Add a field to the task panel."""
         name = param.name
         if param.type == "float":
             widget = QLineEdit()
@@ -1079,9 +1096,8 @@ class MaterialSettingsTaskPanel():
             except (ValueError, TypeError):
                 value = None
             widget.setText(value)
-            # self.fields.append((name, widget.text))
-            # self.fields.append((name, lambda : QLocale.toDouble(widget.text())))
-            self.fields.append((name, lambda: QLocale().toDouble(widget.text())[0]))
+            self.fields.append(
+                (name, lambda: QLocale().toDouble(widget.text())[0]))
         elif param.type == "RGB":
             if value:
                 qcolor = QColor.fromRgbF(*str2rgb(value))
@@ -1095,7 +1111,7 @@ class MaterialSettingsTaskPanel():
         self.form.FieldsLayout.addRow("%s:" % param.name, widget)
 
     def _delete_fields(self):
-        """Delete all fields, except the first two (MaterialType selector)"""
+        """Delete all fields, except the first one (MaterialType selector)."""
         layout = self.form.FieldsLayout
         for i in range(layout.count() - 1, 1, -1):
             layout.itemAt(i).widget().setParent(None)
@@ -1104,16 +1120,9 @@ class MaterialSettingsTaskPanel():
     def _write_fields(self):
         """Write task panel fields to FreeCAD material"""
         # Find material
-        # material_name = self.material_combo.currentText()
-        # mats = (m for m in App.ActiveDocument.Objects
-                # if rendermaterials.is_valid_material(m)
-                # and m.Label == material_name)
-        # try:
-            # material = next(mats)
-        # except StopIteration:
-            # return
+        mat_name = self.material_combo.currentText()
         try:
-            material = self.existing_materials[self.material_combo.currentText()]
+            material = self.existing_materials[mat_name]
         except KeyError:
             return
         tmp_mat = material.Material.copy()
@@ -1128,14 +1137,16 @@ class MaterialSettingsTaskPanel():
         for field in self.fields:
             field_name, get_value = field
             param_name = "Render.{}.{}".format(render_type, field_name)
-            # TODO comma in float...
-            value = str(get_value())
             tmp_mat[param_name] = str(get_value())
 
         # Write to material
         material.Material = tmp_mat
 
     def accept(self):
+        """Respond to user acceptation (OK button).
+
+        Write all task panel fields to material
+        """
         self._write_fields()
         Gui.ActiveDocument.resetEdit()
         Gui.Control.closeDialog()

@@ -68,6 +68,7 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 CAST_FUNCTIONS = {"float": float, "RGB": str2rgb, "string": str}
 
+
 # TODO Use a cache, do not recompute each time
 # TODO Document expected material card syntax in README
 def get_rendering_material(material, renderer, default_color):
