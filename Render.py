@@ -46,8 +46,10 @@ from tempfile import mkstemp
 from types import SimpleNamespace
 from operator import attrgetter
 
-from PySide.QtGui import QAction, QIcon, QFileDialog
-from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
+                          QDoubleValidator, QPushButton, QColorDialog, QPixmap,
+                          QColor)
+from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale
 import FreeCAD as App
 import FreeCADGui as Gui
 import Part
@@ -57,10 +59,11 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, getproxyattr, RGBA
+from renderutils import translate, getproxyattr, RGBA, str2rgb
 from rendererhandler import RendererHandler
 import camera
 import lights
+import rendermaterials
 
 
 # ===========================================================================
@@ -74,6 +77,7 @@ WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RDRDIR = os.path.join(WBDIR, "renderers")
 ICONDIR = os.path.join(WBDIR, "icons")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
+TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
 # Renderers list
 RENDERERS = [x.group(1)
              for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
@@ -951,6 +955,210 @@ class ImageLightCommand:
         lights.ImageLight.create()
 
 
+class MaterialSettingsCommand:
+    """Set render settings of a material object."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render",
+                                              "Material Render Settings"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Sets rendering parameters of "
+                                             "a Material")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        # App.setActiveTransaction("MaterialSettings")
+        App.ActiveDocument.openTransaction("MaterialSettings")
+        task = MaterialSettingsTaskPanel()
+        Gui.Control.showDialog(task)
+        # App.closeActiveTransaction()
+        App.ActiveDocument.commitTransaction()
+        App.ActiveDocument.recompute()
+
+
+class ColorPicker(QPushButton):
+    """A color picker widget.
+
+    This widget provides a button, with a colored square icon, which triggers
+    a color dialog when it is pressed
+    """
+    def __init__(self, color=QColor(127, 127, 127)):
+        super(ColorPicker, self).__init__()
+        self.color = QColor(color)
+        self._set_icon(self.color)
+        self.pressed.connect(self.on_button_pressed)
+
+    def on_button_pressed(self):
+        """Respond to button pressed event (callback)"""
+        color = QColorDialog.getColor(initial=self.color)
+        if color.isValid():
+            self.color = color
+            self._set_icon(color)
+
+    def _set_icon(self, color):
+        """Set the colored square icon"""
+        colorpix = QPixmap(16, 16)
+        colorpix.fill(color)
+        self.setIcon(QIcon(colorpix))
+
+    def set_color(self, color):
+        """Set widget color value"""
+        self.color = QColor(color)
+        self._set_icon(self.color)
+
+    def get_color_text(self):
+        """Get widget color value, in text form"""
+        color = self.color
+        return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
+
+
+class MaterialSettingsTaskPanel():
+    """Task panel to edit Material render settings"""
+    def __init__(self, obj=None):
+        self.form = Gui.PySideUic.loadUi(TASKPAGE)
+
+        # Initialize material name combo
+        self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
+        self.existing_materials = {obj.Label: obj
+                                   for obj in App.ActiveDocument.Objects
+                                   if rendermaterials.is_valid_material(obj)}
+        self.material_combo.addItems(self.existing_materials.keys())
+        self.material_combo.currentTextChanged.connect(
+            self.on_material_name_changed)
+
+        # Initialize material type combo
+        self.material_type_combo = self.form.FieldsLayout.itemAt(1).widget()
+        self.material_type_combo.addItems(rendermaterials.STD_MATERIALS)
+        self.material_type_combo.currentTextChanged.connect(
+            self.on_material_type_changed)
+        self._set_fields_visible(False)
+        self.fields = []
+
+        # Get selected material and initialize combo with it
+        selection = {obj.Label for obj in Gui.Selection.getSelection()}
+        selected_materials = selection & self.existing_materials.keys()
+        try:
+            selected_material = selected_materials.pop()
+        except KeyError:
+            pass
+        else:
+            self.material_combo.setCurrentText(selected_material)
+
+    def on_material_name_changed(self, material_name):
+        """Respond to material name changed event."""
+        # Get material type
+        try:
+            material = self.existing_materials[material_name]
+        except KeyError:
+            self._set_fields_visible(False)
+            return
+        self._set_fields_visible(True)
+        try:
+            material_type = material.Material["Render.Type"]
+        except KeyError:
+            self.material_type_combo.setCurrentIndex(0)
+        else:
+            self.material_type_combo.setCurrentText(material_type)
+
+    def on_material_type_changed(self, material_type):
+        """Respond to material type changed event."""
+        # Get parameters list
+        try:
+            params = rendermaterials.STD_MATERIALS_PARAMETERS[material_type]
+        except KeyError:
+            self._delete_fields()
+        else:
+            self._delete_fields()
+            mat_name = self.material_combo.currentText()
+            for param in params:
+                value = self.existing_materials[mat_name].Material.get(
+                    "Render.{}.{}".format(material_type, param.name))
+                self._add_field(param, value)
+
+    def _set_fields_visible(self, flag):
+        """Make all task panel's fields visible/invisible (acc. flag)."""
+        for index in range(self.form.FieldsLayout.count()):
+            item = self.form.FieldsLayout.itemAt(index)
+            item.widget().setVisible(flag)
+
+    def _add_field(self, param, value):
+        """Add a field to the task panel."""
+        name = param.name
+        if param.type == "float":
+            widget = QLineEdit()
+            widget.setAlignment(Qt.AlignRight)
+            widget.setValidator(QDoubleValidator())
+            try:
+                value = QLocale().toString(float(value))
+            except (ValueError, TypeError):
+                value = None
+            widget.setText(value)
+            self.fields.append(
+                (name, lambda: QLocale().toDouble(widget.text())[0]))
+        elif param.type == "RGB":
+            if value:
+                qcolor = QColor.fromRgbF(*str2rgb(value))
+                widget = ColorPicker(qcolor)
+            else:
+                widget = ColorPicker()
+            self.fields.append((name, widget.get_color_text))
+        else:
+            widget = QLineEdit()
+            self.fields.append((name, widget.text))
+        self.form.FieldsLayout.addRow("%s:" % param.name, widget)
+
+    def _delete_fields(self):
+        """Delete all fields, except the first one (MaterialType selector)."""
+        layout = self.form.FieldsLayout
+        for i in range(layout.count() - 1, 1, -1):
+            layout.itemAt(i).widget().setParent(None)
+        self.fields = []
+
+    def _write_fields(self):
+        """Write task panel fields to FreeCAD material"""
+        # Find material
+        mat_name = self.material_combo.currentText()
+        try:
+            material = self.existing_materials[mat_name]
+        except KeyError:
+            return
+        tmp_mat = material.Material.copy()
+
+        # Set render type
+        if not self.material_type_combo.currentIndex():
+            return  # First row...
+        render_type = self.material_type_combo.currentText()
+        tmp_mat["Render.Type"] = str(render_type)
+
+        # Set other fields
+        for field in self.fields:
+            field_name, get_value = field
+            param_name = "Render.{}.{}".format(render_type, field_name)
+            tmp_mat[param_name] = str(get_value())
+
+        # Write to material
+        material.Material = tmp_mat
+
+    def accept(self):
+        """Respond to user acceptation (OK button).
+
+        Write all task panel fields to material
+        """
+        self._write_fields()
+        Gui.ActiveDocument.resetEdit()
+        Gui.Control.closeDialog()
+        App.ActiveDocument.recompute()
+        return True
+
+
+# pylint: disable=protected-access
+MaterialCommand = ArchMaterial._CommandArchMaterial
+# pylint: enable=protected-access
+
+
 # ===========================================================================
 #                            Module initialization
 # ===========================================================================
@@ -974,10 +1182,10 @@ if App.GuiUp:
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
     RENDER_COMMANDS.append("Separator")
-    # pylint: disable=protected-access
-    Gui.addCommand("Material", ArchMaterial._CommandArchMaterial())
-    # pylint: enable=protected-access
+    Gui.addCommand("Material", MaterialCommand())
     RENDER_COMMANDS.append("Material")
+    Gui.addCommand("MaterialRenderSettings", MaterialSettingsCommand())
+    RENDER_COMMANDS.append("MaterialRenderSettings")
     RENDER_COMMANDS.append("Separator")
     for cmd in (("View", RenderViewCommand()),
                 ("Render", RenderCommand())):
