@@ -41,28 +41,32 @@ from renderutils import RGB, RGBA, str2rgb, debug as ru_debug
 #                                   Export
 # ===========================================================================
 
-Param = collections.namedtuple("Param", "name cast_function default")
+Param = collections.namedtuple("Param", "name type default")
 
 STD_MATERIALS_PARAMETERS = {
-    "Glass": [Param("IOR", float, 1.5),
-              Param("Color", str2rgb, (1, 1, 1))],
+    "Glass": [Param("IOR", "float", 1.5),
+              Param("Color", "RGB", (1, 1, 1))],
 
-    "Disney": [Param("BaseColor", str2rgb, (0.8, 0.8, 0.8)),
-               Param("Subsurface", float, 0.0),
-               Param("Metallic", float, 0.0),
-               Param("Specular", float, 0.0),
-               Param("SpecularTint", float, 0.0),
-               Param("Roughness", float, 0.0),
-               Param("Anisotropic", float, 0.0),
-               Param("Sheen", float, 0.0),
-               Param("SheenTint", float, 0.0),
-               Param("ClearCoat", float, 0.0),
-               Param("ClearCoatGloss", float, 0.0)],
+    "Disney": [Param("BaseColor", "RGB", (0.8, 0.8, 0.8)),
+               Param("Subsurface", "float", 0.0),
+               Param("Metallic", "float", 0.0),
+               Param("Specular", "float", 0.0),
+               Param("SpecularTint", "float", 0.0),
+               Param("Roughness", "float", 0.0),
+               Param("Anisotropic", "float", 0.0),
+               Param("Sheen", "float", 0.0),
+               Param("SheenTint", "float", 0.0),
+               Param("ClearCoat", "float", 0.0),
+               Param("ClearCoatGloss", "float", 0.0)],
 
-    "Diffuse": [Param("Color", str2rgb, (0.8, 0.8, 0.8))],
+    "Diffuse": [Param("Color", "RGB", (0.8, 0.8, 0.8))],
 
     }
 
+
+STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
+
+CAST_FUNCTIONS = {"float": float, "RGB": str2rgb, "string": str}
 
 # TODO Use a cache, do not recompute each time
 # TODO Document expected material card syntax in README
@@ -153,10 +157,11 @@ def get_rendering_material(material, renderer, default_color):
         setattr(res, shadertype.lower(), subobj)
         for par in STD_MATERIALS_PARAMETERS[shadertype]:
             key = "Render.{}.{}".format(shadertype, par.name)
+            cast_function = CAST_FUNCTIONS[par.type]
             try:
-                value = par.cast_function(mat[key])
+                value = cast_function(mat[key])
             except (KeyError, TypeError):
-                value = par.cast_function(par.default)
+                value = cast_function(par.default)
             finally:
                 setattr(subobj, par.name.lower(), value)
         res.default_color = get_default_color(res)
@@ -173,7 +178,7 @@ def get_rendering_material(material, renderer, default_color):
     else:
         # Retrieve all valid materials
         materials = (o for o in App.ActiveDocument.Objects
-                     if _is_valid_material(o))
+                     if is_valid_material(o))
         # Find father material
         try:
             father = next(m for m in materials
@@ -250,7 +255,7 @@ def _get_float(material, param_prefix, param_name, default=0.0):
     return material.get(param_prefix + param_name, default)
 
 
-def _is_valid_material(obj):
+def is_valid_material(obj):
     """Assert that an object is a valid Material"""
     return (obj.isDerivedFrom("App::MaterialObjectPython")
             and hasattr(obj, "Material")
