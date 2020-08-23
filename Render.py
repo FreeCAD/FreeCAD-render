@@ -1017,6 +1017,9 @@ class ColorPicker(QPushButton):
 
 class MaterialSettingsTaskPanel():
     """Task panel to edit Material render settings"""
+
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("Render", "<None>")
+
     def __init__(self, obj=None):
         self.form = Gui.PySideUic.loadUi(TASKPAGE)
 
@@ -1032,14 +1035,16 @@ class MaterialSettingsTaskPanel():
         # Initialize material type combo
         # Note: itemAt(0) is label, itemAt(1) is combo
         self.material_type_combo = self.form.FieldsLayout.itemAt(1).widget()
-        self.material_type_combo.addItems(rendermaterials.STD_MATERIALS)
+        material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] \
+            + list(rendermaterials.STD_MATERIALS)
+        self.material_type_combo.addItems(material_type_set)
         self.material_type_combo.currentTextChanged.connect(
             self.on_material_type_changed)
-        self._set_layout_visible(self.form.FieldsLayout, False)
+        self._set_layout_visible("FieldsLayout", False)
         self.fields = []
 
         # Initialize Father layout
-        self._set_layout_visible(self.form.FatherLayout, False)
+        self._set_layout_visible("FatherLayout", False)
         self.father_field = self.form.FatherLayout.itemAt(1).widget()
 
         # Get selected material and initialize material type combo with it
@@ -1058,21 +1063,23 @@ class MaterialSettingsTaskPanel():
         try:
             material = self.existing_materials[material_name]
         except KeyError:
-            self._set_layout_visible(self.form.FieldsLayout, False)
-            self._set_layout_visible(self.form.FatherLayout, False)
+            self._set_layout_visible("FieldsLayout", False)
+            self._set_layout_visible("FatherLayout", False)
             return
 
         # Retrieve material type
-        self._set_layout_visible(self.form.FieldsLayout, True)
+        self._set_layout_visible("FieldsLayout", True)
         try:
             material_type = material.Material["Render.Type"]
         except KeyError:
             self.material_type_combo.setCurrentIndex(0)
         else:
+            if not material_type:
+                material_type = MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
             self.material_type_combo.setCurrentText(material_type)
 
         # Retrieve material father
-        self._set_layout_visible(self.form.FatherLayout, True)
+        self._set_layout_visible("FatherLayout", True)
         try:
             father = material.Material["Father"]
         except KeyError:
@@ -1095,8 +1102,9 @@ class MaterialSettingsTaskPanel():
                     "Render.{}.{}".format(material_type, param.name))
                 self._add_field(param, value)
 
-    def _set_layout_visible(self, layout, flag):
+    def _set_layout_visible(self, layout_name, flag):
         """Make a layout visible/invisible, according to flag."""
+        layout = getattr(self.form, layout_name)
         for index in range(layout.count()):
             item = layout.itemAt(index)
             item.widget().setVisible(flag)
@@ -1147,6 +1155,8 @@ class MaterialSettingsTaskPanel():
         # Set render type and associated fields
         if self.material_type_combo.currentIndex():
             render_type = self.material_type_combo.currentText()
+            if render_type == MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE:
+                render_type = ""
             tmp_mat["Render.Type"] = str(render_type)
 
             # Set fields
