@@ -1030,14 +1030,19 @@ class MaterialSettingsTaskPanel():
             self.on_material_name_changed)
 
         # Initialize material type combo
+        # Note: itemAt(0) is label, itemAt(1) is combo
         self.material_type_combo = self.form.FieldsLayout.itemAt(1).widget()
         self.material_type_combo.addItems(rendermaterials.STD_MATERIALS)
         self.material_type_combo.currentTextChanged.connect(
             self.on_material_type_changed)
-        self._set_fields_visible(False)
+        self._set_layout_visible(self.form.FieldsLayout, False)
         self.fields = []
 
-        # Get selected material and initialize combo with it
+        # Initialize Father layout
+        self._set_layout_visible(self.form.FatherLayout, False)
+        self.father_field = self.form.FatherLayout.itemAt(1).widget()
+
+        # Get selected material and initialize material type combo with it
         selection = {obj.Label for obj in Gui.Selection.getSelection()}
         selected_materials = selection & self.existing_materials.keys()
         try:
@@ -1049,19 +1054,31 @@ class MaterialSettingsTaskPanel():
 
     def on_material_name_changed(self, material_name):
         """Respond to material name changed event."""
-        # Get material type
+        # Find material
         try:
             material = self.existing_materials[material_name]
         except KeyError:
-            self._set_fields_visible(False)
+            self._set_layout_visible(self.form.FieldsLayout, False)
+            self._set_layout_visible(self.form.FatherLayout, False)
             return
-        self._set_fields_visible(True)
+
+        # Retrieve material type
+        self._set_layout_visible(self.form.FieldsLayout, True)
         try:
             material_type = material.Material["Render.Type"]
         except KeyError:
             self.material_type_combo.setCurrentIndex(0)
         else:
             self.material_type_combo.setCurrentText(material_type)
+
+        # Retrieve material father
+        self._set_layout_visible(self.form.FatherLayout, True)
+        try:
+            father = material.Material["Father"]
+        except KeyError:
+            father = ""
+        finally:
+            self.father_field.setText(father)
 
     def on_material_type_changed(self, material_type):
         """Respond to material type changed event."""
@@ -1078,10 +1095,10 @@ class MaterialSettingsTaskPanel():
                     "Render.{}.{}".format(material_type, param.name))
                 self._add_field(param, value)
 
-    def _set_fields_visible(self, flag):
-        """Make all task panel's fields visible/invisible (acc. flag)."""
-        for index in range(self.form.FieldsLayout.count()):
-            item = self.form.FieldsLayout.itemAt(index)
+    def _set_layout_visible(self, layout, flag):
+        """Make a layout visible/invisible, according to flag."""
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
             item.widget().setVisible(flag)
 
     def _add_field(self, param, value):
@@ -1127,17 +1144,21 @@ class MaterialSettingsTaskPanel():
             return
         tmp_mat = material.Material.copy()
 
-        # Set render type
-        if not self.material_type_combo.currentIndex():
-            return  # First row...
-        render_type = self.material_type_combo.currentText()
-        tmp_mat["Render.Type"] = str(render_type)
+        # Set render type and associated fields
+        if self.material_type_combo.currentIndex():
+            render_type = self.material_type_combo.currentText()
+            tmp_mat["Render.Type"] = str(render_type)
 
-        # Set other fields
-        for field in self.fields:
-            field_name, get_value = field
-            param_name = "Render.{}.{}".format(render_type, field_name)
-            tmp_mat[param_name] = str(get_value())
+            # Set fields
+            for field in self.fields:
+                field_name, get_value = field
+                param_name = "Render.{}.{}".format(render_type, field_name)
+                tmp_mat[param_name] = str(get_value())
+
+        # Set father
+        father = self.father_field.text()
+        if father:
+            tmp_mat["Father"] = str(father)
 
         # Write to material
         material.Material = tmp_mat
