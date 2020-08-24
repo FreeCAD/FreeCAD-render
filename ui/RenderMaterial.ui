@@ -53,76 +53,156 @@
     </spacer>
    </item>
    <item>
-    <layout class="QFormLayout" name="FatherLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="fatherMaterialLabel">
-       <property name="locale">
-        <locale language="English" country="UnitedStates"/>
-       </property>
-       <property name="text">
-        <string>Father Material:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="fatherMaterialLineEdit">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="locale">
-        <locale language="English" country="UnitedStates"/>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+    <widget class="QTabWidget" name="RenderTabs">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
+     <property name="autoFillBackground">
+      <bool>true</bool>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
+     <property name="currentIndex">
+      <number>2</number>
      </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QFormLayout" name="FieldsLayout">
-     <property name="fieldGrowthPolicy">
-      <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-     </property>
-     <property name="formAlignment">
-      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-     </property>
-     <item row="0" column="0">
-      <widget class="QLabel" name="MaterialTypeLabel">
-       <property name="locale">
-        <locale language="English" country="UnitedStates"/>
+     <widget class="QWidget" name="tab">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>200</height>
+       </size>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
+      </property>
+      <attribute name="title">
+       <string>Standard Material</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetNoConstraint</enum>
        </property>
-       <property name="text">
-        <string>Material Type:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="MaterialType">
-       <property name="locale">
-        <locale language="English" country="UnitedStates"/>
-       </property>
-       <item>
-        <property name="text">
-         <string>Choose material type...</string>
-        </property>
+       <item row="0" column="0" colspan="2">
+        <widget class="QScrollArea" name="scrollArea">
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::Box</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Sunken</enum>
+         </property>
+         <property name="widgetResizable">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="scrollAreaWidgetContents">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>695</width>
+            <height>211</height>
+           </rect>
+          </property>
+          <property name="autoFillBackground">
+           <bool>true</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
+          <layout class="QFormLayout" name="formLayout_3">
+           <item row="0" column="0" colspan="2">
+            <layout class="QFormLayout" name="FieldsLayout">
+             <property name="fieldGrowthPolicy">
+              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+             </property>
+             <property name="formAlignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="MaterialTypeLabel">
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="locale">
+                <locale language="English" country="UnitedStates"/>
+               </property>
+               <property name="text">
+                <string>Material Type:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="MaterialType">
+               <property name="locale">
+                <locale language="English" country="UnitedStates"/>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Choose material type...</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </widget>
        </item>
-      </widget>
-     </item>
-    </layout>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Passthrough</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <property name="autoFillBackground">
+       <bool>true</bool>
+      </property>
+      <attribute name="title">
+       <string>General Parameters</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout_2">
+       <item row="0" column="0" colspan="2">
+        <layout class="QFormLayout" name="FatherLayout">
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="fatherMaterialLineEdit">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="locale">
+            <locale language="English" country="UnitedStates"/>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="fatherMaterialLabel">
+           <property name="locale">
+            <locale language="English" country="UnitedStates"/>
+           </property>
+           <property name="text">
+            <string>Father Material:</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>

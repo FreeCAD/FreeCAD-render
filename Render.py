@@ -48,7 +48,7 @@ from operator import attrgetter
 
 from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
                           QDoubleValidator, QPushButton, QColorDialog, QPixmap,
-                          QColor)
+                          QColor, QFormLayout, QComboBox, QLayout)
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -1022,6 +1022,9 @@ class MaterialSettingsTaskPanel():
 
     def __init__(self, obj=None):
         self.form = Gui.PySideUic.loadUi(TASKPAGE)
+        self.tabs = self.form.RenderTabs
+        self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
+        self.material_type_combo = self.form.findChild(QComboBox, "MaterialType")
 
         # Initialize material name combo
         self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
@@ -1034,7 +1037,8 @@ class MaterialSettingsTaskPanel():
 
         # Initialize material type combo
         # Note: itemAt(0) is label, itemAt(1) is combo
-        self.material_type_combo = self.form.FieldsLayout.itemAt(1).widget()
+        self.material_type_combo = self.form.findChild(QComboBox, "MaterialType")
+        # self.material_type_combo = self.form.RenderTabs.widget(0).FieldsLayout.itemAt(1).widget()
         material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] \
             + list(rendermaterials.STD_MATERIALS)
         self.material_type_combo.addItems(material_type_set)
@@ -1069,14 +1073,15 @@ class MaterialSettingsTaskPanel():
 
         # Retrieve material type
         self._set_layout_visible("FieldsLayout", True)
+        material_type_combo = self.form.findChild(QComboBox, "MaterialType")
         try:
             material_type = material.Material["Render.Type"]
         except KeyError:
-            self.material_type_combo.setCurrentIndex(0)
+            material_type_combo.setCurrentIndex(0)
         else:
             if not material_type:
                 material_type = MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
-            self.material_type_combo.setCurrentText(material_type)
+            material_type_combo.setCurrentText(material_type)
 
         # Retrieve material father
         self._set_layout_visible("FatherLayout", True)
@@ -1104,7 +1109,7 @@ class MaterialSettingsTaskPanel():
 
     def _set_layout_visible(self, layout_name, flag):
         """Make a layout visible/invisible, according to flag."""
-        layout = getattr(self.form, layout_name)
+        layout = self.form.findChild(QLayout, layout_name)
         for index in range(layout.count()):
             item = layout.itemAt(index)
             item.widget().setVisible(flag)
@@ -1133,13 +1138,18 @@ class MaterialSettingsTaskPanel():
         else:
             widget = QLineEdit()
             self.fields.append((name, widget.text))
-        self.form.FieldsLayout.addRow("%s:" % param.name, widget)
+        layout = self.form.findChild(QLayout, "FieldsLayout")
+        # self.form.FieldsLayout.addRow("%s:" % param.name, widget)
+        layout.addRow("%s:" % param.name, widget)
 
     def _delete_fields(self):
         """Delete all fields, except the first one (MaterialType selector)."""
-        layout = self.form.FieldsLayout
-        for i in range(layout.count() - 1, 1, -1):
-            layout.itemAt(i).widget().setParent(None)
+        # layout = self.form.FieldsLayout
+        layout = self.form.findChild(QLayout, "FieldsLayout")
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            if widget.objectName() not in ("MaterialType", "MaterialTypeLabel"):
+                widget.setParent(None)
         self.fields = []
 
     def _write_fields(self):
