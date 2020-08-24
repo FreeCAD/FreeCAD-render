@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Render Material</string>
+   <string>Material Render Settings</string>
   </property>
   <property name="locale">
    <locale language="English" country="UnitedStates"/>
@@ -64,12 +64,12 @@
       <bool>true</bool>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <property name="usesScrollButtons">
       <bool>true</bool>
      </property>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="StandardTab">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -86,7 +86,7 @@
        <bool>true</bool>
       </property>
       <attribute name="title">
-       <string>Standard Material</string>
+       <string>Standard</string>
       </attribute>
       <layout class="QFormLayout" name="FieldsLayout">
        <property name="sizeConstraint">
@@ -122,17 +122,17 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_2">
+     <widget class="QWidget" name="PassthroughTab">
       <attribute name="title">
        <string>Passthrough</string>
       </attribute>
      </widget>
-     <widget class="QWidget" name="tab_3">
+     <widget class="QWidget" name="FallbackTab">
       <property name="autoFillBackground">
        <bool>true</bool>
       </property>
       <attribute name="title">
-       <string>Father Material</string>
+       <string>Fallback</string>
       </attribute>
       <layout class="QFormLayout" name="FatherLayout">
        <item row="0" column="0">
