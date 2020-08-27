@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>739</width>
-    <height>638</height>
+    <width>1035</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Material Render Settings</string>
+   <string>Material Rendering Settings</string>
   </property>
   <property name="locale">
    <locale language="English" country="UnitedStates"/>
@@ -64,7 +64,7 @@
       <bool>true</bool>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>1</number>
      </property>
      <property name="usesScrollButtons">
       <bool>true</bool>
@@ -83,7 +83,7 @@
        </size>
       </property>
       <property name="autoFillBackground">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
       <attribute name="title">
        <string>Standard</string>
@@ -126,10 +126,60 @@
       <attribute name="title">
        <string>Passthrough</string>
       </attribute>
+      <layout class="QHBoxLayout" name="PassthruLayout">
+       <item>
+        <widget class="QListWidget" name="Renderers">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="itemAlignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Passthrough Text</string>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+         <property name="checkable">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QPlainTextEdit" name="PassthroughEdit">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="PassthruWarning">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;Warning: This text will be sent to renderer &amp;quot;as is&amp;quot; and will override any other material rendering settings. Be sure you know what you do when modifying it...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="scaledContents">
+             <bool>false</bool>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
      </widget>
      <widget class="QWidget" name="FallbackTab">
       <property name="autoFillBackground">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
       <attribute name="title">
        <string>Fallback</string>

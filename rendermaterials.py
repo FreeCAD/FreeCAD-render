@@ -130,9 +130,7 @@ def get_rendering_material(material, renderer, default_color):
     res = types.SimpleNamespace()  # Result
 
     # Try renderer Passthrough
-    passthru_keys = {"Render.{}.{:04}".format(renderer, i)
-                     for i in range(1, 9999)}
-    common_keys = passthru_keys & mat.keys()
+    common_keys = passthrough_keys(renderer) & mat.keys()
     if common_keys:
         debug("Found valid Passthrough - returning")
         lines = [mat[k] for k in sorted(common_keys)]
@@ -212,6 +210,11 @@ def get_rendering_material(material, renderer, default_color):
     else:
         debug("Fallback to default color")
         return _build_diffuse(diffusecolor, diffusealpha)
+
+
+def passthrough_keys(renderer):
+    """Return material card keys for passthrough rendering material"""
+    return {"Render.{}.{:04}".format(renderer, i) for i in range(1, 9999)}
 
 
 def is_multimat(obj):
