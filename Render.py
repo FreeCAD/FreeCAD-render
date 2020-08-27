@@ -48,8 +48,10 @@ from operator import attrgetter
 
 from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
                           QDoubleValidator, QPushButton, QColorDialog, QPixmap,
-                          QColor)
-from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale
+                          QColor, QFormLayout, QComboBox, QLayout, QListWidget,
+                          QListWidgetItem, QListView, QPlainTextEdit)
+from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
+                           QSize)
 import FreeCAD as App
 import FreeCADGui as Gui
 import Part
@@ -79,11 +81,12 @@ ICONDIR = os.path.join(WBDIR, "icons")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
 # Renderers list
-RENDERERS = [x.group(1)
+RENDERERS = {x.group(1)
              for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
                           os.listdir(RDRDIR))
-             if x]
-DEPRECATED_RENDERERS = ["Luxrender"]
+             if x}
+DEPRECATED_RENDERERS = {"Luxrender"}
+VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 
 # ===========================================================================
@@ -1017,8 +1020,16 @@ class ColorPicker(QPushButton):
 
 class MaterialSettingsTaskPanel():
     """Task panel to edit Material render settings"""
+
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("Render", "<None>")
+
     def __init__(self, obj=None):
         self.form = Gui.PySideUic.loadUi(TASKPAGE)
+        self.tabs = self.form.RenderTabs
+        self.tabs.setCurrentIndex(0)
+        self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
+        self.material_type_combo = \
+            self.form.findChild(QComboBox, "MaterialType")
 
         # Initialize material name combo
         self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
@@ -1030,14 +1041,40 @@ class MaterialSettingsTaskPanel():
             self.on_material_name_changed)
 
         # Initialize material type combo
-        self.material_type_combo = self.form.FieldsLayout.itemAt(1).widget()
-        self.material_type_combo.addItems(rendermaterials.STD_MATERIALS)
+        # Note: itemAt(0) is label, itemAt(1) is combo
+        self.material_type_combo = \
+            self.form.findChild(QComboBox, "MaterialType")
+        material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] \
+            + list(rendermaterials.STD_MATERIALS)
+        self.material_type_combo.addItems(material_type_set)
         self.material_type_combo.currentTextChanged.connect(
             self.on_material_type_changed)
-        self._set_fields_visible(False)
+        self._set_layout_visible("FieldsLayout", False)
         self.fields = []
 
-        # Get selected material and initialize combo with it
+        # Initialize Father layout
+        self._set_layout_visible("FatherLayout", False)
+        self.father_field = self.form.FatherLayout.itemAt(1).widget()
+
+        # Initialize Passthru Renderers selector
+        rdrwidget = self.form.findChild(QListWidget, "Renderers")
+        for rdr in VALID_RENDERERS:
+            item = QListWidgetItem()
+            item.setText(rdr)
+            item.setIcon(QIcon(os.path.join(WBDIR, "icons", "%s.svg" % rdr)))
+            rdrwidget.addItem(item)
+        rdrwidget.setViewMode(QListView.IconMode)
+        rdrwidget.setIconSize(QSize(48, 48))
+        rdrwidget.setMaximumWidth(96)
+        rdrwidget.setSpacing(6)
+        rdrwidget.setMovement(QListView.Static)
+        rdrwidget.currentTextChanged.connect(
+            self.on_passthrough_renderer_changed)
+        self.passthru_rdr = rdrwidget
+        self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
+        self._set_layout_visible("PassthruLayout", False)
+
+        # Get selected material and initialize material type combo with it
         selection = {obj.Label for obj in Gui.Selection.getSelection()}
         selected_materials = selection & self.existing_materials.keys()
         try:
@@ -1049,19 +1086,43 @@ class MaterialSettingsTaskPanel():
 
     def on_material_name_changed(self, material_name):
         """Respond to material name changed event."""
-        # Get material type
+        # Find material
         try:
             material = self.existing_materials[material_name]
         except KeyError:
-            self._set_fields_visible(False)
+            self._set_layout_visible("FieldsLayout", False)
+            self._set_layout_visible("FatherLayout", False)
+            self._set_layout_visible("PassthruLayout", False)
             return
-        self._set_fields_visible(True)
+
+        # Retrieve material type
+        self._set_layout_visible("FieldsLayout", True)
+        material_type_combo = self.form.findChild(QComboBox, "MaterialType")
         try:
             material_type = material.Material["Render.Type"]
         except KeyError:
-            self.material_type_combo.setCurrentIndex(0)
+            material_type_combo.setCurrentIndex(0)
         else:
-            self.material_type_combo.setCurrentText(material_type)
+            if not material_type:
+                material_type = MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
+            material_type_combo.setCurrentText(material_type)
+
+        # Retrieve passthrough
+        self._set_layout_visible("PassthruLayout", True)
+        try:
+            renderer = self.passthru_rdr.currentItem().text()
+        except AttributeError:
+            renderer = None
+        self._populate_passthru(renderer, material)
+
+        # Retrieve material father
+        self._set_layout_visible("FatherLayout", True)
+        try:
+            father = material.Material["Father"]
+        except KeyError:
+            father = ""
+        finally:
+            self.father_field.setText(father)
 
     def on_material_type_changed(self, material_type):
         """Respond to material type changed event."""
@@ -1078,10 +1139,33 @@ class MaterialSettingsTaskPanel():
                     "Render.{}.{}".format(material_type, param.name))
                 self._add_field(param, value)
 
-    def _set_fields_visible(self, flag):
-        """Make all task panel's fields visible/invisible (acc. flag)."""
-        for index in range(self.form.FieldsLayout.count()):
-            item = self.form.FieldsLayout.itemAt(index)
+    def on_passthrough_renderer_changed(self, renderer):
+        """Respond to passthrough renderer changed event."""
+        mat_name = self.material_combo.currentText()
+        material = self.existing_materials[mat_name]
+        self._populate_passthru(renderer, material)
+
+    PASSTHROUGH_KEYS = {r: rendermaterials.passthrough_keys(r)
+                        for r in VALID_RENDERERS}
+
+    def _populate_passthru(self, renderer, material):
+        """Populate passthrough edit field"""
+        if not renderer or not material:
+            self.passthru.setPlainText("")
+            self.passthru.setEnabled(False)
+            return
+
+        self.passthru.setEnabled(True)
+        keys = self.PASSTHROUGH_KEYS[renderer]
+        common_keys = keys & material.Material.keys()
+        lines = [material.Material[k] for k in sorted(common_keys)]
+        self.passthru.setPlainText('\n'.join(lines))
+
+    def _set_layout_visible(self, layout_name, flag):
+        """Make a layout visible/invisible, according to flag."""
+        layout = self.form.findChild(QLayout, layout_name)
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
             item.widget().setVisible(flag)
 
     def _add_field(self, param, value):
@@ -1108,13 +1192,19 @@ class MaterialSettingsTaskPanel():
         else:
             widget = QLineEdit()
             self.fields.append((name, widget.text))
-        self.form.FieldsLayout.addRow("%s:" % param.name, widget)
+        layout = self.form.findChild(QLayout, "FieldsLayout")
+        # self.form.FieldsLayout.addRow("%s:" % param.name, widget)
+        layout.addRow("%s:" % param.name, widget)
 
     def _delete_fields(self):
         """Delete all fields, except the first one (MaterialType selector)."""
-        layout = self.form.FieldsLayout
-        for i in range(layout.count() - 1, 1, -1):
-            layout.itemAt(i).widget().setParent(None)
+        # layout = self.form.FieldsLayout
+        layout = self.form.findChild(QLayout, "FieldsLayout")
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            if widget.objectName() not in ("MaterialType",
+                                           "MaterialTypeLabel"):
+                widget.setParent(None)
         self.fields = []
 
     def _write_fields(self):
@@ -1127,17 +1217,23 @@ class MaterialSettingsTaskPanel():
             return
         tmp_mat = material.Material.copy()
 
-        # Set render type
-        if not self.material_type_combo.currentIndex():
-            return  # First row...
-        render_type = self.material_type_combo.currentText()
-        tmp_mat["Render.Type"] = str(render_type)
+        # Set render type and associated fields
+        if self.material_type_combo.currentIndex():
+            render_type = self.material_type_combo.currentText()
+            if render_type == MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE:
+                render_type = ""
+            tmp_mat["Render.Type"] = str(render_type)
 
-        # Set other fields
-        for field in self.fields:
-            field_name, get_value = field
-            param_name = "Render.{}.{}".format(render_type, field_name)
-            tmp_mat[param_name] = str(get_value())
+            # Set fields
+            for field in self.fields:
+                field_name, get_value = field
+                param_name = "Render.{}.{}".format(render_type, field_name)
+                tmp_mat[param_name] = str(get_value())
+
+        # Set father
+        father = self.father_field.text()
+        if father:
+            tmp_mat["Father"] = str(father)
 
         # Write to material
         material.Material = tmp_mat
@@ -1168,9 +1264,7 @@ MaterialCommand = ArchMaterial._CommandArchMaterial
 if App.GuiUp:
     # Add commands
     RENDER_COMMANDS = []
-    for rend in RENDERERS:
-        if rend in DEPRECATED_RENDERERS:
-            continue
+    for rend in VALID_RENDERERS:
         Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
         RENDER_COMMANDS.append('Render_' + rend)
     RENDER_COMMANDS.append("Separator")
