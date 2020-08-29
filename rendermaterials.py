@@ -21,7 +21,6 @@
 # ***************************************************************************
 
 """This module implements material management mechanisms for rendering"""
-# TODO Feature to add a Material property (App::PropertyLink) to a shape
 
 # ===========================================================================
 #                           Imports
@@ -73,7 +72,6 @@ CAST_FUNCTIONS = {"float": float, "RGB": str2rgb, "string": str}
 
 
 # TODO Use a cache, do not recompute each time
-# TODO Document expected material card syntax in README
 def get_rendering_material(material, renderer, default_color):
     """This function implements rendering material logic.
 
