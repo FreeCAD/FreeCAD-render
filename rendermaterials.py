@@ -41,25 +41,25 @@ from renderutils import RGB, RGBA, str2rgb, debug as ru_debug
 #                                   Export
 # ===========================================================================
 
-Param = collections.namedtuple("Param", "name type default")
+Param = collections.namedtuple("Param", "name type default desc")
 
 STD_MATERIALS_PARAMETERS = {
-    "Glass": [Param("IOR", "float", 1.5),
-              Param("Color", "RGB", (1, 1, 1))],
+    "Glass": [Param("IOR", "float", 1.5, "Index of refraction"),
+              Param("Color", "RGB", (1, 1, 1), "Transmitted color")],
 
-    "Disney": [Param("BaseColor", "RGB", (0.8, 0.8, 0.8)),
-               Param("Subsurface", "float", 0.0),
-               Param("Metallic", "float", 0.0),
-               Param("Specular", "float", 0.0),
-               Param("SpecularTint", "float", 0.0),
-               Param("Roughness", "float", 0.0),
-               Param("Anisotropic", "float", 0.0),
-               Param("Sheen", "float", 0.0),
-               Param("SheenTint", "float", 0.0),
-               Param("ClearCoat", "float", 0.0),
-               Param("ClearCoatGloss", "float", 0.0)],
+    "Disney": [Param("BaseColor", "RGB", (0.8, 0.8, 0.8), "Base color"),
+               Param("Subsurface", "float", 0.0, "Subsurface coefficient"),
+               Param("Metallic", "float", 0.0, "Metallic coefficient"),
+               Param("Specular", "float", 0.0, "Specular coefficient"),
+               Param("SpecularTint", "float", 0.0, "Specular tint coefficient"),
+               Param("Roughness", "float", 0.0, "Roughness coefficient"),
+               Param("Anisotropic", "float", 0.0, "Anisotropic coefficient"),
+               Param("Sheen", "float", 0.0, "Sheen coefficient"),
+               Param("SheenTint", "float", 0.0, "Sheen tint coefficient"),
+               Param("ClearCoat", "float", 0.0, "Clear coat coefficient"),
+               Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient")],
 
-    "Diffuse": [Param("Color", "RGB", (0.8, 0.8, 0.8))],
+    "Diffuse": [Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
 
     }
 
@@ -236,6 +236,27 @@ def get_default_color(material):
     else:
         color = RGB(0.8, 0.8, 0.8)
     return color
+
+
+def generate_param_doc():
+    """Generate documentation for material rendering parameters.
+
+    The documentation is generated in Markdown format.
+    """
+    header_fmt = ["Material: **{m}**\n",
+                  "Parameter | Type | Default value | Description",
+                  "--------- | ---- | ------------- | -----------"]
+    line_fmt = "`Render.{m}.{p.name}` | {p.type} | {p.default} | {p.desc}"
+    footer_fmt = [""]
+    lines = []
+    for mat in STD_MATERIALS:
+        lines += [l.format(m=mat) for l in header_fmt]
+        lines += [line_fmt.format(m=mat, p=param)
+                  for param in STD_MATERIALS_PARAMETERS[mat]]
+        lines += footer_fmt
+
+    return '\n'.join(lines)
+
 
 # ===========================================================================
 #                            Locals (helpers)
