@@ -246,9 +246,13 @@ def generate_param_doc():
 
     The documentation is generated in Markdown format.
     """
-    header_fmt = ["Material: **{m}**\n",
+    header_fmt = ["#### **{m}** Material",
+                  "",
+                  "`Render.Type={m}`",
+                  "",
                   "Parameter | Type | Default value | Description",
                   "--------- | ---- | ------------- | -----------"]
+
     line_fmt = "`Render.{m}.{p.name}` | {p.type} | {p.default} | {p.desc}"
     footer_fmt = [""]
     lines = []
