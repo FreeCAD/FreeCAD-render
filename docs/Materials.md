@@ -177,19 +177,20 @@ Parameter | Type | Default value | Description
 
 ### Passthrough material
 #### General syntax
-Passthrough materials are defined using `Render.<renderer>.<line>` formatted keys,
+Passthrough materials are defined using `Render.<renderer>.<line>` entries,
 where:
 * `<renderer>` is to be replaced by the name of the renderer targeted for the
 passthrough
 * `<line>` is to be replaced by line numbers, in a four-digits integer format:
 `0001`, `0002` etc.
-Spreading the material definition onto multiple keys/values is a workaround to
-overcome the monoline syntactical limitation of FCMat format.
+
+Note that spreading the material definition onto multiple keys/values is a
+workaround to overcome the monoline syntactical limitation of FCMat format.
 
 #### Renderer
-For the passthrough to be recognised internally, the renderer name (`<renderer>`)
-must match the name of an existing renderer. In particular, this name is
-case-sensitive.
+For the passthrough material to be recognised internally, the renderer name
+(`<renderer>`) must match the name of an existing renderer.
+In particular, this name is case-sensitive.
 Known renderers can be retrieved from Render workbench entering the following
 code in FreeCAD console:
 ```python
