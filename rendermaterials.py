@@ -44,22 +44,25 @@ from renderutils import RGB, RGBA, str2rgb, debug as ru_debug
 Param = collections.namedtuple("Param", "name type default desc")
 
 STD_MATERIALS_PARAMETERS = {
-    "Glass": [Param("IOR", "float", 1.5, "Index of refraction"),
-              Param("Color", "RGB", (1, 1, 1), "Transmitted color")],
+    "Glass": [
+        Param("IOR", "float", 1.5, "Index of refraction"),
+        Param("Color", "RGB", (1, 1, 1), "Transmitted color")],
 
-    "Disney": [Param("BaseColor", "RGB", (0.8, 0.8, 0.8), "Base color"),
-               Param("Subsurface", "float", 0.0, "Subsurface coefficient"),
-               Param("Metallic", "float", 0.0, "Metallic coefficient"),
-               Param("Specular", "float", 0.0, "Specular coefficient"),
-               Param("SpecularTint", "float", 0.0, "Specular tint coefficient"),
-               Param("Roughness", "float", 0.0, "Roughness coefficient"),
-               Param("Anisotropic", "float", 0.0, "Anisotropic coefficient"),
-               Param("Sheen", "float", 0.0, "Sheen coefficient"),
-               Param("SheenTint", "float", 0.0, "Sheen tint coefficient"),
-               Param("ClearCoat", "float", 0.0, "Clear coat coefficient"),
-               Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient")],
+    "Disney": [
+        Param("BaseColor", "RGB", (0.8, 0.8, 0.8), "Base color"),
+        Param("Subsurface", "float", 0.0, "Subsurface coefficient"),
+        Param("Metallic", "float", 0.0, "Metallic coefficient"),
+        Param("Specular", "float", 0.0, "Specular coefficient"),
+        Param("SpecularTint", "float", 0.0, "Specular tint coefficient"),
+        Param("Roughness", "float", 0.0, "Roughness coefficient"),
+        Param("Anisotropic", "float", 0.0, "Anisotropic coefficient"),
+        Param("Sheen", "float", 0.0, "Sheen coefficient"),
+        Param("SheenTint", "float", 0.0, "Sheen tint coefficient"),
+        Param("ClearCoat", "float", 0.0, "Clear coat coefficient"),
+        Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient")],
 
-    "Diffuse": [Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
+    "Diffuse": [
+        Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
 
     }
 
