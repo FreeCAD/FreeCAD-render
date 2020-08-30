@@ -14,8 +14,9 @@ title="Sphere rendered with red glass material, with a white matte ground plane
 Render Workbench provides features to add material rendering information to
 objects exported to renderers.
 
-To make things easier, these features heavily relies on the standard Material
-data system of FreeCAD. Introduction to FreeCAD Material can be found here: 
+To make things easier, these features heavily rely on the standard Material
+data system of FreeCAD. Introduction to FreeCAD Material system can be found
+here: 
 [FreeCAD Material Introduction](https://wiki.freecadweb.org/Material).
 
 
