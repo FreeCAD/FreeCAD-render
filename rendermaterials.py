@@ -137,7 +137,7 @@ def get_rendering_material(material, renderer, default_color):
         lines = [mat[k] for k in sorted(common_keys)]
         res.shadertype = "Passthrough"
         res.passthrough = types.SimpleNamespace()
-        res.passthrough.string = "\n".join(lines)
+        res.passthrough.string = _convert_passthru("\n".join(lines))
         res.passthrough.renderer = renderer
         res.default_color = default_color
         return res
@@ -263,6 +263,13 @@ def generate_param_doc():
     return '\n'.join(lines)
 
 
+def is_valid_material(obj):
+    """Assert that an object is a valid Material"""
+    return (obj.isDerivedFrom("App::MaterialObjectPython")
+            and hasattr(obj, "Material")
+            and isinstance(obj.Material, dict))
+
+
 # ===========================================================================
 #                            Locals (helpers)
 # ===========================================================================
@@ -285,8 +292,19 @@ def _get_float(material, param_prefix, param_name, default=0.0):
     return material.get(param_prefix + param_name, default)
 
 
-def is_valid_material(obj):
-    """Assert that an object is a valid Material"""
-    return (obj.isDerivedFrom("App::MaterialObjectPython")
-            and hasattr(obj, "Material")
-            and isinstance(obj.Material, dict))
+PASSTHRU_REPLACED_TOKENS = (("{", "{{"),
+                            ("}", "}}"),
+                            ("%NAME%", "{n}"),
+                            ("%RED%", "{c.r}"),
+                            ("%GREEN%", "{c.g}"),
+                            ("%BLUE%", "{c.b}"))
+
+
+def _convert_passthru(passthru):
+    """Convert a passthrough string from FCMat format to Python FSML.
+
+    (FSML stands for Format Specification Mini-Language)
+    """
+    for token in PASSTHRU_REPLACED_TOKENS:
+        passthru = passthru.replace(*token)
+    return passthru
