@@ -15,10 +15,16 @@ Render Workbench provides features to add material rendering information to
 objects exported to renderers.
 
 To make things easier, these features heavily rely on the standard Material
-data system of FreeCAD. Introduction to FreeCAD Material system can be found
+data system of FreeCAD. An introduction to FreeCAD Material system can be found
 here: 
 [FreeCAD Material Introduction](https://wiki.freecadweb.org/Material).
 
+*Please note that it eventually leads to 2 concepts of "materials":
+FreeCAD Material, the material feature of FreeCAD ; and
+Rendering material, the material feature of the renderers.*
+
+You will find below some indications about how to use Materials in Render
+Workbench.
 
 ## Adding Material rendering information to objects
 The general workflow to add material rendering information to an object is
@@ -220,7 +226,7 @@ instantiated at render time, which can be useful to adapt the passthrough
 to realtime context.
 
 Those pseudovariables are described in the array below, note that the term
-*rendered object* stands for the object to which the material is applie
+*rendered object* stands for the object which the material is applied to
 at render time:
 
 | Pseudovariable | Type   | Description                                                |
