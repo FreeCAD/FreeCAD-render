@@ -112,16 +112,14 @@ def get_rendering_material(material, renderer, default_color):
     parameters in the material card (i.e. the parameters are not parsed, just
     collected from the material card)
     """
-    # TODO Test if Material is valid (to avoid unnecessary treatments)
-    # TODO Refactor in LBYL
+
+    # Check valid material
+    if not is_valid_material(material):
+        ru_debug("Material", "<Invalid>", "Fallback to default material")
+        return _build_fallback(default_color)
 
     # Initialize
-    try:
-        mat = dict(material.Material)
-    except (TypeError, AttributeError):
-        name = "<Unnamed Material>"
-        mat = dict()
-
+    mat = dict(material.Material)
     renderer = str(renderer)
     name = mat.get("Name", "<Unnamed Material>")
     debug = functools.partial(ru_debug, "Material", name)
@@ -156,24 +154,22 @@ def get_rendering_material(material, renderer, default_color):
     try:
         father_name = mat["Father"]
         assert father_name
+        materials = (o for o in App.ActiveDocument.Objects
+                     if is_valid_material(o))
+        father = next(m for m in materials
+                      if m.Material.get("Name", "") == father_name)
     except (KeyError, AssertionError):
         # No father
         debug("No valid father")
+    except StopIteration:
+        # Found father, but not in document
+        msg = "Found father material name ('{}') but "\
+              "did not find this material in active document"
+        debug(msg.format(father_name))
     else:
-        # Retrieve all valid materials
-        materials = (o for o in App.ActiveDocument.Objects
-                     if is_valid_material(o))
-        # Find father material
-        try:
-            father = next(m for m in materials
-                          if m.Material.get("Name", "") == father_name)
-        except StopIteration:
-            msg = "Found father material name ('{}') but "\
-                  "did not find this material in active document"
-            debug(msg.format(father_name))
-        else:
-            debug("Retrieve father material '{}'".format(father_name))
-            return get_rendering_material(father, renderer, default_color)
+        # Found usable father
+        debug("Retrieve father material '{}'".format(father_name))
+        return get_rendering_material(father, renderer, default_color)
 
     # Try with Coin-like parameters (backward compatibility)
     try:
@@ -185,7 +181,7 @@ def get_rendering_material(material, renderer, default_color):
         return _build_diffuse(diffusecolor,
                               1.0 - float(mat.get("Transparency", "0")))
 
-    # Default color
+    # Fallback
     debug("Fallback to default color")
     return _build_fallback(default_color)
 
@@ -239,7 +235,8 @@ def generate_param_doc():
 
 def is_valid_material(obj):
     """Assert that an object is a valid Material"""
-    return (obj.isDerivedFrom("App::MaterialObjectPython")
+    return (obj is not None
+            and obj.isDerivedFrom("App::MaterialObjectPython")
             and hasattr(obj, "Material")
             and isinstance(obj.Material, dict))
 
@@ -251,7 +248,6 @@ def is_valid_material(obj):
 
 @functools.lru_cache
 def _build_diffuse(diffusecolor, alpha=1.0):
-    # TODO rename 'build fallback'? (or write 'build_fallback')
     """Build diffuse material from a simple RGB color."""
     res = types.SimpleNamespace()
     res.diffuse = types.SimpleNamespace()
@@ -279,7 +275,6 @@ def _build_standard(shadertype, values):
         finally:
             setattr(subobj, nam.lower(), value)
     res.default_color = get_default_color(res)
-    # TODO if default_color is just used here, merge it
     return res
 
 
