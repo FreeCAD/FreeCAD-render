@@ -186,15 +186,9 @@ def get_rendering_material(material, renderer, default_color):
                               1.0 - float(mat.get("Transparency", "0")))
 
     # Default color
-    try:
-        diffusecolor = RGB(*default_color[:3])
-        diffusealpha = default_color[3]
-    except IndexError:
-        diffusecolor = RGB(0.8, 0.8, 0.8)
-        diffusealpha = 1.0
-    else:
-        debug("Fallback to default color")
-        return _build_diffuse(diffusecolor, diffusealpha)
+    debug("Fallback to default color")
+    return _build_fallback(default_color)
+
 
 @functools.lru_cache
 def passthrough_keys(renderer):
@@ -299,6 +293,22 @@ def _build_passthrough(lines, renderer, default_color):
     res.passthrough.renderer = renderer
     res.default_color = default_color
     return res
+
+
+@functools.lru_cache
+def _build_fallback(color):
+    """Build fallback material (diffuse).
+
+    color -- a RGBA tuple color
+    """
+    try:
+        diffusecolor = RGB(*color[:3])
+        diffusealpha = color[3]
+    except IndexError:
+        diffusecolor = RGB(0.8, 0.8, 0.8)
+        diffusealpha = 1.0
+    return _build_diffuse(diffusecolor, diffusealpha)
+
 
 def _get_float(material, param_prefix, param_name, default=0.0):
     """Get float value in material dictionary"""
