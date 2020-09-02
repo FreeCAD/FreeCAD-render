@@ -71,7 +71,6 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 CAST_FUNCTIONS = {"float": float, "RGB": str2rgb, "string": str}
 
 
-# TODO Use a cache, do not recompute each time
 def get_rendering_material(material, renderer, default_color):
     """This function implements rendering material logic.
 
@@ -114,11 +113,12 @@ def get_rendering_material(material, renderer, default_color):
     collected from the material card)
     """
     # TODO Test if Material is valid (to avoid unnecessary treatments)
+    # TODO Refactor in LBYL
 
     # Initialize
     try:
         mat = dict(material.Material)
-    except (KeyError, AttributeError):
+    except (TypeError, AttributeError):
         name = "<Unnamed Material>"
         mat = dict()
 
@@ -128,44 +128,28 @@ def get_rendering_material(material, renderer, default_color):
 
     debug("Starting material computation")
 
-    res = types.SimpleNamespace()  # Result
-
     # Try renderer Passthrough
     common_keys = passthrough_keys(renderer) & mat.keys()
     if common_keys:
+        lines = tuple(mat[k] for k in sorted(common_keys))
         debug("Found valid Passthrough - returning")
-        lines = [mat[k] for k in sorted(common_keys)]
-        res.shadertype = "Passthrough"
-        res.passthrough = types.SimpleNamespace()
-        res.passthrough.string = _convert_passthru("\n".join(lines))
-        res.passthrough.renderer = renderer
-        res.default_color = default_color
-        return res
+        return _build_passthrough(lines, renderer, default_color)
 
     # Try standard materials
-    try:
-        shadertype = str(mat["Render.Type"])
-        assert shadertype in STD_MATERIALS_PARAMETERS
-    except KeyError:
-        pass
-    except AssertionError:
-        debug("Unknown material type '{}'".format(shadertype))
-    else:
-        debug("Found valid {} - returning".format(shadertype))
-        setattr(res, "shadertype", shadertype)
-        subobj = types.SimpleNamespace()
-        setattr(res, shadertype.lower(), subobj)
-        for par in STD_MATERIALS_PARAMETERS[shadertype]:
-            key = "Render.{}.{}".format(shadertype, par.name)
-            cast_function = CAST_FUNCTIONS[par.type]
-            try:
-                value = cast_function(mat[key])
-            except (KeyError, TypeError):
-                value = cast_function(par.default)
-            finally:
-                setattr(subobj, par.name.lower(), value)
-        res.default_color = get_default_color(res)
-        return res
+    shadertype = mat.get("Render.Type", None)
+    if shadertype:
+        try:
+            params = STD_MATERIALS_PARAMETERS[shadertype]
+        except KeyError:
+            debug("Unknown material type '{}'".format(shadertype))
+        else:
+            keyfmt = "Render.%s.%s"
+            values = tuple((p.name,
+                            mat.get(keyfmt % (shadertype, p.name), None),
+                            p.default,
+                            p.type)
+                           for p in params)
+            return _build_standard(shadertype, values)
 
     # Climb up to Father
     debug("No valid material definition - trying father material")
@@ -194,7 +178,7 @@ def get_rendering_material(material, renderer, default_color):
     # Try with Coin-like parameters (backward compatibility)
     try:
         diffusecolor = str2rgb(mat["DiffuseColor"])
-    except KeyError:
+    except (KeyError, TypeError):
         pass
     else:
         debug("Fallback to Coin-like parameters")
@@ -212,11 +196,10 @@ def get_rendering_material(material, renderer, default_color):
         debug("Fallback to default color")
         return _build_diffuse(diffusecolor, diffusealpha)
 
-
+@functools.lru_cache
 def passthrough_keys(renderer):
     """Return material card keys for passthrough rendering material"""
     return {"Render.{}.{:04}".format(renderer, i) for i in range(1, 9999)}
-
 
 def is_multimat(obj):
     """Check if a material is a multimaterial."""
@@ -240,10 +223,7 @@ def get_default_color(material):
 
 
 def generate_param_doc():
-    """Generate documentation for material rendering parameters.
-
-    The documentation is generated in Markdown format.
-    """
+    """Generate Markdown documentation from material rendering parameters."""
     header_fmt = ["#### **{m}** Material",
                   "",
                   "`Render.Type={m}`",
@@ -275,8 +255,10 @@ def is_valid_material(obj):
 # ===========================================================================
 
 
+@functools.lru_cache
 def _build_diffuse(diffusecolor, alpha=1.0):
-    """Build diffuse material from a simple RGB color"""
+    # TODO rename 'build fallback'? (or write 'build_fallback')
+    """Build diffuse material from a simple RGB color."""
     res = types.SimpleNamespace()
     res.diffuse = types.SimpleNamespace()
     res.diffuse.color = diffusecolor
@@ -286,6 +268,37 @@ def _build_diffuse(diffusecolor, alpha=1.0):
     res.default_color = diffusecolor
     return res
 
+
+@functools.lru_cache
+def _build_standard(shadertype, values):
+    """Build standard material."""
+    res = types.SimpleNamespace()
+    setattr(res, "shadertype", shadertype)
+    subobj = types.SimpleNamespace()
+    setattr(res, shadertype.lower(), subobj)
+    for nam, val, dft, typ in values:
+        cast_function = CAST_FUNCTIONS[typ]
+        try:
+            value = cast_function(val)
+        except TypeError:
+            value = cast_function(dft)
+        finally:
+            setattr(subobj, nam.lower(), value)
+    res.default_color = get_default_color(res)
+    # TODO if default_color is just used here, merge it
+    return res
+
+
+@functools.lru_cache
+def _build_passthrough(lines, renderer, default_color):
+    """Build passthrough material."""
+    res = types.SimpleNamespace()  # Result
+    res.shadertype = "Passthrough"
+    res.passthrough = types.SimpleNamespace()
+    res.passthrough.string = _convert_passthru("\n".join(lines))
+    res.passthrough.renderer = renderer
+    res.default_color = default_color
+    return res
 
 def _get_float(material, param_prefix, param_name, default=0.0):
     """Get float value in material dictionary"""
@@ -300,6 +313,7 @@ PASSTHRU_REPLACED_TOKENS = (("{", "{{"),
                             ("%BLUE%", "{c.b}"))
 
 
+@functools.lru_cache
 def _convert_passthru(passthru):
     """Convert a passthrough string from FCMat format to Python FSML.
 
