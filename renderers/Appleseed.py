@@ -32,6 +32,7 @@
 import os
 import re
 import shlex
+import uuid
 from tempfile import mkstemp
 from math import pi, degrees, acos, atan2, sqrt
 from subprocess import Popen
@@ -71,7 +72,8 @@ def write_object(name, mesh, material):
         f.write("".join(buffer))
 
     # Format output
-    snippet_mat = _write_material(name, material)
+    mat_name = "{}.{}".format(name, uuid.uuid1())  # Avoid duplicate materials
+    snippet_mat = _write_material(mat_name, material)
     snippet_obj = """
             <object name="{o}" model="mesh_object">
                 <parameter name="filename" value="{f}" />
@@ -79,14 +81,15 @@ def write_object(name, mesh, material):
             <object_instance name="{o}.{n}.instance" object="{o}.{n}">
                 <assign_material slot="default"
                                  side="front"
-                                 material="{n}" />
+                                 material="{m}" />
                 <assign_material slot="default"
                                  side="back"
-                                 material="{n}" />
+                                 material="{m}" />
             </object_instance>"""
     snippet = snippet_mat + snippet_obj
 
     return snippet.format(n=name,
+                          m=mat_name,
                           o=os.path.splitext(os.path.basename(objfile))[0],
                           f=objfile.encode("unicode_escape").decode("utf-8"))
 
