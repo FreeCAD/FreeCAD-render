@@ -241,7 +241,6 @@ def _get_rends_from_array(obj, name, material, mesher):
     except AttributeError:
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
-        print(material)
         return [Renderable(name, mesher(obj.Shape), material)]
 
     base_rends = get_renderables(base, base.Name, material, mesher)
