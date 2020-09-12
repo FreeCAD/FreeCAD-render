@@ -39,7 +39,7 @@ Renderables
 import itertools
 import collections
 
-from renderutils import translate, debug, getproxyattr
+from renderutils import translate, debug, warn, getproxyattr
 from rendermaterials import is_multimat
 
 
@@ -291,7 +291,11 @@ def _get_rends_from_window(obj, name, material, mesher):
     if material is not None:
         assert is_multimat(material), "Multimaterial expected"
         mats_dict = dict(zip(material.Names, material.Materials))
-        mats = [mats_dict[s] for s in subnames]
+        mats = [mats_dict.get(s) for s in subnames]
+        if filter(None, mats):
+            msg = translate("Render", "Incomplete multimaterial (missing {})")
+            missing_mats = ', '.join(set(subnames) - mats_dict.keys())
+            warn("Window", obj.Label, msg.format(missing_mats))
     else:
         mats = [None] * len(subnames)
 
