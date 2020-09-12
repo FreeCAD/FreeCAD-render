@@ -103,6 +103,7 @@ def get_renderables(obj, name, upper_material, mesher):
     elif obj_is_partfeature and obj_type == "Window":
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher)
+        assert renderables  # TODO Remove
 
     # Plain part
     elif obj_is_partfeature:
@@ -280,7 +281,14 @@ def _get_rends_from_window(obj, name, material, mesher):
     A list of renderables for the Window object
     """
     # Subobjects names
-    subnames = obj.WindowParts[0::5]  # Names every 5th item...
+    window_parts = obj.WindowParts
+    if not window_parts and hasattr(obj, "CloneOf"):
+        # Workaround: if obj is a window Clone, WindowsParts is unfortunately
+        # not replicated (must be a bug...). Therefore we look at base's
+        # WindowsParts
+        window_parts = obj.CloneOf.WindowParts
+
+    subnames = window_parts[0::5]  # Names every 5th item...
     names = ["%s_%s" % (name, s) for s in subnames]
 
     # Subobjects meshes
@@ -291,7 +299,7 @@ def _get_rends_from_window(obj, name, material, mesher):
         assert is_multimat(material), "Multimaterial expected"
         mats_dict = dict(zip(material.Names, material.Materials))
         mats = [mats_dict.get(s) for s in subnames]
-        if filter(None, mats):
+        if [m for m in mats if not m]:
             msg = translate("Render", "Incomplete multimaterial (missing {})")
             missing_mats = ', '.join(set(subnames) - mats_dict.keys())
             warn("Window", obj.Label, msg.format(missing_mats))
