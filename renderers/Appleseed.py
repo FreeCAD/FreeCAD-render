@@ -307,6 +307,7 @@ def _write_material_glass(name, material):
             <bsdf name="{n}_bsdf" model="glass_bsdf">
                 <parameter name="surface_transmittance" value="{n}_color" />
                 <parameter name="ior" value="{i}" />
+                <parameter name="roughness" value="0" />
                 <parameter name="volume_parameterization"
                            value="transmittance" />
             </bsdf>"""
