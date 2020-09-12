@@ -39,7 +39,7 @@ Renderables
 import itertools
 import collections
 
-from renderutils import translate, debug, getproxyattr
+from renderutils import translate, debug, warn, getproxyattr
 from rendermaterials import is_multimat
 
 
@@ -94,14 +94,16 @@ def get_renderables(obj, name, upper_material, mesher):
     # Array, PathArray
     elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
         debug("Object", label, "'%s' detected" % obj_type)
+        expand_array = getattr(obj, "ExpandArray", False)
         renderables = (_get_rends_from_array(obj, name, mat, mesher)
-                       if not obj.ExpandArray else
+                       if not expand_array else
                        _get_rends_from_elementlist(obj, name, mat, mesher))
 
     # Window
     elif obj_is_partfeature and obj_type == "Window":
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher)
+        assert renderables  # TODO Remove
 
     # Plain part
     elif obj_is_partfeature:
@@ -215,7 +217,13 @@ def _get_rends_from_plainapplink(obj, name, material, mesher):
 
 
 def _get_rends_from_array(obj, name, material, mesher):
-    """Get renderables from an array which is not expanded.
+    """Get renderables from an array.
+
+    The array should not be expanded into an element list (ExpandArray flag),
+    otherwise _get_rends_from_elementlist should be called instead.
+    If the array does not use links, it is rendered as a single shape. However,
+    in this case, only one material will be applied to the whole shape.
+
 
     Parameters:
     obj -- the Array object
@@ -224,14 +232,24 @@ def _get_rends_from_array(obj, name, material, mesher):
     mesher -- a callable object which converts a shape into a mesh
 
     Returns:
-    A list of renderables for the Window object
+    A list of renderables for the Array object
     """
     base = obj.Base
+
+    try:
+        visibility_list = obj.VisibilityList
+        placement_list = obj.PlacementList
+    except AttributeError:
+        # Array does not use link...
+        material = material if material else getattr(base, "Material", None)
+        return [Renderable(name, mesher(obj.Shape), material)]
+
     base_rends = get_renderables(base, base.Name, material, mesher)
     obj_plc_matrix = obj.Placement.toMatrix()
     base_inv_plc_matrix = base.Placement.inverse().toMatrix()
-    placements = (itertools.compress(obj.PlacementList, obj.VisibilityList)
-                  if obj.VisibilityList else obj.PlacementList)
+    placements = (itertools.compress(placement_list, visibility_list)
+                  if visibility_list
+                  else obj.PlacementList)
 
     def new_rend(enum_plc, base_rend):
         counter, plc = enum_plc
@@ -263,8 +281,15 @@ def _get_rends_from_window(obj, name, material, mesher):
     A list of renderables for the Window object
     """
     # Subobjects names
-    subnames = obj.WindowParts[0::5]  # Names every 5th item...
-    names = ["%s_%s" % (name, s) for s in subnames]
+    window_parts = obj.WindowParts
+    if not window_parts and hasattr(obj, "CloneOf"):
+        # Workaround: if obj is a window Clone, WindowsParts is unfortunately
+        # not replicated (must be a bug...). Therefore we look at base's
+        # WindowsParts
+        window_parts = obj.CloneOf.WindowParts
+
+    subnames = window_parts[0::5]  # Names every 5th item...
+    names = ["%s_%s" % (name, s.replace(' ', '_')) for s in subnames]
 
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
@@ -273,7 +298,11 @@ def _get_rends_from_window(obj, name, material, mesher):
     if material is not None:
         assert is_multimat(material), "Multimaterial expected"
         mats_dict = dict(zip(material.Names, material.Materials))
-        mats = [mats_dict[s] for s in subnames]
+        mats = [mats_dict.get(s) for s in subnames]
+        if [m for m in mats if not m]:
+            msg = translate("Render", "Incomplete multimaterial (missing {})")
+            missing_mats = ', '.join(set(subnames) - mats_dict.keys())
+            warn("Window", obj.Label, msg.format(missing_mats))
     else:
         mats = [None] * len(subnames)
 

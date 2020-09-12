@@ -319,7 +319,7 @@ class Project:
         return result
 
     def add_views(self, objs):
-        """Add objects as new views to the project
+        """Add objects as new views to the project.
 
         This method can handle objects groups, recursively.
 
@@ -327,36 +327,38 @@ class Project:
         via 'RendererHandler.is_renderable'; if not, a warning is issued and
         the faulty object is ignored.
 
-        Parameters
+        Parameters:
         objs -- an iterable on FreeCAD objects to add to project
         """
 
         def add_to_group(objs, group):
-            """Add objects as views to a group
+            """Add objects as views to a group.
 
             objs -- FreeCAD objects to add
-            group -- The  group (App::DocumentObjectGroup) to add to"""
+            group -- The  group (App::DocumentObjectGroup) to add to
+            """
             for obj in objs:
-                if (obj.isDerivedFrom("App::DocumentObjectGroup") or
-                        (obj.isDerivedFrom("App::GeometryPython") and
-                         getproxyattr(obj, "Type", "") == "BuildingPart")):
-                    assert obj != group  # Just in case...
-                    label = View.view_label(obj, group)
+                success = False
+                if hasattr(obj, "Group"):
+                    assert obj != group  # Just in case (infinite recursion)...
+                    label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
                         "App::DocumentObjectGroup", label)
                     new_group.Label = label
                     group.addObject(new_group)
                     add_to_group(obj.Group, new_group)
-                elif RendererHandler.is_renderable(obj):
+                    success = True
+                if RendererHandler.is_renderable(obj):
                     View.create(obj, group)
-                else:
+                    success = True
+                if not success:
                     msg = translate(
                         "Render",
                         "[Render] Unable to create rendering view for object "
                         "'{}': unhandled object type\n")
                     App.Console.PrintWarning(msg.format(obj.Label))
 
-        # Here starts add_views
+        # add_views starts here
         add_to_group(iter(objs), self.fpo)
 
     def all_views(self):
@@ -642,18 +644,21 @@ class View:
         obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
-    def view_label(obj, proj):
-        """Give a standard view label for an object
+    def view_label(obj, proj, is_group=False):
+        """Give a standard label for the view of an object
 
-        obj -- object for which the view is build
-        proj -- project in which the view will be inserted
+        obj -- object which the view is built for
+        proj -- project which the view will be inserted in
+        is_group -- flag to indicate whether the view is a group
 
-        Both obj and proj should have valid Label attribute"""
+        Both obj and proj should have valid Label attributes
+        """
         obj_label = str(obj.Label)
         proj_label = str(proj.Label)
 
-        proj_label2 = proj_label.replace(" ", "")
-        res = "{o}@{p}".format(o=obj_label, p=proj_label2)
+        proj_label = proj_label.replace(" ", "")
+        fmt = "{o}Group@{p}" if is_group else "{o}@{p}"
+        res = fmt.format(o=obj_label, p=proj_label)
         return res
 
     @staticmethod

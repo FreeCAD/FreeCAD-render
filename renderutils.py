@@ -20,7 +20,7 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements some helpers for Render module"""
+"""This module implements some helpers for Render workbench."""
 
 import collections
 import ast
@@ -37,13 +37,18 @@ translate = _translate
 
 
 def debug(domain, object_name, msg):
-    """Print debug message"""
+    """Print debug message."""
     msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
     App.Console.PrintLog(msg)
 
 
+def warn(domain, object_name, msg):
+    """Print warning message."""
+    msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
+    App.Console.PrintWarning(msg)
+
 def getproxyattr(obj, name, default):
-    """Get attribute on object's proxy
+    """Get attribute on object's proxy.
 
     Behaves like getattr, but on Proxy property, and with mandatory default...
     """
@@ -59,6 +64,6 @@ RGBA = collections.namedtuple("RGB", "r g b a")
 
 
 def str2rgb(string):
-    """Convert a ({r},{g},{b})-like string into RGB object"""
+    """Convert a ({r},{g},{b})-like string into RGB object."""
     float_tuple = map(float, ast.literal_eval(string))
     return RGB._make(float_tuple)
