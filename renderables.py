@@ -289,7 +289,7 @@ def _get_rends_from_window(obj, name, material, mesher):
         window_parts = obj.CloneOf.WindowParts
 
     subnames = window_parts[0::5]  # Names every 5th item...
-    names = ["%s_%s" % (name, s) for s in subnames]
+    names = ["%s_%s" % (name, s.replace(' ', '_')) for s in subnames]
 
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
