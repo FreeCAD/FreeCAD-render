@@ -282,7 +282,7 @@ def _get_rends_from_window(obj, name, material, mesher):
     """
     # Subobjects names
     window_parts = obj.WindowParts
-    if not window_parts and hasattr(obj, "CloneOf"):
+    if not window_parts and hasattr(obj, "CloneOf") and obj.CloneOf:
         # Workaround: if obj is a window Clone, WindowsParts is unfortunately
         # not replicated (must be a bug...). Therefore we look at base's
         # WindowsParts
