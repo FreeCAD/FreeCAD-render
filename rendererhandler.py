@@ -20,8 +20,10 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements RendererHandler, a simplified and unified accessor
-to renderers plugins."""
+"""This module implements RendererHandler class.
+
+RendererHandler is a simplified and unified accessor to renderers plugins.
+"""
 
 
 # ===========================================================================
@@ -57,7 +59,9 @@ class RendererHandler:
       selecting the right method in renderer module according to
     view object's type.
     """
+
     def __init__(self, rdrname):
+        """Initialize RendererHandler class."""
         self.renderer_name = str(rdrname)
 
         try:
@@ -70,9 +74,9 @@ class RendererHandler:
             raise
 
     def render(self, project, prefix, external, output, width, height):
-        """Run the external renderer
+        """Run the external renderer.
 
-        This method merely calls external renderer's 'render' method
+        This method merely calls external renderer's 'render' method.
 
         Params:
         - project:  the project to render
@@ -95,13 +99,13 @@ class RendererHandler:
 
     @staticmethod
     def is_renderable(obj):
-        """Determine if an object is renderable
+        """Determine if an object is renderable.
 
         This is a weak test: we just check if the object belongs to a
         class we would know how to handle - no further verification
         is made on the consistency of the object data against
-        get_rendering_string requirements"""
-
+        get_rendering_string requirements.
+        """
         try:
             res = (obj.isDerivedFrom("Part::Feature") or
                    obj.isDerivedFrom("App::Link") or
@@ -119,13 +123,13 @@ class RendererHandler:
 
     @staticmethod
     def is_project(obj):
-        """Determine if an object is a rendering project
+        """Determine if an object is a rendering project.
 
         This is a weak test: we just check if the object looks like
         something we could know how to handle - no further verification
         is made on the consistency of the object data against
-        render requirements"""
-
+        render requirements.
+        """
         try:
             res = (obj.isDerivedFrom("App::FeaturePython") and
                    "Renderer" in obj.PropertiesList)
@@ -135,7 +139,7 @@ class RendererHandler:
         return res
 
     def get_rendering_string(self, view):
-        """Provide a rendering string for the view of an object
+        """Provide a rendering string for the view of an object.
 
         This method selects the specialized rendering method adapted for
         'view', according to its source object type, and calls it.
@@ -146,7 +150,6 @@ class RendererHandler:
         Returns: a rendering string in the format of the external renderer
         for the supplied 'view'
         """
-
         try:
             source = view.Source
 
@@ -184,10 +187,10 @@ class RendererHandler:
             return res
 
     def _render_object(self, name, view):
-        """Get a rendering string for a generic FreeCAD object
+        """Get a rendering string for a generic FreeCAD object.
 
         This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
+        goes wrong (missing attribute, inconsistent data...).
 
         Parameters:
         name -- the name of the object
@@ -195,7 +198,6 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
-
         source = view.Source
         label = getattr(source, "Label", name)
         debug("Object", label, "Processing")
@@ -226,7 +228,7 @@ class RendererHandler:
         """Provide a rendering string for a camera.
 
         This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
+        goes wrong (missing attribute, inconsistent data...).
 
         Parameters:
         name -- the name of the camera
@@ -247,10 +249,10 @@ class RendererHandler:
                                    target)
 
     def _render_pointlight(self, name, view):
-        """Gets a rendering string for a point light object
+        """Get a rendering string for a point light object.
 
         This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
+        goes wrong (missing attribute, inconsistent data...).
 
         Parameters:
         name -- the name of the point light
@@ -258,7 +260,6 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
-
         debug("PointLight", name, "Processing")
 
         source = view.Source
@@ -278,7 +279,7 @@ class RendererHandler:
                                    power)
 
     def _render_arealight(self, name, view):
-        """Gets a rendering string for an area light object
+        """Get a rendering string for an area light object.
 
         This method follows EAFP idiom and will raise exceptions if something
         goes wrong (missing attribute, inconsistent data...)
@@ -289,7 +290,6 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
-
         debug("AreaLight", name, "Processing")
 
         # Get properties
@@ -310,10 +310,10 @@ class RendererHandler:
                                    power)
 
     def _render_sunskylight(self, name, view):
-        """Gets a rendering string for a sunsky light object
+        """Get a rendering string for a sunsky light object.
 
         This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
+        goes wrong (missing attribute, inconsistent data...).
 
         Parameters:
         name -- the name of the sunsky light
@@ -341,10 +341,10 @@ class RendererHandler:
                                    turbidity)
 
     def _render_imagelight(self, name, view):
-        """Gets a rendering string for an image light object
+        """Get a rendering string for an image light object.
 
         This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
+        goes wrong (missing attribute, inconsistent data...).
 
         Parameters:
         name -- the name of the image light
@@ -361,12 +361,12 @@ class RendererHandler:
                                    image)
 
     def _call_renderer(self, method, *args):
-        """Calls a render method of the renderer module
+        """Call a render method of the renderer module.
 
         Parameters:
         -----------
-        method: the method to call (as a string)
-        args: the arguments to pass to the method
+        method -- the method to call (as a string)
+        args -- the arguments to pass to the method
 
         Returns: a rendering string, obtained from the renderer module
         """

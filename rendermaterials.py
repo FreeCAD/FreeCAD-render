@@ -20,7 +20,7 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements material management mechanisms for rendering"""
+"""This module implements material management mechanisms for rendering."""
 
 # ===========================================================================
 #                           Imports
@@ -72,8 +72,9 @@ CAST_FUNCTIONS = {"float": float, "RGB": str2rgb, "string": str}
 
 
 def get_rendering_material(material, renderer, default_color):
-    """This function implements rendering material logic.
+    """Get rendering material from FreeCAD material.
 
+    This function implements rendering material logic.
     It extracts a data class of rendering parameters from a FreeCAD material
     card.
     The workflow is the following:
@@ -112,7 +113,6 @@ def get_rendering_material(material, renderer, default_color):
     parameters in the material card (i.e. the parameters are not parsed, just
     collected from the material card)
     """
-
     # Check valid material
     if not is_valid_material(material):
         ru_debug("Material", "<None>", "Fallback to default material")
@@ -188,8 +188,9 @@ def get_rendering_material(material, renderer, default_color):
 
 @functools.lru_cache
 def passthrough_keys(renderer):
-    """Return material card keys for passthrough rendering material"""
+    """Compute material card keys for passthrough rendering material."""
     return {"Render.{}.{:04}".format(renderer, i) for i in range(1, 9999)}
+
 
 def is_multimat(obj):
     """Check if a material is a multimaterial."""
@@ -225,7 +226,7 @@ def generate_param_doc():
     footer_fmt = [""]
     lines = []
     for mat in STD_MATERIALS:
-        lines += [l.format(m=mat) for l in header_fmt]
+        lines += [h.format(m=mat) for h in header_fmt]
         lines += [line_fmt.format(m=mat, p=param)
                   for param in STD_MATERIALS_PARAMETERS[mat]]
         lines += footer_fmt
@@ -234,7 +235,7 @@ def generate_param_doc():
 
 
 def is_valid_material(obj):
-    """Assert that an object is a valid Material"""
+    """Assert that an object is a valid Material."""
     return (obj is not None
             and obj.isDerivedFrom("App::MaterialObjectPython")
             and hasattr(obj, "Material")
@@ -306,7 +307,7 @@ def _build_fallback(color):
 
 
 def _get_float(material, param_prefix, param_name, default=0.0):
-    """Get float value in material dictionary"""
+    """Get float value in material dictionary."""
     return material.get(param_prefix + param_name, default)
 
 
