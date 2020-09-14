@@ -61,7 +61,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, getproxyattr, RGBA, str2rgb
+from renderutils import translate, RGBA, str2rgb
 from rendererhandler import RendererHandler
 import camera
 import lights

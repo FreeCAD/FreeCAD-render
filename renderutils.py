@@ -47,6 +47,7 @@ def warn(domain, object_name, msg):
     msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
     App.Console.PrintWarning(msg)
 
+
 def getproxyattr(obj, name, default):
     """Get attribute on object's proxy.
 
