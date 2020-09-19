@@ -20,7 +20,7 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""Appleseed renderer for FreeCAD"""
+"""Appleseed renderer plugin for FreeCAD Render workbench."""
 
 # Suggested documentation links:
 # https://github.com/appleseedhq/appleseed/wiki
@@ -48,9 +48,7 @@ import FreeCAD as App
 
 
 def write_object(name, mesh, material):
-    """Compute a string in the format of Appleseed, that represents a FreeCAD
-    object
-    """
+    """Compute a string in renderer SDL to represent a FreeCAD object."""
     # Write the mesh as an OBJ tempfile
     # Known bug: mesh.Placement must be null, otherwise computation is wrong
     # due to special Appleseed coordinate system (to be fixed)
@@ -95,7 +93,7 @@ def write_object(name, mesh, material):
 
 
 def write_camera(name, pos, updir, target):
-    """Compute a string in the format of Appleseed, that represents a camera"""
+    """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
     #
@@ -126,9 +124,7 @@ def write_camera(name, pos, updir, target):
 
 
 def write_pointlight(name, pos, color, power):
-    """Compute a string in the format of Appleseed, that represents a
-    PointLight object
-    """
+    """Compute a string in renderer SDL to represent a point light."""
     # This is where you write the renderer-specific code
     # to export the point light in the renderer format
     snippet = """
@@ -155,9 +151,7 @@ def write_pointlight(name, pos, color, power):
 
 
 def write_arealight(name, pos, size_u, size_v, color, power):
-    """Compute a string in the format of Appleseed, that represents an area
-    light
-    """
+    """Compute a string in renderer SDL to represent an area light."""
     # Appleseed uses radiance (power/surface) instead of power
     radiance = power / (size_u * size_v)
     snippet = """
@@ -211,9 +205,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
 
 
 def write_sunskylight(name, direction, distance, turbidity):
-    """Compute a string in the format of Appleseed, that represents an
-    Sunsky Light object (Hosek-Wilkie)
-    """
+    """Compute a string in renderer SDL to represent a sunsky light."""
     # Caution: Take Appleseed system of coordinates into account
     # From documentation: "Appleseed uses a right-handed coordinate system,
     # where X+ (positive X axis) points to the right, Y+ points upward
@@ -248,9 +240,7 @@ def write_sunskylight(name, direction, distance, turbidity):
 
 
 def write_imagelight(name, image):
-    """Compute a string in the format of Appleseed, that represents an
-    Image-Based Light object
-    """
+    """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
         <texture name="{n}_tex" model="disk_texture_2d">
             <parameter name="filename" value="{f}" />
@@ -279,10 +269,10 @@ def write_imagelight(name, image):
 
 
 def _write_material(name, material):
-    """Compute a string in the renderer SDL, to represent a material
+    """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
-    a fallback material is provided
+    a fallback material is provided.
     """
     try:
         snippet_mat = MATERIALS[material.shadertype](name, material)
@@ -295,17 +285,14 @@ def _write_material(name, material):
 
 
 def _write_material_passthrough(name, material):
-    """Compute a string in the renderer SDL, to represent a material
-    sent as passthrough
-    """
+    """Compute a string in the renderer SDL for a passthrough material."""
     assert material.passthrough.renderer == "Appleseed"
     snippet = indent(material.passthrough.string, "    ")
     return snippet.format(n=name, c=material.default_color)
 
 
 def _write_material_glass(name, material):
-    """Compute a string in the renderer SDL, to represent a glass material"""
-
+    """Compute a string in the renderer SDL for a glass material."""
     snippet_bsdf = """
             <bsdf name="{n}_bsdf" model="glass_bsdf">
                 <parameter name="surface_transmittance" value="{n}_color" />
@@ -321,7 +308,7 @@ def _write_material_glass(name, material):
 
 
 def _write_material_disney(name, material):
-    """Compute a string in the renderer SDL, to represent a Disney material"""
+    """Compute a string in the renderer SDL for a Disney material."""
     snippet_bsdf = """
             <bsdf name="{n}_bsdf" model="disney_brdf">
                 <parameter name="base_color" value="{n}_color" />
@@ -352,7 +339,7 @@ def _write_material_disney(name, material):
 
 
 def _write_material_diffuse(name, material):
-    """Compute a string in the renderer SDL, to represent a Diffuse material"""
+    """Compute a string in the renderer SDL for a Diffuse material."""
     snippet_bsdf = """
             <bsdf name="{n}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{n}_color" />
@@ -363,9 +350,10 @@ def _write_material_diffuse(name, material):
 
 
 def _write_material_fallback(name, material):
-    """Compute a string in the renderer SDL, for a fallback material.
+    """Compute a string in the renderer SDL for a fallback material.
 
-    Fallback material is a simple Diffuse material"""
+    Fallback material is a simple Diffuse material.
+    """
     try:
         red = float(material.color.r)
         grn = float(material.color.g)
@@ -418,23 +406,24 @@ RGB = collections.namedtuple("RGB", "r g b")
 
 
 def render(project, prefix, external, output, width, height):
-    """Run Appleseed
+    """Run renderer.
 
-    Params:
-    - project:  the project to render
-    - prefix:   a prefix string for call (will be inserted before path to
-                renderer)
-    - external: a boolean indicating whether to call UI (true) or console
-                (false) version of renderder
-    - width:    rendered image width, in pixels
-    - height:   rendered image height, in pixels
+    Args:
+        project -- The project to render
+        prefix -- A prefix string for call (will be inserted before path to
+            renderer)
+        external -- A boolean indicating whether to call UI (true) or console
+            (false) version of renderder
+        width -- Rendered image width, in pixels
+        height -- Rendered image height, in pixels
 
-    Return:     path to output image file
+    Returns:
+        A path to output image file
     """
     def move_elements(element_tag, destination, template, keep_one=False):
-        """Move elements into another (root) element
+        """Move elements into another (root) element.
 
-        If keep_one is set, only last element is kept
+        If keep_one is set, only last element is kept.
         """
         pattern = r"(?m)^ *<{e}\s.*>[\s\S]*?<\/{e}>\n".format(e=element_tag)
         regex_obj = re.compile(pattern)
@@ -532,18 +521,16 @@ def render(project, prefix, external, output, width, height):
 
 
 def _transform(vec):
-    """Convert a vector from FreeCAD coordinates into Appleseed ones
+    """Convert a vector from FreeCAD coordinates into Appleseed ones.
 
     Appleseed uses a different coordinate system than FreeCAD.
     Compared to FreeCAD, Y and Z are switched and Z is inverted.
     This function converts a vector from FreeCAD system to Appleseed one.
 
-    Parameters
-    ----------
-    vec: vector to convert, in FreeCAD coordinates
+    Args:
+        vec -- vector to convert, in FreeCAD coordinates
 
-    Returns
-    -------
-    The transformed vector, in Appleseed coordinates
+    Returns:
+        The transformed vector, in Appleseed coordinates
     """
     return App.Vector(vec.x, vec.z, -vec.y)
