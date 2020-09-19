@@ -670,7 +670,7 @@ class ViewProviderAreaLight:
             self._point_at_cb)
 
     def _point_at_cb(self, event_cb):
-        """'point at' callback.
+        """`point_at` callback.
 
         Args:
             event_cb -- coin event callback object
