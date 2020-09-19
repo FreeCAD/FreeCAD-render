@@ -41,30 +41,31 @@ the necessary UI controls.
 import sys
 import os
 import re
-import itertools
-from importlib import import_module
+import itertools as it
 from tempfile import mkstemp
 from types import SimpleNamespace
 from operator import attrgetter
 
-from PySide.QtGui import QAction, QIcon, QFileDialog
-from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
+                          QDoubleValidator, QPushButton, QColorDialog, QPixmap,
+                          QColor, QFormLayout, QComboBox, QLayout, QListWidget,
+                          QListWidgetItem, QListView, QPlainTextEdit)
+from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
+                           QSize)
 import FreeCAD as App
 import FreeCADGui as Gui
-import Draft
 import Part
-import MeshPart
+import ArchMaterial
 try:
     import ImageGui
 except ImportError:
     pass
-try:
-    from draftutils.translate import translate  # 0.19
-except ImportError:
-    from Draft import translate  # 0.18
 
+from renderutils import translate, RGBA, str2rgb
+from rendererhandler import RendererHandler
 import camera
 import lights
+import rendermaterials
 
 
 # ===========================================================================
@@ -78,12 +79,15 @@ WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RDRDIR = os.path.join(WBDIR, "renderers")
 ICONDIR = os.path.join(WBDIR, "icons")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
+TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
 # Renderers list
-RENDERERS = [x.group(1)
+RENDERERS = {x.group(1)
              for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
                           os.listdir(RDRDIR))
-             if x]
-DEPRECATED_RENDERERS = ["Luxrender"]
+             if x}
+DEPRECATED_RENDERERS = {"Luxrender"}
+VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
+
 
 # ===========================================================================
 #                     Core rendering objects (Project and View)
@@ -314,8 +318,8 @@ class Project:
 
         return result
 
-    def add_objects(self, objs):
-        """Add objects as new views to the project
+    def add_views(self, objs):
+        """Add objects as new views to the project.
 
         This method can handle objects groups, recursively.
 
@@ -323,36 +327,38 @@ class Project:
         via 'RendererHandler.is_renderable'; if not, a warning is issued and
         the faulty object is ignored.
 
-        Parameters
+        Parameters:
         objs -- an iterable on FreeCAD objects to add to project
         """
 
         def add_to_group(objs, group):
-            """Add objects as views to a group
+            """Add objects as views to a group.
 
             objs -- FreeCAD objects to add
-            group -- The  group (App::DocumentObjectGroup) to add to"""
+            group -- The  group (App::DocumentObjectGroup) to add to
+            """
             for obj in objs:
-                if (obj.isDerivedFrom("App::DocumentObjectGroup") or
-                   (obj.isDerivedFrom("App::GeometryPython") and
-                    obj.Proxy.Type=="BuildingPart")):
-                    assert obj != group  # Just in case...
-                    label = View.view_label(obj, group)
+                success = False
+                if hasattr(obj, "Group"):
+                    assert obj != group  # Just in case (infinite recursion)...
+                    label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
                         "App::DocumentObjectGroup", label)
                     new_group.Label = label
                     group.addObject(new_group)
                     add_to_group(obj.Group, new_group)
-                elif RendererHandler.is_renderable(obj):
+                    success = True
+                if RendererHandler.is_renderable(obj):
                     View.create(obj, group)
-                else:
+                    success = True
+                if not success:
                     msg = translate(
                         "Render",
                         "[Render] Unable to create rendering view for object "
                         "'{}': unhandled object type\n")
                     App.Console.PrintWarning(msg.format(obj.Label))
 
-        # Here starts add_objects
+        # add_views starts here
         add_to_group(iter(objs), self.fpo)
 
     def all_views(self):
@@ -562,23 +568,61 @@ class ViewProviderProject:
 class View:
     """A rendering view of a FreeCAD object"""
 
+    # Related FeaturePython object has to be stored in a class variable,
+    # (not in an instance variable...), otherwise it causes trouble in
+    # serialization...
+    _fpos = dict()
+
     def __init__(self, obj):
-        obj.addProperty("App::PropertyLink",
-                        "Source",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The source object of this view"))
-        obj.addProperty("App::PropertyLink",
-                        "Material",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The material of this view"))
-        obj.addProperty("App::PropertyString",
-                        "ViewResult",
-                        "Render",
-                        QT_TRANSLATE_NOOP("App::Property",
-                                          "The rendering output of this view"))
         obj.Proxy = self
+        self.set_properties(obj)
+
+    @property
+    def fpo(self):
+        """Underlying FeaturePython object getter"""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Underlying FeaturePython object setter"""
+        self._fpos[id(self)] = new_fpo
+
+    def set_properties(self, obj):
+        """Set underlying FeaturePython object's properties
+
+        Parameters
+        ----------
+        obj: FeaturePython Object related to this project
+        """
+        self.fpo = obj
+
+        if "Source" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyLink",
+                "Source",
+                "Render",
+                QT_TRANSLATE_NOOP("App::Property",
+                                  "The source object of this view"))
+
+        if "Material" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyLink",
+                "Material",
+                "Render",
+                QT_TRANSLATE_NOOP("App::Property",
+                                  "The material of this view"))
+
+        if "ViewResult" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyString",
+                "ViewResult",
+                "Render",
+                QT_TRANSLATE_NOOP("App::Property",
+                                  "The rendering output of this view"))
+
+    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
+        """Code to be executed when document is restored (callback)"""
+        self.set_properties(obj)
 
     def execute(self, obj):  # pylint: disable=no-self-use
         """Code to be executed on document recomputation
@@ -600,18 +644,21 @@ class View:
         obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
-    def view_label(obj, proj):
-        """Give a standard view label for an object
+    def view_label(obj, proj, is_group=False):
+        """Give a standard label for the view of an object
 
-        obj -- object for which the view is build
-        proj -- project in which the view will be inserted
+        obj -- object which the view is built for
+        proj -- project which the view will be inserted in
+        is_group -- flag to indicate whether the view is a group
 
-        Both obj and proj should have valid Label attribute"""
+        Both obj and proj should have valid Label attributes
+        """
         obj_label = str(obj.Label)
         proj_label = str(proj.Label)
 
-        proj_label2 = proj_label.replace(" ", "")
-        res = "{o}@{p}".format(o=obj_label, p=proj_label2)
+        proj_label = proj_label.replace(" ", "")
+        fmt = "{o}Group@{p}" if is_group else "{o}@{p}"
+        res = fmt.format(o=obj_label, p=proj_label)
         return res
 
     @staticmethod
@@ -644,6 +691,30 @@ class View:
         project.addObject(fpo)
         viewp = ViewProviderView(fpo.ViewObject)
         return view, fpo, viewp
+
+    def get_shape_color(self):
+        """Get the RGBA color for a FreeCAD object as seen in viewport
+
+        If the object does not hold any color data, a default
+        RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
+
+        Returns:
+        The RGBA color, as a (named) tuple
+        """
+        source = self.fpo.Source
+        # Get RGB
+        try:
+            shape_color = source.ViewObject.ShapeColor[:3]
+        except (AttributeError, IndexError):
+            shape_color = (1.0, 1.0, 1.0)
+
+        # Get alpha
+        try:
+            assert 0 <= source.ViewObject.Transparency <= 100
+            shape_alpha = 1.0 - source.ViewObject.Transparency / 100
+        except (AttributeError, IndexError, AssertionError):
+            shape_alpha = 1.0
+        return RGBA(*shape_color, shape_alpha)
 
 
 class ViewProviderView:
@@ -689,367 +760,6 @@ class ViewProviderView:
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
-
-
-# ===========================================================================
-#                            Renderer Handler
-# ===========================================================================
-
-
-class RendererHandler:
-    """This class provides simplified access to external renderers modules.
-
-    This class implements a simplified interface to external renderer module
-    (façade design pattern).
-    It requires a valid external renderer name for initialization, and
-    provides:
-    - a method to run the external renderer on a renderer-format file
-    - a method to get a rendering string from an object's View, taking care of
-      selecting the right method in renderer module according to
-    view object's type.
-    """
-    def __init__(self, rdrname):
-        self.renderer_name = str(rdrname)
-
-        try:
-            self.renderer_module = import_module("renderers." + rdrname)
-        except ModuleNotFoundError:
-            msg = translate(
-                "Render",
-                "[Render] Import Error: Renderer '%s' not found\n") % rdrname
-            App.Console.PrintError(msg)
-            raise
-
-    def render(self, project, prefix, external, output, width, height):
-        """Run the external renderer
-
-        This method merely calls external renderer's 'render' method
-
-        Params:
-        - project:  the project to render
-        - prefix:   a prefix string for call (will be inserted before path to
-                    renderer)
-        - external: a boolean indicating whether to call UI (true) or console
-                    (false) version of renderer
-        - width:    rendered image width, in pixels
-        - height:   rendered image height, in pixels
-
-        Return:     path to image file generated, or None if no image has been
-                    issued by external renderer
-        """
-        return self.renderer_module.render(project,
-                                           prefix,
-                                           external,
-                                           output,
-                                           width,
-                                           height)
-
-    @staticmethod
-    def is_renderable(obj):
-        """Determine if an object is renderable
-
-        This is a weak test: we just check if the object belongs to a
-        class we would know how to handle - no further verification
-        is made on the consistency of the object data against
-        get_rendering_string requirements"""
-
-        try:
-            res = (obj.isDerivedFrom("Part::Feature") or
-                   obj.isDerivedFrom("Mesh::Feature") or
-                   (obj.isDerivedFrom("App::FeaturePython") and
-                    obj.Proxy.type in ["PointLight",
-                                       "Camera",
-                                       "AreaLight",
-                                       "SunskyLight",
-                                       "ImageLight"]))
-        except AttributeError:
-            res = False
-
-        return res
-
-    @staticmethod
-    def is_project(obj):
-        """Determine if an object is a rendering project
-
-        This is a weak test: we just check if the object looks like
-        something we could know how to handle - no further verification
-        is made on the consistency of the object data against
-        render requirements"""
-
-        try:
-            res = (obj.isDerivedFrom("App::FeaturePython") and
-                   "Renderer" in obj.PropertiesList)
-        except AttributeError:
-            res = False
-
-        return res
-
-    def get_rendering_string(self, view):
-        """Provide a rendering string for the view of an object
-
-        This method selects the specialized rendering method adapted for
-        'view', according to its source object type, and calls it.
-
-        Parameters:
-        view -- the view of the object to render
-
-        Returns: a rendering string in the format of the external renderer
-        for the supplied 'view'
-        """
-
-        try:
-            source = view.Source
-
-            try:
-                objtype = source.Proxy.type
-            except AttributeError:
-                objtype = "Object"
-
-            name = str(source.Name)
-
-            switcher = {
-                "Object": RendererHandler._render_object,
-                "PointLight": RendererHandler._render_pointlight,
-                "Camera": RendererHandler._render_camera,
-                "AreaLight": RendererHandler._render_arealight,
-                "SunskyLight": RendererHandler._render_sunskylight,
-                "ImageLight": RendererHandler._render_imagelight,
-                }
-
-            res = switcher[objtype](self, name, view)
-
-        except (AttributeError, TypeError, AssertionError) as err:
-            msg = translate(
-                "Render",
-                "[Render] Cannot render view '{0}': {1}. Skipping...\n")
-            view_label = getattr(view, "Label", "<No label>")
-            App.Console.PrintWarning(msg.format(view_label, err))
-            return ""
-
-        else:
-            return res
-
-    def _render_object(self, name, view):
-        """Get a rendering string for a generic FreeCAD object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the object
-        view -- a view of the object to render
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        source = view.Source
-
-        # get color and alpha
-        mat = None
-        color = None
-        alpha = None
-        if view.Material:
-            mat = view.Material
-        elif "Material" in source.PropertiesList and source.Material:
-            mat = source.Material
-        if mat:
-            if "Material" in mat.PropertiesList:
-                if "DiffuseColor" in mat.Material:
-                    color = mat.Material["DiffuseColor"]\
-                               .strip("(")\
-                               .strip(")")\
-                               .split(",")[:3]
-                if "Transparency" in mat.Material:
-                    if float(mat.Material["Transparency"]) > 0:
-                        alpha = 1.0 - float(mat.Material["Transparency"])
-                    else:
-                        alpha = 1.0
-
-        if source.ViewObject:
-            vobj = source.ViewObject
-            if not color:
-                if hasattr(vobj, "ShapeColor"):
-                    color = vobj.ShapeColor[:3]
-            if not alpha:
-                if hasattr(vobj, "Transparency"):
-                    if vobj.Transparency > 0:
-                        alpha = 1.0 - float(vobj.Transparency) / 100.0
-        if not color:
-            color = (1.0, 1.0, 1.0)
-        if not alpha:
-            alpha = 1.0
-
-        # get mesh
-        mesh = None
-        if hasattr(source, "Group"):
-            shps = [o.Shape for o in Draft.getGroupContents(source)
-                    if hasattr(o, "Shape")]
-            mesh = MeshPart.meshFromShape(Shape=Part.makeCompound(shps),
-                                          LinearDeflection=0.1,
-                                          AngularDeflection=0.523599,
-                                          Relative=False)
-        elif source.isDerivedFrom("Part::Feature"):
-            mesh = MeshPart.meshFromShape(Shape=source.Shape,
-                                          LinearDeflection=0.1,
-                                          AngularDeflection=0.523599,
-                                          Relative=False)
-        elif source.isDerivedFrom("Mesh::Feature"):
-            mesh = source.Mesh
-
-        assert mesh,\
-            translate("Render", "Cannot find mesh data")
-        assert mesh.Topology[0] and mesh.Topology[1],\
-            translate("Render", "Mesh topology is empty")
-        assert mesh.getPointNormals(),\
-            translate("Render", "Mesh topology has no normals")
-
-        return self._call_renderer("write_object",
-                                   name,
-                                   mesh,
-                                   color,
-                                   alpha)
-
-    def _render_camera(self, name, view):
-        """Provide a rendering string for a camera.
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the camera
-        view -- a view of the camera to render
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        source = view.Source
-        a_ratio = float(source.AspectRatio)
-        pos = App.Base.Placement(source.Placement)
-        target = pos.Base.add(
-            pos.Rotation.multVec(App.Vector(0, 0, -1)).multiply(a_ratio))
-        updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
-        return self._call_renderer("write_camera",
-                                   name,
-                                   pos,
-                                   updir,
-                                   target)
-
-    def _render_pointlight(self, name, view):
-        """Gets a rendering string for a point light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the point light
-        view -- the view of the point light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        source = view.Source
-
-        # get location, color
-        location = App.Base.Vector(source.Location)
-        color = source.Color
-
-        # we accept missing Power (default value: 60)...
-        power = getattr(source, "Power", 60)
-
-        # send everything to renderer module
-        return self._call_renderer("write_pointlight",
-                                   name,
-                                   location,
-                                   color,
-                                   power)
-
-    def _render_arealight(self, name, view):
-        """Gets a rendering string for an area light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the area light
-        view -- the view of the area light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        # Get properties
-        source = view.Source
-        placement = App.Base.Placement(source.Placement)
-        color = source.Color
-        power = float(source.Power)
-        size_u = float(source.SizeU)
-        size_v = float(source.SizeV)
-
-        # Send everything to renderer module
-        return self._call_renderer("write_arealight",
-                                   name,
-                                   placement,
-                                   size_u,
-                                   size_v,
-                                   color,
-                                   power)
-
-    def _render_sunskylight(self, name, view):
-        """Gets a rendering string for a sunsky light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the sunsky light
-        view -- the view of the sunsky light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        src = view.Source
-        direction = App.Vector(src.SunDirection)
-        turbidity = float(src.Turbidity)
-        # Distance from the sun:
-        distance = App.Units.parseQuantity("151000000 km").Value
-
-        assert turbidity >= 0,\
-            translate("Render", "Negative turbidity")
-
-        assert direction.Length,\
-            translate("Render", "Sun direction is null")
-
-        return self._call_renderer("write_sunskylight",
-                                   name,
-                                   direction,
-                                   distance,
-                                   turbidity)
-
-    def _render_imagelight(self, name, view):
-        """Gets a rendering string for an image light object
-
-        This method follows EAFP idiom and will raise exceptions if something
-        goes wrong (missing attribute, inconsistent data...)
-
-        Parameters:
-        name -- the name of the image light
-        view -- the view of the image light (contains the light data)
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        src = view.Source
-        image = src.ImageFile
-
-        return self._call_renderer("write_imagelight",
-                                   name,
-                                   image)
-
-    def _call_renderer(self, method, *args):
-        """Calls a render method of the renderer module
-
-        Parameters:
-        -----------
-        method: the method to call (as a string)
-        args: the arguments to pass to the method
-
-        Returns: a rendering string, obtained from the renderer module
-        """
-        renderer_method = getattr(self.renderer_module, method)
-        return renderer_method(*args)
 
 
 # ===========================================================================
@@ -1127,7 +837,7 @@ class RenderViewCommand:
         activedoc_projects = filter(RendererHandler.is_project,
                                     App.ActiveDocument.Objects)
         try:
-            target_project = next(itertools.chain(projs, activedoc_projects))
+            target_project = next(it.chain(projs, activedoc_projects))
         except StopIteration:
             msg = translate(
                 "Render",
@@ -1137,7 +847,7 @@ class RenderViewCommand:
             return
 
         # Finally, add objects to target project and recompute
-        target_project.Proxy.add_objects(objs)
+        target_project.Proxy.add_views(objs)
 
         App.ActiveDocument.recompute()
 
@@ -1253,6 +963,303 @@ class ImageLightCommand:
         lights.ImageLight.create()
 
 
+class MaterialSettingsCommand:
+    """Set render settings of a material object."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Command's resources (callback)"""
+
+        return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("Render",
+                                              "Material Render Settings"),
+                "ToolTip": QT_TRANSLATE_NOOP("Render",
+                                             "Sets rendering parameters of "
+                                             "a Material")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Code to be executed when command is run (callback)"""
+        # App.setActiveTransaction("MaterialSettings")
+        App.ActiveDocument.openTransaction("MaterialSettings")
+        task = MaterialSettingsTaskPanel()
+        Gui.Control.showDialog(task)
+        # App.closeActiveTransaction()
+        App.ActiveDocument.commitTransaction()
+        App.ActiveDocument.recompute()
+
+
+class ColorPicker(QPushButton):
+    """A color picker widget.
+
+    This widget provides a button, with a colored square icon, which triggers
+    a color dialog when it is pressed
+    """
+    def __init__(self, color=QColor(127, 127, 127)):
+        super(ColorPicker, self).__init__()
+        self.color = QColor(color)
+        self._set_icon(self.color)
+        self.pressed.connect(self.on_button_pressed)
+
+    def on_button_pressed(self):
+        """Respond to button pressed event (callback)"""
+        color = QColorDialog.getColor(initial=self.color)
+        if color.isValid():
+            self.color = color
+            self._set_icon(color)
+
+    def _set_icon(self, color):
+        """Set the colored square icon"""
+        colorpix = QPixmap(16, 16)
+        colorpix.fill(color)
+        self.setIcon(QIcon(colorpix))
+
+    def set_color(self, color):
+        """Set widget color value"""
+        self.color = QColor(color)
+        self._set_icon(self.color)
+
+    def get_color_text(self):
+        """Get widget color value, in text form"""
+        color = self.color
+        return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
+
+
+class MaterialSettingsTaskPanel():
+    """Task panel to edit Material render settings"""
+
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("Render", "<None>")
+
+    def __init__(self, obj=None):
+        self.form = Gui.PySideUic.loadUi(TASKPAGE)
+        self.tabs = self.form.RenderTabs
+        self.tabs.setCurrentIndex(0)
+        self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
+        self.material_type_combo = \
+            self.form.findChild(QComboBox, "MaterialType")
+
+        # Initialize material name combo
+        self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
+        self.existing_materials = {obj.Label: obj
+                                   for obj in App.ActiveDocument.Objects
+                                   if rendermaterials.is_valid_material(obj)}
+        self.material_combo.addItems(self.existing_materials.keys())
+        self.material_combo.currentTextChanged.connect(
+            self.on_material_name_changed)
+
+        # Initialize material type combo
+        # Note: itemAt(0) is label, itemAt(1) is combo
+        self.material_type_combo = \
+            self.form.findChild(QComboBox, "MaterialType")
+        material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] \
+            + list(rendermaterials.STD_MATERIALS)
+        self.material_type_combo.addItems(material_type_set)
+        self.material_type_combo.currentTextChanged.connect(
+            self.on_material_type_changed)
+        self._set_layout_visible("FieldsLayout", False)
+        self.fields = []
+
+        # Initialize Father layout
+        self._set_layout_visible("FatherLayout", False)
+        self.father_field = self.form.FatherLayout.itemAt(1).widget()
+
+        # Initialize Passthru Renderers selector
+        rdrwidget = self.form.findChild(QListWidget, "Renderers")
+        for rdr in VALID_RENDERERS:
+            item = QListWidgetItem()
+            item.setText(rdr)
+            item.setIcon(QIcon(os.path.join(WBDIR, "icons", "%s.svg" % rdr)))
+            rdrwidget.addItem(item)
+        rdrwidget.setViewMode(QListView.IconMode)
+        rdrwidget.setIconSize(QSize(48, 48))
+        rdrwidget.setMaximumWidth(96)
+        rdrwidget.setSpacing(6)
+        rdrwidget.setMovement(QListView.Static)
+        rdrwidget.currentTextChanged.connect(
+            self.on_passthrough_renderer_changed)
+        self.passthru_rdr = rdrwidget
+        self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
+        self._set_layout_visible("PassthruLayout", False)
+
+        # Get selected material and initialize material type combo with it
+        selection = {obj.Label for obj in Gui.Selection.getSelection()}
+        selected_materials = selection & self.existing_materials.keys()
+        try:
+            selected_material = selected_materials.pop()
+        except KeyError:
+            pass
+        else:
+            self.material_combo.setCurrentText(selected_material)
+
+    def on_material_name_changed(self, material_name):
+        """Respond to material name changed event."""
+        # Find material
+        try:
+            material = self.existing_materials[material_name]
+        except KeyError:
+            self._set_layout_visible("FieldsLayout", False)
+            self._set_layout_visible("FatherLayout", False)
+            self._set_layout_visible("PassthruLayout", False)
+            return
+
+        # Retrieve material type
+        self._set_layout_visible("FieldsLayout", True)
+        material_type_combo = self.form.findChild(QComboBox, "MaterialType")
+        try:
+            material_type = material.Material["Render.Type"]
+        except KeyError:
+            material_type_combo.setCurrentIndex(0)
+        else:
+            if not material_type:
+                material_type = MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
+            material_type_combo.setCurrentText(material_type)
+
+        # Retrieve passthrough
+        self._set_layout_visible("PassthruLayout", True)
+        try:
+            renderer = self.passthru_rdr.currentItem().text()
+        except AttributeError:
+            renderer = None
+        self._populate_passthru(renderer, material)
+
+        # Retrieve material father
+        self._set_layout_visible("FatherLayout", True)
+        try:
+            father = material.Material["Father"]
+        except KeyError:
+            father = ""
+        finally:
+            self.father_field.setText(father)
+
+    def on_material_type_changed(self, material_type):
+        """Respond to material type changed event."""
+        # Get parameters list
+        try:
+            params = rendermaterials.STD_MATERIALS_PARAMETERS[material_type]
+        except KeyError:
+            self._delete_fields()
+        else:
+            self._delete_fields()
+            mat_name = self.material_combo.currentText()
+            for param in params:
+                value = self.existing_materials[mat_name].Material.get(
+                    "Render.{}.{}".format(material_type, param.name))
+                self._add_field(param, value)
+
+    def on_passthrough_renderer_changed(self, renderer):
+        """Respond to passthrough renderer changed event."""
+        mat_name = self.material_combo.currentText()
+        material = self.existing_materials[mat_name]
+        self._populate_passthru(renderer, material)
+
+    PASSTHROUGH_KEYS = {r: rendermaterials.passthrough_keys(r)
+                        for r in VALID_RENDERERS}
+
+    def _populate_passthru(self, renderer, material):
+        """Populate passthrough edit field"""
+        if not renderer or not material:
+            self.passthru.setPlainText("")
+            self.passthru.setEnabled(False)
+            return
+
+        self.passthru.setEnabled(True)
+        keys = self.PASSTHROUGH_KEYS[renderer]
+        common_keys = keys & material.Material.keys()
+        lines = [material.Material[k] for k in sorted(common_keys)]
+        self.passthru.setPlainText('\n'.join(lines))
+
+    def _set_layout_visible(self, layout_name, flag):
+        """Make a layout visible/invisible, according to flag."""
+        layout = self.form.findChild(QLayout, layout_name)
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            item.widget().setVisible(flag)
+
+    def _add_field(self, param, value):
+        """Add a field to the task panel."""
+        name = param.name
+        if param.type == "float":
+            widget = QLineEdit()
+            widget.setAlignment(Qt.AlignRight)
+            widget.setValidator(QDoubleValidator())
+            try:
+                value = QLocale().toString(float(value))
+            except (ValueError, TypeError):
+                value = None
+            widget.setText(value)
+            self.fields.append(
+                (name, lambda: QLocale().toDouble(widget.text())[0]))
+        elif param.type == "RGB":
+            if value:
+                qcolor = QColor.fromRgbF(*str2rgb(value))
+                widget = ColorPicker(qcolor)
+            else:
+                widget = ColorPicker()
+            self.fields.append((name, widget.get_color_text))
+        else:
+            widget = QLineEdit()
+            self.fields.append((name, widget.text))
+        layout = self.form.findChild(QLayout, "FieldsLayout")
+        # self.form.FieldsLayout.addRow("%s:" % param.name, widget)
+        layout.addRow("%s:" % param.name, widget)
+
+    def _delete_fields(self):
+        """Delete all fields, except the first one (MaterialType selector)."""
+        # layout = self.form.FieldsLayout
+        layout = self.form.findChild(QLayout, "FieldsLayout")
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            if widget.objectName() not in ("MaterialType",
+                                           "MaterialTypeLabel"):
+                widget.setParent(None)
+        self.fields = []
+
+    def _write_fields(self):
+        """Write task panel fields to FreeCAD material"""
+        # Find material
+        mat_name = self.material_combo.currentText()
+        try:
+            material = self.existing_materials[mat_name]
+        except KeyError:
+            return
+        tmp_mat = material.Material.copy()
+
+        # Set render type and associated fields
+        if self.material_type_combo.currentIndex():
+            render_type = self.material_type_combo.currentText()
+            if render_type == MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE:
+                render_type = ""
+            tmp_mat["Render.Type"] = str(render_type)
+
+            # Set fields
+            for field in self.fields:
+                field_name, get_value = field
+                param_name = "Render.{}.{}".format(render_type, field_name)
+                tmp_mat[param_name] = str(get_value())
+
+        # Set father
+        father = self.father_field.text()
+        if father:
+            tmp_mat["Father"] = str(father)
+
+        # Write to material
+        material.Material = tmp_mat
+
+    def accept(self):
+        """Respond to user acceptation (OK button).
+
+        Write all task panel fields to material
+        """
+        self._write_fields()
+        Gui.ActiveDocument.resetEdit()
+        Gui.Control.closeDialog()
+        App.ActiveDocument.recompute()
+        return True
+
+
+# pylint: disable=protected-access
+MaterialCommand = ArchMaterial._CommandArchMaterial
+# pylint: enable=protected-access
+
+
 # ===========================================================================
 #                            Module initialization
 # ===========================================================================
@@ -1262,9 +1269,7 @@ class ImageLightCommand:
 if App.GuiUp:
     # Add commands
     RENDER_COMMANDS = []
-    for rend in RENDERERS:
-        if rend in DEPRECATED_RENDERERS:
-            continue
+    for rend in VALID_RENDERERS:
         Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
         RENDER_COMMANDS.append('Render_' + rend)
     RENDER_COMMANDS.append("Separator")
@@ -1275,6 +1280,11 @@ if App.GuiUp:
                 ("ImageLight", ImageLightCommand()),):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
+    RENDER_COMMANDS.append("Separator")
+    Gui.addCommand("Material", MaterialCommand())
+    RENDER_COMMANDS.append("Material")
+    Gui.addCommand("MaterialRenderSettings", MaterialSettingsCommand())
+    RENDER_COMMANDS.append("MaterialRenderSettings")
     RENDER_COMMANDS.append("Separator")
     for cmd in (("View", RenderViewCommand()),
                 ("Render", RenderCommand())):

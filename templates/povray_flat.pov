@@ -17,16 +17,6 @@ global_settings {
 
 #default {finish{ambient 0}}
 
-sky_sphere {
-    pigment {
-        gradient y
-        color_map {
-            [0.0  color LightGray]
-            [0.3  color White]
-            [0.7  color LightGray]
-        }
-    }
-}
 
 // Standard finish
 #declare StdFinish = finish {};
@@ -34,11 +24,3 @@ sky_sphere {
 //RaytracingCamera
 //RaytracingContent
 
-//default light
-light_source {
-    cam_location
-    color White
-    area_light <100, 0, 0>, <0, 0, 100>, 10, 10
-    adaptive 1
-    jitter
-}

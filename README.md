@@ -42,7 +42,8 @@ The Render workbench works exactly the same way as the [Raytracing Workbench](ht
 You start by creating a Render project using one of the Renderer buttons from the Render Workbench toolbar, then select some of 
 your document objects, and add views of these objects to your Render project, using the Add View button. You can tweak some 
 features of the views (color, transparency, etc...) if you want it to appear differently in the render than in the 3D view 
-of FreeCAD, then, with a Render project selected, you only need to press the Render button to start the render.
+of FreeCAD. It is also possible to add materials to objects, in order to refine their rendering (glass etc.): see [Material documentation](./docs/Materials.md).
+Then, with a Render project selected, you only need to press the Render button to start the render.
 
 Each renderer has some configurations to be set in `Edit > Preferences > Render` before being able to use it, namely the path 
 to its executable.

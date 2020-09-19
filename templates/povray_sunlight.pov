@@ -11,6 +11,8 @@
         radiosity {
             Rad_Settings(Radiosity_Normal,off,off)
         }
+        assumed_gamma 1
+        subsurface {}
     }
 
     #default {finish{ambient 0}}
