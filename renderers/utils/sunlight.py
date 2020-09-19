@@ -20,8 +20,10 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements sun light physical calculations, mainly in order
-to compute sun power and color for Cycles sunsky light
+"""This module implements sun light physical calculations.
+
+It mainly provides a way to compute sun power and color for Cycles sun
+light, as Cycles does not provide such a feature.
 
 Usage: one may essentially use 'sunlight' function
 """
@@ -607,17 +609,17 @@ SUN_MEAN_DISTANCE = 149600000000.  # Meters
 
 
 class Interpolation:
-    """Linear interpolation for sampled (x,y) data
+    """Linear interpolation helper class for sampled (x,y) data.
 
-    Interpolation is called via [] operator
+    Interpolation is called via [] operator.
     Note: no extrapolation is done.
     """
 
     def __init__(self, samples):
-        """Initialisation with sampled data
+        """Initialize interpolation with sampled data.
 
-        Parameters
-        samples -- an iterable on (x,y) data
+        Args:
+            samples -- an iterable on (x,y) data.
         """
         samples = tuple(samples)
         assert len(samples) > 1, "Samples must contains at least 2 elements"
@@ -629,13 +631,16 @@ class Interpolation:
         self.slopes = [(y2 - y1) / (x2 - x1) for x1, x2, y1, y2 in intervals]
 
     def __repr__(self):
+        """Get a representation of the object."""
         res = ["(%s, %s)" % (x, y) for x, y in zip(self.x_list, self.y_list)]
         return "Interpolate({})".format(", ".join(res))
 
     def __getitem__(self, parameter):
-        """Return an interpolated value
+        """Return an interpolated value.
 
-        Nota: no extrapolation. If parameter is out of sample range, returns 0
+        Nota:
+            - No extrapolation.
+            - If parameter is out of sample range, return 0.
         """
         param = float(parameter)
         x_list, y_list, slopes = self.x_list, self.y_list, self.slopes
@@ -655,37 +660,45 @@ class Interpolation:
 
 
 class ColorXYZ:
-    """Color in CIE XYZ color system"""
+    """Color in CIE XYZ color system."""
+
     # pylint: disable=invalid-name
     def __init__(self, p_X=0, p_Y=0, p_Z=0):
+        """Initialize ColorXYZ.
+
+        Args:
+            p_X -- X component (float)
+            p_Y -- Y component (float)
+            p_Z -- Z component (float)
+        """
         self.X = float(p_X)
         self.Y = float(p_Y)
         self.Z = float(p_Z)
 
     @classmethod
     def from_xyY(cls, x, y, Y):
-        """Initialize a ColorXYZ from a xyY color"""
+        """Initialize a ColorXYZ from a xyY color."""
         return cls(Y / y * x,
                    Y,
                    Y / y * (1 - x - y))
 
     @classmethod
     def from_srd(cls, srd):
-        """Initialize a ColorXYZ from a spectral radiance distribution
+        """Initialize a ColorXYZ from a spectral radiance distribution.
 
         This method operates conversion from radiometry (spectral radiance)
         to photometry (XYZ color)
         It uses CIE 1931 2° standard observer. Resulting Y is absolute
         luminance (normalization).
 
-        Parameter
-        srd -- spectral radiance distribution
-               This has to be a dict of radiometric radiances in
-               W.sr-1.m-2, indexed by wavelengths in nm, for all
-               wavelengths in CIE_STD_OBSERVER_RANGE (360->830)
+        Args:
+            srd -- spectral radiance distribution
+                This has to be a dict of radiometric radiances in
+                W.sr-1.m-2, indexed by wavelengths in nm, for all
+                wavelengths in CIE_STD_OBSERVER_RANGE (360->830)
 
-        Returns
-        CIE XYZ color, with Y being absolute luminance (in cd.m-2)
+        Returns:
+            CIE XYZ color, with Y being absolute luminance (in cd.m-2)
         """
         # Integration of SRD
         # w -- wavelength
@@ -701,6 +714,7 @@ class ColorXYZ:
         return color
 
     def __add__(self, other):
+        """Compute addition between this object and another one."""
         # For sum function (starts with 0...)
         if isinstance(other, numbers.Integral) and other == 0:
             return self
@@ -713,9 +727,11 @@ class ColorXYZ:
             return NotImplemented
 
     def __radd__(self, other):
+        """Compute reverse addition between this object and another one."""
         return self + other
 
     def __iadd__(self, other):
+        """Compute in-place addition between this object and another one."""
         try:
             self.X += float(other.X)
             self.Y += float(other.Y)
@@ -725,6 +741,7 @@ class ColorXYZ:
             return NotImplemented
 
     def __mul__(self, scalar):
+        """Compute multiplication between this object and a scalar."""
         try:
             _scalar = float(scalar)
             return ColorXYZ(self.X * _scalar,
@@ -734,25 +751,32 @@ class ColorXYZ:
             return NotImplemented
 
     def __rmul__(self, scalar):
+        """Compute reverse multiplication between this object and a scalar."""
         return self * scalar
 
     def __repr__(self):
+        """Return a representation of this object."""
         fmtstr = "XYZ({:3.2e}, {:3.2e}, {:3.2e})"
         return fmtstr.format(self.X, self.Y, self.Z)
 
     def to_xyY(self):
-        """Convert this color to xyY color"""
+        """Convert this color to xyY color."""
         tot = self.X + self.Y + self.Z
         res = namedtuple("xyY", ["x", "y", "Y"])(
             self.X / tot, self.Y / tot, self.Y)
         return res
 
     def to_srgb(self):
-        """Convert this color to sRGB color"""
+        """Convert this color to sRGB color."""
         # From wikipedia
         # https://en.wikipedia.org/wiki/SRGB#The_forward_transformation_(CIE_XYZ_to_sRGB)
 
         def gamma_compress(u):
+            """Compute gamma compression for a RGB component.
+
+            Args:
+                u -- The RGB component.
+            """
             return 12.92 * u if u <= 0.0031308 else 1.055 * u ** (5/12) - 0.055
 
         # Linear transformation
@@ -768,7 +792,7 @@ class ColorXYZ:
         return namedtuple("srgb", ["r", "g", "b"])(red, grn, blu)
 
     def to_srgb_with_fixed_luminance(self, p_Y):
-        """Convert this color to sRGB, at given Y (luminance) value"""
+        """Convert this color to sRGB, at given Y (luminance) value."""
         xyy = self.to_xyY()
         xyz = ColorXYZ.from_xyY(xyy.x, xyy.y, p_Y)
         return xyz.to_srgb()
@@ -787,43 +811,45 @@ SUN_SRD = Interpolation(SUN_SAMPLED_SRD)
 
 
 def sunlight(theta, turbidity):
-    """Compute sun color in CIE XYZ
+    """Compute sun color in CIE XYZ.
 
     Takes into account atmosperich effects: Rayleigh scattering,
     aerosols (water+dust) absorption, ozone absorption, mixed gases absorption
     and water absorption
     Computed luminance (Y) is absolute luminance
 
-    Parameters:
-    theta -- Sun polar angle (in radians)
-    turbidity -- Sky turbidity
+    Args:
+        theta -- Sun polar angle (in radians)
+        turbidity -- Sky turbidity
 
     Returns:
-    A (named) tuple providing:
-    - solar irradiance (W.m-2)
-    - solar illuminance (lm.m-2, or lux)
-    - solar XYZ color (cd.m-2)
-    as perceived from Earth, after atmospheric attenuation, for the given
-    parameters.
+        A (named) tuple providing:
+        - solar irradiance (W.m-2)
+        - solar illuminance (lm.m-2, or lux)
+        - solar XYZ color (cd.m-2)
+        as perceived from Earth, after atmospheric attenuation, for the given
+        parameters.
 
     You may want to convert XYZ color to RGB via 'to_srgb' or
     'to_srgb_with_fixed_luminance' ColorXYZ methods.
     """
 
     def atm_transmittance(wavelength, mass, turbidity):
-        """Compute transmittance affected by atmospheric effects, for a given
-        wavelength
+        """Compute atmosphere transmittance affected by atmospheric effects.
 
-        Atmospheric effects taken into account:
-        Rayleigh, aerosols, ozone, mixed gases & water
+        The computation is done for a given wavelength, a given atmospheric
+        optical mass and a given atmospheric turbidity.
 
-        Parameters:
-        wavelength -- wavelength (nm)
-        mass -- optical mass of the atmosphere involved in attenuation
-        turbidity -- atmospheric turbidity
+        The atmospheric effects taken into account are:
+        Rayleigh, aerosols, ozone, mixed gases, water
+
+        Args:
+            wavelength -- wavelength (nm)
+            mass -- optical mass of the atmosphere involved in attenuation
+            turbidity -- atmospheric turbidity
 
         Returns:
-        Atmospheric transmittance
+            Atmospheric transmittance.
         """
         # Rayleigh scattering
         # (for this, wavelength should be in micrometers)
@@ -851,7 +877,7 @@ def sunlight(theta, turbidity):
 
         return tau_r * tau_a * tau_o * tau_g * tau_wa
 
-    # Function starts here
+    # 'sunlight' function starts here
 
     # Relative atmosphere Optical Mass
     mass = 1. / (cos(theta) + 0.00094 * (1.6386 - theta) ** -1.253)
@@ -885,7 +911,7 @@ def sunlight(theta, turbidity):
 
 
 def _test():
-    """Test function (for debug use)"""
+    """Test 'sunlight' function (for debug use)."""
 
     def subtest(name, theta, turbidity):
         theta_r = radians(theta)
