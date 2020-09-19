@@ -20,8 +20,11 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements a Camera object, which allows to take a snapshot
-of Coin Camera settings and use them later for rendering"""
+"""This module implements a Camera object for Render workbench.
+
+Camera object allows to take a snapshot of Coin Camera settings and to use them
+later for rendering.
+"""
 
 from collections import namedtuple
 from math import degrees, radians
@@ -132,18 +135,17 @@ class Camera:
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties"""
+        """Set underlying FeaturePython object's properties."""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             spec = cls.PROPERTIES[name]
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
 
     def __init__(self, fpo):
-        """Camera Initializer
+        """Initialize Camera.
 
-        Arguments
-        ---------
-        fpo: a FeaturePython object created with FreeCAD.addObject
+        Args:
+            fpo -- A FeaturePython object created with FreeCAD.addObject.
         """
         self.type = "Camera"
         fpo.Proxy = self
@@ -152,21 +154,21 @@ class Camera:
 
     @property
     def fpo(self):
-        """Underlying FeaturePython object getter"""
+        """Get underlying FeaturePython object."""
         return self._fpos[id(self)]
 
     @fpo.setter
     def fpo(self, new_fpo):
-        """Underlying FeaturePython object setter"""
+        """Set underlying FeaturePython object attribute."""
         self._fpos[id(self)] = new_fpo
 
     @staticmethod
     def create(document=None):
-        """Create a Camera object in a document
+        """Create a Camera object in a document.
 
         Factory method to create a new camera object.
         The camera is created into the active document (default).
-        Optionally, it is possible to specify a target document, in that case
+        Optionally, it is possible to specify a target document, in which case
         the camera is created in the given document.
 
         If Gui is up, the camera is initialized to current active camera;
@@ -174,13 +176,13 @@ class Camera:
         This method also create the FeaturePython and the ViewProviderCamera
         related objects.
 
-        Params:
-        document: the document where to create camera (optional)
+        Args:
+            document -- The document where to create the camera (optional).
 
         Returns:
-        The newly created Camera object, the FeaturePython object and the
-        ViewProviderCamera object"""
-
+            The newly created Camera, the FeaturePython and the
+            ViewProviderCamera objects.
+        """
         doc = document if document else App.ActiveDocument
         fpo = doc.addObject("App::FeaturePython", "Camera")
         cam = Camera(fpo)
@@ -193,7 +195,7 @@ class Camera:
         return cam, fpo, viewp
 
     def onDocumentRestored(self, fpo):
-        """Callback triggered when document is restored"""
+        """Respond to document restoration event (callback)."""
         self.type = "Camera"
         fpo.Proxy = self
         self.fpo = fpo
@@ -201,15 +203,13 @@ class Camera:
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
-        """Callback triggered on document recomputation (mandatory).
-        It mainly draws the camera graphical representation"""
+        """Respond to document recomputation event (callback, mandatory)."""
 
     def point_at(self, point):
-        """Make camera point at a given target point
+        """Make camera point at a given target point.
 
-        Parameters:
-        -----------
-        point -- point to point at (must have x, y, z properties)
+        Args:
+            point -- Geometrical point to point at (having x, y, z properties).
         """
         fpo = self.fpo
         current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
@@ -226,21 +226,26 @@ class Camera:
 
         fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
+
 # ===========================================================================
 
 
 class ViewProviderCamera:
-    """View Provider of Camera class"""
+    """View Provider of Camera class."""
 
     def __init__(self, vobj):
+        """Initialize View Provider."""
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
         self.callback = None  # For point_at method
 
     def attach(self, vobj):
-        """Code executed when object is created/restored (callback)"""
-        # pylint: disable=attribute-defined-outside-init
+        """Respond to created/restored object event (callback).
 
+        Args:
+            vobj -- Related ViewProviderDocumentObject
+        """
+        # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
 
         # Here we create a coin representation
@@ -294,32 +299,35 @@ class ViewProviderCamera:
         self._update_placement(self.fpo)
 
     def onDelete(self, feature, subelements):
-        """Code executed when object is deleted (callback)"""
+        """Respond to delete object event (callback)."""
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         scene.removeChild(self.coin.geometry)
         return True  # If False, the object wouldn't be deleted
 
     def onChanged(self, vpdo, prop):
-        """Code executed when a ViewProvider's property got modified (callback)
+        """Respond to property changed event (callback).
 
-        Parameters:
-        -----------
-        vpdo: related ViewProviderDocumentObject (where properties are stored)
-        prop: property name (as a string)
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            vpdo -- related ViewProviderDocumentObject (where properties are stored)
+            prop -- property name (as a string)
         """
         if prop == "Visibility":
             self.coin.geometry.whichChild =\
                 coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
 
     def updateData(self, fpo, prop):
-        """Code executed when a FeaturePython's property got modified
-        (callback)
+        """Respond to FeaturePython's property changed event (callback).
 
-        Parameters:
-        -----------
-        fpo: related FeaturePython object
-        prop: property name
+        This code is executed when a property of the underlying FeaturePython
+        object is changed.
+
+        Args:
+            fpo -- related FeaturePython object
+            prop -- property name
         """
         switcher = {
             "Placement": ViewProviderCamera._update_placement,
@@ -333,7 +341,7 @@ class ViewProviderCamera:
             update_method(self, fpo)
 
     def _update_placement(self, fpo):
-        """Update camera location"""
+        """Update camera location."""
         location = fpo.Placement.Base[:3]
         self.coin.transform.translation.setValue(location)
         angle = float(fpo.Placement.Rotation.Angle)
@@ -342,12 +350,12 @@ class ViewProviderCamera:
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Shaded"]
 
     def getDefaultDisplayMode(self):
         # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback)
+        """Return the name of the default display mode (callback).
 
         The returned mode must be defined in getDisplayModes.
         """
@@ -355,23 +363,21 @@ class ViewProviderCamera:
 
     def setDisplayMode(self, mode):
         # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback)
+        """Set object display mode (callback).
 
-        Since they have the same names nothing needs to be done.
-        This method is optional.
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def getIcon(self):
         # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)"""
+        """Return the icon which will appear in the tree view (callback)."""
         return ":/icons/camera-photo.svg"
 
     def setupContextMenu(self, vobj, menu):
-        """Setup the context menu associated to the object in tree view
-        (callback)
-        """
+        """Set up the object's context menu in GUI (callback)."""
         action1 = QAction(QT_TRANSLATE_NOOP("Render",
                                             "Set GUI to this camera"),
                           menu)
@@ -397,8 +403,7 @@ class ViewProviderCamera:
         menu.addAction(action3)
 
     def set_camera_from_gui(self):
-        """Set this camera from GUI camera"""
-
+        """Set this camera from GUI camera."""
         assert App.GuiUp, "Cannot set camera from GUI: GUI is down"
         fpo = self.fpo
         node = Gui.ActiveDocument.ActiveView.getCameraNode()
@@ -424,8 +429,7 @@ class ViewProviderCamera:
         fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[index]
 
     def set_gui_from_camera(self):
-        """Set GUI camera to this camera"""
-
+        """Set GUI camera to this camera."""
         assert App.GuiUp, "Cannot set GUI from camera: GUI is down"
 
         fpo = self.fpo
@@ -451,17 +455,18 @@ class ViewProviderCamera:
             node.heightAngle.setValue(radians(float(fpo.HeightAngle)))
 
     def __getstate__(self):
-        """Called while saving the document"""
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
-        """Called while restoring document"""
+        """Restore object state from data representation."""
         return None
 
     def point_at(self):
-        """Make this camera point at another object
+        """Make this camera point at another object.
 
-        User will be requested to select an object to point at"""
+        User will be requested to select an object to point at.
+        """
         msg = QT_TRANSLATE_NOOP("Render",
                                 "[Point at] Please select target "
                                 "(on geometry)\n")
@@ -471,10 +476,10 @@ class ViewProviderCamera:
             self._point_at_cb)
 
     def _point_at_cb(self, event_cb):
-        """Point at callback
+        """`point_at` method callback.
 
-        Parameters:
-        event_cb -- coin event callback object
+        Args:
+            event_cb -- coin event callback object
         """
         event = event_cb.getEvent()
         if (event.getState() == coin.SoMouseButtonEvent.DOWN and
@@ -506,11 +511,13 @@ class ViewProviderCamera:
 
 
 def set_cam_from_coin_string(cam, camstr):
-    """Set a Camera object from a string containing a camera description in
-    Open Inventor format
+    """Set a Camera object from a Coin camera string.
 
-    cam: a Camera FeaturePython object
-    camstr: a string in OpenInventor format, ex:
+    Args:
+        cam -- The Camera to set (as a Camera FeaturePython object)
+        camstr -- The Coin-formatted camera string
+
+    camstr should contain a string in Coin/OpenInventor format, for instance:
     #Inventor V2.1 ascii
 
 
@@ -542,7 +549,6 @@ def set_cam_from_coin_string(cam, camstr):
 
     }
     """
-
     # Split, clean and tokenize
     camdata = [y for y in [shlex.split(x, comments=True)
                            for x in camstr.split('\n')] if y]
@@ -579,12 +585,14 @@ def set_cam_from_coin_string(cam, camstr):
 
 
 def get_coin_string_from_cam(cam):
-    """Return camera data in Coin string format
+    """Return camera data in Coin string format.
 
-    cam: a Camera object"""
+    Args:
+        cam -- The Camera object to generate Coin string from.
+    """
 
     def check_enum(field):
-        """Check if the enum field value is valid"""
+        """Check whether the enum field value is valid."""
         assert getattr(cam, field) in Camera.PROPERTIES[field].Default,\
             "Invalid %s value" % field
 
@@ -611,11 +619,18 @@ def get_coin_string_from_cam(cam):
 
 
 def retrieve_legacy_camera(project):
-    """For backward compatibility: Retrieve legacy camera information in
-    rendering projects and transform it into Camera object
+    """Transform legacy camera project attribute into Camera object.
+
+    This function is provided for backward compatibility (when camera
+    information was stored as a string in a project's property).
+    The resulting Camera object is created in the current project.
+
+    Args:
+        project -- The Rendering Project where to find legacy camera
+            information
     """
     assert isinstance(project.Camera, str),\
-        "Project's Camera property should contain a string"
+        "Project's Camera property should be a string"
     _, fpo, _ = Camera.create()
     set_cam_from_coin_string(fpo, project.Camera)
 
