@@ -25,11 +25,10 @@
 A Renderable is a tuple (name, mesh, material). It is a convenient object
 to send to renderers.
 Each object in FreeCAD should be splittable into a list of Renderables. This
-module also provides the function to convert FreeCAD objects into collection of
+module provides the function to convert FreeCAD objects into collection of
 Renderables
 """
 
-# TODO Apply scale in Links and PathArray
 
 # ===========================================================================
 #                                   Imports
@@ -103,7 +102,6 @@ def get_renderables(obj, name, upper_material, mesher):
     elif obj_is_partfeature and obj_type == "Window":
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher)
-        assert renderables  # TODO Remove
 
     # Plain part
     elif obj_is_partfeature:
