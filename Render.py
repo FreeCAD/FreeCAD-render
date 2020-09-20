@@ -121,8 +121,7 @@ class Project:
         """Set underlying FeaturePython object's properties.
 
         Args:
-        ----------
-        obj -- FeaturePython Object related to this project
+            obj -- FeaturePython Object related to this project
         """
         self.fpo = obj
 
@@ -217,7 +216,7 @@ class Project:
                     "App::Property",
                     "If true, the rendered image is opened in FreeCAD after "
                     "the rendering is finished"))
-            obj.GroundPlane = False
+
         obj.setEditorMode("PageResult", 2)
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
@@ -237,6 +236,8 @@ class Project:
         if prop == "DelayedBuild" and not obj.DelayedBuild:
             for view in obj.Proxy.all_views():
                 view.touch()
+        if prop == "Renderer":
+            obj.PageResult = ""
 
     @staticmethod
     def create(document, renderer, template=""):
