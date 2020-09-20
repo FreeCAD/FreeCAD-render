@@ -275,7 +275,8 @@ class ViewProviderPointLight:
         changed.
 
         Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are stored)
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
             prop -- property name (as a string)
         """
         if prop == "Visibility":
@@ -587,7 +588,8 @@ class ViewProviderAreaLight:
         changed.
 
         Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are stored)
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
             prop -- property name (as a string)
         """
         if prop == "Visibility":
@@ -873,7 +875,8 @@ class ViewProviderSunskyLight:
         changed.
 
         Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are stored)
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
             prop -- property name (as a string)
         """
         if prop == "Visibility":

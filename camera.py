@@ -312,7 +312,8 @@ class ViewProviderCamera:
         changed.
 
         Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are stored)
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
             prop -- property name (as a string)
         """
         if prop == "Visibility":
