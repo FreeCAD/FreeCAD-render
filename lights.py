@@ -20,8 +20,10 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements lights objects, which allow to illuminate rendering
-scenes"""
+"""This module implements lights objects for Render workbench.
+
+Light objects allow to illuminate rendering scenes.
+"""
 
 
 # ===========================================================================
@@ -48,8 +50,12 @@ import FreeCADGui as Gui
 
 
 def make_star(subdiv=8, radius=1):
-    """Creates a 3D star graph, in which every single vertex is connected
-    to the center vertex and nobody else."""
+    """Create a 3D star graph.
+
+    In the created graph, every single vertex is connected to the center vertex
+    and to nothing else.
+    This graph is mainly used in point light graphical representation.
+    """
 
     def cartesian(radius, theta, phi):
         return (radius * math.sin(theta) * math.cos(phi),
@@ -70,7 +76,7 @@ def make_star(subdiv=8, radius=1):
 
 
 class PointLight:
-    """A point light"""
+    """A point light object."""
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
@@ -106,11 +112,10 @@ class PointLight:
     # ~FeaturePython object properties
 
     def __init__(self, fpo):
-        """PointLight initializer
+        """Initialize PointLight.
 
-        Parameters
-        ----------
-        fpo: a FeaturePython object created with FreeCAD.addObject
+        Args:
+            fpo -- a FeaturePython object created with FreeCAD.addObject
         """
         self.type = "PointLight"
         fpo.Proxy = self
@@ -118,7 +123,7 @@ class PointLight:
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties"""
+        """Set underlying FeaturePython object's properties."""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             spec = cls.PROPERTIES[name]
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
@@ -126,23 +131,23 @@ class PointLight:
 
     @staticmethod
     def create(document=None):
-        """Create a PointLight object in a document
+        """Create a PointLight object in a document.
 
         Factory method to create a new pointlight object.
         The light is created into the active document (default).
-        Optionally, it is possible to specify a target document, in that case
+        Optionally, it is possible to specify a target document, in which case
         the light is created in the given document.
 
-        This method also create the FeaturePython and the
+        This method also creates the FeaturePython and the
         ViewProviderPointLight related objects.
 
-        Params:
-        document: the document where to create pointlight (optional)
+        Args:
+            document -- The document where to create the pointlight (optional).
 
         Returns:
-        The newly created PointLight object, FeaturePython object and
-        ViewProviderPointLight object"""
-
+            The newly created PointLight, FeaturePython and
+            ViewProviderPointLight objects.
+        """
         doc = document if document else App.ActiveDocument
         fpo = doc.addObject("App::FeaturePython", "PointLight")
         lgt = PointLight(fpo)
@@ -151,37 +156,35 @@ class PointLight:
         return lgt, fpo, viewp
 
     def onDocumentRestored(self, fpo):
-        """Callback triggered when document is restored"""
+        """Respond to document restoration event (callback)."""
         self.type = "PointLight"
         fpo.Proxy = self
         self.set_properties(fpo)
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
-        """Callback triggered on document recomputation (mandatory)."""
+        """Respond to document recomputation event (callback, mandatory)."""
 
 
 class ViewProviderPointLight:
-    """View Provider of PointLight class"""
+    """View Provider of PointLight class."""
 
     SHAPE = make_star(radius=1)
 
     def __init__(self, vobj):
-        """Initializer
+        """Initialize View Provider.
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
 
     def attach(self, vobj):
-        """Code executed when object is created/restored (callback)
+        """Respond to created/restored object event (callback).
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         # pylint: disable=attribute-defined-outside-init
 
@@ -230,7 +233,7 @@ class ViewProviderPointLight:
         self._update_radius(self.fpo)
 
     def onDelete(self, feature, subelements):
-        """Code executed when object is deleted (callback)"""
+        """Respond to delete object event (callback)."""
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         scene.removeChild(self.coin.geometry)
@@ -239,12 +242,12 @@ class ViewProviderPointLight:
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Shaded", "Wireframe"]
 
     def getDefaultDisplayMode(self):
         # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback)
+        """Return the name of the default display mode (callback).
 
         The returned mode must be defined in getDisplayModes.
         """
@@ -252,26 +255,29 @@ class ViewProviderPointLight:
 
     def setDisplayMode(self, mode):
         # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback)
+        """Set the display mode (callback).
 
-        Since they have the same names nothing needs to be done.
-        This method is optional.
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def getIcon(self):
         # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)"""
+        """Return the icon which will appear in the tree view (callback)."""
         return path.join(path.dirname(__file__), "icons", "PointLight.svg")
 
     def onChanged(self, vpdo, prop):
-        """Code executed when a ViewProvider's property got modified (callback)
+        """Respond to property changed event (callback).
 
-        Parameters:
-        -----------
-        vpdo: related ViewProviderDocumentObject (where properties are stored)
-        prop: property name (as a string)
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
+            prop -- property name (as a string)
         """
         if prop == "Visibility":
             self.coin.light.on.setValue(vpdo.Visibility)
@@ -279,13 +285,14 @@ class ViewProviderPointLight:
                 coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
 
     def updateData(self, fpo, prop):
-        """Code executed when a FeaturePython's property got modified
-        (callback)
+        """Respond to FeaturePython's property changed event (callback).
 
-        Parameters:
-        -----------
-        fpo: related FeaturePython object
-        prop: property name
+        This code is executed when a property of the underlying FeaturePython
+        object is changed.
+
+        Args:
+            fpo -- related FeaturePython object
+            prop -- property name
         """
         switcher = {
             "Location": ViewProviderPointLight._update_location,
@@ -302,33 +309,33 @@ class ViewProviderPointLight:
             update_method(self, fpo)
 
     def _update_location(self, fpo):
-        """Update pointlight location"""
+        """Update pointlight location."""
         location = fpo.Location[:3]
         self.coin.transform.translation.setValue(location)
         self.coin.light.location.setValue(location)
 
     def _update_power(self, fpo):
-        """Update pointlight power"""
+        """Update pointlight power."""
         intensity = fpo.Power / 100 if fpo.Power <= 100 else 1
         self.coin.light.intensity.setValue(intensity)
 
     def _update_color(self, fpo):
-        """Update pointlight color"""
+        """Update pointlight color."""
         color = fpo.Color[:3]
         self.coin.material.diffuseColor.setValue(color)
         self.coin.light.color.setValue(color)
 
     def _update_radius(self, fpo):
-        """Update pointlight radius"""
+        """Update pointlight radius."""
         scale = [fpo.Radius] * 3
         self.coin.transform.scaleFactor.setValue(scale)
 
     def __getstate__(self):
-        """Called while saving the document"""
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
-        """Called while restoring document"""
+        """Restore object state from data representation."""
         return None
 
 
@@ -338,7 +345,7 @@ class ViewProviderPointLight:
 
 
 class AreaLight:
-    """An area light"""
+    """An area light."""
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
@@ -382,11 +389,10 @@ class AreaLight:
     _fpos = dict()  # FeaturePython objects
 
     def __init__(self, fpo):
-        """AreaLight initializer
+        """Initialize AreaLight.
 
-        Parameters
-        ----------
-        fpo: a FeaturePython object created with FreeCAD.addObject
+        Args:
+            fpo -- A FeaturePython object created with FreeCAD.addObject.
         """
         self.type = "AreaLight"
         fpo.Proxy = self
@@ -395,17 +401,17 @@ class AreaLight:
 
     @property
     def fpo(self):
-        """Underlying FeaturePython object getter"""
+        """Get underlying FeaturePython object attribute."""
         return self._fpos[id(self)]
 
     @fpo.setter
     def fpo(self, new_fpo):
-        """Underlying FeaturePython object setter"""
+        """Set underlying FeaturePython object attribute."""
         self._fpos[id(self)] = new_fpo
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties"""
+        """Set underlying FeaturePython object's properties."""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             spec = cls.PROPERTIES[name]
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
@@ -413,7 +419,7 @@ class AreaLight:
 
     @staticmethod
     def create(document=None):
-        """Create an AreaLight object in a document
+        """Create an AreaLight object in a document.
 
         Factory method to create a new arealight object.
         The light is created into the active document (default).
@@ -423,13 +429,13 @@ class AreaLight:
         This method also create the FeaturePython and the
         ViewProvider related objects.
 
-        Params:
-        document: the document where to create arealight (optional)
+        Args:
+            document -- The document where to create arealight (optional)
 
         Returns:
-        The newly created PointLight object, FeaturePython object and
-        ViewProvider object"""
-
+            The newly created PointLight, FeaturePython and
+            ViewProvider object
+        """
         doc = document if document else App.ActiveDocument
         fpo = doc.addObject("App::FeaturePython", "AreaLight")
         lgt = AreaLight(fpo)
@@ -438,7 +444,7 @@ class AreaLight:
         return lgt, fpo, viewp
 
     def onDocumentRestored(self, fpo):
-        """Callback triggered when document is restored"""
+        """Respond to document restoration event (callback)."""
         self.type = "AreaLight"
         fpo.Proxy = self
         self.fpo = fpo
@@ -446,14 +452,13 @@ class AreaLight:
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
-        """Callback triggered on document recomputation (mandatory)."""
+        """Respond to document recomputation event (callback, mandatory)."""
 
     def point_at(self, point):
-        """Make Area light point at a given target point
+        """Make Area light point at a given target point.
 
-        Parameters:
-        -----------
-        point -- point to point at (must have x, y, z properties)
+        Args:
+            point -- Geometrical point to point at (having x, y, z properties).
         """
         fpo = self.fpo
         current_normal = fpo.Placement.Rotation.multVec(App.Vector(0, 0, 1))
@@ -471,7 +476,7 @@ class AreaLight:
 
 
 class ViewProviderAreaLight:
-    """View Provider of PointLight class"""
+    """View Provider of PointLight class."""
 
     SHAPE = ((-0.5, -0.5, 0),
              (0.5, -0.5, 0),
@@ -480,25 +485,22 @@ class ViewProviderAreaLight:
              (-0.5, -0.5, 0))
 
     def __init__(self, vobj):
-        """Initializer
+        """Initialize View Provider.
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
         self.callback = None  # For point_at method
 
     def attach(self, vobj):
-        """Code executed when object is created/restored (callback)
+        """Respond to created/restored object event (callback).
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         # pylint: disable=attribute-defined-outside-init
-
         self.fpo = vobj.Object
         AreaLight.set_properties(self.fpo)
 
@@ -544,7 +546,7 @@ class ViewProviderAreaLight:
         self._update_size(self.fpo)
 
     def onDelete(self, feature, subelements):
-        """Code executed when object is deleted (callback)"""
+        """Respond to delete object event (callback)."""
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         scene.removeChild(self.coin.geometry)
@@ -553,12 +555,12 @@ class ViewProviderAreaLight:
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Shaded", "Wireframe"]
 
     def getDefaultDisplayMode(self):
         # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback)
+        """Return the name of the default display mode (callback).
 
         The returned mode must be defined in getDisplayModes.
         """
@@ -566,26 +568,29 @@ class ViewProviderAreaLight:
 
     def setDisplayMode(self, mode):
         # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback)
+        """Set the display mode (callback).
 
-        Since they have the same names nothing needs to be done.
-        This method is optional.
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def getIcon(self):
         # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)"""
+        """Return the icon which will appear in the tree view (callback)."""
         return path.join(path.dirname(__file__), "icons", "AreaLight.svg")
 
     def onChanged(self, vpdo, prop):
-        """Code executed when a ViewProvider's property got modified (callback)
+        """Respond to property changed event (callback).
 
-        Parameters:
-        -----------
-        vpdo: related ViewProviderDocumentObject (where properties are stored)
-        prop: property name (as a string)
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
+            prop -- property name (as a string)
         """
         if prop == "Visibility":
             self.coin.light.on.setValue(vpdo.Visibility)
@@ -593,9 +598,7 @@ class ViewProviderAreaLight:
                 coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
 
     def setupContextMenu(self, vobj, menu):
-        """Setup the context menu associated to the object in tree view
-        (callback)
-        """
+        """Set up the object's context menu in GUI (callback)."""
         action1 = QAction(QT_TRANSLATE_NOOP("Render",
                                             "Point at..."),
                           menu)
@@ -605,13 +608,14 @@ class ViewProviderAreaLight:
         menu.addAction(action1)
 
     def updateData(self, fpo, prop):
-        """Code executed when a FeaturePython's property got modified
-        (callback)
+        """Respond to FeaturePython's property changed event (callback).
 
-        Parameters:
-        -----------
-        fpo: related FeaturePython object
-        prop: property name
+        This code is executed when a property of the underlying FeaturePython
+        object is changed.
+
+        Args:
+            fpo -- related FeaturePython object
+            prop -- property name
         """
         switcher = {
             "Placement": ViewProviderAreaLight._update_placement,
@@ -629,7 +633,7 @@ class ViewProviderAreaLight:
             update_method(self, fpo)
 
     def _update_placement(self, fpo):
-        """Update arealight location"""
+        """Update arealight location."""
         location = fpo.Placement.Base[:3]
         self.coin.transform.translation.setValue(location)
         angle = float(fpo.Placement.Rotation.Angle)
@@ -638,26 +642,27 @@ class ViewProviderAreaLight:
         self.coin.light.location.setValue(location)
 
     def _update_power(self, fpo):
-        """Update arealight power"""
+        """Update arealight power."""
         intensity = fpo.Power / 100 if fpo.Power <= 100 else 1
         self.coin.light.intensity.setValue(intensity)
 
     def _update_color(self, fpo):
-        """Update arealight color"""
+        """Update arealight color."""
         color = fpo.Color[:3]
         self.coin.material.emissiveColor.setValue(color)
         self.coin.material.diffuseColor.setValue(color)
         self.coin.light.color.setValue(color)
 
     def _update_size(self, fpo):
-        """Update arealight size"""
+        """Update arealight size."""
         size = (fpo.SizeU, fpo.SizeV, 0)
         self.coin.transform.scaleFactor.setValue(size)
 
     def point_at(self):
-        """Make this area light point at another object
+        """Make this arealight point at another object.
 
-        User will be requested to select an object to point at"""
+        User will be requested to select an object to point at.
+        """
         msg = QT_TRANSLATE_NOOP("Render",
                                 "[Point at] Please select target "
                                 "(on geometry)\n")
@@ -667,10 +672,10 @@ class ViewProviderAreaLight:
             self._point_at_cb)
 
     def _point_at_cb(self, event_cb):
-        """Point at callback
+        """`point_at` callback.
 
-        Parameters:
-        event_cb -- coin event callback object
+        Args:
+            event_cb -- coin event callback object
         """
         event = event_cb.getEvent()
         if (event.getState() == coin.SoMouseButtonEvent.DOWN and
@@ -698,11 +703,11 @@ class ViewProviderAreaLight:
                     coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
 
     def __getstate__(self):
-        """Called while saving the document"""
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
-        """Called while restoring document"""
+        """Restore object state from data representation."""
         return None
 
 
@@ -712,7 +717,7 @@ class ViewProviderAreaLight:
 
 
 class SunskyLight:
-    """A sun+sky light - Hosek-Wilkie"""
+    """A sun+sky light - Hosek-Wilkie."""
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
@@ -739,11 +744,10 @@ class SunskyLight:
     # ~FeaturePython object properties
 
     def __init__(self, fpo):
-        """PointLight initializer
+        """Initialize PointLight.
 
-        Parameters
-        ----------
-        fpo: a FeaturePython object created with FreeCAD.addObject
+        Args:
+            fpo -- A FeaturePython object created with FreeCAD.addObject.
         """
         self.type = "SunskyLight"
         fpo.Proxy = self
@@ -751,7 +755,7 @@ class SunskyLight:
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties"""
+        """Set underlying FeaturePython object's properties."""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             spec = cls.PROPERTIES[name]
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
@@ -759,7 +763,7 @@ class SunskyLight:
 
     @staticmethod
     def create(document=None):
-        """Create a SunskyLight object in a document
+        """Create a SunskyLight object in a document.
 
         Factory method to create a new sunsky light object.
         The light is created into the active document (default).
@@ -769,13 +773,13 @@ class SunskyLight:
         This method also create the FeaturePython and the
         ViewProviderPointLight related objects.
 
-        Params:
-        document: the document where to create pointlight (optional)
+        Args:
+            document -- The document where to create pointlight (optional)
 
         Returns:
-        The newly created SunskyLight object, FeaturePython object and
-        ViewProviderSunskyLight object"""
-
+            The newly created SunskyLight, FeaturePython and
+            ViewProviderSunskyLight objects
+        """
         doc = document if document else App.ActiveDocument
         fpo = doc.addObject("App::FeaturePython", "SunskyLight")
         lgt = SunskyLight(fpo)
@@ -784,38 +788,35 @@ class SunskyLight:
         return lgt, fpo, viewp
 
     def onDocumentRestored(self, fpo):
-        """Callback triggered when document is restored"""
+        """Respond to document restoration event (callback)."""
         self.type = "SunskyLight"
         fpo.Proxy = self
         self.set_properties(fpo)
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
-        """Callback triggered on document recomputation (mandatory)."""
+        """Respond to document recomputation event (callback, mandatory)."""
 
 
 class ViewProviderSunskyLight:
-    """View Provider of SunskyLight class"""
+    """View Provider of SunskyLight class."""
 
     def __init__(self, vobj):
-        """Initializer
+        """Initialize View Provider.
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject.
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
 
     def attach(self, vobj):
-        """Code executed when object is created/restored (callback)
+        """Respond to created/restored object event (callback).
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         # pylint: disable=attribute-defined-outside-init
-
         self.fpo = vobj.Object
         SunskyLight.set_properties(self.fpo)
 
@@ -830,19 +831,19 @@ class ViewProviderSunskyLight:
         vobj.addDisplayMode(self.coin.light, "Shaded")
 
     def onDelete(self, feature, subelements):
-        """Code executed when object is deleted (callback)"""
+        """Respond to delete object event (callback)."""
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Shaded", "Wireframe"]
 
     def getDefaultDisplayMode(self):
         # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback)
+        """Return the name of the default display mode (callback).
 
         The returned mode must be defined in getDisplayModes.
         """
@@ -850,44 +851,46 @@ class ViewProviderSunskyLight:
 
     def setDisplayMode(self, mode):
         # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback)
+        """Set the display mode (callback).
 
-        Since they have the same names nothing needs to be done.
-        This method is optional.
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def setupContextMenu(self, vobj, menu):
         # pylint: disable=no-self-use
-        """Setup the context menu associated to the object in tree view
-        (callback)
-        """
+        """Set up the object's context menu in GUI (callback)."""
 
     def getIcon(self):
         # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)"""
+        """Return the icon which will appear in the tree view (callback)."""
         return path.join(path.dirname(__file__), "icons", "SunskyLight.svg")
 
     def onChanged(self, vpdo, prop):
-        """Code executed when a ViewProvider's property got modified (callback)
+        """Respond to property changed event (callback).
 
-        Parameters:
-        -----------
-        vpdo: related ViewProviderDocumentObject (where properties are stored)
-        prop: property name (as a string)
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
+            prop -- property name (as a string)
         """
         if prop == "Visibility":
             self.coin.light.on.setValue(vpdo.Visibility)
 
     def updateData(self, fpo, prop):
-        """Code executed when a FeaturePython's property got modified
-        (callback)
+        """Respond to FeaturePython's property changed event (callback).
 
-        Parameters:
-        -----------
-        fpo: related FeaturePython object
-        prop: property name
+        This code is executed when a property of the underlying FeaturePython
+        object is changed.
+
+        Args:
+            fpo -- related FeaturePython object
+            prop -- property name
         """
         switcher = {
             "SunDirection": ViewProviderSunskyLight._update_direction,
@@ -901,17 +904,17 @@ class ViewProviderSunskyLight:
             update_method(self, fpo)
 
     def _update_direction(self, fpo):
-        """Update sunsky light direction"""
+        """Update sunsky light direction."""
         sundir = fpo.SunDirection
         direction = (-sundir.x, -sundir.y, -sundir.z)
         self.coin.light.direction.setValue(direction)
 
     def __getstate__(self):
-        """Called while saving the document"""
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
-        """Called while restoring document"""
+        """Restore object state from data representation."""
         return None
 
 
@@ -921,7 +924,7 @@ class ViewProviderSunskyLight:
 
 
 class ImageLight:
-    """An image-based light"""
+    """An image-based light."""
 
     Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
 
@@ -938,11 +941,10 @@ class ImageLight:
     # ~FeaturePython object properties
 
     def __init__(self, fpo):
-        """PointLight initializer
+        """Initialize PointLight.
 
-        Parameters
-        ----------
-        fpo: a FeaturePython object created with FreeCAD.addObject
+        Args:
+            fpo -- A FeaturePython object created with FreeCAD.addObject.
         """
         self.type = "ImageLight"
         fpo.Proxy = self
@@ -950,7 +952,7 @@ class ImageLight:
 
     @classmethod
     def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties"""
+        """Set underlying FeaturePython object's properties."""
         for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
             spec = cls.PROPERTIES[name]
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
@@ -958,7 +960,7 @@ class ImageLight:
 
     @staticmethod
     def create(document=None):
-        """Create a ImageLight object in a document
+        """Create a ImageLight object in a document.
 
         Factory method to create a new image light object.
         The light is created into the active document (default).
@@ -968,13 +970,13 @@ class ImageLight:
         This method also create the FeaturePython and the
         ViewProviderImageLight related objects.
 
-        Params:
-        document: the document where to create image light (optional)
+        Args:
+            document -- The document where to create image light (optional).
 
         Returns:
-        The newly created ImageLight object, FeaturePython object and
-        ViewProviderImageLight object"""
-
+            The newly created ImageLight, FeaturePython and
+            ViewProviderImageLight objects
+        """
         doc = document if document else App.ActiveDocument
         fpo = doc.addObject("App::FeaturePython", "ImageLight")
         lgt = ImageLight(fpo)
@@ -983,38 +985,35 @@ class ImageLight:
         return lgt, fpo, viewp
 
     def onDocumentRestored(self, fpo):
-        """Callback triggered when document is restored"""
+        """Respond to document restoration event (callback)."""
         self.type = "ImageLight"
         fpo.Proxy = self
         self.set_properties(fpo)
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
-        """Callback triggered on document recomputation (mandatory)."""
+        """Respond to document recomputation event (callback, mandatory)."""
 
 
 class ViewProviderImageLight:
-    """View Provider of ImageLight class"""
+    """View Provider of ImageLight class."""
 
     def __init__(self, vobj):
-        """Initializer
+        """Initialize View Provider.
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
 
     def attach(self, vobj):
-        """Code executed when object is created/restored (callback)
+        """Respond to created/restored object event (callback).
 
-        Parameters:
-        -----------
-        vobj: related ViewProviderDocumentObject
+        Args:
+            vobj -- Related ViewProviderDocumentObject
         """
         # pylint: disable=attribute-defined-outside-init
-
         self.fpo = vobj.Object
         ImageLight.set_properties(self.fpo)
 
@@ -1029,12 +1028,12 @@ class ViewProviderImageLight:
 
     def getDisplayModes(self, _):
         # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Shaded", "Wireframe"]
 
     def getDefaultDisplayMode(self):
         # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback)
+        """Return the name of the default display mode (callback).
 
         The returned mode must be defined in getDisplayModes.
         """
@@ -1042,29 +1041,27 @@ class ViewProviderImageLight:
 
     def setDisplayMode(self, mode):
         # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback)
+        """Set the display mode (callback).
 
-        Since they have the same names nothing needs to be done.
-        This method is optional.
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def setupContextMenu(self, vobj, menu):
         # pylint: disable=no-self-use
-        """Setup the context menu associated to the object in tree view
-        (callback)
-        """
+        """Set up the object's context menu in GUI (callback)."""
 
     def getIcon(self):
         # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)"""
+        """Return the icon which will appear in the tree view (callback)."""
         return path.join(path.dirname(__file__), "icons", "ImageLight.svg")
 
     def __getstate__(self):
-        """Called while saving the document"""
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
-        """Called while restoring document"""
+        """Restore object state from data representation."""
         return None

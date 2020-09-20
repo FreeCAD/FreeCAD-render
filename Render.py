@@ -95,7 +95,7 @@ VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 
 class Project:
-    """A rendering project"""
+    """A rendering project."""
 
     # Related FeaturePython object has to be stored in a class variable,
     # (not in an instance variable...), otherwise it causes trouble in
@@ -103,25 +103,26 @@ class Project:
     _fpos = dict()
 
     def __init__(self, obj):
+        """Initialize Project class."""
         obj.Proxy = self
         self.set_properties(obj)
 
     @property
     def fpo(self):
-        """Underlying FeaturePython object getter"""
+        """Get underlying FeaturePython object."""
         return self._fpos[id(self)]
 
     @fpo.setter
     def fpo(self, new_fpo):
-        """Underlying FeaturePython object setter"""
+        """Set underlying FeaturePython object."""
         self._fpos[id(self)] = new_fpo
 
     def set_properties(self, obj):
-        """Set underlying FeaturePython object's properties
+        """Set underlying FeaturePython object's properties.
 
-        Parameters
+        Args:
         ----------
-        obj: FeaturePython Object related to this project
+        obj -- FeaturePython Object related to this project
         """
         self.fpo = obj
 
@@ -220,18 +221,18 @@ class Project:
         obj.setEditorMode("PageResult", 2)
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
-        """Code to be executed when document is restored (callback)"""
+        """Respond to document restoration event (callback)."""
         self.set_properties(obj)
 
     def execute(self, obj):  # pylint: disable=no-self-use
-        """Code to be executed on document recomputation
-        (callback, mandatory)
-        """
+        """Respond to document recomputation event (callback, mandatory)."""
         return True
 
     def onChanged(self, obj, prop):  # pylint: disable=no-self-use
-        """Code to be executed when a property of the FeaturePython object is
-        changed (callback)
+        """Respond to property changed event (callback).
+
+        This code is executed when a property of the FeaturePython object is
+        changed.
         """
         if prop == "DelayedBuild" and not obj.DelayedBuild:
             for view in obj.Proxy.all_views():
@@ -239,7 +240,7 @@ class Project:
 
     @staticmethod
     def create(document, renderer, template=""):
-        """Factory method to create a new rendering project.
+        """Create a new rendering project (factory method).
 
         This method creates a new rendering project in a given FreeCAD
         Document.
@@ -248,12 +249,13 @@ class Project:
         The method also creates the FeaturePython and the ViewProviderProject
         objects related to the new rendering project.
 
-        Params:
-        document:        the document where the project is to be created
-        renderer:        the path to the renderer module to associate with
-                         project
-        template (opt.): the path to the rendering template to associate with
-                         project
+        Args:
+        ----------
+        document -- the document where the project is to be created
+        renderer -- the path to the renderer module to associate with
+            project
+        template -- (opt.) the path to the rendering template to associate with
+            project
 
         Returns: the newly created Project, the related FeaturePython object
                  and the related ViewProviderProject
@@ -270,14 +272,14 @@ class Project:
         return project, project_fpo, viewp
 
     def write_groundplane(self, renderer):
-        """Generate a ground plane rendering string for the scene
+        """Generate a ground plane rendering string for the scene.
 
         For that purpose, dummy objects are temporarily added to the document
         which the project belongs to, and eventually deleted
 
-        Parameters
+        Args:
         ----------
-        renderer:   the renderer handler
+        renderer -- the renderer handler
 
         Returns
         -------
@@ -327,7 +329,8 @@ class Project:
         via 'RendererHandler.is_renderable'; if not, a warning is issued and
         the faulty object is ignored.
 
-        Parameters:
+        Args::
+        -----------
         objs -- an iterable on FreeCAD objects to add to project
         """
 
@@ -362,10 +365,14 @@ class Project:
         add_to_group(iter(objs), self.fpo)
 
     def all_views(self):
-        """Give the list of all views contained in the project"""
+        """Give the list of all the views contained in the project."""
         def all_group_objs(group):
-            """Returns all objects in group (recursively exploding
-            subgroups)
+            """Return all objects in a group.
+
+            This method recursively explodes subgroups.
+
+            Args:
+                group -- The group where the objects are to be searched.
             """
             res = []
             for obj in group.Group:
@@ -377,15 +384,14 @@ class Project:
         return all_group_objs(self.fpo)
 
     def render(self, external=True):
-        """Render the project, calling external renderer
+        """Render the project, calling an external renderer.
 
-        Parameters
-        ----------
-        external: switch between internal/external version of renderer
+        Args:
+            external -- flag to switch between internal/external version of
+                renderer
 
-        Returns
-        -------
-        Output file path
+        Returns:
+            Output file path
         """
         obj = self.fpo
 
@@ -497,44 +503,48 @@ class Project:
 
 
 class ViewProviderProject:
-    """View provider for rendering project object"""
+    """View provider for the rendering project object."""
 
     def __init__(self, vobj):
+        """Initialize view provider."""
         vobj.Proxy = self
         self.object = vobj.Object
 
     def attach(self, vobj):  # pylint: disable=no-self-use
-        """Code to be executed when object is created/restored (callback)"""
+        """Respond to created/restored object event (callback)."""
         self.object = vobj.Object
         return True
 
     def __getstate__(self):
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
+        """Restore object state from data representation."""
         return None
 
     def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Default"]
 
     def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
         """Return the name of the default display mode (callback).
-        This display mode  must be defined in getDisplayModes.
+
+        The display mode must be defined in getDisplayModes.
         """
         return "Default"
 
     def setDisplayMode(self, mode):  # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback).
+        """Set the display mode (callback).
 
-        Since they have the same names nothing needs to be done.
-        This method is optional
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def isShow(self):  # pylint: disable=no-self-use
-        """Define the visibility of the object in the tree view (callback)"""
+        """Define the visibility of the object in the tree view (callback)."""
         return True
 
     def getIcon(self):  # pylint: disable=no-self-use
@@ -542,22 +552,24 @@ class ViewProviderProject:
         return os.path.join(WBDIR, "icons", "RenderProject.svg")
 
     def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
-        """Setup the context menu associated to the object in tree view
-        (callback)"""
+        """Set up the object's context menu in GUI (callback)."""
         icon = QIcon(os.path.join(WBDIR, "icons", "Render.svg"))
         action1 = QAction(icon, "Render", menu)
         QObject.connect(action1, SIGNAL("triggered()"), self.render)
         menu.addAction(action1)
 
     def claimChildren(self):  # pylint: disable=no-self-use
-        """Deliver the children belonging to this object (callback)"""
+        """Deliver the children belonging to this object (callback)."""
         try:
             return self.object.Group
         except AttributeError:
             pass
 
     def render(self):
-        """Render project (call proxy render)"""
+        """Render project.
+
+        This method calls call proxy's 'render' method.
+        """
         try:
             self.object.Proxy.render()
         except AttributeError as err:
@@ -566,7 +578,7 @@ class ViewProviderProject:
 
 
 class View:
-    """A rendering view of a FreeCAD object"""
+    """A rendering view of a FreeCAD object."""
 
     # Related FeaturePython object has to be stored in a class variable,
     # (not in an instance variable...), otherwise it causes trouble in
@@ -574,25 +586,25 @@ class View:
     _fpos = dict()
 
     def __init__(self, obj):
+        """Initialize view."""
         obj.Proxy = self
         self.set_properties(obj)
 
     @property
     def fpo(self):
-        """Underlying FeaturePython object getter"""
+        """Get underlying FeaturePython object."""
         return self._fpos[id(self)]
 
     @fpo.setter
     def fpo(self, new_fpo):
-        """Underlying FeaturePython object setter"""
+        """Set underlying FeaturePython object."""
         self._fpos[id(self)] = new_fpo
 
     def set_properties(self, obj):
-        """Set underlying FeaturePython object's properties
+        """Set underlying FeaturePython object's properties.
 
-        Parameters
-        ----------
-        obj: FeaturePython Object related to this project
+        Args:
+            obj -- FeaturePython Object related to this project
         """
         self.fpo = obj
 
@@ -621,12 +633,11 @@ class View:
                                   "The rendering output of this view"))
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
-        """Code to be executed when document is restored (callback)"""
+        """Respond to document restoration event (callback)."""
         self.set_properties(obj)
 
     def execute(self, obj):  # pylint: disable=no-self-use
-        """Code to be executed on document recomputation
-        (callback, mandatory)
+        """Respond to document recomputation event (callback, mandatory).
 
         Write or rewrite the ViewResult string if containing project is not
         'delayed build'
@@ -645,11 +656,12 @@ class View:
 
     @staticmethod
     def view_label(obj, proj, is_group=False):
-        """Give a standard label for the view of an object
+        """Give a standard label for the view of an object.
 
-        obj -- object which the view is built for
-        proj -- project which the view will be inserted in
-        is_group -- flag to indicate whether the view is a group
+        Args:
+            obj -- object which the view is built for
+            proj -- project which the view will be inserted in
+            is_group -- flag to indicate whether the view is a group
 
         Both obj and proj should have valid Label attributes
         """
@@ -663,7 +675,7 @@ class View:
 
     @staticmethod
     def create(fcd_obj, project):
-        """Factory method to create a new rendering object in a given project.
+        """Create a new rendering object in a given project (factory method).
 
         This method creates a new rendering object in a given rendering
         project, for a given FreeCAD object (of any type: Mesh, Part...).
@@ -673,13 +685,13 @@ class View:
         The method also creates the FeaturePython and the ViewProviderView
         objects related to the new rendering view.
 
-        Params:
-        fcdobj:     the FreeCAD object for which the rendering view is to be
-                    created
-        project:    the rendering project in which the view is to be created
+        Args:
+            fcdobj -- The object for which the rendering view is to be created
+            project -- The rendering project in which the view is to be created
 
-        Returns:    the newly created View, the related FeaturePython object
-                    and the related ViewProviderView object
+        Returns:
+            The newly created View, the related FeaturePython object and the
+            related ViewProviderView object
         """
         doc = project.Document
         assert doc == fcd_obj.Document,\
@@ -693,13 +705,13 @@ class View:
         return view, fpo, viewp
 
     def get_shape_color(self):
-        """Get the RGBA color for a FreeCAD object as seen in viewport
+        """Get the RGBA color for a FreeCAD object as seen in viewport.
 
         If the object does not hold any color data, a default
         RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
 
         Returns:
-        The RGBA color, as a (named) tuple
+            The RGBA color, as a (named) tuple
         """
         source = self.fpo.Source
         # Get RGB
@@ -718,43 +730,47 @@ class View:
 
 
 class ViewProviderView:
-    """ViewProvider of rendering view object"""
+    """ViewProvider of rendering view object."""
 
     def __init__(self, vobj):
+        """Initialize ViewProviderView."""
         vobj.Proxy = self
         self.object = None
 
     def attach(self, vobj):  # pylint: disable=no-self-use
-        """Code to be executed when object is created/restored (callback)"""
+        """Respond to created/restored object event (callback)."""
         self.object = vobj.Object
 
     def __getstate__(self):
+        """Provide data representation for object."""
         return None
 
     def __setstate__(self, state):
+        """Restore object state from data representation."""
         return None
 
     def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
-        """Return a list of display modes (callback)"""
+        """Return a list of display modes (callback)."""
         return ["Default"]
 
     def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
         """Return the name of the default display mode (callback).
-        This display mode  must be defined in getDisplayModes.
+
+        This display mode must be defined in getDisplayModes.
         """
         return "Default"
 
     def setDisplayMode(self, mode):  # pylint: disable=no-self-use
-        """Map the display mode defined in attach with those defined in
-        getDisplayModes (callback).
+        """Set the display mode (callback).
 
-        Since they have the same names nothing needs to be done. This method
-        is optional
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
         """
         return mode
 
     def isShow(self):  # pylint: disable=no-self-use
-        """Define the visibility of the object in the tree view (callback)"""
+        """Define the visibility of the object in the tree view (callback)."""
         return True
 
     def getIcon(self):  # pylint: disable=no-self-use
@@ -768,16 +784,19 @@ class ViewProviderView:
 
 
 class RenderProjectCommand:
-    """"Creates a rendering project.
-    The renderer parameter must be a valid rendering module name
-    """
+    """GUI command to create a rendering project."""
 
-    def __init__(self, renderer: str):
+    def __init__(self, renderer):
+        """Initialize command.
+
+        Args:
+            renderer (str) -- a rendering module name
+        """
         # renderer must be a valid rendering module name (string)
         self.renderer = str(renderer)
 
     def GetResources(self):
-        """Command's resources (callback)"""
+        """Get command's resources (callback)."""
         rdr = self.renderer
         return {
             "Pixmap": os.path.join(WBDIR, "icons", rdr + ".svg"),
@@ -787,8 +806,10 @@ class RenderProjectCommand:
             }
 
     def Activated(self):
-        """Code to be executed when command is run (callback)
-        Creates a new rendering project into active document
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
         """
         assert self.renderer, "Error: no renderer in command"
 
@@ -807,12 +828,14 @@ class RenderProjectCommand:
 
 
 class RenderViewCommand:
-    """Creates a Raytracing view of the selected object(s) in the selected
-    project or the default project
+    """GUI command to create a rendering view of an object in a project.
+
+    The command operates on the selected object(s) and the selected project,
+    or the default project.
     """
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
+        """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(WBDIR, "icons", "RenderView.svg"),
             "MenuText": QT_TRANSLATE_NOOP("Render", "Create View"),
@@ -823,8 +846,11 @@ class RenderViewCommand:
             }
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
 
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         # First, split selection into objects and projects
         selection = Gui.Selection.getSelection()
         objs, projs = [], []
@@ -853,10 +879,10 @@ class RenderViewCommand:
 
 
 class RenderCommand:
-    """Render a selected Render project"""
+    """GUI command to render a selected Render project."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
+        """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "Render.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Render"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
@@ -865,7 +891,11 @@ class RenderCommand:
                                              "project")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         # Find project
         project = None
         sel = Gui.Selection.getSelection()
@@ -883,11 +913,10 @@ class RenderCommand:
 
 
 class CameraCommand:
-    """Create a Camera object"""
+    """GUI command to create a Camera object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
-
+        """Get command's resources (callback)."""
         return {"Pixmap": ":/icons/camera-photo.svg",
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Create Camera"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
@@ -895,80 +924,95 @@ class CameraCommand:
                                              "the current camera position")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         camera.Camera.create()
 
 
 class PointLightCommand:
-    """Create a Point Light object"""
+    """GUI command to create a Point Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
-
+        """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "PointLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Create Point Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
                                              "Creates a Point Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         lights.PointLight.create()
 
 
 class AreaLightCommand:
-    """Create an Area Light object"""
+    """GUI command to create an Area Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
-
+        """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "AreaLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Create Area Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
                                              "Creates an Area Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         lights.AreaLight.create()
 
 
 class SunskyLightCommand:
-    """Create an Sunsky Light object"""
+    """GUI command to create an Sunsky Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
-
+        """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "SunskyLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Create Sunsky Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
                                              "Creates a Sunsky Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         lights.SunskyLight.create()
 
 
 class ImageLightCommand:
-    """Create an Image Light object"""
+    """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
-
+        """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "ImageLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("Render", "Create Image Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("Render",
                                              "Creates an Image Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         lights.ImageLight.create()
 
 
 class MaterialSettingsCommand:
-    """Set render settings of a material object."""
+    """GUI command to set render settings of a material object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
-        """Command's resources (callback)"""
-
+        """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("Render",
                                               "Material Render Settings"),
@@ -977,7 +1021,11 @@ class MaterialSettingsCommand:
                                              "a Material")}
 
     def Activated(self):  # pylint: disable=no-self-use
-        """Code to be executed when command is run (callback)"""
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new rendering project into the active document.
+        """
         # App.setActiveTransaction("MaterialSettings")
         App.ActiveDocument.openTransaction("MaterialSettings")
         task = MaterialSettingsTaskPanel()
@@ -991,44 +1039,51 @@ class ColorPicker(QPushButton):
     """A color picker widget.
 
     This widget provides a button, with a colored square icon, which triggers
-    a color dialog when it is pressed
+    a color dialog when it is pressed.
     """
+
     def __init__(self, color=QColor(127, 127, 127)):
+        """Initialize ColorPicker.
+
+        Args:
+            color -- The default color of the picker
+        """
         super(ColorPicker, self).__init__()
         self.color = QColor(color)
         self._set_icon(self.color)
         self.pressed.connect(self.on_button_pressed)
 
     def on_button_pressed(self):
-        """Respond to button pressed event (callback)"""
+        """Respond to button pressed event (callback)."""
         color = QColorDialog.getColor(initial=self.color)
         if color.isValid():
             self.color = color
             self._set_icon(color)
 
     def _set_icon(self, color):
-        """Set the colored square icon"""
+        """Set the colored square icon."""
         colorpix = QPixmap(16, 16)
         colorpix.fill(color)
         self.setIcon(QIcon(colorpix))
 
     def set_color(self, color):
-        """Set widget color value"""
+        """Set widget color value."""
         self.color = QColor(color)
         self._set_icon(self.color)
 
     def get_color_text(self):
-        """Get widget color value, in text form"""
+        """Get widget color value, in text format."""
         color = self.color
         return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
 
 
 class MaterialSettingsTaskPanel():
-    """Task panel to edit Material render settings"""
+    """Task panel to edit Material render settings."""
 
     NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("Render", "<None>")
 
     def __init__(self, obj=None):
+        """Initialize task panel."""
         self.form = Gui.PySideUic.loadUi(TASKPAGE)
         self.tabs = self.form.RenderTabs
         self.tabs.setCurrentIndex(0)
@@ -1154,7 +1209,7 @@ class MaterialSettingsTaskPanel():
                         for r in VALID_RENDERERS}
 
     def _populate_passthru(self, renderer, material):
-        """Populate passthrough edit field"""
+        """Populate passthrough edit field."""
         if not renderer or not material:
             self.passthru.setPlainText("")
             self.passthru.setEnabled(False)
@@ -1213,7 +1268,7 @@ class MaterialSettingsTaskPanel():
         self.fields = []
 
     def _write_fields(self):
-        """Write task panel fields to FreeCAD material"""
+        """Write task panel fields to FreeCAD material."""
         # Find material
         mat_name = self.material_combo.currentText()
         try:

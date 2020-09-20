@@ -19,15 +19,16 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-"""Gui initialization module for Render Workbench"""
+"""Gui initialization module for Render Workbench."""
 
 import FreeCADGui as Gui
 
 
 class RenderWorkbench(Gui.Workbench):
-    "The Render Workbench"
+    """The Render Workbench."""
 
     def __init__(self):
+        """Initialize object."""
         self.__class__.MenuText = "Render"
         self.__class__.ToolTip = ("The Render module is a modern replacement"
                                   " for the Raytracing module")
@@ -87,7 +88,11 @@ static char * Render_xpm[] = {
 '''
 
     def Initialize(self):
-        """When the workbench is first loaded."""
+        """Initialize GUI when the workbench is first loaded (callback).
+
+        This method is called by FreeCAD framework when the workbench is first
+        loaded.
+        """
         # pylint: disable=no-self-use, import-outside-toplevel
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from FreeCAD import Console
@@ -102,7 +107,7 @@ static char * Render_xpm[] = {
         Console.PrintLog("Loading Render module...done\n")
 
     def GetClassName(self):  # pylint: disable=no-self-use
-        """Type of workbench"""
+        """Provide type of workbench."""
         return "Gui::PythonWorkbench"
 
 
