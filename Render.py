@@ -41,6 +41,7 @@ the necessary UI controls.
 import sys
 import os
 import re
+import math
 import itertools as it
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -217,6 +218,31 @@ class Project:
                     "App::Property",
                     "If true, the rendered image is opened in FreeCAD after "
                     "the rendering is finished"))
+
+        if "LinearDeflection" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFloat",
+                "LinearDeflection",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Linear deflection for the mesher: "
+                    "The maximum linear deviation of a mesh section from the "
+                    "surface of the object."))
+            obj.LinearDeflection = 0.1
+
+        if "AngularDeflection" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFloat",
+                "AngularDeflection",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Angular deflection for the mesher: "
+                    "The maximum angular deviation from one mesh section to "
+                    "the next, in radians. This setting is used when meshing "
+                    "curved surfaces."))
+            obj.AngularDeflection = math.pi / 6
 
         obj.setEditorMode("PageResult", 2)
 
@@ -406,7 +432,9 @@ class Project:
 
         # Get a handle to renderer module
         try:
-            renderer = RendererHandler(obj.Renderer)
+            renderer = RendererHandler(obj.Renderer,
+                                       obj.LinearDeflection,
+                                       obj.AngularDeflection)
         except ModuleNotFoundError:
             msg = translate(
                 "Render",
@@ -687,7 +715,9 @@ class View:
             return
 
         # Get object rendering string and set ViewResult property
-        renderer = RendererHandler(proj.Renderer)
+        renderer = RendererHandler(proj.Renderer,
+                                   proj.LinearDeflection,
+                                   proj.AngularDeflection)
         obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod

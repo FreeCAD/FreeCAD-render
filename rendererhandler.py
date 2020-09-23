@@ -60,9 +60,19 @@ class RendererHandler:
     view object's type.
     """
 
-    def __init__(self, rdrname):
-        """Initialize RendererHandler class."""
+    def __init__(self, rdrname, angular_deflection, linear_deflection):
+        """Initialize RendererHandler class.
+
+        Args:
+            rdrname -- renderer name (str). Must match a renderer plugin name.
+            linear_deflection -- linear deflection (float) to be passed to
+                mesher
+            angular_deflection -- angular deflection (float) to be passed to
+                mesher.
+        """
         self.renderer_name = str(rdrname)
+        self.linear_deflection = float(linear_deflection)
+        self.angular_deflection = float(angular_deflection)
 
         try:
             self.renderer_module = import_module("renderers." + rdrname)
@@ -205,8 +215,8 @@ class RendererHandler:
         # Build a list of renderables from the object
         material = view.Material
         mesher = functools.partial(MeshPart.meshFromShape,
-                                   LinearDeflection=0.1,
-                                   AngularDeflection=0.523599,
+                                   LinearDeflection=self.linear_deflection,
+                                   AngularDeflection=self.angular_deflection,
                                    Relative=False)
         rends = renderables.get_renderables(source, name, material, mesher)
 
