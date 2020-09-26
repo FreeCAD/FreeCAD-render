@@ -41,6 +41,7 @@ the necessary UI controls.
 import sys
 import os
 import re
+import math
 import itertools as it
 from tempfile import mkstemp
 from types import SimpleNamespace
@@ -49,7 +50,8 @@ from operator import attrgetter
 from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
                           QDoubleValidator, QPushButton, QColorDialog, QPixmap,
                           QColor, QFormLayout, QComboBox, QLayout, QListWidget,
-                          QListWidgetItem, QListView, QPlainTextEdit)
+                          QListWidgetItem, QListView, QPlainTextEdit,
+                          QMessageBox)
 from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
                            QSize)
 import FreeCAD as App
@@ -121,8 +123,7 @@ class Project:
         """Set underlying FeaturePython object's properties.
 
         Args:
-        ----------
-        obj -- FeaturePython Object related to this project
+            obj -- FeaturePython Object related to this project
         """
         self.fpo = obj
 
@@ -217,7 +218,32 @@ class Project:
                     "App::Property",
                     "If true, the rendered image is opened in FreeCAD after "
                     "the rendering is finished"))
-            obj.GroundPlane = False
+
+        if "LinearDeflection" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFloat",
+                "LinearDeflection",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Linear deflection for the mesher: "
+                    "The maximum linear deviation of a mesh section from the "
+                    "surface of the object."))
+            obj.LinearDeflection = 0.1
+
+        if "AngularDeflection" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFloat",
+                "AngularDeflection",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Angular deflection for the mesher: "
+                    "The maximum angular deviation from one mesh section to "
+                    "the next, in radians. This setting is used when meshing "
+                    "curved surfaces."))
+            obj.AngularDeflection = math.pi / 6
+
         obj.setEditorMode("PageResult", 2)
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
@@ -237,6 +263,8 @@ class Project:
         if prop == "DelayedBuild" and not obj.DelayedBuild:
             for view in obj.Proxy.all_views():
                 view.touch()
+        if prop == "Renderer":
+            obj.PageResult = ""
 
     @staticmethod
     def create(document, renderer, template=""):
@@ -364,24 +392,31 @@ class Project:
         # add_views starts here
         add_to_group(iter(objs), self.fpo)
 
-    def all_views(self):
-        """Give the list of all the views contained in the project."""
-        def all_group_objs(group):
+    def all_views(self, include_groups=False):
+        """Give the list of all the views contained in the project.
+
+        Args:
+            include_groups -- Flag to include containing groups (including
+                the project) in returned objects. If False, only pure views are
+                returned.
+        """
+        def all_group_objs(group, include_groups=False):
             """Return all objects in a group.
 
             This method recursively explodes subgroups.
 
             Args:
                 group -- The group where the objects are to be searched.
+                include_groups -- See 'all_views'
             """
-            res = []
+            res = [] if not include_groups else [group]
             for obj in group.Group:
                 res.extend(
                     [obj] if not obj.isDerivedFrom("App::DocumentObjectGroup")
-                    else all_group_objs(obj)
+                    else all_group_objs(obj, include_groups)
                     )
             return res
-        return all_group_objs(self.fpo)
+        return all_group_objs(self.fpo, include_groups)
 
     def render(self, external=True):
         """Render the project, calling an external renderer.
@@ -397,7 +432,9 @@ class Project:
 
         # Get a handle to renderer module
         try:
-            renderer = RendererHandler(obj.Renderer)
+            renderer = RendererHandler(obj.Renderer,
+                                       obj.LinearDeflection,
+                                       obj.AngularDeflection)
         except ModuleNotFoundError:
             msg = translate(
                 "Render",
@@ -514,6 +551,33 @@ class ViewProviderProject:
         """Respond to created/restored object event (callback)."""
         self.object = vobj.Object
         return True
+
+    def onDelete(self, vobj, subelements):
+        """Respond to delete object event (callback)."""
+        delete = True
+
+        if self.object.Group:
+            # Project is not empty
+            title = translate("Render", "Warning: Deleting Non-Empty Project")
+            msg = translate(
+                "Render",
+                "Project is not empty. "
+                "All its contents will be deleted too.\n\n"
+                "Are you sure you want to continue?")
+            box = QMessageBox(
+                QMessageBox.Warning,
+                title,
+                msg,
+                QMessageBox.Yes | QMessageBox.No)
+            usr_confirm = box.exec()
+            if usr_confirm == QMessageBox.Yes:
+                subobjs = self.object.Proxy.all_views(include_groups=True)[1:]
+                for obj in subobjs:
+                    obj.Document.removeObject(obj.Name)
+            else:
+                delete = False
+
+        return delete
 
     def __getstate__(self):
         """Provide data representation for object."""
@@ -651,7 +715,9 @@ class View:
             return
 
         # Get object rendering string and set ViewResult property
-        renderer = RendererHandler(proj.Renderer)
+        renderer = RendererHandler(proj.Renderer,
+                                   proj.LinearDeflection,
+                                   proj.AngularDeflection)
         obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
