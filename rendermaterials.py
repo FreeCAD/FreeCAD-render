@@ -186,7 +186,7 @@ def get_rendering_material(material, renderer, default_color):
     return _build_fallback(default_color)
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def passthrough_keys(renderer):
     """Compute material card keys for passthrough rendering material."""
     return {"Render.{}.{:04}".format(renderer, i) for i in range(1, 9999)}
@@ -247,7 +247,7 @@ def is_valid_material(obj):
 # ===========================================================================
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def _build_diffuse(diffusecolor, alpha=1.0):
     """Build diffuse material from a simple RGB color."""
     res = types.SimpleNamespace()
@@ -260,7 +260,7 @@ def _build_diffuse(diffusecolor, alpha=1.0):
     return res
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def _build_standard(shadertype, values):
     """Build standard material."""
     res = types.SimpleNamespace()
@@ -279,7 +279,7 @@ def _build_standard(shadertype, values):
     return res
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def _build_passthrough(lines, renderer, default_color):
     """Build passthrough material."""
     res = types.SimpleNamespace()  # Result
@@ -291,7 +291,7 @@ def _build_passthrough(lines, renderer, default_color):
     return res
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def _build_fallback(color):
     """Build fallback material (diffuse).
 
@@ -319,7 +319,7 @@ PASSTHRU_REPLACED_TOKENS = (("{", "{{"),
                             ("%BLUE%", "{c.b}"))
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def _convert_passthru(passthru):
     """Convert a passthrough string from FCMat format to Python FSML.
 
