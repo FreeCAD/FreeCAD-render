@@ -55,7 +55,8 @@ def get_renderables(obj, name, upper_material, mesher):
 
     A renderable is a tuple (name, mesh, material). There can be
     several renderables for one object, for instance if the object is a
-    compound of subobjects, so the result is a **list** of renderables.
+    compound of subobjects, so the result of this function is a **list**
+    of renderables.
     If this function does not know how to extract renderables from the
     given object, a TypeError is raised
 
