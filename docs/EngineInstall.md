@@ -31,8 +31,9 @@ refer to its documentation.
 
 To use Cycles renderer with Render workbench, you need a standalone version of
 Cycles, named *Cycles Standalone*. This version is distinct from the one
-embedded in Blender. You will find some more information about *Cycles Standalone*
-in the dedicated Blender [wiki page](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone).
+embedded in Blender. You will find some more information about *Cycles
+Standalone* in the dedicated Blender [wiki
+page](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone).
 
 *Cycles Standalone* usually requires compilation from sources, as no
 precompiled binaries are generally available in standard environments. Sources
