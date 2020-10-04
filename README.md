@@ -57,58 +57,70 @@ this repository using the "clone or download" button above. Refer to the
 documentation](https://www.freecadweb.org/wiki/How_to_install_additional_workbenches)
 to learn more.
 
-In addition to workbench installation, you will need [to install and set
+In addition to workbench installation, you will also need to [install and set
 up](./docs/EngineInstall.md) one or more external render engines, among the
 supported ones.
 
 ## Usage
 
-The Render workbench works exactly the same way as the [Raytracing
-Workbench](https://www.freecadweb.org/wiki/Raytracing_Module).  You start by
-creating a Render project using one of the Renderer buttons from the Render
-Workbench toolbar, then select some of your document objects, and add views of
-these objects to your Render project, using the Add View button. You can tweak
-some features of the views (color, transparency, etc...) if you want it to
-appear differently in the render than in the 3D view of FreeCAD. It is also
-possible to add materials to objects, in order to refine their rendering (glass
-etc.): see [Material documentation](./docs/Materials.md).  Then, with a Render
-project selected, you only need to press the Render button to start the render.
+For a quick-start, rendering a FreeCAD model is just a 3-step process:
+1. **Create a rendering project:** Press the button in the toolbar
+   corresponding to your renderer (<img src=./icons/Appleseed.svg height=32>
+   <img src=./icons/Cycles.svg height=32> <img src=./icons/Luxcore.svg
+   height=32> <img src=./icons/Povray.svg height=32>) 
+2. **Add views of your objects to the project:** Select both the objects and
+   the project, and press the 'Add view' button (<img
+   src=./icons/RenderView.svg height=32>)
+3. **Render:** Press Render button (<img src=./icons/Render.svg height=32>),
+   also available in project's contextual menu.
 
+That's all!
 
-### Notes on using Blender
+Optionally, you can tweak some particulars of your scene:
+* Modify some [options of your rendering project](./docs/Project.md)
+* Add [lights](./docs/Lights.md) to your scene
+* Add extra [cameras](./docs/Cameras.md)
+* Add [materials](./docs/Materials.md) to your objects These adjustments take
+  place between steps 2 and 3.
 
-Blender is able to import FreeCAD files with materials correctly imported and
-ready for Cycles too, by installing the FreeCAD importer addon (available for
+## Alternatives
+
+### Using Blender
+
+Instead of exporting to a renderer, you can also import your FreeCAD model to
+Blender.  Blender is able to import FreeCAD files with materials correctly
+imported and ready for Cycles too, by installing the FreeCAD importer addon
+(available for
 [2.80](https://gist.github.com/yorikvanhavre/680156f59e2b42df8f5f5391cae2660b)
 and
 [2.79](https://gist.github.com/yorikvanhavre/e873d51c8f0e307e333fe595c429ba87)).
-Importing your FreeCAD file in Blender before rendering gives you a lot more
-options such as placing lights and textures.
-
+Importing your FreeCAD file in Blender before rendering gives you more options
+such as placing textures.
 
 
 ## Contributing
 
 Any contributions are welcome! Feel free to post PR to this project.
 
-### Code of Conduct This project is covered by FreeCAD [Code of
-Conduct](https://github.com/FreeCAD/FreeCAD/blob/master/CODE_OF_CONDUCT.md).
+### Code of Conduct
+
+This project is covered by FreeCAD 
+[Code of Conduct](https://github.com/FreeCAD/FreeCAD/blob/master/CODE_OF_CONDUCT.md).
 
 ### To Do (not exhaustive)
 
 * Add some more lighting functionalities:
   - Spot lights
-* Add material support, including UV-textures
-* Make handling of big projects easier:
-  - Create "convert to another renderer" functionality on rendering project
+  - Directional lights
+* Add UV-textures to material support
 * Currently the external (open the file to be rendered in the Renderer's
   GUI)/internal (render directly inside FreeCAD) render mode is not
   implemented, the external mode will always be used.
 * Add support for more renderers
   - Yafaray
+  - OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
   - Kerkythea (adapt the existing macro)
   - Blender's Eevee
-  - OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
 
 ### Notes on Code Quality
 
@@ -127,9 +139,9 @@ ensure that the code complies with PEP8 / PEP257. Therefore,
 
 ## Feedback
 
-For Feedback, bugs, feature requests, and further discussion please use the
+For feedback, bugs, feature requests, and further discussion please use the
 dedicated FreeCAD [forum thread]()
 
-## Author Yorik Can Havre AKA
+## Author Yorik Van Havre AKA
 [@yorikvanhavre](https://github.com/yorikvanhavre)
 ([blog](https://yorik.uncreated.net/))
