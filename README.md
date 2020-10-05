@@ -77,7 +77,7 @@ For a quick-start, rendering a FreeCAD model is just a 3-step process:
 That's all!
 
 Optionally, you can tweak some particulars of your scene:
-* Modify some [options of your rendering project](./docs/Project.md)
+* Modify some [options of your rendering project](./docs/Projects.md)
 * Add [lights](./docs/Lights.md) to your scene
 * Add extra [cameras](./docs/Cameras.md)
 * Add [materials](./docs/Materials.md) to your objects These adjustments take
