@@ -50,7 +50,8 @@ for convenience and does not prejudge the final rendering.
 
 #### Special parameters
 
-Point light is the most basic light, there is no special parameter.
+Point light is the most basic light, its parameters are simply `Placement`, `Power`,
+`Color`.
 
 ### Area light
 
