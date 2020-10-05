@@ -10,8 +10,9 @@ The general method to add a light to your rendering project is the following:
 1. Create the light object
 2. Place the light in your scene (and orient it if applicable)
 3. Tweak the light power and color
-4. **Add the view of the light in your project**. This is a mandatory step to
-   have the light eventually rendered!
+4. **Add a view of the light in your project**. This is a mandatory step to
+   have the light eventually rendered! Use <img src=./icons/RenderView.svg
+   height=32> button, like for objects...
 
 ## Light types
 
