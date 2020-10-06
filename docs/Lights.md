@@ -23,9 +23,9 @@ renderer documentation.
 
 ### Point light
 
-The point light is an omni-directional point of light, meaning that it is
-infinitely small and emits light equally in all directions, similar to a light
-bulb or a candle flame.
+The point light is an omni-directional infinitely small source of light, meaning
+that it emits light equally in all directions, similar to a lightbulb or a candle
+flame.
 
 #### Creation
 
