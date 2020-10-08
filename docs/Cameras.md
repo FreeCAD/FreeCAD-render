@@ -62,15 +62,13 @@ camera documentations for more details about Render Camera parameters.
 # Context menu
 
 You will find, in Camera context menu, a few features to help positioning and
-orienting Camera:
-* `Set GUI to this camera`: this action resets the GUI camera (the camera from
-  which the scene is seen in FreeCAD viewport) to the selected Camera.
-* `Set this camera to GUI`: this action resets the selected Camera to the GUI
-  camera.
-* `Point at...`: this action allows to orient the camera so that it looks at a
-  specific object. Trigger this action, click on the target object in the
-  viewport, and the camera will be automatically oriented towards the selected
-  object.
+orienting a Camera:
+* `Set GUI to this camera`: resets the GUI camera (the camera from which the
+  scene is seen in FreeCAD viewport) to the selected Camera.
+* `Set this camera to GUI`: sets the selected Camera to the GUI camera.
+* `Point at...`: allows to orient the camera so that it looks at a specific
+  object. Trigger this action, click on the target object in the viewport, and
+  the camera will be automatically oriented towards the selected object.
 
 You can access the context menu by right-clicking on the Camera in the tree
 view.
