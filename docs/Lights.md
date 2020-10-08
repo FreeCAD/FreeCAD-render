@@ -85,9 +85,10 @@ and not to the power per unit area. For renderers using a power per unit area
 (like Appleseed), a conversion is made when exporting.
 
 Orienting an area light in a scene may be quite painful. To alleviate such a
-task, you will find a `Point at...` feature in the contextual menu of the
-light. Trigger `Point at...`, select the object your area should point at, and
-the workbench will orient automatically the area to the object.
+task, you will find a `Point at...` feature in the context menu of the light
+(right-click on the light in the tree view). Trigger `Point at...`, select the
+object your area should point at, and the workbench will orient automatically
+the area to the object.
 
 ### Sun & sky light
 
