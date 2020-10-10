@@ -1,44 +1,28 @@
-# FreeCAD Render workbench
+# FreeCAD Render Workbench
 
 A [FreeCAD](https://www.freecadweb.org) workbench to produce high-quality
 rendered images from your FreeCAD document, using open-source external
 rendering engines.
 
 <img src=./docs/freecad-june-09.jpg alt="ShowCase" title="Examples of rendering
-made with Render workbench">
+made with Render Workbench">
 
 
-## Introduction
+The Render Workbench is a replacement for the built-in [Raytracing
+Workbench](https://www.freecadweb.org/wiki/Raytracing_Module) of FreeCAD, in
+the same philosophy, but aiming to improve certain aspects of the latter:
 
-The Render workbench is a replacement for the built-in [Raytracing
-workbench](https://www.freecadweb.org/wiki/Raytracing_Module) of FreeCAD. There
-are several differences between the two:
-
-* The Render workbench is written fully in Python, which makes it much easier
+* The Render Workbench is written fully in Python, which makes it much easier
   to understand and extend by non-C++ programmers.
-* Adding new render engines (renderers) is made easier as render engines are
-  implemented as plugins. Compared to Raytracing, Render already supports
+* Exporters to render engines are implemented as plugins, making it easier
+  to add new engines. Compared to Raytracing, Render already supports
   several additional renderers, like Appleseed, LuxCoreRender and Cycles.
-* The Render workbench provides extended capabilities, compared to Raytracing,
-  like scene lighting, camera enhanced features and material support.
+* The Render Workbench provides extended capabilities, compared to Raytracing:
+  scene lighting, camera enhanced control, material support etc.
 
-Some key-functionalities of built-in Raytracing are also present:
-* Like the builtin Raytracing workbench, the Render workbench offers the
-  possibility to update the View objects whenever its source object changes,
-  which costs extra processing time everytime the source object changes. But it
-  also offers a mode where the views are updated all at once, only when the
-  render is performed. This makes the render slower, but adds virtually no
-  slowdown during the work with FreeCAD, no matter the size of a Render
-  project.
-* The Render workbench uses the same
-  [templates](https://www.freecadweb.org/wiki/Raytracing_Module#Templates)
-  logic as the Raytracing workbench, and templates are fully compatible.
-  Appleseed templates are created the same way (check the [default
-  template](templates/empty.appleseed) for example)
+## Supported rendering engines
 
-## Supported render engines
-
-At the moment, the following engines are supported:
+At the moment, the following rendering engines are supported:
 
 * [Pov-Ray](https://povray.org/)  
 * [LuxCoreRender](https://luxcorerender.org/)
@@ -48,12 +32,12 @@ At the moment, the following engines are supported:
 
 ## Installation
 
-The Render workbench is part of the [FreeCAD Addons
-repository](https://github.com/FreeCAD/FreeCAD-addons), and can be installed
-from menu `Tools > Addon Manager` in FreeCAD. This is the recommended
-installation method.  However, it can also be installed manually by downloading
-this repository using the "clone or download" button above. Refer to the
-[FreeCAD
+The Render Workbench is part of the [FreeCAD Addons
+repository](https://github.com/FreeCAD/FreeCAD-addons), and thus can be
+installed from menu `Tools > Addon Manager` in FreeCAD. This is the recommended
+installation method.<br /> However, it can also be installed manually by
+downloading this repository using the "clone or download" button above. Refer
+to [FreeCAD
 documentation](https://www.freecadweb.org/wiki/How_to_install_additional_workbenches)
 to learn more.
 
@@ -63,25 +47,31 @@ supported ones.
 
 ## Usage
 
-For a quick-start, rendering a FreeCAD model is just a 3-step process:
+In quick-start mode, rendering a FreeCAD model is just a 3-step process:
 1. **Create a rendering project:** Press the button in the toolbar
-   corresponding to your renderer (<img src=./icons/Appleseed.svg height=32>
+   corresponding to your renderer <img src=./icons/Appleseed.svg height=32>
    <img src=./icons/Cycles.svg height=32> <img src=./icons/Luxcore.svg
-   height=32> <img src=./icons/Povray.svg height=32>) 
-2. **Add views of your objects to the project:** Select both the objects and
-   the project, and press the 'Add view' button (<img
-   src=./icons/RenderView.svg height=32>)
-3. **Render:** Press Render button (<img src=./icons/Render.svg height=32>),
-   also available in project's contextual menu.
+   height=32> <img src=./icons/Povray.svg height=32>
+2. **Add views of your objects to your rendering project:** Select both the
+   objects and the project, and press the 'Add view' button <img
+   src=./icons/RenderView.svg height=32>
+3. **Render:** Press Render button <img src=./icons/Render.svg height=32> in
+   toolbar also available in project's contextual menu.
 
-That's all!
+<br />
+
+**THAT'S ALL!**
+
+ <br /> 
+
 
 Optionally, you can tweak some particulars of your scene:
 * Modify some [options of your rendering project](./docs/Projects.md)
 * Add [lights](./docs/Lights.md) to your scene
 * Add extra [cameras](./docs/Cameras.md)
-* Add [materials](./docs/Materials.md) to your objects These adjustments take
-  place between steps 2 and 3.
+* Add [materials](./docs/Materials.md) to your objects
+
+These adjustments should take place between steps 2 and 3.
 
 ## Alternatives
 
