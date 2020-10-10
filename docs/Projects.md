@@ -13,6 +13,26 @@ Parameter | Type | Description
 `Output Image` | File | The image file saved by the rendering
 `Open After Render` | Boolean | If true, the rendered image is opened in FreeCAD when the rendering is done
 
+Comments:
+* The Render workbench uses the same
+  [template](https://www.freecadweb.org/wiki/Raytracing_Module#Templates)
+  logic as the Raytracing workbench, and templates are fully compatible.
+  Templates usually contain:
+  - Lighting presets
+  - Renderer specific options (resolution, sampler, thread counts, GPU use...)
+
+  We provide a few default templates, but you can write and use your own ones,
+  if necessary.\
+  Template file is defined by `Template` parameter.
+
+* Like the builtin Raytracing workbench, the Render workbench offers the
+  possibility to update the View objects whenever its source object changes,
+  which costs extra processing time everytime the source object changes, but
+  quickens the final export. However it also offers a mode where the views are
+  updated all at once, only when the render is performed. This makes the render
+  slower, but adds virtually no slowdown during the work with FreeCAD, no
+  matter the size of a Render project. This behaviour is controlled by the `Delayed Build` parameter.
+
 ## Rendering result options
 
 Parameter | Type | Description
