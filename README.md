@@ -65,7 +65,7 @@ FreeCAD model is just a 3-steps process:
    src=./icons/Render.svg height=32> in toolbar (also available in project's
    context menu).
 
-<br /> **And you should get a first rendering of your model.** <br /> 
+<br /> **...and you should get a first rendering of your model.** <br /> 
 
 
 Optionally, you may tweak some particulars of your scene:
