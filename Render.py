@@ -218,6 +218,7 @@ class Project:
                     "App::Property",
                     "If true, the rendered image is opened in FreeCAD after "
                     "the rendering is finished"))
+            obj.OpenAfterRender = True
 
         if "LinearDeflection" not in obj.PropertiesList:
             obj.addProperty(
