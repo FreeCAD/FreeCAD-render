@@ -17,7 +17,7 @@ At the moment, the following engines are supported:
 The precise installation procedure for each of those engines is beyond the
 scope of this manual, but detailed installation instructions (adapted to your
 OS, your distro etc.) can be found on their respective websites. For Linux
-users, you may also usually find on-the-shelf packages in your distribution
+users, you may also usually find off-the-shelf packages in your distribution
 repository.
 
 As an exception, you will find below some more information about Cycles
