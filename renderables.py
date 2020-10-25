@@ -73,6 +73,7 @@ def get_renderables(obj, name, upper_material, mesher):
     obj_is_applink = obj.isDerivedFrom("App::Link")
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
+    obj_is_app_part = obj.isDerivedFrom("App::Part")
     obj_type = getproxyattr(obj, "Type", "")
 
     mat = (getattr(obj, "Material", None)
@@ -107,6 +108,11 @@ def get_renderables(obj, name, upper_material, mesher):
     # Plain part
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
+        renderables = [Renderable(name, mesher(obj.Shape), mat)]
+
+    # App part
+    elif obj_is_app_part:
+        debug("Object", label, "'App::Part' detected")
         renderables = [Renderable(name, mesher(obj.Shape), mat)]
 
     # Mesh

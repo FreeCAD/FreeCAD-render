@@ -89,6 +89,7 @@ RENDERERS = {x.group(1)
              if x}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
+FCDVERSION = App.Version()[0] , App.Version()[1]  # FreeCAD version
 
 
 # ===========================================================================
@@ -674,8 +675,9 @@ class View:
         self.fpo = obj
 
         if "Source" not in obj.PropertiesList:
+            hi_version = FCDVERSION >= ("0", "19")
             obj.addProperty(
-                "App::PropertyLink",
+                "App::PropertyXLink" if hi_version else "App::PropertyLink",
                 "Source",
                 "Render",
                 QT_TRANSLATE_NOOP("App::Property",
@@ -761,7 +763,7 @@ class View:
             related ViewProviderView object
         """
         doc = project.Document
-        assert doc == fcd_obj.Document,\
+        assert doc == fcd_obj.Document or FCDVERSION >= ("0", "19"),\
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
         fpo.Label = View.view_label(fcd_obj, project)
