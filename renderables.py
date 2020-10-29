@@ -50,7 +50,7 @@ from rendermaterials import is_multimat
 Renderable = collections.namedtuple("Renderable", "name mesh material")
 
 
-def get_renderables(obj, name, upper_material, mesher):
+def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
     """Get the renderables from a FreeCAD object.
 
     A renderable is a tuple (name, mesh, material). There can be
@@ -66,6 +66,8 @@ def get_renderables(obj, name, upper_material, mesher):
     upper_material -- the FreeCAD material inherited from the upper
                       level
     mesher -- a callable which can convert a shape into a mesh
+    ignore_unknown -- a flag to prevent exception raising if 'obj' is
+                      of no renderable type
 
     Returns:
     A list of renderables
@@ -105,7 +107,7 @@ def get_renderables(obj, name, upper_material, mesher):
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher)
 
-    # Plain part
+    # Plain part feature
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
         renderables = [Renderable(name, mesher(obj.Shape), mat)]
@@ -113,7 +115,8 @@ def get_renderables(obj, name, upper_material, mesher):
     # App part
     elif obj_is_app_part:
         debug("Object", label, "'App::Part' detected")
-        renderables = [Renderable(name, mesher(obj.Shape), mat)]
+        renderables = _get_rends_from_part(obj, name, mat, mesher)
+        # renderables = [Renderable(name, mesher(obj.Shape), mat)] TODO
 
     # Mesh
     elif obj_is_meshfeature:
@@ -123,8 +126,13 @@ def get_renderables(obj, name, upper_material, mesher):
     # Unhandled
     else:
         renderables = []
-        msg = translate("Render", "Unhandled object type")
-        raise TypeError(msg)
+        if not ignore_unknown:
+            ascendants = ", ".join(obj.getAllDerivedFrom())
+            msg = translate("Render",
+                            "Unhandled object type (%s)" % ascendants)
+            raise TypeError(msg)
+        else:
+            debug("Object", label, "Not renderable")
 
     return renderables
 
@@ -314,6 +322,23 @@ def _get_rends_from_window(obj, name, material, mesher):
     # Build renderables
     return [Renderable(*r) for r in zip(names, meshes, mats)]
 
+# TODO docstring, lint, pythonicize etc.
+def _get_rends_from_part(obj, name, material, mesher):
+
+    def reposition(rend, origin):
+        origin_matrix = origin.toMatrix()
+        new_mesh = rend.mesh.copy()
+        new_mesh.transform(origin_matrix)
+        return Renderable(rend.name, new_mesh, rend.material)
+
+    origin = obj.Placement
+
+    rends = []
+    for subobj in obj.Group:
+        subname = "{}_{}".format(name, subobj.Name)
+        rends += get_renderables(subobj, subname, material, mesher, True)
+
+    return [reposition(r, origin) for r in rends if r.mesh.Topology[0]]
 
 def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""

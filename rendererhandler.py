@@ -119,6 +119,7 @@ class RendererHandler:
         try:
             res = (obj.isDerivedFrom("Part::Feature") or
                    obj.isDerivedFrom("App::Link") or
+                   obj.isDerivedFrom("App::Part") or
                    obj.isDerivedFrom("Mesh::Feature") or
                    (obj.isDerivedFrom("App::FeaturePython") and
                     getproxyattr(obj, "type", "") in ["PointLight",
