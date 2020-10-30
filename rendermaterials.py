@@ -201,7 +201,7 @@ def is_multimat(obj):
 
     return (obj is not None and
             is_app_feature and
-            getproxyattr(obj, "Type") == "MultiMaterial")
+            getproxyattr(obj, "Type", "") == "MultiMaterial")
 
 
 def get_default_color(material):
@@ -243,7 +243,7 @@ def is_valid_material(obj):
     """Assert that an object is a valid Material."""
     try:
         is_materialobject = obj.isDerivedFrom("App::MaterialObjectPython")
-    except:
+    except AttributeError:
         return False
 
     return (obj is not None

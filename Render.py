@@ -89,7 +89,7 @@ RENDERERS = {x.group(1)
              if x}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
-FCDVERSION = App.Version()[0] , App.Version()[1]  # FreeCAD version
+FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
 
 # ===========================================================================

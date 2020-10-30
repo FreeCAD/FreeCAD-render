@@ -131,8 +131,8 @@ def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
             msg = translate("Render",
                             "Unhandled object type (%s)" % ascendants)
             raise TypeError(msg)
-        else:
-            debug("Object", label, "Not renderable")
+
+        debug("Object", label, "Not renderable")
 
     return renderables
 
@@ -322,9 +322,19 @@ def _get_rends_from_window(obj, name, material, mesher):
     # Build renderables
     return [Renderable(*r) for r in zip(names, meshes, mats)]
 
-# TODO docstring, lint, pythonicize etc.
-def _get_rends_from_part(obj, name, material, mesher):
 
+def _get_rends_from_part(obj, name, material, mesher):
+    """Get renderables from a Part object.
+
+    Parameters:
+    obj -- the Part object
+    name -- the name assigned to the Part object for rendering
+    material -- the material for the Part object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for the Part object
+    """
     def reposition(rend, origin):
         origin_matrix = origin.toMatrix()
         new_mesh = rend.mesh.copy()
@@ -339,6 +349,7 @@ def _get_rends_from_part(obj, name, material, mesher):
         rends += get_renderables(subobj, subname, material, mesher, True)
 
     return [reposition(r, origin) for r in rends if r.mesh.Topology[0]]
+
 
 def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""
