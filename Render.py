@@ -1115,7 +1115,7 @@ class ColorPicker(QPushButton):
         Args:
             color -- The default color of the picker
         """
-        super(ColorPicker, self).__init__()
+        super().__init__()
         self.color = QColor(color)
         self._set_icon(self.color)
         self.pressed.connect(self.on_button_pressed)
