@@ -328,12 +328,12 @@ class Project:
             # simple as possible: they only need to deal with one type of
             # object: RenderView objects
             margin = bbox.DiagonalLength / 2
-            verts2D = ((bbox.XMin - margin, bbox.YMin - margin),
+            verts2d = ((bbox.XMin - margin, bbox.YMin - margin),
                        (bbox.XMax + margin, bbox.YMin - margin),
                        (bbox.XMax + margin, bbox.YMax + margin),
                        (bbox.XMin - margin, bbox.YMax + margin))
             vertices = [App.Vector(clamp(v[0]), clamp(v[1]), 0)
-                        for v in verts2D]
+                        for v in verts2d]
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
