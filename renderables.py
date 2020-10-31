@@ -107,16 +107,15 @@ def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher)
 
-    # Plain part feature
-    elif obj_is_partfeature:
-        debug("Object", label, "'Part::Feature' detected")
-        renderables = [Renderable(name, mesher(obj.Shape), mat)]
-
     # App part
     elif obj_is_app_part:
         debug("Object", label, "'App::Part' detected")
         renderables = _get_rends_from_part(obj, name, mat, mesher)
-        # renderables = [Renderable(name, mesher(obj.Shape), mat)] TODO
+
+    # Plain part feature
+    elif obj_is_partfeature:
+        debug("Object", label, "'Part::Feature' detected")
+        renderables = [Renderable(name, mesher(obj.Shape), mat)]
 
     # Mesh
     elif obj_is_meshfeature:
