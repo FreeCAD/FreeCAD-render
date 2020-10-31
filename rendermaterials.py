@@ -201,7 +201,7 @@ def is_multimat(obj):
 
     is_type_multimat = getproxyattr(obj, "Type", None) == "MultiMaterial"
 
-    return (obj is not None and is_app_feature and is_type_multimat)
+    return obj is not None and is_app_feature and is_type_multimat
 
 
 def get_default_color(material):
