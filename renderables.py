@@ -39,7 +39,7 @@ import itertools
 import collections
 
 from renderutils import translate, debug, warn, getproxyattr
-from rendermaterials import is_multimat
+from rendermaterials import is_multimat, is_valid_material
 
 
 # ===========================================================================
@@ -78,8 +78,9 @@ def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
     obj_is_app_part = obj.isDerivedFrom("App::Part")
     obj_type = getproxyattr(obj, "Type", "")
 
-    mat = (getattr(obj, "Material", None)
-           if upper_material is None else upper_material)
+    mat = (getattr(obj, "Material", None) if upper_material is None
+           else upper_material)
+    mat = mat if is_valid_material(mat) or is_multimat(mat) else None
     del upper_material  # Should not be used after this point...
 
     label = getattr(obj, "Label", name)
