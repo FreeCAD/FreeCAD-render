@@ -333,11 +333,13 @@ def _get_rends_from_part(obj, name, material, mesher):
     Returns:
     A list of renderables for the Part object
     """
-    def reposition(rend, origin):
+    def _adjust(rend, origin, upper_material):
+        """Reposition to origin and set material of the given renderable."""
         origin_matrix = origin.toMatrix()
         new_mesh = rend.mesh.copy()
         new_mesh.transform(origin_matrix)
-        return Renderable(rend.name, new_mesh, rend.material)
+        new_mat = _get_material(rend, upper_material)
+        return Renderable(rend.name, new_mesh, new_mat)
 
     origin = obj.Placement
 
@@ -346,7 +348,9 @@ def _get_rends_from_part(obj, name, material, mesher):
         subname = "{}_{}".format(name, subobj.Name)
         rends += get_renderables(subobj, subname, material, mesher, True)
 
-    return [reposition(r, origin) for r in rends if r.mesh.Topology[0]]
+    rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
+
+    return rends
 
 
 def _get_material(base_renderable, upper_material):
