@@ -130,7 +130,6 @@ def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
             msg = translate("Render",
                             "Unhandled object type (%s)" % ascendants)
             raise TypeError(msg)
-
         debug("Object", label, "Not renderable")
 
     return renderables
