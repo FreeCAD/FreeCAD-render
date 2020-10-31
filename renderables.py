@@ -22,8 +22,8 @@
 
 """This module implements the Renderable object, an atomic rendering entity.
 
-A Renderable is a tuple (name, mesh, material). It is a convenient object
-to send to renderers.
+A Renderable is a tuple (name, mesh, material, default color). It is a
+convenient object to send to renderers.
 Each object in FreeCAD should be splittable into a list of Renderables. This
 module provides the function to convert a FreeCAD object into a collection of
 Renderables
@@ -47,7 +47,8 @@ from rendermaterials import is_multimat, is_valid_material
 # ===========================================================================
 
 
-Renderable = collections.namedtuple("Renderable", "name mesh material")
+Renderable = collections.namedtuple("Renderable",
+                                    "name mesh material defcolor")
 
 
 def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
@@ -116,12 +117,14 @@ def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
     # Plain part feature
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        renderables = [Renderable(name, mesher(obj.Shape), mat)]
+        color = obj.ViewObject.ShapeColor
+        renderables = [Renderable(name, mesher(obj.Shape), mat, color)]
 
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
-        renderables = [Renderable(name, obj.Mesh, mat)]
+        color = obj.ViewObject.ShapeColor
+        renderables = [Renderable(name, obj.Mesh, mat, color)]
 
     # Unhandled
     else:
@@ -193,7 +196,8 @@ def _get_rends_from_elementlist(obj, name, material, mesher):
             new_mesh.transform(element_plc_matrix)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
-            new_rend = Renderable(new_name, new_mesh, new_mat)
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
             renderables.append(new_rend)
 
     return renderables
@@ -220,10 +224,11 @@ def _get_rends_from_plainapplink(obj, name, material, mesher):
         new_name = "%s_%s" % (name, base_rend.name)
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
+        new_color = base_rend.defcolor
         if not obj.LinkTransform:
             new_mesh.transform(linkedobj_plc_inverse_matrix)
         new_mesh.transform(link_plc_matrix)
-        return Renderable(new_name, new_mesh, new_mat)
+        return Renderable(new_name, new_mesh, new_mat, new_color)
 
     return [new_rend(r) for r in base_rends]
 
@@ -254,7 +259,8 @@ def _get_rends_from_array(obj, name, material, mesher):
     except AttributeError:
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
-        return [Renderable(name, mesher(obj.Shape), material)]
+        color = obj.ViewObject.ShapeColor
+        return [Renderable(name, mesher(obj.Shape), material, color)]
 
     base_rends = get_renderables(base, base.Name, material, mesher)
     obj_plc_matrix = obj.Placement.toMatrix()
@@ -272,7 +278,8 @@ def _get_rends_from_array(obj, name, material, mesher):
         new_mesh.transform(obj_plc_matrix)
         subname = "%s_%s_%s" % (name, base_rend.name, counter)
         new_mat = _get_material(base_rend, material)
-        return Renderable(subname, new_mesh, new_mat)
+        new_color = base_rend.defcolor
+        return Renderable(subname, new_mesh, new_mat, new_color)
 
     rends = itertools.product(enumerate(placements), base_rends)
 
@@ -306,6 +313,9 @@ def _get_rends_from_window(obj, name, material, mesher):
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
 
+    # Subobjects colors
+    colors = [obj.ViewObject.ShapeColor] * len(subnames)
+
     # Subobjects materials
     if material is not None:
         assert is_multimat(material), "Multimaterial expected"
@@ -319,7 +329,7 @@ def _get_rends_from_window(obj, name, material, mesher):
         mats = [None] * len(subnames)
 
     # Build renderables
-    return [Renderable(*r) for r in zip(names, meshes, mats)]
+    return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
 
 
 def _get_rends_from_part(obj, name, material, mesher):
@@ -340,7 +350,8 @@ def _get_rends_from_part(obj, name, material, mesher):
         new_mesh = rend.mesh.copy()
         new_mesh.transform(origin_matrix)
         new_mat = _get_material(rend, upper_material)
-        return Renderable(rend.name, new_mesh, new_mat)
+        new_color = rend.defcolor
+        return Renderable(rend.name, new_mesh, new_mat, new_color)
 
     origin = obj.Placement
 
