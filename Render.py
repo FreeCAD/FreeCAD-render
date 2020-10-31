@@ -368,11 +368,13 @@ class Project:
             """Add objects as views to a group.
 
             objs -- FreeCAD objects to add
-            group -- The  group (App::DocumentObjectGroup) to add to
+            group -- The group (App::DocumentObjectGroup) to add to
             """
             for obj in objs:
                 success = False
-                if hasattr(obj, "Group"):
+                if (hasattr(obj, "Group") and
+
+                        not obj.isDerivedFrom("App::Part")):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
