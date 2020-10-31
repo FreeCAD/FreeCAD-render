@@ -358,7 +358,8 @@ def _get_rends_from_part(obj, name, material, mesher):
     rends = []
     for subobj in obj.Group:
         subname = "{}_{}".format(name, subobj.Name)
-        rends += get_renderables(subobj, subname, material, mesher, True)
+        if getattr(subobj, "Visibility", True):  # Add subobj only if visible
+            rends += get_renderables(subobj, subname, material, mesher, True)
 
     rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
 
