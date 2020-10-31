@@ -63,7 +63,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, RGBA, str2rgb
+from renderutils import translate, RGBA, str2rgb, clamp
 from rendererhandler import RendererHandler
 import camera
 import lights
@@ -328,10 +328,12 @@ class Project:
             # simple as possible: they only need to deal with one type of
             # object: RenderView objects
             margin = bbox.DiagonalLength / 2
-            vertices = [App.Vector(bbox.XMin - margin, bbox.YMin - margin, 0),
-                        App.Vector(bbox.XMax + margin, bbox.YMin - margin, 0),
-                        App.Vector(bbox.XMax + margin, bbox.YMax + margin, 0),
-                        App.Vector(bbox.XMin - margin, bbox.YMax + margin, 0)]
+            verts2D = ((bbox.XMin - margin, bbox.YMin - margin),
+                       (bbox.XMax + margin, bbox.YMin - margin),
+                       (bbox.XMax + margin, bbox.YMax + margin),
+                       (bbox.XMin - margin, bbox.YMax + margin))
+            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), 0)
+                        for v in verts2D]
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
