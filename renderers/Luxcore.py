@@ -132,7 +132,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                                   )
 
 
-def write_sunskylight(name, direction, distance, turbidity):
+def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     snippet = """
     scene.lights.{n}_sun.type = sun
@@ -141,10 +141,12 @@ def write_sunskylight(name, direction, distance, turbidity):
     scene.lights.{n}_sky.type = sky2
     scene.lights.{n}_sky.turbidity = {t}
     scene.lights.{n}_sky.dir = {d.x} {d.y} {d.z}
+    scene.lights.{n}_sky.groundalbedo = {g} {g} {g}
     """
     return dedent(snippet).format(n=name,
                                   t=turbidity,
-                                  d=direction)
+                                  d=direction,
+                                  g=albedo)
 
 
 def write_imagelight(name, image):

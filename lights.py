@@ -740,6 +740,14 @@ class SunskyLight:
                 "Atmospheric haziness (turbidity can go from 2.0 to 30+. 2-6 "
                 "are most useful for clear days)"),
             2.0),
+
+        "GroundAlbedo": Prop(
+            "App::PropertyFloatConstraint",
+            "Light",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Ground albedo (reflection coefficient of the ground)"),
+            (0.3, 0.0, 1.0, 0.01),)
     }
     # ~FeaturePython object properties
 

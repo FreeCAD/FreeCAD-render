@@ -204,7 +204,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                           p=radiance * 100)  # guesstimated factor
 
 
-def write_sunskylight(name, direction, distance, turbidity):
+def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # Caution: Take Appleseed system of coordinates into account
     # From documentation: "Appleseed uses a right-handed coordinate system,
@@ -219,6 +219,7 @@ def write_sunskylight(name, direction, distance, turbidity):
             <parameter name="sun_phi" value="{a}" />
             <parameter name="sun_theta" value="{b}" />
             <parameter name="turbidity" value="{t}" />
+            <parameter name="ground_albedo" value="{g}" />
         </environment_edf>
         <environment_shader name="{n}_env_shdr" model="edf_environment_shader">
             <parameter name="environment_edf" value="{n}_env_edf" />
@@ -236,7 +237,8 @@ def write_sunskylight(name, direction, distance, turbidity):
     return snippet.format(n=name,
                           a=phi,
                           b=theta,
-                          t=turbidity)
+                          t=turbidity,
+                          g=albedo)
 
 
 def write_imagelight(name, image):

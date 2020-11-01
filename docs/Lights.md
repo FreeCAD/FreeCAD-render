@@ -118,8 +118,14 @@ observer on Earth.  A few things to keep in mind with this parameter:
 * Negative z component (sun under horizon) may create issues with some renderers.
 
 The `turbidity` parameter controls atmospheric turbidity. Values < 2 may create
-issues with your renderer.  Refer to your renderer documentation, or general
+issues with your renderer. Refer to your renderer documentation, or general
 documentation on sky simulation, for more information.
+
+The `ground albedo` parameter controls the ground albedo, ie the reflection
+coefficient of the ground. It must be comprised between 0.0 and 1.0. Refer to
+your renderer documentation, or general documentation on sky simulation, for
+more information.
+
 
 #### Caveat
 

@@ -167,7 +167,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                                   b=size_2)
 
 
-def write_sunskylight(name, direction, distance, turbidity):
+def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light.
 
     Since POV-Ray does not provide a built-in Hosek-Wilkie feature, sunsky is
