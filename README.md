@@ -16,9 +16,9 @@ Raytracing:
 
 * The Render Workbench is written fully in Python, which should make it much
   easier to understand and extend by non-C++ programmers.
-* Exporters to rendering engines are implemented as plugins, which should
-  facilitate the addition of new engines. The Render Workbench already supports several more
-  renderers than Raytracing Workbench, like Appleseed, LuxCoreRender and Cycles.
+* Exporters to render engines are implemented as plugins, which should
+  facilitate the addition of new engines. Render already supports several more
+  renderers than Raytracing, like Appleseed, LuxCoreRender and Cycles.
 * The Render Workbench provides enhanced features, compared to Raytracing:
   scene lighting, camera enhanced control, material support etc.
 

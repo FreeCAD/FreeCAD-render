@@ -33,7 +33,7 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
+from renderutils import RGB, RGBA, str2rgb, debug as ru_debug
 
 
 # ===========================================================================
@@ -194,14 +194,9 @@ def passthrough_keys(renderer):
 
 def is_multimat(obj):
     """Check if a material is a multimaterial."""
-    try:
-        is_app_feature = obj.isDerivedFrom("App::FeaturePython")
-    except AttributeError:
-        return False
-
-    is_type_multimat = getproxyattr(obj, "Type", None) == "MultiMaterial"
-
-    return obj is not None and is_app_feature and is_type_multimat
+    return (obj is not None and
+            obj.isDerivedFrom("App::FeaturePython") and
+            obj.Proxy.Type == "MultiMaterial")
 
 
 def get_default_color(material):
@@ -241,13 +236,8 @@ def generate_param_doc():
 
 def is_valid_material(obj):
     """Assert that an object is a valid Material."""
-    try:
-        is_materialobject = obj.isDerivedFrom("App::MaterialObjectPython")
-    except AttributeError:
-        return False
-
     return (obj is not None
-            and is_materialobject
+            and obj.isDerivedFrom("App::MaterialObjectPython")
             and hasattr(obj, "Material")
             and isinstance(obj.Material, dict))
 

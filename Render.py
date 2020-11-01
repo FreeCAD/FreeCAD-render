@@ -63,7 +63,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, RGBA, str2rgb, clamp
+from renderutils import translate, RGBA, str2rgb
 from rendererhandler import RendererHandler
 import camera
 import lights
@@ -89,7 +89,6 @@ RENDERERS = {x.group(1)
              if x}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
-FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
 
 # ===========================================================================
@@ -328,12 +327,10 @@ class Project:
             # simple as possible: they only need to deal with one type of
             # object: RenderView objects
             margin = bbox.DiagonalLength / 2
-            verts2d = ((bbox.XMin - margin, bbox.YMin - margin),
-                       (bbox.XMax + margin, bbox.YMin - margin),
-                       (bbox.XMax + margin, bbox.YMax + margin),
-                       (bbox.XMin - margin, bbox.YMax + margin))
-            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), 0)
-                        for v in verts2d]
+            vertices = [App.Vector(bbox.XMin - margin, bbox.YMin - margin, 0),
+                        App.Vector(bbox.XMax + margin, bbox.YMin - margin, 0),
+                        App.Vector(bbox.XMax + margin, bbox.YMax + margin, 0),
+                        App.Vector(bbox.XMin - margin, bbox.YMax + margin, 0)]
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
@@ -370,13 +367,11 @@ class Project:
             """Add objects as views to a group.
 
             objs -- FreeCAD objects to add
-            group -- The group (App::DocumentObjectGroup) to add to
+            group -- The  group (App::DocumentObjectGroup) to add to
             """
             for obj in objs:
                 success = False
-                if (hasattr(obj, "Group") and
-
-                        not obj.isDerivedFrom("App::Part")):
+                if hasattr(obj, "Group"):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
@@ -655,18 +650,10 @@ class View:
     # serialization...
     _fpos = dict()
 
-    def __init__(self, obj, xlink=False):
-        """Initialize view.
-
-        Args:
-        obj -- FreeCAD underlying object
-        xlink -- flag to indicate if the source property must be created as a
-                 App::PropertyLink (source object inside document) or
-                 App::PropertyXLink (source object outside document, only for
-                 FreeCAD >= 0.19)
-        """
+    def __init__(self, obj):
+        """Initialize view."""
         obj.Proxy = self
-        self.set_properties(obj, xlink)
+        self.set_properties(obj)
 
     @property
     def fpo(self):
@@ -678,7 +665,7 @@ class View:
         """Set underlying FeaturePython object."""
         self._fpos[id(self)] = new_fpo
 
-    def set_properties(self, obj, xlink=False):
+    def set_properties(self, obj):
         """Set underlying FeaturePython object's properties.
 
         Args:
@@ -687,12 +674,8 @@ class View:
         self.fpo = obj
 
         if "Source" not in obj.PropertiesList:
-            hi_version = FCDVERSION >= ("0", "19")
-            assert not (xlink and not hi_version),\
-                ("Error with View: FreeCAD version is < 0.19 whereas source "
-                 "object is external to document")
             obj.addProperty(
-                "App::PropertyXLink" if xlink else "App::PropertyLink",
+                "App::PropertyLink",
                 "Source",
                 "Render",
                 QT_TRANSLATE_NOOP("App::Property",
@@ -778,12 +761,11 @@ class View:
             related ViewProviderView object
         """
         doc = project.Document
-        assert doc == fcd_obj.Document or FCDVERSION >= ("0", "19"),\
+        assert doc == fcd_obj.Document,\
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
         fpo.Label = View.view_label(fcd_obj, project)
-        xlink = doc != fcd_obj.Document
-        view = View(fpo, xlink)
+        view = View(fpo)
         fpo.Source = fcd_obj
         project.addObject(fpo)
         viewp = ViewProviderView(fpo.ViewObject)
