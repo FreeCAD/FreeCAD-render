@@ -17,27 +17,32 @@
 
     #default {finish{ambient 0}}
 
-    sky_sphere {
-        pigment {
-            gradient y
-            color_map {
-                [0.0  color LightGray]
-                [0.3  color White]
-                [0.7  color LightGray]
-            }
-        }
+    // Sky
+    sky_sphere{
+        pigment{ gradient y
+           color_map{
+               [0.0 color rgb<1,1,1> ]
+               [0.8 color rgb<0.18,0.28,0.75>]
+               [1.0 color rgb<0.75,0.75,0.75>]}
+               //[1.0 color rgb<0.15,0.28,0.75>]}
+               scale 2
+               translate -1
+        } // end pigment
+    } // end sky_sphere
+
+    // Sun
+    global_settings { ambient_light rgb<1, 1, 1> }
+    light_source {
+        <85525370374085.5,119995516108223.16,-32977069856138.77>
+        color rgb <1,1,1>
+        parallel
+        point_at <0,0,0>
+        adaptive 1
     }
+
 
     // Standard finish
     #declare StdFinish = finish { crand 0.01 diffuse 0.8 };
 
     //RaytracingContent
 
-    //default light
-    light_source {
-        cam_location + cam_angle * 100
-        color White
-        area_light <100, 0, 0>, <0, 0, 100>, 10, 10
-        adaptive 1
-        jitter
-    }
