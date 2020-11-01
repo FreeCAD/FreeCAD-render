@@ -1,38 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project format_revision="18">
+
+        <environment name="SunskyLight_Template_env" model="generic_environment">
+            <parameter name="environment_edf" value="SunskyLight_Template_env_edf" />
+            <parameter name="environment_shader" value="SunskyLight_Template_env_shdr" />
+        </environment>
+
+        <environment_shader name="SunskyLight_Template_env_shdr" model="edf_environment_shader">
+            <parameter name="environment_edf" value="SunskyLight_Template_env_edf" />
+        </environment_shader>
+
+        <environment_edf name="SunskyLight_Template_env_edf" model="hosek_environment_edf">
+            <parameter name="sun_phi" value="21.08575684686511" />
+            <parameter name="sun_theta" value="37.37568623690732" />
+            <parameter name="turbidity" value="2.0" />
+        </environment_edf>
+
     <scene>
         <!--RaytracingCamera-->
-        <color name="horizon_radiance">
-            <parameter name="color_space" value="linear_rgb" />
-            <parameter name="multiplier" value="1.0" />
-            <values>0.1 0.1 0.1</values>
-        </color>
-        <color name="zenith_radiance">
-            <parameter name="color_space" value="linear_rgb" />
-            <parameter name="multiplier" value="1.0" />
-            <values>0.3 0.3 0.4</values>
-        </color>
-        <environment_edf name="environment_edf" model="hosek_environment_edf">
-            <parameter name="horizon_radiance" value="horizon_radiance" />
-            <parameter name="zenith_radiance" value="zenith_radiance" />
-            <parameter name="ground_albedo" value="0.3" />
-            <parameter name="horizon_shift" value="0" />
-            <parameter name="luminance_gamma" value="1" />
-            <parameter name="luminance_multiplier" value="1" />
-            <parameter name="saturation_multiplier" value="1" />
-            <parameter name="sun_phi" value="32.78" />
-            <parameter name="sun_theta" value="76.44" />
-            <parameter name="turbidity" value="1" />
-            <parameter name="turbidity_multiplier" value="2" />
-        </environment_edf>
-        <environment_shader name="environment_shader" model="edf_environment_shader">
-            <parameter name="environment_edf" value="environment_edf" />
-        </environment_shader>
-        <environment name="environment" model="generic_environment">
-            <parameter name="environment_edf" value="environment_edf" />
-            <parameter name="environment_shader" value="environment_shader" />
-        </environment>
         <assembly name="assembly">
+            <light name="SunskyLight_Template" model="sun_light">
+                <parameter name="environment_edf" value="SunskyLight_Template_env_edf" />
+                <parameter name="turbidity" value="2.0" />
+            </light>
             <!--RaytracingContent-->
         </assembly>
         <assembly_instance name="assembly_inst" assembly="assembly">
