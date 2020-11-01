@@ -730,7 +730,7 @@ class SunskyLight:
                 "Render",
                 "Direction of sun from observer's point of view "
                 "-- (0,0,1) is zenith"),
-            App.Vector(0, 0, -1)),
+            App.Vector(1, 1, 1)),
 
         "Turbidity": Prop(
             "App::PropertyFloat",
