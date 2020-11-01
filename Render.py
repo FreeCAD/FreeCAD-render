@@ -63,7 +63,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, RGBA, str2rgb
+from renderutils import translate, RGBA, str2rgb, clamp
 from rendererhandler import RendererHandler
 import camera
 import lights
@@ -89,6 +89,7 @@ RENDERERS = {x.group(1)
              if x}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
+FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
 
 # ===========================================================================
@@ -218,6 +219,7 @@ class Project:
                     "App::Property",
                     "If true, the rendered image is opened in FreeCAD after "
                     "the rendering is finished"))
+            obj.OpenAfterRender = True
 
         if "LinearDeflection" not in obj.PropertiesList:
             obj.addProperty(
@@ -326,10 +328,12 @@ class Project:
             # simple as possible: they only need to deal with one type of
             # object: RenderView objects
             margin = bbox.DiagonalLength / 2
-            vertices = [App.Vector(bbox.XMin - margin, bbox.YMin - margin, 0),
-                        App.Vector(bbox.XMax + margin, bbox.YMin - margin, 0),
-                        App.Vector(bbox.XMax + margin, bbox.YMax + margin, 0),
-                        App.Vector(bbox.XMin - margin, bbox.YMax + margin, 0)]
+            verts2d = ((bbox.XMin - margin, bbox.YMin - margin),
+                       (bbox.XMax + margin, bbox.YMin - margin),
+                       (bbox.XMax + margin, bbox.YMax + margin),
+                       (bbox.XMin - margin, bbox.YMax + margin))
+            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), 0)
+                        for v in verts2d]
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
@@ -366,11 +370,13 @@ class Project:
             """Add objects as views to a group.
 
             objs -- FreeCAD objects to add
-            group -- The  group (App::DocumentObjectGroup) to add to
+            group -- The group (App::DocumentObjectGroup) to add to
             """
             for obj in objs:
                 success = False
-                if hasattr(obj, "Group"):
+                if (hasattr(obj, "Group") and
+
+                        not obj.isDerivedFrom("App::Part")):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
@@ -673,8 +679,9 @@ class View:
         self.fpo = obj
 
         if "Source" not in obj.PropertiesList:
+            hi_version = FCDVERSION >= ("0", "19")
             obj.addProperty(
-                "App::PropertyLink",
+                "App::PropertyXLink" if hi_version else "App::PropertyLink",
                 "Source",
                 "Render",
                 QT_TRANSLATE_NOOP("App::Property",
@@ -760,7 +767,7 @@ class View:
             related ViewProviderView object
         """
         doc = project.Document
-        assert doc == fcd_obj.Document,\
+        assert doc == fcd_obj.Document or FCDVERSION >= ("0", "19"),\
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
         fpo.Label = View.view_label(fcd_obj, project)
@@ -1114,7 +1121,7 @@ class ColorPicker(QPushButton):
         Args:
             color -- The default color of the picker
         """
-        super(ColorPicker, self).__init__()
+        super().__init__()
         self.color = QColor(color)
         self._set_icon(self.color)
         self.pressed.connect(self.on_button_pressed)

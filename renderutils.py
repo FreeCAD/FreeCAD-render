@@ -68,3 +68,11 @@ def str2rgb(string):
     """Convert a ({r},{g},{b})-like string into RGB object."""
     float_tuple = map(float, ast.literal_eval(string))
     return RGB._make(float_tuple)
+
+
+def clamp(value, maxval=1e10):
+    """Clamp value between -maxval and +maxval."""
+    res = value
+    res = res if res <= maxval else maxval
+    res = res if res >= -maxval else -maxval
+    return res

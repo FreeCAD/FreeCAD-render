@@ -512,7 +512,7 @@ def render(project, prefix, external, output, width, height):
         msg = "Appleseed call failed: '" + err.strerror + "'\n"
         App.Console.PrintError(msg)
 
-    return output
+    return output if not external else None
 
 
 # ===========================================================================
