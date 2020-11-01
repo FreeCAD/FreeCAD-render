@@ -655,10 +655,18 @@ class View:
     # serialization...
     _fpos = dict()
 
-    def __init__(self, obj):
-        """Initialize view."""
+    def __init__(self, obj, xlink=False):
+        """Initialize view.
+
+        Args:
+        obj -- FreeCAD underlying object
+        xlink -- flag to indicate if the source property must be created as a
+                 App::PropertyLink (source object inside document) or
+                 App::PropertyXLink (source object outside document, only for
+                 FreeCAD >= 0.19)
+        """
         obj.Proxy = self
-        self.set_properties(obj)
+        self.set_properties(obj, xlink)
 
     @property
     def fpo(self):
@@ -670,7 +678,7 @@ class View:
         """Set underlying FeaturePython object."""
         self._fpos[id(self)] = new_fpo
 
-    def set_properties(self, obj):
+    def set_properties(self, obj, xlink=False):
         """Set underlying FeaturePython object's properties.
 
         Args:
@@ -680,8 +688,11 @@ class View:
 
         if "Source" not in obj.PropertiesList:
             hi_version = FCDVERSION >= ("0", "19")
+            assert not (xlink and not hi_version),\
+                ("Error with View: FreeCAD version is < 0.19 whereas source "
+                 "object is external to document")
             obj.addProperty(
-                "App::PropertyXLink" if hi_version else "App::PropertyLink",
+                "App::PropertyXLink" if xlink else "App::PropertyLink",
                 "Source",
                 "Render",
                 QT_TRANSLATE_NOOP("App::Property",
@@ -771,7 +782,8 @@ class View:
             "Unable to create View: Project and Object not in same document"
         fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
         fpo.Label = View.view_label(fcd_obj, project)
-        view = View(fpo)
+        xlink = doc != fcd_obj.Document
+        view = View(fpo, xlink)
         fpo.Source = fcd_obj
         project.addObject(fpo)
         viewp = ViewProviderView(fpo.ViewObject)
