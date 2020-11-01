@@ -174,7 +174,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                           d=direction)
 
 
-def write_sunskylight(name, direction, distance, turbidity):
+def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
 
@@ -198,7 +198,8 @@ def write_sunskylight(name, direction, distance, turbidity):
           <sky_texture name="sky_tex"
                        type="hosek_wilkie"
                        turbidity="{t}"
-                       sun_direction="{d.x}, {d.y}, {d.z}" />
+                       sun_direction="{d.x}, {d.y}, {d.z}"
+                       ground_albedo="{g}" />
           <connect from="sky_tex color" to="sky_bg color" />
           <connect from="sky_bg background" to="output surface" />
     </background>
@@ -221,7 +222,8 @@ def write_sunskylight(name, direction, distance, turbidity):
                           c=rgb,
                           s=strength,
                           a=angle,
-                          v=-_dir
+                          v=-_dir,
+                          g=albedo
                           )
 
 

@@ -335,11 +335,15 @@ class RendererHandler:
         src = view.Source
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
+        albedo = float(src.GroundAlbedo)
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
         assert turbidity >= 0,\
             translate("Render", "Negative turbidity")
+
+        assert albedo >= 0,\
+            translate("Render", "Negative albedo")
 
         assert direction.Length,\
             translate("Render", "Sun direction is null")
@@ -348,7 +352,8 @@ class RendererHandler:
                                    name,
                                    direction,
                                    distance,
-                                   turbidity)
+                                   turbidity,
+                                   albedo)
 
     def _render_imagelight(self, name, view):
         """Get a rendering string for an image light object.
