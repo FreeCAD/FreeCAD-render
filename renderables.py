@@ -22,10 +22,10 @@
 
 """This module implements the Renderable object, an atomic rendering entity.
 
-A Renderable is a tuple (name, mesh, material). It is a convenient object
-to send to renderers.
+A Renderable is a tuple (name, mesh, material, default color). It is a
+convenient object to send to renderers.
 Each object in FreeCAD should be splittable into a list of Renderables. This
-module provides the function to convert FreeCAD objects into collection of
+module provides the function to convert a FreeCAD object into a collection of
 Renderables
 """
 
@@ -39,7 +39,7 @@ import itertools
 import collections
 
 from renderutils import translate, debug, warn, getproxyattr
-from rendermaterials import is_multimat
+from rendermaterials import is_multimat, is_valid_material
 
 
 # ===========================================================================
@@ -47,10 +47,11 @@ from rendermaterials import is_multimat
 # ===========================================================================
 
 
-Renderable = collections.namedtuple("Renderable", "name mesh material")
+Renderable = collections.namedtuple("Renderable",
+                                    "name mesh material defcolor")
 
 
-def get_renderables(obj, name, upper_material, mesher):
+def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
     """Get the renderables from a FreeCAD object.
 
     A renderable is a tuple (name, mesh, material). There can be
@@ -66,6 +67,8 @@ def get_renderables(obj, name, upper_material, mesher):
     upper_material -- the FreeCAD material inherited from the upper
                       level
     mesher -- a callable which can convert a shape into a mesh
+    ignore_unknown -- a flag to prevent exception raising if 'obj' is
+                      of no renderable type
 
     Returns:
     A list of renderables
@@ -73,10 +76,12 @@ def get_renderables(obj, name, upper_material, mesher):
     obj_is_applink = obj.isDerivedFrom("App::Link")
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
+    obj_is_app_part = obj.isDerivedFrom("App::Part")
     obj_type = getproxyattr(obj, "Type", "")
 
-    mat = (getattr(obj, "Material", None)
-           if upper_material is None else upper_material)
+    mat = (getattr(obj, "Material", None) if upper_material is None
+           else upper_material)
+    mat = mat if is_valid_material(mat) or is_multimat(mat) else None
     del upper_material  # Should not be used after this point...
 
     label = getattr(obj, "Label", name)
@@ -104,21 +109,32 @@ def get_renderables(obj, name, upper_material, mesher):
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher)
 
-    # Plain part
+    # App part
+    elif obj_is_app_part:
+        debug("Object", label, "'App::Part' detected")
+        renderables = _get_rends_from_part(obj, name, mat, mesher)
+
+    # Plain part feature
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        renderables = [Renderable(name, mesher(obj.Shape), mat)]
+        color = obj.ViewObject.ShapeColor
+        renderables = [Renderable(name, mesher(obj.Shape), mat, color)]
 
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
-        renderables = [Renderable(name, obj.Mesh, mat)]
+        color = obj.ViewObject.ShapeColor
+        renderables = [Renderable(name, obj.Mesh, mat, color)]
 
     # Unhandled
     else:
         renderables = []
-        msg = translate("Render", "Unhandled object type")
-        raise TypeError(msg)
+        if not ignore_unknown:
+            ascendants = ", ".join(obj.getAllDerivedFrom())
+            msg = translate("Render",
+                            "Unhandled object type (%s)" % ascendants)
+            raise TypeError(msg)
+        debug("Object", label, "Not renderable")
 
     return renderables
 
@@ -180,7 +196,8 @@ def _get_rends_from_elementlist(obj, name, material, mesher):
             new_mesh.transform(element_plc_matrix)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
-            new_rend = Renderable(new_name, new_mesh, new_mat)
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
             renderables.append(new_rend)
 
     return renderables
@@ -207,10 +224,11 @@ def _get_rends_from_plainapplink(obj, name, material, mesher):
         new_name = "%s_%s" % (name, base_rend.name)
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
+        new_color = base_rend.defcolor
         if not obj.LinkTransform:
             new_mesh.transform(linkedobj_plc_inverse_matrix)
         new_mesh.transform(link_plc_matrix)
-        return Renderable(new_name, new_mesh, new_mat)
+        return Renderable(new_name, new_mesh, new_mat, new_color)
 
     return [new_rend(r) for r in base_rends]
 
@@ -241,7 +259,8 @@ def _get_rends_from_array(obj, name, material, mesher):
     except AttributeError:
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
-        return [Renderable(name, mesher(obj.Shape), material)]
+        color = obj.ViewObject.ShapeColor
+        return [Renderable(name, mesher(obj.Shape), material, color)]
 
     base_rends = get_renderables(base, base.Name, material, mesher)
     obj_plc_matrix = obj.Placement.toMatrix()
@@ -259,7 +278,8 @@ def _get_rends_from_array(obj, name, material, mesher):
         new_mesh.transform(obj_plc_matrix)
         subname = "%s_%s_%s" % (name, base_rend.name, counter)
         new_mat = _get_material(base_rend, material)
-        return Renderable(subname, new_mesh, new_mat)
+        new_color = base_rend.defcolor
+        return Renderable(subname, new_mesh, new_mat, new_color)
 
     rends = itertools.product(enumerate(placements), base_rends)
 
@@ -293,6 +313,9 @@ def _get_rends_from_window(obj, name, material, mesher):
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
 
+    # Subobjects colors
+    colors = [obj.ViewObject.ShapeColor] * len(subnames)
+
     # Subobjects materials
     if material is not None:
         assert is_multimat(material), "Multimaterial expected"
@@ -306,7 +329,41 @@ def _get_rends_from_window(obj, name, material, mesher):
         mats = [None] * len(subnames)
 
     # Build renderables
-    return [Renderable(*r) for r in zip(names, meshes, mats)]
+    return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
+
+
+def _get_rends_from_part(obj, name, material, mesher):
+    """Get renderables from a Part object.
+
+    Parameters:
+    obj -- the Part object (App::Part)
+    name -- the name assigned to the Part object for rendering
+    material -- the material for the Part object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for the Part object
+    """
+    def _adjust(rend, origin, upper_material):
+        """Reposition to origin and set material of the given renderable."""
+        origin_matrix = origin.toMatrix()
+        new_mesh = rend.mesh.copy()
+        new_mesh.transform(origin_matrix)
+        new_mat = _get_material(rend, upper_material)
+        new_color = rend.defcolor
+        return Renderable(rend.name, new_mesh, new_mat, new_color)
+
+    origin = obj.Placement
+
+    rends = []
+    for subobj in obj.Group:
+        subname = "{}_{}".format(name, subobj.Name)
+        if getattr(subobj, "Visibility", True):  # Add subobj only if visible
+            rends += get_renderables(subobj, subname, material, mesher, True)
+
+    rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
+
+    return rends
 
 
 def _get_material(base_renderable, upper_material):
