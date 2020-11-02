@@ -119,6 +119,7 @@ class RendererHandler:
         try:
             res = (obj.isDerivedFrom("Part::Feature") or
                    obj.isDerivedFrom("App::Link") or
+                   obj.isDerivedFrom("App::Part") or
                    obj.isDerivedFrom("Mesh::Feature") or
                    (obj.isDerivedFrom("App::FeaturePython") and
                     getproxyattr(obj, "type", "") in ["PointLight",
@@ -227,10 +228,13 @@ class RendererHandler:
         write_object = functools.partial(RendererHandler._call_renderer,
                                          self,
                                          "write_object")
-        get_mat = functools.partial(rendermaterials.get_rendering_material,
-                                    renderer=self.renderer_name,
-                                    default_color=view.Proxy.get_shape_color())
-        res = [write_object(r.name, r.mesh, get_mat(r.material))
+
+        get_mat = rendermaterials.get_rendering_material
+        rdrname = self.renderer_name
+
+        res = [write_object(r.name,
+                            r.mesh,
+                            get_mat(r.material, rdrname, r.defcolor))
                for r in rends]
         return ''.join(res)
 
