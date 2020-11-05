@@ -63,6 +63,11 @@ STD_MATERIALS_PARAMETERS = {
     "Diffuse": [
         Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
 
+    "Mixed": [
+        Param("Glass.IOR", "float", 1.5, "Index of refraction"),
+        Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
+        Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color"),
+        Param("MixGlassDiffuse", "float", 0.5, "Mix ratio glass vs. diffuse")],
     }
 
 
