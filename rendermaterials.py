@@ -338,17 +338,23 @@ def _build_passthrough(lines, renderer, default_color):
 
 @functools.lru_cache(maxsize=128)
 def _build_fallback(color):
-    """Build fallback material (diffuse).
+    """Build fallback material (mixed).
 
     color -- a RGBA tuple color
     """
     try:
-        diffusecolor = RGB(*color[:3])
-        diffusealpha = color[3]
+        _color = ','.join([str(c) for c in color[:3]])
+        _alpha = str(color[3])
     except IndexError:
-        diffusecolor = RGB(0.8, 0.8, 0.8)
-        diffusealpha = 1.0
-    return _build_diffuse(diffusecolor, diffusealpha)
+        _color = "0.8, 0.8, 0.8"
+        _alpha = "1.0"
+
+    values = (("Glass.IOR", "1.5", "1.5", "float"),
+              ("Glass.Color", _color, _color, "RGB"),
+              ("Diffuse.Color", _color, _color, "RGB"),
+              ("Ratio", _alpha, _alpha, "float"))
+
+    return _build_standard("Mixed", values)
 
 
 def _get_float(material, param_prefix, param_name, default=0.0):
