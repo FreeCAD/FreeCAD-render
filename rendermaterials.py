@@ -299,7 +299,6 @@ def _build_diffuse(diffusecolor, alpha=1.0):
     res = RenderMaterial("Diffuse")
     res.diffuse.color = diffusecolor
     res.diffuse.alpha = alpha
-    res.color = RGBA(*diffusecolor, res.diffuse.alpha)
     res.default_color = diffusecolor
     return res
 
