@@ -292,13 +292,19 @@ class RenderMaterial:
             res = getattr(res, elem)
         setattr(res, path[-1], value)
 
+    @property
+    def shader(self):
+        """Get shader attribute, whatever underlying attribute it is."""
+        return getattr(self, self.shadertype.lower())
+
+
 
 @functools.lru_cache(maxsize=128)
 def _build_diffuse(diffusecolor, alpha=1.0):
     """Build diffuse material from a simple RGB color."""
     res = RenderMaterial("Diffuse")
-    res.diffuse.color = diffusecolor
-    res.diffuse.alpha = alpha
+    res.shader.color = diffusecolor
+    res.shader.alpha = alpha
     res.default_color = diffusecolor
     return res
 
@@ -324,8 +330,8 @@ def _build_standard(shadertype, values):
 def _build_passthrough(lines, renderer, default_color):
     """Build passthrough material."""
     res = RenderMaterial("Passthrough")
-    res.passthrough.string = _convert_passthru("\n".join(lines))
-    res.passthrough.renderer = renderer
+    res.shader.string = _convert_passthru("\n".join(lines))
+    res.shader.renderer = renderer
     res.default_color = default_color
     return res
 
