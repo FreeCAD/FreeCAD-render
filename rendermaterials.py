@@ -363,3 +363,11 @@ def _convert_passthru(passthru):
     for token in PASSTHRU_REPLACED_TOKENS:
         passthru = passthru.replace(*token)
     return passthru
+
+def _clear():
+    """Clear functions caches (debug purpose)."""
+    _build_diffuse.cache_clear()
+    _build_fallback.cache_clear()
+    _build_passthrough.cache_clear()
+    _build_standard.cache_clear()
+    _convert_passthru.cache_clear()
