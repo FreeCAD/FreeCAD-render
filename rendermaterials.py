@@ -262,17 +262,27 @@ def is_valid_material(obj):
 #                            Locals (helpers)
 # ===========================================================================
 
-# TODO Create class Material
+
+class RenderMaterial:
+    """An object to represent a material for renderers plugins."""
+
+    def __init__(self, shadertype):
+        """Initialize object."""
+        self.shadertype = str(shadertype)
+
+    def __repr__(self):
+        """Represent object."""
+        items = (f"{k}={v!r}" for k, v in self.__dict__.items())
+        return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
 @functools.lru_cache(maxsize=128)
 def _build_diffuse(diffusecolor, alpha=1.0):
     """Build diffuse material from a simple RGB color."""
-    res = types.SimpleNamespace()
+    res = RenderMaterial("Diffuse")
     res.diffuse = types.SimpleNamespace()
     res.diffuse.color = diffusecolor
     res.diffuse.alpha = alpha
-    res.shadertype = "Diffuse"
     res.color = RGBA(*diffusecolor, res.diffuse.alpha)
     res.default_color = diffusecolor
     return res
@@ -281,8 +291,8 @@ def _build_diffuse(diffusecolor, alpha=1.0):
 @functools.lru_cache(maxsize=128)
 def _build_standard(shadertype, values):
     """Build standard material."""
-    res = types.SimpleNamespace()
-    res.shadertype = shadertype
+    res = RenderMaterial(shadertype)
+
     root = getattr_or_addit(res, shadertype.lower())
     for nam, val, dft, typ in values:
 
@@ -308,8 +318,7 @@ def _build_standard(shadertype, values):
 @functools.lru_cache(maxsize=128)
 def _build_passthrough(lines, renderer, default_color):
     """Build passthrough material."""
-    res = types.SimpleNamespace()  # Result
-    res.shadertype = "Passthrough"
+    res = RenderMaterial("Passthrough")
     res.passthrough = types.SimpleNamespace()
     res.passthrough.string = _convert_passthru("\n".join(lines))
     res.passthrough.renderer = renderer
