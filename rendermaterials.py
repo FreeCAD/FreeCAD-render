@@ -33,8 +33,7 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import (RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr,
-                         getattr_or_addit)
+from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
 
 
 # ===========================================================================
@@ -271,6 +270,7 @@ class RenderMaterial:
         shadertype = str(shadertype)
         self.shadertype = shadertype
         setattr(self, shadertype.lower(), types.SimpleNamespace())
+        self.default_color = RGBA(0.8, 0.8, 0.8, 1.0)
 
     def __repr__(self):
         """Represent object."""

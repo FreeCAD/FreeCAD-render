@@ -24,7 +24,6 @@
 
 import collections
 import ast
-import types
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
