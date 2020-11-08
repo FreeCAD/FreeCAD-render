@@ -33,7 +33,8 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
+from renderutils import (RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr,
+                         getattr_or_addit)
 
 
 # ===========================================================================
@@ -67,7 +68,7 @@ STD_MATERIALS_PARAMETERS = {
         Param("Glass.IOR", "float", 1.5, "Index of refraction"),
         Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
         Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color"),
-        Param("MixGlassDiffuse", "float", 0.5, "Mix ratio glass vs. diffuse")],
+        Param("Ratio", "float", 0.5, "Mix ratio glass vs diffuse (in [0,1])")],
     }
 
 
@@ -261,6 +262,8 @@ def is_valid_material(obj):
 #                            Locals (helpers)
 # ===========================================================================
 
+# TODO Create class Material
+
 
 @functools.lru_cache(maxsize=128)
 def _build_diffuse(diffusecolor, alpha=1.0):
@@ -279,18 +282,26 @@ def _build_diffuse(diffusecolor, alpha=1.0):
 def _build_standard(shadertype, values):
     """Build standard material."""
     res = types.SimpleNamespace()
-    setattr(res, "shadertype", shadertype)
-    subobj = types.SimpleNamespace()
-    setattr(res, shadertype.lower(), subobj)
+    res.shadertype = shadertype
+    root = getattr_or_addit(res, shadertype.lower())
     for nam, val, dft, typ in values:
+
+        # Get position where to create attribute
+        path = nam.split('.')
+        pos = root
+        for elem in path[:-1]:
+            pos = getattr_or_addit(pos, elem.lower())
+
+        # Create attribute
         cast_function = CAST_FUNCTIONS[typ]
         try:
             value = cast_function(val)
         except TypeError:
             value = cast_function(dft)
         finally:
-            setattr(subobj, nam.lower(), value)
-    res.default_color = get_default_color(res)
+            setattr(pos, path[-1].lower(), value)
+
+    res.default_color = get_default_color(res)  # TODO Put it in parameters
     return res
 
 

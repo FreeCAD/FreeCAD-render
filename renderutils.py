@@ -24,6 +24,7 @@
 
 import collections
 import ast
+import types
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -76,3 +77,14 @@ def clamp(value, maxval=1e10):
     res = res if res <= maxval else maxval
     res = res if res >= -maxval else -maxval
     return res
+
+
+def getattr_or_addit(obj, name):
+    """Get an attribute from an object or add it.
+
+    'obj' must accept dynamic attributes, otherwise AttributeError is raised.
+    Attribute is added as type.SimpleNamespace
+    """
+    if not hasattr(obj, name):
+        setattr(obj, name, types.SimpleNamespace())
+    return getattr(obj, name)
