@@ -268,19 +268,35 @@ class RenderMaterial:
 
     def __init__(self, shadertype):
         """Initialize object."""
-        self.shadertype = str(shadertype)
+        shadertype = str(shadertype)
+        self.shadertype = shadertype
+        setattr(self, shadertype.lower(), types.SimpleNamespace())
 
     def __repr__(self):
         """Represent object."""
         items = (f"{k}={v!r}" for k, v in self.__dict__.items())
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
+    def setshaderparam(self, name, value):
+        """Set shader parameter.
+
+        If parameter does not exist, add it.
+        If parameter name is a compound like 'foo.bar.baz', foo and bar are
+        added as SimpleNamespaces.
+        """
+        path = [e.lower() for e in [self.shadertype] + name.split('.')]
+        res = self
+        for elem in path[:-1]:
+            if not hasattr(res, elem):
+                setattr(res, elem, types.SimpleNamespace())
+            res = getattr(res, elem)
+        setattr(res, path[-1], value)
+
 
 @functools.lru_cache(maxsize=128)
 def _build_diffuse(diffusecolor, alpha=1.0):
     """Build diffuse material from a simple RGB color."""
     res = RenderMaterial("Diffuse")
-    res.diffuse = types.SimpleNamespace()
     res.diffuse.color = diffusecolor
     res.diffuse.alpha = alpha
     res.color = RGBA(*diffusecolor, res.diffuse.alpha)
@@ -293,23 +309,13 @@ def _build_standard(shadertype, values):
     """Build standard material."""
     res = RenderMaterial(shadertype)
 
-    root = getattr_or_addit(res, shadertype.lower())
     for nam, val, dft, typ in values:
-
-        # Get position where to create attribute
-        path = nam.split('.')
-        pos = root
-        for elem in path[:-1]:
-            pos = getattr_or_addit(pos, elem.lower())
-
-        # Create attribute
         cast_function = CAST_FUNCTIONS[typ]
         try:
             value = cast_function(val)
         except TypeError:
             value = cast_function(dft)
-        finally:
-            setattr(pos, path[-1].lower(), value)
+        res.setshaderparam(nam, value)
 
     res.default_color = get_default_color(res)  # TODO Put it in parameters
     return res
@@ -319,7 +325,6 @@ def _build_standard(shadertype, values):
 def _build_passthrough(lines, renderer, default_color):
     """Build passthrough material."""
     res = RenderMaterial("Passthrough")
-    res.passthrough = types.SimpleNamespace()
     res.passthrough.string = _convert_passthru("\n".join(lines))
     res.passthrough.renderer = renderer
     res.default_color = default_color
