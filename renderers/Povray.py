@@ -271,7 +271,7 @@ def _write_material_glass(name, material):
             }}
         }}
     interior {{
-        ior 1.5
+        ior {i}
         caustics 1
         }}"""
     return snippet.format(n=name,
