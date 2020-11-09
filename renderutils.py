@@ -61,7 +61,7 @@ def getproxyattr(obj, name, default):
 
 
 RGB = collections.namedtuple("RGB", "r g b")
-RGBA = collections.namedtuple("RGB", "r g b a")
+RGBA = collections.namedtuple("RGBA", "r g b a")
 
 
 def str2rgb(string):
