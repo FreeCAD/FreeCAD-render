@@ -247,8 +247,8 @@ def _write_material_mixed(name, material):
     snippet_d = _write_material_diffuse("%s_diffuse" % name, material.mixed)
     snippet_m = """
     scene.materials.{n}.type = mix
-    scene.materials.{n}.material2 = {n}_glass
     scene.materials.{n}.material1 = {n}_diffuse
+    scene.materials.{n}.material2 = {n}_glass
     scene.materials.{n}.amount = {r}
     """
     snippet = snippet_g + snippet_d + snippet_m
