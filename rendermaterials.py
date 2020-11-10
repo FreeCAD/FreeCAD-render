@@ -347,7 +347,7 @@ def _build_fallback(color):
         _alpha = str(color[3])
     except IndexError:
         _color = "0.8, 0.8, 0.8"
-        _alpha = "1.0"
+        _alpha = "0.0"
 
     values = (("Glass.IOR", "1.5", "1.5", "float"),
               ("Glass.Color", _color, _color, "RGB"),
