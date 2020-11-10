@@ -38,7 +38,7 @@ Renderables
 import itertools
 import collections
 
-from renderutils import translate, debug, warn, getproxyattr
+from renderutils import translate, debug, warn, getproxyattr, RGBA
 from rendermaterials import is_multimat, is_valid_material
 
 
@@ -117,13 +117,13 @@ def get_renderables(obj, name, upper_material, mesher, ignore_unknown=False):
     # Plain part feature
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        color = obj.ViewObject.ShapeColor
+        color = _get_shapecolor(obj)
         renderables = [Renderable(name, mesher(obj.Shape), mat, color)]
 
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
-        color = obj.ViewObject.ShapeColor
+        color = _get_shapecolor(obj)
         renderables = [Renderable(name, obj.Mesh, mat, color)]
 
     # Unhandled
@@ -373,3 +373,12 @@ def _get_material(base_renderable, upper_material):
     return (base_renderable.material
             if (upper_material is None or upper_mat_is_multimat)
             else upper_material)
+
+def _get_shapecolor(obj):
+    """Get shape color (including transparency) from an object."""
+    vobj = obj.ViewObject
+    color = RGBA(vobj.ShapeColor[0],
+                 vobj.ShapeColor[1],
+                 vobj.ShapeColor[2],
+                 vobj.Transparency / 100)
+    return color
