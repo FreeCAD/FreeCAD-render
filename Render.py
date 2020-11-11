@@ -1217,6 +1217,8 @@ class MaterialSettingsTaskPanel():
             self.on_passthrough_renderer_changed)
         self.passthru_rdr = rdrwidget
         self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
+        self.passthru.textChanged.connect(self.on_passthrough_text_changed)
+        self.passthru_cache = {}
         self._set_layout_visible("PassthruLayout", False)
 
         # Get selected material and initialize material type combo with it
@@ -1231,10 +1233,14 @@ class MaterialSettingsTaskPanel():
 
     def on_material_name_changed(self, material_name):
         """Respond to material name changed event."""
+        # Clear passthrough cache
+        self.passthru_cache = {}
+
         # Find material
         try:
             material = self.existing_materials[material_name]
         except KeyError:
+            # Unknwon material: disable everything
             self._set_layout_visible("FieldsLayout", False)
             self._set_layout_visible("FatherLayout", False)
             self._set_layout_visible("PassthruLayout", False)
@@ -1290,21 +1296,38 @@ class MaterialSettingsTaskPanel():
         material = self.existing_materials[mat_name]
         self._populate_passthru(renderer, material)
 
+    def on_passthrough_text_changed(self):
+        """Respond to passthrough renderer changed event."""
+        rdr = self.passthru_rdr.currentItem()
+        if not rdr:
+            return
+        text = self.passthru.toPlainText()
+        self.passthru_cache[rdr.text()] = text
+
     PASSTHROUGH_KEYS = {r: rendermaterials.passthrough_keys(r)
                         for r in VALID_RENDERERS}
 
     def _populate_passthru(self, renderer, material):
         """Populate passthrough edit field."""
+        # If no renderer or no material provided, disable field and quit
         if not renderer or not material:
             self.passthru.setPlainText("")
             self.passthru.setEnabled(False)
             return
 
         self.passthru.setEnabled(True)
-        keys = self.PASSTHROUGH_KEYS[renderer]
-        common_keys = keys & material.Material.keys()
-        lines = [material.Material[k] for k in sorted(common_keys)]
-        self.passthru.setPlainText('\n'.join(lines))
+
+        # If renderer passthrough is already in cache (and possibly modified),
+        # use the cache; otherwise, retrieve it from 'material'.
+        try:
+            text = self.passthru_cache[renderer]
+        except KeyError:
+            keys = self.PASSTHROUGH_KEYS[renderer]
+            common_keys = keys & material.Material.keys()
+            lines = [material.Material[k] for k in sorted(common_keys)]
+            text = '\n'.join(lines)
+
+        self.passthru.setPlainText(text)
 
     def _set_layout_visible(self, layout_name, flag):
         """Make a layout visible/invisible, according to flag."""
@@ -1373,6 +1396,12 @@ class MaterialSettingsTaskPanel():
                 field_name, get_value = field
                 param_name = "Render.{}.{}".format(render_type, field_name)
                 tmp_mat[param_name] = str(get_value())
+
+        # Set passthru
+        pthr_keys = self.PASSTHROUGH_KEYS
+        for rdr, text in self.passthru_cache.items():
+            lines = dict(zip(sorted(pthr_keys[rdr]), text.splitlines()))
+            tmp_mat.update(lines)
 
         # Set father
         father = self.father_field.text()
