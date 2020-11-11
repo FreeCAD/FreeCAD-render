@@ -1337,13 +1337,12 @@ class MaterialSettingsTaskPanel():
         else:
             widget = QLineEdit()
             self.fields.append((name, widget.text))
+        widget.setToolTip(param.desc)
         layout = self.form.findChild(QLayout, "FieldsLayout")
-        # self.form.FieldsLayout.addRow("%s:" % param.name, widget)
         layout.addRow("%s:" % param.name, widget)
 
     def _delete_fields(self):
         """Delete all fields, except the first one (MaterialType selector)."""
-        # layout = self.form.FieldsLayout
         layout = self.form.findChild(QLayout, "FieldsLayout")
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
