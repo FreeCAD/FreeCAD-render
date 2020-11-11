@@ -182,6 +182,17 @@ Parameter | Type | Default value | Description
 `Render.Glass.IOR` | float | 1.5 | Index of refraction
 `Render.Glass.Color` | RGB | (1, 1, 1) | Transmitted color
 
+#### **Mixed** Material
+
+`Render.Type=Mixed`
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.Mixed.Glass.IOR` | float | 1.5 | Index of refraction
+`Render.Mixed.Glass.Color` | RGB | (1, 1, 1) | Transmitted color
+`Render.Mixed.Diffuse.Color` | RGB | (0.8, 0.8, 0.8) | Diffuse color
+`Render.Mixed.Transparency` | float | 0.5 | Mix ratio between Glass and Diffuse (should stay in [0,1], other values may lead to undefined behaviour)
+
 ### Passthrough material
 #### General syntax
 Passthrough materials are defined using `Render.<renderer>.<line>` entries,

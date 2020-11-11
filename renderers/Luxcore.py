@@ -241,6 +241,21 @@ def _write_material_diffuse(name, material):
                           c=material.diffuse.color)
 
 
+def _write_material_mixed(name, material):
+    """Compute a string in the renderer SDL for a Mixed material."""
+    snippet_g = _write_material_glass("%s_glass" % name, material.mixed)
+    snippet_d = _write_material_diffuse("%s_diffuse" % name, material.mixed)
+    snippet_m = """
+    scene.materials.{n}.type = mix
+    scene.materials.{n}.material1 = {n}_diffuse
+    scene.materials.{n}.material2 = {n}_glass
+    scene.materials.{n}.amount = {r}
+    """
+    snippet = snippet_g + snippet_d + snippet_m
+    return snippet.format(n=name,
+                          r=material.mixed.transparency)
+
+
 def _write_material_fallback(name, material):
     """Compute a string in the renderer SDL for a fallback material.
 
@@ -267,7 +282,8 @@ MATERIALS = {
         "Passthrough": _write_material_passthrough,
         "Glass": _write_material_glass,
         "Disney": _write_material_disney,
-        "Diffuse": _write_material_diffuse}
+        "Diffuse": _write_material_diffuse,
+        "Mixed": _write_material_mixed}
 
 
 # ===========================================================================

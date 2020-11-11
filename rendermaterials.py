@@ -33,7 +33,7 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
+from renderutils import RGBA, str2rgb, debug as ru_debug, getproxyattr
 
 
 # ===========================================================================
@@ -42,10 +42,15 @@ from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
 
 Param = collections.namedtuple("Param", "name type default desc")
 
+# IMPORTANT: Please note that, by convention, the first parameter of each
+# material will be used as default color in fallback mechanisms.
+# Please be careful to preserve a color-typed field as first parameter of each
+# material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
+        Param("Color", "RGB", (1, 1, 1), "Transmitted color"),
         Param("IOR", "float", 1.5, "Index of refraction"),
-        Param("Color", "RGB", (1, 1, 1), "Transmitted color")],
+        ],
 
     "Disney": [
         Param("BaseColor", "RGB", (0.8, 0.8, 0.8), "Base color"),
@@ -58,11 +63,24 @@ STD_MATERIALS_PARAMETERS = {
         Param("Sheen", "float", 0.0, "Sheen coefficient"),
         Param("SheenTint", "float", 0.0, "Sheen tint coefficient"),
         Param("ClearCoat", "float", 0.0, "Clear coat coefficient"),
-        Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient")],
+        Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient"),
+        ],
 
     "Diffuse": [
-        Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
+        Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")
+        ],
 
+    # NB: Above 'Mixed' material could be extended with reflectivity in the
+    # future, with the addition of a Glossy material. See for instance:
+    # https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
+    "Mixed": [
+        Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color"),
+        Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
+        Param("Glass.IOR", "float", 1.5, "Index of refraction"),
+        Param("Transparency", "float", 0.5,
+              "Mix ratio between Glass and Diffuse (should stay in [0,1], "
+              "other values may lead to undefined behaviour)"),
+        ],
     }
 
 
@@ -178,10 +196,13 @@ def get_rendering_material(material, renderer, default_color):
         pass
     else:
         debug("Fallback to Coin-like parameters")
-        return _build_diffuse(diffusecolor,
-                              1.0 - float(mat.get("Transparency", "0")))
+        color = RGBA(diffusecolor.r,
+                     diffusecolor.g,
+                     diffusecolor.b,
+                     float(mat.get("Transparency", "0")) / 100)
+        return _build_fallback(color)
 
-    # Fallback
+    # Fallback with default_color
     debug("Fallback to default color")
     return _build_fallback(default_color)
 
@@ -202,20 +223,6 @@ def is_multimat(obj):
     is_type_multimat = getproxyattr(obj, "Type", None) == "MultiMaterial"
 
     return obj is not None and is_app_feature and is_type_multimat
-
-
-def get_default_color(material):
-    """Provide a default color for a material (as a fallback)."""
-    shadertype = getattr(material, "shadertype", "")
-    if shadertype == "Diffuse":
-        color = material.diffuse.color
-    elif shadertype == "Disney":
-        color = material.disney.basecolor
-    elif shadertype == "Glass":
-        color = material.glass.color
-    else:
-        color = RGB(0.8, 0.8, 0.8)
-    return color
 
 
 def generate_param_doc():
@@ -257,63 +264,106 @@ def is_valid_material(obj):
 # ===========================================================================
 
 
-@functools.lru_cache(maxsize=128)
-def _build_diffuse(diffusecolor, alpha=1.0):
-    """Build diffuse material from a simple RGB color."""
-    res = types.SimpleNamespace()
-    res.diffuse = types.SimpleNamespace()
-    res.diffuse.color = diffusecolor
-    res.diffuse.alpha = alpha
-    res.shadertype = "Diffuse"
-    res.color = RGBA(*diffusecolor, res.diffuse.alpha)
-    res.default_color = diffusecolor
-    return res
+class RenderMaterial:
+    """An object to represent a material for renderers plugins."""
+
+    def __init__(self, shadertype):
+        """Initialize object."""
+        shadertype = str(shadertype)
+        self.shadertype = shadertype
+        setattr(self, shadertype.lower(), types.SimpleNamespace())
+        self.default_color = RGBA(0.8, 0.8, 0.8, 1.0)
+
+    def __repr__(self):
+        """Represent object."""
+        items = (f"{k}={v!r}" for k, v in self.__dict__.items())
+        return "{}({})".format(type(self).__name__, ", ".join(items))
+
+    def setshaderparam(self, name, value):
+        """Set shader parameter.
+
+        If parameter does not exist, add it.
+        If parameter name is a compound like 'foo.bar.baz', foo and bar are
+        added as SimpleNamespaces.
+        """
+        path = [e.lower() for e in [self.shadertype] + name.split('.')]
+        res = self
+        for elem in path[:-1]:
+            if not hasattr(res, elem):
+                setattr(res, elem, types.SimpleNamespace())
+            res = getattr(res, elem)
+        setattr(res, path[-1], value)
+
+    def getshaderparam(self, name):
+        """Get shader parameter.
+
+        If parameter name is a compound like 'foo.bar.baz', the method
+        retrieves self.foo.bar.baz .
+        If one of the path element is missing in self, an AttributeError will
+        be raised.
+        """
+        path = [e.lower() for e in [self.shadertype] + name.split('.')]
+        res = self
+        for elem in path:
+            res = getattr(res, elem)
+        return res
+
+    @property
+    def shader(self):
+        """Get shader attribute, whatever underlying attribute it is."""
+        return getattr(self, self.shadertype.lower())
 
 
 @functools.lru_cache(maxsize=128)
 def _build_standard(shadertype, values):
     """Build standard material."""
-    res = types.SimpleNamespace()
-    setattr(res, "shadertype", shadertype)
-    subobj = types.SimpleNamespace()
-    setattr(res, shadertype.lower(), subobj)
+    res = RenderMaterial(shadertype)
+
     for nam, val, dft, typ in values:
         cast_function = CAST_FUNCTIONS[typ]
         try:
             value = cast_function(val)
         except TypeError:
             value = cast_function(dft)
-        finally:
-            setattr(subobj, nam.lower(), value)
-    res.default_color = get_default_color(res)
+        res.setshaderparam(nam, value)
+
+    # Add a default_color, for fallback mechanisms in renderers.
+    # By convention, the default color must be in the first parameter of the
+    # material.
+    par = STD_MATERIALS_PARAMETERS[shadertype][0]
+    res.default_color = res.getshaderparam(par.name)
     return res
 
 
 @functools.lru_cache(maxsize=128)
 def _build_passthrough(lines, renderer, default_color):
     """Build passthrough material."""
-    res = types.SimpleNamespace()  # Result
-    res.shadertype = "Passthrough"
-    res.passthrough = types.SimpleNamespace()
-    res.passthrough.string = _convert_passthru("\n".join(lines))
-    res.passthrough.renderer = renderer
+    res = RenderMaterial("Passthrough")
+    res.shader.string = _convert_passthru("\n".join(lines))
+    res.shader.renderer = renderer
     res.default_color = default_color
     return res
 
 
 @functools.lru_cache(maxsize=128)
 def _build_fallback(color):
-    """Build fallback material (diffuse).
+    """Build fallback material (mixed).
 
     color -- a RGBA tuple color
     """
     try:
-        diffusecolor = RGB(*color[:3])
-        diffusealpha = color[3]
+        _color = ','.join([str(c) for c in color[:3]])
+        _alpha = str(color[3])
     except IndexError:
-        diffusecolor = RGB(0.8, 0.8, 0.8)
-        diffusealpha = 1.0
-    return _build_diffuse(diffusecolor, diffusealpha)
+        _color = "0.8, 0.8, 0.8"
+        _alpha = "0.0"
+
+    values = (("Diffuse.Color", _color, _color, "RGB"),
+              ("Glass.IOR", "1.5", "1.5", "float"),
+              ("Glass.Color", _color, _color, "RGB"),
+              ("Transparency", _alpha, _alpha, "float"))
+
+    return _build_standard("Mixed", values)
 
 
 def _get_float(material, param_prefix, param_name, default=0.0):
@@ -338,3 +388,15 @@ def _convert_passthru(passthru):
     for token in PASSTHRU_REPLACED_TOKENS:
         passthru = passthru.replace(*token)
     return passthru
+
+
+def _clear():
+    """Clear functions caches (debug purpose)."""
+    _build_fallback.cache_clear()
+    _build_passthrough.cache_clear()
+    _build_standard.cache_clear()
+    _convert_passthru.cache_clear()
+
+
+# Clear cache when reload module (debug)
+_clear()
