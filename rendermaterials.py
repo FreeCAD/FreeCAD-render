@@ -183,10 +183,13 @@ def get_rendering_material(material, renderer, default_color):
         pass
     else:
         debug("Fallback to Coin-like parameters")
-        return _build_diffuse(diffusecolor,
-                              1.0 - float(mat.get("Transparency", "0")))
+        color = RGBA(diffusecolor.r,
+                     diffusecolor.g,
+                     diffusecolor.b,
+                     float(mat.get("Transparency", "0")) / 100)
+        return _build_fallback(color)
 
-    # Fallback
+    # Fallback with default_color
     debug("Fallback to default color")
     return _build_fallback(default_color)
 
