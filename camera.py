@@ -564,13 +564,22 @@ def set_cam_from_coin_string(cam, camstr):
                            degrees(float(camdict["orientation"][3])))
         cam.Placement = App.Placement(pos, rot)
         cam.FocalDistance = float(camdict["focalDistance"][0])
-        cam.AspectRatio = float(camdict["aspectRatio"][0])
-        cam.ViewportMapping = str(camdict["viewportMapping"][0])
     except KeyError as err:
         raise ValueError("Missing field in camera string: {}".format(err))\
             from err
 
-    # It may happen that near & far distances are not set in camstr...
+    # It may happen that aspect ratio and viewport mapping are not set in
+    # camstr...
+    try:
+        cam.AspectRatio = float(camdict["aspectRatio"][0])
+    except KeyError:
+        cam.AspectRatio = 1.0
+    try:
+        cam.ViewportMapping = str(camdict["viewportMapping"][0])
+    except KeyError:
+        cam.ViewportMapping = "ADJUST_CAMERA"
+
+    # It may also happen that near & far distances are not set in camstr...
     try:
         cam.NearDistance = float(camdict["nearDistance"][0])
     except KeyError:
