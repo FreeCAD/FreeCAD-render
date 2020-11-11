@@ -225,20 +225,6 @@ def is_multimat(obj):
     return obj is not None and is_app_feature and is_type_multimat
 
 
-def get_default_color(material):
-    """Provide a default color for a material (as a fallback)."""
-    shadertype = getattr(material, "shadertype", "")
-    if shadertype == "Diffuse":
-        color = material.diffuse.color
-    elif shadertype == "Disney":
-        color = material.disney.basecolor
-    elif shadertype == "Glass":
-        color = material.glass.color
-    else:
-        color = RGB(0.8, 0.8, 0.8)
-    return color
-
-
 def generate_param_doc():
     """Generate Markdown documentation from material rendering parameters."""
     header_fmt = ["#### **{m}** Material",
