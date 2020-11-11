@@ -301,17 +301,6 @@ class RenderMaterial:
         return getattr(self, self.shadertype.lower())
 
 
-
-@functools.lru_cache(maxsize=128)
-def _build_diffuse(diffusecolor, alpha=1.0):
-    """Build diffuse material from a simple RGB color."""
-    res = RenderMaterial("Diffuse")
-    res.shader.color = diffusecolor
-    res.shader.alpha = alpha
-    res.default_color = diffusecolor
-    return res
-
-
 @functools.lru_cache(maxsize=128)
 def _build_standard(shadertype, values):
     """Build standard material."""
@@ -383,9 +372,9 @@ def _convert_passthru(passthru):
         passthru = passthru.replace(*token)
     return passthru
 
+
 def _clear():
     """Clear functions caches (debug purpose)."""
-    _build_diffuse.cache_clear()
     _build_fallback.cache_clear()
     _build_passthrough.cache_clear()
     _build_standard.cache_clear()
