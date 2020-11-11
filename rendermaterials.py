@@ -33,7 +33,7 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
+from renderutils import RGBA, str2rgb, debug as ru_debug, getproxyattr
 
 
 # ===========================================================================

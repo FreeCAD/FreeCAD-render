@@ -374,6 +374,7 @@ def _get_material(base_renderable, upper_material):
             if (upper_material is None or upper_mat_is_multimat)
             else upper_material)
 
+
 def _get_shapecolor(obj):
     """Get shape color (including transparency) from an object."""
     vobj = obj.ViewObject
