@@ -387,3 +387,7 @@ def _clear():
     _build_passthrough.cache_clear()
     _build_standard.cache_clear()
     _convert_passthru.cache_clear()
+
+
+# Clear cache when reload module (debug)
+_clear()
