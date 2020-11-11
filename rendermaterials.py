@@ -42,10 +42,15 @@ from renderutils import RGB, RGBA, str2rgb, debug as ru_debug, getproxyattr
 
 Param = collections.namedtuple("Param", "name type default desc")
 
+# IMPORTANT: Please note that, by convention, the first parameter of each
+# material will be used as default color in fallback mechanisms.
+# Please be careful to preserve a color-typed field as first parameter of each
+# material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
+        Param("Color", "RGB", (1, 1, 1), "Transmitted color"),
         Param("IOR", "float", 1.5, "Index of refraction"),
-        Param("Color", "RGB", (1, 1, 1), "Transmitted color")],
+        ],
 
     "Disney": [
         Param("BaseColor", "RGB", (0.8, 0.8, 0.8), "Base color"),
@@ -58,21 +63,24 @@ STD_MATERIALS_PARAMETERS = {
         Param("Sheen", "float", 0.0, "Sheen coefficient"),
         Param("SheenTint", "float", 0.0, "Sheen tint coefficient"),
         Param("ClearCoat", "float", 0.0, "Clear coat coefficient"),
-        Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient")],
+        Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient"),
+        ],
 
     "Diffuse": [
-        Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
+        Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")
+        ],
 
     # NB: Above 'Mixed' material could be extended with reflectivity in the
     # future, with the addition of a Glossy material. See for instance:
     # https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
     "Mixed": [
-        Param("Glass.IOR", "float", 1.5, "Index of refraction"),
-        Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
         Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color"),
+        Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
+        Param("Glass.IOR", "float", 1.5, "Index of refraction"),
         Param("Transparency", "float", 0.5,
               "Mix ratio between Glass and Diffuse (should stay in [0,1], "
-              "other values may lead to undefined behaviour)")],
+              "other values may lead to undefined behaviour)"),
+        ],
     }
 
 
@@ -300,6 +308,20 @@ class RenderMaterial:
             res = getattr(res, elem)
         setattr(res, path[-1], value)
 
+    def getshaderparam(self, name):
+        """Get shader parameter.
+
+        If parameter name is a compound like 'foo.bar.baz', the method
+        retrieves self.foo.bar.baz .
+        If one of the path element is missing in self, an AttributeError will
+        be raised.
+        """
+        path = [e.lower() for e in [self.shadertype] + name.split('.')]
+        res = self
+        for elem in path:
+            res = getattr(res, elem)
+        return res
+
     @property
     def shader(self):
         """Get shader attribute, whatever underlying attribute it is."""
@@ -319,7 +341,11 @@ def _build_standard(shadertype, values):
             value = cast_function(dft)
         res.setshaderparam(nam, value)
 
-    res.default_color = get_default_color(res)  # TODO Put it in parameters
+    # Add a default_color, for fallback mechanisms in renderers.
+    # By convention, the default color must be in the first parameter of the
+    # material.
+    par = STD_MATERIALS_PARAMETERS[shadertype][0]
+    res.default_color = res.getshaderparam(par.name)
     return res
 
 
@@ -346,9 +372,9 @@ def _build_fallback(color):
         _color = "0.8, 0.8, 0.8"
         _alpha = "0.0"
 
-    values = (("Glass.IOR", "1.5", "1.5", "float"),
+    values = (("Diffuse.Color", _color, _color, "RGB"),
+              ("Glass.IOR", "1.5", "1.5", "float"),
               ("Glass.Color", _color, _color, "RGB"),
-              ("Diffuse.Color", _color, _color, "RGB"),
               ("Transparency", _alpha, _alpha, "float"))
 
     return _build_standard("Mixed", values)
