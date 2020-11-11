@@ -1430,5 +1430,3 @@ if App.GuiUp:
                 ("Render", RenderCommand())):
         Gui.addCommand(*cmd)
         RENDER_COMMANDS.append(cmd[0])
-
-# vim: foldmethod=indent
