@@ -353,7 +353,7 @@ def _write_material_mixed(name, material):
         finish {{ diffuse 1 }}
     }}"""
     return snippet.format(n=name,
-                          t=material.mixed.ratio,
+                          t=material.mixed.transparency,
                           c=material.mixed.diffuse.color,
                           k=material.mixed.glass.color,
                           i=material.mixed.glass.ior)

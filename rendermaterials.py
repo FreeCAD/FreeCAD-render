@@ -63,11 +63,16 @@ STD_MATERIALS_PARAMETERS = {
     "Diffuse": [
         Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")],
 
+    # NB: Above 'Mixed' material could be extended with reflectivity in the
+    # future, with the addition of a Glossy material. See for instance:
+    # https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
     "Mixed": [
         Param("Glass.IOR", "float", 1.5, "Index of refraction"),
         Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
         Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color"),
-        Param("Ratio", "float", 0.5, "Mix ratio glass vs diffuse (in [0,1])")],
+        Param("Transparency", "float", 0.5,
+              "Mix ratio between Glass and Diffuse (should stay in [0,1], "
+              "other values may lead to undefined behaviour)")],
     }
 
 
@@ -344,7 +349,7 @@ def _build_fallback(color):
     values = (("Glass.IOR", "1.5", "1.5", "float"),
               ("Glass.Color", _color, _color, "RGB"),
               ("Diffuse.Color", _color, _color, "RGB"),
-              ("Ratio", _alpha, _alpha, "float"))
+              ("Transparency", _alpha, _alpha, "float"))
 
     return _build_standard("Mixed", values)
 

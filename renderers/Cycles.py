@@ -349,7 +349,7 @@ def _write_material_mixed(name, material):
                           c=material.mixed.glass.color,
                           i=material.mixed.glass.ior,
                           k=material.mixed.diffuse.color,
-                          r=material.mixed.ratio)
+                          r=material.mixed.transparency)
 
 
 def _write_material_fallback(name, material):

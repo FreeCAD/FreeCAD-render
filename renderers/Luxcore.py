@@ -253,7 +253,7 @@ def _write_material_mixed(name, material):
     """
     snippet = snippet_g + snippet_d + snippet_m
     return snippet.format(n=name,
-                          r=material.mixed.ratio)
+                          r=material.mixed.transparency)
 
 
 def _write_material_fallback(name, material):
