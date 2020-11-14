@@ -92,7 +92,7 @@ def write_object(name, mesh, material):
                           f=objfile.encode("unicode_escape").decode("utf-8"))
 
 
-def write_camera(name, pos, updir, target):
+def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
@@ -105,7 +105,7 @@ def write_camera(name, pos, updir, target):
         <camera name="{n}" model="thinlens_camera">
             <parameter name="film_width" value="0.032" />
             <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
-            <parameter name="horizontal_fov" value="60" />
+            <parameter name="horizontal_fov" value="{f}" />
             <parameter name="shutter_open_time" value="0" />
             <parameter name="shutter_close_time" value="1" />
             <parameter name="focal_distance" value="1" />
@@ -120,7 +120,8 @@ def write_camera(name, pos, updir, target):
     return snippet.format(n=name,
                           o=_transform(pos.Base),
                           t=_transform(target),
-                          u=_transform(updir))
+                          u=_transform(updir),
+                          f=fov)
 
 
 def write_pointlight(name, pos, color, power):

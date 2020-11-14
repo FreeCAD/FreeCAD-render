@@ -125,7 +125,9 @@ class Camera:
             "App::PropertyAngle",
             "Camera",
             QT_TRANSLATE_NOOP("Render",
-                              "Height angle, for perspective camera"),
+                              "Height angle, for perspective camera, in"
+                              "degrees. Important: This value will be sent as "
+                              "'Field of View' to the renderers."),
             60),
 
     }
