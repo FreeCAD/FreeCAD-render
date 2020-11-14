@@ -821,10 +821,12 @@ class ViewProviderView:
         """Initialize ViewProviderView."""
         vobj.Proxy = self
         self.object = None
+        self._create_usematerialcolor(vobj)
 
     def attach(self, vobj):  # pylint: disable=no-self-use
         """Respond to created/restored object event (callback)."""
         self.object = vobj.Object
+        self._create_usematerialcolor(vobj)
 
     def __getstate__(self):
         """Provide data representation for object."""
@@ -861,6 +863,18 @@ class ViewProviderView:
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
         return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
+
+    @staticmethod
+    def _create_usematerialcolor(vobj):
+        """Create UseMaterialColor on view object and set it to False.
+
+        This is required for ArchMaterial not to try to ShapeColor on this
+        object.
+        """
+        if "UseMaterialColor" not in vobj.PropertiesList:
+            vobj.addProperty(
+                    "App::PropertyBool", "UseMaterialColor", "Render", "")
+        vobj.UseMaterialColor = False
 
 
 # ===========================================================================
