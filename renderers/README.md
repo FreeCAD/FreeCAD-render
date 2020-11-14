@@ -73,6 +73,7 @@ The plugin must contain the following functions:
   | **pos**         | FreeCAD.Placement             | Camera placement (origin & rotation)
   | **up**          | FreeCAD.Vector                | Camera up direction
   | **target**      | FreeCAD.Vector                | Camera target direction
+  | **fov**         | float                         | Camera field of view, in degrees
 
   &nbsp;
 

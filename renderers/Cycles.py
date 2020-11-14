@@ -86,7 +86,7 @@ def write_object(name, mesh, material):
                           v="  ".join(verts))
 
 
-def write_camera(name, pos, updir, target):
+def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
@@ -99,13 +99,15 @@ def write_camera(name, pos, updir, target):
     <transform rotate="{a} {r.x} {r.y} {r.z}"
                translate="{p.x} {p.y} {p.z}"
                scale="1 1 -1">
-        <camera type="perspective"/>
+        <camera type="perspective"
+                fov="{f}"/>
     </transform>"""
 
     return snippet.format(n=name,
                           a=degrees(pos.Rotation.Angle),
                           r=pos.Rotation.Axis,
-                          p=pos.Base)
+                          p=pos.Base,
+                          f=radians(fov))
 
 
 def write_pointlight(name, pos, color, power):

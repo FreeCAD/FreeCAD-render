@@ -256,11 +256,13 @@ class RendererHandler:
         target = pos.Base.add(
             pos.Rotation.multVec(App.Vector(0, 0, -1)).multiply(a_ratio))
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
+        field_of_view = float(getattr(source, "HeightAngle", 60))
         return self._call_renderer("write_camera",
                                    name,
                                    pos,
                                    updir,
-                                   target)
+                                   target,
+                                   field_of_view)
 
     def _render_pointlight(self, name, view):
         """Get a rendering string for a point light object.
