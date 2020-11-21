@@ -482,7 +482,7 @@ class AreaLight:
 
 
 class ViewProviderAreaLight:
-    """View Provider of PointLight class."""
+    """View Provider of AreaLight class."""
 
     SHAPE = ((-0.5, -0.5, 0),
              (0.5, -0.5, 0),
@@ -758,7 +758,7 @@ class SunskyLight:
     # ~FeaturePython object properties
 
     def __init__(self, fpo):
-        """Initialize PointLight.
+        """Initialize Sunsky Light.
 
         Args:
             fpo -- A FeaturePython object created with FreeCAD.addObject.
@@ -785,10 +785,10 @@ class SunskyLight:
         the light is created in the given document.
 
         This method also create the FeaturePython and the
-        ViewProviderPointLight related objects.
+        ViewProviderSunskyLight related objects.
 
         Args:
-            document -- The document where to create pointlight (optional)
+            document -- The document where to create light (optional)
 
         Returns:
             The newly created SunskyLight, FeaturePython and
@@ -955,7 +955,7 @@ class ImageLight:
     # ~FeaturePython object properties
 
     def __init__(self, fpo):
-        """Initialize PointLight.
+        """Initialize ImageLight.
 
         Args:
             fpo -- A FeaturePython object created with FreeCAD.addObject.
