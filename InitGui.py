@@ -99,7 +99,7 @@ static char * Render_xpm[] = {
         from FreeCADGui import addIconPath, addPreferencePage
         from Render import RENDER_COMMANDS, ICONDIR, PREFPAGE
 
-        commands = RENDER_COMMANDS
+        commands = [c[0] for c in RENDER_COMMANDS]
         self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"), commands)
         self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"), commands)
         addIconPath(ICONDIR)
