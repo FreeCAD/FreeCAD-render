@@ -151,7 +151,7 @@ def write_pointlight(name, pos, color, power):
                           t=_transform(pos))
 
 
-def write_arealight(name, pos, size_u, size_v, color, power):
+def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     # Appleseed uses radiance (power/surface) instead of power
     radiance = power / (size_u * size_v)
@@ -160,7 +160,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
             <color name="{n}_color">
                 <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
-                <parameter name="alpha" value="1.0" />
+                <parameter name="alpha" value="{g}" />
                 <values> {c[0]} {c[1]} {c[2]} </values>
             </color>
             <edf name="{n}_edf" model="diffuse_edf">
@@ -177,6 +177,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                 <parameter name="bump_offset" value="2.0" />
                 <parameter name="displacement_method" value="bump" />
                 <parameter name="normal_map_up" value="z" />
+                <parameter name="alpha_map" value="{g}" />
                 <parameter name="shade_alpha_cutouts" value="false" />
             </material>
             <object name="{n}_obj" model="rectangle_object">
@@ -202,7 +203,8 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                           t=_transform(pos.Base),
                           r=_transform(pos.Rotation.Axis),
                           a=degrees(pos.Rotation.Angle),
-                          p=radiance * 100)  # guesstimated factor
+                          p=radiance * 100,  # guesstimated factor
+                          g=0.0 if transparent else 1.0)
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):

@@ -315,6 +315,7 @@ class RendererHandler:
         power = float(source.Power)
         size_u = float(source.SizeU)
         size_v = float(source.SizeV)
+        transparent = bool(source.Transparent)
 
         # Send everything to renderer module
         return self._call_renderer("write_arealight",
@@ -323,7 +324,8 @@ class RendererHandler:
                                    size_u,
                                    size_v,
                                    color,
-                                   power)
+                                   power,
+                                   transparent)
 
     def _render_sunskylight(self, name, view):
         """Get a rendering string for a sunsky light object.

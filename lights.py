@@ -383,6 +383,12 @@ class AreaLight:
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
             60.0),
 
+        "Transparent": Prop(
+            "App::PropertyBool",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Area light transparency"),
+            False),
+
     }
     # ~FeaturePython object properties
 
