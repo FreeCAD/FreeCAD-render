@@ -71,14 +71,19 @@ In FreeCAD viewport, an area light will be represented by a luminous rectangle:
 
 ![](./arealight.jpg)
 
-The representation in FreeCAD viewport casts light onto objects, but this is just
-for convenience and does not prejudge the final rendering.
+The representation in FreeCAD viewport casts light onto objects, but this is
+just for convenience and does not prejudge the final rendering.
 
 #### Special parameters
 
 The size of the rectangle is determined by `Size U` and `Size V`
 parameters. Those parameters influence the rendering, as they are exported to
 the renderer as the dimensions of the area light to render.
+
+The `Transparent` parameter is a boolean to control the visual appearance of
+the area. If `False` (default value), the area will appear as a luminous but
+opaque rectangle; if `True`, the area will be invisible and will affect the
+scene only by the light it casts.
 
 Please note that the `Power` parameter refers to the power of the whole area,
 and not to the power per unit area. For renderers using a power per unit area

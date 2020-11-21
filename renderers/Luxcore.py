@@ -98,7 +98,7 @@ def write_pointlight(name, pos, color, power):
                                   e=efficency)
 
 
-def write_arealight(name, pos, size_u, size_v, color, power):
+def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     efficency = 15
     gain = 10  # Guesstimated!
@@ -115,7 +115,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
     scene.materials.{n}.emission.gain = {g} {g} {g}
     scene.materials.{n}.emission.power = {p}
     scene.materials.{n}.emission.efficency = {e}
-    scene.materials.{n}.transparency = 0
+    scene.materials.{n}.transparency = {a}
     scene.objects.{n}.type = inlinedmesh
     scene.objects.{n}.vertices = -{u} -{v} 0 {u} -{v} 0 {u} {v} 0 -{u} {v} 0
     scene.objects.{n}.faces = 0 1 2 0 2 3
@@ -131,6 +131,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
                                   g=gain,
                                   u=size_u / 2,
                                   v=size_v / 2,
+                                  a=0 if transparent else 1
                                   )
 
 
