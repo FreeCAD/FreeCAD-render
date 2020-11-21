@@ -1446,29 +1446,24 @@ MaterialCommand = ArchMaterial._CommandArchMaterial
 #                            Module initialization
 # ===========================================================================
 
-
 # If Gui is up, create the FreeCAD commands
 if App.GuiUp:
     # Add commands
-    RENDER_COMMANDS = []
-    for rend in VALID_RENDERERS:
-        Gui.addCommand('Render_' + rend, RenderProjectCommand(rend))
-        RENDER_COMMANDS.append('Render_' + rend)
-    RENDER_COMMANDS.append("Separator")
-    for cmd in (("Camera", CameraCommand()),
-                ("PointLight", PointLightCommand()),
-                ("AreaLight", AreaLightCommand()),
-                ("SunskyLight", SunskyLightCommand()),
-                ("ImageLight", ImageLightCommand()),):
-        Gui.addCommand(*cmd)
-        RENDER_COMMANDS.append(cmd[0])
-    RENDER_COMMANDS.append("Separator")
-    Gui.addCommand("Material", MaterialCommand())
-    RENDER_COMMANDS.append("Material")
-    Gui.addCommand("MaterialRenderSettings", MaterialSettingsCommand())
-    RENDER_COMMANDS.append("MaterialRenderSettings")
-    RENDER_COMMANDS.append("Separator")
-    for cmd in (("View", RenderViewCommand()),
-                ("Render", RenderCommand())):
-        Gui.addCommand(*cmd)
-        RENDER_COMMANDS.append(cmd[0])
+    SEPARATOR = ("Separator", None)
+    RENDER_COMMANDS = [("Render_%s" % r, RenderProjectCommand(r))
+                       for r in VALID_RENDERERS] + \
+                      [SEPARATOR,
+                       ("Camera", CameraCommand()),
+                       ("PointLight", PointLightCommand()),
+                       ("AreaLight", AreaLightCommand()),
+                       ("SunskyLight", SunskyLightCommand()),
+                       ("ImageLight", ImageLightCommand()),
+                       SEPARATOR,
+                       ("Material", MaterialCommand()),
+                       ("MaterialRenderSettings", MaterialSettingsCommand()),
+                       SEPARATOR,
+                       ("View", RenderViewCommand()),
+                       ("Render", RenderCommand())]
+    for name, cmd in RENDER_COMMANDS:
+        if cmd:
+            Gui.addCommand(name, cmd)
