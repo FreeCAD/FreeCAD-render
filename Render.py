@@ -1464,6 +1464,6 @@ if App.GuiUp:
                        SEPARATOR,
                        ("View", RenderViewCommand()),
                        ("Render", RenderCommand())]
-    for name, cmd in RENDER_COMMANDS:
-        if cmd:
-            Gui.addCommand(name, cmd)
+    for cmdname, cmdobj in RENDER_COMMANDS:
+        if cmdobj:
+            Gui.addCommand(cmdname, cmdobj)
