@@ -26,7 +26,6 @@
 It provides the necessary objects to deal with rendering:
 - GUI Commands
 - Rendering Projects and Views
-- A RendererHandler class to simplify access to external renderers modules
 
 On initialization, this module will retrieve all renderer modules and create
 the necessary UI controls.
@@ -164,6 +163,7 @@ class Project:
                 QT_TRANSLATE_NOOP(
                     "App::Property",
                     "The result file to be sent to the renderer"))
+        obj.setEditorMode("PageResult", 2)
 
         if "Group" not in obj.PropertiesList:
             obj.addExtension("App::GroupExtensionPython", self)
@@ -246,7 +246,22 @@ class Project:
                     "curved surfaces."))
             obj.AngularDeflection = math.pi / 6
 
-        obj.setEditorMode("PageResult", 2)
+        if "TransparencySensitivity" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyIntegerConstraint",
+                "TransparencySensitivity",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Overweight transparency in rendering "
+                    "(0=None (default), 10=Very high)."
+                    "When this parameter is set, low transparency ratios will "
+                    "be rendered more transparent. NB: This parameter affects "
+                    "only implicit materials (generated via shape "
+                    "Appearance), not explicit materials (defined via Material"
+                    " parameter)."))
+            obj.TransparencySensitivity = (0, 0, 10, 1)
+
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
         """Respond to document restoration event (callback)."""
@@ -438,9 +453,11 @@ class Project:
 
         # Get a handle to renderer module
         try:
-            renderer = RendererHandler(obj.Renderer,
-                                       obj.LinearDeflection,
-                                       obj.AngularDeflection)
+            renderer = RendererHandler(
+                rdrname=obj.Renderer,
+                linear_deflection=obj.LinearDeflection,
+                angular_deflection=obj.AngularDeflection,
+                transparency_boost=obj.TransparencySensitivity)
         except ModuleNotFoundError:
             msg = translate(
                 "Render",
@@ -733,9 +750,12 @@ class View:
             return
 
         # Get object rendering string and set ViewResult property
-        renderer = RendererHandler(proj.Renderer,
-                                   proj.LinearDeflection,
-                                   proj.AngularDeflection)
+        renderer = RendererHandler(
+            rdrname=proj.Renderer,
+            linear_deflection=proj.LinearDeflection,
+            angular_deflection=proj.AngularDeflection,
+            transparency_boost=proj.TransparencySensitivity)
+
         obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod

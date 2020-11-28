@@ -60,19 +60,24 @@ class RendererHandler:
     view object's type.
     """
 
-    def __init__(self, rdrname, angular_deflection, linear_deflection):
+    def __init__(self, rdrname, **kwargs):
         """Initialize RendererHandler class.
 
         Args:
             rdrname -- renderer name (str). Must match a renderer plugin name.
+
+        Keyword args:
             linear_deflection -- linear deflection (float) to be passed to
                 mesher
             angular_deflection -- angular deflection (float) to be passed to
                 mesher.
+            transparency_boost -- an integer to augment transparency in
+                implicit material computation
         """
         self.renderer_name = str(rdrname)
-        self.linear_deflection = float(linear_deflection)
-        self.angular_deflection = float(angular_deflection)
+        self.linear_deflection = float(kwargs.get("linear_deflection", .1))
+        self.angular_deflection = float(kwargs.get("angular_deflection", .524))
+        self.transparency_boost = float(kwargs.get("transparency_boost", 0))
 
         try:
             self.renderer_module = import_module("renderers." + rdrname)
@@ -219,7 +224,12 @@ class RendererHandler:
                                    LinearDeflection=self.linear_deflection,
                                    AngularDeflection=self.angular_deflection,
                                    Relative=False)
-        rends = renderables.get_renderables(source, name, material, mesher)
+        tpboost = self.transparency_boost
+        rends = renderables.get_renderables(source,
+                                            name,
+                                            material,
+                                            mesher,
+                                            transparency_boost=tpboost)
 
         # Check renderables
         renderables.check_renderables(rends)
