@@ -310,8 +310,6 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     Returns:
         A list of renderables for the Window object
     """
-    # TODO Test transparency for implicit material
-
     # Subobjects names
     window_parts = obj.WindowParts
     if not window_parts and hasattr(obj, "CloneOf") and obj.CloneOf:
@@ -320,13 +318,17 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # WindowsParts
         window_parts = obj.CloneOf.WindowParts
     subnames = window_parts[0::5]  # Names every 5th item...
+    subtypes = window_parts[1::5]  # Types every 5th item, starting at 1...
     names = ["%s_%s" % (name, s.replace(' ', '_')) for s in subnames]
 
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
 
     # Subobjects colors
-    colors = [obj.ViewObject.ShapeColor] * len(subnames)
+    transparency_boost = kwargs.get("transparency_boost", 0)
+    faces_len = [len(s.Faces) for s in obj.Shape.Solids]
+    colors = [_boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
+              for i in itertools.accumulate([0] + faces_len[:-1])]
 
     # Subobjects materials
     if material is not None:
@@ -348,13 +350,13 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
     """Get renderables from a Part object.
 
     Parameters:
-    obj -- the Part object (App::Part)
-    name -- the name assigned to the Part object for rendering
-    material -- the material for the Part object
-    mesher -- a callable object which converts a shape into a mesh
+        obj -- the Part object (App::Part)
+        name -- the name assigned to the Part object for rendering
+        material -- the material for the Part object
+        mesher -- a callable object which converts a shape into a mesh
 
     Returns:
-    A list of renderables for the Part object
+        A list of renderables for the Part object
     """
     def _adjust(rend, origin, upper_material):
         """Reposition to origin and set material of the given renderable."""
@@ -392,10 +394,13 @@ def _get_material(base_renderable, upper_material):
 def _get_shapecolor(obj, transparency_boost):
     """Get shape color (including transparency) from an object."""
     vobj = obj.ViewObject
-    transparency = vobj.Transparency / 100
-    transparency = math.pow(transparency, 1 / (transparency_boost + 1))
     color = RGBA(vobj.ShapeColor[0],
                  vobj.ShapeColor[1],
                  vobj.ShapeColor[2],
-                 transparency)
-    return color
+                 vobj.Transparency / 100)
+    return _boost_tp(color, transparency_boost)
+
+def _boost_tp(color, boost_factor):
+    """Get a color with boosted transparency"""
+    transparency = math.pow(color[3], 1 / (boost_factor + 1))
+    return RGBA(color[0], color[1], color[2], transparency)
