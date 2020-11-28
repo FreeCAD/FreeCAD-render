@@ -96,20 +96,23 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Link (plain)
     if obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
-        renderables = _get_rends_from_plainapplink(obj, name, mat, mesher, **kwargs)
+        renderables = \
+            _get_rends_from_plainapplink(obj, name, mat, mesher, **kwargs)
 
     # Link (array)
     elif obj_is_applink and obj.ElementCount:
         debug("Object", label, "'Link (array)' detected")
-        renderables = _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
+        renderables = \
+            _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
 
     # Array, PathArray
     elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
         debug("Object", label, "'%s' detected" % obj_type)
         expand_array = getattr(obj, "ExpandArray", False)
-        renderables = (_get_rends_from_array(obj, name, mat, mesher, **kwargs)
-                       if not expand_array else
-                       _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs))
+        renderables = (
+            _get_rends_from_array(obj, name, mat, mesher, **kwargs)
+            if not expand_array else
+            _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs))
 
     # Window
     elif obj_is_partfeature and obj_type == "Window":
@@ -369,7 +372,8 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
         subname = "{}_{}".format(name, subobj.Name)
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
-            rends += get_renderables(subobj, subname, material, mesher, **kwargs)
+            rends += \
+                get_renderables(subobj, subname, material, mesher, **kwargs)
 
     rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
 

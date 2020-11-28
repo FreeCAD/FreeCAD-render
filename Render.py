@@ -254,12 +254,13 @@ class Project:
                 QT_TRANSLATE_NOOP(
                     "App::Property",
                     "Overweight transparency in rendering "
-                    "(0=None (default), 1=Medium, 2=High, 3=Very high)."
+                    "(0=None (default), 10=Very high)."
                     "When this parameter is set, low transparency ratios will "
                     "be rendered more transparent. NB: This parameter affects "
-                    "only internal transparency (set in Appearance), not "
-                    "materials transparency."))
-            obj.TransparencySensitivity = (0, 0, 3, 1)
+                    "only implicit materials (generated via shape "
+                    "Appearance), not explicit materials (defined via Material"
+                    " parameter)."))
+            obj.TransparencySensitivity = (0, 0, 10, 1)
 
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
@@ -452,11 +453,11 @@ class Project:
 
         # Get a handle to renderer module
         try:
-            renderer = RendererHandler(rdrname=obj.Renderer,
-                                       linear_deflection=obj.LinearDeflection,
-                                       angular_deflection=obj.AngularDeflection,
-                                       transparency_boost=obj.TransparencySensitivity
-                                       )
+            renderer = RendererHandler(
+                rdrname=obj.Renderer,
+                linear_deflection=obj.LinearDeflection,
+                angular_deflection=obj.AngularDeflection,
+                transparency_boost=obj.TransparencySensitivity)
         except ModuleNotFoundError:
             msg = translate(
                 "Render",
@@ -749,10 +750,12 @@ class View:
             return
 
         # Get object rendering string and set ViewResult property
-        renderer = RendererHandler(rdrname=proj.Renderer,
-                                   linear_deflection=proj.LinearDeflection,
-                                   angular_deflection=proj.AngularDeflection,
-                                   transparency_boost=proj.TransparencySensitivity)
+        renderer = RendererHandler(
+            rdrname=proj.Renderer,
+            linear_deflection=proj.LinearDeflection,
+            angular_deflection=proj.AngularDeflection,
+            transparency_boost=proj.TransparencySensitivity)
+
         obj.ViewResult = renderer.get_rendering_string(obj)
 
     @staticmethod
