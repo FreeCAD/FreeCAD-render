@@ -518,8 +518,11 @@ class Project:
         get_rdr_string =\
             renderer.get_rendering_string if obj.DelayedBuild\
             else attrgetter("ViewResult")
-        objstrings = [get_rdr_string(v) for v in views
-                      if v.Source.ViewObject.Visibility]
+        if App.GuiUp:
+            objstrings = [get_rdr_string(v) for v in views
+                          if v.Source.ViewObject.Visibility]
+        else:
+            objstrings = [get_rdr_string(v) for v in views]
 
         # Add a ground plane if required
         if getattr(obj, "GroundPlane", False):
