@@ -208,8 +208,18 @@ class Project:
                 "Render",
                 QT_TRANSLATE_NOOP(
                     "App::Property",
-                    "Z position for ground plane (if activated)"))
+                    "Z position for ground plane"))
             obj.GroundPlaneZ = 0
+
+        if "GroundPlaneColor" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyColor",
+                "GroundPlaneColor",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Ground plane color"))
+            obj.GroundPlaneColor = (0.8, 0.8, 0.8)
 
         if "OutputImage" not in obj.PropertiesList:
             obj.addProperty(
@@ -343,6 +353,7 @@ class Project:
         result = ""
         doc = self.fpo.Document
         zpos = self.fpo.GroundPlaneZ
+        color = self.fpo.GroundPlaneColor
         bbox = App.BoundBox()
         for view in self.all_views():
             try:
@@ -363,6 +374,7 @@ class Project:
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
+            dummy1.ViewObject.ShapeColor = color  # TODO Test with FreeCADCmd
             dummy2 = doc.addObject("App::FeaturePython", "dummygroundplane2")
             View(dummy2)
             dummy2.Source = dummy1
