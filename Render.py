@@ -201,6 +201,16 @@ class Project:
                     "scene"))
             obj.GroundPlane = False
 
+        if "GroundPlaneZ" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyDistance",
+                "GroundPlaneZ",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Z position for ground plane (if activated)"))
+            obj.GroundPlaneZ = 0
+
         if "OutputImage" not in obj.PropertiesList:
             obj.addProperty(
                 "App::PropertyFile",
@@ -332,6 +342,7 @@ class Project:
         """
         result = ""
         doc = self.fpo.Document
+        zpos = self.fpo.GroundPlaneZ
         bbox = App.BoundBox()
         for view in self.all_views():
             try:
@@ -347,7 +358,7 @@ class Project:
                        (bbox.XMax + margin, bbox.YMin - margin),
                        (bbox.XMax + margin, bbox.YMax + margin),
                        (bbox.XMin - margin, bbox.YMax + margin))
-            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), 0)
+            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), zpos)
                         for v in verts2d]
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
