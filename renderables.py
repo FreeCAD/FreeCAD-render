@@ -270,7 +270,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
     except AttributeError:
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
-        color = obj.ViewObject.ShapeColor
+        color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
         return [Renderable(name, mesher(obj.Shape), material, color)]
 
     base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
@@ -318,7 +318,6 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # WindowsParts
         window_parts = obj.CloneOf.WindowParts
     subnames = window_parts[0::5]  # Names every 5th item...
-    subtypes = window_parts[1::5]  # Types every 5th item, starting at 1...
     names = ["%s_%s" % (name, s.replace(' ', '_')) for s in subnames]
 
     # Subobjects meshes
@@ -327,8 +326,11 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     # Subobjects colors
     transparency_boost = kwargs.get("transparency_boost", 0)
     faces_len = [len(s.Faces) for s in obj.Shape.Solids]
-    colors = [_boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
-              for i in itertools.accumulate([0] + faces_len[:-1])]
+    if obj.ViewObject is not None:  # Gui is up
+        colors = [_boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
+                  for i in itertools.accumulate([0] + faces_len[:-1])]
+    else:
+        colors = [RGBA(0.8, 0.8, 0.8, 1)] * len(subnames)
 
     # Subobjects materials
     if material is not None:
@@ -394,13 +396,17 @@ def _get_material(base_renderable, upper_material):
 def _get_shapecolor(obj, transparency_boost):
     """Get shape color (including transparency) from an object."""
     vobj = obj.ViewObject
-    color = RGBA(vobj.ShapeColor[0],
-                 vobj.ShapeColor[1],
-                 vobj.ShapeColor[2],
-                 vobj.Transparency / 100)
+    color = (RGBA(vobj.ShapeColor[0],
+                  vobj.ShapeColor[1],
+                  vobj.ShapeColor[2],
+                  vobj.Transparency / 100)
+             if vobj is not None else
+             RGBA(0.8, 0.8, 0.8, 0.0))
+
     return _boost_tp(color, transparency_boost)
 
+
 def _boost_tp(color, boost_factor):
-    """Get a color with boosted transparency"""
+    """Get a color with boosted transparency."""
     transparency = math.pow(color[3], 1 / (boost_factor + 1))
     return RGBA(color[0], color[1], color[2], transparency)

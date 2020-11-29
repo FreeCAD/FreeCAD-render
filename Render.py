@@ -62,7 +62,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, RGBA, str2rgb, clamp
+from renderutils import translate, str2rgb, clamp
 from rendererhandler import RendererHandler
 import camera
 import lights
@@ -201,6 +201,26 @@ class Project:
                     "scene"))
             obj.GroundPlane = False
 
+        if "GroundPlaneZ" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyDistance",
+                "GroundPlaneZ",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Z position for ground plane"))
+            obj.GroundPlaneZ = 0
+
+        if "GroundPlaneColor" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyColor",
+                "GroundPlaneColor",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Ground plane color"))
+            obj.GroundPlaneColor = (0.8, 0.8, 0.8)
+
         if "OutputImage" not in obj.PropertiesList:
             obj.addProperty(
                 "App::PropertyFile",
@@ -261,7 +281,6 @@ class Project:
                     "Appearance), not explicit materials (defined via Material"
                     " parameter)."))
             obj.TransparencySensitivity = (0, 0, 10, 1)
-
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
         """Respond to document restoration event (callback)."""
@@ -332,6 +351,8 @@ class Project:
         """
         result = ""
         doc = self.fpo.Document
+        zpos = self.fpo.GroundPlaneZ
+        color = self.fpo.GroundPlaneColor
         bbox = App.BoundBox()
         for view in self.all_views():
             try:
@@ -347,16 +368,16 @@ class Project:
                        (bbox.XMax + margin, bbox.YMin - margin),
                        (bbox.XMax + margin, bbox.YMax + margin),
                        (bbox.XMin - margin, bbox.YMax + margin))
-            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), 0)
+            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), zpos)
                         for v in verts2d]
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
+            if App.GuiUp:
+                dummy1.ViewObject.ShapeColor = color
             dummy2 = doc.addObject("App::FeaturePython", "dummygroundplane2")
             View(dummy2)
             dummy2.Source = dummy1
-            ViewProviderView(dummy2.ViewObject)
-            doc.recompute()
 
             result = renderer.get_rendering_string(dummy2)
 
@@ -495,8 +516,11 @@ class Project:
         get_rdr_string =\
             renderer.get_rendering_string if obj.DelayedBuild\
             else attrgetter("ViewResult")
-        objstrings = [get_rdr_string(v) for v in views
-                      if v.Source.ViewObject.Visibility]
+        if App.GuiUp:
+            objstrings = [get_rdr_string(v) for v in views
+                          if v.Source.ViewObject.Visibility]
+        else:
+            objstrings = [get_rdr_string(v) for v in views]
 
         # Add a ground plane if required
         if getattr(obj, "GroundPlane", False):
@@ -808,30 +832,6 @@ class View:
         project.addObject(fpo)
         viewp = ViewProviderView(fpo.ViewObject)
         return view, fpo, viewp
-
-    def get_shape_color(self):
-        """Get the RGBA color for a FreeCAD object as seen in viewport.
-
-        If the object does not hold any color data, a default
-        RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
-
-        Returns:
-            The RGBA color, as a (named) tuple
-        """
-        source = self.fpo.Source
-        # Get RGB
-        try:
-            shape_color = source.ViewObject.ShapeColor[:3]
-        except (AttributeError, IndexError):
-            shape_color = (1.0, 1.0, 1.0)
-
-        # Get alpha
-        try:
-            assert 0 <= source.ViewObject.Transparency <= 100
-            shape_alpha = 1.0 - source.ViewObject.Transparency / 100
-        except (AttributeError, IndexError, AssertionError):
-            shape_alpha = 1.0
-        return RGBA(*shape_color, shape_alpha)
 
 
 class ViewProviderView:

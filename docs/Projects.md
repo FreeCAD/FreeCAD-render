@@ -40,6 +40,7 @@ Parameter | Type | Description
 `Render Width` | Integer | The width of the rendered image (in pixels)
 `Render Height` | Integer | The height of the rendered image (in pixels)
 `Ground Plane` | Boolean | If true, a default ground plane is added to the scene
+`Ground Plane Z` | Float | Z position of ground plane
 `Transparency Sensitivity` | Integer | A factor to augment transparency in whole scene. This affects only implicit materials (materials generated from shape color and transparency), it will have no effect on explicit materials (materials generated from material cards).
 
 ## Mesher options
