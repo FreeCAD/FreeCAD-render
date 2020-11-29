@@ -373,12 +373,11 @@ class Project:
             vertices.append(vertices[0])  # Close the polyline...
             dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
             dummy1.Shape = Part.Face(Part.makePolygon(vertices))
-            dummy1.ViewObject.ShapeColor = color  # TODO Test with FreeCADCmd
+            if App.GuiUp:
+                dummy1.ViewObject.ShapeColor = color
             dummy2 = doc.addObject("App::FeaturePython", "dummygroundplane2")
             View(dummy2)
             dummy2.Source = dummy1
-            ViewProviderView(dummy2.ViewObject)
-            doc.recompute()
 
             result = renderer.get_rendering_string(dummy2)
 
