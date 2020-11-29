@@ -393,13 +393,17 @@ def _get_material(base_renderable, upper_material):
 def _get_shapecolor(obj, transparency_boost):
     """Get shape color (including transparency) from an object."""
     vobj = obj.ViewObject
-    color = RGBA(vobj.ShapeColor[0],
-                 vobj.ShapeColor[1],
-                 vobj.ShapeColor[2],
-                 vobj.Transparency / 100)
+    color = (RGBA(vobj.ShapeColor[0],
+                  vobj.ShapeColor[1],
+                  vobj.ShapeColor[2],
+                  vobj.Transparency / 100)
+             if vobj is not None else
+             RGBA(0.8, 0.8, 0.8, 0.0))
+
     return _boost_tp(color, transparency_boost)
 
+
 def _boost_tp(color, boost_factor):
-    """Get a color with boosted transparency"""
+    """Get a color with boosted transparency."""
     transparency = math.pow(color[3], 1 / (boost_factor + 1))
     return RGBA(color[0], color[1], color[2], transparency)

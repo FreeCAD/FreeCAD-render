@@ -282,7 +282,6 @@ class Project:
                     " parameter)."))
             obj.TransparencySensitivity = (0, 0, 10, 1)
 
-
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
         """Respond to document restoration event (callback)."""
         self.set_properties(obj)
