@@ -358,12 +358,28 @@ def _build_fallback(color):
         _color = "0.8, 0.8, 0.8"
         _alpha = "0.0"
 
-    values = (("Diffuse.Color", _color, _color, "RGB"),
-              ("Glass.IOR", "1.5", "1.5", "float"),
-              ("Glass.Color", _color, _color, "RGB"),
-              ("Transparency", _alpha, _alpha, "float"))
+    # A simpler approach would have been to rely only on mixed material but it
+    # leads to a lot of materials definitions in output files which hinders the
+    # proper functioning of most of the renderers, so we implement a more
+    # selective operation.
+    if float(_alpha) == 0:
+        # Build diffuse
+        shadertype = "Diffuse"
+        values = (("Color", _color, _color, "RGB"),)
+    elif float(_alpha) == 1:
+        # Build glass
+        shadertype = "Glass"
+        values = (("IOR", "1.5", "1.5", "float"),
+                  ("Color", _color, _color, "RGB"))
+    else:
+        # Build mixed
+        shadertype = "Mixed"
+        values = (("Diffuse.Color", _color, _color, "RGB"),
+                  ("Glass.IOR", "1.5", "1.5", "float"),
+                  ("Glass.Color", _color, _color, "RGB"),
+                  ("Transparency", _alpha, _alpha, "float"))
 
-    return _build_standard("Mixed", values)
+    return _build_standard(shadertype, values)
 
 
 def _get_float(material, param_prefix, param_name, default=0.0):
