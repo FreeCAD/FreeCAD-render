@@ -326,8 +326,11 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     # Subobjects colors
     transparency_boost = kwargs.get("transparency_boost", 0)
     faces_len = [len(s.Faces) for s in obj.Shape.Solids]
-    colors = [_boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
-              for i in itertools.accumulate([0] + faces_len[:-1])]
+    if obj.ViewObject is not None:  # Gui is up
+        colors = [_boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
+                  for i in itertools.accumulate([0] + faces_len[:-1])]
+    else:
+        colors = [RGBA(0.8, 0.8, 0.8, 1)] * len(subnames)
 
     # Subobjects materials
     if material is not None:
