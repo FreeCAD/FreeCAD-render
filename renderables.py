@@ -318,7 +318,6 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # WindowsParts
         window_parts = obj.CloneOf.WindowParts
     subnames = window_parts[0::5]  # Names every 5th item...
-    subtypes = window_parts[1::5]  # Types every 5th item, starting at 1...
     names = ["%s_%s" % (name, s.replace(' ', '_')) for s in subnames]
 
     # Subobjects meshes
