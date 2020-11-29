@@ -62,7 +62,7 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, RGBA, str2rgb, clamp
+from renderutils import translate, str2rgb, clamp
 from rendererhandler import RendererHandler
 import camera
 import lights
@@ -831,30 +831,6 @@ class View:
         project.addObject(fpo)
         viewp = ViewProviderView(fpo.ViewObject)
         return view, fpo, viewp
-
-    def get_shape_color(self):
-        """Get the RGBA color for a FreeCAD object as seen in viewport.
-
-        If the object does not hold any color data, a default
-        RGBA(1.0, 1.0, 1.0, 1.0) is returned (white opaque).
-
-        Returns:
-            The RGBA color, as a (named) tuple
-        """
-        source = self.fpo.Source
-        # Get RGB
-        try:
-            shape_color = source.ViewObject.ShapeColor[:3]
-        except (AttributeError, IndexError):
-            shape_color = (1.0, 1.0, 1.0)
-
-        # Get alpha
-        try:
-            assert 0 <= source.ViewObject.Transparency <= 100
-            shape_alpha = 1.0 - source.ViewObject.Transparency / 100
-        except (AttributeError, IndexError, AssertionError):
-            shape_alpha = 1.0
-        return RGBA(*shape_color, shape_alpha)
 
 
 class ViewProviderView:
