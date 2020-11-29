@@ -270,7 +270,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
     except AttributeError:
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
-        color = obj.ViewObject.ShapeColor
+        color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
         return [Renderable(name, mesher(obj.Shape), material, color)]
 
     base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
