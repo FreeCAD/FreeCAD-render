@@ -127,8 +127,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Plain part feature
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        color = _get_shapecolor(obj, transparency_boost)
-        renderables = [Renderable(name, mesher(obj.Shape), mat, color)]
+        renderables = _get_rends_from_feature(obj, name, mat, mesher, **kwargs)
 
     # Mesh
     elif obj_is_meshfeature:
@@ -382,6 +381,41 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
     rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
 
     return rends
+
+
+def _get_rends_from_feature(obj, name, material, mesher, **kwargs):
+    """Get renderables from a Part::Feature object.
+
+    Parameters:
+        obj -- the Part::Feature object
+        name -- the name assigned to the object for rendering
+        material -- the material for the object
+        mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+        A list of renderables for the Part object
+    """
+    try:
+        colors = obj.ViewObject.DiffuseColor
+    except AttributeError:
+        colors = []
+
+    if len(colors) <= 1:
+        # Monocolor: Treat shape as a whole
+        transparency_boost = int(kwargs.get("transparency_boost", 0))
+        color = _get_shapecolor(obj, transparency_boost)
+        renderables = [Renderable(name, mesher(obj.Shape), material, color)]
+    else:
+        # Multicolor: Process face by face
+        faces = obj.Shape.Faces
+        nfaces = len(faces)
+        names = ["{}_face{}".format(name, i) for i in range(nfaces)]
+        meshes = [mesher(f) for f in faces]
+        materials = [material] * nfaces
+        renderables = [Renderable(*i)
+                       for i in zip(names, meshes, materials, colors)]
+
+    return renderables
 
 
 def _get_material(base_renderable, upper_material):
