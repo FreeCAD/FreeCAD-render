@@ -119,6 +119,11 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         debug("Object", label, "'Window' detected")
         renderables = _get_rends_from_window(obj, name, mat, mesher, **kwargs)
 
+    # Wall
+    elif obj_is_partfeature and obj_type == "Wall":
+        debug("Object", label, "'Wall' detected")
+        renderables = _get_rends_from_wall(obj, name, mat, mesher, **kwargs)
+
     # App part
     elif obj_is_app_part:
         debug("Object", label, "'App::Part' detected")
@@ -345,6 +350,43 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
 
     # Build renderables
     return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
+
+
+def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
+    """Get renderables from an Window object (from Arch workbench).
+
+    Parameters:
+        obj -- the Window object
+        name -- the name assigned to the Window object for rendering
+        material -- the material for the Window object (should be a
+                    multimaterial)
+        mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+        A list of renderables for the Window object
+    """
+    if material is None or not is_multimat(material):
+        # No multimaterial: handle wall as a plain Part::Feature
+        return _get_rends_from_feature(obj, name, material, mesher, **kwargs)
+
+    shapes = obj.Shape.childShapes()
+
+    # Subobjects names
+    names = ["{}_{}".format(name, i) for i in range(len(shapes))]
+
+    # Subobjects meshes
+    meshes = [mesher(s) for s in shapes]
+
+    # Subobjects materials
+    materials = material.Materials
+
+    # Subobjects colors
+    tp_boost = kwargs.get("transparency_boost", 0)
+    colors = [_boost_tp(RGBA(*m.Color[0:3], m.Transparency), tp_boost)
+              for m in materials]
+
+    # Build renderables
+    return [Renderable(*r) for r in zip(names, meshes, materials, colors)]
 
 
 def _get_rends_from_part(obj, name, material, mesher, **kwargs):
