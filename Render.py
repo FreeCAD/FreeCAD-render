@@ -1170,10 +1170,10 @@ class ColorPicker(QPushButton):
         super().__init__()
         self.color = QColor(color)
         self._set_icon(self.color)
-        self.pressed.connect(self.on_button_pressed)
+        QObject.connect(self, SIGNAL("clicked()"), self.on_button_clicked)
 
-    def on_button_pressed(self):
-        """Respond to button pressed event (callback)."""
+    def on_button_clicked(self):
+        """Respond to button clicked event (callback)."""
         color = QColorDialog.getColor(initial=self.color)
         if color.isValid():
             self.color = color
