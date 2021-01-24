@@ -84,6 +84,7 @@ def write_camera(name, pos, updir, target, fov):
 
     snippet = """
     "camera": {{
+        "name": "{n}",
         "centerTranslation": {{
             "affine": [{p.x}, {p.y}, {p.z}],
             "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
@@ -98,7 +99,8 @@ def write_camera(name, pos, updir, target, fov):
     rotmat = pos.Rotation.toMatrix()
     rotmat.transpose()  # We have to transpose, as OSP is right-handed
     rotation = App.Rotation(rotmat).Q
-    return snippet.format(p=base,
+    return snippet.format(n=name,
+                          p=base,
                           r=rotation)
 
 
@@ -430,9 +432,38 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
-    # Here you trigger a render by firing the renderer
-    # executable and passing it the needed arguments, and
-    # the file it needs to render
+    # Clean input file (move cameras to header)
+    cameras = list()
+    result = list()
+    with open(project.PageResult, "r") as f:
+        def count_delimiters(line):
+            return line.count('{') - line.count('}')
+        for line in f:
+            if '"camera"' in line:
+                cameras += line
+                nbr = count_delimiters(line)
+                for line in f:
+                    nbr += count_delimiters(line)
+                    cameras += line
+                    if not nbr:
+                        break
+            else:
+               result += line
+        result[1:1] = cameras
+        result = ''.join(result)
+
+    # Write resulting output to file
+    f_handle, f_path = mkstemp(
+        prefix=project.Name,
+        suffix=os.path.splitext(project.Template)[-1])
+    os.close(f_handle)
+    with open(f_path, "w") as f:
+        f.write(result)
+    project.PageResult = f_path
+    os.remove(f_path)
+    App.ActiveDocument.recompute()
+
+    # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = params.GetString("Prefix", "")
     if prefix:
@@ -442,11 +473,11 @@ def render(project, prefix, external, output, width, height):
     # args += " --output " + output
     # if not external:
         # args += " --background"
-    # if not rpath:
-        # App.Console.PrintError("Unable to locate renderer executable. "
-                               # "Please set the correct path in "
-                               # "Edit -> Preferences -> Render\n")
-        # return ""
+    if not rpath:
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render\n")
+        return ""
     # args += " --width " + str(width)
     # args += " --height " + str(height)
     cmd = prefix + rpath + " " + args + " " + project.PageResult
@@ -459,18 +490,3 @@ def render(project, prefix, external, output, width, height):
         App.Console.PrintError(msg)
 
     return None
-
-# ===========================================================================
-#                                Utilities
-# ===========================================================================
-
-
-def _transform(vec):
-    """Convert a vector from FreeCAD coordinates into OSP ones.
-    OSP uses a different coordinate system than FreeCAD, right-handed.
-    Args:
-        vec -- vector to convert, in FreeCAD coordinates
-    Returns:
-        The transformed vector, in Appleseed coordinates
-    """
-    return App.Vector(vec.x, -vec.y, vec.z)
