@@ -92,7 +92,7 @@ def write_camera(name, pos, updir, target, fov):
       "affine": [0.0, 0.0, 0.0],
       "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
     }},
-    "rotation": {{ "i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]} }}
+    "rotation": {{"i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]}}}
   }},"""
     base = -pos.Base
     rotmat = pos.Rotation.toMatrix()
@@ -465,7 +465,7 @@ def render(project, prefix, external, output, width, height):
         A path to output image file
     """
     # Clean input file (move cameras to header)
-    cameras = list()
+    cameras = ['\n']
     result = list()
     with open(project.PageResult, "r") as f:
         def count_delimiters(line):
