@@ -11,7 +11,7 @@
       "type": 16,
       "children": [
         {
-          "name": "sunsky",
+          "name": "template_sunsky",
           "description": "Sunsky light",
           "type": 15,
           "subType": "sunSky",
