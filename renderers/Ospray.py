@@ -464,6 +464,8 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
+    # TODO Pythonicize...
+
     # Clean input file (move cameras to header)
     cameras = ['\n']
     result = list()
@@ -481,8 +483,31 @@ def render(project, prefix, external, output, width, height):
                         break
             else:
                result += line
-        result[1:1] = cameras
+        result[2:2] = cameras
         result = ''.join(result)
+
+    # Merge light groups
+    json_load = json.loads(result)
+    world_children = json_load["world"]["children"]
+    world_children.sort(key=lambda x: x["type"]==16)  # Light groups last
+
+    lights = list()
+    def remaining_lightgroups():
+        try:
+            child = world_children[-1]
+        except IndexError:
+            return False
+        return child["type"]==16
+    while remaining_lightgroups():
+        light = world_children.pop()
+        lights += (light["children"])
+    lightgroup = {"description": "Lights",
+                  "name": "lights",
+                  "subType": "lights",
+                  "type": 16,
+                  "children": lights}
+    world_children.insert(0, lightgroup)
+
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
@@ -490,7 +515,7 @@ def render(project, prefix, external, output, width, height):
         suffix=os.path.splitext(project.Template)[-1])
     os.close(f_handle)
     with open(f_path, "w") as f:
-        f.write(result)
+        f.write(json.dumps(json_load, indent=2))
     project.PageResult = f_path
     os.remove(f_path)
     App.ActiveDocument.recompute()
