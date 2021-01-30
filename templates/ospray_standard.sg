@@ -1,10 +1,62 @@
 {
-    %RaytracingCamera%
-    "world": {
-        "type": 6,
-        "children": [
-        %RaytracingContent%
-        {"type": 9999, "name": "End-of-world"}
-        ]
-    }
+  %RaytracingCamera%
+  "world": {
+    "type": 6,
+    "children": [
+    %RaytracingContent%
+    {
+      "description": "Lights",
+      "name": "lights",
+      "subType": "lights",
+      "type": 16,
+      "children": [
+        {
+          "name": "template_ambient",
+          "description": "Ambient light",
+          "type": 15,
+          "subType": "ambient",
+          "children": [
+            {
+              "description": "whether the light can be seen directly",
+              "name": "visible",
+              "sgOnly": false,
+              "subType": "bool",
+              "type": 1,
+              "value": true
+            },
+            {
+              "description": "intensity of the light (a factor)",
+              "name": "intensity",
+              "sgOnly": false,
+              "subType": "float",
+              "type": 1,
+              "value": 1.0
+            },
+            {
+              "description": "color of the light",
+              "name": "color",
+              "sgOnly": false,
+              "subType": "rgb",
+              "type": 1,
+              "value": [
+                0.2,
+                0.2,
+                0.2
+              ]
+            },
+            {
+              "description": "OSPRay light type",
+              "name": "type",
+              "sgOnly": true,
+              "subType": "string",
+              "type": 1,
+              "value": "ambient"
+            }
+          ]
+        }
+      ]
+    },
+    {"type": 9999, "name": "End-of-world"}
+    ]
+  }
 }
