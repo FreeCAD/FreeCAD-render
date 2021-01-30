@@ -3,8 +3,8 @@
   "world": {
     "type": 6,
     "children": [
-    %RaytracingContent%
-    {"type": 9999, "name": "End-of-world"}
+      %RaytracingContent%
+      {"type": 9999, "name": "End-of-world"}
     ]
   }
 }
