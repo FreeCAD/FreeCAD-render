@@ -34,7 +34,7 @@ import os
 import shlex
 from subprocess import Popen
 from tempfile import mkstemp
-from math import degrees, pi
+from math import degrees, pi, asin, sqrt, atan2
 
 import FreeCAD as App
 
@@ -261,8 +261,113 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    # We model sun_sky with a sun light and a sky texture for world
-
+    # TODO set theta and phi
+    _dir = App.Vector(direction)
+    elevation = asin(_dir.z / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
+    azimuth = atan2(_dir.y, _dir.x)
+    snippet = """
+      {{
+        "description": "Lights",
+        "name": "lights",
+        "subType": "lights",
+        "type": 16,
+        "children": [
+          {{
+            "name": "{n}",
+            "description": "Sunsky light",
+            "type": 15,
+            "subType": "sunSky",
+            "children": [
+              {{
+                "description": "whether the light can be seen directly",
+                "name": "visible",
+                "sgOnly": false,
+                "subType": "bool",
+                "type": 1,
+                "value": true
+              }},
+              {{
+                "description": "intensity of the light (a factor)",
+                "name": "intensity",
+                "sgOnly": false,
+                "subType": "float",
+                "type": 1,
+                "value": 1.0
+              }},
+              {{
+                "description": "color of the light",
+                "name": "color",
+                "sgOnly": false,
+                "subType": "rgb",
+                "type": 1,
+                "value": [1.0, 1.0, 1.0]
+              }},
+              {{
+                "description": "OSPRay light type",
+                "name": "type",
+                "sgOnly": true,
+                "subType": "string",
+                "type": 1,
+                "value": "sunSky"
+              }},
+              {{
+                "description": "Up direction",
+                "name": "up",
+                "sgOnly": false,
+                "subType": "vec3f",
+                "type": 1,
+                "value": [0,0,1]
+              }},
+              {{
+                "description": "Right direction",
+                "name": "right",
+                "sgOnly": true,
+                "subType": "vec3f",
+                "type": 1,
+                "value": [0,1,0]
+              }},
+              {{
+                "description": "Angle to horizon",
+                "name": "elevation",
+                "sgOnly": true,
+                "subType": "float",
+                "type": 1,
+                "value": {e}
+              }},
+              {{
+                "description": "Angle to North",
+                "name": "azimuth",
+                "sgOnly": true,
+                "subType": "float",
+                "type": 1,
+                "value": {a}
+              }},
+              {{
+                "description": "Turbidity",
+                "name": "turbidity",
+                "sgOnly": false,
+                "subType": "float",
+                "type": 1,
+                "value": {t}
+              }},
+              {{
+                "description": "Ground albedo",
+                "name": "albedo",
+                "sgOnly": false,
+                "subType": "float",
+                "type": 1,
+                "value": {g}
+              }}
+            ]
+          }}
+        ]
+      }},"""
+    return snippet.format(n=name,
+                          t=turbidity,
+                          e=degrees(elevation),
+                          a=degrees(azimuth),
+                          g=albedo
+                          )
     # # For sky texture, direction must be normalized
     # assert direction.Length
     # _dir = App.Vector(direction)
