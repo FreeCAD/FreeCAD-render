@@ -103,7 +103,7 @@ def write_object(name, mesh, material):
 def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
     # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0)
-
+    # TODO Add FOV
     snippet = """
   "camera": {{
     "name": "{n}",
@@ -188,8 +188,53 @@ def write_pointlight(name, pos, color, power):
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
+    # Write mtl file (material)
+    mtl = ["# Created by FreeCAD <http://www.freecadweb.org>",
+           "newmtl material",
+           "type luminous",
+           "color {} {} {}".format(*color),
+           "intensity {}".format(power / 100),
+           "transparency {}".format(1.0 if transparent else 0.0)
+          ]
 
-    return ""
+    f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
+    os.close(f_handle)
+    with open(mtlfile, "w") as f:
+        f.write('\n'.join(mtl))
+
+
+    # Write obj file (geometry)
+    verts = [(-size_u, -size_v, 0),
+             (+size_u, -size_v, 0),
+             (+size_u, +size_v, 0),
+             (-size_u, +size_v, 0)]
+    verts = [pos.multVec(App.Vector(*v)) for v in verts]
+    normal = pos.multVec(App.Vector(0, 0, 1))
+
+    obj = list()
+    obj += ["# Created by FreeCAD <http://www.freecadweb.org>"]
+    obj += ["mtllib {}".format(os.path.basename(mtlfile))]
+    obj += ["v {0.x} {0.y} {0.z}".format(v) for v in verts]
+    obj += ["vn {0.x} {0.y} {0.z}".format(normal)]
+    obj += ["o {}".format(name)]
+    obj += ["usemtl material"]
+    obj += ["f 1//1 2//1 3//1 4//1"]
+
+    f_handle, objfile = mkstemp(suffix=".obj", prefix="light_")
+    os.close(f_handle)
+    with open(objfile, "w") as f:
+        f.write('\n'.join(obj))
+
+    # Return SDL
+    snippet = """
+      {{
+        "name": "{n}",
+        "type": 20,
+        "filename": "{f}"
+      }},"""
+
+    return snippet.format(n=name, f=objfile.encode("unicode_escape").decode("utf-8"))
+
     # # Transparent area light
     # rot = pos.Rotation
     # axis1 = rot.multVec(App.Vector(1.0, 0.0, 0.0))
