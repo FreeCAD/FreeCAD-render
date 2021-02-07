@@ -1215,7 +1215,7 @@ class MaterialSettingsTaskPanel():
         self.existing_materials = {obj.Label: obj
                                    for obj in App.ActiveDocument.Objects
                                    if rendermaterials.is_valid_material(obj)}
-        self.material_combo.addItems(self.existing_materials.keys())
+        self.material_combo.addItems(list(self.existing_materials.keys()))
         self.material_combo.currentTextChanged.connect(
             self.on_material_name_changed)
 
