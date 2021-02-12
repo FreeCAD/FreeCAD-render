@@ -26,7 +26,7 @@ To add support for a new renderer, you will need to add at least 3 files:
 
 Optionally, but in a strongly recommended way, you will also add a few entries in module's Preferences.
 In particular, it is strongly recommended to include the following parameters:
-- the path to the external renderer executable (optionally splitted into CLI and GUI executablesp pathes, if the renderer provides both),
+- the path to the external renderer executable (optionally split into CLI and GUI executable paths, if the renderer provides both),
 - the renderer command line parameters.
 
 
