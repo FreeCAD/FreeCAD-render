@@ -522,7 +522,7 @@ CIE_STD_OBSERVER_VALUES = (  # {{{1
 CIE_STD_OBSERVER_RANGE = range(360, 831, 1)
 
 # CIE standard observer
-# (a dictionnary between wavelengths and tristimuli)
+# (a dictionary between wavelengths and tristimuli)
 CIE_STD_OBSERVER = dict(zip(CIE_STD_OBSERVER_RANGE, CIE_STD_OBSERVER_VALUES))
 
 # Maximal photopic luminous efficacy (lm/W)

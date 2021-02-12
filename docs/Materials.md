@@ -89,7 +89,7 @@ object's shape color in FreeCAD, and is provided to the process mainly for
 fallback.
 
 ### Workflow
-The worflow goes through the following steps:
+The workflow goes through the following steps:
 1. The workbench looks into the FreeCAD Material for a passthrough material
 definition for the given renderer.
 A passthrough is a piece of code, written in the renderer's SDL (Scene

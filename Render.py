@@ -1274,7 +1274,7 @@ class MaterialSettingsTaskPanel():
         try:
             material = self.existing_materials[material_name]
         except KeyError:
-            # Unknwon material: disable everything
+            # Unknown material: disable everything
             self._set_layout_visible("FieldsLayout", False)
             self._set_layout_visible("FatherLayout", False)
             self._set_layout_visible("PassthruLayout", False)

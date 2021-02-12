@@ -27,7 +27,7 @@ Comments:
 
 * Like the builtin Raytracing workbench, the Render workbench offers the
   possibility to update the View objects whenever its source object changes,
-  which costs extra processing time everytime the source object changes, but
+  which costs extra processing time every time the source object changes, but
   quickens the final export. However it also offers a mode where the views are
   updated all at once, only when the render is performed. This makes the render
   slower, but adds virtually no slowdown during the work with FreeCAD, no
