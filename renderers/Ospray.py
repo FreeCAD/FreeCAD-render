@@ -464,10 +464,154 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
 
 def write_imagelight(name, image):
     """Compute a string in renderer SDL to represent an image-based light."""
-    # Caveat: Cycles requires the image file to be in the same directory
+    snippet = """
+      {{
+        "description": "Lights",
+        "name": "lights",
+        "subType": "lights",
+        "type": 16,
+        "children": [
+          {{
+            "name": "{n}",
+            "description": "HDRI light",
+            "type": 15,
+            "subType": "hdri",
+            "children": [
+              {{
+                "description": "whether the light can be seen directly",
+                "name": "visible",
+                "sgOnly": false,
+                "subType": "bool",
+                "type": 1,
+                "value": true
+              }},
+              {{
+                "description": "intensity of the light (a factor)",
+                "name": "intensity",
+                "sgOnly": false,
+                "subType": "float",
+                "type": 1,
+                "value": 1.0
+              }},
+              {{
+                "description": "Up direction",
+                "name": "up",
+                "sgOnly": false,
+                "subType": "vec3f",
+                "type": 1,
+                "value": [0,0,1]
+              }},
+              {{
+                "description": "Right direction",
+                "name": "direction",
+                "sgOnly": false,
+                "subType": "vec3f",
+                "type": 1,
+                "value": [0,1,0]
+              }},
+
+              {{
+                                "description": "<no description>",
+                                "name": "map",
+                                "subType": "texture_2d",
+                                "type": 13,
+                                "children": [
+                                    {{
+                                        "description": "texture filename",
+                                        "name": "name",
+                                        "sgOnly": true,
+                                        "subType": "string",
+                                        "type": 1,
+                                        "value": "{f}"
+                                    }},
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "format",
+                                        "sgOnly": false,
+                                        "subType": "int",
+                                        "type": 1,
+                                        "value": 5
+                                    }},
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "filter",
+                                        "sgOnly": false,
+                                        "subType": "int",
+                                        "type": 1,
+                                        "value": 0
+                                    }},
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "data",
+                                        "sgOnly": false,
+                                        "subType": "Data",
+                                        "type": 1,
+                                        "value": [[0,0, 0], [0, 0, 0], [0, 0, 0]]
+                                    }}
+                                ]
+                            }}
+            ]
+          }}
+        ]
+      }},"""
+    m =  """
+              {{
+                                "description": "<no description>",
+                                "name": "map",
+                                "subType": "texture_2d",
+                                "type": 13,
+                                "children": [
+                                    {{
+                                        "description": "texture filename",
+                                        "name": "name",
+                                        "sgOnly": true,
+                                        "subType": "string",
+                                        "type": 1,
+                                        "value": "{f}"
+                                    }},
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "format",
+                                        "sgOnly": false,
+                                        "subType": "int",
+                                        "type": 1,
+                                        "value": 5
+                                    }},
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "filter",
+                                        "sgOnly": false,
+                                        "subType": "int",
+                                        "type": 1,
+                                        "value": 0
+                                    }},
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "data",
+                                        "sgOnly": false,
+                                        "subType": "Data",
+                                        "type": 1,
+                                        "value": [0,0, 0, 0, 0, 0, 0, 0]
+                                    }}
+                                ]
+                            }}
+            """
+
+    dummy = """
+                                    {{
+                                        "description": "<no description>",
+                                        "name": "data",
+                                        "sgOnly": false,
+                                        "subType": "Data",
+                                        "type": 1,
+                                        "value": ":^)"
+                                    }}"""  # TODO
+    snippet = ""  # TODO
+    # Caveat: OSP requires the image file to be in the same directory
     # as the input file
-    return ""
-    # filename = pathlib.Path(image).name
+    filename = os.path.basename(image)
+    filename = image
+    return snippet.format(n=name, f=filename, m=m)
     # snippet = """
     # <!-- Generated by FreeCAD - Image-based light '{n}' -->
     # <background>
@@ -653,6 +797,11 @@ def render(project, prefix, external, output, width, height):
                 result += line
         result[2:2] = cameras
         result = ''.join(result)
+
+    # TODO Debug
+    resultlines = result.split('\n')
+    for n,l in enumerate(resultlines):
+        print("{:3}: {}".format(n,l))
 
     # Merge light groups
     json_load = json.loads(result)
