@@ -93,7 +93,7 @@ def write_object(name, mesh, material):
     snippet_obj = """
       {{
         "name": "{n}",
-        "type": 20,
+        "type": "IMPORTER",
         "filename": "{f}"
       }},"""
 
@@ -135,12 +135,12 @@ def write_pointlight(name, pos, color, power):
     snippet = """
       {{
         "name": "lights",
+        "type": "LIGHTS",
         "subType": "lights",
-        "type": 16,
         "children": [
           {{
             "name": "{n}",
-            "type": 15,
+            "type": "LIGHT",
             "subType": "sphere",
             "children": [
               {{
@@ -148,7 +148,7 @@ def write_pointlight(name, pos, color, power):
                 "description": "whether the light can be seen directly",
                 "sgOnly": false,
                 "subType": "bool",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": true
               }},
               {{
@@ -156,7 +156,7 @@ def write_pointlight(name, pos, color, power):
                 "description": "intensity of the light (a factor)",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": {s}
               }},
               {{
@@ -164,7 +164,7 @@ def write_pointlight(name, pos, color, power):
                 "description": "color of the light",
                 "sgOnly": false,
                 "subType": "rgb",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [{c[0]}, {c[1]}, {c[2]}]
               }},
               {{
@@ -172,7 +172,7 @@ def write_pointlight(name, pos, color, power):
                 "description": "position of the light",
                 "sgOnly": false,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [{p[0]}, {p[1]}, {p[2]}]
               }}
             ]
@@ -229,7 +229,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     snippet = """
       {{
         "name": "{n}",
-        "type": 20,
+        "type": "IMPORTER",
         "filename": "{f}"
       }},"""
 
@@ -315,12 +315,12 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
         "description": "Lights",
         "name": "lights",
         "subType": "lights",
-        "type": 16,
+        "type": "LIGHTS",
         "children": [
           {{
             "name": "{n}",
             "description": "Sunsky light",
-            "type": 15,
+            "type": "LIGHT",
             "subType": "sunSky",
             "children": [
               {{
@@ -328,7 +328,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "visible",
                 "sgOnly": false,
                 "subType": "bool",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": true
               }},
               {{
@@ -336,7 +336,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "intensity",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": 1.0
               }},
               {{
@@ -344,7 +344,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "color",
                 "sgOnly": false,
                 "subType": "rgb",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [1.0, 1.0, 1.0]
               }},
               {{
@@ -352,7 +352,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "type",
                 "sgOnly": true,
                 "subType": "string",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": "sunSky"
               }},
               {{
@@ -360,7 +360,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "up",
                 "sgOnly": false,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [0,0,1]
               }},
               {{
@@ -368,7 +368,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "right",
                 "sgOnly": true,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [0,1,0]
               }},
               {{
@@ -376,7 +376,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "elevation",
                 "sgOnly": true,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": {e}
               }},
               {{
@@ -384,7 +384,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "azimuth",
                 "sgOnly": true,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": {a}
               }},
               {{
@@ -392,7 +392,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "turbidity",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": {t}
               }},
               {{
@@ -400,7 +400,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "name": "albedo",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": {g}
               }}
             ]
@@ -469,12 +469,12 @@ def write_imagelight(name, image):
         "description": "Lights",
         "name": "lights",
         "subType": "lights",
-        "type": 16,
+        "type": "LIGHTS",
         "children": [
           {{
             "name": "{n}",
             "description": "HDRI light",
-            "type": 15,
+            "type": "LIGHT",
             "subType": "hdri",
             "children": [
               {{
@@ -482,7 +482,7 @@ def write_imagelight(name, image):
                 "name": "visible",
                 "sgOnly": false,
                 "subType": "bool",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": true
               }},
               {{
@@ -490,7 +490,7 @@ def write_imagelight(name, image):
                 "name": "intensity",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": 1.0
               }},
               {{
@@ -498,7 +498,7 @@ def write_imagelight(name, image):
                 "name": "up",
                 "sgOnly": false,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [0,0,1]
               }},
               {{
@@ -506,7 +506,7 @@ def write_imagelight(name, image):
                 "name": "direction",
                 "sgOnly": false,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [0,1,0]
               }},
 
@@ -514,14 +514,14 @@ def write_imagelight(name, image):
                                 "description": "<no description>",
                                 "name": "map",
                                 "subType": "texture_2d",
-                                "type": 13,
+                                "type": "TEXTURE",
                                 "children": [
                                     {{
                                         "description": "texture filename",
                                         "name": "name",
                                         "sgOnly": true,
                                         "subType": "string",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": "{f}"
                                     }},
                                     {{
@@ -529,7 +529,7 @@ def write_imagelight(name, image):
                                         "name": "format",
                                         "sgOnly": false,
                                         "subType": "int",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": 5
                                     }},
                                     {{
@@ -537,7 +537,7 @@ def write_imagelight(name, image):
                                         "name": "filter",
                                         "sgOnly": false,
                                         "subType": "int",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": 0
                                     }},
                                     {{
@@ -545,7 +545,7 @@ def write_imagelight(name, image):
                                         "name": "data",
                                         "sgOnly": false,
                                         "subType": "Data",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": [[0,0, 0], [0, 0, 0], [0, 0, 0]]
                                     }}
                                 ]
@@ -559,14 +559,14 @@ def write_imagelight(name, image):
                                 "description": "<no description>",
                                 "name": "map",
                                 "subType": "texture_2d",
-                                "type": 13,
+                                "type": "TEXTURE",
                                 "children": [
                                     {{
                                         "description": "texture filename",
                                         "name": "name",
                                         "sgOnly": true,
                                         "subType": "string",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": "{f}"
                                     }},
                                     {{
@@ -574,7 +574,7 @@ def write_imagelight(name, image):
                                         "name": "format",
                                         "sgOnly": false,
                                         "subType": "int",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": 5
                                     }},
                                     {{
@@ -582,7 +582,7 @@ def write_imagelight(name, image):
                                         "name": "filter",
                                         "sgOnly": false,
                                         "subType": "int",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": 0
                                     }},
                                     {{
@@ -590,7 +590,7 @@ def write_imagelight(name, image):
                                         "name": "data",
                                         "sgOnly": false,
                                         "subType": "Data",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": [0,0, 0, 0, 0, 0, 0, 0]
                                     }}
                                 ]
@@ -603,7 +603,7 @@ def write_imagelight(name, image):
                                         "name": "data",
                                         "sgOnly": false,
                                         "subType": "Data",
-                                        "type": 1,
+                                        "type": "PARAMETER",
                                         "value": ":^)"
                                     }}"""  # TODO
     snippet = ""  # TODO
@@ -820,8 +820,8 @@ def render(project, prefix, external, output, width, height):
         lights += (light["children"])
     lightgroup = {"description": "Lights",
                   "name": "lights",
+                  "type": "LIGHTS",
                   "subType": "lights",
-                  "type": 16,
                   "children": lights}
     world_children.insert(0, lightgroup)
 
