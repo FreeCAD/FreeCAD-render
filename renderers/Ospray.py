@@ -27,7 +27,15 @@
 # SDL format is JSON
 # Suggested documentation links:
 # https://github.com/ospray/ospray_studio
-
+#
+# Coordinate system is different between fcd and osp:
+# FreeCAD:  Ospray (right-handed, y is up):
+#
+#  z  y        y
+#  | /         |
+#  .--x        .--x
+#             /
+#            z
 
 import json
 import os
@@ -464,6 +472,11 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
 
 def write_imagelight(name, image):
     """Compute a string in renderer SDL to represent an image-based light."""
+    # At this time (02-15-2021), in current version (0.6.0),
+    # texture import is not serviceable in OspStudio - see here:
+    # https://github.com/ospray/ospray_studio/blob/release-0.6.x/sg/JSONDefs.h#L107
+    # As a workaround, we use a gltf file...
+
     snippet = """
       {{
         "description": "Lights",
