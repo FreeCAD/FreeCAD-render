@@ -110,28 +110,30 @@ def write_object(name, mesh, material):
 
 def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
-    # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0)
+    # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0), in osp coords
+    # FreeCAD camera's default orientation is target=(0, 0, -1) up=(0, 1, 0) in fcd coords
     # TODO Add FOV
     snippet = """
   "camera": {{
     "name": "{n}",
     "centerTranslation": {{
-      "affine": [{p.x}, {p.y}, {p.z}],
-      "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
-    }},
-    "translation": {{
       "affine": [0.0, 0.0, 0.0],
       "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
     }},
-    "rotation": {{"i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]}}}
+    "rotation": {{"i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]}}},
+    "translation": {{
+      "affine": [{p.x}, {p.y}, {p.z}],
+      "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
+    }}
   }},"""
-    base = -pos.Base
-    rotmat = pos.Rotation.toMatrix()
-    rotmat.transpose()  # We have to transpose, as OSP is right-handed
-    rotation = App.Rotation(rotmat).Q
+
+    # Final orientation = reciprocal(translation*rot*centerTranslation)
+    # (see ArcballCamera::setState in ospray sources)
+    plc = TRANSFORM.multiply(pos)
+    plc = plc.inverse()
     return snippet.format(n=name,
-                          p=base,
-                          r=rotation)
+                          p=plc.Base,
+                          r=plc.Rotation.Q)
 
 
 def write_pointlight(name, pos, color, power):
@@ -369,7 +371,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "sgOnly": false,
                 "subType": "vec3f",
                 "type": "PARAMETER",
-                "value": [0,0,1]
+                "value": [0,1,0]
               }},
               {{
                 "description": "Right direction",
@@ -377,7 +379,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "sgOnly": true,
                 "subType": "vec3f",
                 "type": "PARAMETER",
-                "value": [0,1,0]
+                "value": [1,0,0]
               }},
               {{
                 "description": "Angle to horizon",
@@ -877,3 +879,32 @@ def render(project, prefix, external, output, width, height):
         App.Console.PrintError(msg)
 
     return None
+
+
+# ===========================================================================
+#                                Utilities
+# ===========================================================================
+
+
+def _transform_vec(vec):
+    """Convert a vector from FreeCAD coordinates into Ospray ones.
+
+    Ospray uses a different coordinate system than FreeCAD.
+    Compared to FreeCAD, Y and Z are switched and Z is inverted.
+    This function converts a vector from FreeCAD system to Ospray one.
+
+    Args:
+        vec -- vector to convert, in FreeCAD coordinates
+
+    Returns:
+        The transformed vector, in Ospray coordinates
+    """
+    return App.Vector(vec.x, vec.z, -vec.y)
+
+# TRANSFORMROT = App.Rotation(-math.sqrt(2) / 2, 0.0, 0.0, math.sqrt(2) / 2)  # TODO
+
+TRANSFORM = App.Placement(App.Matrix(1, 0, 0, 0,
+                                     0, 0, 1, 0,
+                                     0, -1, 0, 0,
+                                     0, 0, 0, 1))
+
