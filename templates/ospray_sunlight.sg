@@ -54,7 +54,7 @@
                 "sgOnly": false,
                 "subType": "vec3f",
                 "type": 1,
-                "value": [0,0,1]
+                "value": [0,1,0]
               },
               {
                 "description": "Right direction",
@@ -62,7 +62,7 @@
                 "sgOnly": true,
                 "subType": "vec3f",
                 "type": 1,
-                "value": [-1,0,0]
+                "value": [1,0,0]
               },
               {
                 "description": "Angle to horizon",
@@ -78,7 +78,7 @@
                 "sgOnly": true,
                 "subType": "float",
                 "type": 1,
-                "value": -111.08575684686511
+                "value": 111.08575684686511
               },
               {
                 "description": "Turbidity",
