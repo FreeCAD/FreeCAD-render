@@ -214,12 +214,13 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 
 
     # Write obj file (geometry)
+    osp_pos = TRANSFORM.multiply(pos)
     verts = [(-size_u, -size_v, 0),
              (+size_u, -size_v, 0),
              (+size_u, +size_v, 0),
              (-size_u, +size_v, 0)]
-    verts = [pos.multVec(App.Vector(*v)) for v in verts]
-    normal = pos.multVec(App.Vector(0, 0, 1))
+    verts = [osp_pos.multVec(App.Vector(*v)) for v in verts]
+    normal = osp_pos.multVec(App.Vector(0, 0, 1))
 
     obj = list()
     obj += ["# Created by FreeCAD <http://www.freecadweb.org>"]
