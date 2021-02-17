@@ -28,14 +28,16 @@
 # Suggested documentation links:
 # https://github.com/ospray/ospray_studio
 #
-# Coordinate system is different between fcd and osp:
-# FreeCAD:  Ospray (right-handed, y is up):
+# Coordinate systems are different between fcd and osp:
 #
-#  z  y        y
-#  | /         |
-#  .--x        .--x
-#             /
-#            z
+# FreeCAD:         Ospray (right-handed, y is up):
+#
+#
+#  z  y               y
+#  | /                |
+#  .--x               .--x
+#                    /
+#                   z
 
 import json
 import os
@@ -189,10 +191,10 @@ def write_pointlight(name, pos, color, power):
           }}
         ]
       }},"""
-
+    osp_pos = TRANSFORM.multVec(pos)
     return snippet.format(n=name,
                           c=color,
-                          p=pos,
+                          p=osp_pos,
                           s=power)
 
 
