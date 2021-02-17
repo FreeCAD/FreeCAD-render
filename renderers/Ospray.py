@@ -142,8 +142,6 @@ def write_pointlight(name, pos, color, power):
     """Compute a string in renderer SDL to represent a point light."""
     # Tip: in studio, to visualize where the light is, increase the radius
 
-    # FIXME Seems that light is not moving when camera is dynamically reoriented
-
     snippet = """
       {{
         "name": "lights",
@@ -318,10 +316,17 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    # TODO set theta and phi
-    _dir = App.Vector(direction)
-    elevation = asin(_dir.z / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
-    azimuth = atan2(_dir.y, _dir.x)
+    # We make angle calculations in ocp's coordinates system
+    # By default, Up is (0,1,0), Right is (1,0,0), and:
+    #  - North (0°) is z (0, 0, 1)
+    #  - East (90°) is x (1, 0, 0)
+    #  - South (180°) is -z (0, 0, -1)
+    #  - West (270°) is -x (-1, 0, 0)
+    # We'll compute elevation and azimuth accordingly...
+
+    _dir = TRANSFORM.multVec(App.Vector(direction))
+    elevation = asin(_dir.y / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
+    azimuth = atan2(_dir.x, _dir.z)
     snippet = """
       {{
         "description": "Lights",
