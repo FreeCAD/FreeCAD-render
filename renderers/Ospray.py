@@ -58,10 +58,10 @@ def write_object(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD object."""
 
     # Write the mesh as an OBJ tempfile
-    # Known bug: mesh.Placement must be null, otherwise computation is wrong
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
     tmpmesh = mesh.copy()
+    tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)
     tmpmesh.write(objfile)
 
     # Fix missing object name in OBJ file (mandatory)
@@ -128,7 +128,7 @@ def write_camera(name, pos, updir, target, fov):
   }},"""
 
     # Final orientation = reciprocal(translation*rot*centerTranslation)
-    # (see ArcballCamera::setState in ospray sources)
+    # (see ArcballCamera::setState method in sources)
     plc = TRANSFORM.multiply(pos)
     plc = plc.inverse()
     return snippet.format(n=name,
