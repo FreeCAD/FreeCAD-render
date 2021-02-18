@@ -487,154 +487,51 @@ def write_imagelight(name, image):
     # https://github.com/ospray/ospray_studio/blob/release-0.6.x/sg/JSONDefs.h#L107
     # As a workaround, we use a gltf file...
 
+    gltf_snippet = """
+{{
+  "asset": {{
+    "generator": "FreeCAD Render Workbench",
+    "version": "2.0"
+  }},
+  "extensions": {{
+    "KHR_lights_punctual" : {{
+      "lights" : [
+        {{
+          "name": "fcd_hdr",
+          "color": [ 1.0, 1.0, 1.0 ],
+          "type": "hdri",
+          "extras": {{
+              "map": "{f}"
+          }}
+        }}
+      ]
+    }}
+  }},
+  "extensionsRequired" : [
+    "KHR_lights_punctual"
+  ],
+  "extensionsUsed" : [
+    "KHR_lights_punctual"
+  ]
+}}
+"""
+    f_handle, gltf_file = mkstemp(suffix=".gltf", prefix="light_")
+    os.close(f_handle)
+    # osp requires the hdr file path to be relative from the gltf file path
+    # (see GLTFData::createLights insg/importer/glTF.cpp, ),
+    # so we have to manipulate pathes a bit...
+    image_relpath = os.path.relpath(image, os.path.dirname(gltf_file))
+
+    with open(gltf_file, "w") as f:
+        f.write(gltf_snippet.format(f=image_relpath))
+
     snippet = """
       {{
-        "description": "Lights",
-        "name": "lights",
-        "subType": "lights",
-        "type": "LIGHTS",
-        "children": [
-          {{
-            "name": "{n}",
-            "description": "HDRI light",
-            "type": "LIGHT",
-            "subType": "hdri",
-            "children": [
-              {{
-                "description": "whether the light can be seen directly",
-                "name": "visible",
-                "sgOnly": false,
-                "subType": "bool",
-                "type": "PARAMETER",
-                "value": true
-              }},
-              {{
-                "description": "intensity of the light (a factor)",
-                "name": "intensity",
-                "sgOnly": false,
-                "subType": "float",
-                "type": "PARAMETER",
-                "value": 1.0
-              }},
-              {{
-                "description": "Up direction",
-                "name": "up",
-                "sgOnly": false,
-                "subType": "vec3f",
-                "type": "PARAMETER",
-                "value": [0,0,1]
-              }},
-              {{
-                "description": "Right direction",
-                "name": "direction",
-                "sgOnly": false,
-                "subType": "vec3f",
-                "type": "PARAMETER",
-                "value": [0,1,0]
-              }},
-
-              {{
-                                "description": "<no description>",
-                                "name": "map",
-                                "subType": "texture_2d",
-                                "type": "TEXTURE",
-                                "children": [
-                                    {{
-                                        "description": "texture filename",
-                                        "name": "name",
-                                        "sgOnly": true,
-                                        "subType": "string",
-                                        "type": "PARAMETER",
-                                        "value": "{f}"
-                                    }},
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "format",
-                                        "sgOnly": false,
-                                        "subType": "int",
-                                        "type": "PARAMETER",
-                                        "value": 5
-                                    }},
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "filter",
-                                        "sgOnly": false,
-                                        "subType": "int",
-                                        "type": "PARAMETER",
-                                        "value": 0
-                                    }},
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "data",
-                                        "sgOnly": false,
-                                        "subType": "Data",
-                                        "type": "PARAMETER",
-                                        "value": [[0,0, 0], [0, 0, 0], [0, 0, 0]]
-                                    }}
-                                ]
-                            }}
-            ]
-          }}
-        ]
+        "name": "{n}",
+        "type": "IMPORTER",
+        "filename": "{f}"
       }},"""
-    m =  """
-              {{
-                                "description": "<no description>",
-                                "name": "map",
-                                "subType": "texture_2d",
-                                "type": "TEXTURE",
-                                "children": [
-                                    {{
-                                        "description": "texture filename",
-                                        "name": "name",
-                                        "sgOnly": true,
-                                        "subType": "string",
-                                        "type": "PARAMETER",
-                                        "value": "{f}"
-                                    }},
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "format",
-                                        "sgOnly": false,
-                                        "subType": "int",
-                                        "type": "PARAMETER",
-                                        "value": 5
-                                    }},
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "filter",
-                                        "sgOnly": false,
-                                        "subType": "int",
-                                        "type": "PARAMETER",
-                                        "value": 0
-                                    }},
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "data",
-                                        "sgOnly": false,
-                                        "subType": "Data",
-                                        "type": "PARAMETER",
-                                        "value": [0,0, 0, 0, 0, 0, 0, 0]
-                                    }}
-                                ]
-                            }}
-            """
-
-    dummy = """
-                                    {{
-                                        "description": "<no description>",
-                                        "name": "data",
-                                        "sgOnly": false,
-                                        "subType": "Data",
-                                        "type": "PARAMETER",
-                                        "value": ":^)"
-                                    }}"""  # TODO
-    snippet = ""  # TODO
-    # Caveat: OSP requires the image file to be in the same directory
-    # as the input file
-    filename = os.path.basename(image)
-    filename = image
-    return snippet.format(n=name, f=filename, m=m)
+    return snippet.format(n=name, f=gltf_file)
     # snippet = """
     # <!-- Generated by FreeCAD - Image-based light '{n}' -->
     # <background>
