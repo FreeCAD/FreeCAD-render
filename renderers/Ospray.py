@@ -558,21 +558,18 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
-    # TODO Pythonicize...
 
-    # Move cameras to header
+    # Move cameras up to root node
     cameras = ['\n']
-    result = list()
+    result = []
     with open(project.PageResult, "r") as f:
-        def count_delimiters(line):
-            return line.count('{') - line.count('}')
         for line in f:
             if '"camera"' in line:
                 cameras += line
-                nbr = count_delimiters(line)
-                for line in f:
-                    nbr += count_delimiters(line)
-                    cameras += line
+                nbr = line.count('{') - line.count('}')
+                for line2 in f:
+                    cameras += line2
+                    nbr += line2.count('{') - line2.count('}')
                     if not nbr:
                         break
             else:
@@ -594,12 +591,11 @@ def render(project, prefix, external, output, width, height):
     while remaining_lightgroups():
         light = world_children.pop()
         lights += (light["children"])
-    lightgroup = {"description": "Lights",
-                  "name": "lights",
-                  "type": "LIGHTS",
-                  "subType": "lights",
-                  "children": lights}
-    world_children.insert(0, lightgroup)
+    world_children.insert(0, {"description": "Lights",
+                              "name": "lights",
+                              "type": "LIGHTS",
+                              "subType": "lights",
+                              "children": lights})
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
