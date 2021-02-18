@@ -1,19 +1,19 @@
 {
   %RaytracingCamera%
   "world": {
-    "type": 6,
+    "type": "WORLD",
     "children": [
       %RaytracingContent%
       {
         "description": "Lights",
         "name": "lights",
         "subType": "lights",
-        "type": 16,
+        "type": "LIGHTS",
         "children": [
           {
             "name": "template_sunsky",
             "description": "Sunsky light",
-            "type": 15,
+            "type": "LIGHT",
             "subType": "sunSky",
             "children": [
               {
@@ -21,7 +21,7 @@
                 "name": "visible",
                 "sgOnly": false,
                 "subType": "bool",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": true
               },
               {
@@ -29,7 +29,7 @@
                 "name": "intensity",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": 1.0
               },
               {
@@ -37,7 +37,7 @@
                 "name": "color",
                 "sgOnly": false,
                 "subType": "rgb",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [1.0, 1.0, 1.0]
               },
               {
@@ -45,7 +45,7 @@
                 "name": "type",
                 "sgOnly": true,
                 "subType": "string",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": "sunSky"
               },
               {
@@ -53,7 +53,7 @@
                 "name": "up",
                 "sgOnly": false,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [0,1,0]
               },
               {
@@ -61,7 +61,7 @@
                 "name": "right",
                 "sgOnly": true,
                 "subType": "vec3f",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": [1,0,0]
               },
               {
@@ -69,7 +69,7 @@
                 "name": "elevation",
                 "sgOnly": true,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": 52.62431376309268
               },
               {
@@ -77,7 +77,7 @@
                 "name": "azimuth",
                 "sgOnly": true,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": 111.08575684686511
               },
               {
@@ -85,7 +85,7 @@
                 "name": "turbidity",
                 "sgOnly": false,
                 "subType": "float",
-                "type": 1,
+                "type": "PARAMETER",
                 "value": 2.0
               }
             ]

@@ -1,14 +1,14 @@
 {
   %RaytracingCamera%
   "world": {
-    "type": 6,
+    "type": "WORLD",
     "children": [
       %RaytracingContent%
       {
         "description": "Lights",
         "name": "lights",
         "subType": "lights",
-        "type": 16,
+        "type": "LIGHTS",
         "children": [
           {
             "name": "template_ambient",
