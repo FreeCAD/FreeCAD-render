@@ -493,26 +493,19 @@ def write_imagelight(name, image):
     "generator": "FreeCAD Render Workbench",
     "version": "2.0"
   }},
-  "extensions": {{
-    "KHR_lights_punctual" : {{
-      "lights" : [
-        {{
-          "name": "fcd_hdr",
-          "color": [ 1.0, 1.0, 1.0 ],
-          "type": "hdri",
-          "extras": {{
-              "map": "{f}"
-          }}
-        }}
-      ]
+  "scene": 0,
+  "scenes": [
+    {{
+      "name": "scene",
+      "nodes": []
     }}
-  }},
-  "extensionsRequired" : [
-    "KHR_lights_punctual"
   ],
-  "extensionsUsed" : [
-    "KHR_lights_punctual"
-  ]
+  "extensions": {{
+    "BIT_scene_background" : {{
+      "background-uri": "{f}",
+      "rotation": [0, 0.7071067811865475, 0, 0.7071067811865475 ]
+    }}
+  }}
 }}
 """
     f_handle, gltf_file = mkstemp(suffix=".gltf", prefix="light_")
