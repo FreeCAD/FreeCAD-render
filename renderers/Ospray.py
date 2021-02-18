@@ -560,7 +560,7 @@ def render(project, prefix, external, output, width, height):
     """
     # TODO Pythonicize...
 
-    # Clean input file (move cameras to header)
+    # Move cameras to header
     cameras = ['\n']
     result = list()
     with open(project.PageResult, "r") as f:
@@ -583,15 +583,14 @@ def render(project, prefix, external, output, width, height):
     # Merge light groups
     json_load = json.loads(result)
     world_children = json_load["world"]["children"]
-    world_children.sort(key=lambda x: x["type"]==16)  # Light groups last
-
+    world_children.sort(key=lambda x: x["type"]=="LIGHTS")  # Light groups last
     lights = list()
     def remaining_lightgroups():
         try:
             child = world_children[-1]
         except IndexError:
             return False
-        return child["type"]==16
+        return child["type"]=="LIGHTS"
     while remaining_lightgroups():
         light = world_children.pop()
         lights += (light["children"])
