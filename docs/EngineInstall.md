@@ -47,6 +47,9 @@ yourself, you can enable `WITH_CYCLES_STANDALONE` and
 `CMAKE_EXE_LINKER_FLAGS`) before your build process. You will then get a
 separate 'cycles' executable compiled together with Blender.
 
+Arch Linux users may avoid all this hassle by using the [package](https://aur.archlinux.org/packages/cycles-standalone/)
+available in AUR.
+
 ## Set up external rendering engines in the workbench
 
 Once you have a rendering engine installed on your system, you have to set it
