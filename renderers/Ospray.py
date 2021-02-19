@@ -107,7 +107,7 @@ def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
     # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
     # in osp coords.
-    # TODO Add FOV
+    # Nota: presently (02-19-2021), fov is not managed by osp importer...
     snippet = """
   "camera": {{
     "name": "{n}",
@@ -122,10 +122,11 @@ def write_camera(name, pos, updir, target, fov):
     }}
   }},"""
 
-    # Final orientation = reciprocal(translation*rot*centerTranslation)
+    # Final placement in osp = reciprocal(translation*rot*centerTranslation)
     # (see ArcballCamera::setState method in sources)
     plc = TRANSFORM.multiply(pos)
     plc = plc.inverse()
+
     return snippet.format(n=name,
                           p=plc.Base,
                           r=plc.Rotation.Q)
@@ -615,19 +616,16 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("OspPath", "")
     args = params.GetString("OspParameters", "")
-    # args += " --output " + output
-    # if not external:
-        # args += " --background"
     if not rpath:
         App.Console.PrintError("Unable to locate renderer executable. "
                                "Please set the correct path in "
                                "Edit -> Preferences -> Render\n")
         return ""
-    # TODO
-    # args += " --width " + str(width)
-    # args += " --height " + str(height)
     cmd = prefix + rpath + " " + args + " " + project.PageResult
     App.Console.PrintMessage(cmd+'\n')
+
+    # Note: at the moment (02-19-2021), width, height, output, background are
+    # not managed by osp
 
     try:
         Popen(shlex.split(cmd))
