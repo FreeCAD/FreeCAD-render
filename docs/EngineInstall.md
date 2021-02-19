@@ -13,6 +13,7 @@ At the moment, the following engines are supported:
 * [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net) 
 * [Blender Cycles](https://www.cycles-renderer.org/)
+* [Intel Ospray Studio](https://github.com/ospray/ospray_studio)
 
 The precise installation procedure for each of those engines is beyond the
 scope of this manual, but detailed installation instructions (adapted to your
