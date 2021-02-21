@@ -1457,33 +1457,102 @@ class MaterialSettingsTaskPanel():
         return True
 
 
+# ===========================================================================
+#                            Commands initialization
+# ===========================================================================
+
+
+class CommandGroup:
+    """Group of commands for GUI (toolbar, menu...)."""
+    def __init__(self, cmdlist, menu, tooltip=None):
+        """Initialize group of commands."""
+        self.cmdlist = cmdlist
+        self.menu = menu
+        self.tooltip = tooltip if tooltip is not None else menu
+
+    def GetCommands(self):
+        """Get command group's commands (callback)."""
+        return tuple("Render_%s" % name for name, _ in self.cmdlist)
+
+    def GetResources(self):
+        """Get command group's resources (callback)."""
+        return {'MenuText': self.menu, 'ToolTip': self.tooltip}
+
+
 # pylint: disable=protected-access
 MaterialCommand = ArchMaterial._CommandArchMaterial
 # pylint: enable=protected-access
 
 
-# ===========================================================================
-#                            Module initialization
-# ===========================================================================
+def _init_gui_commands():
+    """Initialize GUI commands for Render Workbench.
+
+    Initialization will happen only if Gui is up.
+    Please note this function has side-effects, as it calls Gui.addCommand
+
+    Returns:
+        List of commands initialized ([] if Gui is down)
+    """
+    def add_command(name, action):
+        """Add a command to GUI (helper).
+
+        The command name is decorated before being added.
+
+        Params:
+            name -- Name of the command to add
+            action -- Action of the command to add
+        """
+        decorated_name = "Render_%s" % name
+        Gui.addCommand(decorated_name, action)
+        return decorated_name
+
+    if not App.GuiUp:
+        return []
+
+    separator = ("Separator", None)
+
+    projects_cmd = [(r, RenderProjectCommand(r)) for r in VALID_RENDERERS]
+    projects_group = CommandGroup(projects_cmd,
+                                  "Projects",
+                                  "Create a Rendering Project")
+
+    lights_cmd = [("PointLight", PointLightCommand()),
+                  ("AreaLight", AreaLightCommand()),
+                  ("SunskyLight", SunskyLightCommand()),
+                  ("ImageLight", ImageLightCommand())]
+    lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
+
+    materials = [("Material", MaterialCommand()),
+                 ("MaterialRenderSettings", MaterialSettingsCommand())]
+    materials_group = CommandGroup(materials, "Materials", "Manage Materials")
+
+    render_commands = [("Projects", projects_group),
+                       separator,
+                       ("Camera", CameraCommand()),
+                       ("Lights", lights_group),
+                       ("View", RenderViewCommand()),
+                       ("Materials", materials_group),
+                       separator,
+                       ("Render", RenderCommand())]
+
+    result = []
+
+    for cmdname, cmdobj in render_commands:
+        if cmdobj:
+            try:
+                grpcmd = cmdobj.cmdlist  # Command group
+            except AttributeError:
+                pass
+            else:
+                for cmd in grpcmd:
+                    add_command(*cmd)
+            fullname = add_command(cmdname, cmdobj)  # Normal command
+            result.append(fullname)
+        else:
+            result.append(cmdname)  # Separator
+
+    return result
+
 
 # If Gui is up, create the FreeCAD commands
-if App.GuiUp:
-    # Add commands
-    SEPARATOR = ("Separator", None)
-    RENDER_COMMANDS = [("Render_%s" % r, RenderProjectCommand(r))
-                       for r in VALID_RENDERERS] + \
-                      [SEPARATOR,
-                       ("Camera", CameraCommand()),
-                       ("PointLight", PointLightCommand()),
-                       ("AreaLight", AreaLightCommand()),
-                       ("SunskyLight", SunskyLightCommand()),
-                       ("ImageLight", ImageLightCommand()),
-                       SEPARATOR,
-                       ("Material", MaterialCommand()),
-                       ("MaterialRenderSettings", MaterialSettingsCommand()),
-                       SEPARATOR,
-                       ("View", RenderViewCommand()),
-                       ("Render", RenderCommand())]
-    for cmdname, cmdobj in RENDER_COMMANDS:
-        if cmdobj:
-            Gui.addCommand(cmdname, cmdobj)
+RENDER_COMMANDS = _init_gui_commands()

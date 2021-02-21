@@ -13,6 +13,7 @@ At the moment, the following engines are supported:
 * [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net) 
 * [Blender Cycles](https://www.cycles-renderer.org/)
+* [Intel Ospray Studio](https://github.com/ospray/ospray_studio)
 
 The precise installation procedure for each of those engines is beyond the
 scope of this manual, but detailed installation instructions (adapted to your
@@ -45,6 +46,9 @@ yourself, you can enable `WITH_CYCLES_STANDALONE` and
 `WITH_CYCLES_STANDALONE_GUI` in cmake variables (I also had to add `-lGLU` to
 `CMAKE_EXE_LINKER_FLAGS`) before your build process. You will then get a
 separate 'cycles' executable compiled together with Blender.
+
+Arch Linux users may avoid all this hassle by using the [package](https://aur.archlinux.org/packages/cycles-standalone/)
+available in AUR.
 
 ## Set up external rendering engines in the workbench
 

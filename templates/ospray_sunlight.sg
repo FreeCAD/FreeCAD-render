@@ -1,0 +1,98 @@
+{
+  %RaytracingCamera%
+  "world": {
+    "type": "WORLD",
+    "children": [
+      %RaytracingContent%
+      {
+        "description": "Lights",
+        "name": "lights",
+        "subType": "lights",
+        "type": "LIGHTS",
+        "children": [
+          {
+            "name": "template_sunsky",
+            "description": "Sunsky light",
+            "type": "LIGHT",
+            "subType": "sunSky",
+            "children": [
+              {
+                "description": "whether the light can be seen directly",
+                "name": "visible",
+                "sgOnly": false,
+                "subType": "bool",
+                "type": "PARAMETER",
+                "value": true
+              },
+              {
+                "description": "intensity of the light (a factor)",
+                "name": "intensity",
+                "sgOnly": false,
+                "subType": "float",
+                "type": "PARAMETER",
+                "value": 1.0
+              },
+              {
+                "description": "color of the light",
+                "name": "color",
+                "sgOnly": false,
+                "subType": "rgb",
+                "type": "PARAMETER",
+                "value": [1.0, 1.0, 1.0]
+              },
+              {
+                "description": "OSPRay light type",
+                "name": "type",
+                "sgOnly": true,
+                "subType": "string",
+                "type": "PARAMETER",
+                "value": "sunSky"
+              },
+              {
+                "description": "Up direction",
+                "name": "up",
+                "sgOnly": false,
+                "subType": "vec3f",
+                "type": "PARAMETER",
+                "value": [0,1,0]
+              },
+              {
+                "description": "Right direction",
+                "name": "right",
+                "sgOnly": true,
+                "subType": "vec3f",
+                "type": "PARAMETER",
+                "value": [1,0,0]
+              },
+              {
+                "description": "Angle to horizon",
+                "name": "elevation",
+                "sgOnly": true,
+                "subType": "float",
+                "type": "PARAMETER",
+                "value": 52.62431376309268
+              },
+              {
+                "description": "Angle to North",
+                "name": "azimuth",
+                "sgOnly": true,
+                "subType": "float",
+                "type": "PARAMETER",
+                "value": 111.08575684686511
+              },
+              {
+                "description": "Turbidity",
+                "name": "turbidity",
+                "sgOnly": false,
+                "subType": "float",
+                "type": "PARAMETER",
+                "value": 2.0
+              }
+            ]
+          }
+        ]
+      },
+      {"type": 9999, "name": "End-of-world"}
+    ]
+  }
+}
