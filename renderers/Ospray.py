@@ -113,12 +113,20 @@ def write_camera(name, pos, updir, target, fov):
     "name": "{n}",
     "centerTranslation": {{
       "affine": [0.0, 0.0, 0.0],
-      "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
+      "linear": {{
+        "x": [1.0, 0.0, 0.0],
+        "y": [0.0, 1.0, 0.0],
+        "z": [0.0, 0.0, 1.0]
+      }}
     }},
     "rotation": {{"i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]}}},
     "translation": {{
       "affine": [{p.x}, {p.y}, {p.z}],
-      "linear": {{"x": [1.0, 0.0, 0.0], "y": [0.0, 1.0, 0.0], "z": [0.0, 0.0, 1.0]}}
+      "linear": {{
+        "x": [1.0, 0.0, 0.0],
+        "y": [0.0, 1.0, 0.0],
+        "z": [0.0, 0.0, 1.0]
+      }}
     }}
   }},"""
 
@@ -198,14 +206,12 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
            "type luminous",
            "color {} {} {}".format(*color),
            "intensity {}".format(power / 100),
-           "transparency {}".format(1.0 if transparent else 0.0)
-          ]
+           "transparency {}".format(1.0 if transparent else 0.0)]
 
     f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
     os.close(f_handle)
     with open(mtlfile, "w") as f:
         f.write('\n'.join(mtl))
-
 
     # Write obj file (geometry)
     osp_pos = TRANSFORM.multiply(pos)
@@ -240,7 +246,6 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 
     filename = objfile.encode("unicode_escape").decode("utf-8")
     return snippet.format(n=name, f=filename)
-
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -451,7 +456,7 @@ attenuationColor {c.r} {c.g} {c.b}
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
     # Nota: OSP Principled material does not handle SSS, nor specular tint
-    snippet="""
+    snippet = """
 type principled
 baseColor {1.r} {1.g} {1.b}
 # No subsurface scattering ({2})
@@ -581,14 +586,16 @@ def render(project, prefix, external, output, width, height):
     # Merge light groups
     json_load = json.loads(result)
     world_children = json_load["world"]["children"]
-    world_children.sort(key=lambda x: x["type"]=="LIGHTS")  # Light groups last
+    world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
     lights = list()
+
     def remaining_lightgroups():
         try:
             child = world_children[-1]
         except IndexError:
             return False
-        return child["type"]=="LIGHTS"
+        return child["type"] == "LIGHTS"
+
     while remaining_lightgroups():
         light = world_children.pop()
         lights += (light["children"])
