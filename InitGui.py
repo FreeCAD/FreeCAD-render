@@ -29,10 +29,14 @@ class RenderWorkbench(Gui.Workbench):
 
     def __init__(self):
         """Initialize object."""
+        # pylint: disable=import-outside-toplevel
+        from PySide.QtCore import QT_TRANSLATE_NOOP
         self.__class__.MenuText = "Render"
-        self.__class__.ToolTip = ("The Render module is a modern replacement"
-                                  " for the Raytracing module")
-        self.__class__.Icon = '''
+        self.__class__.ToolTip = QT_TRANSLATE_NOOP("Render",
+                                                   "The Render workbench is a "
+                                                   "modern replacement for "
+                                                   "the Raytracing workbench")
+        self.__class__.Icon = """
 /* XPM */
 static char * Render_xpm[] = {
 "16 16 33 1",
@@ -85,7 +89,7 @@ static char * Render_xpm[] = {
 "      ....      ",
 "                ",
 "                "};
-'''
+"""
 
     def Initialize(self):
         """Initialize GUI when the workbench is first loaded (callback).
@@ -96,16 +100,19 @@ static char * Render_xpm[] = {
         # pylint: disable=no-self-use, import-outside-toplevel
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from FreeCAD import Console
-        from FreeCADGui import addIconPath, addPreferencePage
-        from Render import RENDER_COMMANDS, ICONDIR, PREFPAGE
+        from FreeCADGui import addIconPath, addPreferencePage, addLanguagePath
+        from Render import RENDER_COMMANDS, TRANSDIR, ICONDIR, PREFPAGE
 
+        addLanguagePath(TRANSDIR)
         self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"),
                            RENDER_COMMANDS)
         self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"),
                         RENDER_COMMANDS)
         addIconPath(ICONDIR)
         addPreferencePage(PREFPAGE, "Render")
-        Console.PrintLog("Loading Render module...done\n")
+        msg = QT_TRANSLATE_NOOP("Render",
+                                "Loading Render module... done") + "\n"
+        Console.PrintLog(msg)
 
     def GetClassName(self):  # pylint: disable=no-self-use
         """Provide type of workbench."""

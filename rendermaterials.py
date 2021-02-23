@@ -33,7 +33,8 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import RGBA, str2rgb, debug as ru_debug, getproxyattr
+from renderutils import (RGBA, str2rgb, debug as ru_debug, getproxyattr,
+                         translate)
 
 
 # ===========================================================================
@@ -48,38 +49,56 @@ Param = collections.namedtuple("Param", "name type default desc")
 # material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
-        Param("Color", "RGB", (1, 1, 1), "Transmitted color"),
-        Param("IOR", "float", 1.5, "Index of refraction"),
+        Param("Color", "RGB", (1, 1, 1),
+              translate("Render", "Transmitted color")),
+        Param("IOR", "float", 1.5,
+              translate("Render", "Index of refraction")),
         ],
 
     "Disney": [
-        Param("BaseColor", "RGB", (0.8, 0.8, 0.8), "Base color"),
-        Param("Subsurface", "float", 0.0, "Subsurface coefficient"),
-        Param("Metallic", "float", 0.0, "Metallic coefficient"),
-        Param("Specular", "float", 0.0, "Specular coefficient"),
-        Param("SpecularTint", "float", 0.0, "Specular tint coefficient"),
-        Param("Roughness", "float", 0.0, "Roughness coefficient"),
-        Param("Anisotropic", "float", 0.0, "Anisotropic coefficient"),
-        Param("Sheen", "float", 0.0, "Sheen coefficient"),
-        Param("SheenTint", "float", 0.0, "Sheen tint coefficient"),
-        Param("ClearCoat", "float", 0.0, "Clear coat coefficient"),
-        Param("ClearCoatGloss", "float", 0.0, "Clear coat gloss coefficient"),
+        Param("BaseColor", "RGB", (0.8, 0.8, 0.8),
+              translate("Render", "Base color")),
+        Param("Subsurface", "float", 0.0,
+              translate("Render", "Subsurface coefficient")),
+        Param("Metallic", "float", 0.0,
+              translate("Render", "Metallic coefficient")),
+        Param("Specular", "float", 0.0,
+              translate("Render", "Specular coefficient")),
+        Param("SpecularTint", "float", 0.0,
+              translate("Render", "Specular tint coefficient")),
+        Param("Roughness", "float", 0.0,
+              translate("Render", "Roughness coefficient")),
+        Param("Anisotropic", "float", 0.0,
+              translate("Render", "Anisotropic coefficient")),
+        Param("Sheen", "float", 0.0,
+              translate("Render", "Sheen coefficient")),
+        Param("SheenTint", "float", 0.0,
+              translate("Render", "Sheen tint coefficient")),
+        Param("ClearCoat", "float", 0.0,
+              translate("Render", "Clear coat coefficient")),
+        Param("ClearCoatGloss", "float", 0.0,
+              translate("Render", "Clear coat gloss coefficient")),
         ],
 
     "Diffuse": [
-        Param("Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color")
+        Param("Color", "RGB", (0.8, 0.8, 0.8),
+              translate("Render", "Diffuse color"))
         ],
 
     # NB: Above 'Mixed' material could be extended with reflectivity in the
     # future, with the addition of a Glossy material. See for instance:
     # https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
     "Mixed": [
-        Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8), "Diffuse color"),
-        Param("Glass.Color", "RGB", (1, 1, 1), "Transmitted color"),
-        Param("Glass.IOR", "float", 1.5, "Index of refraction"),
+        Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8),
+              translate("Render", "Diffuse color")),
+        Param("Glass.Color", "RGB", (1, 1, 1),
+              translate("Render", "Transmitted color")),
+        Param("Glass.IOR", "float", 1.5,
+              translate("Render", "Index of refraction")),
         Param("Transparency", "float", 0.5,
-              "Mix ratio between Glass and Diffuse (should stay in [0,1], "
-              "other values may lead to undefined behaviour)"),
+              translate("Render", "Mix ratio between Glass and Diffuse "
+                                  "(should stay in [0,1], other values "
+                                  "may lead to undefined behaviour)")),
         ],
     }
 

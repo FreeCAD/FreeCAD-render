@@ -79,6 +79,7 @@ import rendermaterials
 WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RDRDIR = os.path.join(WBDIR, "renderers")
 ICONDIR = os.path.join(WBDIR, "icons")
+TRANSDIR = os.path.join(WBDIR, "translations")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
 # Renderers list
@@ -428,7 +429,7 @@ class Project:
                     msg = translate(
                         "Render",
                         "[Render] Unable to create rendering view for object "
-                        "'{}': unhandled object type\n")
+                        "'{}': unhandled object type") + '\n'
                     App.Console.PrintWarning(msg.format(obj.Label))
 
         # add_views starts here
@@ -482,7 +483,8 @@ class Project:
         except ModuleNotFoundError:
             msg = translate(
                 "Render",
-                "[Render] Cannot render project: Renderer '%s' not found\n")
+                "[Render] Cannot render project: Renderer '%s' not "
+                "found") + '\n'
             App.Console.PrintError(msg % obj.Renderer)
             return ""
 
@@ -684,7 +686,7 @@ class ViewProviderProject:
         try:
             self.object.Proxy.render()
         except AttributeError as err:
-            msg = translate("Render", "[Render] Cannot render: {}\n")
+            msg = translate("Render", "[Render] Cannot render: {}") + '\n'
             App.Console.PrintError(msg.format(err))
 
 
@@ -919,9 +921,10 @@ class RenderProjectCommand:
         rdr = self.renderer
         return {
             "Pixmap": os.path.join(WBDIR, "icons", rdr + ".svg"),
-            "MenuText": QT_TRANSLATE_NOOP("Render", "%s Project") % rdr,
-            "ToolTip": QT_TRANSLATE_NOOP("Render", "Creates a %s "
-                                                   "project") % rdr
+            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand",
+                                          "%s Project") % rdr,
+            "ToolTip": QT_TRANSLATE_NOOP("RenderProjectCommand",
+                                         "Create a %s project") % rdr
             }
 
     def Activated(self):
@@ -957,9 +960,10 @@ class RenderViewCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(WBDIR, "icons", "RenderView.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("Render", "Create View"),
-            "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                         "Creates a Render view of the "
+            "MenuText": QT_TRANSLATE_NOOP("RenderViewCommand",
+                                          "Rendering View"),
+            "ToolTip": QT_TRANSLATE_NOOP("RenderViewCommand",
+                                         "Create a Rendering View of the "
                                          "selected object(s) in the selected "
                                          "project or the default project")
             }
@@ -987,7 +991,7 @@ class RenderViewCommand:
             msg = translate(
                 "Render",
                 "[Render] Unable to find a valid project in selection "
-                "or document\n")
+                "or document") + '\n'
             App.Console.PrintError(msg)
             return
 
@@ -1003,9 +1007,9 @@ class RenderCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "Render.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("Render", "Render"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Performs the render of a "
+                "MenuText": QT_TRANSLATE_NOOP("RenderCommand", "Render"),
+                "ToolTip": QT_TRANSLATE_NOOP("RenderCommand",
+                                             "Perform the rendering of a "
                                              "selected project or the default "
                                              "project")}
 
@@ -1037,9 +1041,10 @@ class CameraCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": ":/icons/camera-photo.svg",
-                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Camera"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Creates a Camera object from "
+                "MenuText": QT_TRANSLATE_NOOP("CameraCommand",
+                                              "Camera"),
+                "ToolTip": QT_TRANSLATE_NOOP("CameraCommand",
+                                             "Create a Camera object from "
                                              "the current camera position")}
 
     def Activated(self):  # pylint: disable=no-self-use
@@ -1057,9 +1062,10 @@ class PointLightCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "PointLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Point Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Creates a Point Light object")}
+                "MenuText": QT_TRANSLATE_NOOP("PointLightCommand",
+                                              "Point Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("PointLightCommand",
+                                             "Create a Point Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -1076,9 +1082,10 @@ class AreaLightCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "AreaLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Area Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Creates an Area Light object")}
+                "MenuText": QT_TRANSLATE_NOOP("AreaLightCommand",
+                                              "Area Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("AreaLightCommand",
+                                             "Create an Area Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -1095,9 +1102,10 @@ class SunskyLightCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "SunskyLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Sunsky Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Creates a Sunsky Light object")}
+                "MenuText": QT_TRANSLATE_NOOP("SunskyLightCommand",
+                                              "Sunsky Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("SunskyLightCommand",
+                                             "Create a Sunsky Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -1114,9 +1122,10 @@ class ImageLightCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "ImageLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("Render", "Create Image Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Creates an Image Light object")}
+                "MenuText": QT_TRANSLATE_NOOP("ImageLightCommand",
+                                              "Image Light"),
+                "ToolTip": QT_TRANSLATE_NOOP("ImageLightCommand",
+                                             "Create an Image Light object")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -1133,11 +1142,11 @@ class MaterialSettingsCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("Render",
+                "MenuText": QT_TRANSLATE_NOOP("MaterialSettingsCommand",
                                               "Material Render Settings"),
-                "ToolTip": QT_TRANSLATE_NOOP("Render",
-                                             "Sets rendering parameters of "
-                                             "a Material")}
+                "ToolTip": QT_TRANSLATE_NOOP("MaterialSettingsCommand",
+                                             "Set rendering parameters of "
+                                             "the selected Material")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -1199,7 +1208,8 @@ class ColorPicker(QPushButton):
 class MaterialSettingsTaskPanel():
     """Task panel to edit Material render settings."""
 
-    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("Render", "<None>")
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("MaterialSettingsTaskPanel",
+                                           "<None>")
 
     def __init__(self, obj=None):
         """Initialize task panel."""
