@@ -84,8 +84,8 @@ class RendererHandler:
         except ModuleNotFoundError:
             msg = translate(
                 "Render",
-                "[Render] Import Error: Renderer '%s' not found\n") % rdrname
-            App.Console.PrintError(msg)
+                "[Render] Import Error: Renderer '%s' not found") % rdrname
+            App.Console.PrintError(msg + "\n")
             raise
 
     def render(self, project, prefix, external, output, width, height):
@@ -188,7 +188,7 @@ class RendererHandler:
             msg = translate(
                 "Render",
                 "[Render] Cannot render view '{0}': {1} (file {2}, "
-                "line {3} in {4}). Skipping...\n")
+                "line {3} in {4}). Skipping...") + "\n"
             _, _, exc_traceback = sys.exc_info()
             framestack = traceback.extract_tb(exc_traceback)[-1]
             App.Console.PrintWarning(msg.format(
@@ -357,14 +357,11 @@ class RendererHandler:
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
-        assert turbidity >= 0,\
-            translate("Render", "Negative turbidity")
+        assert turbidity >= 0, "Negative turbidity"
 
-        assert albedo >= 0,\
-            translate("Render", "Negative albedo")
+        assert albedo >= 0, "Negative albedo"
 
-        assert direction.Length,\
-            translate("Render", "Sun direction is null")
+        assert direction.Length, "Sun direction is null"
 
         return self._call_renderer("write_sunskylight",
                                    name,

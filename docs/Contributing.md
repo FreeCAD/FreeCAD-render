@@ -27,6 +27,16 @@ ensure that the code complies with
 You may find [here](../renderers/README.md) some useful guidelines to write a
 new renderer plugin.
 
+## Translating
+Render Workbench is translated following the [general
+guidelines](https://wiki.freecadweb.org/Translating_an_external_workbench)
+provided by FreeCAD documentation.
+Please note we do not translate:
+* Debug messages (calls to debug()), as they are supposed to be hidden in
+  normal functioning.
+* Assert messages, as they are supposed not to appear in normal functioning,
+  and to be reported as is to developpers if they occur.
+
 ## To Do (not exhaustive)
 
 * Add some more lighting functionalities:

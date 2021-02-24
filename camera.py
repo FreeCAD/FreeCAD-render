@@ -36,6 +36,7 @@ from PySide.QtGui import QAction
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
+from renderutils import translate
 
 
 # ===========================================================================
@@ -470,9 +471,8 @@ class ViewProviderCamera:
 
         User will be requested to select an object to point at.
         """
-        msg = QT_TRANSLATE_NOOP("Render",
-                                "[Point at] Please select target "
-                                "(on geometry)\n")
+        msg = translate("Render",
+                        "[Point at] Please select target (on geometry)") + "\n"
         App.Console.PrintMessage(msg)
         self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
             coin.SoMouseButtonEvent.getClassTypeId(),
@@ -493,16 +493,16 @@ class ViewProviderCamera:
                 point = App.Vector(picked_point.getPoint())
             except AttributeError:
                 # No picked point (outside geometry)
-                msg = QT_TRANSLATE_NOOP("Render",
-                                        "[Point at] Target outside geometry "
-                                        "-- Aborting\n")
+                msg = translate("Render",
+                                "[Point at] Target outside geometry "
+                                "-- Aborting") + "\n"
                 App.Console.PrintMessage(msg)
             else:
                 # Make underlying object point at target point
                 self.fpo.Proxy.point_at(point)
-                msg = QT_TRANSLATE_NOOP("Render",
-                                        "[Point at] Now pointing at "
-                                        "({0.x}, {0.y}, {0.z})\n")
+                msg = translate("Render",
+                                "[Point at] Now pointing at "
+                                "({0.x}, {0.y}, {0.z})") + "\n"
                 App.Console.PrintMessage(msg.format(point))
             finally:
                 # Remove coin event catcher
