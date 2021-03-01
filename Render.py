@@ -412,8 +412,8 @@ class Project:
             for obj in objs:
                 success = False
                 if (hasattr(obj, "Group") and
-
-                        not obj.isDerivedFrom("App::Part")):
+                        not obj.isDerivedFrom("App::Part") and
+                        not obj.isDerivedFrom("PartDesign::Body")):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
