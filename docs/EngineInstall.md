@@ -50,6 +50,8 @@ separate 'cycles' executable compiled together with Blender.
 Arch Linux users may avoid all this hassle by using the [package](https://aur.archlinux.org/packages/cycles-standalone/)
 available in AUR.
 
+Mac OS Big Sur users may also find some valuable instructions [here](https://vectronic.io/posts/building-freecad-on-macos-big-sur/#install-cycles-standalone).
+
 ## Set up external rendering engines in the workbench
 
 Once you have a rendering engine installed on your system, you have to set it
