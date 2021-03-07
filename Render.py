@@ -50,7 +50,7 @@ from PySide.QtGui import (QAction, QIcon, QFileDialog, QLineEdit,
                           QDoubleValidator, QPushButton, QColorDialog, QPixmap,
                           QColor, QFormLayout, QComboBox, QLayout, QListWidget,
                           QListWidgetItem, QListView, QPlainTextEdit,
-                          QMessageBox)
+                          QMessageBox, QInputDialog)
 from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
                            QSize)
 import FreeCAD as App
@@ -1136,15 +1136,15 @@ class ImageLightCommand:
         lights.ImageLight.create()
 
 
-class MaterialSettingsCommand:
+class MaterialRenderSettingsCommand:
     """GUI command to set render settings of a material object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("MaterialSettingsCommand",
+                "MenuText": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
                                               "Material Render Settings"),
-                "ToolTip": QT_TRANSLATE_NOOP("MaterialSettingsCommand",
+                "ToolTip": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
                                              "Set rendering parameters of "
                                              "the selected Material")}
 
@@ -1152,7 +1152,8 @@ class MaterialSettingsCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new rendering project into the active document.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
         """
         # App.setActiveTransaction("MaterialSettings")
         App.ActiveDocument.openTransaction("MaterialSettings")
@@ -1161,6 +1162,90 @@ class MaterialSettingsCommand:
         # App.closeActiveTransaction()
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
+
+
+class MaterialApplierCommand:
+    """GUI command to apply a material to an object."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {"Pixmap": os.path.join(WBDIR, "icons", "ApplyMaterial.svg"),
+                "MenuText": QT_TRANSLATE_NOOP("MaterialApplierCommand",
+                                              "Material Application"),
+                "ToolTip": QT_TRANSLATE_NOOP("MaterialApplierCommand",
+                                             "Apply a Material to "
+                                             "selected objects")}
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It sets the Material property of the selected object(s).
+        If the Material property does not exist in the object(s), it is
+        created.
+        """
+        # Get selected objects
+        selection = Gui.Selection.getSelection()
+        if not selection:
+            title = translate("Render", "Empty Selection")
+            msg = translate("Render",
+                            "Please select object(s) before applying "
+                            "material.")
+            QMessageBox.warning(None, title, msg)
+            return
+
+        # Let user pick the Material
+        mats = [o for o in App.ActiveDocument.Objects
+                if o.isDerivedFrom("App::MaterialObjectPython")]
+        if not mats:
+            title = translate("Render", "No Material")
+            msg = translate("Render",
+                            "No Material in document. Please create a "
+                            "Material before applying.")
+            QMessageBox.warning(None, title, msg)
+            return
+        matlabels = [m.Label for m in mats]
+        current_mats_labels = [o.Material.Label for o in selection
+                               if hasattr(o, "Material")
+                               and hasattr(o.Material, "Label")
+                               and o.Material.Label]
+        current_mats = [count for count, val in enumerate(matlabels)
+                        if val in current_mats_labels]
+        current_mat = current_mats[0] if len(current_mats) == 1 else 0
+
+        userinput, status = QInputDialog.getItem(
+                None,
+                translate("Render", "Material Applier"),
+                translate("Render", "Choose Material to apply to selection:"),
+                matlabels,
+                current_mat,
+                False)
+        if not status:
+            return
+
+        material = next(m for m in mats if m.Label == userinput)
+
+        # Update selected objects
+        App.ActiveDocument.openTransaction("MaterialApplier")
+        for obj in selection:
+            # Add Material property to the object if it hasn't got one
+            if "Material" not in obj.PropertiesList:
+                obj.addProperty(
+                    "App::PropertyLink",
+                    "Material",
+                    "",
+                    QT_TRANSLATE_NOOP(
+                        "App::Property",
+                        "The Material for this object"))
+            try:
+                obj.Material = material
+            except TypeError:
+                msg = translate("Render",
+                                "Cannot apply Material to object '%s': "
+                                "object's Material property is of wrong "
+                                "type") + '\n'
+                App.Console.PrintError(msg % obj.Label)
+        App.ActiveDocument.commitTransaction()
 
 
 class ColorPicker(QPushButton):
@@ -1474,6 +1559,7 @@ class MaterialSettingsTaskPanel():
 
 class CommandGroup:
     """Group of commands for GUI (toolbar, menu...)."""
+
     def __init__(self, cmdlist, menu, tooltip=None):
         """Initialize group of commands."""
         self.cmdlist = cmdlist
@@ -1490,7 +1576,7 @@ class CommandGroup:
 
 
 # pylint: disable=protected-access
-MaterialCommand = ArchMaterial._CommandArchMaterial
+MaterialCreatorCommand = ArchMaterial._CommandArchMaterial
 # pylint: enable=protected-access
 
 
@@ -1532,8 +1618,9 @@ def _init_gui_commands():
                   ("ImageLight", ImageLightCommand())]
     lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
 
-    materials = [("Material", MaterialCommand()),
-                 ("MaterialRenderSettings", MaterialSettingsCommand())]
+    materials = [("MaterialCreator", MaterialCreatorCommand()),
+                 ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
+                 ("MaterialApplier", MaterialApplierCommand())]
     materials_group = CommandGroup(materials, "Materials", "Manage Materials")
 
     render_commands = [("Projects", projects_group),
