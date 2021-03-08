@@ -56,7 +56,7 @@ from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
 import FreeCAD as App
 import FreeCADGui as Gui
 import Part
-import ArchMaterial
+from ArchMaterial import _CommandArchMaterial
 try:
     import ImageGui
 except ImportError:
@@ -1136,6 +1136,23 @@ class ImageLightCommand:
         lights.ImageLight.create()
 
 
+class MaterialCreatorCommand(_CommandArchMaterial):
+    """GUI command to create a material.
+
+    This class is based on Arch 'ArchMaterial' command.
+    """
+
+    def GetResources(self):
+        """Get command's resources (callback)."""
+        res = super().GetResources()
+        res["MenuText"] = QT_TRANSLATE_NOOP("MaterialCreatorCommand",
+                                            "Create Material")
+        res["ToolTip"] = QT_TRANSLATE_NOOP("MaterialCreatorCommand",
+                                           "Create a new Material in current"
+                                           "document")
+        return res
+
+
 class MaterialRenderSettingsCommand:
     """GUI command to set render settings of a material object."""
 
@@ -1143,9 +1160,9 @@ class MaterialRenderSettingsCommand:
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
-                                              "Material Render Settings"),
+                                              "Edit Material Render Settings"),
                 "ToolTip": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
-                                             "Set rendering parameters of "
+                                             "Edit rendering parameters of "
                                              "the selected Material")}
 
     def Activated(self):  # pylint: disable=no-self-use
@@ -1171,10 +1188,9 @@ class MaterialApplierCommand:
         """Get command's resources (callback)."""
         return {"Pixmap": os.path.join(WBDIR, "icons", "ApplyMaterial.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("MaterialApplierCommand",
-                                              "Material Application"),
+                                              "Apply Material"),
                 "ToolTip": QT_TRANSLATE_NOOP("MaterialApplierCommand",
-                                             "Apply a Material to "
-                                             "selected objects")}
+                                             "Apply a Material to selection")}
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -1573,11 +1589,6 @@ class CommandGroup:
     def GetResources(self):
         """Get command group's resources (callback)."""
         return {'MenuText': self.menu, 'ToolTip': self.tooltip}
-
-
-# pylint: disable=protected-access
-MaterialCreatorCommand = ArchMaterial._CommandArchMaterial
-# pylint: enable=protected-access
 
 
 def _init_gui_commands():
