@@ -26,56 +26,74 @@ Rendering material, the material feature of the renderers.*
 You will find below some indications about how to use Materials in Render
 Workbench.
 
-## Adding Material rendering information to objects
+## Adding Material rendering information to an object
 The general workflow to add material rendering information to an object is
 quite simple:
-1. Create a FreeCAD Material in the document with relevant rendering information;
-2. Assign this FreeCAD Material to the object, or to its view in the rendering project.
+1. Create a FreeCAD Material in the document
+2. Set the rendering parameters of your Material
+3. Assign this FreeCAD Material to the object, or to its view in the rendering project
 
-Let's detail those two steps:
+Let's detail those three steps:
 
-### Create Material with rendering information
-There are two ways to create a Material with relevant rendering information:
+### Step #1: Create a Material in your document
 
-#### Option #1: Create a material card file (.FCMat file) with rendering settings and import it in your document
-This method consists in specifying rendering parameters in a Material Card.
-A description of the FreeCAD material card format, the creation and the import
-processes of such a card can be found here in FreeCAD documentation:
-[FreeCAD material card file format](https://wiki.freecadweb.org/Material#The_FreeCAD_material_card_file_format).
-
-The relevant parameters to be used for rendering material are to be found
-below in chapter [Material card settings for rendering](#parameters)
-
-
-#### Option #2: Add rendering settings to an existing Material, in FreeCAD GUI
-Starting from an existing material in a FreeCAD document, one can add or set
-rendering settings via the material rendering settings editor.
-
-This editor can be opened by its command in Render Workbench toolbar:
-<img src=../icons/MaterialSettings.svg alt="editor" title="Editor Command"
+Open the Material Creator: 
+<img src=../icons/Arch_Material_Group.svg alt="editor" title="Creator Command"
 height=32>
 
-As a reminder, the general process to add materials to an active FreeCAD document
-is documented here in FreeCAD documentation:
+Choose a preset (ie a Material Card) and give a name to your new material. Click
+OK. This should import the selected preset into a new Material in your
+project.
+
+Remark: You can find more information in FreeCAD documentation:
 [Add Material in FreeCAD](https://wiki.freecadweb.org/Arch_SetMaterial)
 
 
-### Assign FreeCAD Material to objects
-The simplest (and standard) way to assign a FreeCAD Material to an object is to set
-the `Material` property of the object to the given Material.
 
-It is however also possible to set the `Material` property of the *View* of
-the object in the rendering project. It can lead to several benefits:
-- Not all FreeCAD objects have got a `Material` property, so it is a workaround
-for such a case
-- The View's Material rendering settings override the object's ones, which can
-be useful in certain cases (but harmful in other case)
-As a drawback, the View's Material has only rendering project scope, so if you want
-to set Material once for all the rendering projects in a document, setting the
-object's Material property should be preferred.
+### Step #2: Edit rendering settings of your new Material
+
+Select your new Material and open the rendering settings editor by the command
+available in Render Workbench toolbar:
+<img src=../icons/MaterialSettings.svg alt="editor" title="Editor Command"
+height=32>
+
+Choose the material type and tweak the rendering settings of your Material.
+
+At the moment, the following material types are available:
+- Diffuse
+- Disney
+- Glass
+- Mixed (a mix between Diffuse and Glass)
+You may find more information about those materials and their settings in your
+renderer documentation, or in general CG documentation.
+
+
+
+### Step #3: Assign your FreeCAD Material to your object
+Select your object and open Material Applier:
+<img src=../icons/ApplyMaterial.svg alt="applier" title="Applier Command"
+height=32>
+
+Select the Material to apply, and click OK. You're done.
+
+
+Please note the following remarks:
+- As an alternative to using the Applier, you can directly edit the `Material`
+  property of your object, if there is one. However, you should find the Applier
+  more practical.
+- It is also possible to set the Material of the *View* of the object in the
+  rendering project. It will override the Material definition in the object, so
+  it can be useful in some cases (when you cannot create or modify the Material
+  property of an object, for instance).  However, it is recommended to use the
+  Material of the object whenever possible.
+
+
+**At this stage, you should have some usable rendering information attached to your object.**
+**If this is your main goal, you may skip the rest of this page.**
 
 
 ## How Render Workbench uses Material rendering settings
+
 ### Inputs
 Once an object has been assigned a FreeCAD Material with relevant rendering
 information, the rendering material computation process can take place at render
@@ -114,6 +132,18 @@ should be used only when standard material is not sufficient.
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
+In [Step #1](#step-1-create-a-material-in-your-document) above, you have imported a
+Material Card into a Material, and then set up the rendering parameters.
+
+If you don't want to specify your rendering paramaters each time you create a
+new Material in your document, you can also directly set your rendering
+parameters in the Material Card.
+A description of the FreeCAD material card format, the creation and the import
+processes of such a card can be found here in FreeCAD documentation:
+[FreeCAD material card file format](https://wiki.freecadweb.org/Material#The_FreeCAD_material_card_file_format).
+
+The relevant parameters to be used for rendering material are to be found
+below in chapter [Material card settings for rendering](#parameters)
 
 This section explains how to write rendering parameters in material cards files
 (.FCMat).
