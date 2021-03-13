@@ -129,10 +129,11 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         debug("Object", label, "'App::Part' detected")
         renderables = _get_rends_from_part(obj, name, mat, mesher, **kwargs)
 
-    # Plain part feature
+    # Plain part feature (including PartDesign::Body)
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        renderables = _get_rends_from_feature(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_partfeature(obj, name, mat, mesher,
+                                                  **kwargs)
 
     # Mesh
     elif obj_is_meshfeature:
@@ -367,7 +368,8 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
-        return _get_rends_from_feature(obj, name, material, mesher, **kwargs)
+        return _get_rends_from_partfeature(obj, name, material, mesher,
+                                           **kwargs)
 
     shapes = obj.Shape.childShapes()
 
@@ -425,7 +427,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
     return rends
 
 
-def _get_rends_from_feature(obj, name, material, mesher, **kwargs):
+def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
     """Get renderables from a Part::Feature object.
 
     Parameters:
