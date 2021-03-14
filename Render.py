@@ -274,13 +274,13 @@ class Project:
                 "Render",
                 QT_TRANSLATE_NOOP(
                     "App::Property",
-                    "Overweight transparency in rendering "
+                    "Overweigh transparency in rendering "
                     "(0=None (default), 10=Very high)."
                     "When this parameter is set, low transparency ratios will "
                     "be rendered more transparent. NB: This parameter affects "
-                    "only implicit materials (generated via shape "
+                    "only implicit materials (generated via Shape "
                     "Appearance), not explicit materials (defined via Material"
-                    " parameter)."))
+                    " property)."))
             obj.TransparencySensitivity = (0, 0, 10, 1)
 
     def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
@@ -429,8 +429,8 @@ class Project:
                     msg = translate(
                         "Render",
                         "[Render] Unable to create rendering view for object "
-                        "'{}': unhandled object type") + '\n'
-                    App.Console.PrintWarning(msg.format(obj.Label))
+                        "'{o}': unhandled object type") + '\n'
+                    App.Console.PrintWarning(msg.format(o=obj.Label))
 
         # add_views starts here
         add_to_group(iter(objs), self.fpo)
@@ -686,8 +686,8 @@ class ViewProviderProject:
         try:
             self.object.Proxy.render()
         except AttributeError as err:
-            msg = translate("Render", "[Render] Cannot render: {}") + '\n'
-            App.Console.PrintError(msg.format(err))
+            msg = translate("Render", "[Render] Cannot render: {e}") + '\n'
+            App.Console.PrintError(msg.format(e=err))
 
 
 class View:

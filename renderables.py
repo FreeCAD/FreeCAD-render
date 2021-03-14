@@ -343,9 +343,9 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         mats_dict = dict(zip(material.Names, material.Materials))
         mats = [mats_dict.get(s) for s in subnames]
         if [m for m in mats if not m]:
-            msg = translate("Render", "Incomplete multimaterial (missing {})")
+            msg = translate("Render", "Incomplete multimaterial (missing {m})")
             missing_mats = ', '.join(set(subnames) - mats_dict.keys())
-            warn("Window", obj.Label, msg.format(missing_mats))
+            warn("Window", obj.Label, msg.format(m=missing_mats))
     else:
         mats = [None] * len(subnames)
 
