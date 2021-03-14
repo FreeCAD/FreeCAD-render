@@ -121,6 +121,9 @@
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
         <property name="prefEntry" stdset="0">
          <cstring>Prefix</cstring>
         </property>
@@ -212,7 +215,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string/>
+         <string notr="true"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>AppleseedParameters</cstring>
@@ -455,7 +458,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>+P +A</string>
+         <string notr="true">+P +A</string>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>PovRayParameters</cstring>
@@ -526,7 +529,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>--samples 100</string>
+         <string notr="true">--samples 100</string>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>OspParameters</cstring>
@@ -587,7 +590,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>--samples 100</string>
+         <string notr="true">--samples 100</string>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>CyclesParameters</cstring>
