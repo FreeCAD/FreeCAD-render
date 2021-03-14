@@ -9,172 +9,155 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="33"/>
+        <location filename="../ui/RenderSettings.ui" line="39"/>
         <source>General</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="39"/>
+        <location filename="../ui/RenderSettings.ui" line="48"/>
         <source>Default render height</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="46"/>
+        <location filename="../ui/RenderSettings.ui" line="58"/>
         <source>Default render width</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="53"/>
-        <location filename="../ui/RenderSettings.ui" line="72"/>
-        <source>px</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../ui/RenderSettings.ui" line="91"/>
+        <location filename="../ui/RenderSettings.ui" line="112"/>
         <source>Prefix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="98"/>
+        <location filename="../ui/RenderSettings.ui" line="119"/>
         <source>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="114"/>
+        <location filename="../ui/RenderSettings.ui" line="144"/>
         <source>Appleseed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="120"/>
+        <location filename="../ui/RenderSettings.ui" line="153"/>
         <source>Appleseed command (cli) path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="127"/>
-        <source>Appleseed studio path</source>
+        <location filename="../ui/RenderSettings.ui" line="163"/>
+        <source>Appleseed Studio path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="134"/>
+        <location filename="../ui/RenderSettings.ui" line="170"/>
         <source>The path to the Appleseed cli executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="147"/>
+        <location filename="../ui/RenderSettings.ui" line="186"/>
         <source>The path to the Appleseed studio executable (optional)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="160"/>
-        <location filename="../ui/RenderSettings.ui" line="251"/>
-        <location filename="../ui/RenderSettings.ui" line="306"/>
-        <location filename="../ui/RenderSettings.ui" line="342"/>
-        <location filename="../ui/RenderSettings.ui" line="401"/>
-        <location filename="../ui/RenderSettings.ui" line="447"/>
+        <location filename="../ui/RenderSettings.ui" line="205"/>
+        <location filename="../ui/RenderSettings.ui" line="317"/>
+        <location filename="../ui/RenderSettings.ui" line="384"/>
+        <location filename="../ui/RenderSettings.ui" line="432"/>
+        <location filename="../ui/RenderSettings.ui" line="509"/>
+        <location filename="../ui/RenderSettings.ui" line="570"/>
         <source>Render parameters</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="167"/>
+        <location filename="../ui/RenderSettings.ui" line="212"/>
         <source>Optional rendering parameters to be passed to the Appleseed executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="186"/>
+        <location filename="../ui/RenderSettings.ui" line="237"/>
         <source>LuxCore</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="192"/>
+        <location filename="../ui/RenderSettings.ui" line="246"/>
         <source>LuxCore UI path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="199"/>
+        <location filename="../ui/RenderSettings.ui" line="256"/>
         <source>LuxCore command (cli) path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="206"/>
-        <location filename="../ui/RenderSettings.ui" line="320"/>
+        <location filename="../ui/RenderSettings.ui" line="263"/>
+        <location filename="../ui/RenderSettings.ui" line="401"/>
         <source>The path to the Luxrender console (luxconsole) executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="219"/>
-        <location filename="../ui/RenderSettings.ui" line="293"/>
+        <location filename="../ui/RenderSettings.ui" line="279"/>
+        <location filename="../ui/RenderSettings.ui" line="365"/>
         <source>The path to the luxrender UI executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="232"/>
-        <location filename="../ui/RenderSettings.ui" line="267"/>
+        <location filename="../ui/RenderSettings.ui" line="295"/>
+        <location filename="../ui/RenderSettings.ui" line="336"/>
         <source>Optional parameters to be passed to Luxrender when rendering</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="261"/>
+        <location filename="../ui/RenderSettings.ui" line="330"/>
         <source>LuxRender (deprecated)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="286"/>
+        <location filename="../ui/RenderSettings.ui" line="358"/>
         <source>LuxRender UI path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="313"/>
+        <location filename="../ui/RenderSettings.ui" line="394"/>
         <source>LuxRender command (cli) path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="336"/>
+        <location filename="../ui/RenderSettings.ui" line="423"/>
         <source>PovRay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="349"/>
+        <location filename="../ui/RenderSettings.ui" line="439"/>
         <source>The path to the Pov-Ray executable</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="362"/>
+        <location filename="../ui/RenderSettings.ui" line="455"/>
         <source>Optional parameters to be passed to Pov-Ray when rendering</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="365"/>
-        <source>+P +A</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../ui/RenderSettings.ui" line="378"/>
+        <location filename="../ui/RenderSettings.ui" line="477"/>
         <source>PovRay executable path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="388"/>
+        <location filename="../ui/RenderSettings.ui" line="490"/>
         <source>OspRay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="394"/>
+        <location filename="../ui/RenderSettings.ui" line="499"/>
         <source>OspStudio executable path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="418"/>
-        <location filename="../ui/RenderSettings.ui" line="464"/>
-        <source>--samples 100</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../ui/RenderSettings.ui" line="434"/>
+        <location filename="../ui/RenderSettings.ui" line="551"/>
         <source>Cycles</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/RenderSettings.ui" line="440"/>
+        <location filename="../ui/RenderSettings.ui" line="560"/>
         <source>Cycles executable path</source>
         <translation type="unfinished"></translation>
     </message>
@@ -302,7 +285,7 @@
     </message>
     <message>
         <location filename="../Render.py" line="271"/>
-        <source>Overweight transparency in rendering (0=None (default), 10=Very high).When this parameter is set, low transparency ratios will be rendered more transparent. NB: This parameter affects only implicit materials (generated via shape Appearance), not explicit materials (defined via Material parameter).</source>
+        <source>Overweigh transparency in rendering (0=None (default), 10=Very high).When this parameter is set, low transparency ratios will be rendered more transparent. NB: This parameter affects only implicit materials (generated via Shape Appearance), not explicit materials (defined via Material property).</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -464,7 +447,7 @@
     </message>
     <message>
         <location filename="../camera.py" line="125"/>
-        <source>Height angle, for perspective camera, indegrees. Important: This value will be sent as &apos;Field of View&apos; to the renderers.</source>
+        <source>Height angle, for perspective camera, in degrees. Important: This value will be sent as &apos;Field of View&apos; to the renderers.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -590,7 +573,7 @@ Note: This parameter has no impact on rendering</source>
     </message>
     <message>
         <location filename="../renderables.py" line="346"/>
-        <source>Incomplete multimaterial (missing {})</source>
+        <source>Incomplete multimaterial (missing {m})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -680,7 +663,7 @@ Note: This parameter has no impact on rendering</source>
     </message>
     <message>
         <location filename="../Render.py" line="429"/>
-        <source>[Render] Unable to create rendering view for object &apos;{}&apos;: unhandled object type</source>
+        <source>[Render] Unable to create rendering view for object &apos;{o}&apos;: unhandled object type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -702,7 +685,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../Render.py" line="689"/>
-        <source>[Render] Cannot render: {}</source>
+        <source>[Render] Cannot render: {e}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
