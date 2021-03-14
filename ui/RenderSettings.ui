@@ -65,7 +65,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="suffix">
-         <string>px</string>
+         <string notr="true">px</string>
         </property>
         <property name="maximum">
          <number>9999</number>
@@ -87,7 +87,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="suffix">
-         <string>px</string>
+         <string notr="true">px</string>
         </property>
         <property name="maximum">
          <number>9999</number>
@@ -160,7 +160,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>Appleseed studio path</string>
+         <string>Appleseed Studio path</string>
         </property>
        </widget>
       </item>
