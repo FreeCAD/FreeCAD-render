@@ -16,6 +16,9 @@
   <layout class="QGridLayout" name="gridLayout_10">
    <item row="8" column="1">
     <spacer>
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -29,12 +32,18 @@
    </item>
    <item row="1" column="1">
     <widget class="QGroupBox" name="groupBox_4">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>General</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
       <item row="3" column="0">
        <widget class="QLabel" name="label_9">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Default render height</string>
         </property>
@@ -42,6 +51,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_8">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Default render width</string>
         </property>
@@ -49,6 +61,9 @@
       </item>
       <item row="1" column="1">
        <widget class="Gui::PrefSpinBox" name="spinBox">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="suffix">
          <string>px</string>
         </property>
@@ -68,6 +83,9 @@
       </item>
       <item row="3" column="1">
        <widget class="Gui::PrefSpinBox" name="spinBox_2">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="suffix">
          <string>px</string>
         </property>
@@ -87,6 +105,9 @@
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_11">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Prefix</string>
         </property>
@@ -96,6 +117,9 @@
        <widget class="Gui::PrefLineEdit" name="lineEdit_3">
         <property name="toolTip">
          <string>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>Prefix</cstring>
@@ -110,12 +134,18 @@
    </item>
    <item row="2" column="1">
     <widget class="QGroupBox" name="groupBox">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>Appleseed</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="1" column="0">
        <widget class="QLabel" name="label">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Appleseed command (cli) path</string>
         </property>
@@ -123,6 +153,9 @@
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_2">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Appleseed studio path</string>
         </property>
@@ -132,6 +165,9 @@
        <widget class="Gui::PrefFileChooser" name="prefFileChooser2" native="true">
         <property name="toolTip">
          <string>The path to the Appleseed cli executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>AppleseedCliPath</cstring>
@@ -146,6 +182,9 @@
         <property name="toolTip">
          <string>The path to the Appleseed studio executable (optional)</string>
         </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="prefEntry" stdset="0">
          <cstring>AppleseedStudioPath</cstring>
         </property>
@@ -156,6 +195,9 @@
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_5">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Render parameters</string>
         </property>
@@ -165,6 +207,9 @@
        <widget class="Gui::PrefLineEdit" name="prefLineEdit1">
         <property name="toolTip">
          <string>Optional rendering parameters to be passed to the Appleseed executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
          <string/>
@@ -182,12 +227,18 @@
    </item>
    <item row="4" column="1">
     <widget class="QGroupBox" name="groupBox_2">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>LuxCore</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="0">
        <widget class="QLabel" name="label_4">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>LuxCore UI path</string>
         </property>
@@ -195,6 +246,9 @@
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_3">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>LuxCore command (cli) path</string>
         </property>
@@ -204,6 +258,9 @@
        <widget class="Gui::PrefFileChooser" name="fileChooser" native="true">
         <property name="toolTip">
          <string>The path to the Luxrender console (luxconsole) executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>LuxCoreConsolePath</cstring>
@@ -217,6 +274,9 @@
        <widget class="Gui::PrefFileChooser" name="fileChooser_2" native="true">
         <property name="toolTip">
          <string>The path to the luxrender UI executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>LuxCorePath</cstring>
@@ -247,6 +307,9 @@
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_13">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Render parameters</string>
         </property>
@@ -257,6 +320,9 @@
    </item>
    <item row="7" column="1">
     <widget class="QGroupBox" name="groupBox_6">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>LuxRender (deprecated)</string>
      </property>
@@ -282,6 +348,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_14">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>LuxRender UI path</string>
         </property>
@@ -291,6 +360,9 @@
        <widget class="Gui::PrefFileChooser" name="fileChooser_6" native="true">
         <property name="toolTip">
          <string>The path to the luxrender UI executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>LuxRenderPath</cstring>
@@ -302,6 +374,9 @@
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_16">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Render parameters</string>
         </property>
@@ -309,6 +384,9 @@
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_15">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>LuxRender command (cli) path</string>
         </property>
@@ -318,6 +396,9 @@
        <widget class="Gui::PrefFileChooser" name="fileChooser_5" native="true">
         <property name="toolTip">
          <string>The path to the Luxrender console (luxconsole) executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>LuxConsolePath</cstring>
@@ -332,12 +413,18 @@
    </item>
    <item row="5" column="1">
     <widget class="QGroupBox" name="groupBox_3">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>PovRay</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="1" column="0">
        <widget class="QLabel" name="label_7">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Render parameters</string>
         </property>
@@ -347,6 +434,9 @@
        <widget class="Gui::PrefFileChooser" name="fileChooser_3" native="true">
         <property name="toolTip">
          <string>The path to the Pov-Ray executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>PovRayPath</cstring>
@@ -361,6 +451,9 @@
         <property name="toolTip">
          <string>Optional parameters to be passed to Pov-Ray when rendering</string>
         </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>+P +A</string>
         </property>
@@ -374,6 +467,9 @@
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_6">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>PovRay executable path</string>
         </property>
@@ -384,12 +480,18 @@
    </item>
    <item row="6" column="1">
     <widget class="QGroupBox" name="groupBox_8">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>OspRay</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_9">
       <item row="0" column="0">
        <widget class="QLabel" name="label_19">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>OspStudio executable path</string>
         </property>
@@ -397,6 +499,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_20">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Render parameters</string>
         </property>
@@ -404,6 +509,9 @@
       </item>
       <item row="0" column="1">
        <widget class="Gui::PrefFileChooser" name="fileChooser_8" native="true">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="prefEntry" stdset="0">
          <cstring>OspPath</cstring>
         </property>
@@ -414,6 +522,9 @@
       </item>
       <item row="1" column="1">
        <widget class="Gui::PrefLineEdit" name="lineEdit_6">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>--samples 100</string>
         </property>
@@ -430,12 +541,18 @@
    </item>
    <item row="3" column="1">
     <widget class="QGroupBox" name="groupBox_5">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
      <property name="title">
       <string>Cycles</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
       <item row="0" column="0">
        <widget class="QLabel" name="label_10">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Cycles executable path</string>
         </property>
@@ -443,6 +560,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_12">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>Render parameters</string>
         </property>
@@ -450,6 +570,9 @@
       </item>
       <item row="0" column="1">
        <widget class="Gui::PrefFileChooser" name="fileChooser_4" native="true">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="prefEntry" stdset="0">
          <cstring>CyclesPath</cstring>
         </property>
@@ -460,6 +583,9 @@
       </item>
       <item row="1" column="1">
        <widget class="Gui::PrefLineEdit" name="lineEdit_2">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
         <property name="text">
          <string>--samples 100</string>
         </property>
