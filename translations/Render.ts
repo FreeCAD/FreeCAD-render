@@ -320,6 +320,11 @@
         <source>The rendering output of this view</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../Render.py" line="1249"/>
+        <source>The Material for this object</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>AreaLightCommand</name>
@@ -361,22 +366,48 @@
     </message>
 </context>
 <context>
-    <name>MaterialSettingsCommand</name>
+    <name>MaterialApplierCommand</name>
     <message>
-        <location filename="../Render.py" line="1145"/>
-        <source>Material Render Settings</source>
+        <location filename="../Render.py" line="1190"/>
+        <source>Apply Material</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Render.py" line="1147"/>
-        <source>Set rendering parameters of the selected Material</source>
+        <location filename="../Render.py" line="1192"/>
+        <source>Apply a Material to selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MaterialCreatorCommand</name>
+    <message>
+        <location filename="../Render.py" line="1148"/>
+        <source>Create Material</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1150"/>
+        <source>Create a new Material in currentdocument</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MaterialRenderSettingsCommand</name>
+    <message>
+        <location filename="../Render.py" line="1162"/>
+        <source>Edit Material Render Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1164"/>
+        <source>Edit rendering parameters of the selected Material</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>MaterialSettingsTaskPanel</name>
     <message>
-        <location filename="../Render.py" line="1211"/>
+        <location filename="../Render.py" line="1312"/>
         <source>&lt;None&gt;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -538,27 +569,27 @@ Note: This parameter has no impact on rendering</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../renderables.py" line="159"/>
+        <location filename="../renderables.py" line="160"/>
         <source>Nothing to render</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../renderables.py" line="163"/>
+        <location filename="../renderables.py" line="164"/>
         <source>Cannot find mesh data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../renderables.py" line="165"/>
+        <location filename="../renderables.py" line="166"/>
         <source>Mesh topology is empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../renderables.py" line="167"/>
+        <location filename="../renderables.py" line="168"/>
         <source>Mesh topology has no normals</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../renderables.py" line="345"/>
+        <location filename="../renderables.py" line="346"/>
         <source>Incomplete multimaterial (missing {})</source>
         <translation type="unfinished"></translation>
     </message>
@@ -677,6 +708,41 @@ Are you sure you want to continue?</source>
     <message>
         <location filename="../Render.py" line="991"/>
         <source>[Render] Unable to find a valid project in selection or document</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1206"/>
+        <source>Empty Selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1207"/>
+        <source>Please select object(s) before applying material.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1217"/>
+        <source>No Material</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1218"/>
+        <source>No Material in document. Please create a Material before applying.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1232"/>
+        <source>Material Applier</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1232"/>
+        <source>Choose Material to apply to selection:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../Render.py" line="1259"/>
+        <source>Cannot apply Material to object &apos;%s&apos;: object&apos;s Material property is of wrong type</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
