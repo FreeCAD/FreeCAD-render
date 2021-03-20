@@ -13,7 +13,7 @@ At the moment, the following engines are supported:
 * [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net) 
 * [Blender Cycles](https://www.cycles-renderer.org/)
-* [Intel Ospray Studio](https://github.com/ospray/ospray_studio)
+* [Intel Ospray Studio](https://github.com/ospray/ospray_studio) (experimental)
 
 The precise installation procedure for each of those engines is beyond the
 scope of this manual, but detailed installation instructions (adapted to your
@@ -29,6 +29,12 @@ test scenes are usually provided with the renderer for that purpose, please
 refer to its documentation.
 
 ### Notes on installing Cycles for Render (standalone version)
+
+**Caveat: Installing Cycles Standalone can be tricky and time-consuming —
+especially on Microsoft Windows platform. If you have no taste for poorly
+documented installation procedures or if you have no time to waste, you
+should rather consider using Appleseed or LuxCoreRender, which both provide
+ready-to-use binaries, along with excellent rendering features.**
 
 To use Cycles renderer with Render workbench, you need a standalone version of
 Cycles, named *Cycles Standalone*. This version is distinct from the one
