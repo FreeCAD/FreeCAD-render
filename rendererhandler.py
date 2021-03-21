@@ -37,8 +37,9 @@ from importlib import import_module
 
 import FreeCAD as App
 import MeshPart
+import Mesh
 
-from renderutils import translate, debug, getproxyattr
+from renderutils import translate, debug, getproxyattr, clamp
 import renderables
 import rendermaterials
 
@@ -201,6 +202,38 @@ class RendererHandler:
 
         else:
             return res
+
+    def get_groundplane_string(self, bbox, zpos, color):
+        """Get a rendering string for a ground plane.
+
+        The resulting ground plane is a horizontal plane at 'zpos' vertical
+        position.
+        The X and Y coordinates are computed from a scene bounding box.
+
+        Args:
+        bbox -- Bounding box for the scene (FreeCAD.BoundBox)
+        zpos -- Z position of the ground plane (float)
+        color -- Color of the ground plane (rgb tuple)
+
+        Returns:
+        A rendering string
+        """
+        margin = bbox.DiagonalLength / 2
+        verts2d = ((bbox.XMin - margin, bbox.YMin - margin),
+                   (bbox.XMax + margin, bbox.YMin - margin),
+                   (bbox.XMax + margin, bbox.YMax + margin),
+                   (bbox.XMin - margin, bbox.YMax + margin))
+        vertices = [App.Vector(clamp(v[0]), clamp(v[1]), zpos)
+                    for v in verts2d]  # Clamp to avoid huge dimensions...
+        mesh = Mesh.Mesh()
+        mesh.addFacet(vertices[0], vertices[1], vertices[2])
+        mesh.addFacet(vertices[0], vertices[2], vertices[3])
+
+        mat = rendermaterials.get_rendering_material(None, "", color)
+
+        res = self.renderer_module.write_object("ground_plane", mesh, mat)
+
+        return res
 
     def _render_object(self, name, view):
         """Get a rendering string for a generic FreeCAD object.

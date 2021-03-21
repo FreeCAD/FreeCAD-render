@@ -55,14 +55,13 @@ from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
                            QSize)
 import FreeCAD as App
 import FreeCADGui as Gui
-import Part
 from ArchMaterial import _CommandArchMaterial
 try:
     import ImageGui
 except ImportError:
     pass
 
-from renderutils import translate, str2rgb, clamp
+from renderutils import translate, str2rgb
 from rendererhandler import RendererHandler
 import camera
 import lights
@@ -350,42 +349,20 @@ class Project:
         -------
         The rendering string for the ground plane
         """
-        result = ""
-        doc = self.fpo.Document
-        zpos = self.fpo.GroundPlaneZ
-        color = self.fpo.GroundPlaneColor
+        # Compute scene bounding box
         bbox = App.BoundBox()
         for view in self.all_views():
             try:
                 bbox.add(view.Source.Shape.BoundBox)
             except AttributeError:
                 pass
+
+        # Compute rendering string
+        result = ""
         if bbox.isValid():
-            # Create temporary object. We do this to keep renderers codes as
-            # simple as possible: they only need to deal with one type of
-            # object: RenderView objects
-            margin = bbox.DiagonalLength / 2
-            verts2d = ((bbox.XMin - margin, bbox.YMin - margin),
-                       (bbox.XMax + margin, bbox.YMin - margin),
-                       (bbox.XMax + margin, bbox.YMax + margin),
-                       (bbox.XMin - margin, bbox.YMax + margin))
-            vertices = [App.Vector(clamp(v[0]), clamp(v[1]), zpos)
-                        for v in verts2d]
-            vertices.append(vertices[0])  # Close the polyline...
-            dummy1 = doc.addObject("Part::Feature", "dummygroundplane1")
-            dummy1.Shape = Part.Face(Part.makePolygon(vertices))
-            if App.GuiUp:
-                dummy1.ViewObject.ShapeColor = color
-            dummy2 = doc.addObject("App::FeaturePython", "dummygroundplane2")
-            View(dummy2)
-            dummy2.Source = dummy1
-
-            result = renderer.get_rendering_string(dummy2)
-
-            # Remove temp objects
-            doc.removeObject(dummy2.Name)
-            doc.removeObject(dummy1.Name)
-            doc.recompute()
+            zpos = self.fpo.GroundPlaneZ
+            color = self.fpo.GroundPlaneColor
+            result = renderer.get_groundplane_string(bbox, zpos, color)
 
         return result
 
