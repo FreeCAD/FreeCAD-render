@@ -648,12 +648,12 @@ class ViewProviderProject:
         QObject.connect(action1, SIGNAL("triggered()"), self.render)
         menu.addAction(action1)
 
-    def claimChildren(self):  # pylint: disable=no-self-use
+    def claimChildren(self):
         """Deliver the children belonging to this object (callback)."""
         try:
             return self.object.Group
         except AttributeError:
-            pass
+            return []
 
     def render(self):
         """Render project.
