@@ -203,7 +203,7 @@ class RendererHandler:
         else:
             return res
 
-    def get_groundplane_string(self, bbox, zpos, color):
+    def get_groundplane_string(self, bbox, zpos, color, sizefactor):
         """Get a rendering string for a ground plane.
 
         The resulting ground plane is a horizontal plane at 'zpos' vertical
@@ -218,7 +218,7 @@ class RendererHandler:
         Returns:
         A rendering string
         """
-        margin = bbox.DiagonalLength / 2
+        margin = bbox.DiagonalLength / 2 * sizefactor
         verts2d = ((bbox.XMin - margin, bbox.YMin - margin),
                    (bbox.XMax + margin, bbox.YMin - margin),
                    (bbox.XMax + margin, bbox.YMax + margin),

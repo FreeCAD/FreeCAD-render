@@ -221,6 +221,16 @@ class Project:
                     "Ground plane color"))
             obj.GroundPlaneColor = (0.8, 0.8, 0.8)
 
+        if "GroundPlaneSizeFactor" not in obj.PropertiesList:
+            obj.addProperty(
+                "App::PropertyFloat",
+                "GroundPlaneSizeFactor",
+                "Render",
+                QT_TRANSLATE_NOOP(
+                    "App::Property",
+                    "Ground plane size factor"))
+            obj.GroundPlaneSizeFactor = 1.0
+
         if "OutputImage" not in obj.PropertiesList:
             obj.addProperty(
                 "App::PropertyFile",
@@ -362,7 +372,8 @@ class Project:
         if bbox.isValid():
             zpos = self.fpo.GroundPlaneZ
             color = self.fpo.GroundPlaneColor
-            result = renderer.get_groundplane_string(bbox, zpos, color)
+            factor = self.fpo.GroundPlaneSizeFactor
+            result = renderer.get_groundplane_string(bbox, zpos, color, factor)
 
         return result
 
