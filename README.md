@@ -1,6 +1,6 @@
 # FreeCAD Render Workbench
 
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/FreeCAD/FreeCAD-render.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/FreeCAD/FreeCAD-render/context:python)
+[![FreeCAD Addokn manager status](https://img.shields.io/badge/FreeCAD%20addon%20manager-available-brightgreen)](https://github.com/FreeCAD/FreeCAD-addons) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/FreeCAD/FreeCAD-render.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/FreeCAD/FreeCAD-render/context:python)
 
 A [FreeCAD](https://www.freecadweb.org) workbench to produce high-quality
 rendered images from your FreeCAD document, using open-source external
