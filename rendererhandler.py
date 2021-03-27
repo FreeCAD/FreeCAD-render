@@ -155,6 +155,17 @@ class RendererHandler:
 
         return res
 
+    def get_template_file_filter(self):
+        """Get file filter for templates of the renderer.
+
+        Args:
+            rdr -- renderer name (str)
+
+        Returns:
+            A string containing a file filter for renderer's templates.
+        """
+        return str(getattr(self.renderer_module, "TEMPLATE_FILTER", "*.*"))
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
 
