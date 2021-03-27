@@ -78,6 +78,7 @@ import rendermaterials
 WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RDRDIR = os.path.join(WBDIR, "renderers")
 ICONDIR = os.path.join(WBDIR, "icons")
+TEMPLATEDIR = os.path.join(WBDIR, "templates")
 TRANSDIR = os.path.join(WBDIR, "translations")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
@@ -1250,6 +1251,35 @@ class MaterialApplierCommand:
                                 "type") + '\n'
                 App.Console.PrintError(msg % obj.Label)
         App.ActiveDocument.commitTransaction()
+
+
+def user_select_template(renderer):
+    """Make user select a template for a given renderer.
+
+    This method opens a UI file dialog and asks user to select a template file.
+    The returned path is the *relative* path starting from Render.TEMPLATEDIR.
+
+    Args:
+        renderer -- a renderer name (str)
+
+    Returns:
+        A string containing the (relative) path to the selected template.
+    """
+    try:
+        handler = RendererHandler(renderer)
+    except ModuleNotFoundError:
+        App.Console.PrintError("[Render] Failed to open template selector\n")
+        return None
+    filefilter = handler.get_template_file_filter()
+    filefilter += ";; *.*"
+    caption = translate("Render", "Select template")
+    openfilename = QFileDialog.getOpenFileName(
+        Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter)
+    template_path = openfilename[0]
+    if template_path:
+        return os.path.relpath(template_path, TEMPLATEDIR)
+    else:
+        return None
 
 
 class ColorPicker(QPushButton):
