@@ -34,6 +34,7 @@ import configparser
 
 import FreeCAD as App
 
+TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 
 # ===========================================================================
 #                             Write functions

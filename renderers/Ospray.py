@@ -55,6 +55,7 @@ TRANSFORM = App.Placement(App.Matrix(1, 0, 0, 0,
                                      0, -1, 0, 0,
                                      0, 0, 0, 1))
 
+TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
 # ===========================================================================
 #                             Write functions

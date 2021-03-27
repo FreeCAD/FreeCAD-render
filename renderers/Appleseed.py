@@ -41,6 +41,7 @@ import collections
 
 import FreeCAD as App
 
+TEMPLATE_FILTER = "Appleseed templates (appleseed_*.appleseed)"
 
 # ===========================================================================
 #                             Write functions

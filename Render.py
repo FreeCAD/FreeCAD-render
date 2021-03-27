@@ -1273,7 +1273,7 @@ def user_select_template(renderer):
         App.Console.PrintError(msg % err.renderer)
         return None
     filefilter = handler.get_template_file_filter()
-    filefilter += ";; *.*"
+    filefilter += ";; All files (*.*)"
     caption = translate("Render", "Select template")
     openfilename = QFileDialog.getOpenFileName(
         Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter)
