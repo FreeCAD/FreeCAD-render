@@ -62,7 +62,7 @@ except ImportError:
     pass
 
 from renderutils import translate, str2rgb
-from rendererhandler import RendererHandler
+from rendererhandler import RendererHandler, RendererNotFoundError
 import camera
 import lights
 import rendermaterials
@@ -1267,8 +1267,10 @@ def user_select_template(renderer):
     """
     try:
         handler = RendererHandler(renderer)
-    except ModuleNotFoundError:
-        App.Console.PrintError("[Render] Failed to open template selector\n")
+    except RendererNotFoundError as err:
+        msg = ("[Render] Failed to open template selector - Renderer '%s' "
+               "not found\n")
+        App.Console.PrintError(msg % err.renderer)
         return None
     filefilter = handler.get_template_file_filter()
     filefilter += ";; *.*"
