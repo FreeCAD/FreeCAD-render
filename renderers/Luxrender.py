@@ -47,6 +47,7 @@ from textwrap import dedent
 
 import FreeCAD as App
 
+TEMPLATE_FILTER = "LuxRender templates (luxrender_*.lxs)"
 
 # ===========================================================================
 #                             Write functions

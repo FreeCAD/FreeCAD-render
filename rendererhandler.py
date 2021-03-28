@@ -81,13 +81,9 @@ class RendererHandler:
         self.transparency_boost = float(kwargs.get("transparency_boost", 0))
 
         try:
-            self.renderer_module = import_module("renderers." + rdrname)
+            self.renderer_module = import_module("renderers.%s" % rdrname)
         except ModuleNotFoundError:
-            msg = translate(
-                "Render",
-                "[Render] Import Error: Renderer '%s' not found") % rdrname
-            App.Console.PrintError(msg + "\n")
-            raise
+            raise RendererNotFoundError(rdrname) from None
 
     def render(self, project, prefix, external, output, width, height):
         """Run the external renderer.
@@ -154,6 +150,17 @@ class RendererHandler:
             res = False
 
         return res
+
+    def get_template_file_filter(self):
+        """Get file filter for templates of the renderer.
+
+        Args:
+            rdr -- renderer name (str)
+
+        Returns:
+            A string containing a file filter for renderer's templates.
+        """
+        return str(getattr(self.renderer_module, "TEMPLATE_FILTER", ""))
 
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
@@ -435,3 +442,26 @@ class RendererHandler:
         """
         renderer_method = getattr(self.renderer_module, method)
         return renderer_method(*args)
+
+
+# ===========================================================================
+#                          Renderer Handler Exceptions
+# ===========================================================================
+
+class RendererNotFoundError(Exception):
+    """Exception raised when an operation attempts an access to an unfoundable
+    renderer.
+
+    Attributes:
+        renderer -- the unfound renderer (str)
+    """
+
+    def __init__(self, renderer):
+        """Initialize exception."""
+        self.renderer = str(renderer)
+
+    def message(self):
+        """Give error message."""
+        msg = translate(
+                "Render",
+                "[Render] Error: Renderer '%s' not found") % self.renderer

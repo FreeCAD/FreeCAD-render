@@ -36,6 +36,7 @@ from textwrap import dedent, indent
 
 import FreeCAD as App
 
+TEMPLATE_FILTER = "Povray templates (povray_*.pov)"
 
 # ===========================================================================
 #                             Write functions

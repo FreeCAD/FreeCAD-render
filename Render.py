@@ -62,7 +62,7 @@ except ImportError:
     pass
 
 from renderutils import translate, str2rgb
-from rendererhandler import RendererHandler
+from rendererhandler import RendererHandler, RendererNotFoundError
 import camera
 import lights
 import rendermaterials
@@ -78,16 +78,20 @@ import rendermaterials
 WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RDRDIR = os.path.join(WBDIR, "renderers")
 ICONDIR = os.path.join(WBDIR, "icons")
+TEMPLATEDIR = os.path.join(WBDIR, "templates")
 TRANSDIR = os.path.join(WBDIR, "translations")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
-# Renderers list
+
+# Renderers lists
 RENDERERS = {x.group(1)
              for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
                           os.listdir(RDRDIR))
              if x}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
+
+# FreeCAD version
 FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
 
@@ -148,12 +152,14 @@ class Project:
 
         if "Template" not in obj.PropertiesList:
             obj.addProperty(
-                "App::PropertyFile",
+                "App::PropertyString",
                 "Template",
                 "Render",
                 QT_TRANSLATE_NOOP(
                     "App::Property",
-                    "The template to be used by this rendering"))
+                    "The template to be used by this rendering "
+                    "(use Project's context menu to modify)"))
+            obj.setEditorMode("Template", 1)
 
         if "PageResult" not in obj.PropertiesList:
             obj.addProperty(
@@ -477,13 +483,22 @@ class Project:
             return ""
 
         # Get the rendering template
-        assert (obj.Template and os.path.exists(obj.Template)),\
-            "Cannot render project: Template not found"
-        template = None
-        with open(obj.Template, "r") as template_file:
+        if obj.getTypeIdOfProperty("Template") == "App::PropertyFile":
+            # Legacy template path (absolute path)
+            template_path = obj.Template
+        else:
+            # Current template path (relative path)
+            template_path = os.path.join(TEMPLATEDIR, obj.Template)
+
+        if not os.path.isfile(template_path):
+            msg = translate("Render",
+                            "Cannot render projet: Template not found ('%s')")
+            msg = "[Render] " + (msg % template_path) + "\n"
+            App.Console.PrintError(msg)
+            return
+
+        with open(template_path, "r") as template_file:
             template = template_file.read()
-        if sys.version_info.major < 3:
-            template = template.decode("utf8")
 
         # Build a default camera, to be used if no camera is present in the
         # scene
@@ -659,6 +674,13 @@ class ViewProviderProject:
         QObject.connect(action1, SIGNAL("triggered()"), self.render)
         menu.addAction(action1)
 
+        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Change template"),
+                          menu)
+        QObject.connect(action2,
+                        SIGNAL("triggered()"),
+                        self.change_template)
+        menu.addAction(action2)
+
     def claimChildren(self):
         """Deliver the children belonging to this object (callback)."""
         try:
@@ -669,13 +691,27 @@ class ViewProviderProject:
     def render(self):
         """Render project.
 
-        This method calls call proxy's 'render' method.
+        This method calls proxy's 'render' method.
         """
         try:
             self.object.Proxy.render()
         except AttributeError as err:
             msg = translate("Render", "[Render] Cannot render: {e}") + '\n'
             App.Console.PrintError(msg.format(e=err))
+
+    def change_template(self):
+        """Change the template of the project."""
+        fpo = self.object
+        new_template = user_select_template(fpo.Renderer)
+        if new_template:
+            App.ActiveDocument.openTransaction("ChangeTemplate")
+            if fpo.getTypeIdOfProperty("Template") != "App::PropertyString":
+                # Ascending compatibility: convert Template property type if
+                # still in legacy
+                fpo.removeProperty("Template")
+                fpo.Proxy.set_properties(fpo)
+            fpo.Template = new_template
+            App.ActiveDocument.commitTransaction()
 
 
 class View:
@@ -925,9 +961,7 @@ class RenderProjectCommand:
 
         # Get rendering template
         templates_folder = os.path.join(WBDIR, "templates")
-        template_path = QFileDialog.getOpenFileName(
-            Gui.getMainWindow(), "Select template", templates_folder, "*.*")
-        template = template_path[0] if template_path else ""
+        template = user_select_template(self.renderer)
         if not template:
             return
 
@@ -1250,6 +1284,37 @@ class MaterialApplierCommand:
                                 "type") + '\n'
                 App.Console.PrintError(msg % obj.Label)
         App.ActiveDocument.commitTransaction()
+
+
+def user_select_template(renderer):
+    """Make user select a template for a given renderer.
+
+    This method opens a UI file dialog and asks user to select a template file.
+    The returned path is the *relative* path starting from Render.TEMPLATEDIR.
+
+    Args:
+        renderer -- a renderer name (str)
+
+    Returns:
+        A string containing the (relative) path to the selected template.
+    """
+    try:
+        handler = RendererHandler(renderer)
+    except RendererNotFoundError as err:
+        msg = ("[Render] Failed to open template selector - Renderer '%s' "
+               "not found\n")
+        App.Console.PrintError(msg % err.renderer)
+        return None
+    filefilter = handler.get_template_file_filter()
+    filefilter += ";; All files (*.*)"
+    caption = translate("Render", "Select template")
+    openfilename = QFileDialog.getOpenFileName(
+        Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter)
+    template_path = openfilename[0]
+    if template_path:
+        return os.path.relpath(template_path, TEMPLATEDIR)
+    else:
+        return None
 
 
 class ColorPicker(QPushButton):

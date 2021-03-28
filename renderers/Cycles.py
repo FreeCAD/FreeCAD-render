@@ -57,6 +57,7 @@ import FreeCAD as App
 
 from renderers.utils.sunlight import sunlight
 
+TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 
 # ===========================================================================
 #                             Write functions
