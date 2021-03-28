@@ -663,6 +663,13 @@ class ViewProviderProject:
         QObject.connect(action1, SIGNAL("triggered()"), self.render)
         menu.addAction(action1)
 
+        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Change template"),
+                          menu)
+        QObject.connect(action2,
+                        SIGNAL("triggered()"),
+                        self.change_template)
+        menu.addAction(action2)
+
     def claimChildren(self):
         """Deliver the children belonging to this object (callback)."""
         try:
@@ -673,13 +680,27 @@ class ViewProviderProject:
     def render(self):
         """Render project.
 
-        This method calls call proxy's 'render' method.
+        This method calls proxy's 'render' method.
         """
         try:
             self.object.Proxy.render()
         except AttributeError as err:
             msg = translate("Render", "[Render] Cannot render: {e}") + '\n'
             App.Console.PrintError(msg.format(e=err))
+
+    def change_template(self):
+        """Change the template of the project."""
+        fpo = self.object
+        new_template = user_select_template(fpo.Renderer)
+        if new_template:
+            App.ActiveDocument.openTransaction("ChangeTemplate")
+            if fpo.getTypeIdOfProperty("Template") != "App::PropertyString":
+                # Ascending compatibility: convert Template property type if
+                # still in legacy
+                fpo.removeProperty("Template")
+                fpo.Proxy.set_properties(fpo)
+            fpo.Template = new_template
+            App.ActiveDocument.commitTransaction()
 
 
 class View:
