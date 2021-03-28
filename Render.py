@@ -481,13 +481,22 @@ class Project:
             return ""
 
         # Get the rendering template
-        assert (obj.Template and os.path.exists(obj.Template)),\
-            "Cannot render project: Template not found"
-        template = None
-        with open(obj.Template, "r") as template_file:
+        if obj.getTypeIdOfProperty("Template") == "App::PropertyFile":
+            # Legacy template path (absolute path)
+            template_path = obj.Template
+        else:
+            # Current template path (relative path)
+            template_path = os.path.join(TEMPLATEDIR, obj.Template)
+
+        if not os.path.isfile(template_path):
+            msg = translate("Render",
+                            "Cannot render projet: Template not found ('%s')")
+            msg = "[Render] " + (msg % template_path) + "\n"
+            App.Console.PrintError(msg)
+            return
+
+        with open(template_path, "r") as template_file:
             template = template_file.read()
-        if sys.version_info.major < 3:
-            template = template.decode("utf8")
 
         # Build a default camera, to be used if no camera is present in the
         # scene
