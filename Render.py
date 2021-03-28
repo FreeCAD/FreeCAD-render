@@ -495,7 +495,7 @@ class Project:
                             "Cannot render projet: Template not found ('%s')")
             msg = "[Render] " + (msg % template_path) + "\n"
             App.Console.PrintError(msg)
-            return
+            return ""
 
         with open(template_path, "r") as template_file:
             template = template_file.read()
@@ -960,7 +960,6 @@ class RenderProjectCommand:
         assert self.renderer, "Error: no renderer in command"
 
         # Get rendering template
-        templates_folder = os.path.join(WBDIR, "templates")
         template = user_select_template(self.renderer)
         if not template:
             return
@@ -1311,10 +1310,9 @@ def user_select_template(renderer):
     openfilename = QFileDialog.getOpenFileName(
         Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter)
     template_path = openfilename[0]
-    if template_path:
-        return os.path.relpath(template_path, TEMPLATEDIR)
-    else:
+    if not template_path:
         return None
+    return os.path.relpath(template_path, TEMPLATEDIR)
 
 
 class ColorPicker(QPushButton):
