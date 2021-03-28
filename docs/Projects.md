@@ -7,7 +7,7 @@ Project options allow to control rendering process and result.
 Parameter | Type | Description
 ----------|------|------------
 `Renderer` | String | The name of the raytracing engine to use
-`Template` | File | The template to be used by the rendering
+`Template` | String | The template to be used by the rendering
 `Delayed Build` | Boolean | If true, the views will be updated at render time only
 `Page Result` | Included File | The exported file to be sent to the external renderer
 `Output Image` | File | The image file saved by the rendering
@@ -23,7 +23,12 @@ Comments:
 
   We provide a few default templates, but you can write and use your own ones,
   if necessary.\
-  Template file is defined by `Template` parameter.
+  Template file is defined by `Template` parameter. It contains the *relative*
+  path to the template, starting from the workbench's templates subdirectory.
+  The use of the relative path, instead of the absolute path, makes the FreeCAD
+  file fully portable from one computer to another. By default, the `Template`
+  parameter is read-only in the GUI: the recommended way to modify it is to use
+  the context menu of the Project.
 
 * Like the builtin Raytracing workbench, the Render workbench offers the
   possibility to update the View objects whenever its source object changes,
@@ -41,6 +46,8 @@ Parameter | Type | Description
 `Render Height` | Integer | The height of the rendered image (in pixels)
 `Ground Plane` | Boolean | If true, a default ground plane is added to the scene
 `Ground Plane Z` | Float | Z position of ground plane
+`Ground Plane Color` | RGB | Color of ground plane
+`Ground Plane Size Factor` | Float | A factor to control the size of the ground plane. Default value 1.0 makes the ground plane fit the scene bounding box.
 `Transparency Sensitivity` | Integer | A factor to augment transparency in whole scene. This affects only implicit materials (materials generated from shape color and transparency), it will have no effect on explicit materials (materials generated from material cards).
 
 ## Mesher options
