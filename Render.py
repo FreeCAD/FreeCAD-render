@@ -152,12 +152,14 @@ class Project:
 
         if "Template" not in obj.PropertiesList:
             obj.addProperty(
-                "App::PropertyFile",
+                "App::PropertyString",
                 "Template",
                 "Render",
                 QT_TRANSLATE_NOOP(
                     "App::Property",
-                    "The template to be used by this rendering"))
+                    "The template to be used by this rendering "
+                    "(use Project's context menu to modify)"))
+            obj.setEditorMode("Template", 1)
 
         if "PageResult" not in obj.PropertiesList:
             obj.addProperty(
@@ -959,9 +961,7 @@ class RenderProjectCommand:
 
         # Get rendering template
         templates_folder = os.path.join(WBDIR, "templates")
-        template_path = QFileDialog.getOpenFileName(
-            Gui.getMainWindow(), "Select template", templates_folder, "*.*")
-        template = template_path[0] if template_path else ""
+        template = user_select_template(self.renderer)
         if not template:
             return
 
