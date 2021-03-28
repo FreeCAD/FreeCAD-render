@@ -82,13 +82,16 @@ TEMPLATEDIR = os.path.join(WBDIR, "templates")
 TRANSDIR = os.path.join(WBDIR, "translations")
 PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
-# Renderers list
+
+# Renderers lists
 RENDERERS = {x.group(1)
              for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
                           os.listdir(RDRDIR))
              if x}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
+
+# FreeCAD version
 FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
 
