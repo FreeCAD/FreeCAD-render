@@ -144,6 +144,21 @@ The plugin must contain the following functions:
 
   &nbsp;
 
+The plugin should also define the following constant:
+
+* `TEMPLATE_FILTER`
+
+  Expected value: a string describing the file filter for the renderer's
+  templates. The format of the string is the same as the one used by
+  `QFileDialog.getOpenFileName` in PySide2 library (see
+  [here](https://doc.qt.io/archives/qtforpython-5.12/PySide2/QtWidgets/QFileDialog.html#PySide2.QtWidgets.PySide2.QtWidgets.QFileDialog.getOpenFileName))
+  Please note there is no need to add the generic `All files (*.*)` filter, as
+  it is automatically appended.
+  
+  Example: `TEMPLATE_FILTER = "Appleseed templates (appleseed_*.appleseed)"`
+
+  &nbsp;
+
 #### Guidelines
 - Before writing a new plug-in, have a look at other existing renderers plug-ins. You can use one of them as a template for a new plugin
 - Use Python's Format Specification Mini Language in `write_*` functions to build SDL strings (avoid concatenation approach).
