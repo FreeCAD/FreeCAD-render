@@ -64,7 +64,6 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
 def write_object(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD object."""
-
     # Write the mesh as an OBJ tempfile
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
@@ -565,7 +564,6 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
-
     # Move cameras up to root node
     cameras = ['\n']
     result = []

@@ -449,8 +449,7 @@ class RendererHandler:
 # ===========================================================================
 
 class RendererNotFoundError(Exception):
-    """Exception raised when an operation attempts an access to an unfoundable
-    renderer.
+    """Exception raised when attempted an access to an unfoundable renderer.
 
     Attributes:
         renderer -- the unfound renderer (str)
@@ -458,6 +457,7 @@ class RendererNotFoundError(Exception):
 
     def __init__(self, renderer):
         """Initialize exception."""
+        super().__init__()
         self.renderer = str(renderer)
 
     def message(self):
@@ -465,3 +465,4 @@ class RendererNotFoundError(Exception):
         msg = translate(
                 "Render",
                 "[Render] Error: Renderer '%s' not found") % self.renderer
+        return msg
