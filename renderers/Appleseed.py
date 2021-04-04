@@ -525,8 +525,10 @@ def render(project, prefix, external, output, width, height):
     if args:
         args += " "
 
+    filepath = '"%s"' % project.PageResult
+
     # Call Appleseed (asynchronously)
-    cmd = prefix + rpath + " " + args + " " + project.PageResult + "\n"
+    cmd = prefix + rpath + " " + args + " " + filepath + "\n"
     App.Console.PrintMessage(cmd)
     try:
         Popen(shlex.split(cmd))
