@@ -458,7 +458,9 @@ def render(project, prefix, external, output, width, height):
     if output:
         args = args + "+O{} ".format(output)
 
-    cmd = prefix + rpath + " " + args + project.PageResult
+    filepath = '"%s"' % project.PageResult
+
+    cmd = prefix + rpath + " " + args + " " + filepath
     App.Console.PrintMessage("Renderer command: %s\n" % cmd)
     os.system(cmd)
 
