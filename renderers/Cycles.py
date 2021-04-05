@@ -435,7 +435,8 @@ def render(project, prefix, external, output, width, height):
         return ""
     args += " --width " + str(width)
     args += " --height " + str(height)
-    cmd = prefix + rpath + " " + args + " " + project.PageResult
+    filepath = '"%s"' % project.PageResult
+    cmd = prefix + rpath + " " + args + " " + filepath
     App.Console.PrintMessage(cmd+'\n')
     os.system(cmd)
 
