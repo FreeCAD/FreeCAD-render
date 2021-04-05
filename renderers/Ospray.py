@@ -627,7 +627,10 @@ def render(project, prefix, external, output, width, height):
                                "Please set the correct path in "
                                "Edit -> Preferences -> Render\n")
         return ""
-    cmd = prefix + rpath + " " + args + " " + project.PageResult
+
+    filepath = '"%s"' % project.PageResult
+
+    cmd = prefix + rpath + " " + args + " " + filepath
     App.Console.PrintMessage(cmd+'\n')
 
     # Note: at the moment (02-19-2021), width, height, output, background are
