@@ -648,7 +648,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string notr="true">--samples 100</string>
+         <string notr="true"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>PbrtParameters</cstring>
