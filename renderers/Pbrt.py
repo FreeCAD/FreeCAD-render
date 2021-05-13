@@ -99,6 +99,7 @@ LookAt {p.x} {p.y} {p.z}
        {t[0]} {t[1]} {t[2]}
        {u[0]} {u[1]} {u[2]}
 Camera "perspective" "float fov" {f}\n"""
+    return snippet.format(n=name, p=pos.Base, t=target, u=updir, f=fov)
 
 
 def write_pointlight(name, pos, color, power):
