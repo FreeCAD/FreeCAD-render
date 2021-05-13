@@ -534,7 +534,9 @@ def render(project, prefix, external, output, width, height):
     camera = str(regex_obj.findall(template)[-1])  # Keep only last camera
     template = camera + '\n' + regex_obj.sub("", template)
 
-    # TODO: set width and height
+    # Set width and height
+    template = template.replace("@@WIDTH@@", str(width))
+    template = template.replace("@@HEIGHT@@", str(height))
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
