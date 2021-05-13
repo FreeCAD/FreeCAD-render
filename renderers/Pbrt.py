@@ -30,6 +30,7 @@
 import json
 import os
 import shlex
+import re
 from subprocess import Popen
 from tempfile import mkstemp
 from math import degrees, asin, sqrt, atan2
@@ -57,9 +58,10 @@ AttributeBegin
     "point3 P" [ {p} ]
     "integer indices" [ {i} ]
 AttributeEnd
+# ~Object '{n}'
 """
     # TODO material = _write_material(name, material)
-    pnts = ["{0.x} {0.z} {0.y}".format(p) for p in mesh.Topology[0]]
+    pnts = ["{0.x} {0.y} {0.z}".format(p) for p in mesh.Topology[0]]
     inds = ["{} {} {}".format(*i) for i in mesh.Topology[1]]
     pnts = "  ".join(pnts)
     inds = "  ".join(inds)
@@ -68,11 +70,14 @@ AttributeEnd
 
 def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
-    snippet = """# Camera {n}
+    snippet = """# Camera '{n}'
+Scale -1 1 1
 LookAt {p.x} {p.y} {p.z}
-       {t[0]} {t[1]} {t[2]}
-       {u[0]} {u[1]} {u[2]}
-Camera "perspective" "float fov" {f}\n"""
+       {t.x} {t.y} {t.z}
+       {u.x} {u.y} {u.z}
+Camera "perspective" "float fov" {f}
+# ~Camera '{n}'
+"""  # NB: do not modify enclosing comments
     return snippet.format(n=name, p=pos.Base, t=target, u=updir, f=fov)
 
 
@@ -518,7 +523,29 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
+    # Make various adjustments on file:
+    # Reorder camera declarations
+    with open(project.PageResult, "r") as f:
+        template = f.read()
+
+    # Cameras
+    pattern =r"(?m)# Camera[\s\S]*?# ~Camera.*$"
+    regex_obj = re.compile(pattern)
+    camera = str(regex_obj.findall(template)[-1])  # Keep only last camera
+    template = camera + '\n' + regex_obj.sub("", template)
+
     # TODO: set width and height
+
+    # Write resulting output to file
+    f_handle, f_path = mkstemp(
+        prefix=project.Name,
+        suffix=os.path.splitext(project.Template)[-1])
+    os.close(f_handle)
+    with open(f_path, "w") as f:
+        f.write(template)
+    project.PageResult = f_path
+    os.remove(f_path)
+
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = params.GetString("Prefix", "")
