@@ -94,41 +94,11 @@ def write_object(name, mesh, material):
 
 def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
-    # TODO
-    return ""
-    # # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
-    # # in osp coords.
-    # # Nota: presently (02-19-2021), fov is not managed by osp importer...
-    # snippet = """
-  # "camera": {{
-    # "name": "{n}",
-    # "centerTranslation": {{
-      # "affine": [0.0, 0.0, 0.0],
-      # "linear": {{
-        # "x": [1.0, 0.0, 0.0],
-        # "y": [0.0, 1.0, 0.0],
-        # "z": [0.0, 0.0, 1.0]
-      # }}
-    # }},
-    # "rotation": {{"i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]}}},
-    # "translation": {{
-      # "affine": [{p.x}, {p.y}, {p.z}],
-      # "linear": {{
-        # "x": [1.0, 0.0, 0.0],
-        # "y": [0.0, 1.0, 0.0],
-        # "z": [0.0, 0.0, 1.0]
-      # }}
-    # }}
-  # }},"""
-
-    # # Final placement in osp = reciprocal(translation*rot*centerTranslation)
-    # # (see ArcballCamera::setState method in sources)
-    # plc = TRANSFORM.multiply(pos)
-    # plc = plc.inverse()
-
-    # return snippet.format(n=name,
-                          # p=plc.Base,
-                          # r=plc.Rotation.Q)
+    snippet = """# Camera {n}
+LookAt {p.x} {p.y} {p.z}
+       {t[0]} {t[1]} {t[2]}
+       {u[0]} {u[1]} {u[2]}
+Camera "perspective" "float fov" {f}\n"""
 
 
 def write_pointlight(name, pos, color, power):
