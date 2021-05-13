@@ -51,45 +51,19 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 
 def write_object(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD object."""
-    # TODO
-    return ""
-    # # Write the mesh as an OBJ tempfile
-    # f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
-    # os.close(f_handle)
-    # tmpmesh = mesh.copy()
-    # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)
-    # tmpmesh.write(objfile)
-
-    # # Fix missing object name in OBJ file (mandatory)
-    # # We want to insert a 'o ...' statement before the first 'f ...'
-    # with open(objfile, "r") as f:
-        # buffer = f.readlines()
-    # print(objfile)
-
-    # i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    # # buffer.insert(i, "o %s\n" % name)
-    # buffer.insert(i, "o %s\nusemtl material\n" % name)
-
-    # # Write material
-    # f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="_")
-    # os.close(f_handle)
-    # mtl = "newmtl material" + _write_material(name, material)
-    # with open(mtlfile, "w") as f:
-        # f.write(mtl)
-
-    # buffer.insert(0, "mtllib %s\n" % os.path.basename(mtlfile))
-
-    # with open(objfile, "w") as f:
-        # f.write("".join(buffer))
-
-    # snippet_obj = """
-      # {{
-        # "name": "{n}",
-        # "type": "IMPORTER",
-        # "filename": "{f}"
-      # }},"""
-    # filename = objfile.encode("unicode_escape").decode("utf-8")
-    # return snippet_obj.format(n=name, f=filename)
+    snippet = """# Object '{n}'
+AttributeBegin
+  Shape "trianglemesh"
+    "point3 P" [ {p} ]
+    "integer indices" [ {i} ]
+AttributeEnd
+"""
+    # TODO material = _write_material(name, material)
+    pnts = ["{0.x} {0.z} {0.y}".format(p) for p in mesh.Topology[0]]
+    inds = ["{} {} {}".format(*i) for i in mesh.Topology[1]]
+    pnts = "  ".join(pnts)
+    inds = "  ".join(inds)
+    return snippet.format(n=name, p=pnts, i=inds)
 
 
 def write_camera(name, pos, updir, target, fov):
