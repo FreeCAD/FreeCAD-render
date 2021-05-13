@@ -573,7 +573,31 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
-    # TODO
+    # TODO: set width and height
+    # Build command and launch
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    prefix = params.GetString("Prefix", "")
+    if prefix:
+        prefix += " "
+    rpath = params.GetString("PbrtPath", "")
+    args = params.GetString("PbrtParameters", "")
+    if not rpath:
+        App.Console.PrintError("Unable to locate renderer executable. "
+                               "Please set the correct path in "
+                               "Edit -> Preferences -> Render\n")
+        return ""
+
+    filepath = '"%s"' % project.PageResult
+
+    cmd = prefix + rpath + " " + args + " " + filepath
+    App.Console.PrintMessage(cmd+'\n')
+
+    try:
+        Popen(shlex.split(cmd))
+    except OSError as err:
+        msg = "Pbrt call failed: '" + err.strerror + "'\n"
+        App.Console.PrintError(msg)
+
     return None
     # # Move cameras up to root node
     # cameras = ['\n']
