@@ -1,11 +1,15 @@
 #RaytracingCamera
 
-Sampler "halton" "integer pixelsamples" 4
+Sampler "halton" "integer pixelsamples" [16]
+Integrator "path" "integer maxdepth" [5]
+Film "rgb"
+  "integer xresolution" [@@WIDTH@@]
+  "integer yresolution" [@@HEIGHT@@]
 
 WorldBegin
 
-# Uniform gray-ish illumination from all directions
-LightSource "infinite" "rgb L" [.2 .2 .2]
+# Uniform grayish illumination from all directions
+LightSource "infinite" "rgb L" [.4 .4 .4]
 
 #RaytracingContent
 
