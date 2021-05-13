@@ -83,62 +83,16 @@ Camera "perspective" "float fov" {f}
 
 def write_pointlight(name, pos, color, power):
     """Compute a string in renderer SDL to represent a point light."""
-    # TODO
-    return ""
-    # # Tip: in studio, to visualize where the light is, increase the radius
-
-    # snippet = """
-      # {{
-        # "name": "lights",
-        # "type": "LIGHTS",
-        # "subType": "lights",
-        # "children": [
-          # {{
-            # "name": "{n}",
-            # "type": "LIGHT",
-            # "subType": "sphere",
-            # "children": [
-              # {{
-                # "name": "visible",
-                # "description": "whether the light can be seen directly",
-                # "sgOnly": false,
-                # "subType": "bool",
-                # "type": "PARAMETER",
-                # "value": true
-              # }},
-              # {{
-                # "name": "intensity",
-                # "description": "intensity of the light (a factor)",
-                # "sgOnly": false,
-                # "subType": "float",
-                # "type": "PARAMETER",
-                # "value": {s}
-              # }},
-              # {{
-                # "name": "color",
-                # "description": "color of the light",
-                # "sgOnly": false,
-                # "subType": "rgb",
-                # "type": "PARAMETER",
-                # "value": [{c[0]}, {c[1]}, {c[2]}]
-              # }},
-              # {{
-                # "name": "position",
-                # "description": "position of the light",
-                # "sgOnly": false,
-                # "subType": "vec3f",
-                # "type": "PARAMETER",
-                # "value": [{p[0]}, {p[1]}, {p[2]}]
-              # }}
-            # ]
-          # }}
-        # ]
-      # }},"""
-    # osp_pos = TRANSFORM.multVec(pos)
-    # return snippet.format(n=name,
-                          # c=color,
-                          # p=osp_pos,
-                          # s=power)
+    color = [c*power for c in color]
+    snippet = """# Pointlight '{n}'
+AttributeBegin
+  LightSource "point"
+    "rgb I" [{c[0]} {c[1]} {c[2]}]
+    "point3 from" [{o.x} {o.y} {o.z}]
+AttributeEnd
+# ~Pointlight '{n}'
+"""
+    return snippet.format(n=name, o=pos, c=color)
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
