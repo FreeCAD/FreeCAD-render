@@ -526,6 +526,7 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("PbrtPath", "")
     args = params.GetString("PbrtParameters", "")
+    args += """ --outfile "%s" """ % output
     if not rpath:
         App.Console.PrintError("Unable to locate renderer executable. "
                                "Please set the correct path in "
@@ -537,89 +538,6 @@ def render(project, prefix, external, output, width, height):
     cmd = prefix + rpath + " " + args + " " + filepath
     App.Console.PrintMessage(cmd+'\n')
 
-    try:
-        Popen(shlex.split(cmd))
-    except OSError as err:
-        msg = "Pbrt call failed: '" + err.strerror + "'\n"
-        App.Console.PrintError(msg)
+    os.system(cmd)
 
-    return None
-    # # Move cameras up to root node
-    # cameras = ['\n']
-    # result = []
-    # with open(project.PageResult, "r") as f:
-        # for line in f:
-            # if '"camera"' in line:
-                # cameras += line
-                # nbr = line.count('{') - line.count('}')
-                # for line2 in f:
-                    # cameras += line2
-                    # nbr += line2.count('{') - line2.count('}')
-                    # if not nbr:
-                        # break
-            # else:
-                # result += line
-        # result[2:2] = cameras
-        # result = ''.join(result)
-
-    # # Merge light groups
-    # json_load = json.loads(result)
-    # world_children = json_load["world"]["children"]
-    # world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
-    # lights = list()
-
-    # def remaining_lightgroups():
-        # try:
-            # child = world_children[-1]
-        # except IndexError:
-            # return False
-        # return child["type"] == "LIGHTS"
-
-    # while remaining_lightgroups():
-        # light = world_children.pop()
-        # lights += (light["children"])
-    # world_children.insert(0, {"description": "Lights",
-                              # "name": "lights",
-                              # "type": "LIGHTS",
-                              # "subType": "lights",
-                              # "children": lights})
-
-    # # Write resulting output to file
-    # f_handle, f_path = mkstemp(
-        # prefix=project.Name,
-        # suffix=os.path.splitext(project.Template)[-1])
-    # os.close(f_handle)
-    # with open(f_path, "w") as f:
-        # f.write(json.dumps(json_load, indent=2))
-    # project.PageResult = f_path
-    # os.remove(f_path)
-    # App.ActiveDocument.recompute()
-
-    # # Build command and launch
-    # params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    # prefix = params.GetString("Prefix", "")
-    # if prefix:
-        # prefix += " "
-    # rpath = params.GetString("OspPath", "")
-    # args = params.GetString("OspParameters", "")
-    # if not rpath:
-        # App.Console.PrintError("Unable to locate renderer executable. "
-                               # "Please set the correct path in "
-                               # "Edit -> Preferences -> Render\n")
-        # return ""
-
-    # filepath = '"%s"' % project.PageResult
-
-    # cmd = prefix + rpath + " " + args + " " + filepath
-    # App.Console.PrintMessage(cmd+'\n')
-
-    # # Note: at the moment (02-19-2021), width, height, output, background are
-    # # not managed by osp
-
-    # try:
-        # Popen(shlex.split(cmd))
-    # except OSError as err:
-        # msg = "OspStudio call failed: '" + err.strerror + "'\n"
-        # App.Console.PrintError(msg)
-
-    # return None
+    return output
