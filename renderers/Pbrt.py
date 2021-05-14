@@ -97,54 +97,30 @@ AttributeEnd
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
-    # TODO
-    return ""
-    # # Write mtl file (material)
-    # mtl = ["# Created by FreeCAD <http://www.freecadweb.org>",
-           # "newmtl material",
-           # "type luminous",
-           # "color {} {} {}".format(*color),
-           # "intensity {}".format(power / 100),
-           # "transparency {}".format(1.0 if transparent else 0.0)]
+    points = [(-size_u / 2, -size_v / 2, 0),
+              (+size_u / 2, -size_v / 2, 0),
+              (+size_u / 2, +size_v / 2, 0),
+              (-size_u / 2, +size_v / 2, 0)]
+    points = [pos.multVec(App.Vector(*p)) for p in points]
+    points = ["{0.x} {0.y} {0.z}".format(p) for p in points]
+    points = "  ".join(points)
 
-    # f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
-    # os.close(f_handle)
-    # with open(mtlfile, "w") as f:
-        # f.write('\n'.join(mtl))
-
-    # # Write obj file (geometry)
-    # osp_pos = TRANSFORM.multiply(pos)
-    # verts = [(-size_u, -size_v, 0),
-             # (+size_u, -size_v, 0),
-             # (+size_u, +size_v, 0),
-             # (-size_u, +size_v, 0)]
-    # verts = [osp_pos.multVec(App.Vector(*v)) for v in verts]
-    # normal = osp_pos.multVec(App.Vector(0, 0, 1))
-
-    # obj = list()
-    # obj += ["# Created by FreeCAD <http://www.freecadweb.org>"]
-    # obj += ["mtllib {}".format(os.path.basename(mtlfile))]
-    # obj += ["v {0.x} {0.y} {0.z}".format(v) for v in verts]
-    # obj += ["vn {0.x} {0.y} {0.z}".format(normal)]
-    # obj += ["o {}".format(name)]
-    # obj += ["usemtl material"]
-    # obj += ["f 1//1 2//1 3//1 4//1"]
-
-    # f_handle, objfile = mkstemp(suffix=".obj", prefix="light_")
-    # os.close(f_handle)
-    # with open(objfile, "w") as f:
-        # f.write('\n'.join(obj))
-
-    # # Return SDL
-    # snippet = """
-      # {{
-        # "name": "{n}",
-        # "type": "IMPORTER",
-        # "filename": "{f}"
-      # }},"""
-
-    # filename = objfile.encode("unicode_escape").decode("utf-8")
-    # return snippet.format(n=name, f=filename)
+    snippet = """# Arealight '{n}'
+AttributeBegin
+  AreaLightSource "diffuse"
+    "rgb L" [{c[0]} {c[1]} {c[2]}]
+    "bool twosided" true
+    "float scale" [{s}]
+  Shape "trianglemesh"
+    "integer indices" [0 1 2  0 2 3]
+    "point3 P" [{p}]
+AttributeEnd
+# ~Arealight '{n}'
+"""
+    return snippet.format(n=name,
+                          c=color,
+                          s=power,
+                          p=points)
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
