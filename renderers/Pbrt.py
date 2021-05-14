@@ -83,16 +83,16 @@ Camera "perspective" "float fov" {f}
 
 def write_pointlight(name, pos, color, power):
     """Compute a string in renderer SDL to represent a point light."""
-    color = [c*power for c in color]
     snippet = """# Pointlight '{n}'
 AttributeBegin
   LightSource "point"
     "rgb I" [{c[0]} {c[1]} {c[2]}]
     "point3 from" [{o.x} {o.y} {o.z}]
+    "float scale" [{s}]
 AttributeEnd
 # ~Pointlight '{n}'
 """
-    return snippet.format(n=name, o=pos, c=color)
+    return snippet.format(n=name, o=pos, c=color, s=power)
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
