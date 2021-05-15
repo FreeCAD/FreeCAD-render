@@ -54,18 +54,19 @@ def write_object(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD object."""
     snippet = """# Object '{n}'
 AttributeBegin
+{m}
   Shape "trianglemesh"
     "point3 P" [ {p} ]
     "integer indices" [ {i} ]
 AttributeEnd
 # ~Object '{n}'
 """
-    # TODO material = _write_material(name, material)
+    material = _write_material(name, material)
     pnts = ["{0.x} {0.y} {0.z}".format(p) for p in mesh.Topology[0]]
     inds = ["{} {} {}".format(*i) for i in mesh.Topology[1]]
     pnts = "  ".join(pnts)
     inds = "  ".join(inds)
-    return snippet.format(n=name, p=pnts, i=inds)
+    return snippet.format(n=name, m=material, p=pnts, i=inds)
 
 
 def write_camera(name, pos, updir, target, fov):
