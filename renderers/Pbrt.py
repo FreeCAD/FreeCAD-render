@@ -77,7 +77,7 @@ LookAt {p.x} {p.y} {p.z}
        {u.x} {u.y} {u.z}
 Camera "perspective" "float fov" {f}
 # ~Camera '{n}'
-"""  # NB: do not modify enclosing comments
+"""  # NB: do not modify enclosing comments in snippet
     return snippet.format(n=name, p=pos.Base, t=target, u=updir, f=fov)
 
 
@@ -245,51 +245,13 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
 
 def write_imagelight(name, image):
     """Compute a string in renderer SDL to represent an image-based light."""
-    # TODO
-    return ""
-    # # At this time (02-15-2021), in current version (0.6.0),
-    # # texture import is not serviceable in OspStudio - see here:
-    # # https://github.com/ospray/ospray_studio/blob/release-0.6.x/sg/JSONDefs.h#L107
-    # # As a workaround, we use a gltf file...
-
-    # gltf_snippet = """
-# {{
-  # "asset": {{
-    # "generator": "FreeCAD Render Workbench",
-    # "version": "2.0"
-  # }},
-  # "scene": 0,
-  # "scenes": [
-    # {{
-      # "name": "scene",
-      # "nodes": []
-    # }}
-  # ],
-  # "extensions": {{
-    # "BIT_scene_background" : {{
-      # "background-uri": "{f}",
-      # "rotation": [0, 0.7071067811865475, 0, 0.7071067811865475 ]
-    # }}
-  # }}
-# }}
-# """
-    # f_handle, gltf_file = mkstemp(suffix=".gltf", prefix="light_")
-    # os.close(f_handle)
-    # # osp requires the hdr file path to be relative from the gltf file path
-    # # (see GLTFData::createLights insg/importer/glTF.cpp, ),
-    # # so we have to manipulate pathes a bit...
-    # image_relpath = os.path.relpath(image, os.path.dirname(gltf_file))
-
-    # with open(gltf_file, "w") as f:
-        # f.write(gltf_snippet.format(f=image_relpath))
-
-    # snippet = """
-      # {{
-        # "name": "{n}",
-        # "type": "IMPORTER",
-        # "filename": "{f}"
-      # }},"""
-    # return snippet.format(n=name, f=gltf_file)
+    # Caveat: pbrt just accepts square images...
+    snippet = """# Imagelight '{n}'
+AttributeBegin
+    LightSource "infinite" "string filename" "{m}"
+AttributeEnd
+# ~Imagelight '{n}'\n"""
+    return snippet.format(n=name, m=image)
 
 
 # ===========================================================================
