@@ -231,15 +231,12 @@ def _write_material_disney(name, material):
 
 def _write_material_diffuse(name, material):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    # TODO
-    return ""
-    # snippet = """
-# type obj
-# kd {c.r} {c.g} {c.b}
-# ns 2
-# """
-    # return snippet.format(n=name,
-                          # c=material.diffuse.color)
+    snippet = """  # Material '{n}'
+  Material "diffuse"
+    "rgb reflectance" [{c.r} {c.g} {c.b}]
+"""
+    return snippet.format(n=name,
+                          c=material.diffuse.color)
 
 
 def _write_material_mixed(name, material):
