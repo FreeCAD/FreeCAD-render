@@ -125,122 +125,23 @@ AttributeEnd
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    # TODO
-    return ""
-    # # We make angle calculations in ocp's coordinates system
-    # # By default, Up is (0,1,0), Right is (1,0,0), and:
-    # #  - North (0°) is z (0, 0, 1)
-    # #  - East (90°) is x (1, 0, 0)
-    # #  - South (180°) is -z (0, 0, -1)
-    # #  - West (270°) is -x (-1, 0, 0)
-    # # We'll compute elevation and azimuth accordingly...
-
-    # _dir = TRANSFORM.multVec(App.Vector(direction))
-    # elevation = asin(_dir.y / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
-    # azimuth = atan2(_dir.x, _dir.z)
-    # snippet = """
-      # {{
-        # "description": "Lights",
-        # "name": "lights",
-        # "subType": "lights",
-        # "type": "LIGHTS",
-        # "children": [
-          # {{
-            # "name": "{n}",
-            # "description": "Sunsky light",
-            # "type": "LIGHT",
-            # "subType": "sunSky",
-            # "children": [
-              # {{
-                # "description": "whether the light can be seen directly",
-                # "name": "visible",
-                # "sgOnly": false,
-                # "subType": "bool",
-                # "type": "PARAMETER",
-                # "value": true
-              # }},
-              # {{
-                # "description": "intensity of the light (a factor)",
-                # "name": "intensity",
-                # "sgOnly": false,
-                # "subType": "float",
-                # "type": "PARAMETER",
-                # "value": 1.0
-              # }},
-              # {{
-                # "description": "color of the light",
-                # "name": "color",
-                # "sgOnly": false,
-                # "subType": "rgb",
-                # "type": "PARAMETER",
-                # "value": [1.0, 1.0, 1.0]
-              # }},
-              # {{
-                # "description": "OSPRay light type",
-                # "name": "type",
-                # "sgOnly": true,
-                # "subType": "string",
-                # "type": "PARAMETER",
-                # "value": "sunSky"
-              # }},
-              # {{
-                # "description": "Up direction",
-                # "name": "up",
-                # "sgOnly": false,
-                # "subType": "vec3f",
-                # "type": "PARAMETER",
-                # "value": [0,1,0]
-              # }},
-              # {{
-                # "description": "Right direction",
-                # "name": "right",
-                # "sgOnly": true,
-                # "subType": "vec3f",
-                # "type": "PARAMETER",
-                # "value": [1,0,0]
-              # }},
-              # {{
-                # "description": "Angle to horizon",
-                # "name": "elevation",
-                # "sgOnly": true,
-                # "subType": "float",
-                # "type": "PARAMETER",
-                # "value": {e}
-              # }},
-              # {{
-                # "description": "Angle to North",
-                # "name": "azimuth",
-                # "sgOnly": true,
-                # "subType": "float",
-                # "type": "PARAMETER",
-                # "value": {a}
-              # }},
-              # {{
-                # "description": "Turbidity",
-                # "name": "turbidity",
-                # "sgOnly": false,
-                # "subType": "float",
-                # "type": "PARAMETER",
-                # "value": {t}
-              # }},
-              # {{
-                # "description": "Ground albedo",
-                # "name": "albedo",
-                # "sgOnly": false,
-                # "subType": "float",
-                # "type": "PARAMETER",
-                # "value": {g}
-              # }}
-            # ]
-          # }}
-        # ]
-      # }},"""
-    # return snippet.format(n=name,
-                          # t=turbidity,
-                          # e=degrees(elevation),
-                          # a=degrees(azimuth),
-                          # g=albedo
-                          # )
+    # As pbrt does not provide an integrated support for sun-sky lighting
+    # (like Hosek-Wilkie e.g.), so we just use an bluish infinite light
+    # and a white distant light...
+    direction = -direction
+    snippet = """# Sun-sky light '{n}'
+AttributeBegin
+  LightSource "infinite"
+    "rgb L" [0.53 0.81 0.92]
+    "float scale" 1
+  LightSource "distant"
+    "blackbody L" [6500]
+    "float scale" 4
+    "point3 from" [0 0 0]
+    "point3 to" [{d.x} {d.y} {d.z}]
+AttributeEnd
+# ~Sun-sky light '{n}'\n"""
+    return snippet.format(n=name, d=direction)
 
 
 def write_imagelight(name, image):
