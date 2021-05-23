@@ -134,7 +134,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
 AttributeBegin
   LightSource "infinite"
     "rgb L" [0.53 0.81 0.92]
-    "float scale" 1
+    "float scale" 0.5
   LightSource "distant"
     "blackbody L" [6500]
     "float scale" 4
