@@ -186,9 +186,9 @@ def _write_material_passthrough(name, material):
 
 def _write_material_glass(name, material):
     """Compute a string in the renderer SDL for a glass material."""
-    snippet = """  # Material {'n'}
+    snippet = """  # Material '{n}'
   Material "dielectric"
-    "float eta" {i} 
+    "float eta" {i}
     "rgb tint" [{c.r} {c.g} {c.b}]
 """
     return snippet.format(n=name,
