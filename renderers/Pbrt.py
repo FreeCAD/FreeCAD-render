@@ -267,24 +267,18 @@ def _write_material_fallback(name, material):
 
     Fallback material is a simple Diffuse material.
     """
-    # TODO
-    return ""
-    # try:
-        # red = float(material.default_color.r)
-        # grn = float(material.default_color.g)
-        # blu = float(material.default_color.b)
-        # assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
-    # except (AttributeError, ValueError, TypeError, AssertionError):
-        # red, grn, blu = 1, 1, 1
-    # snippet = """
-# type obj
-# kd {r} {g} {b}
-# ns 2
-# """
-    # return snippet.format(n=name,
-                          # r=red,
-                          # g=grn,
-                          # b=blu)
+    try:
+        red = float(material.default_color.r)
+        grn = float(material.default_color.g)
+        blu = float(material.default_color.b)
+        assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
+    except (AttributeError, ValueError, TypeError, AssertionError):
+        red, grn, blu = 1, 1, 1
+    snippet = """  # Material '{n}'
+  Material "diffuse"
+    "rgb reflectance" [{r} {g} {b}]
+"""
+    return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
 MATERIALS = {
