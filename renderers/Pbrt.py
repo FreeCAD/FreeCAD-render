@@ -241,22 +241,25 @@ def _write_material_diffuse(name, material):
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
-    # TODO
-    return ""
-    # snippet = """
-# type principled
-# baseColor {k.r} {k.g} {k.b}
-# ior {i}
-# transmission {t}
-# transmissionColor {c.r} {c.g} {c.b}
-# opacity {o}
-# """
-    # return snippet.format(n=name,
-                          # c=material.mixed.glass.color,
-                          # i=material.mixed.glass.ior,
-                          # k=material.mixed.diffuse.color,
-                          # t=material.mixed.transparency,
-                          # o=1.0 - material.mixed.transparency)
+    print("Mixed %s" % name)
+    print(material)
+    snippet = """  # Material '{n}'
+  MakeNamedMaterial "{n}_1"
+    "string type" "diffuse"
+    "rgb reflectance" [{c.r} {c.g} {c.b}]
+  MakeNamedMaterial "{n}_2"
+    "string type" "dielectric"
+    "float eta" {i}
+    "rgb tint" [{c.r} {c.g} {c.b}]
+  Material "mix"
+    "string materials" ["{n}_1" "{n}_2"]
+    "float amount" {r}
+"""
+    return snippet.format(n=name,
+                          c=material.mixed.glass.color,
+                          i=material.mixed.glass.ior,
+                          k=material.mixed.diffuse.color,
+                          r=material.mixed.transparency)
 
 
 def _write_material_fallback(name, material):
