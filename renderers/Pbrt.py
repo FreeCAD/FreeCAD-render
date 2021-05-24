@@ -168,12 +168,13 @@ def _write_material(name, material):
     a fallback material is provided.
     """
     try:
-        snippet_mat = MATERIALS[material.shadertype](name, material)
+        write_function = MATERIALS[material.shadertype]
     except KeyError:
         msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
                "material\n")
         App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.default_color)
+        write_function = _write_material_fallback
+    snippet_mat = write_function(name, material)
     return snippet_mat
 
 
@@ -272,7 +273,7 @@ def _write_material_fallback(name, material):
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
-    snippet = """  # Material '{n}'
+    snippet = """  # Material '{n}' -- fallback
   Material "diffuse"
     "rgb reflectance" [{r} {g} {b}]
 """
@@ -282,7 +283,7 @@ def _write_material_fallback(name, material):
 MATERIALS = {
         "Passthrough": _write_material_passthrough,
         "Glass": _write_material_glass,
-        "Disney": _write_material_disney,
+        # "Disney": _write_material_disney,  -- NOT SUPPORTED BY PBRT V4
         "Diffuse": _write_material_diffuse,
         "Mixed": _write_material_mixed}
 
