@@ -27,13 +27,9 @@
 # https://github.com/mmp/pbrt-v4-scenes
 # https://pbrt.org/
 
-import json
 import os
-import shlex
 import re
-from subprocess import Popen
 from tempfile import mkstemp
-from math import degrees, asin, sqrt, atan2
 
 import FreeCAD as App
 
@@ -199,35 +195,10 @@ def _write_material_glass(name, material):
 
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
-    # TODO
+    # Disney is no more supported in pbrt v4 (in contrast to pbrt v3), so this
+    # function will not compute anything...
+    # pylint: disable=unused-argument
     return ""
-    # # Nota: OSP Principled material does not handle SSS, nor specular tint
-    # snippet = """
-# type principled
-# baseColor {1.r} {1.g} {1.b}
-# # No subsurface scattering ({2})
-# metallic {3}
-# specular {4}
-# # No specular tint ({3})
-# roughness {6}
-# anisotropy {7}
-# sheen {8}
-# sheenTint {9}
-# coat {10}
-# coatRoughness {11}
-# """
-    # return snippet.format(name,
-                          # material.disney.basecolor,
-                          # material.disney.subsurface,
-                          # material.disney.metallic,
-                          # material.disney.specular,
-                          # material.disney.speculartint,
-                          # material.disney.roughness,
-                          # material.disney.anisotropic,
-                          # material.disney.sheen,
-                          # material.disney.sheentint,
-                          # material.disney.clearcoat,
-                          # 1 - float(material.disney.clearcoatgloss))
 
 
 def _write_material_diffuse(name, material):
