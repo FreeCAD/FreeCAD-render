@@ -280,12 +280,12 @@ def render(project, prefix, external, output, width, height):
         A path to output image file
     """
     # Make various adjustments on file:
-    # Reorder camera declarations
+    # Reorder camera declarations and set width/height
     with open(project.PageResult, "r") as f:
         template = f.read()
 
     # Cameras
-    pattern =r"(?m)# Camera[\s\S]*?# ~Camera.*$"
+    pattern = r"(?m)# Camera[\s\S]*?# ~Camera.*$"
     regex_obj = re.compile(pattern)
     camera = str(regex_obj.findall(template)[-1])  # Keep only last camera
     template = camera + '\n' + regex_obj.sub("", template)
