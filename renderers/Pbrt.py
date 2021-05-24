@@ -241,8 +241,6 @@ def _write_material_diffuse(name, material):
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
-    print("Mixed %s" % name)
-    print(material)
     snippet = """  # Material '{n}'
   MakeNamedMaterial "{n}_1"
     "string type" "diffuse"
