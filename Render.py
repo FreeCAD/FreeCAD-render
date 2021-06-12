@@ -1072,7 +1072,7 @@ class CameraCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new rendering project into the active document.
+        It creates a new camera into the active document.
         """
         camera.Camera.create()
 
@@ -1092,7 +1092,7 @@ class PointLightCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new rendering project into the active document.
+        It creates a new point light into the active document.
         """
         lights.PointLight.create()
 
@@ -1112,7 +1112,7 @@ class AreaLightCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new rendering project into the active document.
+        It creates a new area light into the active document.
         """
         lights.AreaLight.create()
 
@@ -1132,7 +1132,7 @@ class SunskyLightCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new rendering project into the active document.
+        It creates a new sunsky light into the active document.
         """
         lights.SunskyLight.create()
 
@@ -1152,7 +1152,7 @@ class ImageLightCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new rendering project into the active document.
+        It creates a new image light into the active document.
         """
         lights.ImageLight.create()
 
