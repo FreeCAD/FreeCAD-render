@@ -61,38 +61,12 @@ try:
 except ImportError:
     pass
 
+from Render.constants import *
 from Render.utils import translate, str2rgb
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 import Render.materials as materials
 import Render.camera as camera
 import Render.lights as lights
-
-
-# ===========================================================================
-#                                 Constants
-# ===========================================================================
-
-
-# Paths to GUI resources
-# This is for InitGui.py because it cannot import os
-WBDIR = os.path.dirname(__file__)  # Workbench root directory
-RDRDIR = os.path.join(WBDIR, "renderers")
-ICONDIR = os.path.join(WBDIR, "icons")
-TEMPLATEDIR = os.path.join(WBDIR, "templates")
-TRANSDIR = os.path.join(WBDIR, "translations")
-PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
-TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
-
-# Renderers lists
-RENDERERS = {x.group(1)
-             for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
-                          os.listdir(RDRDIR))
-             if x}
-DEPRECATED_RENDERERS = {"Luxrender"}
-VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
-
-# FreeCAD version
-FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
 
 # ===========================================================================
