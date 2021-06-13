@@ -39,8 +39,8 @@ import itertools
 import collections
 import math
 
-from renderutils import translate, debug, warn, getproxyattr, RGBA
-from rendermaterials import is_multimat, is_valid_material
+from Render.renderutils import translate, debug, warn, getproxyattr, RGBA
+from Render.rendermaterials import is_multimat, is_valid_material
 
 
 # ===========================================================================

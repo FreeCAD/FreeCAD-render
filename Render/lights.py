@@ -43,7 +43,7 @@ from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from renderutils import translate
+from Render.renderutils import translate
 
 
 # ===========================================================================

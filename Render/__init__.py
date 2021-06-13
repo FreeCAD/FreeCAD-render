@@ -61,11 +61,11 @@ try:
 except ImportError:
     pass
 
-from renderutils import translate, str2rgb
-from rendererhandler import RendererHandler, RendererNotFoundError
-import camera
-import lights
-import rendermaterials
+from Render.renderutils import translate, str2rgb
+from Render.rendererhandler import RendererHandler, RendererNotFoundError
+import Render.rendermaterials as rendermaterials
+import Render.camera as camera
+import Render.lights as lights
 
 
 # ===========================================================================

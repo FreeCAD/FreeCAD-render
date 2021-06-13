@@ -33,8 +33,8 @@ import functools
 
 import FreeCAD as App
 
-from renderutils import (RGBA, str2rgb, debug as ru_debug, getproxyattr,
-                         translate)
+from Render.renderutils import (RGBA, str2rgb, debug as ru_debug,
+                                getproxyattr, translate)
 
 
 # ===========================================================================
