@@ -39,7 +39,7 @@ import itertools
 import collections
 import math
 
-from Render.renderutils import translate, debug, warn, getproxyattr, RGBA
+from Render.utils import translate, debug, warn, getproxyattr, RGBA
 from Render.materials import is_multimat, is_valid_material
 
 
