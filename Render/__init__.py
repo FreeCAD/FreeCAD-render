@@ -61,7 +61,7 @@ try:
 except ImportError:
     pass
 
-from Render.renderutils import translate, str2rgb
+from Render.utils import translate, str2rgb
 from Render.rendererhandler import RendererHandler, RendererNotFoundError
 import Render.materials as materials
 import Render.camera as camera
