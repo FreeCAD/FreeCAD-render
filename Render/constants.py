@@ -31,11 +31,11 @@ import FreeCAD as App
 # This is for InitGui.py because it cannot import os
 WBDIR = os.path.dirname(__file__)  # Workbench root directory
 RDRDIR = os.path.join(WBDIR, "renderers")
-ICONDIR = os.path.join(WBDIR, "icons")
+ICONDIR = os.path.join(WBDIR, "resources", "icons")
 TEMPLATEDIR = os.path.join(WBDIR, "templates")
 TRANSDIR = os.path.join(WBDIR, "translations")
-PREFPAGE = os.path.join(WBDIR, "ui", "RenderSettings.ui")
-TASKPAGE = os.path.join(WBDIR, "ui", "RenderMaterial.ui")
+PREFPAGE = os.path.join(WBDIR, "resources", "ui", "RenderSettings.ui")
+TASKPAGE = os.path.join(WBDIR, "resources", "ui", "RenderMaterial.ui")
 
 # Renderers lists
 RENDERERS = {x.group(1)
