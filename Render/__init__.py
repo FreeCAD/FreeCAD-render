@@ -639,11 +639,11 @@ class ViewProviderProject:
 
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(WBDIR, "icons", "RenderProject.svg")
+        return os.path.join(ICONDIR, "RenderProject.svg")
 
     def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
         """Set up the object's context menu in GUI (callback)."""
-        icon = QIcon(os.path.join(WBDIR, "icons", "Render.svg"))
+        icon = QIcon(os.path.join(ICONDIR, "Render.svg"))
         action1 = QAction(icon, "Render", menu)
         QObject.connect(action1, SIGNAL("triggered()"), self.render)
         menu.addAction(action1)
@@ -882,7 +882,7 @@ class ViewProviderView:
 
     def getIcon(self):  # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(WBDIR, "icons", "RenderViewTree.svg")
+        return os.path.join(ICONDIR, "RenderViewTree.svg")
 
     @staticmethod
     def _create_usematerialcolor(vobj):
@@ -918,7 +918,7 @@ class RenderProjectCommand:
         """Get command's resources (callback)."""
         rdr = self.renderer
         return {
-            "Pixmap": os.path.join(WBDIR, "icons", rdr + ".svg"),
+            "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
             "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand",
                                           "%s Project") % rdr,
             "ToolTip": QT_TRANSLATE_NOOP("RenderProjectCommand",
@@ -954,7 +954,7 @@ class RenderViewCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
-            "Pixmap": os.path.join(WBDIR, "icons", "RenderView.svg"),
+            "Pixmap": os.path.join(ICONDIR, "RenderView.svg"),
             "MenuText": QT_TRANSLATE_NOOP("RenderViewCommand",
                                           "Rendering View"),
             "ToolTip": QT_TRANSLATE_NOOP("RenderViewCommand",
@@ -1001,7 +1001,7 @@ class RenderCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "Render.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "Render.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("RenderCommand", "Render"),
                 "ToolTip": QT_TRANSLATE_NOOP("RenderCommand",
                                              "Perform the rendering of a "
@@ -1056,7 +1056,7 @@ class PointLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "PointLight.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "PointLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("PointLightCommand",
                                               "Point Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("PointLightCommand",
@@ -1076,7 +1076,7 @@ class AreaLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "AreaLight.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "AreaLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("AreaLightCommand",
                                               "Area Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("AreaLightCommand",
@@ -1096,7 +1096,7 @@ class SunskyLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "SunskyLight.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "SunskyLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("SunskyLightCommand",
                                               "Sunsky Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("SunskyLightCommand",
@@ -1116,7 +1116,7 @@ class ImageLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "ImageLight.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "ImageLight.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("ImageLightCommand",
                                               "Image Light"),
                 "ToolTip": QT_TRANSLATE_NOOP("ImageLightCommand",
@@ -1153,7 +1153,7 @@ class MaterialRenderSettingsCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "MaterialSettings.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
                                               "Edit Material Render Settings"),
                 "ToolTip": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
@@ -1181,7 +1181,7 @@ class MaterialApplierCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(WBDIR, "icons", "ApplyMaterial.svg"),
+        return {"Pixmap": os.path.join(ICONDIR, "ApplyMaterial.svg"),
                 "MenuText": QT_TRANSLATE_NOOP("MaterialApplierCommand",
                                               "Apply Material"),
                 "ToolTip": QT_TRANSLATE_NOOP("MaterialApplierCommand",
@@ -1376,7 +1376,7 @@ class MaterialSettingsTaskPanel():
         for rdr in VALID_RENDERERS:
             item = QListWidgetItem()
             item.setText(rdr)
-            item.setIcon(QIcon(os.path.join(WBDIR, "icons", "%s.svg" % rdr)))
+            item.setIcon(QIcon(os.path.join(ICONDIR, "%s.svg" % rdr)))
             rdrwidget.addItem(item)
         rdrwidget.setViewMode(QListView.IconMode)
         rdrwidget.setIconSize(QSize(48, 48))
