@@ -41,7 +41,7 @@ import Mesh
 
 from Render.renderutils import translate, debug, getproxyattr, clamp
 import Render.renderables as renderables
-import Render.rendermaterials as rendermaterials
+import Render.materials as materials
 
 
 # ===========================================================================
@@ -236,7 +236,7 @@ class RendererHandler:
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
 
-        mat = rendermaterials.get_rendering_material(None, "", color)
+        mat = materials.get_rendering_material(None, "", color)
 
         res = self.renderer_module.write_object("ground_plane", mesh, mat)
 
@@ -279,7 +279,7 @@ class RendererHandler:
                                          self,
                                          "write_object")
 
-        get_mat = rendermaterials.get_rendering_material
+        get_mat = materials.get_rendering_material
         rdrname = self.renderer_name
 
         res = [write_object(r.name,

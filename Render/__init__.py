@@ -63,7 +63,7 @@ except ImportError:
 
 from Render.renderutils import translate, str2rgb
 from Render.rendererhandler import RendererHandler, RendererNotFoundError
-import Render.rendermaterials as rendermaterials
+import Render.materials as materials
 import Render.camera as camera
 import Render.lights as lights
 
@@ -1376,7 +1376,7 @@ class MaterialSettingsTaskPanel():
         self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
         self.existing_materials = {obj.Label: obj
                                    for obj in App.ActiveDocument.Objects
-                                   if rendermaterials.is_valid_material(obj)}
+                                   if materials.is_valid_material(obj)}
         self.material_combo.addItems(list(self.existing_materials.keys()))
         self.material_combo.currentTextChanged.connect(
             self.on_material_name_changed)
@@ -1386,7 +1386,7 @@ class MaterialSettingsTaskPanel():
         self.material_type_combo = \
             self.form.findChild(QComboBox, "MaterialType")
         material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] \
-            + list(rendermaterials.STD_MATERIALS)
+            + list(materials.STD_MATERIALS)
         self.material_type_combo.addItems(material_type_set)
         self.material_type_combo.currentTextChanged.connect(
             self.on_material_type_changed)
@@ -1475,7 +1475,7 @@ class MaterialSettingsTaskPanel():
         """Respond to material type changed event."""
         # Get parameters list
         try:
-            params = rendermaterials.STD_MATERIALS_PARAMETERS[material_type]
+            params = materials.STD_MATERIALS_PARAMETERS[material_type]
         except KeyError:
             self._delete_fields()
         else:
@@ -1500,7 +1500,7 @@ class MaterialSettingsTaskPanel():
         text = self.passthru.toPlainText()
         self.passthru_cache[rdr.text()] = text
 
-    PASSTHROUGH_KEYS = {r: rendermaterials.passthrough_keys(r)
+    PASSTHROUGH_KEYS = {r: materials.passthrough_keys(r)
                         for r in VALID_RENDERERS}
 
     def _populate_passthru(self, renderer, material):
@@ -1680,10 +1680,10 @@ def _init_gui_commands():
                   ("ImageLight", ImageLightCommand())]
     lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
 
-    materials = [("MaterialCreator", MaterialCreatorCommand()),
-                 ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
-                 ("MaterialApplier", MaterialApplierCommand())]
-    materials_group = CommandGroup(materials, "Materials", "Manage Materials")
+    mats_cmd = [("MaterialCreator", MaterialCreatorCommand()),
+                ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
+                ("MaterialApplier", MaterialApplierCommand())]
+    materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
 
     render_commands = [("Projects", projects_group),
                        separator,
