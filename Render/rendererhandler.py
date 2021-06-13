@@ -39,9 +39,9 @@ import FreeCAD as App
 import MeshPart
 import Mesh
 
-from renderutils import translate, debug, getproxyattr, clamp
-import renderables
-import rendermaterials
+from Render.renderutils import translate, debug, getproxyattr, clamp
+import Render.renderables as renderables
+import Render.rendermaterials as rendermaterials
 
 
 # ===========================================================================
