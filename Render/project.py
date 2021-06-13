@@ -44,7 +44,7 @@ from Render.constants import TEMPLATEDIR, ICONDIR
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
-import Render.camera as camera  # TODO from Render.camera import ...
+from Render.camera import DEFAULT_CAMERA_STRING, set_cam_from_coin_string
 
 
 class Project:
@@ -451,7 +451,7 @@ class Project:
         # Build a default camera, to be used if no camera is present in the
         # scene
         camstr = (Gui.ActiveDocument.ActiveView.getCamera() if App.GuiUp
-                  else camera.DEFAULT_CAMERA_STRING)
+                  else DEFAULT_CAMERA_STRING)
         defaultcamview = SimpleNamespace()
         defaultcamview.Source = SimpleNamespace()
         defaultcamview.Source.Proxy = SimpleNamespace()
@@ -460,7 +460,7 @@ class Project:
         defaultcamview.Source.Label = "Default_Camera"
         defaultcamview.Name = "Default_CameraView"
         defaultcamview.Label = View.view_label(defaultcamview.Source, obj)
-        camera.set_cam_from_coin_string(defaultcamview.Source, camstr)
+        set_cam_from_coin_string(defaultcamview.Source, camstr)
         cam = renderer.get_rendering_string(defaultcamview)
         del defaultcamview, camstr
 
