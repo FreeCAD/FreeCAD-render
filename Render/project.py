@@ -39,6 +39,10 @@ from PySide.QtGui import QAction, QIcon, QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
+try:
+    import ImageGui
+except ImportError:
+    pass
 
 from Render.constants import TEMPLATEDIR, ICONDIR
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
