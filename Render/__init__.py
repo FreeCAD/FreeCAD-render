@@ -32,11 +32,6 @@ the necessary UI controls.
 """
 
 
-try:
-    import ImageGui
-except ImportError:
-    pass
-
 from Render.constants import *
 
 from Render.project import Project, ViewProviderProject
