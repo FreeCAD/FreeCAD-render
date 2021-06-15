@@ -44,5 +44,5 @@ from Render.lights import (PointLight, ViewProviderPointLight,  # noqa: F401
                            AreaLight, ViewProviderAreaLight,
                            SunskyLight, ViewProviderSunskyLight,
                            ImageLight, ViewProviderImageLight)
-
+from Render.utils import reload
 from Render.commands import RENDER_COMMANDS  # noqa: F401
