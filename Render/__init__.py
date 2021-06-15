@@ -32,17 +32,16 @@ the necessary UI controls.
 """
 
 
-from Render.constants import (WBDIR, RDRDIR, ICONDIR, TRANSDIR,  # noqa: F401
-                              TEMPLATEDIR, PREFPAGE, TASKPAGE, RENDERERS,
-                              DEPRECATED_RENDERERS, VALID_RENDERERS,
-                              FCDVERSION)
+from .constants import (WBDIR, RDRDIR, ICONDIR, TRANSDIR,  # noqa: F401
+                        TEMPLATEDIR, PREFPAGE, TASKPAGE, RENDERERS,
+                        DEPRECATED_RENDERERS, VALID_RENDERERS, FCDVERSION)
 
-from Render.project import Project, ViewProviderProject  # noqa: F401
-from Render.view import View, ViewProviderView  # noqa: F401
-from Render.camera import Camera, ViewProviderCamera  # noqa: F401
-from Render.lights import (PointLight, ViewProviderPointLight,  # noqa: F401
-                           AreaLight, ViewProviderAreaLight,
-                           SunskyLight, ViewProviderSunskyLight,
-                           ImageLight, ViewProviderImageLight)
+from .project import Project, ViewProviderProject  # noqa: F401
+from .view import View, ViewProviderView  # noqa: F401
+from .camera import Camera, ViewProviderCamera  # noqa: F401
+from .lights import (PointLight, ViewProviderPointLight,  # noqa: F401
+                     AreaLight, ViewProviderAreaLight,
+                     SunskyLight, ViewProviderSunskyLight,
+                     ImageLight, ViewProviderImageLight)
 
-from Render.commands import RENDER_COMMANDS  # noqa: F401
+from .commands import RENDER_COMMANDS  # noqa: F401
