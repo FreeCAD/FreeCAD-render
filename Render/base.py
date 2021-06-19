@@ -37,6 +37,8 @@ class BaseFeature():
     - Access to the FeaturePython related object, via 'fpo' property
     """
 
+    # TODO Add create factory method
+
     MODULE = "Render"
     TYPE = ""
     PROPERTIES = {}
