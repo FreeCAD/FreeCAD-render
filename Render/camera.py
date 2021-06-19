@@ -144,37 +144,12 @@ class Camera(BaseFeature):
     }
     # ~FeaturePython object properties
 
-    @staticmethod
-    def create(document=None):
-        """Create a Camera object in a document.
-
-        Factory method to create a new camera object.
-        The camera is created into the active document (default).
-        Optionally, it is possible to specify a target document, in which case
-        the camera is created in the given document.
-
-        If Gui is up, the camera is initialized to current active camera;
-        otherwise it is set to DEFAULT_CAMERA_STRING.
-        This method also create the FeaturePython and the ViewProviderCamera
-        related objects.
-
-        Args:
-            document -- The document where to create the camera (optional).
-
-        Returns:
-            The newly created Camera, the FeaturePython and the
-            ViewProviderCamera objects.
-        """
-        doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("App::FeaturePython", "Camera")
-        cam = Camera(fpo)
-        viewp = ViewProviderCamera(fpo.ViewObject)
+    def on_create(self, fpo, viewp):
+        """Complete 'create' (callback)."""
         if App.GuiUp:
             viewp.set_camera_from_gui()
         else:
             set_cam_from_coin_string(fpo, DEFAULT_CAMERA_STRING)
-        App.ActiveDocument.recompute()
-        return cam, fpo, viewp
 
     def execute(self, fpo):
         # pylint: disable=no-self-use
