@@ -37,12 +37,13 @@ from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
 from Render.utils import translate
+from Render.base import BaseFeature, Prop
 
 
 # ===========================================================================
 
 
-class Camera:
+class Camera(BaseFeature):
     """A camera for rendering.
 
     This object allows to record camera settings from the Coin camera, and to
@@ -60,14 +61,14 @@ class Camera:
     # Enumeration of allowed values for ViewportMapping parameter (see Coin
     # documentation)
     # Nota: Keep following tuple in original order, as relationship between
-    # values and indexes matters and is used for reverse transcoding
+    # values and indexes order matters and is used for reverse transcoding
     VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME",
                            "CROP_VIEWPORT_LINE_FRAME",
                            "CROP_VIEWPORT_NO_FRAME",
                            "ADJUST_CAMERA",
                            "LEAVE_ALONE")
 
-    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+    TYPE = "Camera"
 
     # FeaturePython object properties
     PROPERTIES = {
@@ -76,51 +77,59 @@ class Camera:
             "Camera",
             QT_TRANSLATE_NOOP("Render",
                               "Type of projection: Perspective/Orthographic"),
-            ("Perspective", "Orthographic")),
+            ("Perspective", "Orthographic"),
+            0),
 
         "Placement": Prop(
             "App::PropertyPlacement",
-            "",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Placement of camera"),
             App.Placement(App.Vector(0, 0, 0),
                           App.Vector(0, 0, 1),
-                          0)),
+                          0),
+            0),
 
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "(See Coin documentation)"),
-            VIEWPORTMAPPINGENUM),
+            VIEWPORTMAPPINGENUM,
+            0),
 
         "AspectRatio": Prop(
             "App::PropertyFloat",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Ratio width/height of the camera."),
-            1.0),
+            1.0,
+            0),
 
         "NearDistance": Prop(
             "App::PropertyDistance",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Near distance, for clipping"),
-            0.0),
+            0.0,
+            0),
 
         "FarDistance": Prop(
             "App::PropertyDistance",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Far distance, for clipping"),
-            200.0),
+            200.0,
+            0),
 
         "FocalDistance": Prop(
             "App::PropertyDistance",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Focal distance"),
-            100.0),
+            100.0,
+            0),
 
         "Height": Prop(
             "App::PropertyLength",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Height, for orthographic camera"),
-            5.0),
+            5.0,
+            0),
 
         "HeightAngle": Prop(
             "App::PropertyAngle",
@@ -129,41 +138,11 @@ class Camera:
                               "Height angle, for perspective camera, in "
                               "degrees. Important: This value will be sent as "
                               "'Field of View' to the renderers."),
-            60),
+            60,
+            0),
 
     }
     # ~FeaturePython object properties
-
-    _fpos = dict()  # FeaturePython objects
-
-    @classmethod
-    def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties."""
-        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = cls.PROPERTIES[name]
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-
-    def __init__(self, fpo):
-        """Initialize Camera.
-
-        Args:
-            fpo -- A FeaturePython object created with FreeCAD.addObject.
-        """
-        self.type = "Camera"
-        fpo.Proxy = self
-        self.fpo = fpo
-        self.set_properties(fpo)
-
-    @property
-    def fpo(self):
-        """Get underlying FeaturePython object."""
-        return self._fpos[id(self)]
-
-    @fpo.setter
-    def fpo(self, new_fpo):
-        """Set underlying FeaturePython object attribute."""
-        self._fpos[id(self)] = new_fpo
 
     @staticmethod
     def create(document=None):
@@ -197,16 +176,10 @@ class Camera:
         App.ActiveDocument.recompute()
         return cam, fpo, viewp
 
-    def onDocumentRestored(self, fpo):
-        """Respond to document restoration event (callback)."""
-        self.type = "Camera"
-        fpo.Proxy = self
-        self.fpo = fpo
-        self.set_properties(fpo)
-
     def execute(self, fpo):
         # pylint: disable=no-self-use
         """Respond to document recomputation event (callback, mandatory)."""
+        # TODO Could be removed?
 
     def point_at(self, point):
         """Make camera point at a given target point.
