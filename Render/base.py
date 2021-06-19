@@ -24,6 +24,8 @@
 
 from collections import namedtuple
 
+import FreeCAD as App
+
 Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"])
 
 
@@ -41,6 +43,7 @@ class BaseFeature():
 
     MODULE = "Render"
     TYPE = ""
+    VIEWPROVIDER = object
     PROPERTIES = {}
 
     _fpos = dict()
@@ -71,7 +74,7 @@ class BaseFeature():
             spec = self.PROPERTIES[name]
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
-            fpo.setEditorMode(spec.EditorMode)
+            fpo.setEditorMode(name, spec.EditorMode)
         self.on_set_properties(fpo)
 
     def on_set_properties(self, fpo):
@@ -90,3 +93,45 @@ class BaseFeature():
     def fpo(self, new_fpo):
         """Set underlying FeaturePython object."""
         self._fpos[id(self)] = new_fpo
+
+    @classmethod
+    def create(cls, document=None):
+        """Create an instance of object in a document.
+
+        Factory method to create a new instance of this object.
+        The instance is created into the active document (default).
+        Optionally, it is possible to specify a target document, in which case
+        the object is created in the given document.
+
+        This method also create the FeaturePython and the ViewProviderCamera
+        related objects.
+
+        Args:
+            document -- The document where to create the instance (optional,
+              default is ActiveDocument).
+
+        Returns:
+            The newly created Object, the FeaturePython and the
+            ViewProvider objects.
+        """
+        doc = document if document else App.ActiveDocument
+        assert doc, ("Cannot create object if no document is provided "
+                     "and no document is active")
+        fpo = doc.addObject("App::FeaturePython", cls.TYPE)
+        obj = cls(fpo)
+        viewp = cls.VIEWPROVIDER(fpo.ViewObject)
+        obj.on_create(fpo, viewp)
+        App.ActiveDocument.recompute()
+        return obj, fpo, viewp
+
+    def on_create(self, fpo, viewp):
+        """Complete the operation of 'create' (callback).
+
+        This method is a hook for subclass to complete object creation,
+        in addition to canonic 'create' mechanism. Subclass can override if
+        needed.
+
+        Params:
+            fpo -- Related FeaturePython object
+            viewp -- Related ViewProvider object
+        """
