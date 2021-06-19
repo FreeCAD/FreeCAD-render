@@ -23,6 +23,7 @@
 """This module implements base classes for Render workbench."""
 
 from collections import namedtuple
+import sys
 
 import FreeCAD as App
 
@@ -43,7 +44,7 @@ class BaseFeature():
 
     MODULE = "Render"
     TYPE = ""
-    VIEWPROVIDER = object
+    VIEWPROVIDER = None
     PROPERTIES = {}
 
     _fpos = dict()
@@ -119,7 +120,13 @@ class BaseFeature():
                      "and no document is active")
         fpo = doc.addObject("App::FeaturePython", cls.TYPE)
         obj = cls(fpo)
-        viewp = cls.VIEWPROVIDER(fpo.ViewObject)
+        try:
+            viewp = cls.VIEWPROVIDER(fpo.ViewObject)
+        except TypeError as original_exc:
+            msg = "Bad {d}.VIEWPROVIDER value in '{d}' creation: '{v}'\n"
+            msg = msg.format(d=cls.__name__, v=cls.VIEWPROVIDER)
+            trace = sys.exc_info()[2]
+            raise ValueError(msg).with_traceback(trace) from original_exc
         obj.on_create(fpo, viewp)
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
