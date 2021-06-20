@@ -151,11 +151,6 @@ class Camera(BaseFeature):
         else:
             set_cam_from_coin_string(fpo, DEFAULT_CAMERA_STRING)
 
-    def execute(self, fpo):
-        # pylint: disable=no-self-use
-        """Respond to document recomputation event (callback, mandatory)."""
-        # TODO Could be removed?
-
     def point_at(self, point):
         """Make camera point at a given target point.
 
