@@ -612,10 +612,10 @@ class ViewProviderAreaLight:
 # ===========================================================================
 
 
-class SunskyLight:
+class SunskyLight(BaseFeature):
     """A sun+sky light - Hosek-Wilkie."""
 
-    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+    VIEWPROVIDER = "ViewProviderSunskyLight"
 
     # FeaturePython object properties
     PROPERTIES = {
@@ -626,7 +626,8 @@ class SunskyLight:
                 "Render",
                 "Direction of sun from observer's point of view "
                 "-- (0,0,1) is zenith"),
-            App.Vector(1, 1, 1)),
+            App.Vector(1, 1, 1),
+            0),
 
         "Turbidity": Prop(
             "App::PropertyFloat",
@@ -635,7 +636,8 @@ class SunskyLight:
                 "Render",
                 "Atmospheric haziness (turbidity can go from 2.0 to 30+. 2-6 "
                 "are most useful for clear days)"),
-            2.0),
+            2.0,
+            0),
 
         "GroundAlbedo": Prop(
             "App::PropertyFloatConstraint",
@@ -643,63 +645,10 @@ class SunskyLight:
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Ground albedo (reflection coefficient of the ground)"),
-            (0.3, 0.0, 1.0, 0.01),)
+            (0.3, 0.0, 1.0, 0.01),
+            0)
     }
     # ~FeaturePython object properties
-
-    def __init__(self, fpo):
-        """Initialize Sunsky Light.
-
-        Args:
-            fpo -- A FeaturePython object created with FreeCAD.addObject.
-        """
-        self.type = "SunskyLight"
-        fpo.Proxy = self
-        self.set_properties(fpo)
-
-    @classmethod
-    def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties."""
-        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = cls.PROPERTIES[name]
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-
-    @staticmethod
-    def create(document=None):
-        """Create a SunskyLight object in a document.
-
-        Factory method to create a new sunsky light object.
-        The light is created into the active document (default).
-        Optionally, it is possible to specify a target document, in that case
-        the light is created in the given document.
-
-        This method also create the FeaturePython and the
-        ViewProviderSunskyLight related objects.
-
-        Args:
-            document -- The document where to create light (optional)
-
-        Returns:
-            The newly created SunskyLight, FeaturePython and
-            ViewProviderSunskyLight objects
-        """
-        doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("App::FeaturePython", "SunskyLight")
-        lgt = SunskyLight(fpo)
-        viewp = ViewProviderSunskyLight(fpo.ViewObject)
-        App.ActiveDocument.recompute()
-        return lgt, fpo, viewp
-
-    def onDocumentRestored(self, fpo):
-        """Respond to document restoration event (callback)."""
-        self.type = "SunskyLight"
-        fpo.Proxy = self
-        self.set_properties(fpo)
-
-    def execute(self, fpo):
-        # pylint: disable=no-self-use
-        """Respond to document recomputation event (callback, mandatory)."""
 
 
 class ViewProviderSunskyLight:
@@ -722,9 +671,9 @@ class ViewProviderSunskyLight:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
-        SunskyLight.set_properties(self.fpo)
+        # SunskyLight.set_properties(self.fpo)  # TODO Remove?
 
-        # Here we create coin representation, which is a directional light,
+        # Here we create coin representation, which is a directional light
 
         self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
