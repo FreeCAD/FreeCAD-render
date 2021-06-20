@@ -138,7 +138,7 @@ class BaseFeature():
         obj = cls(fpo)
         try:
             viewp_class = getattr(sys.modules[cls.NAMESPACE], cls.VIEWPROVIDER)
-        except KeyError as original_exc:
+        except AttributeError as original_exc:
             msg = "Bad {d}.VIEWPROVIDER value in '{d}' creation: '{v}'\n"
             msg = msg.format(d=cls.__name__, v=cls.VIEWPROVIDER)
             trace = sys.exc_info()[2]
