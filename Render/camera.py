@@ -26,7 +26,6 @@ Camera object allows to take a snapshot of Coin Camera settings and to use them
 later for rendering.
 """
 
-from collections import namedtuple
 from math import degrees, radians
 from types import SimpleNamespace
 import shlex
