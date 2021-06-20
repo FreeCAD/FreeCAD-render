@@ -71,8 +71,6 @@ class BaseFeature():
         """Set underlying FeaturePython object's properties."""
         self.fpo = fpo
         self.__module__ = self.NAMESPACE
-        if not self.TYPE:
-            self.TYPE = self.__class__.__name__
         fpo.Proxy = self
 
         for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
@@ -102,12 +100,12 @@ class BaseFeature():
     @property
     def type(self):
         """Get 'type' property."""
-        return self.TYPE
+        return self.TYPE if self.TYPE else self.__class__.__name__
 
     @property
-    def Type(self):
+    def Type(self):  # pylint: disable=invalid-name
         """Get 'Type' property."""
-        return self.TYPE
+        return self.TYPE if self.TYPE else self.__class__.__name__
 
     @classmethod
     def create(cls, document=None):
