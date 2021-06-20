@@ -131,6 +131,7 @@ class ViewProviderPointLight:
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
+        self.__module__ = "Render"
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -141,6 +142,7 @@ class ViewProviderPointLight:
         # pylint: disable=attribute-defined-outside-init
 
         self.fpo = vobj.Object
+        self.__module__ = "Render"
         # PointLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation, which is in 2 parts: a light,
@@ -389,6 +391,7 @@ class ViewProviderAreaLight:
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
         self.callback = None  # For point_at method
+        self.__module__ = "Render"
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -398,6 +401,7 @@ class ViewProviderAreaLight:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
+        self.__module__ = "Render"
         # AreaLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation, which is in 2 parts: a light,
@@ -661,6 +665,7 @@ class ViewProviderSunskyLight:
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
+        self.__module__ = "Render"
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -670,6 +675,7 @@ class ViewProviderSunskyLight:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
+        self.__module__ = "Render"
         # SunskyLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation, which is a directional light
@@ -805,6 +811,7 @@ class ViewProviderImageLight:
         """
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
+        self.__module__ = "Render"
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -814,6 +821,7 @@ class ViewProviderImageLight:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
+        self.__module__ = "Render"
         # ImageLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation
