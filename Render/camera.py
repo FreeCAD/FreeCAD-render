@@ -40,6 +40,17 @@ from Render.utils import translate
 from Render.base import BaseFeature, Prop
 
 
+# Enumeration of allowed values for ViewportMapping parameter (see Coin
+# documentation)
+# Nota: Keep following tuple in original order, as relationship between
+# values and indexes order matters and is used for reverse transcoding
+VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME",
+                       "CROP_VIEWPORT_LINE_FRAME",
+                       "CROP_VIEWPORT_NO_FRAME",
+                       "ADJUST_CAMERA",
+                       "LEAVE_ALONE")
+
+
 # ===========================================================================
 
 
@@ -57,16 +68,6 @@ class Camera(BaseFeature):
     For more information, see Coin documentation, Camera section.
     <https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/Cameras_and_Lights/Cameras.html>
     """
-
-    # Enumeration of allowed values for ViewportMapping parameter (see Coin
-    # documentation)
-    # Nota: Keep following tuple in original order, as relationship between
-    # values and indexes order matters and is used for reverse transcoding
-    VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME",
-                           "CROP_VIEWPORT_LINE_FRAME",
-                           "CROP_VIEWPORT_NO_FRAME",
-                           "ADJUST_CAMERA",
-                           "LEAVE_ALONE")  # TODO Move out of class?
 
     VIEWPROVIDER = "ViewProviderCamera"
 
@@ -378,7 +379,7 @@ class ViewProviderCamera:
         fpo.FocalDistance = float(node.focalDistance.getValue())
         fpo.AspectRatio = float(node.aspectRatio.getValue())
         index = node.viewportMapping.getValue()
-        fpo.ViewportMapping = Camera.VIEWPORTMAPPINGENUM[index]
+        fpo.ViewportMapping = VIEWPORTMAPPINGENUM[index]
 
     def set_gui_from_camera(self):
         """Set GUI camera to this camera."""
