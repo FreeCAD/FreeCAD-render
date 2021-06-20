@@ -66,9 +66,11 @@ class Camera(BaseFeature):
                            "CROP_VIEWPORT_LINE_FRAME",
                            "CROP_VIEWPORT_NO_FRAME",
                            "ADJUST_CAMERA",
-                           "LEAVE_ALONE")
+                           "LEAVE_ALONE")  # TODO Move out of class?
 
     TYPE = "Camera"
+
+    VIEWPROVIDER = ViewProviderCamera
 
     # FeaturePython object properties
     PROPERTIES = {
