@@ -80,7 +80,9 @@ class RenderProjectCommand:
             return
 
         # Create project
-        Project.create(App.ActiveDocument, self.renderer, template)
+        Project.create(App.ActiveDocument,
+                       renderer=self.renderer,
+                       template=template)
 
         App.ActiveDocument.recompute()
 
