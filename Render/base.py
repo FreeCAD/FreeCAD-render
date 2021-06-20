@@ -38,13 +38,15 @@ class BaseFeature():
     - Properties management (automatically create/update properties list
       from PROPERTIES class constant)
     - Access to the FeaturePython related object, via 'fpo' property
+    - Factory method 'create' to generate new instances, along with view
+      providers
     """
 
-    # These constants must be filled when subclassing (mandatory)
+    # These constants must be overriden when subclassing (mandatory)
     VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
     PROPERTIES = {}  # The properties of the object (dict of Prop)
 
-    # These constants must be filled when subclassing (optional)
+    # These constants can be overriden when subclassing (optional)
     NAMESPACE = "Render"  # The namespace where feature and viewprovider are
     TYPE = ""  # The type of the object (str). If empty, default to class name
 
@@ -108,7 +110,7 @@ class BaseFeature():
         return self.TYPE if self.TYPE else self.__class__.__name__
 
     @classmethod
-    def create(cls, document=None):
+    def create(cls, document=None, **kwargs):
         """Create an instance of object in a document.
 
         Factory method to create a new instance of this object.
@@ -142,11 +144,11 @@ class BaseFeature():
             trace = sys.exc_info()[2]
             raise ValueError(msg).with_traceback(trace) from original_exc
         viewp =viewp_class(fpo.ViewObject)
-        obj.on_create_cb(fpo, viewp)
+        obj.on_create_cb(fpo, viewp, **kwargs)
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
 
-    def on_create_cb(self, fpo, viewp):
+    def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete the operation of 'create' (callback).
 
         This method is a hook for subclass to complete object creation,
