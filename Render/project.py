@@ -60,7 +60,7 @@ class Project(BaseFeature):
     PROPERTIES = {
         "Renderer": Prop(
             "App::PropertyString",
-            "Render",
+            "Base",
             QT_TRANSLATE_NOOP(
                 "App::Property",  # TODO
                 "The name of the raytracing engine to use"),
@@ -69,7 +69,7 @@ class Project(BaseFeature):
 
         "DelayedBuild": Prop(
             "App::PropertyBool",
-            "Render",
+            "Output",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "If true, the views will be updated on render only"),
@@ -78,7 +78,7 @@ class Project(BaseFeature):
 
         "Template": Prop(
             "App::PropertyString",
-            "Render",
+            "Base",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The template to be used by this rendering "
@@ -115,7 +115,7 @@ class Project(BaseFeature):
 
         "GroundPlane": Prop(
             "App::PropertyBool",
-            "Render",
+            "Ground Plane",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "If true, a default ground plane will be added to the scene"),
@@ -124,7 +124,7 @@ class Project(BaseFeature):
 
         "GroundPlaneZ": Prop(
             "App::PropertyDistance",
-            "Render",
+            "Ground Plane",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "Z position for ground plane"),
@@ -133,7 +133,7 @@ class Project(BaseFeature):
 
         "GroundPlaneColor": Prop(
             "App::PropertyColor",
-            "Render",
+            "Ground Plane",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "Ground plane color"),
@@ -142,7 +142,7 @@ class Project(BaseFeature):
 
         "GroundPlaneSizeFactor": Prop(
             "App::PropertyFloat",
-            "Render",
+            "Ground Plane",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "Ground plane size factor"),
@@ -151,7 +151,7 @@ class Project(BaseFeature):
 
         "OutputImage": Prop(
             "App::PropertyFile",
-            "Render",
+            "Output",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The image saved by this render"),
@@ -160,7 +160,7 @@ class Project(BaseFeature):
 
         "OpenAfterRender": Prop(
             "App::PropertyBool",
-            "Render",
+            "Output",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "If true, the rendered image is opened in FreeCAD after "
@@ -170,7 +170,7 @@ class Project(BaseFeature):
 
         "LinearDeflection": Prop(
             "App::PropertyFloat",
-            "Render",
+            "Mesher",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "Linear deflection for the mesher: "
@@ -181,7 +181,7 @@ class Project(BaseFeature):
 
         "AngularDeflection": Prop(
             "App::PropertyFloat",
-            "Render",
+            "Mesher",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "Angular deflection for the mesher: "
@@ -211,6 +211,7 @@ class Project(BaseFeature):
         """Complete the operation of internal _set_properties (callback)."""
         if "Group" not in fpo.PropertiesList:
             fpo.addExtension("App::GroupExtensionPython", self)
+        fpo.setEditorMode("Group", 2)
 
     def onChanged(self, obj, prop):  # pylint: disable=no-self-use
         """Respond to property changed event (callback).
