@@ -49,214 +49,168 @@ from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, set_cam_from_coin_string
+from Render.base import BaseFeature, Prop
 
 
-class Project:
+class Project(BaseFeature):
     """A rendering project."""
 
-    # Related FeaturePython object has to be stored in a class variable,
-    # (not in an instance variable...), otherwise it causes trouble in
-    # serialization...
-    _fpos = dict()
+    VIEWPROVIDER = "ViewProviderProject"
 
-    def __init__(self, obj):
-        """Initialize Project class."""
-        obj.Proxy = self
-        self.set_properties(obj)
+    PROPERTIES = {
+        "Renderer": Prop(
+            "App::PropertyString",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",  # TODO
+                "The name of the raytracing engine to use"),
+            "",
+            0),
 
-    @property
-    def fpo(self):
-        """Get underlying FeaturePython object."""
-        return self._fpos[id(self)]
+        "DelayedBuild": Prop(
+            "App::PropertyBool",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "If true, the views will be updated on render only"),
+            True,
+            0),
 
-    @fpo.setter
-    def fpo(self, new_fpo):
-        """Set underlying FeaturePython object."""
-        self._fpos[id(self)] = new_fpo
+        "Template": Prop(
+            "App::PropertyString",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The template to be used by this rendering "
+                "(use Project's context menu to modify)"),
+            "",
+            1),
 
-    def set_properties(self, obj):
-        """Set underlying FeaturePython object's properties.
+        "PageResult": Prop(
+            "App::PropertyFileIncluded",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The result file to be sent to the renderer"),
+            "",
+            2),
 
-        Args:
-            obj -- FeaturePython Object related to this project
-        """
-        self.fpo = obj
-        self.__module__ = "Render"
+        "RenderWidth": Prop(
+            "App::PropertyInteger",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The width of the rendered image in pixels"),
+            App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth", 800),  # TODO Create constant PARAMS=App.ParamGet... in constant.py
+            0),
 
-        if "Renderer" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyString",
-                "Renderer",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "The name of the raytracing engine to use"))
+        "RenderHeight": Prop(
+            "App::PropertyInteger",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The height of the rendered image in pixels"),
+            App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight", 600),  # TODO Create constant PARAMS=App.ParamGet... in constant.py
+            0),
 
-        if "DelayedBuild" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyBool",
-                "DelayedBuild",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "If true, the views will be updated on render only"))
-            obj.DelayedBuild = True
+        "GroundPlane": Prop(
+            "App::PropertyBool",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "If true, a default ground plane will be added to the scene"),
+            False,
+            0),
 
-        if "Template" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyString",
-                "Template",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "The template to be used by this rendering "
-                    "(use Project's context menu to modify)"))
-            obj.setEditorMode("Template", 1)
+        "GroundPlaneZ": Prop(
+            "App::PropertyDistance",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Z position for ground plane"),
+            0,
+            0),
 
-        if "PageResult" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyFileIncluded",
-                "PageResult",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "The result file to be sent to the renderer"))
-        obj.setEditorMode("PageResult", 2)
+        "GroundPlaneColor": Prop(
+            "App::PropertyColor",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Ground plane color"),
+            (0.8, 0.8, 0.8),
+            0),
 
-        if "Group" not in obj.PropertiesList:
-            obj.addExtension("App::GroupExtensionPython", self)
+        "GroundPlaneSizeFactor": Prop(
+            "App::PropertyFloat",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Ground plane size factor"),
+            1.0,
+            0),
 
-        if "RenderWidth" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyInteger",
-                "RenderWidth",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "The width of the rendered image in pixels"))
-            parname = "User parameter:BaseApp/Preferences/Mod/Render"
-            obj.RenderWidth = App.ParamGet(parname).GetInt("RenderWidth", 800)
+        "OutputImage": Prop(
+            "App::PropertyFile",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The image saved by this render"),
+            "",
+            0),
 
-        if "RenderHeight" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyInteger",
-                "RenderHeight",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "The height of the rendered image in pixels"))
-            par = "User parameter:BaseApp/Preferences/Mod/Render"
-            obj.RenderHeight = App.ParamGet(par).GetInt("RenderHeight", 600)
+        "OpenAfterRender": Prop(
+            "App::PropertyBool",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "If true, the rendered image is opened in FreeCAD after "
+                "the rendering is finished"),
+            True,
+            0),
 
-        if "GroundPlane" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyBool",
-                "GroundPlane",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "If true, a default ground plane will be added to the "
-                    "scene"))
-            obj.GroundPlane = False
+        "LinearDeflection": Prop(
+            "App::PropertyFloat",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Linear deflection for the mesher: "
+                "The maximum linear deviation of a mesh section from the "
+                "surface of the object."),
+            0.1,
+            0),
 
-        if "GroundPlaneZ" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyDistance",
-                "GroundPlaneZ",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "Z position for ground plane"))
-            obj.GroundPlaneZ = 0
+        "AngularDeflection": Prop(
+            "App::PropertyFloat",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Angular deflection for the mesher: "
+                "The maximum angular deviation from one mesh section to "
+                "the next, in radians. This setting is used when meshing "
+                "curved surfaces."),
+            math.pi / 6,
+            0),
 
-        if "GroundPlaneColor" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyColor",
-                "GroundPlaneColor",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "Ground plane color"))
-            obj.GroundPlaneColor = (0.8, 0.8, 0.8)
+        "TransparencySensitivity": Prop(
+            "App::PropertyIntegerConstraint",
+            "Render",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Overweigh transparency in rendering "
+                "(0=None (default), 10=Very high)."
+                "When this parameter is set, low transparency ratios will "
+                "be rendered more transparent. NB: This parameter affects "
+                "only implicit materials (generated via Shape "
+                "Appearance), not explicit materials (defined via Material"
+                " property)."),
+            (0, 0, 10, 1),
+            0),
+    }
 
-        if "GroundPlaneSizeFactor" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyFloat",
-                "GroundPlaneSizeFactor",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "Ground plane size factor"))
-            obj.GroundPlaneSizeFactor = 1.0
-
-        if "OutputImage" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyFile",
-                "OutputImage",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "The image saved by this render"))
-
-        if "OpenAfterRender" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyBool",
-                "OpenAfterRender",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "If true, the rendered image is opened in FreeCAD after "
-                    "the rendering is finished"))
-            obj.OpenAfterRender = True
-
-        if "LinearDeflection" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyFloat",
-                "LinearDeflection",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "Linear deflection for the mesher: "
-                    "The maximum linear deviation of a mesh section from the "
-                    "surface of the object."))
-            obj.LinearDeflection = 0.1
-
-        if "AngularDeflection" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyFloat",
-                "AngularDeflection",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "Angular deflection for the mesher: "
-                    "The maximum angular deviation from one mesh section to "
-                    "the next, in radians. This setting is used when meshing "
-                    "curved surfaces."))
-            obj.AngularDeflection = math.pi / 6
-
-        if "TransparencySensitivity" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyIntegerConstraint",
-                "TransparencySensitivity",
-                "Render",
-                QT_TRANSLATE_NOOP(
-                    "App::Property",
-                    "Overweigh transparency in rendering "
-                    "(0=None (default), 10=Very high)."
-                    "When this parameter is set, low transparency ratios will "
-                    "be rendered more transparent. NB: This parameter affects "
-                    "only implicit materials (generated via Shape "
-                    "Appearance), not explicit materials (defined via Material"
-                    " property)."))
-            obj.TransparencySensitivity = (0, 0, 10, 1)
-
-    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
-        """Respond to document restoration event (callback)."""
-        self.set_properties(obj)
-
-    def execute(self, obj):  # pylint: disable=no-self-use
-        """Respond to document recomputation event (callback, mandatory)."""
-        return True
+    def on_set_properties_cb(self, fpo):
+        """Complete the operation of internal _set_properties (callback)."""
+        if "Group" not in fpo.PropertiesList:
+            fpo.addExtension("App::GroupExtensionPython", self)
 
     def onChanged(self, obj, prop):  # pylint: disable=no-self-use
         """Respond to property changed event (callback).
@@ -270,38 +224,14 @@ class Project:
         if prop == "Renderer":
             obj.PageResult = ""
 
-    @staticmethod
-    def create(document, renderer, template=""):
-        """Create a new rendering project (factory method).
+    def on_create_cb(self, fpo, viewp, **kwargs):
+        """Complete the operation of 'create' (callback)."""
+        rdr = str(kwargs["renderer"])
+        template = str(kwargs.get("template", ""))
 
-        This method creates a new rendering project in a given FreeCAD
-        Document.
-        Providing a Document is mandatory: no rendering project should be
-        created "off-ground".
-        The method also creates the FeaturePython and the ViewProviderProject
-        objects related to the new rendering project.
-
-        Args:
-        ----------
-        document -- the document where the project is to be created
-        renderer -- the path to the renderer module to associate with
-            project
-        template -- (opt.) the path to the rendering template to associate with
-            project
-
-        Returns: the newly created Project, the related FeaturePython object
-                 and the related ViewProviderProject
-        """
-        rdr = str(renderer)
-        assert document, "Document must not be None"
-        project_fpo = document.addObject("App::FeaturePython",
-                                         "%sProject" % rdr)
-        project = Project(project_fpo)
-        project_fpo.Label = "%s Project" % rdr
-        project_fpo.Renderer = rdr
-        project_fpo.Template = str(template)
-        viewp = ViewProviderProject(project_fpo.ViewObject)
-        return project, project_fpo, viewp
+        fpo.Label = "%s Project" % rdr
+        fpo.Renderer = rdr
+        fpo.Template = str(template)
 
     def write_groundplane(self, renderer):
         """Generate a ground plane rendering string for the scene.
