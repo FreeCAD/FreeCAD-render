@@ -78,9 +78,9 @@ class BaseFeature():
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
-        self.on_set_properties(fpo)
+        self.on_set_properties_cb(fpo)
 
-    def on_set_properties(self, fpo):  # TODO Put cb in name? (pylint)
+    def on_set_properties_cb(self, fpo):
         """Complete the operation of internal _set_properties (callback).
 
         This method is a hook for sub-class to complete properties setting,
@@ -142,11 +142,11 @@ class BaseFeature():
             trace = sys.exc_info()[2]
             raise ValueError(msg).with_traceback(trace) from original_exc
         viewp =viewp_class(fpo.ViewObject)
-        obj.on_create(fpo, viewp)
+        obj.on_create_cb(fpo, viewp)
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
 
-    def on_create(self, fpo, viewp):
+    def on_create_cb(self, fpo, viewp):
         """Complete the operation of 'create' (callback).
 
         This method is a hook for subclass to complete object creation,

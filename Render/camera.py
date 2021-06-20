@@ -145,7 +145,7 @@ class Camera(BaseFeature):
     }
     # ~FeaturePython object properties
 
-    def on_create(self, fpo, viewp):
+    def on_create_cb(self, fpo, viewp):
         """Complete 'create' (callback)."""
         if App.GuiUp:
             viewp.set_camera_from_gui()
