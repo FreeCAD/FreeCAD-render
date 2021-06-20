@@ -24,18 +24,19 @@
 
 import os
 import re
+from pathlib import Path
 
 import FreeCAD as App
 
-# Paths to GUI resources
-# This is for InitGui.py because it cannot import os
-WBDIR = os.path.dirname(__file__)  # Workbench root directory
-RDRDIR = os.path.join(WBDIR, "renderers")
-ICONDIR = os.path.join(WBDIR, "resources", "icons")
+# Paths
+PKGDIR = os.path.dirname(__file__)  # Package directory (=this file directory)
+WBDIR = os.path.dirname(PKGDIR)   # Workbench root directory
+RDRDIR = os.path.join(PKGDIR, "renderers")
+ICONDIR = os.path.join(PKGDIR, "resources", "icons")
 TEMPLATEDIR = os.path.join(WBDIR, "templates")
-TRANSDIR = os.path.join(WBDIR, "translations")
-PREFPAGE = os.path.join(WBDIR, "resources", "ui", "RenderSettings.ui")
-TASKPAGE = os.path.join(WBDIR, "resources", "ui", "RenderMaterial.ui")
+TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
+PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
+TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
 
 # Renderers lists
 RENDERERS = {x.group(1)
