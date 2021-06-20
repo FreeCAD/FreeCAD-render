@@ -31,7 +31,6 @@ Light objects allow to illuminate rendering scenes.
 # ===========================================================================
 
 
-from collections import namedtuple
 from types import SimpleNamespace
 from os import path
 import itertools
