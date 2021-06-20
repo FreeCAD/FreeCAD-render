@@ -27,7 +27,7 @@ import sys
 
 import FreeCAD as App
 
-Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"])
+Prop = namedtuple("Prop", ["Type", "Doc", "Default", "EditorMode"])
 
 
 class BaseFeature():
@@ -75,7 +75,7 @@ class BaseFeature():
 
         for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
             spec = self.PROPERTIES[name]  # TODO Cast to prop
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            prop = fpo.addProperty(spec.Type, name, self.Type, spec.Doc, 0)
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
         self.on_set_properties(fpo)
