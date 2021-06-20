@@ -73,7 +73,6 @@ class BaseFeature():
         self.__module__ = self.NAMESPACE
         if not self.TYPE:
             self.TYPE = self.__class__.__name__
-        self.type = self.TYPE  # TODO Should be Type?
         fpo.Proxy = self
 
         for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
@@ -83,7 +82,7 @@ class BaseFeature():
             fpo.setEditorMode(name, spec.EditorMode)
         self.on_set_properties(fpo)
 
-    def on_set_properties(self, fpo):
+    def on_set_properties(self, fpo):  # TODO Put cb in name? (pylint)
         """Complete the operation of internal _set_properties (callback).
 
         This method is a hook for sub-class to complete properties setting,
@@ -99,6 +98,16 @@ class BaseFeature():
     def fpo(self, new_fpo):
         """Set underlying FeaturePython object."""
         self._fpos[id(self)] = new_fpo
+
+    @property
+    def type(self):
+        """Get 'type' property."""
+        return self.TYPE
+
+    @property
+    def Type(self):
+        """Get 'Type' property."""
+        return self.TYPE
 
     @classmethod
     def create(cls, document=None):
