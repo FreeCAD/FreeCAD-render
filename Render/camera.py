@@ -75,6 +75,7 @@ class Camera(BaseFeature):
     PROPERTIES = {
         "Projection": Prop(
             "App::PropertyEnumeration",
+            "Camera",
             QT_TRANSLATE_NOOP("Render",
                               "Type of projection: Perspective/Orthographic"),
             ("Perspective", "Orthographic"),
@@ -82,6 +83,7 @@ class Camera(BaseFeature):
 
         "Placement": Prop(
             "App::PropertyPlacement",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Placement of camera"),
             App.Placement(App.Vector(0, 0, 0),
                           App.Vector(0, 0, 1),
@@ -90,42 +92,49 @@ class Camera(BaseFeature):
 
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "(See Coin documentation)"),
             VIEWPORTMAPPINGENUM,
             0),
 
         "AspectRatio": Prop(
             "App::PropertyFloat",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Ratio width/height of the camera."),
             1.0,
             0),
 
         "NearDistance": Prop(
             "App::PropertyDistance",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Near distance, for clipping"),
             0.0,
             0),
 
         "FarDistance": Prop(
             "App::PropertyDistance",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Far distance, for clipping"),
             200.0,
             0),
 
         "FocalDistance": Prop(
             "App::PropertyDistance",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Focal distance"),
             100.0,
             0),
 
         "Height": Prop(
             "App::PropertyLength",
+            "Camera",
             QT_TRANSLATE_NOOP("Render", "Height, for orthographic camera"),
             5.0,
             0),
 
         "HeightAngle": Prop(
             "App::PropertyAngle",
+            "Camera",
             QT_TRANSLATE_NOOP("Render",
                               "Height angle, for perspective camera, in "
                               "degrees. Important: This value will be sent as "
