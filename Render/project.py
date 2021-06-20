@@ -44,7 +44,7 @@ try:
 except ImportError:
     pass
 
-from Render.constants import TEMPLATEDIR, ICONDIR
+from Render.constants import TEMPLATEDIR, ICONDIR, PARAMS
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
@@ -101,7 +101,7 @@ class Project(BaseFeature):
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The width of the rendered image in pixels"),
-            App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderWidth", 800),  # TODO Create constant PARAMS=App.ParamGet... in constant.py
+            PARAMS.GetInt("RenderWidth", 800),
             0),
 
         "RenderHeight": Prop(
@@ -110,7 +110,7 @@ class Project(BaseFeature):
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The height of the rendered image in pixels"),
-            App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render").GetInt("RenderHeight", 600),  # TODO Create constant PARAMS=App.ParamGet... in constant.py
+            PARAMS.GetInt("RenderHeight", 600),
             0),
 
         "GroundPlane": Prop(
@@ -439,8 +439,7 @@ class Project(BaseFeature):
         App.ActiveDocument.recompute()
 
         # Fetch the rendering parameters
-        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-        prefix = params.GetString("Prefix", "")
+        prefix = PARAMS.GetString("Prefix", "")
         if prefix:
             prefix += " "
 
