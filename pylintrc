@@ -138,7 +138,8 @@ additional-builtins=
 # name must start or end with one of those strings.
 # Note: here we list all FreeCAD framework callbacks methods, plus external
 # renderers expected methods
-callbacks=GetResources,
+callbacks=cb_, _cb,
+          GetResources,
           Activated,
           onDocumentRestored,
           onChanged,
