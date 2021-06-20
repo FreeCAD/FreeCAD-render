@@ -776,10 +776,10 @@ class ViewProviderSunskyLight:
 # ===========================================================================
 
 
-class ImageLight:
+class ImageLight(BaseFeature):
     """An image-based light."""
 
-    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+    VIEWPROVIDER = "ViewProviderImageLight"
 
     # FeaturePython object properties
     PROPERTIES = {
@@ -789,63 +789,10 @@ class ImageLight:
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Image file (included in document)"),
-            ""),
+            "",
+            0),
     }
     # ~FeaturePython object properties
-
-    def __init__(self, fpo):
-        """Initialize ImageLight.
-
-        Args:
-            fpo -- A FeaturePython object created with FreeCAD.addObject.
-        """
-        self.type = "ImageLight"
-        fpo.Proxy = self
-        self.set_properties(fpo)
-
-    @classmethod
-    def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties."""
-        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = cls.PROPERTIES[name]
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-
-    @staticmethod
-    def create(document=None):
-        """Create a ImageLight object in a document.
-
-        Factory method to create a new image light object.
-        The light is created into the active document (default).
-        Optionally, it is possible to specify a target document, in that case
-        the light is created in the given document.
-
-        This method also create the FeaturePython and the
-        ViewProviderImageLight related objects.
-
-        Args:
-            document -- The document where to create image light (optional).
-
-        Returns:
-            The newly created ImageLight, FeaturePython and
-            ViewProviderImageLight objects
-        """
-        doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("App::FeaturePython", "ImageLight")
-        lgt = ImageLight(fpo)
-        viewp = ViewProviderImageLight(fpo.ViewObject)
-        App.ActiveDocument.recompute()
-        return lgt, fpo, viewp
-
-    def onDocumentRestored(self, fpo):
-        """Respond to document restoration event (callback)."""
-        self.type = "ImageLight"
-        fpo.Proxy = self
-        self.set_properties(fpo)
-
-    def execute(self, fpo):
-        # pylint: disable=no-self-use
-        """Respond to document recomputation event (callback, mandatory)."""
 
 
 class ViewProviderImageLight:
@@ -868,7 +815,7 @@ class ViewProviderImageLight:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
-        ImageLight.set_properties(self.fpo)
+        # ImageLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation
         # NB: Coin representation is blank, as Coin does not handle
