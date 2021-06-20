@@ -297,121 +297,59 @@ class ViewProviderPointLight:
 # ===========================================================================
 
 
-class AreaLight:
+class AreaLight(BaseFeature):
     """An area light."""
 
-    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+    VIEWPROVIDER = "ViewProviderAreaLight"
 
     # FeaturePython object properties
     PROPERTIES = {
         "Placement": Prop(
             "App::PropertyPlacement",
             "",
-            QT_TRANSLATE_NOOP("Render", "Placement of camera"),
+            QT_TRANSLATE_NOOP("Render", "Placement of light"),
             App.Placement(App.Vector(0, 0, 0),
                           App.Vector(0, 0, 1),
-                          0)),
+                          0),
+            0),
 
         "SizeU": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Size on U axis"),
-            4.0),
+            4.0,
+            0),
 
         "SizeV": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Size on V axis"),
-            2.0),
+            2.0,
+            0),
 
         "Color": Prop(
             "App::PropertyColor",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Color of light"),
-            (1.0, 1.0, 1.0)),
+            (1.0, 1.0, 1.0),
+            0),
 
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
-            60.0),
+            60.0,
+            0),
 
         "Transparent": Prop(
             "App::PropertyBool",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Area light transparency"),
-            False),
+            False,
+            0),
 
     }
     # ~FeaturePython object properties
-
-    _fpos = dict()  # FeaturePython objects
-
-    def __init__(self, fpo):
-        """Initialize AreaLight.
-
-        Args:
-            fpo -- A FeaturePython object created with FreeCAD.addObject.
-        """
-        self.type = "AreaLight"
-        fpo.Proxy = self
-        self.fpo = fpo
-        self.set_properties(fpo)
-
-    @property
-    def fpo(self):
-        """Get underlying FeaturePython object attribute."""
-        return self._fpos[id(self)]
-
-    @fpo.setter
-    def fpo(self, new_fpo):
-        """Set underlying FeaturePython object attribute."""
-        self._fpos[id(self)] = new_fpo
-
-    @classmethod
-    def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties."""
-        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = cls.PROPERTIES[name]
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-
-    @staticmethod
-    def create(document=None):
-        """Create an AreaLight object in a document.
-
-        Factory method to create a new arealight object.
-        The light is created into the active document (default).
-        Optionally, it is possible to specify a target document, in that case
-        the light is created in the given document.
-
-        This method also create the FeaturePython and the
-        ViewProvider related objects.
-
-        Args:
-            document -- The document where to create arealight (optional)
-
-        Returns:
-            The newly created PointLight, FeaturePython and
-            ViewProvider object
-        """
-        doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("App::FeaturePython", "AreaLight")
-        lgt = AreaLight(fpo)
-        viewp = ViewProviderAreaLight(fpo.ViewObject)
-        App.ActiveDocument.recompute()
-        return lgt, fpo, viewp
-
-    def onDocumentRestored(self, fpo):
-        """Respond to document restoration event (callback)."""
-        self.type = "AreaLight"
-        fpo.Proxy = self
-        self.fpo = fpo
-        self.set_properties(fpo)
-
-    def execute(self, fpo):
-        # pylint: disable=no-self-use
-        """Respond to document recomputation event (callback, mandatory)."""
 
     def point_at(self, point):
         """Make Area light point at a given target point.
@@ -461,7 +399,7 @@ class ViewProviderAreaLight:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
-        AreaLight.set_properties(self.fpo)
+        # AreaLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation, which is in 2 parts: a light,
         # and a geometry, the former being a point light, the latter being a
