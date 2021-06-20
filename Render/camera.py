@@ -68,8 +68,6 @@ class Camera(BaseFeature):
                            "ADJUST_CAMERA",
                            "LEAVE_ALONE")  # TODO Move out of class?
 
-    TYPE = "Camera"
-
     VIEWPROVIDER = "ViewProviderCamera"
 
     # FeaturePython object properties

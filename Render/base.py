@@ -41,12 +41,12 @@ class BaseFeature():
     """
 
     # These constants must be filled when subclassing (mandatory)
-    TYPE = ""  # The type of the object (str).
     VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
-    PROPERTIES = {}  # The properties of the object (dict)
+    PROPERTIES = {}  # The properties of the object (dict of Prop)
 
     # These constants must be filled when subclassing (optional)
-    NAMESPACE = "Render"  # The namespace where to search feature and viewprovider
+    NAMESPACE = "Render"  # The namespace where feature and viewprovider are
+    TYPE = ""  # The type of the object (str). If empty, default to class name
 
     # Internal variables, do not modify
     _fpos = dict()
@@ -71,10 +71,13 @@ class BaseFeature():
         """Set underlying FeaturePython object's properties."""
         self.fpo = fpo
         self.__module__ = self.NAMESPACE
+        if not self.TYPE:
+            self.TYPE = self.__class__.__name__
         self.type = self.TYPE  # TODO Should be Type?
         fpo.Proxy = self
+
         for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = self.PROPERTIES[name]
+            spec = self.PROPERTIES[name]  # TODO Cast to prop
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
@@ -121,7 +124,8 @@ class BaseFeature():
         doc = document if document else App.ActiveDocument
         assert doc, ("Cannot create object if no document is provided "
                      "and no document is active")
-        fpo = doc.addObject("App::FeaturePython", cls.TYPE)
+        _type = cls.TYPE if cls.TYPE else cls.__name__
+        fpo = doc.addObject("App::FeaturePython", _type)
         obj = cls(fpo)
         try:
             viewp_class = getattr(sys.modules[cls.NAMESPACE], cls.VIEWPROVIDER)
