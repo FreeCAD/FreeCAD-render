@@ -70,7 +70,7 @@ class Camera(BaseFeature):
 
     TYPE = "Camera"
 
-    VIEWPROVIDER = ViewProviderCamera
+    VIEWPROVIDER = "ViewProviderCamera"
 
     # FeaturePython object properties
     PROPERTIES = {

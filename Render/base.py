@@ -40,13 +40,15 @@ class BaseFeature():
     - Access to the FeaturePython related object, via 'fpo' property
     """
 
-    # TODO Add create factory method
+    # These constants must be filled when subclassing (mandatory)
+    TYPE = ""  # The type of the object (str).
+    VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
+    PROPERTIES = {}  # The properties of the object (dict)
 
-    MODULE = "Render"
-    TYPE = ""
-    VIEWPROVIDER = None
-    PROPERTIES = {}
+    # These constants must be filled when subclassing (optional)
+    NAMESPACE = "Render"  # The namespace where to search feature and viewprovider
 
+    # Internal variables, do not modify
     _fpos = dict()
 
     def __init__(self, fpo):
@@ -68,7 +70,7 @@ class BaseFeature():
     def _set_properties(self, fpo):
         """Set underlying FeaturePython object's properties."""
         self.fpo = fpo
-        self.__module__ = self.MODULE
+        self.__module__ = self.NAMESPACE
         self.type = self.TYPE  # TODO Should be Type?
         fpo.Proxy = self
         for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
@@ -104,8 +106,9 @@ class BaseFeature():
         Optionally, it is possible to specify a target document, in which case
         the object is created in the given document.
 
-        This method also create the FeaturePython and the ViewProviderCamera
-        related objects.
+        This method also create the FeaturePython and the ViewProvider related
+        objects. Please note that the ViewProvider class must exists in module
+        namespace.
 
         Args:
             document -- The document where to create the instance (optional,
@@ -121,12 +124,13 @@ class BaseFeature():
         fpo = doc.addObject("App::FeaturePython", cls.TYPE)
         obj = cls(fpo)
         try:
-            viewp = cls.VIEWPROVIDER(fpo.ViewObject)
-        except TypeError as original_exc:
+            viewp_class = getattr(sys.modules[cls.NAMESPACE], cls.VIEWPROVIDER)
+        except KeyError as original_exc:
             msg = "Bad {d}.VIEWPROVIDER value in '{d}' creation: '{v}'\n"
             msg = msg.format(d=cls.__name__, v=cls.VIEWPROVIDER)
             trace = sys.exc_info()[2]
             raise ValueError(msg).with_traceback(trace) from original_exc
+        viewp =viewp_class(fpo.ViewObject)
         obj.on_create(fpo, viewp)
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
