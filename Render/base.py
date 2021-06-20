@@ -74,7 +74,7 @@ class BaseFeature():
         fpo.Proxy = self
 
         for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = self.PROPERTIES[name]  # TODO Cast to prop
+            spec = Prop._make(self.PROPERTIES[name])
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
