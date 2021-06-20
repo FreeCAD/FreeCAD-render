@@ -44,6 +44,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.utils import translate
+from Render.base import BaseFeature, Prop
 
 
 # ===========================================================================
@@ -77,10 +78,10 @@ def make_star(subdiv=8, radius=1):
 # ===========================================================================
 
 
-class PointLight:
+class PointLight(BaseFeature):
     """A point light object."""
 
-    Prop = namedtuple('Prop', ['Type', 'Group', 'Doc', 'Default'])
+    VIEWPROVIDER = "ViewProviderPointLight"
 
     # FeaturePython object properties
     PROPERTIES = {
@@ -88,19 +89,22 @@ class PointLight:
             "App::PropertyVector",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Location of light"),
-            App.Vector(0, 0, 15)),
+            App.Vector(0, 0, 15),
+            0),
 
         "Color": Prop(
             "App::PropertyColor",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Color of light"),
-            (1.0, 1.0, 1.0)),
+            (1.0, 1.0, 1.0),
+            0),
 
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
-            60.0),
+            60.0,
+            0),
 
         "Radius": Prop(
             "App::PropertyLength",
@@ -108,64 +112,11 @@ class PointLight:
             QT_TRANSLATE_NOOP("Render", "Light representation radius.\n"
                                         "Note: This parameter has no impact "
                                         "on rendering"),
-            2.0),
+            2.0,
+            0),
 
     }
     # ~FeaturePython object properties
-
-    def __init__(self, fpo):
-        """Initialize PointLight.
-
-        Args:
-            fpo -- a FeaturePython object created with FreeCAD.addObject
-        """
-        self.type = "PointLight"
-        fpo.Proxy = self
-        self.set_properties(fpo)
-
-    @classmethod
-    def set_properties(cls, fpo):
-        """Set underlying FeaturePython object's properties."""
-        for name in cls.PROPERTIES.keys() - set(fpo.PropertiesList):
-            spec = cls.PROPERTIES[name]
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-
-    @staticmethod
-    def create(document=None):
-        """Create a PointLight object in a document.
-
-        Factory method to create a new pointlight object.
-        The light is created into the active document (default).
-        Optionally, it is possible to specify a target document, in which case
-        the light is created in the given document.
-
-        This method also creates the FeaturePython and the
-        ViewProviderPointLight related objects.
-
-        Args:
-            document -- The document where to create the pointlight (optional).
-
-        Returns:
-            The newly created PointLight, FeaturePython and
-            ViewProviderPointLight objects.
-        """
-        doc = document if document else App.ActiveDocument
-        fpo = doc.addObject("App::FeaturePython", "PointLight")
-        lgt = PointLight(fpo)
-        viewp = ViewProviderPointLight(fpo.ViewObject)
-        App.ActiveDocument.recompute()
-        return lgt, fpo, viewp
-
-    def onDocumentRestored(self, fpo):
-        """Respond to document restoration event (callback)."""
-        self.type = "PointLight"
-        fpo.Proxy = self
-        self.set_properties(fpo)
-
-    def execute(self, fpo):
-        # pylint: disable=no-self-use
-        """Respond to document recomputation event (callback, mandatory)."""
 
 
 class ViewProviderPointLight:
@@ -191,7 +142,7 @@ class ViewProviderPointLight:
         # pylint: disable=attribute-defined-outside-init
 
         self.fpo = vobj.Object
-        PointLight.set_properties(self.fpo)
+        # PointLight.set_properties(self.fpo)  # TODO Remove?
 
         # Here we create coin representation, which is in 2 parts: a light,
         # and a geometry (the latter being a lineset embedded inside a switch)
