@@ -184,6 +184,7 @@ class ViewProviderCamera:
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
         self.callback = None  # For point_at method
+        self.__module__ = "Render"
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -193,6 +194,7 @@ class ViewProviderCamera:
         """
         # pylint: disable=attribute-defined-outside-init
         self.fpo = vobj.Object
+        self.__module__ = "Render"
 
         # Here we create a coin representation
         self.coin = SimpleNamespace()
