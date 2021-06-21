@@ -130,6 +130,7 @@ class BaseFeature():
             The newly created Object, the FeaturePython and the
             ViewProvider objects.
         """
+        cls.pre_create_cb(**kwargs)
         doc = document if document else App.ActiveDocument
         assert doc, ("Cannot create object if no document is provided "
                      "and no document is active")
@@ -158,4 +159,17 @@ class BaseFeature():
         Params:
             fpo -- Related FeaturePython object
             viewp -- Related ViewProvider object
+            kwargs -- Keyword arguments
+        """
+
+    @classmethod
+    def pre_create_cb(cls, **kwargs):
+        """Precede the operation of 'create' (callback).
+
+        This method is a hook for subclass to precede object creation,
+        in addition to canonic 'create' mechanism. Subclass can override if
+        needed.
+
+        Params:
+            kwargs -- Keyword arguments
         """
