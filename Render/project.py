@@ -300,7 +300,7 @@ class Project(BaseFeature):
                     add_to_group(obj.Group, new_group)
                     success = True
                 if RendererHandler.is_renderable(obj):
-                    View.create(obj, group)
+                    View.create(source=obj, project=group)
                     success = True
                 if not success:
                     msg = translate(
