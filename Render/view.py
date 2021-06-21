@@ -24,7 +24,7 @@
 """This module implements the rendering view object for Render workbench.
 
 The rendering view designates a FreeCad object to be rendered as part of a
-rendering project
+rendering project.
 """
 
 
@@ -33,80 +33,75 @@ import os
 from PySide.QtCore import QT_TRANSLATE_NOOP
 
 from Render.constants import FCDVERSION, ICONDIR
+from Render.base import BaseFeature, Prop
 from Render.rdrhandler import RendererHandler
 
 
-class View:
-    """A rendering view of a FreeCAD object."""
+class View(BaseFeature):
+    """A rendering view of a FreeCAD object.
 
-    # Related FeaturePython object has to be stored in a class variable,
-    # (not in an instance variable...), otherwise it causes trouble in
-    # serialization...
-    _fpos = dict()
+    'create' factory method should be provided a project and a source (the
+    object for which the view is created), via keyword arguments.
+    Please note that providing a project is mandatory to create a view: no
+    rendering view should be created "off-ground".
+    """
 
-    def __init__(self, obj, xlink=False):
-        """Initialize view.
+    VIEWPROVIDER = "ViewProviderView"
 
-        Args:
-        obj -- FreeCAD underlying object
-        xlink -- flag to indicate if the source property must be created as a
-                 App::PropertyLink (source object inside document) or
-                 App::PropertyXLink (source object outside document, only for
-                 FreeCAD >= 0.19)
-        """
-        obj.Proxy = self
-        self.set_properties(obj, xlink)
+    PROPERTIES = {
+        "Source": Prop(
+            "App::PropertyLink",
+            "Render",
+            QT_TRANSLATE_NOOP("App::Property",
+                              "The source object of this view"),
+            None,
+            0),
 
-    @property
-    def fpo(self):
-        """Get underlying FeaturePython object."""
-        return self._fpos[id(self)]
+        "Material": Prop(
+            "App::PropertyLink",
+            "Render",
+            QT_TRANSLATE_NOOP("App::Property",
+                              "The material of this view"),
+            None,
+            0),
 
-    @fpo.setter
-    def fpo(self, new_fpo):
-        """Set underlying FeaturePython object."""
-        self._fpos[id(self)] = new_fpo
+        "ViewResult": Prop(
+            "App::PropertyString",
+            "Render",
+            QT_TRANSLATE_NOOP("App::Property",
+                              "The rendering output of this view"),
+            "",
+            0)
+    }
 
-    def set_properties(self, obj, xlink=False):
-        """Set underlying FeaturePython object's properties.
+    @classmethod
+    def pre_create_cb(cls, **kwargs):
+        """Precede the operation of 'create' (callback)."""
+        project = kwargs["project"]  # Note: 'project' kw argument is mandatory
+        source = kwargs["source"]  # Note: 'source' kw argument is mandatory
+        version = FCDVERSION
+        assert project.Document == source.Document or version >= ("0", "19"),\
+            "Unable to create View: Project and Object not in same document"
 
-        Args:
-            obj -- FeaturePython Object related to this project
-        """
-        self.fpo = obj
-        self.__module__ = "Render"
-
-        if "Source" not in obj.PropertiesList:
-            hi_version = FCDVERSION >= ("0", "19")
-            assert not (xlink and not hi_version),\
-                ("Error with View: FreeCAD version is < 0.19 whereas source "
-                 "object is external to document")
-            obj.addProperty(
-                "App::PropertyXLink" if xlink else "App::PropertyLink",
-                "Source",
-                "Render",
-                QT_TRANSLATE_NOOP("App::Property",
-                                  "The source object of this view"))
-
-        if "Material" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyLink",
-                "Material",
-                "Render",
-                QT_TRANSLATE_NOOP("App::Property",
-                                  "The material of this view"))
-
-        if "ViewResult" not in obj.PropertiesList:
-            obj.addProperty(
-                "App::PropertyString",
-                "ViewResult",
-                "Render",
-                QT_TRANSLATE_NOOP("App::Property",
-                                  "The rendering output of this view"))
-
-    def onDocumentRestored(self, obj):  # pylint: disable=no-self-use
-        """Respond to document restoration event (callback)."""
-        self.set_properties(obj)
+    def on_create_cb(self, fpo, viewp, **kwargs):
+        """Complete 'create' (callback)."""
+        project = kwargs["project"]
+        source = kwargs["source"]
+        fpo.Label = View.view_label(source, project)
+        if project.Document != source.Document:
+            # Cross-link: Transform Source into App::PropertyXLink
+            name = "Source"
+            fpo.removeProperty(name)
+            spec = self.PROPERTIES[name]
+            prop = fpo.addProperty("App::PropertyXLink",
+                                   name,
+                                   spec.Group,
+                                   spec.Doc,
+                                   0)
+            setattr(prop, name, spec.Default)
+            fpo.setEditorMode(name, spec.EditorMode)
+        fpo.Source = source
+        project.addObject(fpo)
 
     def execute(self, obj):  # pylint: disable=no-self-use
         """Respond to document recomputation event (callback, mandatory).
@@ -149,38 +144,6 @@ class View:
         fmt = "{o}Group@{p}" if is_group else "{o}@{p}"
         res = fmt.format(o=obj_label, p=proj_label)
         return res
-
-    @staticmethod
-    def create(fcd_obj, project):
-        """Create a new rendering object in a given project (factory method).
-
-        This method creates a new rendering object in a given rendering
-        project, for a given FreeCAD object (of any type: Mesh, Part...).
-        Please note that providing a Project is mandatory: no rendering
-        view should be created "off-ground". Moreover, project's document
-        and FreeCAD object document should be the same.
-        The method also creates the FeaturePython and the ViewProviderView
-        objects related to the new rendering view.
-
-        Args:
-            fcdobj -- The object for which the rendering view is to be created
-            project -- The rendering project in which the view is to be created
-
-        Returns:
-            The newly created View, the related FeaturePython object and the
-            related ViewProviderView object
-        """
-        doc = project.Document
-        assert doc == fcd_obj.Document or FCDVERSION >= ("0", "19"),\
-            "Unable to create View: Project and Object not in same document"
-        fpo = doc.addObject("App::FeaturePython", "%sView" % fcd_obj.Name)
-        fpo.Label = View.view_label(fcd_obj, project)
-        xlink = doc != fcd_obj.Document
-        view = View(fpo, xlink)
-        fpo.Source = fcd_obj
-        project.addObject(fpo)
-        viewp = ViewProviderView(fpo.ViewObject)
-        return view, fpo, viewp
 
 
 class ViewProviderView:
