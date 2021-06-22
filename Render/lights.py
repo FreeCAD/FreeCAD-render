@@ -44,6 +44,7 @@ import FreeCADGui as Gui
 
 from Render.utils import translate
 from Render.base import BaseFeature, Prop
+from Render.constants import ICONDIR
 
 
 # ===========================================================================
@@ -220,7 +221,7 @@ class ViewProviderPointLight:
     def getIcon(self):
         # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return path.join(path.dirname(__file__), "icons", "PointLight.svg")
+        return path.join(ICONDIR, "PointLight.svg")
 
     def onChanged(self, vpdo, prop):
         """Respond to property changed event (callback).
@@ -479,7 +480,7 @@ class ViewProviderAreaLight:
     def getIcon(self):
         # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return path.join(path.dirname(__file__), "icons", "AreaLight.svg")
+        return path.join(ICONDIR, "AreaLight.svg")
 
     def onChanged(self, vpdo, prop):
         """Respond to property changed event (callback).
@@ -724,7 +725,7 @@ class ViewProviderSunskyLight:
     def getIcon(self):
         # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return path.join(path.dirname(__file__), "icons", "SunskyLight.svg")
+        return path.join(ICONDIR, "SunskyLight.svg")
 
     def onChanged(self, vpdo, prop):
         """Respond to property changed event (callback).
@@ -863,7 +864,7 @@ class ViewProviderImageLight:
     def getIcon(self):
         # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return path.join(path.dirname(__file__), "icons", "ImageLight.svg")
+        return path.join(ICONDIR, "ImageLight.svg")
 
     def __getstate__(self):
         """Provide data representation for object."""
