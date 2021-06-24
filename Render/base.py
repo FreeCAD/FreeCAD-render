@@ -24,13 +24,18 @@
 
 from collections import namedtuple
 import sys
+import os
 
 import FreeCAD as App
+from PySide.QtGui import QAction, QIcon
+from PySide.QtCore import QObject, SIGNAL
+
+from Render.constants import ICONDIR
 
 Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"])
 
 
-class BaseFeature():
+class BaseFeature:
     """A base class for FreeCAD Feature.
 
     This base is to be used for workbench scripted objects.
@@ -132,8 +137,10 @@ class BaseFeature():
         """
         cls.pre_create_cb(**kwargs)
         doc = document if document else App.ActiveDocument
-        assert doc, ("Cannot create object if no document is provided "
-                     "and no document is active")
+        assert doc, (
+            "Cannot create object if no document is provided "
+            "and no document is active"
+        )
         _type = cls.TYPE if cls.TYPE else cls.__name__
         fpo = doc.addObject("App::FeaturePython", _type)
         obj = cls(fpo)
@@ -144,7 +151,7 @@ class BaseFeature():
             msg = msg.format(d=cls.__name__, v=cls.VIEWPROVIDER)
             trace = sys.exc_info()[2]
             raise ValueError(msg).with_traceback(trace) from original_exc
-        viewp =viewp_class(fpo.ViewObject)
+        viewp = viewp_class(fpo.ViewObject)
         obj.on_create_cb(fpo, viewp, **kwargs)
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
@@ -173,3 +180,123 @@ class BaseFeature():
         Params:
             kwargs -- Keyword arguments
         """
+
+
+CtxMenuItem = namedtuple("CtxMenuItem", ["name", "icon", "action"])
+
+
+class BaseViewProvider:
+    """A base class for FreeCAD ViewProvider.
+
+    This base is to be used for workbench scripted objects.
+    """
+
+    ICON = ""
+    CONTEXT_MENU = []  # An iterable of CtxMenuItem
+    ON_CHANGED = {}
+    ON_UPDATE_DATA = {}
+
+    def setupContextMenu(self, vobj, menu):
+        """Set up the object's context menu in GUI (callback)."""
+        for item in self.CONTEXT_MENU:
+            if item.icon:
+                icon = QIcon(os.path.join(ICONDIR, item.icon))
+                action = QAction(icon, item.name, menu)
+            else:
+                action = QAction(item.name, menu)
+            QObject.connect(action, SIGNAL("triggered()"), item.action)
+            menu.addAction(action)
+
+    def __init__(self, vobj):
+        """Initialize View Provider.
+
+        Args:
+            vobj -- Related ViewProviderDocumentObject
+        """
+        vobj.Proxy = self
+        self.fpo = vobj.Object  # Related FeaturePython object
+        self.__module__ = "Render"
+
+    def attach(self, vobj):
+        """Respond to created/restored object event (callback).
+
+        Args:
+            vobj -- Related ViewProviderDocumentObject
+        """
+        self.fpo = vobj.Object  # Related FeaturePython object
+        self.__module__ = "Render"
+        self.on_attach_cb(vobj)
+
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback).
+
+        Subclasses can override this method.
+        """
+
+    def getIcon(self):
+        # pylint: disable=no-self-use
+        """Return the icon which will appear in the tree view (callback)."""
+        return os.path.join(ICONDIR, self.ICON)
+
+    def onChanged(self, vpdo, prop):
+        """Respond to property changed event (callback).
+
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            vpdo -- related ViewProviderDocumentObject (where properties are
+                stored)
+            prop -- property name (as a string)
+        """
+        try:
+            method = self.ON_CHANGED[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            method(self, vpdo)
+
+    def updateData(self, fpo, prop):
+        """Respond to FeaturePython's property changed event (callback).
+
+        This code is executed when a property of the underlying FeaturePython
+        object is changed.
+
+        Args:
+            fpo -- related FeaturePython object
+            prop -- property name
+        """
+        try:
+            method = self.ON_UPDATE_DATA[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            method(self, fpo)
+
+    def __getstate__(self):
+        """Provide data representation for object."""
+        return None
+
+    def __setstate__(self, state):
+        """Restore object state from data representation."""
+        return None
+
+    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
+        """Return a list of display modes (callback)."""
+        return ["Default"]
+
+    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
+        """Return the name of the default display mode (callback).
+
+        The display mode must be defined in getDisplayModes.
+        """
+        return "Default"
+
+    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
+        """Set the display mode (callback).
+
+        Map the display mode defined in attach with those defined in
+        getDisplayModes. Since they have the same names nothing needs to be
+        done.
+        """
+        return mode
