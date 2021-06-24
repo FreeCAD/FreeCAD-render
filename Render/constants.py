@@ -24,7 +24,6 @@
 
 import os
 import re
-from pathlib import Path
 
 import FreeCAD as App
 
