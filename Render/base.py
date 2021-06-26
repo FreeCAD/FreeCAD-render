@@ -35,7 +35,54 @@ from Render.constants import ICONDIR
 Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"])
 
 
-class BaseFeature:
+class InterfaceBaseFeature:
+    """An interface to base class for FreeCAD scripted objects (BaseFeature).
+
+    This class lists methods and properties that can/should be overriden by
+    subclasses.
+    """
+    # These constants must be overriden when subclassing (mandatory)
+    VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
+    PROPERTIES = {}  # The properties of the object (dict of Prop)
+
+    # These constants can be overriden when subclassing (optional)
+    NAMESPACE = "Render"  # The namespace where feature and viewprovider are
+    TYPE = ""  # The type of the object (str). If empty, default to class name
+
+    def on_set_properties_cb(self, fpo):
+        """Complete the operation of internal _set_properties (callback).
+
+        This method is a hook for sub-class to complete properties setting,
+        in addition to canonic _set_properties mechanism.
+        """
+
+    def on_create_cb(self, fpo, viewp, **kwargs):
+        """Complete the operation of 'create' (callback).
+
+        This method is a hook for subclass to complete object creation,
+        in addition to canonic 'create' mechanism. Subclass can override if
+        needed.
+
+        Params:
+            fpo -- Related FeaturePython object
+            viewp -- Related ViewProvider object
+            kwargs -- Keyword arguments
+        """
+
+    @classmethod
+    def pre_create_cb(cls, **kwargs):
+        """Precede the operation of 'create' (callback).
+
+        This method is a hook for subclass to precede object creation,
+        in addition to canonic 'create' mechanism. Subclass can override if
+        needed.
+
+        Params:
+            kwargs -- Keyword arguments
+        """
+
+
+class BaseFeature(InterfaceBaseFeature):
     """A base class for FreeCAD Feature.
 
     This base is to be used for workbench scripted objects.
@@ -46,14 +93,6 @@ class BaseFeature:
     - Factory method 'create' to generate new instances, along with view
       providers
     """
-
-    # These constants must be overriden when subclassing (mandatory)
-    VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
-    PROPERTIES = {}  # The properties of the object (dict of Prop)
-
-    # These constants can be overriden when subclassing (optional)
-    NAMESPACE = "Render"  # The namespace where feature and viewprovider are
-    TYPE = ""  # The type of the object (str). If empty, default to class name
 
     # Internal variables, do not modify
     _fpos = dict()
@@ -86,13 +125,6 @@ class BaseFeature:
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
         self.on_set_properties_cb(fpo)
-
-    def on_set_properties_cb(self, fpo):
-        """Complete the operation of internal _set_properties (callback).
-
-        This method is a hook for sub-class to complete properties setting,
-        in addition to canonic _set_properties mechanism.
-        """
 
     @property
     def fpo(self):
@@ -156,45 +188,34 @@ class BaseFeature:
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
 
-    def on_create_cb(self, fpo, viewp, **kwargs):
-        """Complete the operation of 'create' (callback).
 
-        This method is a hook for subclass to complete object creation,
-        in addition to canonic 'create' mechanism. Subclass can override if
-        needed.
-
-        Params:
-            fpo -- Related FeaturePython object
-            viewp -- Related ViewProvider object
-            kwargs -- Keyword arguments
-        """
-
-    @classmethod
-    def pre_create_cb(cls, **kwargs):
-        """Precede the operation of 'create' (callback).
-
-        This method is a hook for subclass to precede object creation,
-        in addition to canonic 'create' mechanism. Subclass can override if
-        needed.
-
-        Params:
-            kwargs -- Keyword arguments
-        """
+CtxMenuItem = namedtuple("CtxMenuItem", ["name", "action", "icon"])
 
 
-CtxMenuItem = namedtuple("CtxMenuItem", ["name",  "action", "icon"])
+class InterfaceBaseViewProvider:
+    """An interface to base class for FreeCAD ViewProvider.
 
-
-class BaseViewProvider:
-    """A base class for FreeCAD ViewProvider.
-
-    This base is to be used for workbench scripted objects.
+    This class lists methods and properties that can/should be overriden by
+    subclasses.
     """
 
     ICON = ""
     CONTEXT_MENU = []  # An iterable of CtxMenuItem
-    ON_CHANGED = {}
-    ON_UPDATE_DATA = {}
+    ON_CHANGED = {}  # A dictionary Property: Method
+    ON_UPDATE_DATA = {}  # A dictionary Property: Method
+
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback).
+
+        Subclasses can override this method.
+        """
+
+
+class BaseViewProvider(InterfaceBaseViewProvider):
+    """A base class for FreeCAD ViewProvider.
+
+    This base is to be used for workbench scripted objects' ViewProviders.
+    """
 
     def __init__(self, vobj):
         """Initialize View Provider.
@@ -215,12 +236,6 @@ class BaseViewProvider:
         self.fpo = vobj.Object  # Related FeaturePython object
         self.__module__ = "Render"
         self.on_attach_cb(vobj)
-
-    def on_attach_cb(self, vobj):
-        """Complete 'attach' method (callback).
-
-        Subclasses can override this method.
-        """
 
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
