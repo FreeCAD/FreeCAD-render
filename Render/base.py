@@ -182,7 +182,7 @@ class BaseFeature:
         """
 
 
-CtxMenuItem = namedtuple("CtxMenuItem", ["name", "icon", "action"])
+CtxMenuItem = namedtuple("CtxMenuItem", ["name",  "action", "icon"])
 
 
 class BaseViewProvider:
@@ -195,17 +195,6 @@ class BaseViewProvider:
     CONTEXT_MENU = []  # An iterable of CtxMenuItem
     ON_CHANGED = {}
     ON_UPDATE_DATA = {}
-
-    def setupContextMenu(self, vobj, menu):
-        """Set up the object's context menu in GUI (callback)."""
-        for item in self.CONTEXT_MENU:
-            if item.icon:
-                icon = QIcon(os.path.join(ICONDIR, item.icon))
-                action = QAction(icon, item.name, menu)
-            else:
-                action = QAction(item.name, menu)
-            QObject.connect(action, SIGNAL("triggered()"), item.action)
-            menu.addAction(action)
 
     def __init__(self, vobj):
         """Initialize View Provider.
@@ -232,6 +221,29 @@ class BaseViewProvider:
 
         Subclasses can override this method.
         """
+
+    def setupContextMenu(self, vobj, menu):
+        """Set up the object's context menu in GUI (callback)."""
+        for item in self.CONTEXT_MENU:
+            if item.icon:
+                icon = QIcon(os.path.join(ICONDIR, item.icon))
+                action = QAction(icon, item.name, menu)
+            else:
+                action = QAction(item.name, menu)
+            method = getattr(self, item.action)
+            QObject.connect(action, SIGNAL("triggered()"), method)
+            menu.addAction(action)
+
+    def isShow(self):  # pylint: disable=no-self-use
+        """Define the visibility of the object in the tree view (callback)."""
+        return True
+
+    def claimChildren(self):
+        """Deliver the children belonging to this object (callback)."""
+        try:
+            return self.fpo.Group
+        except AttributeError:
+            return []
 
     def getIcon(self):
         # pylint: disable=no-self-use

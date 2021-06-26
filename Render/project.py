@@ -35,21 +35,22 @@ from types import SimpleNamespace
 from operator import attrgetter
 from tempfile import mkstemp
 
-from PySide.QtGui import QAction, QIcon, QFileDialog, QMessageBox
-from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+from PySide.QtGui import QFileDialog, QMessageBox
+from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
+
 try:
     import ImageGui
 except ImportError:
     pass
 
-from Render.constants import TEMPLATEDIR, ICONDIR, PARAMS
+from Render.constants import TEMPLATEDIR, PARAMS
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, set_cam_from_coin_string
-from Render.base import BaseFeature, Prop
+from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
 
 
 class Project(BaseFeature):
@@ -62,112 +63,111 @@ class Project(BaseFeature):
             "App::PropertyString",
             "Base",
             QT_TRANSLATE_NOOP(
-                "App::Property",  # TODO
-                "The name of the raytracing engine to use"),
+                "App::Property",
+                "The name of the raytracing engine to use",
+            ),
             "",
-            0),
-
+            0,
+        ),
         "DelayedBuild": Prop(
             "App::PropertyBool",
             "Output",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "If true, the views will be updated on render only"),
+                "If true, the views will be updated on render only",
+            ),
             True,
-            0),
-
+            0,
+        ),
         "Template": Prop(
             "App::PropertyString",
             "Base",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The template to be used by this rendering "
-                "(use Project's context menu to modify)"),
+                "(use Project's context menu to modify)",
+            ),
             "",
-            1),
-
+            1,
+        ),
         "PageResult": Prop(
             "App::PropertyFileIncluded",
             "Render",
             QT_TRANSLATE_NOOP(
-                "App::Property",
-                "The result file to be sent to the renderer"),
+                "App::Property", "The result file to be sent to the renderer"
+            ),
             "",
-            2),
-
+            2,
+        ),
         "RenderWidth": Prop(
             "App::PropertyInteger",
             "Render",
             QT_TRANSLATE_NOOP(
-                "App::Property",
-                "The width of the rendered image in pixels"),
+                "App::Property", "The width of the rendered image in pixels"
+            ),
             PARAMS.GetInt("RenderWidth", 800),
-            0),
-
+            0,
+        ),
         "RenderHeight": Prop(
             "App::PropertyInteger",
             "Render",
             QT_TRANSLATE_NOOP(
-                "App::Property",
-                "The height of the rendered image in pixels"),
+                "App::Property", "The height of the rendered image in pixels"
+            ),
             PARAMS.GetInt("RenderHeight", 600),
-            0),
-
+            0,
+        ),
         "GroundPlane": Prop(
             "App::PropertyBool",
             "Ground Plane",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "If true, a default ground plane will be added to the scene"),
+                "If true, a default ground plane will be added to the scene",
+            ),
             False,
-            0),
-
+            0,
+        ),
         "GroundPlaneZ": Prop(
             "App::PropertyDistance",
             "Ground Plane",
-            QT_TRANSLATE_NOOP(
-                "App::Property",
-                "Z position for ground plane"),
+            QT_TRANSLATE_NOOP("App::Property", "Z position for ground plane"),
             0,
-            0),
-
+            0,
+        ),
         "GroundPlaneColor": Prop(
             "App::PropertyColor",
             "Ground Plane",
-            QT_TRANSLATE_NOOP(
-                "App::Property",
-                "Ground plane color"),
+            QT_TRANSLATE_NOOP("App::Property", "Ground plane color"),
             (0.8, 0.8, 0.8),
-            0),
-
+            0,
+        ),
         "GroundPlaneSizeFactor": Prop(
             "App::PropertyFloat",
             "Ground Plane",
-            QT_TRANSLATE_NOOP(
-                "App::Property",
-                "Ground plane size factor"),
+            QT_TRANSLATE_NOOP("App::Property", "Ground plane size factor"),
             1.0,
-            0),
-
+            0,
+        ),
         "OutputImage": Prop(
             "App::PropertyFile",
             "Output",
             QT_TRANSLATE_NOOP(
-                "App::Property",
-                "The image saved by this render"),
+                "App::Property", "The image saved by this render"
+            ),
             "",
-            0),
-
+            0,
+        ),
         "OpenAfterRender": Prop(
             "App::PropertyBool",
             "Output",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "If true, the rendered image is opened in FreeCAD after "
-                "the rendering is finished"),
+                "the rendering is finished",
+            ),
             True,
-            0),
-
+            0,
+        ),
         "LinearDeflection": Prop(
             "App::PropertyFloat",
             "Mesher",
@@ -175,10 +175,11 @@ class Project(BaseFeature):
                 "App::Property",
                 "Linear deflection for the mesher: "
                 "The maximum linear deviation of a mesh section from the "
-                "surface of the object."),
+                "surface of the object.",
+            ),
             0.1,
-            0),
-
+            0,
+        ),
         "AngularDeflection": Prop(
             "App::PropertyFloat",
             "Mesher",
@@ -187,10 +188,11 @@ class Project(BaseFeature):
                 "Angular deflection for the mesher: "
                 "The maximum angular deviation from one mesh section to "
                 "the next, in radians. This setting is used when meshing "
-                "curved surfaces."),
+                "curved surfaces.",
+            ),
             math.pi / 6,
-            0),
-
+            0,
+        ),
         "TransparencySensitivity": Prop(
             "App::PropertyIntegerConstraint",
             "Render",
@@ -202,9 +204,11 @@ class Project(BaseFeature):
                 "be rendered more transparent. NB: This parameter affects "
                 "only implicit materials (generated via Shape "
                 "Appearance), not explicit materials (defined via Material"
-                " property)."),
+                " property).",
+            ),
             (0, 0, 10, 1),
-            0),
+            0,
+        ),
     }
 
     def on_set_properties_cb(self, fpo):
@@ -288,13 +292,16 @@ class Project(BaseFeature):
             """
             for obj in objs:
                 success = False
-                if (hasattr(obj, "Group") and
-                        not obj.isDerivedFrom("App::Part") and
-                        not obj.isDerivedFrom("PartDesign::Body")):
+                if (
+                    hasattr(obj, "Group")
+                    and not obj.isDerivedFrom("App::Part")
+                    and not obj.isDerivedFrom("PartDesign::Body")
+                ):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
                     new_group = App.ActiveDocument.addObject(
-                        "App::DocumentObjectGroup", label)
+                        "App::DocumentObjectGroup", label
+                    )
                     new_group.Label = label
                     group.addObject(new_group)
                     add_to_group(obj.Group, new_group)
@@ -303,10 +310,14 @@ class Project(BaseFeature):
                     View.create(source=obj, project=group)
                     success = True
                 if not success:
-                    msg = translate(
-                        "Render",
-                        "[Render] Unable to create rendering view for object "
-                        "'{o}': unhandled object type") + '\n'
+                    msg = (
+                        translate(
+                            "Render",
+                            "[Render] Unable to create rendering view for "
+                            "object '{o}': unhandled object type",
+                        )
+                        + "\n"
+                    )
                     App.Console.PrintWarning(msg.format(o=obj.Label))
 
         # add_views starts here
@@ -320,6 +331,7 @@ class Project(BaseFeature):
                 the project) in returned objects. If False, only pure views are
                 returned.
         """
+
         def all_group_objs(group, include_groups=False):
             """Return all objects in a group.
 
@@ -332,10 +344,12 @@ class Project(BaseFeature):
             res = [] if not include_groups else [group]
             for obj in group.Group:
                 res.extend(
-                    [obj] if not obj.isDerivedFrom("App::DocumentObjectGroup")
+                    [obj]
+                    if not obj.isDerivedFrom("App::DocumentObjectGroup")
                     else all_group_objs(obj, include_groups)
-                    )
+                )
             return res
+
         return all_group_objs(self.fpo, include_groups)
 
     def render(self, external=True):
@@ -356,12 +370,17 @@ class Project(BaseFeature):
                 rdrname=obj.Renderer,
                 linear_deflection=obj.LinearDeflection,
                 angular_deflection=obj.AngularDeflection,
-                transparency_boost=obj.TransparencySensitivity)
+                transparency_boost=obj.TransparencySensitivity,
+            )
         except ModuleNotFoundError:
-            msg = translate(
-                "Render",
-                "[Render] Cannot render project: Renderer '%s' not "
-                "found") + '\n'
+            msg = (
+                translate(
+                    "Render",
+                    "[Render] Cannot render project: Renderer '%s' not "
+                    "found",
+                )
+                + "\n"
+            )
             App.Console.PrintError(msg % obj.Renderer)
             return ""
 
@@ -374,8 +393,9 @@ class Project(BaseFeature):
             template_path = os.path.join(TEMPLATEDIR, obj.Template)
 
         if not os.path.isfile(template_path):
-            msg = translate("Render",
-                            "Cannot render projet: Template not found ('%s')")
+            msg = translate(
+                "Render", "Cannot render projet: Template not found ('%s')"
+            )
             msg = "[Render] " + (msg % template_path) + "\n"
             App.Console.PrintError(msg)
             return ""
@@ -385,8 +405,11 @@ class Project(BaseFeature):
 
         # Build a default camera, to be used if no camera is present in the
         # scene
-        camstr = (Gui.ActiveDocument.ActiveView.getCamera() if App.GuiUp
-                  else DEFAULT_CAMERA_STRING)
+        camstr = (
+            Gui.ActiveDocument.ActiveView.getCamera()
+            if App.GuiUp
+            else DEFAULT_CAMERA_STRING
+        )
         defaultcamview = SimpleNamespace()
         defaultcamview.Source = SimpleNamespace()
         defaultcamview.Source.Proxy = SimpleNamespace()
@@ -401,12 +424,17 @@ class Project(BaseFeature):
 
         # Get objects rendering strings (including lights, cameras...)
         views = self.all_views()
-        get_rdr_string =\
-            renderer.get_rendering_string if obj.DelayedBuild\
+        get_rdr_string = (
+            renderer.get_rendering_string
+            if obj.DelayedBuild
             else attrgetter("ViewResult")
+        )
         if App.GuiUp:
-            objstrings = [get_rdr_string(v) for v in views
-                          if v.Source.ViewObject.Visibility]
+            objstrings = [
+                get_rdr_string(v)
+                for v in views
+                if v.Source.ViewObject.Visibility
+            ]
         else:
             objstrings = [get_rdr_string(v) for v in views]
 
@@ -416,19 +444,21 @@ class Project(BaseFeature):
 
         # Merge all strings (cam, objects, ground plane...) into rendering
         # template
-        renderobjs = '\n'.join(objstrings)
+        renderobjs = "\n".join(objstrings)
         if "RaytracingCamera" in template:
             template = re.sub("(.*RaytracingCamera.*)", cam, template)
             template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
         else:
-            template = re.sub("(.*RaytracingContent.*)",
-                              cam + "\n" + renderobjs, template)
-        template = (template.encode("utf8") if sys.version_info.major < 3
-                    else template)
+            template = re.sub(
+                "(.*RaytracingContent.*)", cam + "\n" + renderobjs, template
+            )
+        version_major = sys.version_info.major
+        template = template.encode("utf8") if version_major < 3 else template
 
         # Write instantiated template into a temporary file
-        fhandle, fpath = mkstemp(prefix=obj.Name,
-                                 suffix=os.path.splitext(obj.Template)[-1])
+        fhandle, fpath = mkstemp(
+            prefix=obj.Name, suffix=os.path.splitext(obj.Template)[-1]
+        )
         with open(fpath, "w") as fobj:
             fobj.write(template)
         os.close(fhandle)
@@ -473,41 +503,33 @@ class Project(BaseFeature):
         return img
 
 
-class ViewProviderProject:
+class ViewProviderProject(BaseViewProvider):
     """View provider for the rendering project object."""
 
-    def __init__(self, vobj):
-        """Initialize view provider."""
-        vobj.Proxy = self
-        self.object = vobj.Object
-        self.__module__ = "Render"
-
-    def attach(self, vobj):  # pylint: disable=no-self-use
-        """Respond to created/restored object event (callback)."""
-        self.object = vobj.Object
-        self.__module__ = "Render"
-        return True
+    ICON = "RenderProject.svg"
 
     def onDelete(self, vobj, subelements):
         """Respond to delete object event (callback)."""
         delete = True
 
-        if self.object.Group:
+        if self.fpo.Group:
             # Project is not empty
             title = translate("Render", "Warning: Deleting Non-Empty Project")
             msg = translate(
                 "Render",
                 "Project is not empty. "
                 "All its contents will be deleted too.\n\n"
-                "Are you sure you want to continue?")
+                "Are you sure you want to continue?",
+            )
             box = QMessageBox(
                 QMessageBox.Warning,
                 title,
                 msg,
-                QMessageBox.Yes | QMessageBox.No)
+                QMessageBox.Yes | QMessageBox.No,
+            )
             usr_confirm = box.exec()
             if usr_confirm == QMessageBox.Yes:
-                subobjs = self.object.Proxy.all_views(include_groups=True)[1:]
+                subobjs = self.fpo.Proxy.all_views(include_groups=True)[1:]
                 for obj in subobjs:
                     obj.Document.removeObject(obj.Name)
             else:
@@ -515,77 +537,20 @@ class ViewProviderProject:
 
         return delete
 
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
-
-    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Default"]
-
-    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        The display mode must be defined in getDisplayModes.
-        """
-        return "Default"
-
-    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
-        """Set the display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
-
-    def isShow(self):  # pylint: disable=no-self-use
-        """Define the visibility of the object in the tree view (callback)."""
-        return True
-
-    def getIcon(self):  # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(ICONDIR, "RenderProject.svg")
-
-    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
-        """Set up the object's context menu in GUI (callback)."""
-        icon = QIcon(os.path.join(ICONDIR, "Render.svg"))
-        action1 = QAction(icon, "Render", menu)
-        QObject.connect(action1, SIGNAL("triggered()"), self.render)
-        menu.addAction(action1)
-
-        action2 = QAction(QT_TRANSLATE_NOOP("Render", "Change template"),
-                          menu)
-        QObject.connect(action2,
-                        SIGNAL("triggered()"),
-                        self.change_template)
-        menu.addAction(action2)
-
-    def claimChildren(self):
-        """Deliver the children belonging to this object (callback)."""
-        try:
-            return self.object.Group
-        except AttributeError:
-            return []
-
     def render(self):
         """Render project.
 
         This method calls proxy's 'render' method.
         """
         try:
-            self.object.Proxy.render()
+            self.fpo.Proxy.render()
         except AttributeError as err:
-            msg = translate("Render", "[Render] Cannot render: {e}") + '\n'
+            msg = translate("Render", "[Render] Cannot render: {e}") + "\n"
             App.Console.PrintError(msg.format(e=err))
 
     def change_template(self):
         """Change the template of the project."""
-        fpo = self.object
+        fpo = self.fpo
         new_template = user_select_template(fpo.Renderer)
         if new_template:
             App.ActiveDocument.openTransaction("ChangeTemplate")
@@ -596,6 +561,19 @@ class ViewProviderProject:
                 fpo.Proxy.set_properties(fpo)
             fpo.Template = new_template
             App.ActiveDocument.commitTransaction()
+
+    CONTEXT_MENU = [
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Render"),
+            "render",
+            "Render.svg",
+        ),
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Change template"),
+            "change_template",
+            None,
+        ),
+    ]
 
 
 def user_select_template(renderer):
@@ -613,15 +591,18 @@ def user_select_template(renderer):
     try:
         handler = RendererHandler(renderer)
     except RendererNotFoundError as err:
-        msg = ("[Render] Failed to open template selector - Renderer '%s' "
-               "not found\n")
+        msg = (
+            "[Render] Failed to open template selector - Renderer '%s' "
+            "not found\n"
+        )
         App.Console.PrintError(msg % err.renderer)
         return None
     filefilter = handler.get_template_file_filter()
     filefilter += ";; All files (*.*)"
     caption = translate("Render", "Select template")
     openfilename = QFileDialog.getOpenFileName(
-        Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter)
+        Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter
+    )
     template_path = openfilename[0]
     if not template_path:
         return None
