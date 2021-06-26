@@ -33,7 +33,7 @@ import os
 from PySide.QtCore import QT_TRANSLATE_NOOP
 
 from Render.constants import FCDVERSION, ICONDIR
-from Render.base import BaseFeature, Prop
+from Render.base import BaseFeature, Prop, BaseViewProvider
 from Render.rdrhandler import RendererHandler
 
 
@@ -52,26 +52,28 @@ class View(BaseFeature):
         "Source": Prop(
             "App::PropertyLink",
             "Render",
-            QT_TRANSLATE_NOOP("App::Property",
-                              "The source object of this view"),
+            QT_TRANSLATE_NOOP(
+                "App::Property", "The source object of this view"
+            ),
             None,
-            0),
-
+            0,
+        ),
         "Material": Prop(
             "App::PropertyLink",
             "Render",
-            QT_TRANSLATE_NOOP("App::Property",
-                              "The material of this view"),
+            QT_TRANSLATE_NOOP("App::Property", "The material of this view"),
             None,
-            0),
-
+            0,
+        ),
         "ViewResult": Prop(
             "App::PropertyString",
             "Render",
-            QT_TRANSLATE_NOOP("App::Property",
-                              "The rendering output of this view"),
+            QT_TRANSLATE_NOOP(
+                "App::Property", "The rendering output of this view"
+            ),
             "",
-            0)
+            0,
+        ),
     }
 
     @classmethod
@@ -80,8 +82,10 @@ class View(BaseFeature):
         project = kwargs["project"]  # Note: 'project' kw argument is mandatory
         source = kwargs["source"]  # Note: 'source' kw argument is mandatory
         version = FCDVERSION
-        assert project.Document == source.Document or version >= ("0", "19"),\
-            "Unable to create View: Project and Object not in same document"
+        assert project.Document == source.Document or version >= (
+            "0",
+            "19",
+        ), "Unable to create View: Project and Object not in same document"
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete 'create' (callback)."""
@@ -93,11 +97,9 @@ class View(BaseFeature):
             name = "Source"
             fpo.removeProperty(name)
             spec = self.PROPERTIES[name]
-            prop = fpo.addProperty("App::PropertyXLink",
-                                   name,
-                                   spec.Group,
-                                   spec.Doc,
-                                   0)
+            prop = fpo.addProperty(
+                "App::PropertyXLink", name, spec.Group, spec.Doc, 0
+            )
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
         fpo.Source = source
@@ -111,8 +113,9 @@ class View(BaseFeature):
         """
         # Find containing project and check DelayedBuild is false
         try:
-            proj = next(x for x in obj.InListRecursive
-                        if RendererHandler.is_project(x))
+            proj = next(
+                x for x in obj.InListRecursive if RendererHandler.is_project(x)
+            )
             assert not proj.DelayedBuild
         except (StopIteration, AttributeError, AssertionError):
             return
@@ -122,7 +125,8 @@ class View(BaseFeature):
             rdrname=proj.Renderer,
             linear_deflection=proj.LinearDeflection,
             angular_deflection=proj.AngularDeflection,
-            transparency_boost=proj.TransparencySensitivity)
+            transparency_boost=proj.TransparencySensitivity,
+        )
 
         obj.ViewResult = renderer.get_rendering_string(obj)
 
@@ -146,57 +150,18 @@ class View(BaseFeature):
         return res
 
 
-class ViewProviderView:
+class ViewProviderView(BaseViewProvider):
     """ViewProvider of rendering view object."""
 
-    def __init__(self, vobj):
-        """Initialize ViewProviderView."""
-        vobj.Proxy = self
-        self.__module__ = "Render"
-        self.object = None
-        self._create_usematerialcolor(vobj)
+    ICON = "RenderViewTree.svg"
 
-    def attach(self, vobj):  # pylint: disable=no-self-use
+    def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback)."""
-        self.object = vobj.Object
-        self.__module__ = "Render"
         self._create_usematerialcolor(vobj)
-
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
-
-    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Default"]
-
-    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        This display mode must be defined in getDisplayModes.
-        """
-        return "Default"
-
-    def setDisplayMode(self, mode):  # pylint: disable=no-self-use
-        """Set the display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
 
     def isShow(self):  # pylint: disable=no-self-use
         """Define the visibility of the object in the tree view (callback)."""
         return True
-
-    def getIcon(self):  # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(ICONDIR, "RenderViewTree.svg")
 
     @staticmethod
     def _create_usematerialcolor(vobj):
@@ -207,5 +172,6 @@ class ViewProviderView:
         """
         if "UseMaterialColor" not in vobj.PropertiesList:
             vobj.addProperty(
-                    "App::PropertyBool", "UseMaterialColor", "Render", "")
+                "App::PropertyBool", "UseMaterialColor", "Render", ""
+            )
         vobj.UseMaterialColor = False
