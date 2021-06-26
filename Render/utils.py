@@ -94,7 +94,8 @@ def reload():
         try:
             module = sys.modules[mod]
         except KeyError:
-            print("Cannot reload '%s'" % mod)
+            print("Skip '%s'" % mod)
         else:
             print("Reload '%s'" % mod)
+            importlib.import_module(mod)
             importlib.reload(module)
