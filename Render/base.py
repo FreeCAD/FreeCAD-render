@@ -327,16 +327,16 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         """Restore object state from data representation."""
         return None
 
-    def getDisplayModes(self, vobj):  # pylint: disable=no-self-use
+    def getDisplayModes(self, vobj):
         """Return a list of display modes (callback)."""
-        return ["Default"]
+        return self.DISPLAY_MODES
 
-    def getDefaultDisplayMode(self):  # pylint: disable=no-self-use
+    def getDefaultDisplayMode(self):
         """Return the name of the default display mode (callback).
 
         The display mode must be defined in getDisplayModes.
         """
-        return "Default"
+        return self.DISPLAY_MODES[0]
 
     def setDisplayMode(self, mode):  # pylint: disable=no-self-use
         """Set the display mode (callback).
