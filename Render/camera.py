@@ -198,6 +198,8 @@ class ViewProviderCamera(BaseViewProvider):
             QT_TRANSLATE_NOOP("Render", "Point at..."), "point_at",
         ),
     ]
+    DISPLAY_MODES = ["Shaded"]
+
 
     def __init__(self, vobj):
         """Initialize View Provider."""
@@ -284,19 +286,6 @@ class ViewProviderCamera(BaseViewProvider):
         angle = float(fpo.Placement.Rotation.Angle)
         axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
         self.coin.transform.rotation.setValue(axis, angle)
-
-    def getDisplayModes(self, _):
-        # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Shaded"]
-
-    def getDefaultDisplayMode(self):
-        # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        The returned mode must be defined in getDisplayModes.
-        """
-        return "Shaded"
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera."""
