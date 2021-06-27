@@ -32,7 +32,6 @@ Light objects allow to illuminate rendering scenes.
 
 
 from types import SimpleNamespace
-from os import path
 import itertools
 import math
 
@@ -43,7 +42,6 @@ import FreeCADGui as Gui
 
 from Render.utils import translate
 from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
-from Render.constants import ICONDIR
 
 
 # ===========================================================================
@@ -564,7 +562,6 @@ class ImageLight(BaseFeature):
 
     VIEWPROVIDER = "ViewProviderImageLight"
 
-    # FeaturePython object properties
     PROPERTIES = {
         "ImageFile": Prop(
             "App::PropertyFileIncluded",
@@ -573,33 +570,17 @@ class ImageLight(BaseFeature):
             "",
         ),
     }
-    # ~FeaturePython object properties
 
 
-class ViewProviderImageLight:
+class ViewProviderImageLight(BaseViewProvider):
     """View Provider of ImageLight class."""
 
-    def __init__(self, vobj):
-        """Initialize View Provider.
+    ICON = "ImageLight.svg"
 
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        vobj.Proxy = self
-        self.fpo = vobj.Object  # Related FeaturePython object
-        self.__module__ = "Render"
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    def attach(self, vobj):
-        """Respond to created/restored object event (callback).
-
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        # pylint: disable=attribute-defined-outside-init
-        self.fpo = vobj.Object
-        self.__module__ = "Render"
-        # ImageLight.set_properties(self.fpo)  # TODO Remove?
-
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback)."""
         # Here we create coin representation
         # NB: Coin representation is blank, as Coin does not handle
         # image-based lighting (the node is a dummy SoInfo)
@@ -608,43 +589,3 @@ class ViewProviderImageLight:
         self.coin.dummy = coin.SoInfo()
         scene.addChild(self.coin.dummy)
         vobj.addDisplayMode(self.coin.dummy, "Shaded")
-
-    def getDisplayModes(self, _):
-        # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Shaded", "Wireframe"]
-
-    def getDefaultDisplayMode(self):
-        # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        The returned mode must be defined in getDisplayModes.
-        """
-        return "Shaded"
-
-    def setDisplayMode(self, mode):
-        # pylint: disable=no-self-use
-        """Set the display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
-
-    def setupContextMenu(self, vobj, menu):
-        # pylint: disable=no-self-use
-        """Set up the object's context menu in GUI (callback)."""
-
-    def getIcon(self):
-        # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return path.join(ICONDIR, "ImageLight.svg")
-
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
