@@ -37,13 +37,12 @@ import itertools
 import math
 
 from pivy import coin
-from PySide.QtGui import QAction
-from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.utils import translate
-from Render.base import BaseFeature, Prop, BaseViewProvider
+from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
 from Render.constants import ICONDIR
 
 
@@ -228,7 +227,6 @@ class AreaLight(BaseFeature):
 
     VIEWPROVIDER = "ViewProviderAreaLight"
 
-    # FeaturePython object properties
     PROPERTIES = {
         "Placement": Prop(
             "App::PropertyPlacement",
@@ -267,7 +265,6 @@ class AreaLight(BaseFeature):
             False,
         ),
     }
-    # ~FeaturePython object properties
 
     def point_at(self, point):
         """Make Area light point at a given target point.
@@ -290,8 +287,29 @@ class AreaLight(BaseFeature):
         fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 
-class ViewProviderAreaLight:
+class ViewProviderAreaLight(BaseViewProvider):
     """View Provider of AreaLight class."""
+
+    ICON = "AreaLight.svg"
+
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
+
+    ON_CHANGED = {"Visibility", "_change_visibility"}
+
+    ON_UPDATE = {
+        "Placement": "_update_placement",
+        "Power": "_update_power",
+        "Color": "_update_color",
+        "SizeU": "_update_size",
+        "SizeV": "_update_size",
+    }
+
+    CONTEXT_MENU = [
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Point at..."),
+            "point_at",
+        ),
+    ]
 
     SHAPE = (
         (-0.5, -0.5, 0),
@@ -307,22 +325,11 @@ class ViewProviderAreaLight:
         Args:
             vobj -- Related ViewProviderDocumentObject
         """
-        vobj.Proxy = self
-        self.fpo = vobj.Object  # Related FeaturePython object
+        super().__init__(vobj)
         self.callback = None  # For point_at method
-        self.__module__ = "Render"
 
-    def attach(self, vobj):
-        """Respond to created/restored object event (callback).
-
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        # pylint: disable=attribute-defined-outside-init
-        self.fpo = vobj.Object
-        self.__module__ = "Render"
-        # AreaLight.set_properties(self.fpo)  # TODO Remove?
-
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback)."""
         # Here we create coin representation, which is in 2 parts: a light,
         # and a geometry, the former being a point light, the latter being a
         # faceset embedded in a switch)
@@ -372,81 +379,12 @@ class ViewProviderAreaLight:
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
-    def getDisplayModes(self, _):
-        # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Shaded", "Wireframe"]
-
-    def getDefaultDisplayMode(self):
-        # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        The returned mode must be defined in getDisplayModes.
-        """
-        return "Shaded"
-
-    def setDisplayMode(self, mode):
-        # pylint: disable=no-self-use
-        """Set the display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
-
-    def getIcon(self):
-        # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return path.join(ICONDIR, "AreaLight.svg")
-
-    def onChanged(self, vpdo, prop):
-        """Respond to property changed event (callback).
-
-        This code is executed when a property of the FeaturePython object is
-        changed.
-
-        Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are
-                stored)
-            prop -- property name (as a string)
-        """
-        if prop == "Visibility":
-            self.coin.light.on.setValue(vpdo.Visibility)
-            self.coin.geometry.whichChild = (
-                coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
-            )
-
-    def setupContextMenu(self, vobj, menu):
-        """Set up the object's context menu in GUI (callback)."""
-        action1 = QAction(QT_TRANSLATE_NOOP("Render", "Point at..."), menu)
-        QObject.connect(action1, SIGNAL("triggered()"), self.point_at)
-        menu.addAction(action1)
-
-    def updateData(self, fpo, prop):
-        """Respond to FeaturePython's property changed event (callback).
-
-        This code is executed when a property of the underlying FeaturePython
-        object is changed.
-
-        Args:
-            fpo -- related FeaturePython object
-            prop -- property name
-        """
-        switcher = {
-            "Placement": ViewProviderAreaLight._update_placement,
-            "Power": ViewProviderAreaLight._update_power,
-            "Color": ViewProviderAreaLight._update_color,
-            "SizeU": ViewProviderAreaLight._update_size,
-            "SizeV": ViewProviderAreaLight._update_size,
-        }
-
-        try:
-            update_method = switcher[prop]
-        except KeyError:
-            pass  # Silently ignore when switcher provides no action
-        else:
-            update_method(self, fpo)
+    def _change_visibility(self, vpdo):
+        """Change light visibility."""
+        self.coin.light.on.setValue(vpdo.Visibility)
+        self.coin.geometry.whichChild = (
+            coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+        )
 
     def _update_placement(self, fpo):
         """Update arealight location."""
@@ -531,14 +469,6 @@ class ViewProviderAreaLight:
                 Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
                     coin.SoMouseButtonEvent.getClassTypeId(), self.callback
                 )
-
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
 
 
 # ===========================================================================
