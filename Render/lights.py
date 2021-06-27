@@ -43,7 +43,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.utils import translate
-from Render.base import BaseFeature, Prop
+from Render.base import BaseFeature, Prop, BaseViewProvider
 from Render.constants import ICONDIR
 
 
@@ -61,9 +61,11 @@ def make_star(subdiv=8, radius=1):
     """
 
     def cartesian(radius, theta, phi):
-        return (radius * math.sin(theta) * math.cos(phi),
-                radius * math.sin(theta) * math.sin(phi),
-                radius * math.cos(theta))
+        return (
+            radius * math.sin(theta) * math.cos(phi),
+            radius * math.sin(theta) * math.sin(phi),
+            radius * math.cos(theta),
+        )
 
     rng_theta = [math.pi * i / subdiv for i in range(0, subdiv + 1)]
     rng_phi = [math.pi * i / subdiv for i in range(0, 2 * subdiv)]
@@ -83,7 +85,6 @@ class PointLight(BaseFeature):
 
     VIEWPROVIDER = "ViewProviderPointLight"
 
-    # FeaturePython object properties
     PROPERTIES = {
         "Location": Prop(
             "App::PropertyVector",
@@ -91,61 +92,52 @@ class PointLight(BaseFeature):
             QT_TRANSLATE_NOOP("Render", "Location of light"),
             App.Vector(0, 0, 15),
         ),
-
         "Color": Prop(
             "App::PropertyColor",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Color of light"),
             (1.0, 1.0, 1.0),
         ),
-
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
             60.0,
         ),
-
         "Radius": Prop(
             "App::PropertyLength",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Light representation radius.\n"
-                                        "Note: This parameter has no impact "
-                                        "on rendering"),
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Light representation radius.\n"
+                "Note: This parameter has no impact "
+                "on rendering",
+            ),
             2.0,
         ),
-
     }
-    # ~FeaturePython object properties
 
 
-class ViewProviderPointLight:
+class ViewProviderPointLight(BaseViewProvider):
     """View Provider of PointLight class."""
 
     SHAPE = make_star(radius=1)
 
-    def __init__(self, vobj):
-        """Initialize View Provider.
+    ICON = "PointLight.svg"
 
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        vobj.Proxy = self
-        self.fpo = vobj.Object  # Related FeaturePython object
-        self.__module__ = "Render"
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    def attach(self, vobj):
-        """Respond to created/restored object event (callback).
+    ON_CHANGED = {"Visibility", "_change_visibility"}
 
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        # pylint: disable=attribute-defined-outside-init
+    ON_UPDATE = {
+        "Location": "_update_location",
+        "Power": "_update_power",
+        "Color": "_update_color",
+        "Radius": "_update_radius",
+    }
 
-        self.fpo = vobj.Object
-        self.__module__ = "Render"
-        # PointLight.set_properties(self.fpo)  # TODO Remove?
-
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback)."""
         # Here we create coin representation, which is in 2 parts: a light,
         # and a geometry (the latter being a lineset embedded inside a switch)
         self.coin = SimpleNamespace()
@@ -166,14 +158,15 @@ class ViewProviderPointLight:
         self.coin.drawstyle = coin.SoDrawStyle()
         self.coin.drawstyle.style = coin.SoDrawStyle.LINES
         self.coin.drawstyle.lineWidth = 1
-        self.coin.drawstyle.linePattern = 0xaaaa
+        self.coin.drawstyle.linePattern = 0xAAAA
         self.coin.node.addChild(self.coin.drawstyle)
         self.coin.coords = coin.SoCoordinate3()
         self.coin.coords.point.setValues(0, len(self.SHAPE), self.SHAPE)
         self.coin.node.addChild(self.coin.coords)
         self.coin.lineset = coin.SoLineSet()
         self.coin.lineset.numVertices.setValues(
-            0, len(self.SHAPE) // 2, [2] * (len(self.SHAPE) // 2))
+            0, len(self.SHAPE) // 2, [2] * (len(self.SHAPE) // 2)
+        )
         self.coin.node.addChild(self.coin.lineset)
 
         self.coin.geometry.addChild(self.coin.node)
@@ -195,73 +188,12 @@ class ViewProviderPointLight:
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
-    def getDisplayModes(self, _):
-        # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Shaded", "Wireframe"]
-
-    def getDefaultDisplayMode(self):
-        # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        The returned mode must be defined in getDisplayModes.
-        """
-        return "Shaded"
-
-    def setDisplayMode(self, mode):
-        # pylint: disable=no-self-use
-        """Set the display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
-
-    def getIcon(self):
-        # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return path.join(ICONDIR, "PointLight.svg")
-
-    def onChanged(self, vpdo, prop):
-        """Respond to property changed event (callback).
-
-        This code is executed when a property of the FeaturePython object is
-        changed.
-
-        Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are
-                stored)
-            prop -- property name (as a string)
-        """
-        if prop == "Visibility":
-            self.coin.light.on.setValue(vpdo.Visibility)
-            self.coin.geometry.whichChild =\
-                coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
-
-    def updateData(self, fpo, prop):
-        """Respond to FeaturePython's property changed event (callback).
-
-        This code is executed when a property of the underlying FeaturePython
-        object is changed.
-
-        Args:
-            fpo -- related FeaturePython object
-            prop -- property name
-        """
-        switcher = {
-            "Location": ViewProviderPointLight._update_location,
-            "Power": ViewProviderPointLight._update_power,
-            "Color": ViewProviderPointLight._update_color,
-            "Radius": ViewProviderPointLight._update_radius,
-        }
-
-        try:
-            update_method = switcher[prop]
-        except KeyError:
-            pass  # Silently ignore when switcher provides no action
-        else:
-            update_method(self, fpo)
+    def _change_visibility(self, vpdo):
+        """Change light visibility."""
+        self.coin.light.on.setValue(vpdo.Visibility)
+        self.coin.geometry.whichChild = (
+            coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+        )
 
     def _update_location(self, fpo):
         """Update pointlight location."""
@@ -285,14 +217,6 @@ class ViewProviderPointLight:
         scale = [fpo.Radius] * 3
         self.coin.transform.scaleFactor.setValue(scale)
 
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
-
 
 # ===========================================================================
 #                           Area Light object
@@ -310,46 +234,38 @@ class AreaLight(BaseFeature):
             "App::PropertyPlacement",
             "",
             QT_TRANSLATE_NOOP("Render", "Placement of light"),
-            App.Placement(App.Vector(0, 0, 0),
-                          App.Vector(0, 0, 1),
-                          0),
+            App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
         ),
-
         "SizeU": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Size on U axis"),
             4.0,
         ),
-
         "SizeV": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Size on V axis"),
             2.0,
         ),
-
         "Color": Prop(
             "App::PropertyColor",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Color of light"),
             (1.0, 1.0, 1.0),
         ),
-
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
             60.0,
         ),
-
         "Transparent": Prop(
             "App::PropertyBool",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Area light transparency"),
             False,
         ),
-
     }
     # ~FeaturePython object properties
 
@@ -362,9 +278,9 @@ class AreaLight(BaseFeature):
         fpo = self.fpo
         current_normal = fpo.Placement.Rotation.multVec(App.Vector(0, 0, 1))
         base = fpo.Placement.Base
-        new_normal = App.Vector(point.x - base.x,
-                                point.y - base.y,
-                                point.z - base.z)
+        new_normal = App.Vector(
+            point.x - base.x, point.y - base.y, point.z - base.z
+        )
         axis = current_normal.cross(new_normal)
         if not axis.Length:
             # Don't try to rotate if axis is a null vector...
@@ -377,11 +293,13 @@ class AreaLight(BaseFeature):
 class ViewProviderAreaLight:
     """View Provider of AreaLight class."""
 
-    SHAPE = ((-0.5, -0.5, 0),
-             (0.5, -0.5, 0),
-             (0.5, 0.5, 0),
-             (-0.5, 0.5, 0),
-             (-0.5, -0.5, 0))
+    SHAPE = (
+        (-0.5, -0.5, 0),
+        (0.5, -0.5, 0),
+        (0.5, 0.5, 0),
+        (-0.5, 0.5, 0),
+        (-0.5, -0.5, 0),
+    )
 
     def __init__(self, vobj):
         """Initialize View Provider.
@@ -495,17 +413,14 @@ class ViewProviderAreaLight:
         """
         if prop == "Visibility":
             self.coin.light.on.setValue(vpdo.Visibility)
-            self.coin.geometry.whichChild =\
+            self.coin.geometry.whichChild = (
                 coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+            )
 
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
-        action1 = QAction(QT_TRANSLATE_NOOP("Render",
-                                            "Point at..."),
-                          menu)
-        QObject.connect(action1,
-                        SIGNAL("triggered()"),
-                        self.point_at)
+        action1 = QAction(QT_TRANSLATE_NOOP("Render", "Point at..."), menu)
+        QObject.connect(action1, SIGNAL("triggered()"), self.point_at)
         menu.addAction(action1)
 
     def updateData(self, fpo, prop):
@@ -564,12 +479,16 @@ class ViewProviderAreaLight:
 
         User will be requested to select an object to point at.
         """
-        msg = translate("Render",
-                        "[Point at] Please select target (on geometry)") + "\n"
+        msg = (
+            translate(
+                "Render", "[Point at] Please select target (on geometry)"
+            )
+            + "\n"
+        )
         App.Console.PrintMessage(msg)
         self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
-            coin.SoMouseButtonEvent.getClassTypeId(),
-            self._point_at_cb)
+            coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb
+        )
 
     def _point_at_cb(self, event_cb):
         """`point_at` callback.
@@ -578,29 +497,40 @@ class ViewProviderAreaLight:
             event_cb -- coin event callback object
         """
         event = event_cb.getEvent()
-        if (event.getState() == coin.SoMouseButtonEvent.DOWN and
-                event.getButton() == coin.SoMouseButtonEvent.BUTTON1):
+        if (
+            event.getState() == coin.SoMouseButtonEvent.DOWN
+            and event.getButton() == coin.SoMouseButtonEvent.BUTTON1
+        ):
             # Get point
             picked_point = event_cb.getPickedPoint()
             try:
                 point = App.Vector(picked_point.getPoint())
             except AttributeError:
                 # No picked point (outside geometry)
-                msg = translate("Render",
-                                "[Point at] Target outside geometry "
-                                "-- Aborting") + "\n"
+                msg = (
+                    translate(
+                        "Render",
+                        "[Point at] Target outside geometry " "-- Aborting",
+                    )
+                    + "\n"
+                )
                 App.Console.PrintMessage(msg)
             else:
                 # Make underlying object point at target point
                 self.fpo.Proxy.point_at(point)
-                msg = translate("Render",
-                                "[Point at] Now pointing at "
-                                "({0.x}, {0.y}, {0.z})") + "\n"
+                msg = (
+                    translate(
+                        "Render",
+                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
+                    )
+                    + "\n"
+                )
                 App.Console.PrintMessage(msg.format(point))
             finally:
                 # Remove coin event catcher
                 Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
-                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
+                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback
+                )
 
     def __getstate__(self):
         """Provide data representation for object."""
@@ -629,28 +559,29 @@ class SunskyLight(BaseFeature):
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Direction of sun from observer's point of view "
-                "-- (0,0,1) is zenith"),
+                "-- (0,0,1) is zenith",
+            ),
             App.Vector(1, 1, 1),
         ),
-
         "Turbidity": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Atmospheric haziness (turbidity can go from 2.0 to 30+. 2-6 "
-                "are most useful for clear days)"),
+                "are most useful for clear days)",
+            ),
             2.0,
         ),
-
         "GroundAlbedo": Prop(
             "App::PropertyFloatConstraint",
             "Light",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Ground albedo (reflection coefficient of the ground)"),
+                "Ground albedo (reflection coefficient of the ground)",
+            ),
             (0.3, 0.0, 1.0, 0.01),
-        )
+        ),
     }
     # ~FeaturePython object properties
 
@@ -792,9 +723,7 @@ class ImageLight(BaseFeature):
         "ImageFile": Prop(
             "App::PropertyFileIncluded",
             "Light",
-            QT_TRANSLATE_NOOP(
-                "Render",
-                "Image file (included in document)"),
+            QT_TRANSLATE_NOOP("Render", "Image file (included in document)"),
             "",
         ),
     }
