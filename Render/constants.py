@@ -29,7 +29,7 @@ import FreeCAD as App
 
 # Paths
 PKGDIR = os.path.dirname(__file__)  # Package directory (=this file directory)
-WBDIR = os.path.dirname(PKGDIR)   # Workbench root directory
+WBDIR = os.path.dirname(PKGDIR)  # Workbench root directory
 RDRDIR = os.path.join(PKGDIR, "renderers")
 ICONDIR = os.path.join(PKGDIR, "resources", "icons")
 TEMPLATEDIR = os.path.join(WBDIR, "templates")
@@ -38,10 +38,11 @@ PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
 
 # Renderers lists
-RENDERERS = {x.group(1)
-             for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x),
-                          os.listdir(RDRDIR))
-             if x}
+RENDERERS = {
+    x.group(1)
+    for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x), os.listdir(RDRDIR))
+    if x
+}
 DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 

@@ -60,11 +60,13 @@ class RenderProjectCommand:
         rdr = self.renderer
         return {
             "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand",
-                                          "%s Project") % rdr,
-            "ToolTip": QT_TRANSLATE_NOOP("RenderProjectCommand",
-                                         "Create a %s project") % rdr
-            }
+            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand", "%s Project")
+            % rdr,
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "RenderProjectCommand", "Create a %s project"
+            )
+            % rdr,
+        }
 
     def Activated(self):
         """Respond to Activated event (callback).
@@ -80,9 +82,9 @@ class RenderProjectCommand:
             return
 
         # Create project
-        Project.create(App.ActiveDocument,
-                       renderer=self.renderer,
-                       template=template)
+        Project.create(
+            App.ActiveDocument, renderer=self.renderer, template=template
+        )
 
         App.ActiveDocument.recompute()
 
@@ -98,13 +100,16 @@ class RenderViewCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "RenderView.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderViewCommand",
-                                          "Rendering View"),
-            "ToolTip": QT_TRANSLATE_NOOP("RenderViewCommand",
-                                         "Create a Rendering View of the "
-                                         "selected object(s) in the selected "
-                                         "project or the default project")
-            }
+            "MenuText": QT_TRANSLATE_NOOP(
+                "RenderViewCommand", "Rendering View"
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "RenderViewCommand",
+                "Create a Rendering View of the "
+                "selected object(s) in the selected "
+                "project or the default project",
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -121,15 +126,20 @@ class RenderViewCommand:
         # Then, get target project.
         # We first look among projects in the selection
         # and, if none, we fall back on active document's projects
-        activedoc_projects = filter(RendererHandler.is_project,
-                                    App.ActiveDocument.Objects)
+        activedoc_projects = filter(
+            RendererHandler.is_project, App.ActiveDocument.Objects
+        )
         try:
             target_project = next(it.chain(projs, activedoc_projects))
         except StopIteration:
-            msg = translate(
-                "Render",
-                "[Render] Unable to find a valid project in selection "
-                "or document") + '\n'
+            msg = (
+                translate(
+                    "Render",
+                    "[Render] Unable to find a valid project in selection "
+                    "or document",
+                )
+                + "\n"
+            )
             App.Console.PrintError(msg)
             return
 
@@ -144,12 +154,16 @@ class RenderCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "Render.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("RenderCommand", "Render"),
-                "ToolTip": QT_TRANSLATE_NOOP("RenderCommand",
-                                             "Perform the rendering of a "
-                                             "selected project or the default "
-                                             "project")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "Render.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("RenderCommand", "Render"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "RenderCommand",
+                "Perform the rendering of a "
+                "selected project or the default "
+                "project",
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -178,12 +192,14 @@ class CameraCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": ":/icons/camera-photo.svg",
-                "MenuText": QT_TRANSLATE_NOOP("CameraCommand",
-                                              "Camera"),
-                "ToolTip": QT_TRANSLATE_NOOP("CameraCommand",
-                                             "Create a Camera object from "
-                                             "the current camera position")}
+        return {
+            "Pixmap": ":/icons/camera-photo.svg",
+            "MenuText": QT_TRANSLATE_NOOP("CameraCommand", "Camera"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "CameraCommand",
+                "Create a Camera object from " "the current camera position",
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -199,11 +215,13 @@ class PointLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "PointLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("PointLightCommand",
-                                              "Point Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("PointLightCommand",
-                                             "Create a Point Light object")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "PointLight.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("PointLightCommand", "Point Light"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "PointLightCommand", "Create a Point Light object"
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -219,11 +237,13 @@ class AreaLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "AreaLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("AreaLightCommand",
-                                              "Area Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("AreaLightCommand",
-                                             "Create an Area Light object")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "AreaLight.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("AreaLightCommand", "Area Light"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "AreaLightCommand", "Create an Area Light object"
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -239,11 +259,15 @@ class SunskyLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "SunskyLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("SunskyLightCommand",
-                                              "Sunsky Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("SunskyLightCommand",
-                                             "Create a Sunsky Light object")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "SunskyLight.svg"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "SunskyLightCommand", "Sunsky Light"
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "SunskyLightCommand", "Create a Sunsky Light object"
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -259,11 +283,13 @@ class ImageLightCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "ImageLight.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("ImageLightCommand",
-                                              "Image Light"),
-                "ToolTip": QT_TRANSLATE_NOOP("ImageLightCommand",
-                                             "Create an Image Light object")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "ImageLight.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("ImageLightCommand", "Image Light"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "ImageLightCommand", "Create an Image Light object"
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -283,11 +309,13 @@ class MaterialCreatorCommand(_CommandArchMaterial):
     def GetResources(self):
         """Get command's resources (callback)."""
         res = super().GetResources()
-        res["MenuText"] = QT_TRANSLATE_NOOP("MaterialCreatorCommand",
-                                            "Create Material")
-        res["ToolTip"] = QT_TRANSLATE_NOOP("MaterialCreatorCommand",
-                                           "Create a new Material in current"
-                                           "document")
+        res["MenuText"] = QT_TRANSLATE_NOOP(
+            "MaterialCreatorCommand", "Create Material"
+        )
+        res["ToolTip"] = QT_TRANSLATE_NOOP(
+            "MaterialCreatorCommand",
+            "Create a new Material in current" "document",
+        )
         return res
 
 
@@ -296,12 +324,17 @@ class MaterialRenderSettingsCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
-                                              "Edit Material Render Settings"),
-                "ToolTip": QT_TRANSLATE_NOOP("MaterialRenderSettingsCommand",
-                                             "Edit rendering parameters of "
-                                             "the selected Material")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialRenderSettingsCommand",
+                "Edit Material Render Settings",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialRenderSettingsCommand",
+                "Edit rendering parameters of " "the selected Material",
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -324,11 +357,15 @@ class MaterialApplierCommand:
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
-        return {"Pixmap": os.path.join(ICONDIR, "ApplyMaterial.svg"),
-                "MenuText": QT_TRANSLATE_NOOP("MaterialApplierCommand",
-                                              "Apply Material"),
-                "ToolTip": QT_TRANSLATE_NOOP("MaterialApplierCommand",
-                                             "Apply a Material to selection")}
+        return {
+            "Pixmap": os.path.join(ICONDIR, "ApplyMaterial.svg"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialApplierCommand", "Apply Material"
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialApplierCommand", "Apply a Material to selection"
+            ),
+        }
 
     def Activated(self):  # pylint: disable=no-self-use
         """Respond to Activated event (callback).
@@ -342,38 +379,51 @@ class MaterialApplierCommand:
         selection = Gui.Selection.getSelection()
         if not selection:
             title = translate("Render", "Empty Selection")
-            msg = translate("Render",
-                            "Please select object(s) before applying "
-                            "material.")
+            msg = translate(
+                "Render",
+                "Please select object(s) before applying " "material.",
+            )
             QMessageBox.warning(None, title, msg)
             return
 
         # Let user pick the Material
-        mats = [o for o in App.ActiveDocument.Objects
-                if o.isDerivedFrom("App::MaterialObjectPython")]
+        mats = [
+            o
+            for o in App.ActiveDocument.Objects
+            if o.isDerivedFrom("App::MaterialObjectPython")
+        ]
         if not mats:
             title = translate("Render", "No Material")
-            msg = translate("Render",
-                            "No Material in document. Please create a "
-                            "Material before applying.")
+            msg = translate(
+                "Render",
+                "No Material in document. Please create a "
+                "Material before applying.",
+            )
             QMessageBox.warning(None, title, msg)
             return
         matlabels = [m.Label for m in mats]
-        current_mats_labels = [o.Material.Label for o in selection
-                               if hasattr(o, "Material")
-                               and hasattr(o.Material, "Label")
-                               and o.Material.Label]
-        current_mats = [count for count, val in enumerate(matlabels)
-                        if val in current_mats_labels]
+        current_mats_labels = [
+            o.Material.Label
+            for o in selection
+            if hasattr(o, "Material")
+            and hasattr(o.Material, "Label")
+            and o.Material.Label
+        ]
+        current_mats = [
+            count
+            for count, val in enumerate(matlabels)
+            if val in current_mats_labels
+        ]
         current_mat = current_mats[0] if len(current_mats) == 1 else 0
 
         userinput, status = QInputDialog.getItem(
-                None,
-                translate("Render", "Material Applier"),
-                translate("Render", "Choose Material to apply to selection:"),
-                matlabels,
-                current_mat,
-                False)
+            None,
+            translate("Render", "Material Applier"),
+            translate("Render", "Choose Material to apply to selection:"),
+            matlabels,
+            current_mat,
+            False,
+        )
         if not status:
             return
 
@@ -389,15 +439,21 @@ class MaterialApplierCommand:
                     "Material",
                     "",
                     QT_TRANSLATE_NOOP(
-                        "App::Property",
-                        "The Material for this object"))
+                        "App::Property", "The Material for this object"
+                    ),
+                )
             try:
                 obj.Material = material
             except TypeError:
-                msg = translate("Render",
-                                "Cannot apply Material to object '%s': "
-                                "object's Material property is of wrong "
-                                "type") + '\n'
+                msg = (
+                    translate(
+                        "Render",
+                        "Cannot apply Material to object '%s': "
+                        "object's Material property is of wrong "
+                        "type",
+                    )
+                    + "\n"
+                )
                 App.Console.PrintError(msg % obj.Label)
         App.ActiveDocument.commitTransaction()
 
@@ -422,7 +478,7 @@ class CommandGroup:
 
     def GetResources(self):
         """Get command group's resources (callback)."""
-        return {'MenuText': self.menu, 'ToolTip': self.tooltip}
+        return {"MenuText": self.menu, "ToolTip": self.tooltip}
 
 
 def _init_gui_commands():
@@ -434,6 +490,7 @@ def _init_gui_commands():
     Returns:
         List of commands initialized ([] if Gui is down)
     """
+
     def add_command(name, action):
         """Add a command to GUI (helper).
 
@@ -453,29 +510,35 @@ def _init_gui_commands():
     separator = ("Separator", None)
 
     projects_cmd = [(r, RenderProjectCommand(r)) for r in VALID_RENDERERS]
-    projects_group = CommandGroup(projects_cmd,
-                                  "Projects",
-                                  "Create a Rendering Project")
+    projects_group = CommandGroup(
+        projects_cmd, "Projects", "Create a Rendering Project"
+    )
 
-    lights_cmd = [("PointLight", PointLightCommand()),
-                  ("AreaLight", AreaLightCommand()),
-                  ("SunskyLight", SunskyLightCommand()),
-                  ("ImageLight", ImageLightCommand())]
+    lights_cmd = [
+        ("PointLight", PointLightCommand()),
+        ("AreaLight", AreaLightCommand()),
+        ("SunskyLight", SunskyLightCommand()),
+        ("ImageLight", ImageLightCommand()),
+    ]
     lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
 
-    mats_cmd = [("MaterialCreator", MaterialCreatorCommand()),
-                ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
-                ("MaterialApplier", MaterialApplierCommand())]
+    mats_cmd = [
+        ("MaterialCreator", MaterialCreatorCommand()),
+        ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
+        ("MaterialApplier", MaterialApplierCommand()),
+    ]
     materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
 
-    render_commands = [("Projects", projects_group),
-                       separator,
-                       ("Camera", CameraCommand()),
-                       ("Lights", lights_group),
-                       ("View", RenderViewCommand()),
-                       ("Materials", materials_group),
-                       separator,
-                       ("Render", RenderCommand())]
+    render_commands = [
+        ("Projects", projects_group),
+        separator,
+        ("Camera", CameraCommand()),
+        ("Lights", lights_group),
+        ("View", RenderViewCommand()),
+        ("Materials", materials_group),
+        separator,
+        ("Render", RenderCommand()),
+    ]
 
     result = []
 

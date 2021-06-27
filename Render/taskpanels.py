@@ -26,20 +26,42 @@
 
 import os
 
-from PySide.QtGui import (QPushButton, QColor, QColorDialog, QPixmap, QIcon,
-                          QFormLayout, QComboBox, QListWidget, QListWidgetItem,
-                          QPlainTextEdit, QLayout, QListView, QLineEdit,
-                          QDoubleValidator)
-from PySide.QtCore import (QT_TRANSLATE_NOOP, QObject, SIGNAL, Qt, QLocale,
-                           QSize)
+from PySide.QtGui import (
+    QPushButton,
+    QColor,
+    QColorDialog,
+    QPixmap,
+    QIcon,
+    QFormLayout,
+    QComboBox,
+    QListWidget,
+    QListWidgetItem,
+    QPlainTextEdit,
+    QLayout,
+    QListView,
+    QLineEdit,
+    QDoubleValidator,
+)
+from PySide.QtCore import (
+    QT_TRANSLATE_NOOP,
+    QObject,
+    SIGNAL,
+    Qt,
+    QLocale,
+    QSize,
+)
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR
 from Render.utils import str2rgb
-from Render.materials import (STD_MATERIALS, STD_MATERIALS_PARAMETERS,
-                              is_valid_material, passthrough_keys)
+from Render.materials import (
+    STD_MATERIALS,
+    STD_MATERIALS_PARAMETERS,
+    is_valid_material,
+    passthrough_keys,
+)
 
 
 class ColorPicker(QPushButton):
@@ -84,11 +106,12 @@ class ColorPicker(QPushButton):
         return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
 
 
-class MaterialSettingsTaskPanel():
+class MaterialSettingsTaskPanel:
     """Task panel to edit Material render settings."""
 
-    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("MaterialSettingsTaskPanel",
-                                           "<None>")
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP(
+        "MaterialSettingsTaskPanel", "<None>"
+    )
 
     def __init__(self, obj=None):
         """Initialize task panel."""
@@ -96,27 +119,34 @@ class MaterialSettingsTaskPanel():
         self.tabs = self.form.RenderTabs
         self.tabs.setCurrentIndex(0)
         self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
-        self.material_type_combo = \
-            self.form.findChild(QComboBox, "MaterialType")
+        self.material_type_combo = self.form.findChild(
+            QComboBox, "MaterialType"
+        )
 
         # Initialize material name combo
         self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
-        self.existing_materials = {obj.Label: obj
-                                   for obj in App.ActiveDocument.Objects
-                                   if is_valid_material(obj)}
+        self.existing_materials = {
+            obj.Label: obj
+            for obj in App.ActiveDocument.Objects
+            if is_valid_material(obj)
+        }
         self.material_combo.addItems(list(self.existing_materials.keys()))
         self.material_combo.currentTextChanged.connect(
-            self.on_material_name_changed)
+            self.on_material_name_changed
+        )
 
         # Initialize material type combo
         # Note: itemAt(0) is label, itemAt(1) is combo
-        self.material_type_combo = \
-            self.form.findChild(QComboBox, "MaterialType")
-        material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] \
-            + list(STD_MATERIALS)
+        self.material_type_combo = self.form.findChild(
+            QComboBox, "MaterialType"
+        )
+        material_type_set = [
+            MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
+        ] + list(STD_MATERIALS)
         self.material_type_combo.addItems(material_type_set)
         self.material_type_combo.currentTextChanged.connect(
-            self.on_material_type_changed)
+            self.on_material_type_changed
+        )
         self._set_layout_visible("FieldsLayout", False)
         self.fields = []
 
@@ -137,7 +167,8 @@ class MaterialSettingsTaskPanel():
         rdrwidget.setSpacing(6)
         rdrwidget.setMovement(QListView.Static)
         rdrwidget.currentTextChanged.connect(
-            self.on_passthrough_renderer_changed)
+            self.on_passthrough_renderer_changed
+        )
         self.passthru_rdr = rdrwidget
         self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
         self.passthru.textChanged.connect(self.on_passthrough_text_changed)
@@ -210,7 +241,8 @@ class MaterialSettingsTaskPanel():
             mat_name = self.material_combo.currentText()
             for param in params:
                 value = self.existing_materials[mat_name].Material.get(
-                    "Render.{}.{}".format(material_type, param.name))
+                    "Render.{}.{}".format(material_type, param.name)
+                )
                 self._add_field(param, value)
 
     def on_passthrough_renderer_changed(self, renderer):
@@ -227,8 +259,7 @@ class MaterialSettingsTaskPanel():
         text = self.passthru.toPlainText()
         self.passthru_cache[rdr.text()] = text
 
-    PASSTHROUGH_KEYS = {r: passthrough_keys(r)
-                        for r in VALID_RENDERERS}
+    PASSTHROUGH_KEYS = {r: passthrough_keys(r) for r in VALID_RENDERERS}
 
     def _populate_passthru(self, renderer, material):
         """Populate passthrough edit field."""
@@ -248,7 +279,7 @@ class MaterialSettingsTaskPanel():
             keys = self.PASSTHROUGH_KEYS[renderer]
             common_keys = keys & material.Material.keys()
             lines = [material.Material[k] for k in sorted(common_keys)]
-            text = '\n'.join(lines)
+            text = "\n".join(lines)
 
         self.passthru.setPlainText(text)
 
@@ -272,7 +303,8 @@ class MaterialSettingsTaskPanel():
                 value = None
             widget.setText(value)
             self.fields.append(
-                (name, lambda: QLocale().toDouble(widget.text())[0]))
+                (name, lambda: QLocale().toDouble(widget.text())[0])
+            )
         elif param.type == "RGB":
             if value:
                 qcolor = QColor.fromRgbF(*str2rgb(value))
@@ -292,8 +324,10 @@ class MaterialSettingsTaskPanel():
         layout = self.form.findChild(QLayout, "FieldsLayout")
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
-            if widget.objectName() not in ("MaterialType",
-                                           "MaterialTypeLabel"):
+            if widget.objectName() not in (
+                "MaterialType",
+                "MaterialTypeLabel",
+            ):
                 widget.setParent(None)
         self.fields = []
 

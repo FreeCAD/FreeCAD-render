@@ -33,8 +33,13 @@ import functools
 
 import FreeCAD as App
 
-from Render.utils import (RGBA, str2rgb, debug as ru_debug,
-                          getproxyattr, translate)
+from Render.utils import (
+    RGBA,
+    str2rgb,
+    debug as ru_debug,
+    getproxyattr,
+    translate,
+)
 
 
 # ===========================================================================
@@ -49,58 +54,117 @@ Param = collections.namedtuple("Param", "name type default desc")
 # material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
-        Param("Color", "RGB", (1, 1, 1),
-              translate("Render", "Transmitted color")),
-        Param("IOR", "float", 1.5,
-              translate("Render", "Index of refraction")),
-        ],
-
+        Param(
+            "Color", "RGB", (1, 1, 1), translate("Render", "Transmitted color")
+        ),
+        Param("IOR", "float", 1.5, translate("Render", "Index of refraction")),
+    ],
     "Disney": [
-        Param("BaseColor", "RGB", (0.8, 0.8, 0.8),
-              translate("Render", "Base color")),
-        Param("Subsurface", "float", 0.0,
-              translate("Render", "Subsurface coefficient")),
-        Param("Metallic", "float", 0.0,
-              translate("Render", "Metallic coefficient")),
-        Param("Specular", "float", 0.0,
-              translate("Render", "Specular coefficient")),
-        Param("SpecularTint", "float", 0.0,
-              translate("Render", "Specular tint coefficient")),
-        Param("Roughness", "float", 0.0,
-              translate("Render", "Roughness coefficient")),
-        Param("Anisotropic", "float", 0.0,
-              translate("Render", "Anisotropic coefficient")),
-        Param("Sheen", "float", 0.0,
-              translate("Render", "Sheen coefficient")),
-        Param("SheenTint", "float", 0.0,
-              translate("Render", "Sheen tint coefficient")),
-        Param("ClearCoat", "float", 0.0,
-              translate("Render", "Clear coat coefficient")),
-        Param("ClearCoatGloss", "float", 0.0,
-              translate("Render", "Clear coat gloss coefficient")),
-        ],
-
+        Param(
+            "BaseColor",
+            "RGB",
+            (0.8, 0.8, 0.8),
+            translate("Render", "Base color"),
+        ),
+        Param(
+            "Subsurface",
+            "float",
+            0.0,
+            translate("Render", "Subsurface coefficient"),
+        ),
+        Param(
+            "Metallic",
+            "float",
+            0.0,
+            translate("Render", "Metallic coefficient"),
+        ),
+        Param(
+            "Specular",
+            "float",
+            0.0,
+            translate("Render", "Specular coefficient"),
+        ),
+        Param(
+            "SpecularTint",
+            "float",
+            0.0,
+            translate("Render", "Specular tint coefficient"),
+        ),
+        Param(
+            "Roughness",
+            "float",
+            0.0,
+            translate("Render", "Roughness coefficient"),
+        ),
+        Param(
+            "Anisotropic",
+            "float",
+            0.0,
+            translate("Render", "Anisotropic coefficient"),
+        ),
+        Param("Sheen", "float", 0.0, translate("Render", "Sheen coefficient")),
+        Param(
+            "SheenTint",
+            "float",
+            0.0,
+            translate("Render", "Sheen tint coefficient"),
+        ),
+        Param(
+            "ClearCoat",
+            "float",
+            0.0,
+            translate("Render", "Clear coat coefficient"),
+        ),
+        Param(
+            "ClearCoatGloss",
+            "float",
+            0.0,
+            translate("Render", "Clear coat gloss coefficient"),
+        ),
+    ],
     "Diffuse": [
-        Param("Color", "RGB", (0.8, 0.8, 0.8),
-              translate("Render", "Diffuse color"))
-        ],
-
+        Param(
+            "Color",
+            "RGB",
+            (0.8, 0.8, 0.8),
+            translate("Render", "Diffuse color"),
+        )
+    ],
     # NB: Above 'Mixed' material could be extended with reflectivity in the
     # future, with the addition of a Glossy material. See for instance:
     # https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
     "Mixed": [
-        Param("Diffuse.Color", "RGB", (0.8, 0.8, 0.8),
-              translate("Render", "Diffuse color")),
-        Param("Glass.Color", "RGB", (1, 1, 1),
-              translate("Render", "Transmitted color")),
-        Param("Glass.IOR", "float", 1.5,
-              translate("Render", "Index of refraction")),
-        Param("Transparency", "float", 0.5,
-              translate("Render", "Mix ratio between Glass and Diffuse "
-                                  "(should stay in [0,1], other values "
-                                  "may lead to undefined behaviour)")),
-        ],
-    }
+        Param(
+            "Diffuse.Color",
+            "RGB",
+            (0.8, 0.8, 0.8),
+            translate("Render", "Diffuse color"),
+        ),
+        Param(
+            "Glass.Color",
+            "RGB",
+            (1, 1, 1),
+            translate("Render", "Transmitted color"),
+        ),
+        Param(
+            "Glass.IOR",
+            "float",
+            1.5,
+            translate("Render", "Index of refraction"),
+        ),
+        Param(
+            "Transparency",
+            "float",
+            0.5,
+            translate(
+                "Render",
+                "Mix ratio between Glass and Diffuse "
+                "(should stay in [0,1], other values "
+                "may lead to undefined behaviour)",
+            ),
+        ),
+    ],
+}
 
 
 STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
@@ -179,11 +243,15 @@ def get_rendering_material(material, renderer, default_color):
             debug("Unknown material type '{}'".format(shadertype))
         else:
             keyfmt = "Render.%s.%s"
-            values = tuple((p.name,
-                            mat.get(keyfmt % (shadertype, p.name), None),
-                            p.default,
-                            p.type)
-                           for p in params)
+            values = tuple(
+                (
+                    p.name,
+                    mat.get(keyfmt % (shadertype, p.name), None),
+                    p.default,
+                    p.type,
+                )
+                for p in params
+            )
             return _build_standard(shadertype, values)
 
     # Climb up to Father
@@ -191,17 +259,21 @@ def get_rendering_material(material, renderer, default_color):
     try:
         father_name = mat["Father"]
         assert father_name
-        materials = (o for o in App.ActiveDocument.Objects
-                     if is_valid_material(o))
-        father = next(m for m in materials
-                      if m.Material.get("Name", "") == father_name)
+        materials = (
+            o for o in App.ActiveDocument.Objects if is_valid_material(o)
+        )
+        father = next(
+            m for m in materials if m.Material.get("Name", "") == father_name
+        )
     except (KeyError, AssertionError):
         # No father
         debug("No valid father")
     except StopIteration:
         # Found father, but not in document
-        msg = "Found father material name ('{}') but "\
-              "did not find this material in active document"
+        msg = (
+            "Found father material name ('{}') but "
+            "did not find this material in active document"
+        )
         debug(msg.format(father_name))
     else:
         # Found usable father
@@ -215,10 +287,12 @@ def get_rendering_material(material, renderer, default_color):
         pass
     else:
         debug("Fallback to Coin-like parameters")
-        color = RGBA(diffusecolor.r,
-                     diffusecolor.g,
-                     diffusecolor.b,
-                     float(mat.get("Transparency", "0")) / 100)
+        color = RGBA(
+            diffusecolor.r,
+            diffusecolor.g,
+            diffusecolor.b,
+            float(mat.get("Transparency", "0")) / 100,
+        )
         return _build_fallback(color)
 
     # Fallback with default_color
@@ -246,23 +320,27 @@ def is_multimat(obj):
 
 def generate_param_doc():
     """Generate Markdown documentation from material rendering parameters."""
-    header_fmt = ["#### **{m}** Material",
-                  "",
-                  "`Render.Type={m}`",
-                  "",
-                  "Parameter | Type | Default value | Description",
-                  "--------- | ---- | ------------- | -----------"]
+    header_fmt = [
+        "#### **{m}** Material",
+        "",
+        "`Render.Type={m}`",
+        "",
+        "Parameter | Type | Default value | Description",
+        "--------- | ---- | ------------- | -----------",
+    ]
 
     line_fmt = "`Render.{m}.{p.name}` | {p.type} | {p.default} | {p.desc}"
     footer_fmt = [""]
     lines = []
     for mat in STD_MATERIALS:
         lines += [h.format(m=mat) for h in header_fmt]
-        lines += [line_fmt.format(m=mat, p=param)
-                  for param in STD_MATERIALS_PARAMETERS[mat]]
+        lines += [
+            line_fmt.format(m=mat, p=param)
+            for param in STD_MATERIALS_PARAMETERS[mat]
+        ]
         lines += footer_fmt
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def is_valid_material(obj):
@@ -272,10 +350,12 @@ def is_valid_material(obj):
     except AttributeError:
         return False
 
-    return (obj is not None
-            and is_materialobject
-            and hasattr(obj, "Material")
-            and isinstance(obj.Material, dict))
+    return (
+        obj is not None
+        and is_materialobject
+        and hasattr(obj, "Material")
+        and isinstance(obj.Material, dict)
+    )
 
 
 # ===========================================================================
@@ -305,7 +385,7 @@ class RenderMaterial:
         If parameter name is a compound like 'foo.bar.baz', foo and bar are
         added as SimpleNamespaces.
         """
-        path = [e.lower() for e in [self.shadertype] + name.split('.')]
+        path = [e.lower() for e in [self.shadertype] + name.split(".")]
         res = self
         for elem in path[:-1]:
             if not hasattr(res, elem):
@@ -321,7 +401,7 @@ class RenderMaterial:
         If one of the path element is missing in self, an AttributeError will
         be raised.
         """
-        path = [e.lower() for e in [self.shadertype] + name.split('.')]
+        path = [e.lower() for e in [self.shadertype] + name.split(".")]
         res = self
         for elem in path:
             res = getattr(res, elem)
@@ -371,7 +451,7 @@ def _build_fallback(color):
     color -- a RGBA tuple color
     """
     try:
-        _color = ','.join([str(c) for c in color[:3]])
+        _color = ",".join([str(c) for c in color[:3]])
         _alpha = str(color[3])
     except IndexError:
         _color = "0.8, 0.8, 0.8"
@@ -388,15 +468,19 @@ def _build_fallback(color):
     elif float(_alpha) == 1:
         # Build glass
         shadertype = "Glass"
-        values = (("IOR", "1.5", "1.5", "float"),
-                  ("Color", _color, _color, "RGB"))
+        values = (
+            ("IOR", "1.5", "1.5", "float"),
+            ("Color", _color, _color, "RGB"),
+        )
     else:
         # Build mixed
         shadertype = "Mixed"
-        values = (("Diffuse.Color", _color, _color, "RGB"),
-                  ("Glass.IOR", "1.5", "1.5", "float"),
-                  ("Glass.Color", _color, _color, "RGB"),
-                  ("Transparency", _alpha, _alpha, "float"))
+        values = (
+            ("Diffuse.Color", _color, _color, "RGB"),
+            ("Glass.IOR", "1.5", "1.5", "float"),
+            ("Glass.Color", _color, _color, "RGB"),
+            ("Transparency", _alpha, _alpha, "float"),
+        )
 
     return _build_standard(shadertype, values)
 
@@ -406,12 +490,14 @@ def _get_float(material, param_prefix, param_name, default=0.0):
     return material.get(param_prefix + param_name, default)
 
 
-PASSTHRU_REPLACED_TOKENS = (("{", "{{"),
-                            ("}", "}}"),
-                            ("%NAME%", "{n}"),
-                            ("%RED%", "{c.r}"),
-                            ("%GREEN%", "{c.g}"),
-                            ("%BLUE%", "{c.b}"))
+PASSTHRU_REPLACED_TOKENS = (
+    ("{", "{{"),
+    ("}", "}}"),
+    ("%NAME%", "{n}"),
+    ("%RED%", "{c.r}"),
+    ("%GREEN%", "{c.g}"),
+    ("%BLUE%", "{c.b}"),
+)
 
 
 @functools.lru_cache(maxsize=128)

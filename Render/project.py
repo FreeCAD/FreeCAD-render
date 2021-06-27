@@ -562,7 +562,6 @@ class ViewProviderProject(BaseViewProvider):
             App.ActiveDocument.commitTransaction()
 
 
-
 def user_select_template(renderer):
     """Make user select a template for a given renderer.
 
