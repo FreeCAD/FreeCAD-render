@@ -154,14 +154,11 @@ class ViewProviderView(BaseViewProvider):
     """ViewProvider of rendering view object."""
 
     ICON = "RenderViewTree.svg"
+    ALWAYS_VISIBLE = True
 
     def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback)."""
         self._create_usematerialcolor(vobj)
-
-    def isShow(self):  # pylint: disable=no-self-use
-        """Define the visibility of the object in the tree view (callback)."""
-        return True
 
     @staticmethod
     def _create_usematerialcolor(vobj):

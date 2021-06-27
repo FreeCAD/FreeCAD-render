@@ -41,6 +41,7 @@ class InterfaceBaseFeature:
     This class lists methods and properties that can/should be overriden by
     subclasses.
     """
+
     # These constants must be overriden when subclassing (mandatory)
     VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
     PROPERTIES = {}  # The properties of the object (dict of Prop)
@@ -189,7 +190,7 @@ class BaseFeature(InterfaceBaseFeature):
         return obj, fpo, viewp
 
 
-CtxMenuItem = namedtuple("CtxMenuItem", ["name", "action", "icon"])
+CtxMenuItem = namedtuple("CtxMenuItem", ["name", "action", "icon"], defaults=[None])
 
 
 class InterfaceBaseViewProvider:
@@ -202,7 +203,8 @@ class InterfaceBaseViewProvider:
     ICON = ""
     CONTEXT_MENU = []  # An iterable of CtxMenuItem
     ON_CHANGED = {}  # A dictionary Property: Method
-    ON_UPDATE_DATA = {}  # A dictionary Property: Method
+    ON_UPDATE = {}  # A dictionary Property: Method
+    ALWAYS_VISIBLE = False
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback).
@@ -249,9 +251,9 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             QObject.connect(action, SIGNAL("triggered()"), method)
             menu.addAction(action)
 
-    def isShow(self):  # pylint: disable=no-self-use
+    def isShow(self):
         """Define the visibility of the object in the tree view (callback)."""
-        return True
+        return (True if self.ALWAYS_VISIBLE else self.fpo.Visibility)
 
     def claimChildren(self):
         """Deliver the children belonging to this object (callback)."""
@@ -261,9 +263,13 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             return []
 
     def getIcon(self):
-        # pylint: disable=no-self-use
         """Return the icon which will appear in the tree view (callback)."""
-        return os.path.join(ICONDIR, self.ICON)
+        icon = (
+            self.ICON
+            if self.ICON.startswith(":")
+            else os.path.join(ICONDIR, self.ICON)
+        )
+        return icon
 
     def onChanged(self, vpdo, prop):
         """Respond to property changed event (callback).
@@ -277,11 +283,11 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             prop -- property name (as a string)
         """
         try:
-            method = self.ON_CHANGED[prop]
+            method = getattr(self, self.ON_CHANGED[prop])
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
-            method(self, vpdo)
+            method(vpdo)
 
     def updateData(self, fpo, prop):
         """Respond to FeaturePython's property changed event (callback).
@@ -294,11 +300,11 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             prop -- property name
         """
         try:
-            method = self.ON_UPDATE_DATA[prop]
+            method = getattr(self, self.ON_UPDATE[prop])
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
-            method(self, fpo)
+            method(fpo)
 
     def __getstate__(self):
         """Provide data representation for object."""

@@ -507,6 +507,18 @@ class ViewProviderProject(BaseViewProvider):
     """View provider for the rendering project object."""
 
     ICON = "RenderProject.svg"
+    ALWAYS_VISIBLE = True
+    CONTEXT_MENU = [
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Render"),
+            "render",
+            "Render.svg",
+        ),
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Change template"),
+            "change_template",
+        ),
+    ]
 
     def onDelete(self, vobj, subelements):
         """Respond to delete object event (callback)."""
@@ -562,18 +574,6 @@ class ViewProviderProject(BaseViewProvider):
             fpo.Template = new_template
             App.ActiveDocument.commitTransaction()
 
-    CONTEXT_MENU = [
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Render"),
-            "render",
-            "Render.svg",
-        ),
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Change template"),
-            "change_template",
-            None,
-        ),
-    ]
 
 
 def user_select_template(renderer):
