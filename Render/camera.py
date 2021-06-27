@@ -36,18 +36,20 @@ from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
 import FreeCAD as App
 import FreeCADGui as Gui
 from Render.utils import translate
-from Render.base import BaseFeature, Prop
+from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
 
 
 # Enumeration of allowed values for ViewportMapping parameter (see Coin
 # documentation)
 # Nota: Keep following tuple in original order, as relationship between
 # values and indexes order matters and is used for reverse transcoding
-VIEWPORTMAPPINGENUM = ("CROP_VIEWPORT_FILL_FRAME",
-                       "CROP_VIEWPORT_LINE_FRAME",
-                       "CROP_VIEWPORT_NO_FRAME",
-                       "ADJUST_CAMERA",
-                       "LEAVE_ALONE")
+VIEWPORTMAPPINGENUM = (
+    "CROP_VIEWPORT_FILL_FRAME",
+    "CROP_VIEWPORT_LINE_FRAME",
+    "CROP_VIEWPORT_NO_FRAME",
+    "ADJUST_CAMERA",
+    "LEAVE_ALONE",
+)
 
 
 # ===========================================================================
@@ -75,72 +77,73 @@ class Camera(BaseFeature):
         "Projection": Prop(
             "App::PropertyEnumeration",
             "Camera",
-            QT_TRANSLATE_NOOP("Render",
-                              "Type of projection: Perspective/Orthographic"),
+            QT_TRANSLATE_NOOP(
+                "Render", "Type of projection: Perspective/Orthographic"
+            ),
             ("Perspective", "Orthographic"),
-            0),
-
+            0,
+        ),
         "Placement": Prop(
             "App::PropertyPlacement",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Placement of camera"),
-            App.Placement(App.Vector(0, 0, 0),
-                          App.Vector(0, 0, 1),
-                          0),
-            0),
-
+            App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
+            0,
+        ),
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "(See Coin documentation)"),
             VIEWPORTMAPPINGENUM,
-            0),
-
+            0,
+        ),
         "AspectRatio": Prop(
             "App::PropertyFloat",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Ratio width/height of the camera."),
             1.0,
-            0),
-
+            0,
+        ),
         "NearDistance": Prop(
             "App::PropertyDistance",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Near distance, for clipping"),
             0.0,
-            0),
-
+            0,
+        ),
         "FarDistance": Prop(
             "App::PropertyDistance",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Far distance, for clipping"),
             200.0,
-            0),
-
+            0,
+        ),
         "FocalDistance": Prop(
             "App::PropertyDistance",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Focal distance"),
             100.0,
-            0),
-
+            0,
+        ),
         "Height": Prop(
             "App::PropertyLength",
             "Camera",
             QT_TRANSLATE_NOOP("Render", "Height, for orthographic camera"),
             5.0,
-            0),
-
+            0,
+        ),
         "HeightAngle": Prop(
             "App::PropertyAngle",
             "Camera",
-            QT_TRANSLATE_NOOP("Render",
-                              "Height angle, for perspective camera, in "
-                              "degrees. Important: This value will be sent as "
-                              "'Field of View' to the renderers."),
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Height angle, for perspective camera, in "
+                "degrees. Important: This value will be sent as "
+                "'Field of View' to the renderers.",
+            ),
             60,
-            0),
-
+            0,
+        ),
     }
     # ~FeaturePython object properties
 
@@ -160,9 +163,9 @@ class Camera(BaseFeature):
         fpo = self.fpo
         current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
         base = fpo.Placement.Base
-        new_target = App.Vector(point.x - base.x,
-                                point.y - base.y,
-                                point.z - base.z)
+        new_target = App.Vector(
+            point.x - base.x, point.y - base.y, point.z - base.z
+        )
         axis = current_target.cross(new_target)
         if not axis.Length:
             # Don't try to rotate if axis is a null vector...
@@ -176,25 +179,37 @@ class Camera(BaseFeature):
 # ===========================================================================
 
 
-class ViewProviderCamera:
+class ViewProviderCamera(BaseViewProvider):
     """View Provider of Camera class."""
+
+    ICON = ":/icons/camera-photo.svg"
+    ON_CHANGED = {"Visibility": "_change_visibility"}
+    ON_UPDATE = {"Placement": "_update_placement"}
+    CONTEXT_MENU = [
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),
+            "set_gui_from_camera",
+        ),
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Set this camera to GUI"),
+            "set_camera_from_gui",
+        ),
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Point at..."), "point_at",
+        ),
+    ]
 
     def __init__(self, vobj):
         """Initialize View Provider."""
-        vobj.Proxy = self
-        self.fpo = vobj.Object  # Related FeaturePython object
+        super().__init__(vobj)
         self.callback = None  # For point_at method
-        self.__module__ = "Render"
 
-    def attach(self, vobj):
+    def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback).
 
         Args:
             vobj -- Related ViewProviderDocumentObject
         """
-        # pylint: disable=attribute-defined-outside-init
-        self.fpo = vobj.Object
-        self.__module__ = "Render"
 
         # Here we create a coin representation
         self.coin = SimpleNamespace()
@@ -212,26 +227,29 @@ class ViewProviderCamera:
         self.coin.drawstyle = coin.SoDrawStyle()
         self.coin.drawstyle.style = coin.SoDrawStyle.LINES
         self.coin.drawstyle.lineWidth = 1
-        self.coin.drawstyle.linePattern = 0xaaaa
+        self.coin.drawstyle.linePattern = 0xAAAA
         self.coin.node.addChild(self.coin.drawstyle)
         self.coin.coords = coin.SoCoordinate3()
         self.coin.coords.point.setValues(
-            0, 15,
-            [(-size * 2, +size, 0),          # Front rectangle
-             (+size * 2, +size, 0),          # Front rectangle
-             (+size * 2, -size, 0),          # Front rectangle
-             (-size * 2, -size, 0),          # Front rectangle
-             (-size * 2, +size, 0),          # Front rectangle
-             (-size * 2, +size, 0),          # Left triangle
-             (0, 0, height * 2),             # Left triangle
-             (-size * 2, -size, 0),          # Left triangle
-             (+size * 2, +size, 0),          # Right triangle
-             (0, 0, height * 2),             # Right triangle
-             (+size * 2, -size, 0),          # Right triangle
-             (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
-             (0, 1.4 * +size, 0),            # Up triangle (arrow)
-             (+size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
-             (-size * 1.8, 1.2 * +size, 0)]  # Up triangle (arrow)
+            0,
+            15,
+            [
+                (-size * 2, +size, 0),  # Front rectangle
+                (+size * 2, +size, 0),  # Front rectangle
+                (+size * 2, -size, 0),  # Front rectangle
+                (-size * 2, -size, 0),  # Front rectangle
+                (-size * 2, +size, 0),  # Front rectangle
+                (-size * 2, +size, 0),  # Left triangle
+                (0, 0, height * 2),  # Left triangle
+                (-size * 2, -size, 0),  # Left triangle
+                (+size * 2, +size, 0),  # Right triangle
+                (0, 0, height * 2),  # Right triangle
+                (+size * 2, -size, 0),  # Right triangle
+                (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+                (0, 1.4 * +size, 0),  # Up triangle (arrow)
+                (+size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+                (-size * 1.8, 1.2 * +size, 0),
+            ],  # Up triangle (arrow)
         )
         self.coin.node.addChild(self.coin.coords)
         self.coin.lineset = coin.SoLineSet()
@@ -253,41 +271,11 @@ class ViewProviderCamera:
         scene.removeChild(self.coin.geometry)
         return True  # If False, the object wouldn't be deleted
 
-    def onChanged(self, vpdo, prop):
-        """Respond to property changed event (callback).
-
-        This code is executed when a property of the FeaturePython object is
-        changed.
-
-        Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are
-                stored)
-            prop -- property name (as a string)
-        """
-        if prop == "Visibility":
-            self.coin.geometry.whichChild =\
-                coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
-
-    def updateData(self, fpo, prop):
-        """Respond to FeaturePython's property changed event (callback).
-
-        This code is executed when a property of the underlying FeaturePython
-        object is changed.
-
-        Args:
-            fpo -- related FeaturePython object
-            prop -- property name
-        """
-        switcher = {
-            "Placement": ViewProviderCamera._update_placement,
-        }
-
-        try:
-            update_method = switcher[prop]
-        except KeyError:
-            pass  # Silently ignore when switcher provides no action
-        else:
-            update_method(self, fpo)
+    def _change_visibility(self, vpdo):
+        """Respond to Visibility change."""
+        self.coin.geometry.whichChild = (
+            coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
+        )
 
     def _update_placement(self, fpo):
         """Update camera location."""
@@ -309,47 +297,6 @@ class ViewProviderCamera:
         The returned mode must be defined in getDisplayModes.
         """
         return "Shaded"
-
-    def setDisplayMode(self, mode):
-        # pylint: disable=no-self-use
-        """Set object display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
-
-    def getIcon(self):
-        # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return ":/icons/camera-photo.svg"
-
-    def setupContextMenu(self, vobj, menu):
-        """Set up the object's context menu in GUI (callback)."""
-        action1 = QAction(QT_TRANSLATE_NOOP("Render",
-                                            "Set GUI to this camera"),
-                          menu)
-        QObject.connect(action1,
-                        SIGNAL("triggered()"),
-                        self.set_gui_from_camera)
-        menu.addAction(action1)
-
-        action2 = QAction(QT_TRANSLATE_NOOP("Render",
-                                            "Set this camera to GUI"),
-                          menu)
-        QObject.connect(action2,
-                        SIGNAL("triggered()"),
-                        self.set_camera_from_gui)
-        menu.addAction(action2)
-
-        action3 = QAction(QT_TRANSLATE_NOOP("Render",
-                                            "Point at..."),
-                          menu)
-        QObject.connect(action3,
-                        SIGNAL("triggered()"),
-                        self.point_at)
-        menu.addAction(action3)
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera."""
@@ -403,25 +350,21 @@ class ViewProviderCamera:
         elif fpo.Projection == "Perspective":
             node.heightAngle.setValue(radians(float(fpo.HeightAngle)))
 
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
-
     def point_at(self):
         """Make this camera point at another object.
 
         User will be requested to select an object to point at.
         """
-        msg = translate("Render",
-                        "[Point at] Please select target (on geometry)") + "\n"
+        msg = (
+            translate(
+                "Render", "[Point at] Please select target (on geometry)"
+            )
+            + "\n"
+        )
         App.Console.PrintMessage(msg)
         self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
-            coin.SoMouseButtonEvent.getClassTypeId(),
-            self._point_at_cb)
+            coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb
+        )
 
     def _point_at_cb(self, event_cb):
         """`point_at` method callback.
@@ -430,29 +373,40 @@ class ViewProviderCamera:
             event_cb -- coin event callback object
         """
         event = event_cb.getEvent()
-        if (event.getState() == coin.SoMouseButtonEvent.DOWN and
-                event.getButton() == coin.SoMouseButtonEvent.BUTTON1):
+        if (
+            event.getState() == coin.SoMouseButtonEvent.DOWN
+            and event.getButton() == coin.SoMouseButtonEvent.BUTTON1
+        ):
             # Get point
             picked_point = event_cb.getPickedPoint()
             try:
                 point = App.Vector(picked_point.getPoint())
             except AttributeError:
                 # No picked point (outside geometry)
-                msg = translate("Render",
-                                "[Point at] Target outside geometry "
-                                "-- Aborting") + "\n"
+                msg = (
+                    translate(
+                        "Render",
+                        "[Point at] Target outside geometry " "-- Aborting",
+                    )
+                    + "\n"
+                )
                 App.Console.PrintMessage(msg)
             else:
                 # Make underlying object point at target point
                 self.fpo.Proxy.point_at(point)
-                msg = translate("Render",
-                                "[Point at] Now pointing at "
-                                "({0.x}, {0.y}, {0.z})") + "\n"
+                msg = (
+                    translate(
+                        "Render",
+                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
+                    )
+                    + "\n"
+                )
                 App.Console.PrintMessage(msg.format(point))
             finally:
                 # Remove coin event catcher
                 Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
-                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback)
+                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback
+                )
 
 
 # ===========================================================================
@@ -498,22 +452,30 @@ def set_cam_from_coin_string(cam, camstr):
     }
     """
     # Split, clean and tokenize
-    camdata = [y for y in [shlex.split(x, comments=True)
-                           for x in camstr.split('\n')] if y]
+    camdata = [
+        y
+        for y in [shlex.split(x, comments=True) for x in camstr.split("\n")]
+        if y
+    ]
     camdict = {y[0]: y[1:] for y in camdata}
 
     cam.Projection = camdata[0][0][0:-6]  # Data should start with Cam Type...
-    assert cam.Projection in ('Perspective', 'Orthographic'),\
-        "Invalid camera header in camera string"
+    assert cam.Projection in (
+        "Perspective",
+        "Orthographic",
+    ), "Invalid camera header in camera string"
     try:
         pos = App.Vector(camdict["position"][0:3])
-        rot = App.Rotation(App.Vector(camdict["orientation"][0:3]),
-                           degrees(float(camdict["orientation"][3])))
+        rot = App.Rotation(
+            App.Vector(camdict["orientation"][0:3]),
+            degrees(float(camdict["orientation"][3])),
+        )
         cam.Placement = App.Placement(pos, rot)
         cam.FocalDistance = float(camdict["focalDistance"][0])
     except KeyError as err:
-        raise ValueError("Missing field in camera string: {}".format(err))\
-            from err
+        raise ValueError(
+            "Missing field in camera string: {}".format(err)
+        ) from err
 
     # It may happen that aspect ratio and viewport mapping are not set in
     # camstr...
@@ -551,8 +513,9 @@ def get_coin_string_from_cam(cam):
 
     def check_enum(field):
         """Check whether the enum field value is valid."""
-        assert getattr(cam, field) in Camera.PROPERTIES[field].Default,\
+        assert getattr(cam, field) in Camera.PROPERTIES[field].Default, (
             "Invalid %s value" % field
+        )
 
     check_enum("Projection")
     check_enum("ViewportMapping")
@@ -562,8 +525,11 @@ def get_coin_string_from_cam(cam):
     res.append("{}Camera {{".format(cam.Projection))
     res.append(" viewportMapping {}".format(cam.ViewportMapping))
     res.append(" position {} {} {}".format(*cam.Placement.Base))
-    res.append(" orientation {} {} {} {}".format(*cam.Placement.Rotation.Axis,
-                                                 cam.Placement.Rotation.Angle))
+    res.append(
+        " orientation {} {} {} {}".format(
+            *cam.Placement.Rotation.Axis, cam.Placement.Rotation.Angle
+        )
+    )
     res.append(" nearDistance {}".format(float(cam.NearDistance)))
     res.append(" farDistance {}".format(float(cam.FarDistance)))
     res.append(" aspectRatio {}".format(float(cam.AspectRatio)))
@@ -573,7 +539,7 @@ def get_coin_string_from_cam(cam):
     elif cam.Projection == "Perspective":
         res.append(" heightAngle {}".format(radians(cam.HeightAngle)))
     res.append("}\n")
-    return '\n'.join(res)
+    return "\n".join(res)
 
 
 def retrieve_legacy_camera(project):
@@ -587,8 +553,9 @@ def retrieve_legacy_camera(project):
         project -- The Rendering Project where to find legacy camera
             information
     """
-    assert isinstance(project.Camera, str),\
-        "Project's Camera property should be a string"
+    assert isinstance(
+        project.Camera, str
+    ), "Project's Camera property should be a string"
     _, fpo, _ = Camera.create()
     set_cam_from_coin_string(fpo, project.Camera)
 
