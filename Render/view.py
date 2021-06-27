@@ -156,6 +156,11 @@ class ViewProviderView(BaseViewProvider):
     ICON = "RenderViewTree.svg"
     ALWAYS_VISIBLE = True
 
+    def __init__(self, vobj):
+        """Initialize ViewProviderView."""
+        super().__init__(vobj)
+        self._create_usematerialcolor(vobj)
+
     def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback)."""
         self._create_usematerialcolor(vobj)
