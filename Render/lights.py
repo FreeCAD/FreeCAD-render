@@ -90,21 +90,21 @@ class PointLight(BaseFeature):
             "Light",
             QT_TRANSLATE_NOOP("Render", "Location of light"),
             App.Vector(0, 0, 15),
-            0),
+        ),
 
         "Color": Prop(
             "App::PropertyColor",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Color of light"),
             (1.0, 1.0, 1.0),
-            0),
+        ),
 
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
             60.0,
-            0),
+        ),
 
         "Radius": Prop(
             "App::PropertyLength",
@@ -113,7 +113,7 @@ class PointLight(BaseFeature):
                                         "Note: This parameter has no impact "
                                         "on rendering"),
             2.0,
-            0),
+        ),
 
     }
     # ~FeaturePython object properties
@@ -313,42 +313,42 @@ class AreaLight(BaseFeature):
             App.Placement(App.Vector(0, 0, 0),
                           App.Vector(0, 0, 1),
                           0),
-            0),
+        ),
 
         "SizeU": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Size on U axis"),
             4.0,
-            0),
+        ),
 
         "SizeV": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Size on V axis"),
             2.0,
-            0),
+        ),
 
         "Color": Prop(
             "App::PropertyColor",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Color of light"),
             (1.0, 1.0, 1.0),
-            0),
+        ),
 
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
             60.0,
-            0),
+        ),
 
         "Transparent": Prop(
             "App::PropertyBool",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Area light transparency"),
             False,
-            0),
+        ),
 
     }
     # ~FeaturePython object properties
@@ -631,7 +631,7 @@ class SunskyLight(BaseFeature):
                 "Direction of sun from observer's point of view "
                 "-- (0,0,1) is zenith"),
             App.Vector(1, 1, 1),
-            0),
+        ),
 
         "Turbidity": Prop(
             "App::PropertyFloat",
@@ -641,7 +641,7 @@ class SunskyLight(BaseFeature):
                 "Atmospheric haziness (turbidity can go from 2.0 to 30+. 2-6 "
                 "are most useful for clear days)"),
             2.0,
-            0),
+        ),
 
         "GroundAlbedo": Prop(
             "App::PropertyFloatConstraint",
@@ -650,7 +650,7 @@ class SunskyLight(BaseFeature):
                 "Render",
                 "Ground albedo (reflection coefficient of the ground)"),
             (0.3, 0.0, 1.0, 0.01),
-            0)
+        )
     }
     # ~FeaturePython object properties
 
@@ -796,7 +796,7 @@ class ImageLight(BaseFeature):
                 "Render",
                 "Image file (included in document)"),
             "",
-            0),
+        ),
     }
     # ~FeaturePython object properties
 

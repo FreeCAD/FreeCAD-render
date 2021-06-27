@@ -67,7 +67,6 @@ class Project(BaseFeature):
                 "The name of the raytracing engine to use",
             ),
             "",
-            0,
         ),
         "DelayedBuild": Prop(
             "App::PropertyBool",
@@ -77,7 +76,6 @@ class Project(BaseFeature):
                 "If true, the views will be updated on render only",
             ),
             True,
-            0,
         ),
         "Template": Prop(
             "App::PropertyString",
@@ -106,7 +104,6 @@ class Project(BaseFeature):
                 "App::Property", "The width of the rendered image in pixels"
             ),
             PARAMS.GetInt("RenderWidth", 800),
-            0,
         ),
         "RenderHeight": Prop(
             "App::PropertyInteger",
@@ -115,7 +112,6 @@ class Project(BaseFeature):
                 "App::Property", "The height of the rendered image in pixels"
             ),
             PARAMS.GetInt("RenderHeight", 600),
-            0,
         ),
         "GroundPlane": Prop(
             "App::PropertyBool",
@@ -125,13 +121,11 @@ class Project(BaseFeature):
                 "If true, a default ground plane will be added to the scene",
             ),
             False,
-            0,
         ),
         "GroundPlaneZ": Prop(
             "App::PropertyDistance",
             "Ground Plane",
             QT_TRANSLATE_NOOP("App::Property", "Z position for ground plane"),
-            0,
             0,
         ),
         "GroundPlaneColor": Prop(
@@ -139,14 +133,12 @@ class Project(BaseFeature):
             "Ground Plane",
             QT_TRANSLATE_NOOP("App::Property", "Ground plane color"),
             (0.8, 0.8, 0.8),
-            0,
         ),
         "GroundPlaneSizeFactor": Prop(
             "App::PropertyFloat",
             "Ground Plane",
             QT_TRANSLATE_NOOP("App::Property", "Ground plane size factor"),
             1.0,
-            0,
         ),
         "OutputImage": Prop(
             "App::PropertyFile",
@@ -155,7 +147,6 @@ class Project(BaseFeature):
                 "App::Property", "The image saved by this render"
             ),
             "",
-            0,
         ),
         "OpenAfterRender": Prop(
             "App::PropertyBool",
@@ -166,7 +157,6 @@ class Project(BaseFeature):
                 "the rendering is finished",
             ),
             True,
-            0,
         ),
         "LinearDeflection": Prop(
             "App::PropertyFloat",
@@ -178,7 +168,6 @@ class Project(BaseFeature):
                 "surface of the object.",
             ),
             0.1,
-            0,
         ),
         "AngularDeflection": Prop(
             "App::PropertyFloat",
@@ -191,7 +180,6 @@ class Project(BaseFeature):
                 "curved surfaces.",
             ),
             math.pi / 6,
-            0,
         ),
         "TransparencySensitivity": Prop(
             "App::PropertyIntegerConstraint",
@@ -207,7 +195,6 @@ class Project(BaseFeature):
                 " property).",
             ),
             (0, 0, 10, 1),
-            0,
         ),
     }
 
