@@ -48,8 +48,9 @@ from Render.materials import is_multimat, is_valid_material
 # ===========================================================================
 
 
-Renderable = collections.namedtuple("Renderable",
-                                    "name mesh material defcolor")
+Renderable = collections.namedtuple(
+    "Renderable", "name mesh material defcolor"
+)
 
 
 def get_renderables(obj, name, upper_material, mesher, **kwargs):
@@ -84,8 +85,11 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     obj_is_app_part = obj.isDerivedFrom("App::Part")
     obj_type = getproxyattr(obj, "Type", "")
 
-    mat = (getattr(obj, "Material", None) if upper_material is None
-           else upper_material)
+    mat = (
+        getattr(obj, "Material", None)
+        if upper_material is None
+        else upper_material
+    )
     mat = mat if is_valid_material(mat) or is_multimat(mat) else None
     del upper_material  # Should not be used after this point...
 
@@ -96,14 +100,16 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Link (plain)
     if obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
-        renderables = \
-            _get_rends_from_plainapplink(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_plainapplink(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Link (array)
     elif obj_is_applink and obj.ElementCount:
         debug("Object", label, "'Link (array)' detected")
-        renderables = \
-            _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_elementlist(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Array, PathArray
     elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
@@ -111,8 +117,9 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         expand_array = getattr(obj, "ExpandArray", False)
         renderables = (
             _get_rends_from_array(obj, name, mat, mesher, **kwargs)
-            if not expand_array else
-            _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs))
+            if not expand_array
+            else _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
+        )
 
     # Window
     elif obj_is_partfeature and obj_type == "Window":
@@ -132,8 +139,9 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Plain part feature (including PartDesign::Body)
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        renderables = _get_rends_from_partfeature(obj, name, mat, mesher,
-                                                  **kwargs)
+        renderables = _get_rends_from_partfeature(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Mesh
     elif obj_is_meshfeature:
@@ -146,8 +154,9 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         renderables = []
         if not ignore_unknown:
             ascendants = ", ".join(obj.getAllDerivedFrom())
-            msg = translate("Render",
-                            "Unhandled object type (%s)" % ascendants)
+            msg = translate(
+                "Render", "Unhandled object type (%s)" % ascendants
+            )
             raise TypeError(msg)
         debug("Object", label, "Not renderable")
 
@@ -156,16 +165,16 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
 
 def check_renderables(renderables):
     """Assert compliance of a list of renderables."""
-    assert renderables,\
-        translate("Render", "Nothing to render")
+    assert renderables, translate("Render", "Nothing to render")
     for renderable in renderables:
         mesh = renderable.mesh
-        assert mesh,\
-            translate("Render", "Cannot find mesh data")
-        assert mesh.Topology[0] and mesh.Topology[1],\
-            translate("Render", "Mesh topology is empty")
-        assert mesh.getPointNormals(),\
-            translate("Render", "Mesh topology has no normals")
+        assert mesh, translate("Render", "Cannot find mesh data")
+        assert mesh.Topology[0] and mesh.Topology[1], translate(
+            "Render", "Mesh topology is empty"
+        )
+        assert mesh.getPointNormals(), translate(
+            "Render", "Mesh topology has no normals"
+        )
 
 
 # ===========================================================================
@@ -196,14 +205,13 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     for element in elements:
         assert element.isDerivedFrom("App::LinkElement")
         elem_name = "%s_%s" % (name, element.Name)
-        base_rends = get_renderables(element.LinkedObject,
-                                     elem_name,
-                                     material,
-                                     mesher,
-                                     **kwargs)
+        base_rends = get_renderables(
+            element.LinkedObject, elem_name, material, mesher, **kwargs
+        )
         element_plc_matrix = element.LinkPlacement.toMatrix()
-        linkedobject_plc_inverse_matrix = \
+        linkedobject_plc_inverse_matrix = (
             element.LinkedObject.Placement.inverse().toMatrix()
+        )
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not obj.LinkTransform:
@@ -281,9 +289,11 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
     base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
     obj_plc_matrix = obj.Placement.toMatrix()
     base_inv_plc_matrix = base.Placement.inverse().toMatrix()
-    placements = (itertools.compress(placement_list, visibility_list)
-                  if visibility_list
-                  else obj.PlacementList)
+    placements = (
+        itertools.compress(placement_list, visibility_list)
+        if visibility_list
+        else obj.PlacementList
+    )
 
     def new_rend(enum_plc, base_rend):
         counter, plc = enum_plc
@@ -323,7 +333,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # WindowsParts
         window_parts = obj.CloneOf.WindowParts
     subnames = window_parts[0::5]  # Names every 5th item...
-    names = ["%s_%s" % (name, s.replace(' ', '_')) for s in subnames]
+    names = ["%s_%s" % (name, s.replace(" ", "_")) for s in subnames]
 
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
@@ -332,8 +342,10 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     transparency_boost = kwargs.get("transparency_boost", 0)
     faces_len = [len(s.Faces) for s in obj.Shape.Solids]
     if obj.ViewObject is not None:  # Gui is up
-        colors = [_boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
-                  for i in itertools.accumulate([0] + faces_len[:-1])]
+        colors = [
+            _boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
+            for i in itertools.accumulate([0] + faces_len[:-1])
+        ]
     else:
         colors = [RGBA(0.8, 0.8, 0.8, 1)] * len(subnames)
 
@@ -344,7 +356,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         mats = [mats_dict.get(s) for s in subnames]
         if [m for m in mats if not m]:
             msg = translate("Render", "Incomplete multimaterial (missing {m})")
-            missing_mats = ', '.join(set(subnames) - mats_dict.keys())
+            missing_mats = ", ".join(set(subnames) - mats_dict.keys())
             warn("Window", obj.Label, msg.format(m=missing_mats))
     else:
         mats = [None] * len(subnames)
@@ -368,8 +380,9 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
-        return _get_rends_from_partfeature(obj, name, material, mesher,
-                                           **kwargs)
+        return _get_rends_from_partfeature(
+            obj, name, material, mesher, **kwargs
+        )
 
     shapes = obj.Shape.childShapes()
 
@@ -384,8 +397,10 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
 
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
-    colors = [_boost_tp(RGBA(*m.Color[0:3], m.Transparency), tp_boost)
-              for m in materials]
+    colors = [
+        _boost_tp(RGBA(*m.Color[0:3], m.Transparency), tp_boost)
+        for m in materials
+    ]
 
     # Build renderables
     return [Renderable(*r) for r in zip(names, meshes, materials, colors)]
@@ -403,6 +418,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
     Returns:
         A list of renderables for the Part object
     """
+
     def _adjust(rend, origin, upper_material):
         """Reposition to origin and set material of the given renderable."""
         origin_matrix = origin.toMatrix()
@@ -419,8 +435,9 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
         subname = "{}_{}".format(name, subobj.Name)
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
-            rends += \
-                get_renderables(subobj, subname, material, mesher, **kwargs)
+            rends += get_renderables(
+                subobj, subname, material, mesher, **kwargs
+            )
 
     rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
 
@@ -456,8 +473,9 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         names = ["{}_face{}".format(name, i) for i in range(nfaces)]
         meshes = [mesher(f) for f in faces]
         materials = [material] * nfaces
-        renderables = [Renderable(*i)
-                       for i in zip(names, meshes, materials, colors)]
+        renderables = [
+            Renderable(*i) for i in zip(names, meshes, materials, colors)
+        ]
 
     return renderables
 
@@ -466,20 +484,26 @@ def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""
     upper_mat_is_multimat = is_multimat(upper_material)
 
-    return (base_renderable.material
-            if (upper_material is None or upper_mat_is_multimat)
-            else upper_material)
+    return (
+        base_renderable.material
+        if (upper_material is None or upper_mat_is_multimat)
+        else upper_material
+    )
 
 
 def _get_shapecolor(obj, transparency_boost):
     """Get shape color (including transparency) from an object."""
     vobj = obj.ViewObject
-    color = (RGBA(vobj.ShapeColor[0],
-                  vobj.ShapeColor[1],
-                  vobj.ShapeColor[2],
-                  vobj.Transparency / 100)
-             if vobj is not None else
-             RGBA(0.8, 0.8, 0.8, 0.0))
+    color = (
+        RGBA(
+            vobj.ShapeColor[0],
+            vobj.ShapeColor[1],
+            vobj.ShapeColor[2],
+            vobj.Transparency / 100,
+        )
+        if vobj is not None
+        else RGBA(0.8, 0.8, 0.8, 0.0)
+    )
 
     return _boost_tp(color, transparency_boost)
 

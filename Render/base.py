@@ -32,7 +32,9 @@ from PySide.QtCore import QObject, SIGNAL
 
 from Render.constants import ICONDIR
 
-Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"], defaults=[0])
+Prop = namedtuple(
+    "Prop", ["Type", "Group", "Doc", "Default", "EditorMode"], defaults=[0]
+)
 
 
 class InterfaceBaseFeature:
@@ -190,7 +192,9 @@ class BaseFeature(InterfaceBaseFeature):
         return obj, fpo, viewp
 
 
-CtxMenuItem = namedtuple("CtxMenuItem", ["name", "action", "icon"], defaults=[None])
+CtxMenuItem = namedtuple(
+    "CtxMenuItem", ["name", "action", "icon"], defaults=[None]
+)
 
 
 class InterfaceBaseViewProvider:
@@ -201,23 +205,23 @@ class InterfaceBaseViewProvider:
     """
 
     ICON = ""  # Icon name. By default, looks into ICONDIR.
-               # If name starts with ":", will look into FreeCAD icons
+    # If name starts with ":", will look into FreeCAD icons
 
     CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
 
     ON_CHANGED = {}  # A dictionary Property: Method (strings).
-                     # Handles changes in ViewProviderDocumentObject data,
-                     # see onChanged
+    # Handles changes in ViewProviderDocumentObject data,
+    # see onChanged
 
     ON_UPDATE = {}  # A dictionary Property: Method (strings)
-                    # Handles changes in ViewProviderDocument data,
-                    # see onUpdateData
+    # Handles changes in ViewProviderDocument data,
+    # see onUpdateData
 
     ALWAYS_VISIBLE = False  # If True, make the object always visible in tree
 
     DISPLAY_MODES = ["Default"]  # Display modes
-                                 # First item provides the default mode, so
-                                 # please keep at least one item there
+    # First item provides the default mode, so
+    # please keep at least one item there
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback).
@@ -266,7 +270,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
 
     def isShow(self):
         """Define the visibility of the object in the tree view (callback)."""
-        return (True if self.ALWAYS_VISIBLE else self.fpo.Visibility)
+        return True if self.ALWAYS_VISIBLE else self.fpo.Visibility
 
     def claimChildren(self):
         """Deliver the children belonging to this object (callback)."""

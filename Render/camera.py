@@ -31,8 +31,7 @@ from types import SimpleNamespace
 import shlex
 
 from pivy import coin
-from PySide.QtGui import QAction
-from PySide.QtCore import QT_TRANSLATE_NOOP, QObject, SIGNAL
+from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 from Render.utils import translate
@@ -186,16 +185,17 @@ class ViewProviderCamera(BaseViewProvider):
             "set_camera_from_gui",
         ),
         CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Point at..."), "point_at",
+            QT_TRANSLATE_NOOP("Render", "Point at..."),
+            "point_at",
         ),
     ]
     DISPLAY_MODES = ["Shaded"]
-
 
     def __init__(self, vobj):
         """Initialize View Provider."""
         super().__init__(vobj)
         self.callback = None  # For point_at method
+        self.coin = None  # For coin property
 
     def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback).

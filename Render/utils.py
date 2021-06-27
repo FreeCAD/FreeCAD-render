@@ -82,14 +82,28 @@ def clamp(value, maxval=1e10):
 
 def reload():
     """Reload all Render modules"""
-    mods = ("Render", "Render.camera", "Render.commands", "Render.constants",
-            "Render.lights", "Render.materials", "Render.project",
-            "Render.rdrhandler", "Render.renderables", "Render.taskpanels",
-            "Render.utils", "Render.view", "Render.renderers.Appleseed",
-            "Render.renderers.Cycles", "Render.renderers.Luxcore",
-            "Render.renderers.Luxrender", "Render.renderers.Ospray",
-            "Render.renderers.Pbrt", "Render.renderers.Povray",
-            "Render.renderers.utils.sunlight")
+    mods = (
+        "Render",
+        "Render.camera",
+        "Render.commands",
+        "Render.constants",
+        "Render.lights",
+        "Render.materials",
+        "Render.project",
+        "Render.rdrhandler",
+        "Render.renderables",
+        "Render.taskpanels",
+        "Render.utils",
+        "Render.view",
+        "Render.renderers.Appleseed",
+        "Render.renderers.Cycles",
+        "Render.renderers.Luxcore",
+        "Render.renderers.Luxrender",
+        "Render.renderers.Ospray",
+        "Render.renderers.Pbrt",
+        "Render.renderers.Povray",
+        "Render.renderers.utils.sunlight",
+    )
     for mod in mods:
         try:
             module = sys.modules[mod]

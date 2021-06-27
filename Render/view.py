@@ -28,11 +28,9 @@ rendering project.
 """
 
 
-import os
-
 from PySide.QtCore import QT_TRANSLATE_NOOP
 
-from Render.constants import FCDVERSION, ICONDIR
+from Render.constants import FCDVERSION
 from Render.base import BaseFeature, Prop, BaseViewProvider
 from Render.rdrhandler import RendererHandler
 
