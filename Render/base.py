@@ -32,7 +32,7 @@ from PySide.QtCore import QObject, SIGNAL
 
 from Render.constants import ICONDIR
 
-Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"])
+Prop = namedtuple("Prop", ["Type", "Group", "Doc", "Default", "EditorMode"], defaults=[0])
 
 
 class InterfaceBaseFeature:
