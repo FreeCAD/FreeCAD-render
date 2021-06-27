@@ -124,7 +124,7 @@ class ViewProviderPointLight(BaseViewProvider):
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    ON_CHANGED = {"Visibility", "_change_visibility"}
+    ON_CHANGED = {"Visibility": "_change_visibility"}
 
     ON_UPDATE = {
         "Location": "_update_location",
@@ -367,7 +367,7 @@ class ViewProviderAreaLight(BaseViewProvider):
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    ON_CHANGED = {"Visibility", "_change_visibility"}
+    ON_CHANGED = {"Visibility": "_change_visibility"}
 
     ON_UPDATE = {
         "Placement": "_update_placement",
@@ -594,7 +594,7 @@ class ViewProviderSunskyLight(BaseViewProvider):
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    ON_CHANGED = {"Visibility", "_change_visibility"}
+    ON_CHANGED = {"Visibility": "_change_visibility"}
 
     ON_UPDATE = {"SunDirection": "_update_direction"}
 
