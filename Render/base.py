@@ -207,7 +207,11 @@ class InterfaceBaseViewProvider:
     ICON = ""  # Icon name. By default, looks into ICONDIR.
     # If name starts with ":", will look into FreeCAD icons
 
-    CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
+    DISPLAY_MODES = ["Default"]  # Display modes
+    # First item provides the default mode, so
+    # please keep at least one item there
+
+    ALWAYS_VISIBLE = False  # If True, make the object always visible in tree
 
     ON_CHANGED = {}  # A dictionary Property: Method (strings).
     # Handles changes in ViewProviderDocumentObject data,
@@ -217,11 +221,8 @@ class InterfaceBaseViewProvider:
     # Handles changes in ViewProviderDocument data,
     # see onUpdateData
 
-    ALWAYS_VISIBLE = False  # If True, make the object always visible in tree
+    CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
 
-    DISPLAY_MODES = ["Default"]  # Display modes
-    # First item provides the default mode, so
-    # please keep at least one item there
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback).
