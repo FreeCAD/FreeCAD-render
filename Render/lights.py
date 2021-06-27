@@ -481,7 +481,6 @@ class SunskyLight(BaseFeature):
 
     VIEWPROVIDER = "ViewProviderSunskyLight"
 
-    # FeaturePython object properties
     PROPERTIES = {
         "SunDirection": Prop(
             "App::PropertyVector",
@@ -513,33 +512,21 @@ class SunskyLight(BaseFeature):
             (0.3, 0.0, 1.0, 0.01),
         ),
     }
-    # ~FeaturePython object properties
 
 
-class ViewProviderSunskyLight:
+class ViewProviderSunskyLight(BaseViewProvider):
     """View Provider of SunskyLight class."""
 
-    def __init__(self, vobj):
-        """Initialize View Provider.
+    ICON = "SunskyLight.svg"
 
-        Args:
-            vobj -- Related ViewProviderDocumentObject.
-        """
-        vobj.Proxy = self
-        self.fpo = vobj.Object  # Related FeaturePython object
-        self.__module__ = "Render"
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    def attach(self, vobj):
-        """Respond to created/restored object event (callback).
+    ON_CHANGED = {"Visibility", "_change_visibility"}
 
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        # pylint: disable=attribute-defined-outside-init
-        self.fpo = vobj.Object
-        self.__module__ = "Render"
-        # SunskyLight.set_properties(self.fpo)  # TODO Remove?
+    ON_UPDATE = {"SunDirection": "_update_direction"}
 
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback)."""
         # Here we create coin representation, which is a directional light
 
         self.coin = SimpleNamespace()
@@ -556,86 +543,15 @@ class ViewProviderSunskyLight:
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
-    def getDisplayModes(self, _):
-        # pylint: disable=no-self-use
-        """Return a list of display modes (callback)."""
-        return ["Shaded", "Wireframe"]
-
-    def getDefaultDisplayMode(self):
-        # pylint: disable=no-self-use
-        """Return the name of the default display mode (callback).
-
-        The returned mode must be defined in getDisplayModes.
-        """
-        return "Shaded"
-
-    def setDisplayMode(self, mode):
-        # pylint: disable=no-self-use
-        """Set the display mode (callback).
-
-        Map the display mode defined in attach with those defined in
-        getDisplayModes. Since they have the same names nothing needs to be
-        done.
-        """
-        return mode
-
-    def setupContextMenu(self, vobj, menu):
-        # pylint: disable=no-self-use
-        """Set up the object's context menu in GUI (callback)."""
-
-    def getIcon(self):
-        # pylint: disable=no-self-use
-        """Return the icon which will appear in the tree view (callback)."""
-        return path.join(ICONDIR, "SunskyLight.svg")
-
-    def onChanged(self, vpdo, prop):
-        """Respond to property changed event (callback).
-
-        This code is executed when a property of the FeaturePython object is
-        changed.
-
-        Args:
-            vpdo -- related ViewProviderDocumentObject (where properties are
-                stored)
-            prop -- property name (as a string)
-        """
-        if prop == "Visibility":
-            self.coin.light.on.setValue(vpdo.Visibility)
-
-    def updateData(self, fpo, prop):
-        """Respond to FeaturePython's property changed event (callback).
-
-        This code is executed when a property of the underlying FeaturePython
-        object is changed.
-
-        Args:
-            fpo -- related FeaturePython object
-            prop -- property name
-        """
-        switcher = {
-            "SunDirection": ViewProviderSunskyLight._update_direction,
-        }
-
-        try:
-            update_method = switcher[prop]
-        except KeyError:
-            pass  # Silently ignore when switcher provides no action
-        else:
-            update_method(self, fpo)
+    def _change_visibility(self, vpdo):
+        """Change light visibility."""
+        self.coin.light.on.setValue(vpdo.Visibility)
 
     def _update_direction(self, fpo):
         """Update sunsky light direction."""
         sundir = fpo.SunDirection
         direction = (-sundir.x, -sundir.y, -sundir.z)
         self.coin.light.direction.setValue(direction)
-
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
-
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
 
 
 # ===========================================================================
