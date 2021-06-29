@@ -195,7 +195,6 @@ class ViewProviderCamera(BaseViewProvider):
         """Initialize View Provider."""
         super().__init__(vobj)
         self.callback = None  # For point_at method
-        self.coin = None  # For coin property
 
     def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback).
