@@ -486,13 +486,27 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
         ),
     ]
 
+    ON_UPDATE = {"Placement": "_update_placement"}
+
     def __init__(self, vobj):
         """Initialize Mixin."""
         super().__init__(vobj)
         self.callback = None  # For point_at method
 
+    def _update_placement(self, fpo):
+        """Update object placement."""
+        try:
+            coin_attr = self.coin
+        except AttributeError:
+            return  # No coin representation
+        location = fpo.Placement.Base[:3]
+        coin_attr.transform.translation.setValue(location)
+        angle = float(fpo.Placement.Rotation.Angle)
+        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
+        coin_attr.transform.rotation.setValue(axis, angle)
+
     def point_at(self):
-        """Make this object point at another object.
+        """Make this object interactively point at another object.
 
         User will be requested to select an object to point at.
         """

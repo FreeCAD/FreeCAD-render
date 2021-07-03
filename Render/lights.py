@@ -274,7 +274,6 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
     ON_CHANGED = {"Visibility": "_change_visibility"}
 
     ON_UPDATE = {
-        "Placement": "_update_placement",
         "Power": "_update_power",
         "Color": "_update_color",
         "SizeU": "_update_size",
@@ -340,21 +339,17 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
+    def _update_placement(self, fpo):
+        """Update object placement."""
+        super()._update_placement(fpo)
+        self.coin.light.location.setValue(fpo.Placement.Base[:3])
+
     def _change_visibility(self, vpdo):
         """Change light visibility."""
         self.coin.light.on.setValue(vpdo.Visibility)
         self.coin.geometry.whichChild = (
             coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
         )
-
-    def _update_placement(self, fpo):
-        """Update arealight location."""
-        location = fpo.Placement.Base[:3]
-        self.coin.transform.translation.setValue(location)
-        angle = float(fpo.Placement.Rotation.Angle)
-        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
-        self.coin.transform.rotation.setValue(axis, angle)
-        self.coin.light.location.setValue(location)
 
     def _update_power(self, fpo):
         """Update arealight power."""
