@@ -22,7 +22,7 @@
 
 """This module implements base classes for Render workbench."""
 
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 import functools
 import itertools
 import sys
@@ -265,20 +265,19 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         self.on_attach_cb(vobj)
 
     @functools.lru_cache(maxsize=128)
-    def _context_menu(self):
+    def _context_menu_mapping(self):
         """Get context menu items."""
-        res = itertools.chain.from_iterable(
+        return itertools.chain.from_iterable(
             [
                 cls.CONTEXT_MENU
                 for cls in reversed(self.__class__.__mro__)
-                if hasattr(cls, "CONTEXT_MENU")
+                if "CONTEXT_MENU" in vars(cls)
             ]
         )
-        return list(OrderedDict.fromkeys(res))  # Remove duplicates
 
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
-        for item in self._context_menu():
+        for item in self._context_menu_mapping():
             if item.icon:
                 icon = QIcon(os.path.join(ICONDIR, item.icon))
                 action = QAction(icon, item.name, menu)
