@@ -37,9 +37,41 @@ from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 from Render.utils import translate
 from Render.constants import ICONDIR
 
+# ===========================================================================
+#                                 Helpers
+# ===========================================================================
+
+
+def get_cumulative_dict_attribute(obj, attr_name):
+    """Get a merged attribute from dictionary attributes in a class hierarchy.
+
+    Args:
+    obj -- obj from which to determine class hierarchy
+    attr_name -- attribute name
+    """
+    attributes = [
+        getattr(cls, attr_name)
+        for cls in reversed(obj.__class__.__mro__)
+        if attr_name in vars(cls)
+    ]
+    res = {}
+    for attribute in attributes:
+        res.update(attribute)
+    return res
+
+
 Prop = namedtuple(
     "Prop", ["Type", "Group", "Doc", "Default", "EditorMode"], defaults=[0]
 )
+
+CtxMenuItem = namedtuple(
+    "CtxMenuItem", ["name", "action", "icon"], defaults=[None]
+)
+
+
+# ===========================================================================
+#                                 Interfaces
+# ===========================================================================
 
 
 class InterfaceBaseFeature:
@@ -91,6 +123,45 @@ class InterfaceBaseFeature:
         """
 
 
+class InterfaceBaseViewProvider:
+    # TODO Interface should subclass ABC
+    """An interface to base class for FreeCAD ViewProvider.
+
+    This class lists methods and properties that can/should be overriden by
+    subclasses.
+    """
+    # TODO Reformat comments for properties
+    ICON = ""  # Icon name. By default, looks into ICONDIR.
+    # If name starts with ":", will look into FreeCAD icons
+
+    DISPLAY_MODES = ["Default"]  # Display modes
+    # First item provides the default mode, so
+    # please keep at least one item there
+
+    ALWAYS_VISIBLE = False  # If True, make the object always visible in tree
+
+    ON_CHANGED = {}  # A dictionary Property: Method (strings).
+    # Handles changes in ViewProviderDocumentObject data,
+    # see onChanged
+
+    ON_UPDATE = {}  # A dictionary Property: Method (strings)
+    # Handles changes in ViewProviderDocument data,
+    # see onUpdateData
+
+    CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
+
+    def on_attach_cb(self, vobj):
+        """Complete 'attach' method (callback).
+
+        Subclasses can override this method.
+        """
+
+
+# ===========================================================================
+#                                 Implementations
+# ===========================================================================
+
+
 class BaseFeature(InterfaceBaseFeature):
     """A base class for FreeCAD Feature.
 
@@ -122,26 +193,14 @@ class BaseFeature(InterfaceBaseFeature):
         """
         self._set_properties(fpo)
 
-    # TODO Make function get_cumulative_mapping
-    def _properties(self):
-        """Get all properties (from class hierarchy)."""
-        mappings = [
-            cls.PROPERTIES
-            for cls in reversed(self.__class__.__mro__)
-            if "PROPERTIES" in vars(cls)
-        ]
-        res = {}
-        for mapping in mappings:
-            res.update(mapping)
-        return res
-
     def _set_properties(self, fpo):
         """Set underlying FeaturePython object's properties."""
         self.fpo = fpo
         self.__module__ = self.NAMESPACE
         fpo.Proxy = self
 
-        for name in self._properties().keys() - set(fpo.PropertiesList):
+        properties = get_cumulative_dict_attribute(self, "PROPERTIES")
+        for name in properties.keys() - set(fpo.PropertiesList):
             spec = Prop._make(self.PROPERTIES[name])
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
@@ -211,45 +270,6 @@ class BaseFeature(InterfaceBaseFeature):
         return obj, fpo, viewp
 
 
-CtxMenuItem = namedtuple(
-    "CtxMenuItem", ["name", "action", "icon"], defaults=[None]
-)
-
-
-class InterfaceBaseViewProvider:
-    # TODO Interface should subclass ABC
-    """An interface to base class for FreeCAD ViewProvider.
-
-    This class lists methods and properties that can/should be overriden by
-    subclasses.
-    """
-    # TODO Reformat comments for properties
-    ICON = ""  # Icon name. By default, looks into ICONDIR.
-    # If name starts with ":", will look into FreeCAD icons
-
-    DISPLAY_MODES = ["Default"]  # Display modes
-    # First item provides the default mode, so
-    # please keep at least one item there
-
-    ALWAYS_VISIBLE = False  # If True, make the object always visible in tree
-
-    ON_CHANGED = {}  # A dictionary Property: Method (strings).
-    # Handles changes in ViewProviderDocumentObject data,
-    # see onChanged
-
-    ON_UPDATE = {}  # A dictionary Property: Method (strings)
-    # Handles changes in ViewProviderDocument data,
-    # see onUpdateData
-
-    CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
-
-    def on_attach_cb(self, vobj):
-        """Complete 'attach' method (callback).
-
-        Subclasses can override this method.
-        """
-
-
 class BaseViewProvider(InterfaceBaseViewProvider):
     """A base class for FreeCAD ViewProvider.
 
@@ -280,13 +300,14 @@ class BaseViewProvider(InterfaceBaseViewProvider):
     @functools.lru_cache(maxsize=128)
     def _context_menu_mapping(self):
         """Get context menu items."""
-        return itertools.chain.from_iterable(
+        res = itertools.chain.from_iterable(
             [
                 cls.CONTEXT_MENU
                 for cls in reversed(self.__class__.__mro__)
                 if "CONTEXT_MENU" in vars(cls)
             ]
         )
+        return list(res)
 
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
@@ -323,15 +344,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
     @functools.lru_cache(maxsize=128)
     def _on_changed_mapping(self):
         """Get 'on change' mapping."""
-        mappings = [
-            cls.ON_CHANGED
-            for cls in reversed(self.__class__.__mro__)
-            if "ON_CHANGED" in vars(cls)
-        ]
-        res = {}
-        for mapping in mappings:
-            res.update(mapping)
-        return res
+        return get_cumulative_dict_attribute(self, "ON_CHANGED")
 
     def onChanged(self, vpdo, prop):
         """Respond to property changed event (callback).
@@ -355,15 +368,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
     @functools.lru_cache(maxsize=128)
     def _on_update_mapping(self):
         """Get 'on update data' mapping."""
-        mappings = [
-            cls.ON_UPDATE
-            for cls in reversed(self.__class__.__mro__)
-            if "ON_UPDATE" in vars(cls)
-        ]
-        res = {}
-        for mapping in mappings:
-            res.update(mapping)
-        return res
+        return get_cumulative_dict_attribute(self, "ON_UPDATE")
 
     def updateData(self, fpo, prop):
         """Respond to FeaturePython's property changed event (callback).
@@ -410,6 +415,11 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         done.
         """
         return mode
+
+
+# ===========================================================================
+#                                 Mixins
+# ===========================================================================
 
 
 class PointableViewProviderMixin:
@@ -483,7 +493,6 @@ class PointableViewProviderMixin:
                     + "\n"
                 )
                 App.Console.PrintMessage(msg.format(point))
-                App.Console.PrintMessage("###########################")
             finally:
                 # Remove coin event catcher
                 Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
