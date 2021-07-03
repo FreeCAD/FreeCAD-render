@@ -395,11 +395,17 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         """
         on_update = self._on_update_mapping()
         try:
-            method = getattr(self, on_update[prop])
+            callback = getattr(self, on_update[prop])
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
-            method(fpo)
+            callback(fpo)
+
+    def update_all(self, fpo):
+        """Force update callback for all data."""
+        for callback_name in self._on_update_mapping().values():
+            callback = getattr(self, callback_name)
+            callback(fpo)
 
     def __getstate__(self):
         """Provide data representation for object."""

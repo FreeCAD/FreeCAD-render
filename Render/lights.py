@@ -326,10 +326,7 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         vobj.addDisplayMode(self.coin.geometry, "Shaded")
 
         # Update coin elements with actual object properties
-        self._update_placement(self.fpo)
-        self._update_color(self.fpo)
-        self._update_power(self.fpo)
-        self._update_size(self.fpo)
+        self.update_all(self.fpo)
 
     def onDelete(self, feature, subelements):
         """Respond to delete object event (callback)."""
