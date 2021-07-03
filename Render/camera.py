@@ -34,8 +34,13 @@ from pivy import coin
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
-from Render.utils import translate
-from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
+from Render.base import (
+    BaseFeature,
+    Prop,
+    BaseViewProvider,
+    CtxMenuItem,
+    PointableViewProviderMixin,
+)
 
 
 # Enumeration of allowed values for ViewportMapping parameter (see Coin
@@ -169,7 +174,7 @@ class Camera(BaseFeature):
 # ===========================================================================
 
 
-class ViewProviderCamera(BaseViewProvider):
+class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
     """View Provider of Camera class."""
 
     ICON = ":/icons/camera-photo.svg"
@@ -183,10 +188,6 @@ class ViewProviderCamera(BaseViewProvider):
         CtxMenuItem(
             QT_TRANSLATE_NOOP("Render", "Set this camera to GUI"),
             "set_camera_from_gui",
-        ),
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Point at..."),
-            "point_at",
         ),
     ]
     DISPLAY_MODES = ["Shaded"]
@@ -328,64 +329,6 @@ class ViewProviderCamera(BaseViewProvider):
             node.height.setValue(float(fpo.Height))
         elif fpo.Projection == "Perspective":
             node.heightAngle.setValue(radians(float(fpo.HeightAngle)))
-
-    def point_at(self):
-        """Make this camera point at another object.
-
-        User will be requested to select an object to point at.
-        """
-        msg = (
-            translate(
-                "Render", "[Point at] Please select target (on geometry)"
-            )
-            + "\n"
-        )
-        App.Console.PrintMessage(msg)
-        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
-            coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb
-        )
-
-    def _point_at_cb(self, event_cb):
-        """`point_at` method callback.
-
-        Args:
-            event_cb -- coin event callback object
-        """
-        event = event_cb.getEvent()
-        if (
-            event.getState() == coin.SoMouseButtonEvent.DOWN
-            and event.getButton() == coin.SoMouseButtonEvent.BUTTON1
-        ):
-            # Get point
-            picked_point = event_cb.getPickedPoint()
-            try:
-                point = App.Vector(picked_point.getPoint())
-            except AttributeError:
-                # No picked point (outside geometry)
-                msg = (
-                    translate(
-                        "Render",
-                        "[Point at] Target outside geometry " "-- Aborting",
-                    )
-                    + "\n"
-                )
-                App.Console.PrintMessage(msg)
-            else:
-                # Make underlying object point at target point
-                self.fpo.Proxy.point_at(point)
-                msg = (
-                    translate(
-                        "Render",
-                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
-                    )
-                    + "\n"
-                )
-                App.Console.PrintMessage(msg.format(point))
-            finally:
-                # Remove coin event catcher
-                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
-                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback
-                )
 
 
 # ===========================================================================
