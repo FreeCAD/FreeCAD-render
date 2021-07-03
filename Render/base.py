@@ -76,7 +76,6 @@ CtxMenuItem = namedtuple(
 
 
 class InterfaceBaseFeature:
-    # TODO Interface should subclass ABC
     """An interface to base class for FreeCAD scripted objects (BaseFeature).
 
     This class lists methods and properties that can/should be overriden by
@@ -125,7 +124,6 @@ class InterfaceBaseFeature:
 
 
 class InterfaceBaseViewProvider:
-    # TODO Interface should subclass ABC
     """An interface to base class for FreeCAD ViewProvider.
 
     This class lists methods and properties that can/should be overriden by
