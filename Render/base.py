@@ -309,15 +309,16 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         return icon
 
     @functools.lru_cache(maxsize=128)
-    def _on_changed(self):
+    def _on_changed_mapping(self):
         """Get 'on change' mapping."""
-        # TODO Replace by dict comprehesion...
+        mappings = [
+            cls.ON_CHANGED
+            for cls in reversed(self.__class__.__mro__)
+            if "ON_CHANGED" in vars(cls)
+        ]
         res = {}
-        for cls in reversed(self.__class__.__mro__):
-            try:
-                res = {**res, **cls.ON_CHANGED}
-            except AttributeError:
-                pass
+        for mapping in mappings:
+            res.update(mapping)
         return res
 
     def onChanged(self, vpdo, prop):
@@ -332,7 +333,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             prop -- property name (as a string)
         """
         try:
-            on_changed = self._on_changed()
+            on_changed = self._on_changed_mapping()
             method = getattr(self, on_changed[prop])
         except KeyError:
             pass  # Silently ignore when switcher provides no action
@@ -340,15 +341,16 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             method(vpdo)
 
     @functools.lru_cache(maxsize=128)
-    def _on_update(self):
+    def _on_update_mapping(self):
         """Get 'on update data' mapping."""
-        # TODO Replace by dict comprehesion...
+        mappings = [
+            cls.ON_UPDATE
+            for cls in reversed(self.__class__.__mro__)
+            if "ON_UPDATE" in vars(cls)
+        ]
         res = {}
-        for cls in reversed(self.__class__.__mro__):
-            try:
-                res = {**res, **cls.ON_UPDATE}
-            except AttributeError:
-                pass
+        for mapping in mappings:
+            res.update(mapping)
         return res
 
     def updateData(self, fpo, prop):
@@ -361,7 +363,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             fpo -- related FeaturePython object
             prop -- property name
         """
-        on_update = self._on_update()
+        on_update = self._on_update_mapping()
         try:
             method = getattr(self, on_update[prop])
         except KeyError:
