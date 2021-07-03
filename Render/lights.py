@@ -40,8 +40,12 @@ from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.utils import translate
-from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
+from Render.base import (
+    BaseFeature,
+    Prop,
+    BaseViewProvider,
+    PointableViewProviderMixin,
+)
 
 
 # ===========================================================================
@@ -220,7 +224,6 @@ class ViewProviderPointLight(BaseViewProvider):
 # ===========================================================================
 
 
-
 class AreaLight(BaseFeature):
     """An area light."""
 
@@ -285,82 +288,8 @@ class AreaLight(BaseFeature):
         rotation = App.Rotation(axis, angle)
         fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
-class PointableViewProviderMixin():
-    """Mixin for Pointable ViewProviders.
 
-    This mixin allows a ViewProvider to be "pointable", ie to support
-    'point_at' actions.
-    """
-    def __init__(self, vobj):
-        """Initialize Mixin."""
-        super().__init__(vobj)
-        super().CONTEXT_MENU += [
-            CtxMenuItem(
-                QT_TRANSLATE_NOOP("Render", "Point at..."),
-                "point_at",
-            ),
-        ]
-        self.callback = None  # For point_at method
-
-    def point_at(self):
-        """Make this arealight point at another object.
-
-        User will be requested to select an object to point at.
-        """
-        msg = (
-            translate(
-                "Render", "[Point at] Please select target (on geometry)"
-            )
-            + "\n"
-        )
-        App.Console.PrintMessage(msg)
-        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
-            coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb
-        )
-
-    def _point_at_cb(self, event_cb):
-        """`point_at` callback.
-
-        Args:
-            event_cb -- coin event callback object
-        """
-        event = event_cb.getEvent()
-        if (
-            event.getState() == coin.SoMouseButtonEvent.DOWN
-            and event.getButton() == coin.SoMouseButtonEvent.BUTTON1
-        ):
-            # Get point
-            picked_point = event_cb.getPickedPoint()
-            try:
-                point = App.Vector(picked_point.getPoint())
-            except AttributeError:
-                # No picked point (outside geometry)
-                msg = (
-                    translate(
-                        "Render",
-                        "[Point at] Target outside geometry " "-- Aborting",
-                    )
-                    + "\n"
-                )
-                App.Console.PrintMessage(msg)
-            else:
-                # Make underlying object point at target point
-                self.fpo.Proxy.point_at(point)
-                msg = (
-                    translate(
-                        "Render",
-                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
-                    )
-                    + "\n"
-                )
-                App.Console.PrintMessage(msg.format(point))
-            finally:
-                # Remove coin event catcher
-                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
-                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback
-                )
-
-class ViewProviderAreaLight(BaseViewProvider):
+class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
     """View Provider of AreaLight class."""
 
     ICON = "AreaLight.svg"
@@ -377,13 +306,6 @@ class ViewProviderAreaLight(BaseViewProvider):
         "SizeV": "_update_size",
     }
 
-    CONTEXT_MENU = [
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Point at..."),
-            "point_at",
-        ),
-    ]
-
     SHAPE = (
         (-0.5, -0.5, 0),
         (0.5, -0.5, 0),
@@ -391,15 +313,6 @@ class ViewProviderAreaLight(BaseViewProvider):
         (-0.5, 0.5, 0),
         (-0.5, -0.5, 0),
     )
-
-    def __init__(self, vobj):
-        """Initialize View Provider.
-
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-        super().__init__(vobj)
-        self.callback = None  # For point_at method
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback)."""
@@ -484,64 +397,6 @@ class ViewProviderAreaLight(BaseViewProvider):
         """Update arealight size."""
         size = (fpo.SizeU, fpo.SizeV, 0)
         self.coin.transform.scaleFactor.setValue(size)
-
-    def point_at(self):
-        """Make this arealight point at another object.
-
-        User will be requested to select an object to point at.
-        """
-        msg = (
-            translate(
-                "Render", "[Point at] Please select target (on geometry)"
-            )
-            + "\n"
-        )
-        App.Console.PrintMessage(msg)
-        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
-            coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb
-        )
-
-    def _point_at_cb(self, event_cb):
-        """`point_at` callback.
-
-        Args:
-            event_cb -- coin event callback object
-        """
-        event = event_cb.getEvent()
-        if (
-            event.getState() == coin.SoMouseButtonEvent.DOWN
-            and event.getButton() == coin.SoMouseButtonEvent.BUTTON1
-        ):
-            # Get point
-            picked_point = event_cb.getPickedPoint()
-            try:
-                point = App.Vector(picked_point.getPoint())
-            except AttributeError:
-                # No picked point (outside geometry)
-                msg = (
-                    translate(
-                        "Render",
-                        "[Point at] Target outside geometry " "-- Aborting",
-                    )
-                    + "\n"
-                )
-                App.Console.PrintMessage(msg)
-            else:
-                # Make underlying object point at target point
-                self.fpo.Proxy.point_at(point)
-                msg = (
-                    translate(
-                        "Render",
-                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
-                    )
-                    + "\n"
-                )
-                App.Console.PrintMessage(msg.format(point))
-            finally:
-                # Remove coin event catcher
-                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
-                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback
-                )
 
 
 # ===========================================================================
