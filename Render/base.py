@@ -122,13 +122,26 @@ class BaseFeature(InterfaceBaseFeature):
         """
         self._set_properties(fpo)
 
+    # TODO Make function get_cumulative_mapping
+    def _properties(self):
+        """Get all properties (from class hierarchy)."""
+        mappings = [
+            cls.PROPERTIES
+            for cls in reversed(self.__class__.__mro__)
+            if "PROPERTIES" in vars(cls)
+        ]
+        res = {}
+        for mapping in mappings:
+            res.update(mapping)
+        return res
+
     def _set_properties(self, fpo):
         """Set underlying FeaturePython object's properties."""
         self.fpo = fpo
         self.__module__ = self.NAMESPACE
         fpo.Proxy = self
 
-        for name in self.PROPERTIES.keys() - set(fpo.PropertiesList):
+        for name in self._properties().keys() - set(fpo.PropertiesList):
             spec = Prop._make(self.PROPERTIES[name])
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
