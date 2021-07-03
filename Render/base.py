@@ -22,7 +22,7 @@
 
 """This module implements base classes for Render workbench."""
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import sys
 import os
 
@@ -271,7 +271,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
                 res += cls.CONTEXT_MENU
             except AttributeError:
                 pass
-        return res
+        return list(OrderedDict.fromkeys(res))  # Remove duplicates
 
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
