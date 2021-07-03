@@ -221,7 +221,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         vobj.addDisplayMode(self.coin.geometry, "Shaded")
 
         # Update coin elements with actual object properties
-        self._update_placement(self.fpo)
+        self.update_all(self.fpo)
 
     def onDelete(self, feature, subelements):
         """Respond to delete object event (callback)."""
