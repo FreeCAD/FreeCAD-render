@@ -123,12 +123,13 @@ class InterfaceBaseFeature:
         """
 
 
-class InterfaceBaseViewProvider:
+class InterfaceBaseViewProvider:  # pylint: disable=too-few-public-methods
     """An interface to base class for FreeCAD ViewProvider.
 
     This class lists methods and properties that can/should be overriden by
     subclasses.
     """
+
     # Icon name
     ICON = ""
     # By default, look into ICONDIR.
@@ -434,7 +435,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
 # ===========================================================================
 
 
-class PointableFeatureMixin:
+class PointableFeatureMixin:  # pylint: disable=too-few-public-methods
     """Mixin for Pointable feature.
 
     This mixin allows a feature to be "pointable", ie to support
@@ -471,7 +472,7 @@ class PointableFeatureMixin:
         fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 
-class PointableViewProviderMixin:
+class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
     """Mixin for Pointable ViewProviders.
 
     This mixin allows a ViewProvider to be "pointable", ie to support
