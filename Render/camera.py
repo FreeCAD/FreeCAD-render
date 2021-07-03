@@ -171,6 +171,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         """
 
         # Here we create a coin representation
+        # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 

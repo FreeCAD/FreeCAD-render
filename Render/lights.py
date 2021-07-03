@@ -142,6 +142,8 @@ class ViewProviderPointLight(BaseViewProvider):
         """Complete 'attach' method (callback)."""
         # Here we create coin representation, which is in 2 parts: a light,
         # and a geometry (the latter being a lineset embedded inside a switch)
+
+        # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
@@ -294,6 +296,7 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         # and a geometry, the former being a point light, the latter being a
         # faceset embedded in a switch)
 
+        # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
@@ -424,6 +427,7 @@ class ViewProviderSunskyLight(BaseViewProvider):
         """Complete 'attach' method (callback)."""
         # Here we create coin representation, which is a directional light
 
+        # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
@@ -481,6 +485,8 @@ class ViewProviderImageLight(BaseViewProvider):
         # Here we create coin representation
         # NB: Coin representation is blank, as Coin does not handle
         # image-based lighting (the node is a dummy SoInfo)
+
+        # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         self.coin.dummy = coin.SoInfo()
