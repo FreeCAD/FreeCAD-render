@@ -23,6 +23,7 @@
 """This module implements base classes for Render workbench."""
 
 from collections import namedtuple, OrderedDict
+import functools
 import sys
 import os
 
@@ -262,9 +263,10 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         self.__module__ = "Render"
         self.on_attach_cb(vobj)
 
+    @functools.lru_cache(maxsize=128)
     def _context_menu(self):
         """Get context menu items."""
-        # TODO Replace by list comprehesion...
+        # TODO Replace by dict comprehesion...
         res = []
         for cls in reversed(self.__class__.__mro__):
             try:
@@ -305,6 +307,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         )
         return icon
 
+    @functools.lru_cache(maxsize=128)
     def _on_changed(self):
         """Get 'on change' mapping."""
         # TODO Replace by dict comprehesion...
@@ -335,6 +338,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         else:
             method(vpdo)
 
+    @functools.lru_cache(maxsize=128)
     def _on_update(self):
         """Get 'on update data' mapping."""
         # TODO Replace by dict comprehesion...
