@@ -44,6 +44,7 @@ from Render.base import (
     BaseFeature,
     Prop,
     BaseViewProvider,
+    PointableFeatureMixin,
     PointableViewProviderMixin,
 )
 
@@ -224,18 +225,12 @@ class ViewProviderPointLight(BaseViewProvider):
 # ===========================================================================
 
 
-class AreaLight(BaseFeature):
+class AreaLight(PointableFeatureMixin, BaseFeature):
     """An area light."""
 
     VIEWPROVIDER = "ViewProviderAreaLight"
 
     PROPERTIES = {
-        "Placement": Prop(
-            "App::PropertyPlacement",
-            "",
-            QT_TRANSLATE_NOOP("Render", "Placement of light"),
-            App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
-        ),
         "SizeU": Prop(
             "App::PropertyLength",
             "Light",
@@ -267,26 +262,6 @@ class AreaLight(BaseFeature):
             False,
         ),
     }
-
-    def point_at(self, point):
-        """Make Area light point at a given target point.
-
-        Args:
-            point -- Geometrical point to point at (having x, y, z properties).
-        """
-        fpo = self.fpo
-        current_normal = fpo.Placement.Rotation.multVec(App.Vector(0, 0, 1))
-        base = fpo.Placement.Base
-        new_normal = App.Vector(
-            point.x - base.x, point.y - base.y, point.z - base.z
-        )
-        axis = current_normal.cross(new_normal)
-        if not axis.Length:
-            # Don't try to rotate if axis is a null vector...
-            return
-        angle = math.degrees(new_normal.getAngle(current_normal))
-        rotation = App.Rotation(axis, angle)
-        fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 
 class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
