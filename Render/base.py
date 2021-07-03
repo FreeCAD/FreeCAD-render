@@ -26,10 +26,13 @@ from collections import namedtuple
 import sys
 import os
 
+from pivy import coin
 import FreeCAD as App
+import FreeCADGui as Gui
 from PySide.QtGui import QAction, QIcon
-from PySide.QtCore import QObject, SIGNAL
+from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 
+from Render.utils import translate
 from Render.constants import ICONDIR
 
 Prop = namedtuple(
@@ -38,6 +41,7 @@ Prop = namedtuple(
 
 
 class InterfaceBaseFeature:
+    # TODO Interface should subclass ABC
     """An interface to base class for FreeCAD scripted objects (BaseFeature).
 
     This class lists methods and properties that can/should be overriden by
@@ -198,12 +202,13 @@ CtxMenuItem = namedtuple(
 
 
 class InterfaceBaseViewProvider:
+    # TODO Interface should subclass ABC
     """An interface to base class for FreeCAD ViewProvider.
 
     This class lists methods and properties that can/should be overriden by
     subclasses.
     """
-
+    # TODO Reformat comments for properties
     ICON = ""  # Icon name. By default, looks into ICONDIR.
     # If name starts with ":", will look into FreeCAD icons
 
@@ -222,7 +227,6 @@ class InterfaceBaseViewProvider:
     # see onUpdateData
 
     CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
-
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback).
@@ -246,6 +250,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
         self.__module__ = "Render"
+        App.Console.PrintMessage("BaseViewProvider.__init__")
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -257,9 +262,20 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         self.__module__ = "Render"
         self.on_attach_cb(vobj)
 
+    def _context_menu(self):
+        """Get context menu items."""
+        # TODO Replace by list comprehesion...
+        res = []
+        for cls in reversed(self.__class__.__mro__):
+            try:
+                res += cls.CONTEXT_MENU
+            except AttributeError:
+                pass
+        return res
+
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
-        for item in self.CONTEXT_MENU:
+        for item in self._context_menu():
             if item.icon:
                 icon = QIcon(os.path.join(ICONDIR, item.icon))
                 action = QAction(icon, item.name, menu)
@@ -289,6 +305,17 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         )
         return icon
 
+    def _on_changed(self):
+        """Get 'on change' mapping."""
+        # TODO Replace by dict comprehesion...
+        res = {}
+        for cls in reversed(self.__class__.__mro__):
+            try:
+                res = {**res, **cls.ON_CHANGED}
+            except AttributeError:
+                pass
+        return res
+
     def onChanged(self, vpdo, prop):
         """Respond to property changed event (callback).
 
@@ -301,11 +328,23 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             prop -- property name (as a string)
         """
         try:
-            method = getattr(self, self.ON_CHANGED[prop])
+            on_changed = self._on_changed()
+            method = getattr(self, on_changed[prop])
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
             method(vpdo)
+
+    def _on_update(self):
+        """Get 'on update data' mapping."""
+        # TODO Replace by dict comprehesion...
+        res = {}
+        for cls in reversed(self.__class__.__mro__):
+            try:
+                res = {**res, **cls.ON_UPDATE}
+            except AttributeError:
+                pass
+        return res
 
     def updateData(self, fpo, prop):
         """Respond to FeaturePython's property changed event (callback).
@@ -317,8 +356,9 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             fpo -- related FeaturePython object
             prop -- property name
         """
+        on_update = self._on_update()
         try:
-            method = getattr(self, self.ON_UPDATE[prop])
+            method = getattr(self, on_update[prop])
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
@@ -351,3 +391,82 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         done.
         """
         return mode
+
+
+class PointableViewProviderMixin:
+    # TODO Mixin for feature
+    """Mixin for Pointable ViewProviders.
+
+    This mixin allows a ViewProvider to be "pointable", ie to support
+    'point_at' actions.
+    """
+    CONTEXT_MENU = [
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Point at..."),
+            "point_at",
+        ),
+    ]
+
+    def __init__(self, vobj):
+        """Initialize Mixin."""
+        super().__init__(vobj)
+        self.callback = None  # For point_at method
+
+    def point_at(self):
+        """Make this object point at another object.
+
+        User will be requested to select an object to point at.
+        """
+        msg = (
+            translate(
+                "Render", "[Point at] Please select target (on geometry)"
+            )
+            + "\n"
+        )
+        App.Console.PrintMessage(msg)
+        self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(
+            coin.SoMouseButtonEvent.getClassTypeId(), self._point_at_cb
+        )
+
+    def _point_at_cb(self, event_cb):
+        """`point_at` callback.
+
+        Args:
+            event_cb -- coin event callback object
+        """
+        event = event_cb.getEvent()
+        if (
+            event.getState() == coin.SoMouseButtonEvent.DOWN
+            and event.getButton() == coin.SoMouseButtonEvent.BUTTON1
+        ):
+            # Get point
+            picked_point = event_cb.getPickedPoint()
+            try:
+                point = App.Vector(picked_point.getPoint())
+            except AttributeError:
+                # No picked point (outside geometry)
+                msg = (
+                    translate(
+                        "Render",
+                        "[Point at] Target outside geometry " "-- Aborting",
+                    )
+                    + "\n"
+                )
+                App.Console.PrintMessage(msg)
+            else:
+                # Make underlying object point at target point
+                self.fpo.Proxy.point_at(point)
+                msg = (
+                    translate(
+                        "Render",
+                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
+                    )
+                    + "\n"
+                )
+                App.Console.PrintMessage(msg.format(point))
+                App.Console.PrintMessage("###########################")
+            finally:
+                # Remove coin event catcher
+                Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
+                    coin.SoMouseButtonEvent.getClassTypeId(), self.callback
+                )
