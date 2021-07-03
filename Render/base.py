@@ -131,30 +131,44 @@ class InterfaceBaseViewProvider:
     This class lists methods and properties that can/should be overriden by
     subclasses.
     """
-    # TODO Reformat comments for properties
-    ICON = ""  # Icon name. By default, looks into ICONDIR.
+    # Icon name
+    ICON = ""
+    # By default, look into ICONDIR.
     # If name starts with ":", will look into FreeCAD icons
+    # See 'getIcon' in FreeCAD scripted objects framework
 
-    DISPLAY_MODES = ["Default"]  # Display modes
+    # Display modes
+    DISPLAY_MODES = ["Default"]
     # First item provides the default mode, so
     # please keep at least one item there
+    # See 'getDisplayModes' in FreeCAD scripted objects framework
 
-    ALWAYS_VISIBLE = False  # If True, make the object always visible in tree
+    # Visibility flag
+    ALWAYS_VISIBLE = False
+    # If True, make the object always visible in tree
+    # See 'isShow' in FreeCAD scripted objects framework
 
-    ON_CHANGED = {}  # A dictionary Property: Method (strings).
+    # 'On change' mapping
+    ON_CHANGED = {}
+    # A dictionary Property: Method (strings).
     # Handles changes in ViewProviderDocumentObject data,
-    # see onChanged
+    # See 'onChanged' in FreeCAD scripted objects framework
 
-    ON_UPDATE = {}  # A dictionary Property: Method (strings)
+    # 'On update' mapping
+    ON_UPDATE = {}
+    # A dictionary Property: Method (strings)
     # Handles changes in ViewProviderDocument data,
-    # see onUpdateData
+    # See 'onUpdateData' in FreeCAD scripted objects framework
 
-    CONTEXT_MENU = []  # An list of CtxMenuItem, for the contextual menu
+    # Context menu
+    CONTEXT_MENU = []
+    # An list of CtxMenuItem, for the object context menu
+    # See 'getContextMenu' in FreeCAD scripted objects framework
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback).
 
-        Subclasses can override this method.
+        Subclasses can override this method (optional).
         """
 
 
