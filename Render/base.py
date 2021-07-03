@@ -432,7 +432,7 @@ class PointableFeatureMixin:
     PROPERTIES = {
         "Placement": Prop(
             "App::PropertyPlacement",
-            "Pointable",
+            "Base",
             QT_TRANSLATE_NOOP("Render", "Object placement"),
             App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
         ),
