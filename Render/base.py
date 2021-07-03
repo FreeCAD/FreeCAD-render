@@ -23,6 +23,7 @@
 """This module implements base classes for Render workbench."""
 
 from collections import namedtuple
+from math import degrees
 import functools
 import itertools
 import sys
@@ -201,7 +202,7 @@ class BaseFeature(InterfaceBaseFeature):
 
         properties = get_cumulative_dict_attribute(self, "PROPERTIES")
         for name in properties.keys() - set(fpo.PropertiesList):
-            spec = Prop._make(self.PROPERTIES[name])
+            spec = Prop._make(properties[name])
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
@@ -285,7 +286,6 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         vobj.Proxy = self
         self.fpo = vobj.Object  # Related FeaturePython object
         self.__module__ = "Render"
-        App.Console.PrintMessage("BaseViewProvider.__init__")
 
     def attach(self, vobj):
         """Respond to created/restored object event (callback).
@@ -428,6 +428,7 @@ class PointableFeatureMixin:
     This mixin allows a feature to be "pointable", ie to support
     'point_at' action.
     """
+
     PROPERTIES = {
         "Placement": Prop(
             "App::PropertyPlacement",
@@ -459,12 +460,12 @@ class PointableFeatureMixin:
 
 
 class PointableViewProviderMixin:
-    # TODO Mixin for feature
     """Mixin for Pointable ViewProviders.
 
     This mixin allows a ViewProvider to be "pointable", ie to support
     'point_at' actions.
     """
+
     CONTEXT_MENU = [
         CtxMenuItem(
             QT_TRANSLATE_NOOP("Render", "Point at..."),

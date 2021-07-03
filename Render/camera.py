@@ -39,6 +39,7 @@ from Render.base import (
     Prop,
     BaseViewProvider,
     CtxMenuItem,
+    PointableFeatureMixin,
     PointableViewProviderMixin,
 )
 
@@ -59,7 +60,7 @@ VIEWPORTMAPPINGENUM = (
 # ===========================================================================
 
 
-class Camera(BaseFeature):
+class Camera(PointableFeatureMixin, BaseFeature):
     """A camera for rendering.
 
     This object allows to record camera settings from the Coin camera, and to
@@ -76,7 +77,6 @@ class Camera(BaseFeature):
 
     VIEWPROVIDER = "ViewProviderCamera"
 
-    # FeaturePython object properties
     PROPERTIES = {
         "Projection": Prop(
             "App::PropertyEnumeration",
@@ -85,12 +85,6 @@ class Camera(BaseFeature):
                 "Render", "Type of projection: Perspective/Orthographic"
             ),
             ("Perspective", "Orthographic"),
-        ),
-        "Placement": Prop(
-            "App::PropertyPlacement",
-            "Camera",
-            QT_TRANSLATE_NOOP("Render", "Placement of camera"),
-            App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
         ),
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
@@ -140,7 +134,6 @@ class Camera(BaseFeature):
             60,
         ),
     }
-    # ~FeaturePython object properties
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete 'create' (callback)."""
@@ -148,27 +141,6 @@ class Camera(BaseFeature):
             viewp.set_camera_from_gui()
         else:
             set_cam_from_coin_string(fpo, DEFAULT_CAMERA_STRING)
-
-    def point_at(self, point):
-        """Make camera point at a given target point.
-
-        Args:
-            point -- Geometrical point to point at (having x, y, z properties).
-        """
-        fpo = self.fpo
-        current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
-        base = fpo.Placement.Base
-        new_target = App.Vector(
-            point.x - base.x, point.y - base.y, point.z - base.z
-        )
-        axis = current_target.cross(new_target)
-        if not axis.Length:
-            # Don't try to rotate if axis is a null vector...
-            return
-        angle = degrees(new_target.getAngle(current_target))
-        rotation = App.Rotation(axis, angle)
-
-        fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
 
 
 # ===========================================================================
