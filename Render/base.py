@@ -24,6 +24,7 @@
 
 from collections import namedtuple, OrderedDict
 import functools
+import itertools
 import sys
 import os
 
@@ -266,13 +267,13 @@ class BaseViewProvider(InterfaceBaseViewProvider):
     @functools.lru_cache(maxsize=128)
     def _context_menu(self):
         """Get context menu items."""
-        # TODO Replace by dict comprehesion...
-        res = []
-        for cls in reversed(self.__class__.__mro__):
-            try:
-                res += cls.CONTEXT_MENU
-            except AttributeError:
-                pass
+        res = itertools.chain.from_iterable(
+            [
+                cls.CONTEXT_MENU
+                for cls in reversed(self.__class__.__mro__)
+                if hasattr(cls, "CONTEXT_MENU")
+            ]
+        )
         return list(OrderedDict.fromkeys(res))  # Remove duplicates
 
     def setupContextMenu(self, vobj, menu):
