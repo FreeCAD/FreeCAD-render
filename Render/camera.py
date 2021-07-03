@@ -150,8 +150,6 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
     """View Provider of Camera class."""
 
     ICON = ":/icons/camera-photo.svg"
-    ON_CHANGED = {"Visibility": "_change_visibility"}
-    ON_UPDATE = {"Placement": "_update_placement"}
     CONTEXT_MENU = [
         CtxMenuItem(
             QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),
@@ -163,11 +161,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         ),
     ]
     DISPLAY_MODES = ["Shaded"]
-
-    def __init__(self, vobj):
-        """Initialize View Provider."""
-        super().__init__(vobj)
-        self.callback = None  # For point_at method
+    ON_CHANGED = {"Visibility": "_change_visibility"}
 
     def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback).
@@ -241,14 +235,6 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         self.coin.geometry.whichChild = (
             coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
         )
-
-    def _update_placement(self, fpo):
-        """Update camera location."""
-        location = fpo.Placement.Base[:3]
-        self.coin.transform.translation.setValue(location)
-        angle = float(fpo.Placement.Rotation.Angle)
-        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
-        self.coin.transform.rotation.setValue(axis, angle)
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera."""
