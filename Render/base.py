@@ -422,6 +422,42 @@ class BaseViewProvider(InterfaceBaseViewProvider):
 # ===========================================================================
 
 
+class PointableFeatureMixin:
+    """Mixin for Pointable feature.
+
+    This mixin allows a feature to be "pointable", ie to support
+    'point_at' action.
+    """
+    PROPERTIES = {
+        "Placement": Prop(
+            "App::PropertyPlacement",
+            "Pointable",
+            QT_TRANSLATE_NOOP("Render", "Object placement"),
+            App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
+        ),
+    }
+
+    def point_at(self, point):
+        """Make camera point at a given target point.
+
+        Args:
+            point -- Geometrical point to point at (having x, y, z properties).
+        """
+        fpo = self.fpo
+        current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
+        base = fpo.Placement.Base
+        new_target = App.Vector(
+            point.x - base.x, point.y - base.y, point.z - base.z
+        )
+        axis = current_target.cross(new_target)
+        if not axis.Length:
+            # Don't try to rotate if axis is a null vector...
+            return
+        angle = degrees(new_target.getAngle(current_target))
+        rotation = App.Rotation(axis, angle)
+        fpo.Placement.Rotation = rotation.multiply(fpo.Placement.Rotation)
+
+
 class PointableViewProviderMixin:
     # TODO Mixin for feature
     """Mixin for Pointable ViewProviders.
