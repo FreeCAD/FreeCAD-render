@@ -315,8 +315,6 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         self.coin.drawstyle.style = coin.SoDrawStyle.FILLED
         self.coin.node.addChild(self.coin.drawstyle)
         self.coin.coords = coin.SoCoordinate3()
-
-        self.coin.coords = coin.SoCoordinate3()
         self.coin.coords.point.setValues(0, len(self.SHAPE), self.SHAPE)
         self.coin.node.addChild(self.coin.coords)
         self.coin.faceset = coin.SoFaceSet()

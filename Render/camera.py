@@ -182,8 +182,6 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         self.coin.node = coin.SoSeparator()
         self.coin.transform = coin.SoTransform()
         self.coin.node.addChild(self.coin.transform)
-        self.coin.material = coin.SoMaterial()
-        self.coin.node.addChild(self.coin.material)
         self.coin.drawstyle = coin.SoDrawStyle()
         self.coin.drawstyle.style = coin.SoDrawStyle.LINES
         self.coin.drawstyle.lineWidth = 1
