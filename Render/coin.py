@@ -87,34 +87,69 @@ class DisplayableCoinNode:
         self.set_rotation(placement)
         self.set_position(placement)
 
+    def insert(self, subgraph, position=0):
+        """Insert this object in subgraph at given position.
+
+        Default insertion position is first position.
+
+        Args:
+            subgraph -- the subgraph, a Coin SoGroup object
+            position -- position where to insert
+        """
+        subgraph.insertChild(self.node, position)
+
+    def append(self, scene):
+        """Append object to subgraph.
+
+        Args:
+            scene -- the scene, a Coin SoGroup object
+        """
+        subgraph.addChild(self.node)
+
 
 class ShapeCoinNode(DisplayableCoinNode):
     """A class to display a Coin Shape object."""
 
-    def __init__(self, points, vertices, **kwargs):
+    def __init__(self, points, vertices, wireframe=False, **kwargs):
         """Initialize object.
 
         Args:
             points -- points for the shape (iterable of 3-uples)
             vertices -- vertices for the shape (iterable)
+            wireframe -- flag to draw a wireframe (SoLineSet) rather than a
+                shaded object (SoFaceSet)
 
         Keyword args:
-            drawstyle -- a Coin drawstyle object to describe draw style
+            drawstyle -- a Coin SoDrawStyle object to describe draw style
+                (optional)
+            material -- a Coin SoMaterial object to describe material
                 (optional)
         """
         super().__init__()
+
         # Drawstyle
-        default_drawstyle = coin.SoDrawStyle()
-        default_drawstyle.style = coin.SoDrawStyle.FILLED
-        self.drawstyle = kwargs.get("drawstyle", default_drawstyle)
-        self.display_group.addChild(self.drawstyle)
+        try:
+            self.drawstyle = kwargs["drawstyle"]
+        except KeyError:
+            self.drawstyle = coin.SoDrawStyle()
+            self.drawstyle.style = coin.SoDrawStyle.FILLED
+        finally:
+            self.display_group.addChild(self.drawstyle)
+
+        # Material
+        try:
+            self.material = kwargs["material"]
+        except KeyError:
+            self.material = coin.SoMaterial()
+        finally:
+            self.display_group.addChild(self.material)
 
         # Coordinates
         self.coords = coin.SoCoordinate3()
         self.coords.point.setValues(0, len(points), points)
         self.display_group.addChild(self.coords)
 
-        # Shape (faceset)
-        self.faceset = coin.SoFaceSet()
-        self.faceset.numVertices.setValues(0, len(vertices), vertices)
-        self.display_group.addChild(self.faceset)
+        # Shape (faceset or lineset)
+        self.shape = coin.SoLineSet() if wireframe else coin.SoFaceSet()
+        self.shape.numVertices.setValues(0, len(vertices), vertices)
+        self.display_group.addChild(self.shape)
