@@ -199,6 +199,16 @@ class ShapeCoinNode(DisplayableCoinNode):
         self.display_group.addChild(self.shape)
 
     def set_color(self, **kwargs):
+        """Set various color attributes.
+
+        Keyword args:
+            diffuse -- diffuse color
+            emissive -- emissive color
+            specular -- specular color
+            ambient -- ambient color
+
+        (see Coin SoMaterial documentation for more details)
+        """
         for key, value in kwargs.items():
             color = coin.SbColor(value)
             if key == "diffuse":
