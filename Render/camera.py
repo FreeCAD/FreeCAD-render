@@ -34,6 +34,7 @@ from pivy import coin
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
+
 from Render.base import (
     BaseFeature,
     Prop,
@@ -42,6 +43,7 @@ from Render.base import (
     PointableFeatureMixin,
     PointableViewProviderMixin,
 )
+from Render.coin import ShapeCoinNode
 
 
 # Enumeration of allowed values for ViewportMapping parameter (see Coin
@@ -160,7 +162,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
             "set_camera_from_gui",
         ),
     ]
-    DISPLAY_MODES = ["Shaded"]
+    DISPLAY_MODES = ["Shaded"]  # TODO For mixin
     ON_CHANGED = {"Visibility": "_change_visibility"}
 
     def on_attach_cb(self, vobj):
@@ -173,25 +175,10 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         # Here we create a coin representation
         # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
         size = 5
         height = 10
-
-        self.coin.geometry = coin.SoSwitch()
-        self.coin.node = coin.SoSeparator()
-        self.coin.transform = coin.SoTransform()
-        self.coin.node.addChild(self.coin.transform)
-        self.coin.drawstyle = coin.SoDrawStyle()
-        self.coin.drawstyle.style = coin.SoDrawStyle.LINES
-        self.coin.drawstyle.lineWidth = 1
-        self.coin.drawstyle.linePattern = 0xAAAA
-        self.coin.node.addChild(self.coin.drawstyle)
-        self.coin.coords = coin.SoCoordinate3()
-        self.coin.coords.point.setValues(
-            0,
-            15,
-            [
+        points = [
                 (-size * 2, +size, 0),  # Front rectangle
                 (+size * 2, +size, 0),  # Front rectangle
                 (+size * 2, -size, 0),  # Front rectangle
@@ -206,34 +193,40 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
                 (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
                 (0, 1.4 * +size, 0),  # Up triangle (arrow)
                 (+size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
-                (-size * 1.8, 1.2 * +size, 0),
-            ],  # Up triangle (arrow)
-        )
-        self.coin.node.addChild(self.coin.coords)
-        self.coin.lineset = coin.SoLineSet()
-        self.coin.lineset.numVertices.setValues(0, 4, [5, 3, 3, 4])
-        self.coin.node.addChild(self.coin.lineset)
+                (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
+            ]
+        vertices = [5, 3, 3, 4]
 
-        self.coin.geometry.addChild(self.coin.node)
-        self.coin.geometry.whichChild.setValue(coin.SO_SWITCH_ALL)
-        scene.addChild(self.coin.geometry)  # Insert back
-        vobj.addDisplayMode(self.coin.geometry, "Shaded")
+        self.coin.shape = ShapeCoinNode(points, vertices, wireframe=True)
+        self.coin.shape.add_display_mode(vobj, "Shaded")
+        self.coin.shape.add_display_mode(vobj, "Wireframe")
 
         # Update coin elements with actual object properties
         self.update_all(self.fpo)
+
+    # TODO Move into mixin class
+    def _update_placement(self, fpo):
+        """Update object placement."""
+        try:
+            coin_attr = self.coin.shape
+        except AttributeError:
+            return  # No coin representation
+        location = fpo.Placement.Base[:3]
+        coin_attr.transform.translation.setValue(location)
+        angle = float(fpo.Placement.Rotation.Angle)
+        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
+        coin_attr.transform.rotation.setValue(axis, angle)
 
     def onDelete(self, feature, subelements):
         """Respond to delete object event (callback)."""
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.geometry)
+        self.coin.shape.remove_from_scene(scene)
         return True  # If False, the object wouldn't be deleted
 
     def _change_visibility(self, vpdo):
         """Respond to Visibility change."""
-        self.coin.geometry.whichChild = (
-            coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
-        )
+        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera."""
