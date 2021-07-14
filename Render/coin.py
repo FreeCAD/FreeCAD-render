@@ -179,15 +179,13 @@ class ShapeCoinNode(DisplayableCoinNode):
         finally:
             self.display_group.addChild(self.drawstyle)
 
-        # Material (only add if not wireframe)
-        wireframe = kwargs.get("wireframe", False)
-        if not wireframe:
-            try:
-                self.material = kwargs["material"]
-            except KeyError:
-                self.material = coin.SoMaterial()
-            finally:
-                self.display_group.addChild(self.material)
+        # Material
+        try:
+            self.material = kwargs["material"]
+        except KeyError:
+            self.material = coin.SoMaterial()
+        finally:
+            self.display_group.addChild(self.material)
 
         # Coordinates
         self.coords = coin.SoCoordinate3()
@@ -195,6 +193,22 @@ class ShapeCoinNode(DisplayableCoinNode):
         self.display_group.addChild(self.coords)
 
         # Shape (faceset or lineset)
+        wireframe = kwargs.get("wireframe", False)
         self.shape = coin.SoLineSet() if wireframe else coin.SoFaceSet()
         self.shape.numVertices.setValues(0, len(vertices), vertices)
         self.display_group.addChild(self.shape)
+
+    def set_color(self, **kwargs):
+        for key, value in kwargs.items():
+            color = coin.SbColor(value)
+            if key == "diffuse":
+                attribute = self.material.diffuseColor
+            elif key == "emissive":
+                attribute = self.material.emissiveColor
+            elif key == "specular":
+                attribute = self.material.specularColor
+            elif key == "ambient":
+                attribute = self.material.ambientColor
+            else:
+                raise KeyError("Unknown color attribute")
+            attribute.setValue(color)
