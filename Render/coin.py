@@ -61,23 +61,24 @@ class DisplayableCoinNode:
             coin.SO_SWITCH_ALL if visible else coin.SO_SWITCH_NONE
         )
 
-    def set_position(self, placement):
+    def set_position(self, position):
         """Set object position (translation only, no rotation).
 
         Args:
-            placement -- placement to position object to (FreeCAD.Placement)
+            position -- a 3D vector to position object to
         """
-        location = placement.Base[:3]
-        self.transform.translation.setValue(location)
+        position = coin.SbVec3f(position)
+        self.transform.translation.setValue(position)
 
-    def set_rotation(self, placement):
+    def set_rotation(self, axis, angle):
         """Set object rotation (rotation only, no translation).
 
         Args:
-            placement -- placement to rotate object with (FreeCAD.Placement)
+            axis -- rotation axis (3D vector)
+            angle -- rotation angle (float)
         """
-        angle = float(placement.Rotation.Angle)
-        axis = coin.SbVec3f(placement.Rotation.Axis)
+        angle = float(angle)
+        axis = coin.SbVec3f(axis)
         self.transform.rotation.setValue(axis, angle)
 
     def set_placement(self, placement):
@@ -86,8 +87,8 @@ class DisplayableCoinNode:
         Args:
             placement -- placement (FreeCAD.Placement)
         """
-        self.set_rotation(placement)
-        self.set_position(placement)
+        self.set_rotation(placement.Axis, placement.Rotation)
+        self.set_position(placement.Base)
 
     def set_scale(self, scale):
         """Set object scale
