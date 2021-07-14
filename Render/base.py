@@ -123,7 +123,7 @@ class InterfaceBaseFeature:
         """
 
 
-class InterfaceBaseViewProvider:  # pylint: disable=too-few-public-methods
+class InterfaceBaseViewProvider:
     """An interface to base class for FreeCAD ViewProvider.
 
     This class lists methods and properties that can/should be overriden by
@@ -166,6 +166,12 @@ class InterfaceBaseViewProvider:  # pylint: disable=too-few-public-methods
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback).
+
+        Subclasses can override this method (optional).
+        """
+
+    def on_delete_cb(self, vobj):
+        """Complete 'onDelete' method (callback).
 
         Subclasses can override this method (optional).
         """
@@ -308,7 +314,38 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         """
         self.fpo = vobj.Object  # Related FeaturePython object
         self.__module__ = "Render"
+
+        # Hook for mixins
+        try:
+            callback = self.on_attach_mixin_cb
+        except AttributeError:
+            pass
+        else:
+            callback(vobj)
+
+        # Hook for objects
         self.on_attach_cb(vobj)
+
+    def onDelete(self, feature, subelements):
+        """Respond to delete object event (callback).
+
+        Args:
+            vobj -- Related ViewProviderDocumentObject
+        """
+        res = True
+
+        # Hook for mixins
+        try:
+            callback = self.on_delete_mixin_cb
+        except AttributeError:
+            pass
+        else:
+            res &= callback(self, feature, subelements)
+
+        # Hook for objects
+        res &= self.on_delete_cb(self, feature, subelements)
+
+        return res
 
     @functools.lru_cache(maxsize=128)
     def _context_menu_mapping(self):
@@ -499,11 +536,11 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
         super().__init__(vobj)
         self.callback = None  # For point_at method
 
-    # TODO Update with CoinNode
+    # TODO Move to another mixin (CoinShapeMixin?)
     def _update_placement(self, fpo):
         """Update object placement."""
         try:
-            coin_attr = self.coin
+            coin_attr = self.coin.shape
         except AttributeError:
             return  # No coin representation
         location = fpo.Placement.Base[:3]
@@ -571,18 +608,43 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
                 )
 
 
-# TODO Create Placeable Mixin: Placement, _update_placement as an abstract
-# method
+# TODO Complete (WIP)
+class CoinShapeViewProviderMixin:
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
+    SHAPE_POINTS = ()
+    SHAPE_VERTICES = ()
+    SHAPE_WIREFRAME = False
+    ON_UPDATE = {
+        "Placement": "_update_placement",
+        "Location": "_update_location",
+    }
 
-# TODO Complete or remove
-# class CoinWireShapeViewProviderMixin:
-    # SHAPE = ()
+    def on_attach_mixin_cb(self, vobj):
+        super().on_attach_mixin_cb(vobj)
+        try:
+            coin = self.coin
+        except AttributeError:
+            coin = self.coin = SimpleNamespace()
+        self.coin.shape = ShapeCoinNode(
+            self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=False
+        )
+        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
 
-    # def on_attach_mixin_cb(self, vobj):
-        # # TODO
-        # super().on_attach_cb(vobj)
-        # try:
-            # coin = self.coin
-        # except AttributeError:
-            # coin = self.coin = SimpleNamespace()
-        # scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        # Update coin elements with actual object properties
+        self.update_all(self.fpo)
+
+    def on_delete_mixin_cb(self, feature, subelements):
+        res = super().on_attach_mixin_cb(vobj)
+        # Delete coin representation
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        self.coin.shape.remove_from_scene(scene)
+        return res  # If False, the object wouldn't be deleted
+
+    def _update_placement(self, fpo):
+        """Update object placement."""
+        self.coin.shape.set_placement(fpo.Placement)
+
+    def _update_location(self, fpo):
+        """Update object location."""
+        location = fpo.Location[:3]
+        self.coin.shape.set_position(location)
