@@ -176,6 +176,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
 
+        # TODO In class constants...
         size = 5
         height = 10
         points = [
@@ -198,8 +199,8 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         vertices = [5, 3, 3, 4]
 
         self.coin.shape = ShapeCoinNode(points, vertices, wireframe=True)
-        self.coin.shape.add_display_mode(vobj, "Shaded")
-        self.coin.shape.add_display_mode(vobj, "Wireframe")
+        self.coin.shape.add_display_mode(vobj, "Shaded")  # TODO
+        self.coin.shape.add_display_mode(vobj, "Wireframe")  # TODO
 
         # Update coin elements with actual object properties
         self.update_all(self.fpo)

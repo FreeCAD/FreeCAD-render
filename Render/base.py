@@ -499,6 +499,7 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
         super().__init__(vobj)
         self.callback = None  # For point_at method
 
+    # TODO Update with CoinNode
     def _update_placement(self, fpo):
         """Update object placement."""
         try:
