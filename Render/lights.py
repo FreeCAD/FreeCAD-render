@@ -325,8 +325,7 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
     def _update_color(self, fpo):
         """Update arealight color."""
         color = fpo.Color[:3]
-        self.coin.shape.material.emissiveColor.setValue(color)  # TODO
-        self.coin.shape.material.diffuseColor.setValue(color)  # TODO
+        self.coin.shape.set_color(diffuse=color, emissive=color)
         self.coin.light.color.setValue(color)
 
     def _update_size(self, fpo):
