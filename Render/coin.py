@@ -98,7 +98,6 @@ class DisplayableCoinNode:
         """
         self.transform.scaleFactor.setValue(scale)
 
-
     def insert(self, subgraph, position=0):
         """Insert this object in subgraph at given position.
 

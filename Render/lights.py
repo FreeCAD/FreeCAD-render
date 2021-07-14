@@ -124,7 +124,6 @@ class PointLight(BaseFeature):
 class ViewProviderPointLight(BaseViewProvider):
     """View Provider of PointLight class."""
 
-
     ICON = "PointLight.svg"
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]
