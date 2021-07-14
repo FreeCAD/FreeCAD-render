@@ -162,7 +162,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
             "set_camera_from_gui",
         ),
     ]
-    DISPLAY_MODES = ["Shaded"]  # TODO For mixin
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
     ON_CHANGED = {"Visibility": "_change_visibility"}
 
     def on_attach_cb(self, vobj):
@@ -199,8 +199,7 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         vertices = [5, 3, 3, 4]
 
         self.coin.shape = ShapeCoinNode(points, vertices, wireframe=True)
-        self.coin.shape.add_display_mode(vobj, "Shaded")  # TODO
-        self.coin.shape.add_display_mode(vobj, "Wireframe")  # TODO
+        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
 
         # Update coin elements with actual object properties
         self.update_all(self.fpo)
