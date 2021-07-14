@@ -41,12 +41,14 @@ class DisplayableCoinNode:
         self.node.addChild(self.switch)
 
         # Transform (placement)
-        self.transform = self.switch.addChild(coin.SoTransform())
+        self.transform = coin.SoTransform()
         self.switch.addChild(self.transform)
 
         # Display group (starting point for shape or light nodes)
         self.display_group = coin.SoGroup()
         self.switch.addChild(self.display_group)
+
+        self.set_visibility(True)  # TODO Where should it be?
 
     def set_visibility(self, visible):
         """Set object visibility.
@@ -55,7 +57,7 @@ class DisplayableCoinNode:
             visible -- flag for object visibility (boolean)
         """
         visible = bool(visible)
-        self.switch.whichChild(
+        self.switch.whichChild = (
             coin.SO_SWITCH_ALL if visible else coin.SO_SWITCH_NONE
         )
 
@@ -98,7 +100,7 @@ class DisplayableCoinNode:
         """
         subgraph.insertChild(self.node, position)
 
-    def append(self, scene):
+    def append(self, subgraph):
         """Append object to subgraph.
 
         Args:
@@ -106,20 +108,38 @@ class DisplayableCoinNode:
         """
         subgraph.addChild(self.node)
 
+    def add_display_mode(self, vobj, display_mode):
+        """Add display mode for root node in FreeCAD.
+
+        Args:
+            vobj -- a FreeCAD ViewProvider
+            display_mode -- display mode name
+        """
+        display_mode = str(display_mode)
+        vobj.addDisplayMode(self.node, display_mode)
+
+    def remove_from_scene(self, scene):
+        """Remove object from coin scene.
+
+        Args:
+            scene -- coin scene to remove object from
+        """
+        scene.removeChild(self.node)
+
 
 class ShapeCoinNode(DisplayableCoinNode):
     """A class to display a Coin Shape object."""
 
-    def __init__(self, points, vertices, wireframe=False, **kwargs):
+    def __init__(self, points, vertices, **kwargs):
         """Initialize object.
 
         Args:
             points -- points for the shape (iterable of 3-uples)
             vertices -- vertices for the shape (iterable)
-            wireframe -- flag to draw a wireframe (SoLineSet) rather than a
-                shaded object (SoFaceSet)
 
         Keyword args:
+            wireframe -- flag to draw a wireframe (SoLineSet) rather than a
+                shaded object (SoFaceSet)
             drawstyle -- a Coin SoDrawStyle object to describe draw style
                 (optional)
             material -- a Coin SoMaterial object to describe material
@@ -132,6 +152,8 @@ class ShapeCoinNode(DisplayableCoinNode):
             self.drawstyle = kwargs["drawstyle"]
         except KeyError:
             self.drawstyle = coin.SoDrawStyle()
+            self.drawstyle.lineWidth = 1
+            self.drawstyle.linePattern = 0xAAAA
             self.drawstyle.style = coin.SoDrawStyle.FILLED
         finally:
             self.display_group.addChild(self.drawstyle)
@@ -150,6 +172,7 @@ class ShapeCoinNode(DisplayableCoinNode):
         self.display_group.addChild(self.coords)
 
         # Shape (faceset or lineset)
+        wireframe = kwargs.get("wireframe", False)
         self.shape = coin.SoLineSet() if wireframe else coin.SoFaceSet()
         self.shape.numVertices.setValues(0, len(vertices), vertices)
         self.display_group.addChild(self.shape)
