@@ -308,8 +308,7 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
 
         # Create shape in scenegraph
         self.coin.shape = ShapeCoinNode(self.SHAPE_POINTS, self.SHAPE_VERTICES)
-        self.coin.shape.add_display_mode(vobj, "Shaded")  # TODO
-        self.coin.shape.add_display_mode(vobj, "Wireframe")  # TODO
+        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
 
         # Update coin elements with actual object properties
         self.update_all(self.fpo)
