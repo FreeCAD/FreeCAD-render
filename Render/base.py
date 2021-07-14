@@ -568,3 +568,20 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
                 Gui.ActiveDocument.ActiveView.removeEventCallbackPivy(
                     coin.SoMouseButtonEvent.getClassTypeId(), self.callback
                 )
+
+
+# TODO Create Placeable Mixin: Placement, _update_placement as an abstract
+# method
+
+# TODO Complete or remove
+# class CoinWireShapeViewProviderMixin:
+    # SHAPE = ()
+
+    # def on_attach_mixin_cb(self, vobj):
+        # # TODO
+        # super().on_attach_cb(vobj)
+        # try:
+            # coin = self.coin
+        # except AttributeError:
+            # coin = self.coin = SimpleNamespace()
+        # scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
