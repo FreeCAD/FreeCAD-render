@@ -89,6 +89,15 @@ class DisplayableCoinNode:
         self.set_rotation(placement)
         self.set_position(placement)
 
+    def set_scale(self, scale):
+        """Set object scale
+
+        Args:
+            scale -- the scale to set object to (vec3)
+        """
+        self.transform.scaleFactor.setValue(scale)
+
+
     def insert(self, subgraph, position=0):
         """Insert this object in subgraph at given position.
 
