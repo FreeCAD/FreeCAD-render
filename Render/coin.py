@@ -178,13 +178,15 @@ class ShapeCoinNode(DisplayableCoinNode):
         finally:
             self.display_group.addChild(self.drawstyle)
 
-        # Material
-        try:
-            self.material = kwargs["material"]
-        except KeyError:
-            self.material = coin.SoMaterial()
-        finally:
-            self.display_group.addChild(self.material)
+        # Material (only add if not wireframe)
+        wireframe = kwargs.get("wireframe", False)
+        if not wireframe:
+            try:
+                self.material = kwargs["material"]
+            except KeyError:
+                self.material = coin.SoMaterial()
+            finally:
+                self.display_group.addChild(self.material)
 
         # Coordinates
         self.coords = coin.SoCoordinate3()
@@ -192,7 +194,6 @@ class ShapeCoinNode(DisplayableCoinNode):
         self.display_group.addChild(self.coords)
 
         # Shape (faceset or lineset)
-        wireframe = kwargs.get("wireframe", False)
         self.shape = coin.SoLineSet() if wireframe else coin.SoFaceSet()
         self.shape.numVertices.setValues(0, len(vertices), vertices)
         self.display_group.addChild(self.shape)
