@@ -118,7 +118,7 @@ class DisplayableCoinNode:
         subgraph.addChild(self.node)
 
     def add_display_mode(self, vobj, display_mode):
-        """Add display mode for root node in FreeCAD.
+        """Add a display mode for root node in FreeCAD.
 
         Args:
             vobj -- a FreeCAD ViewProvider
@@ -126,6 +126,16 @@ class DisplayableCoinNode:
         """
         display_mode = str(display_mode)
         vobj.addDisplayMode(self.node, display_mode)
+
+    def add_display_modes(self, vobj, display_modes):
+        """Add a list of display modes for root node in FreeCAD.
+
+        Args:
+            vobj -- a FreeCAD ViewProvider
+            display_modes -- display mode names
+        """
+        for display_mode in display_modes:
+            self.add_display_modes(vobj, display_mode)
 
     def remove_from_scene(self, scene):
         """Remove object from coin scene.
