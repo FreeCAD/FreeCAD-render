@@ -124,7 +124,6 @@ class PointLight(BaseFeature):
 class ViewProviderPointLight(BaseViewProvider):
     """View Provider of PointLight class."""
 
-    SHAPE = make_star(radius=1)
 
     ICON = "PointLight.svg"
 
@@ -138,6 +137,9 @@ class ViewProviderPointLight(BaseViewProvider):
         "Color": "_update_color",
         "Radius": "_update_radius",
     }
+
+    SHAPE_POINTS = make_star(radius=1)
+    SHAPE_VERTICES = [2] * (len(SHAPE_POINTS) // 2)
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback)."""
@@ -153,57 +155,31 @@ class ViewProviderPointLight(BaseViewProvider):
         scene.insertChild(self.coin.light, 0)  # Insert frontwise
 
         # Create geometry in scenegraph
-        self.coin.geometry = coin.SoSwitch()
-
-        self.coin.node = coin.SoSeparator()
-        self.coin.transform = coin.SoTransform()
-        self.coin.node.addChild(self.coin.transform)
-        self.coin.material = coin.SoMaterial()
-        self.coin.node.addChild(self.coin.material)
-        self.coin.drawstyle = coin.SoDrawStyle()
-        self.coin.drawstyle.style = coin.SoDrawStyle.LINES
-        self.coin.drawstyle.lineWidth = 1
-        self.coin.drawstyle.linePattern = 0xAAAA
-        self.coin.node.addChild(self.coin.drawstyle)
-        self.coin.coords = coin.SoCoordinate3()
-        self.coin.coords.point.setValues(0, len(self.SHAPE), self.SHAPE)
-        self.coin.node.addChild(self.coin.coords)
-        self.coin.lineset = coin.SoLineSet()
-        self.coin.lineset.numVertices.setValues(
-            0, len(self.SHAPE) // 2, [2] * (len(self.SHAPE) // 2)
+        self.coin.shape = ShapeCoinNode(
+            self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=True
         )
-        self.coin.node.addChild(self.coin.lineset)
-
-        self.coin.geometry.addChild(self.coin.node)
-        self.coin.geometry.whichChild.setValue(coin.SO_SWITCH_ALL)
-        scene.addChild(self.coin.geometry)  # Insert back
-        vobj.addDisplayMode(self.coin.geometry, "Shaded")
+        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
 
         # Update coin elements with actual object properties
-        self._update_location(self.fpo)
-        self._update_color(self.fpo)
-        self._update_power(self.fpo)
-        self._update_radius(self.fpo)
+        self.update_all(self.fpo)
 
     def onDelete(self, feature, subelements):
         """Respond to delete object event (callback)."""
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.geometry)
+        self.coin.shape.remove_from_scene(scene)
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
     def _change_visibility(self, vpdo):
         """Change light visibility."""
         self.coin.light.on.setValue(vpdo.Visibility)
-        self.coin.geometry.whichChild = (
-            coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
-        )
+        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def _update_location(self, fpo):
         """Update pointlight location."""
         location = fpo.Location[:3]
-        self.coin.transform.translation.setValue(location)
+        self.coin.shape.set_position(location)
         self.coin.light.location.setValue(location)
 
     def _update_power(self, fpo):
@@ -214,13 +190,13 @@ class ViewProviderPointLight(BaseViewProvider):
     def _update_color(self, fpo):
         """Update pointlight color."""
         color = fpo.Color[:3]
-        self.coin.material.diffuseColor.setValue(color)
+        self.coin.shape.set_color(diffuse=color)
         self.coin.light.color.setValue(color)
 
     def _update_radius(self, fpo):
         """Update pointlight radius."""
         scale = [fpo.Radius] * 3
-        self.coin.transform.scaleFactor.setValue(scale)
+        self.coin.shape.set_scale(scale)
 
 
 # ===========================================================================
