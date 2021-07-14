@@ -164,6 +164,26 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
     ]
     DISPLAY_MODES = ["Shaded", "Wireframe"]
     ON_CHANGED = {"Visibility": "_change_visibility"}
+    SIZE = 5
+    HEIGHT = 10
+    SHAPE_POINTS = (
+        (-SIZE * 2, +SIZE, 0),  # Front rectangle
+        (+SIZE * 2, +SIZE, 0),  # Front rectangle
+        (+SIZE * 2, -SIZE, 0),  # Front rectangle
+        (-SIZE * 2, -SIZE, 0),  # Front rectangle
+        (-SIZE * 2, +SIZE, 0),  # Front rectangle
+        (-SIZE * 2, +SIZE, 0),  # Left triangle
+        (0, 0, HEIGHT * 2),  # Left triangle
+        (-SIZE * 2, -SIZE, 0),  # Left triangle
+        (+SIZE * 2, +SIZE, 0),  # Right triangle
+        (0, 0, HEIGHT * 2),  # Right triangle
+        (+SIZE * 2, -SIZE, 0),  # Right triangle
+        (-SIZE * 1.8, 1.2 * +SIZE, 0),  # Up triangle (arrow)
+        (0, 1.4 * +SIZE, 0),  # Up triangle (arrow)
+        (+SIZE * 1.8, 1.2 * +SIZE, 0),  # Up triangle (arrow)
+        (-SIZE * 1.8, 1.2 * +SIZE, 0),  # Up triangle (arrow)
+    )
+    SHAPE_VERTICES = [5, 3, 3, 4]
 
     def on_attach_cb(self, vobj):
         """Respond to created/restored object event (callback).
@@ -176,29 +196,9 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
 
-        # TODO In class constants...
-        size = 5
-        height = 10
-        points = [
-                (-size * 2, +size, 0),  # Front rectangle
-                (+size * 2, +size, 0),  # Front rectangle
-                (+size * 2, -size, 0),  # Front rectangle
-                (-size * 2, -size, 0),  # Front rectangle
-                (-size * 2, +size, 0),  # Front rectangle
-                (-size * 2, +size, 0),  # Left triangle
-                (0, 0, height * 2),  # Left triangle
-                (-size * 2, -size, 0),  # Left triangle
-                (+size * 2, +size, 0),  # Right triangle
-                (0, 0, height * 2),  # Right triangle
-                (+size * 2, -size, 0),  # Right triangle
-                (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
-                (0, 1.4 * +size, 0),  # Up triangle (arrow)
-                (+size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
-                (-size * 1.8, 1.2 * +size, 0),  # Up triangle (arrow)
-            ]
-        vertices = [5, 3, 3, 4]
-
-        self.coin.shape = ShapeCoinNode(points, vertices, wireframe=True)
+        self.coin.shape = ShapeCoinNode(
+            self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=True
+        )
         self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
 
         # Update coin elements with actual object properties
