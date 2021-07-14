@@ -134,8 +134,9 @@ class DisplayableCoinNode:
             vobj -- a FreeCAD ViewProvider
             display_modes -- display mode names
         """
+        display_modes = iter(display_modes)
         for display_mode in display_modes:
-            self.add_display_modes(vobj, display_mode)
+            self.add_display_mode(vobj, display_mode)
 
     def remove_from_scene(self, scene):
         """Remove object from coin scene.
