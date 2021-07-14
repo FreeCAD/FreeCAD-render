@@ -47,6 +47,7 @@ from Render.base import (
     PointableFeatureMixin,
     PointableViewProviderMixin,
 )
+from Render.coin import ShapeCoinNode
 
 
 # ===========================================================================
@@ -282,13 +283,14 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         "SizeV": "_update_size",
     }
 
-    SHAPE = (
+    SHAPE_POINTS = (
         (-0.5, -0.5, 0),
         (0.5, -0.5, 0),
         (0.5, 0.5, 0),
         (-0.5, 0.5, 0),
         (-0.5, -0.5, 0),
     )
+    SHAPE_VERTICES = [5]
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback)."""
@@ -298,33 +300,16 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
 
         # pylint: disable=attribute-defined-outside-init
         self.coin = SimpleNamespace()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
         # Create pointlight in scenegraph
         self.coin.light = coin.SoPointLight()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         scene.insertChild(self.coin.light, 0)  # Insert frontwise
 
-        # Create geometry in scenegraph
-        self.coin.geometry = coin.SoSwitch()
-        self.coin.node = coin.SoSeparator()
-        self.coin.transform = coin.SoTransform()
-        self.coin.node.addChild(self.coin.transform)
-        self.coin.material = coin.SoMaterial()
-        self.coin.node.addChild(self.coin.material)
-        self.coin.drawstyle = coin.SoDrawStyle()
-        self.coin.drawstyle.style = coin.SoDrawStyle.FILLED
-        self.coin.node.addChild(self.coin.drawstyle)
-        self.coin.coords = coin.SoCoordinate3()
-        self.coin.coords.point.setValues(0, len(self.SHAPE), self.SHAPE)
-        self.coin.node.addChild(self.coin.coords)
-        self.coin.faceset = coin.SoFaceSet()
-        self.coin.faceset.numVertices.setValues(0, 1, [5])
-        self.coin.node.addChild(self.coin.faceset)
-
-        self.coin.geometry.addChild(self.coin.node)
-        self.coin.geometry.whichChild.setValue(coin.SO_SWITCH_ALL)
-        scene.addChild(self.coin.geometry)  # Insert back
-        vobj.addDisplayMode(self.coin.geometry, "Shaded")
+        # Create shape in scenegraph
+        self.coin.shape = ShapeCoinNode(self.SHAPE_POINTS, self.SHAPE_VERTICES)
+        self.coin.shape.add_display_mode(vobj, "Shaded")  # TODO
+        self.coin.shape.add_display_mode(vobj, "Wireframe")  # TODO
 
         # Update coin elements with actual object properties
         self.update_all(self.fpo)
@@ -333,21 +318,30 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         """Respond to delete object event (callback)."""
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.geometry)
+        self.coin.shape.remove_from_scene(scene)
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
+    # TODO Move into mixin class
     def _update_placement(self, fpo):
         """Update object placement."""
-        super()._update_placement(fpo)
+        # super()._update_placement(fpo)
+        try:
+            coin_attr = self.coin.shape
+        except AttributeError:
+            return  # No coin representation
+        location = fpo.Placement.Base[:3]
+        coin_attr.transform.translation.setValue(location)
+        angle = float(fpo.Placement.Rotation.Angle)
+        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
+        coin_attr.transform.rotation.setValue(axis, angle)
+
         self.coin.light.location.setValue(fpo.Placement.Base[:3])
 
     def _change_visibility(self, vpdo):
         """Change light visibility."""
         self.coin.light.on.setValue(vpdo.Visibility)
-        self.coin.geometry.whichChild = (
-            coin.SO_SWITCH_ALL if vpdo.Visibility else coin.SO_SWITCH_NONE
-        )
+        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def _update_power(self, fpo):
         """Update arealight power."""
@@ -357,14 +351,14 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
     def _update_color(self, fpo):
         """Update arealight color."""
         color = fpo.Color[:3]
-        self.coin.material.emissiveColor.setValue(color)
-        self.coin.material.diffuseColor.setValue(color)
+        self.coin.shape.material.emissiveColor.setValue(color)  # TODO
+        self.coin.shape.material.diffuseColor.setValue(color)  # TODO
         self.coin.light.color.setValue(color)
 
     def _update_size(self, fpo):
         """Update arealight size."""
-        size = (fpo.SizeU, fpo.SizeV, 0)
-        self.coin.transform.scaleFactor.setValue(size)
+        scale = (fpo.SizeU, fpo.SizeV, 0)
+        self.coin.shape.set_scale(scale)
 
 
 # ===========================================================================
