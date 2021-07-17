@@ -204,19 +204,6 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         # Update coin elements with actual object properties
         self.update_all(self.fpo)
 
-    # TODO Move into mixin class
-    def _update_placement(self, fpo):
-        """Update object placement."""
-        try:
-            coin_attr = self.coin.shape
-        except AttributeError:
-            return  # No coin representation
-        location = fpo.Placement.Base[:3]
-        coin_attr.transform.translation.setValue(location)
-        angle = float(fpo.Placement.Rotation.Angle)
-        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
-        coin_attr.transform.rotation.setValue(axis, angle)
-
     def onDelete(self, feature, subelements):
         """Respond to delete object event (callback)."""
         # Delete coin representation
