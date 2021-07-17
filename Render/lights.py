@@ -299,16 +299,7 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
     # TODO Move into mixin class
     def _update_placement(self, fpo):
         """Update object placement."""
-        # super()._update_placement(fpo)
-        try:
-            coin_attr = self.coin.shape
-        except AttributeError:
-            return  # No coin representation
-        location = fpo.Placement.Base[:3]
-        coin_attr.transform.translation.setValue(location)
-        angle = float(fpo.Placement.Rotation.Angle)
-        axis = coin.SbVec3f(fpo.Placement.Rotation.Axis)
-        coin_attr.transform.rotation.setValue(axis, angle)
+        super()._update_placement(fpo)
 
         self.coin.light.location.setValue(fpo.Placement.Base[:3])
 
