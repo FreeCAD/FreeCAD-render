@@ -23,6 +23,7 @@
 """This module implements base classes for Render workbench."""
 
 from collections import namedtuple
+from types import SimpleNamespace
 from math import degrees
 import functools
 import itertools
@@ -37,6 +38,7 @@ from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 
 from Render.utils import translate
 from Render.constants import ICONDIR
+from Render.coin import ShapeCoinNode
 
 # ===========================================================================
 #                                 Helpers
@@ -46,18 +48,31 @@ from Render.constants import ICONDIR
 def get_cumulative_dict_attribute(obj, attr_name):
     """Get a merged attribute from dictionary attributes in a class hierarchy.
 
+    Nota: A list is created for each property, thus duplicate values in
+    hierarchy are recorded
+
     Args:
     obj -- obj from which to determine class hierarchy
-    attr_name -- attribute name
+    attr_name -- class attribute name to cumulate (string). The class attribute
+        thus designated should be a dictionay
+
+    Returns:
+    {<key>: [(<class>, <value>)]}
     """
-    attributes = [
-        getattr(cls, attr_name)
-        for cls in reversed(obj.__class__.__mro__)
+    # TODO Make it more pythonic
+    properties = [
+        (getattr(cls, attr_name), cls)
+        for cls in obj.__class__.__mro__
         if attr_name in vars(cls)
     ]
     res = {}
-    for attribute in attributes:
-        res.update(attribute)
+    for prop, cls in properties:
+        prop = dict(prop)  # Prop should look like a dictionay...
+        for key, value in prop.items():
+            if key not in res:
+                res[key] = list()
+            res[key].append((cls, value))
+
     return res
 
 
@@ -170,7 +185,7 @@ class InterfaceBaseViewProvider:
         Subclasses can override this method (optional).
         """
 
-    def on_delete_cb(self, vobj):
+    def on_delete_cb(self, feature, subelements):
         """Complete 'onDelete' method (callback).
 
         Subclasses can override this method (optional).
@@ -221,7 +236,8 @@ class BaseFeature(InterfaceBaseFeature):
 
         properties = get_cumulative_dict_attribute(self, "PROPERTIES")
         for name in properties.keys() - set(fpo.PropertiesList):
-            spec = Prop._make(properties[name])
+            _, specdata = properties[name][0]
+            spec = Prop._make(specdata)
             prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
@@ -343,7 +359,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
             res &= callback(self, feature, subelements)
 
         # Hook for objects
-        res &= self.on_delete_cb(self, feature, subelements)
+        res &= self.on_delete_cb(feature, subelements)
 
         return res
 
@@ -407,13 +423,16 @@ class BaseViewProvider(InterfaceBaseViewProvider):
                 stored)
             prop -- property name (as a string)
         """
+        on_changed = self._on_changed_mapping()
         try:
-            on_changed = self._on_changed_mapping()
-            method = getattr(self, on_changed[prop])
+            actions = on_changed[prop]
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
-            method(vpdo)
+            # Apply methods to object
+            for cls, action_name in actions:
+                action = getattr(cls, action_name)
+                action(self, vpdo)
 
     @functools.lru_cache(maxsize=128)
     def _on_update_mapping(self):
@@ -428,21 +447,24 @@ class BaseViewProvider(InterfaceBaseViewProvider):
 
         Args:
             fpo -- related FeaturePython object
-            prop -- property name
+            prop -- property name (str)
         """
+        prop = str(prop)
         on_update = self._on_update_mapping()
         try:
-            callback = getattr(self, on_update[prop])
+            actions = on_update[prop]
         except KeyError:
             pass  # Silently ignore when switcher provides no action
         else:
-            callback(fpo)
+            # Apply methods to object
+            for cls, action_name in actions:
+                action = getattr(cls, action_name)
+                action(self, fpo)
 
     def update_all(self, fpo):
         """Force update callback for all data."""
-        for callback_name in self._on_update_mapping().values():
-            callback = getattr(self, callback_name)
-            callback(fpo)
+        for prop_name in self._on_update_mapping():
+            self.updateData(fpo, prop_name)
 
     def __getstate__(self):
         """Provide data representation for object."""
