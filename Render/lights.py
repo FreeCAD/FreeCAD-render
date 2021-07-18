@@ -48,7 +48,6 @@ from Render.base import (
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
 )
-from Render.coin import ShapeCoinNode
 
 
 # ===========================================================================

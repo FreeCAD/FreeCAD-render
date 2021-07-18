@@ -677,7 +677,7 @@ class CoinShapeViewProviderMixin:
         except AttributeError:
             pass
         else:
-            self.coin.shape.set_placement(fpo.Placement)
+            self.coin.shape.set_placement(placement)
 
     def _update_location(self, fpo):
         """Update object location."""
