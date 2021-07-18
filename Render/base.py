@@ -328,15 +328,23 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         self.__module__ = "Render"
 
         # Hook for mixins
-        try:
-            callback = self.on_attach_mixin_cb
-        except AttributeError:
-            pass
-        else:
-            callback(vobj)
+        self.on_attach_mixin_cb(vobj)  # Can be overriden by mixins
 
         # Hook for objects
         self.on_attach_cb(vobj)
+
+        # Update all properties
+        self.update_all(self.fpo)
+
+    def on_attach_mixin_cb(self, vobj):
+        """Complete 'attach' method (callback, mixin version).
+
+        Args:
+            vobj -- Related ViewProviderDocumentObject
+
+        Mixins which overrides this method are requested to call
+        super().on_attach_mixin_cb
+        """
 
     def onDelete(self, feature, subelements):
         """Respond to delete object event (callback).
@@ -626,18 +634,17 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
                 )
 
 
-# TODO Complete (WIP)
 class CoinShapeViewProviderMixin:
     """Mixin for ViewProviders implementing a Coin shape.
 
     This mixin allows a ViewProvider to be represented by a Coin shape (either
-    a SoFaceSet or a SoLineSet).
+    a SoFaceSet or a SoLineSet) in FreeCAD viewport.
     """
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
-    SHAPE_POINTS = ()
-    SHAPE_VERTICES = ()
-    SHAPE_WIREFRAME = False
+    COIN_SHAPE_POINTS = ()
+    COIN_SHAPE_VERTICES = ()
+    COIN_SHAPE_WIREFRAME = False
     ON_UPDATE = {
         "Placement": "_update_placement",
         "Location": "_update_location",
@@ -646,15 +653,14 @@ class CoinShapeViewProviderMixin:
     def on_attach_mixin_cb(self, vobj):
         """Complete 'attach' method (callback, mixin version)."""
         super().on_attach_mixin_cb(vobj)
-        if not hasattr(self, coin):
+        if not hasattr(self, "coin"):
             self.coin = SimpleNamespace()
         self.coin.shape = ShapeCoinNode(
-            self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=False
+            self.COIN_SHAPE_POINTS,
+            self.COIN_SHAPE_VERTICES,
+            wireframe=self.COIN_SHAPE_WIREFRAME,
         )
         self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
-
-        # Update coin elements with actual object properties
-        self.update_all(self.fpo)
 
     def on_delete_mixin_cb(self, feature, subelements):
         """Complete 'onDelete' method (callback, mixin version)."""
@@ -666,7 +672,12 @@ class CoinShapeViewProviderMixin:
 
     def _update_placement(self, fpo):
         """Update object placement."""
-        self.coin.shape.set_placement(fpo.Placement)
+        try:
+            placement = fpo.Placement
+        except AttributeError:
+            pass
+        else:
+            self.coin.shape.set_placement(fpo.Placement)
 
     def _update_location(self, fpo):
         """Update object location."""

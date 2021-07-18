@@ -46,6 +46,7 @@ from Render.base import (
     BaseViewProvider,
     PointableFeatureMixin,
     PointableViewProviderMixin,
+    CoinShapeViewProviderMixin,
 )
 from Render.coin import ShapeCoinNode
 
@@ -121,7 +122,7 @@ class PointLight(BaseFeature):
     }
 
 
-class ViewProviderPointLight(BaseViewProvider):
+class ViewProviderPointLight(CoinShapeViewProviderMixin, BaseViewProvider):
     """View Provider of PointLight class."""
 
     ICON = "PointLight.svg"
@@ -131,54 +132,42 @@ class ViewProviderPointLight(BaseViewProvider):
     ON_CHANGED = {"Visibility": "_change_visibility"}
 
     ON_UPDATE = {
-        "Location": "_update_location",
         "Power": "_update_power",
         "Color": "_update_color",
         "Radius": "_update_radius",
     }
 
-    SHAPE_POINTS = make_star(radius=1)
-    SHAPE_VERTICES = [2] * (len(SHAPE_POINTS) // 2)
+    COIN_SHAPE_POINTS = make_star(radius=1)
+    COIN_SHAPE_VERTICES = [2] * (len(COIN_SHAPE_POINTS) // 2)
+    COIN_SHAPE_WIREFRAME = True
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback)."""
-        # Here we create coin representation, which is in 2 parts: a light,
-        # and a geometry (the latter being a lineset embedded inside a switch)
+        # Here we create coin representation (point light)
 
         # pylint: disable=attribute-defined-outside-init
-        self.coin = SimpleNamespace()
+        if not hasattr(self, "coin"):
+            self.coin = SimpleNamespace()
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
         # Create pointlight in scenegraph
         self.coin.light = coin.SoPointLight()
         scene.insertChild(self.coin.light, 0)  # Insert frontwise
 
-        # Create geometry in scenegraph
-        self.coin.shape = ShapeCoinNode(
-            self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=True
-        )
-        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
-
-        # Update coin elements with actual object properties
-        self.update_all(self.fpo)
-
-    def onDelete(self, feature, subelements):
-        """Respond to delete object event (callback)."""
-        # Delete coin representation
+    def on_delete_cb(self, feature, subelements):
+        """Complete 'onDelete' method (callback)."""
+        # Delete pointlight in scene
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.shape.remove_from_scene(scene)
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
     def _change_visibility(self, vpdo):
         """Change light visibility."""
         self.coin.light.on.setValue(vpdo.Visibility)
-        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def _update_location(self, fpo):
         """Update pointlight location."""
         location = fpo.Location[:3]
-        self.coin.shape.set_position(location)
         self.coin.light.location.setValue(location)
 
     def _update_power(self, fpo):
