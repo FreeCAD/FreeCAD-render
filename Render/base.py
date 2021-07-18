@@ -342,7 +342,7 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         """Respond to delete object event (callback).
 
         Args:
-            vobj -- Related ViewProviderDocumentObject
+            feature -- Related ViewProviderDocumentObject
         """
         res = True
 
