@@ -87,7 +87,7 @@ class DisplayableCoinNode:
         Args:
             placement -- placement (FreeCAD.Placement)
         """
-        self.set_rotation(placement.Axis, placement.Rotation)
+        self.set_rotation(placement.Rotation.Axis, placement.Rotation.Angle)
         self.set_position(placement.Base)
 
     def set_scale(self, scale):

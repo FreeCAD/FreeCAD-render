@@ -231,7 +231,9 @@ class AreaLight(PointableFeatureMixin, BaseFeature):
     }
 
 
-class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
+class ViewProviderAreaLight(
+    CoinShapeViewProviderMixin, PointableViewProviderMixin, BaseViewProvider
+):
     """View Provider of AreaLight class."""
 
     ICON = "AreaLight.svg"
@@ -247,55 +249,42 @@ class ViewProviderAreaLight(PointableViewProviderMixin, BaseViewProvider):
         "SizeV": "_update_size",
     }
 
-    SHAPE_POINTS = (
+    COIN_SHAPE_POINTS = (
         (-0.5, -0.5, 0),
         (0.5, -0.5, 0),
         (0.5, 0.5, 0),
         (-0.5, 0.5, 0),
         (-0.5, -0.5, 0),
     )
-    SHAPE_VERTICES = [5]
+    COIN_SHAPE_VERTICES = [5]
 
     def on_attach_cb(self, vobj):
         """Complete 'attach' method (callback)."""
-        # Here we create coin representation, which is in 2 parts: a light,
-        # and a geometry, the former being a point light, the latter being a
-        # faceset embedded in a switch)
+        # Here we create coin representation (point light)
 
         # pylint: disable=attribute-defined-outside-init
-        self.coin = SimpleNamespace()
+        if not hasattr(self, "coin"):
+            self.coin = SimpleNamespace()
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
 
         # Create pointlight in scenegraph
         self.coin.light = coin.SoPointLight()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         scene.insertChild(self.coin.light, 0)  # Insert frontwise
 
-        # Create shape in scenegraph
-        self.coin.shape = ShapeCoinNode(self.SHAPE_POINTS, self.SHAPE_VERTICES)
-        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
-
-        # Update coin elements with actual object properties
-        self.update_all(self.fpo)
-
-    def onDelete(self, feature, subelements):
-        """Respond to delete object event (callback)."""
-        # Delete coin representation
+    def on_delete_cb(self, feature, subelements):
+        """Complete 'onDelete' method (callback)."""
+        # Delete pointlight in scene
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.shape.remove_from_scene(scene)
         scene.removeChild(self.coin.light)
         return True  # If False, the object wouldn't be deleted
 
-    # TODO Move into mixin class
     def _update_placement(self, fpo):
         """Update object placement."""
-        super()._update_placement(fpo)
-
         self.coin.light.location.setValue(fpo.Placement.Base[:3])
 
     def _change_visibility(self, vpdo):
         """Change light visibility."""
         self.coin.light.on.setValue(vpdo.Visibility)
-        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def _update_power(self, fpo):
         """Update arealight power."""
