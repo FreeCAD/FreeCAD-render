@@ -628,7 +628,13 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
 
 # TODO Complete (WIP)
 class CoinShapeViewProviderMixin:
-    DISPLAY_MODES = ["Shaded", "Wireframe"]
+    """Mixin for ViewProviders implementing a Coin shape.
+
+    This mixin allows a ViewProvider to be represented by a Coin shape (either
+    a SoFaceSet or a SoLineSet).
+    """
+
+    DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
     SHAPE_POINTS = ()
     SHAPE_VERTICES = ()
     SHAPE_WIREFRAME = False
@@ -638,11 +644,10 @@ class CoinShapeViewProviderMixin:
     }
 
     def on_attach_mixin_cb(self, vobj):
+        """Complete 'attach' method (callback, mixin version)."""
         super().on_attach_mixin_cb(vobj)
-        try:
-            coin = self.coin
-        except AttributeError:
-            coin = self.coin = SimpleNamespace()
+        if not hasattr(self, coin):
+            self.coin = SimpleNamespace()
         self.coin.shape = ShapeCoinNode(
             self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=False
         )
@@ -652,7 +657,8 @@ class CoinShapeViewProviderMixin:
         self.update_all(self.fpo)
 
     def on_delete_mixin_cb(self, feature, subelements):
-        res = super().on_attach_mixin_cb(vobj)
+        """Complete 'onDelete' method (callback, mixin version)."""
+        res = super().on_delete_mixin_cb(feature, subelements)
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         self.coin.shape.remove_from_scene(scene)
