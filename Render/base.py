@@ -681,5 +681,9 @@ class CoinShapeViewProviderMixin:
 
     def _update_location(self, fpo):
         """Update object location."""
-        location = fpo.Location[:3]
-        self.coin.shape.set_position(location)
+        try:
+            location = fpo.Location[:3]
+        except AttributeError:
+            pass
+        else:
+            self.coin.shape.set_position(location)
