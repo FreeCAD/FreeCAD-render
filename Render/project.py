@@ -507,7 +507,7 @@ class ViewProviderProject(BaseViewProvider):
         ),
     ]
 
-    def onDelete(self, vobj, subelements):
+    def onDelete(self, feature, subelements):
         """Respond to delete object event (callback)."""
         delete = True
 
