@@ -59,18 +59,14 @@ def get_cumulative_dict_attribute(obj, attr_name):
     Returns:
     {<key>: [(<class>, <value>)]}
     """
-    # TODO Make it more pythonic
     properties = [
         (getattr(cls, attr_name), cls)
         for cls in obj.__class__.__mro__
         if attr_name in vars(cls)
     ]
-    res = {}
+    res = {key: [] for prop, _ in properties for key in prop}  # Initialize res
     for prop, cls in properties:
-        prop = dict(prop)  # Prop should look like a dictionay...
         for key, value in prop.items():
-            if key not in res:
-                res[key] = list()
             res[key].append((cls, value))
 
     return res
