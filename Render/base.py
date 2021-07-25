@@ -627,9 +627,12 @@ class CoinShapeViewProviderMixin:
     """
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
+
     COIN_SHAPE_POINTS = ()
     COIN_SHAPE_VERTICES = ()
     COIN_SHAPE_WIREFRAME = False
+
+    ON_CHANGED = {"Visibility": "_change_visibility"}
     ON_UPDATE = {
         "Placement": "_update_placement",
         "Location": "_update_location",
@@ -654,6 +657,10 @@ class CoinShapeViewProviderMixin:
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         self.coin.shape.remove_from_scene(scene)
         return res  # If False, the object wouldn't be deleted
+
+    def _change_visibility(self, vpdo):
+        """Respond to Visibility change."""
+        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def _update_placement(self, fpo):
         """Update object placement."""
