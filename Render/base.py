@@ -700,6 +700,7 @@ class CoinPointlightViewProviderMixin:
     ON_CHANGED = {"Visibility": "_change_visibility"}
     ON_UPDATE = {
         "Location": "_update_location",
+        "Placement": "_update_placement",
         "Power": "_update_power",
         "Color": "_update_color",
     }
@@ -726,6 +727,15 @@ class CoinPointlightViewProviderMixin:
     def _change_visibility(self, vpdo):
         """Change light visibility."""
         self.coin.light.on.setValue(vpdo.Visibility)
+
+    def _update_placement(self, fpo):
+        """Update object placement."""
+        try:
+            placement = fpo.Placement
+        except AttributeError:
+            pass
+        else:
+            self.coin.light.location.setValue(placement.Base[:3])
 
     def _update_location(self, fpo):
         """Update pointlight location."""
