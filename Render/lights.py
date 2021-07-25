@@ -48,6 +48,7 @@ from Render.base import (
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
     CoinPointLightViewProviderMixin,
+    CoinDirectionalLightViewProviderMixin,
 )
 
 
@@ -263,7 +264,9 @@ class SunskyLight(BaseFeature):
     }
 
 
-class ViewProviderSunskyLight(BaseViewProvider):
+class ViewProviderSunskyLight(
+    CoinDirectionalLightViewProviderMixin, BaseViewProvider
+):
     """View Provider of SunskyLight class."""
 
     ICON = "SunskyLight.svg"
@@ -272,36 +275,13 @@ class ViewProviderSunskyLight(BaseViewProvider):
 
     ON_CHANGED = {"Visibility": "_change_visibility"}
 
-    ON_UPDATE = {"SunDirection": "_update_direction"}
+    ON_UPDATE = {"SunDirection": "_update_sun_direction"}
 
-    def on_attach_cb(self, vobj):
-        """Complete 'attach' method (callback)."""
-        # Here we create coin representation, which is a directional light
-
-        # pylint: disable=attribute-defined-outside-init
-        self.coin = SimpleNamespace()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-
-        # Create pointlight in scenegraph
-        self.coin.light = coin.SoDirectionalLight()
-        scene.insertChild(self.coin.light, 0)  # Insert frontwise
-        vobj.addDisplayMode(self.coin.light, "Shaded")
-
-    def onDelete(self, feature, subelements):
-        """Respond to delete object event (callback)."""
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.light)
-        return True  # If False, the object wouldn't be deleted
-
-    def _change_visibility(self, vpdo):
-        """Change light visibility."""
-        self.coin.light.on.setValue(vpdo.Visibility)
-
-    def _update_direction(self, fpo):
+    def _update_sun_direction(self, fpo):
         """Update sunsky light direction."""
         sundir = fpo.SunDirection
         direction = (-sundir.x, -sundir.y, -sundir.z)
-        self.coin.light.direction.setValue(direction)
+        self.coin.light.set_direction(direction)
 
 
 # ===========================================================================
