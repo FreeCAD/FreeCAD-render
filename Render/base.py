@@ -38,7 +38,11 @@ from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 
 from Render.utils import translate
 from Render.constants import ICONDIR
-from Render.coin import ShapeCoinNode, PointLightCoinNode
+from Render.coin import (
+    ShapeCoinNode,
+    PointLightCoinNode,
+    DirectionalLightCoinNode,
+)
 
 # ===========================================================================
 #                                 Helpers
@@ -798,3 +802,25 @@ class CoinPointLightViewProviderMixin(CoinLightViewProviderMixin):
             pass
         else:
             self.coin.light.set_location(location)
+
+
+class CoinDirectionalLightViewProviderMixin(CoinLightViewProviderMixin):
+    """Mixin for ViewProviders implementing a directional light.
+
+    This mixin allows a ViewProvider to be represented by a Directional Light.
+    """
+
+    LIGHT_COIN_NODE = DirectionalLightCoinNode
+
+    ON_UPDATE = {
+        "Direction": "_update_direction",
+    }
+
+    def _update_direction(self, fpo):
+        """Update light direction."""
+        try:
+            direction = fpo.Direction
+        except AttributeError:
+            pass
+        else:
+            self.coin.light.set_direction(direction)
