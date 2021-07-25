@@ -47,7 +47,7 @@ from Render.base import (
     PointableFeatureMixin,
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
-    CoinPointlightViewProviderMixin,
+    CoinPointLightViewProviderMixin,
 )
 
 
@@ -190,7 +190,7 @@ class AreaLight(PointableFeatureMixin, BaseFeature):
 
 
 class ViewProviderAreaLight(
-    CoinPointlightViewProviderMixin,
+    CoinPointLightViewProviderMixin,
     CoinShapeViewProviderMixin,
     PointableViewProviderMixin,
     BaseViewProvider,

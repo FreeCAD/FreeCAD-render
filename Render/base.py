@@ -708,7 +708,7 @@ class CoinShapeViewProviderMixin:
             self.coin.shape.set_color(**kwargs)
 
 
-class CoinPointlightViewProviderMixin:
+class CoinPointLightViewProviderMixin:
     """Mixin for ViewProviders implementing a Coin shape.
 
     This mixin allows a ViewProvider to be represented by a Coin shape (either
