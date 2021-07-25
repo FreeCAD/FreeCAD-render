@@ -38,7 +38,7 @@ from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 
 from Render.utils import translate
 from Render.constants import ICONDIR
-from Render.coin import ShapeCoinNode
+from Render.coin import ShapeCoinNode, PointlightCoinNode
 
 # ===========================================================================
 #                                 Helpers
@@ -682,7 +682,6 @@ class CoinShapeViewProviderMixin:
 
 
 class CoinPointlightViewProviderMixin:
-    # TODO Add CoinPointlight in coin.py
     """Mixin for ViewProviders implementing a Coin shape.
 
     This mixin allows a ViewProvider to be represented by a Coin shape (either
@@ -705,20 +704,20 @@ class CoinPointlightViewProviderMixin:
 
         # Create pointlight in scenegraph
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.light = coin.SoPointLight()
-        scene.insertChild(self.coin.light, 0)  # Insert frontwise
+        self.coin.light = PointlightCoinNode()
+        self.coin.light.add_to_scene(scene)  # Insert frontwise
 
     def on_delete_mixin_cb(self, feature, subelements):
         """Complete 'onDelete' method (callback, mixin version)."""
         res = super().on_delete_mixin_cb(feature, subelements)
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.light)
+        self.coin.light.remove_from_scene()
         return res  # If False, the object wouldn't be deleted
 
     def _change_visibility(self, vpdo):
         """Change light visibility."""
-        self.coin.light.on.setValue(vpdo.Visibility)
+        self.coin.light.set_visibility(vpdo.Visibility)
 
     def _update_placement(self, fpo):
         """Update object placement."""
@@ -727,16 +726,16 @@ class CoinPointlightViewProviderMixin:
         except AttributeError:
             pass
         else:
-            self.coin.light.location.setValue(placement.Base[:3])
+            self.coin.light.set_location(placement.Base[:3])  # TODO Remove slicing?
 
     def _update_location(self, fpo):
         """Update pointlight location."""
         try:
-            location = fpo.Location[:3]
+            location = fpo.Location[:3]  # TODO Remove slicing?
         except AttributeError:
             pass
         else:
-            self.coin.light.location.setValue(location)
+            self.coin.light.set_location(location)
 
     def _update_power(self, fpo):
         """Update pointlight power."""
@@ -746,7 +745,7 @@ class CoinPointlightViewProviderMixin:
             pass
         else:
             intensity = power / 100 if power <= 100 else 1
-            self.coin.light.intensity.setValue(intensity)
+            self.coin.light.set_intensity(intensity)
 
     def _update_color(self, fpo):
         """Update pointlight color."""
@@ -755,4 +754,4 @@ class CoinPointlightViewProviderMixin:
         except AttributeError:
             pass
         else:
-            self.coin.light.color.setValue(color)
+            self.coin.light.set_color(color)
