@@ -284,3 +284,16 @@ class PointLightCoinNode(LightCoinNode):
         """Set point light location."""
         location = coin.SbVec3f(location)
         self._light.location.setValue(location)
+
+
+class DirectionalLightCoinNode(LightCoinNode):
+    """A class to display a Coin Directional light object."""
+
+    def __init__(self):
+        """Initialize light."""
+        super().__init__(coin.SoDirectionalLight)
+
+    def set_direction(self, direction):
+        """Set light direction."""
+        direction = coin.SbVec3f(direction)
+        self._light.direction.setValue(direction)
