@@ -144,6 +144,7 @@ class ViewProviderPointLight(
         scale = [fpo.Radius] * 3
         self.coin.shape.set_scale(scale)
 
+    # TODO Update shape color
 
 # ===========================================================================
 #                           Area Light object
