@@ -181,11 +181,14 @@ class InterfaceBaseViewProvider:
         Subclasses can override this method (optional).
         """
 
+    # pylint: disable=no-self-use
     def on_delete_cb(self, feature, subelements):
         """Complete 'onDelete' method (callback).
 
         Subclasses can override this method (optional).
+        This method must return a bool, like onDelete.
         """
+        return True
 
 
 # ===========================================================================
@@ -360,12 +363,24 @@ class BaseViewProvider(InterfaceBaseViewProvider):
         except AttributeError:
             pass
         else:
-            res &= callback(self, feature, subelements)
+            res &= callback(feature, subelements)
 
         # Hook for objects
         res &= self.on_delete_cb(feature, subelements)
 
         return res
+
+    # pylint: disable=no-self-use
+    def on_delete_mixin_cb(self, feature, subelements):
+        """Complete 'delete' method (callback, mixin version).
+
+        Args:
+            feature -- Related ViewProviderDocumentObject
+
+        Mixins which overrides this method are requested to call
+        super().on_attach_mixin_cb
+        """
+        return True
 
     @functools.lru_cache(maxsize=128)
     def _context_menu_mapping(self):
@@ -687,6 +702,7 @@ class CoinPointlightViewProviderMixin:
     This mixin allows a ViewProvider to be represented by a Coin shape (either
     a SoFaceSet or a SoLineSet) in FreeCAD viewport.
     """
+
     DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
     ON_CHANGED = {"Visibility": "_change_visibility"}
     ON_UPDATE = {
@@ -712,7 +728,7 @@ class CoinPointlightViewProviderMixin:
         res = super().on_delete_mixin_cb(feature, subelements)
         # Delete coin representation
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.light.remove_from_scene()
+        self.coin.light.remove_from_scene(scene)
         return res  # If False, the object wouldn't be deleted
 
     def _change_visibility(self, vpdo):
@@ -726,12 +742,12 @@ class CoinPointlightViewProviderMixin:
         except AttributeError:
             pass
         else:
-            self.coin.light.set_location(placement.Base[:3])  # TODO Remove slicing?
+            self.coin.light.set_location(placement.Base)
 
     def _update_location(self, fpo):
         """Update pointlight location."""
         try:
-            location = fpo.Location[:3]  # TODO Remove slicing?
+            location = fpo.Location
         except AttributeError:
             pass
         else:
