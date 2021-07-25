@@ -273,7 +273,7 @@ class LightCoinNode:
         scene.removeChild(self._light)
 
 
-class PointlightCoinNode(LightCoinNode):
+class PointLightCoinNode(LightCoinNode):
     """A class to display a Coin Pointlight object."""
 
     def __init__(self):

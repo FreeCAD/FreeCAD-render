@@ -38,7 +38,7 @@ from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 
 from Render.utils import translate
 from Render.constants import ICONDIR
-from Render.coin import ShapeCoinNode, PointlightCoinNode
+from Render.coin import ShapeCoinNode, PointLightCoinNode
 
 # ===========================================================================
 #                                 Helpers
@@ -732,7 +732,7 @@ class CoinPointlightViewProviderMixin:
 
         # Create pointlight in scenegraph
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.light = PointlightCoinNode()
+        self.coin.light = PointLightCoinNode()
         self.coin.light.add_to_scene(scene)  # Insert frontwise
 
     def on_delete_mixin_cb(self, feature, subelements):
