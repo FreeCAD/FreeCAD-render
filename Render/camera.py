@@ -27,7 +27,6 @@ later for rendering.
 """
 
 from math import degrees, radians
-from types import SimpleNamespace
 import shlex
 
 from pivy import coin
@@ -44,7 +43,6 @@ from Render.base import (
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
 )
-from Render.coin import ShapeCoinNode
 
 
 # Enumeration of allowed values for ViewportMapping parameter (see Coin
@@ -165,7 +163,6 @@ class ViewProviderCamera(
             "set_camera_from_gui",
         ),
     ]
-    ON_CHANGED = {"Visibility": "_change_visibility"}
     SIZE = 5
     HEIGHT = 10
     COIN_SHAPE_POINTS = (
@@ -187,10 +184,6 @@ class ViewProviderCamera(
     )
     COIN_SHAPE_VERTICES = [5, 3, 3, 4]
     COIN_SHAPE_WIREFRAME = True
-
-    def _change_visibility(self, vpdo):
-        """Respond to Visibility change."""
-        self.coin.shape.set_visibility(vpdo.Visibility)
 
     def set_camera_from_gui(self):
         """Set this camera from GUI camera."""
