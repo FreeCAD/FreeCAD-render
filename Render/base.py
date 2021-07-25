@@ -708,11 +708,65 @@ class CoinShapeViewProviderMixin:
             self.coin.shape.set_color(**kwargs)
 
 
-class CoinPointLightViewProviderMixin:
-    """Mixin for ViewProviders implementing a Coin shape.
+class CoinLightViewProviderMixin:
+    """Mixin for ViewProviders implementing a Coin light.
 
-    This mixin allows a ViewProvider to be represented by a Coin shape (either
-    a SoFaceSet or a SoLineSet) in FreeCAD viewport.
+    This mixin allows a ViewProvider to be represented by a Coin Light.
+    This mixin is abstract and should not be used as-is. Only subclasses
+    should be used (see PointLight, DirectionalLight...)
+    """
+    DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
+    ON_CHANGED = {"Visibility": "_change_visibility"}
+    ON_UPDATE = {
+        "Power": "_update_power",
+        "Color": "_update_color",
+    }
+
+    def on_attach_mixin_cb(self, vobj):
+        """Complete 'attach' method (callback, mixin version)."""
+        super().on_attach_mixin_cb(vobj)
+        if not hasattr(self, "coin"):
+            self.coin = SimpleNamespace()
+
+        # Nota: Creating light node is delegated to subclass
+        # Light node should be recorded in self.coin.light
+
+    def on_delete_mixin_cb(self, feature, subelements):
+        """Complete 'onDelete' method (callback, mixin version)."""
+        res = super().on_delete_mixin_cb(feature, subelements)
+        # Delete coin representation
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        self.coin.light.remove_from_scene(scene)
+        return res  # If False, the object wouldn't be deleted
+
+    def _change_visibility(self, vpdo):
+        """Change light visibility."""
+        self.coin.light.set_visibility(vpdo.Visibility)
+
+    def _update_power(self, fpo):
+        """Update pointlight power."""
+        try:
+            power = fpo.Power
+        except AttributeError:
+            pass
+        else:
+            intensity = power / 100 if power <= 100 else 1
+            self.coin.light.set_intensity(intensity)
+
+    def _update_color(self, fpo):
+        """Update pointlight color."""
+        try:
+            color = fpo.Color[:3]
+        except AttributeError:
+            pass
+        else:
+            self.coin.light.set_color(color)
+
+
+class CoinPointLightViewProviderMixin:
+    """Mixin for ViewProviders implementing a Coin light.
+
+    This mixin allows a ViewProvider to be represented by a Coin PointLight.
     """
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
