@@ -50,10 +50,10 @@ from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, set_cam_from_coin_string
-from Render.base import BaseFeature, Prop, BaseViewProvider, CtxMenuItem
+from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
 
 
-class Project(BaseFeature):
+class Project(FeatureBase):
     """A rendering project."""
 
     VIEWPROVIDER = "ViewProviderProject"
@@ -490,7 +490,7 @@ class Project(BaseFeature):
         return img
 
 
-class ViewProviderProject(BaseViewProvider):
+class ViewProviderProject(ViewProviderBase):
     """View provider for the rendering project object."""
 
     ICON = "RenderProject.svg"

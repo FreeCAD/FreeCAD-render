@@ -31,11 +31,11 @@ rendering project.
 from PySide.QtCore import QT_TRANSLATE_NOOP
 
 from Render.constants import FCDVERSION
-from Render.base import BaseFeature, Prop, BaseViewProvider
+from Render.base import FeatureBase, Prop, ViewProviderBase
 from Render.rdrhandler import RendererHandler
 
 
-class View(BaseFeature):
+class View(FeatureBase):
     """A rendering view of a FreeCAD object.
 
     'create' factory method should be provided a project and a source (the
@@ -148,7 +148,7 @@ class View(BaseFeature):
         return res
 
 
-class ViewProviderView(BaseViewProvider):
+class ViewProviderView(ViewProviderBase):
     """ViewProvider of rendering view object."""
 
     ICON = "RenderViewTree.svg"
