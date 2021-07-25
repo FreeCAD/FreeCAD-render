@@ -42,6 +42,7 @@ from Render.base import (
     CtxMenuItem,
     PointableFeatureMixin,
     PointableViewProviderMixin,
+    CoinShapeViewProviderMixin,
 )
 from Render.coin import ShapeCoinNode
 
@@ -148,7 +149,9 @@ class Camera(PointableFeatureMixin, BaseFeature):
 # ===========================================================================
 
 
-class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
+class ViewProviderCamera(
+    CoinShapeViewProviderMixin, PointableViewProviderMixin, BaseViewProvider
+):
     """View Provider of Camera class."""
 
     ICON = ":/icons/camera-photo.svg"
@@ -162,11 +165,10 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
             "set_camera_from_gui",
         ),
     ]
-    DISPLAY_MODES = ["Shaded", "Wireframe"]
     ON_CHANGED = {"Visibility": "_change_visibility"}
     SIZE = 5
     HEIGHT = 10
-    SHAPE_POINTS = (
+    COIN_SHAPE_POINTS = (
         (-SIZE * 2, +SIZE, 0),  # Front rectangle
         (+SIZE * 2, +SIZE, 0),  # Front rectangle
         (+SIZE * 2, -SIZE, 0),  # Front rectangle
@@ -183,33 +185,8 @@ class ViewProviderCamera(PointableViewProviderMixin, BaseViewProvider):
         (+SIZE * 1.8, 1.2 * +SIZE, 0),  # Up triangle (arrow)
         (-SIZE * 1.8, 1.2 * +SIZE, 0),  # Up triangle (arrow)
     )
-    SHAPE_VERTICES = [5, 3, 3, 4]
-
-    def on_attach_cb(self, vobj):
-        """Respond to created/restored object event (callback).
-
-        Args:
-            vobj -- Related ViewProviderDocumentObject
-        """
-
-        # Here we create a coin representation
-        # pylint: disable=attribute-defined-outside-init
-        self.coin = SimpleNamespace()
-
-        self.coin.shape = ShapeCoinNode(
-            self.SHAPE_POINTS, self.SHAPE_VERTICES, wireframe=True
-        )
-        self.coin.shape.add_display_modes(vobj, self.DISPLAY_MODES)
-
-        # Update coin elements with actual object properties
-        self.update_all(self.fpo)
-
-    def onDelete(self, feature, subelements):
-        """Respond to delete object event (callback)."""
-        # Delete coin representation
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.shape.remove_from_scene(scene)
-        return True  # If False, the object wouldn't be deleted
+    COIN_SHAPE_VERTICES = [5, 3, 3, 4]
+    COIN_SHAPE_WIREFRAME = True
 
     def _change_visibility(self, vpdo):
         """Respond to Visibility change."""
