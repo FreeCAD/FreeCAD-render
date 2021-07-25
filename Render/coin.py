@@ -223,39 +223,38 @@ class ShapeCoinNode(DisplayableCoinNode):
             attribute.setValue(color)
 
 
-class PointlightCoinNode:
-    """A class to display a Coin Pointlight object."""
+class LightCoinNode:
+    """A class to display a Coin Light object."""
 
-    def __init__(self):
-        """Initialize object."""
-        self._pointlight = coin.SoPointLight()
+    def __init__(self, cls, **kwargs):
+        """Initialize object.
+
+        Args:
+            cls -- A Coin light class (SoLight subclass)
+        """
+        self._light = cls(**kwargs)
 
     def set_color(self, color):
         """Set point light color."""
         color = coin.SbColor(color)
-        self._pointlight.color.setValue(color)
+        self._light.color.setValue(color)
 
     def set_intensity(self, intensity):
         """Set point light intensity."""
         intensity = float(intensity)
-        self._pointlight.intensity.setValue(intensity)
-
-    def set_location(self, location):
-        """Set point light location."""
-        location = coin.SbVec3f(location)
-        self._pointlight.location.setValue(location)
+        self._light.intensity.setValue(intensity)
 
     def set_visibility(self, visible):
-        """Set object visibility.
+        """Set light visibility.
 
         Args:
             visible -- flag for object visibility (boolean)
         """
         visible = bool(visible)
-        self._pointlight.on.setValue(visible)
+        self._light.on.setValue(visible)
 
     def add_to_scene(self, scene, position=0):
-        """Insert this object in scene at given position.
+        """Insert the light in scene at given position.
 
         Default insertion position is first position.
 
@@ -263,12 +262,25 @@ class PointlightCoinNode:
             scene -- the subgraph, a Coin SoGroup object
             position -- position where to insert
         """
-        scene.insertChild(self._pointlight, position)
+        scene.insertChild(self._light, position)
 
     def remove_from_scene(self, scene):
-        """Remove object from coin scene.
+        """Remove the light from coin scene.
 
         Args:
             scene -- coin scene to remove object from
         """
-        scene.removeChild(self._pointlight)
+        scene.removeChild(self._light)
+
+
+class PointlightCoinNode(LightCoinNode):
+    """A class to display a Coin Pointlight object."""
+
+    def __init__(self):
+        """Initialize light."""
+        super().__init__(coin.SoPointLight)
+
+    def set_location(self, location):
+        """Set point light location."""
+        location = coin.SbVec3f(location)
+        self._light.location.setValue(location)
