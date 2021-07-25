@@ -190,18 +190,16 @@ class AreaLight(PointableFeatureMixin, BaseFeature):
 
 
 class ViewProviderAreaLight(
-    CoinShapeViewProviderMixin, PointableViewProviderMixin, BaseViewProvider
+    CoinPointlightViewProviderMixin,
+    CoinShapeViewProviderMixin,
+    PointableViewProviderMixin,
+    BaseViewProvider,
 ):
     """View Provider of AreaLight class."""
 
     ICON = "AreaLight.svg"
 
-    DISPLAY_MODES = ["Shaded", "Wireframe"]
-
-    ON_CHANGED = {"Visibility": "_change_visibility"}
-
     ON_UPDATE = {
-        "Power": "_update_power",
         "Color": "_update_color",
         "SizeU": "_update_size",
         "SizeV": "_update_size",
@@ -216,44 +214,10 @@ class ViewProviderAreaLight(
     )
     COIN_SHAPE_VERTICES = [5]
 
-    def on_attach_cb(self, vobj):
-        """Complete 'attach' method (callback)."""
-        # Here we create coin representation (point light)
-
-        # pylint: disable=attribute-defined-outside-init
-        if not hasattr(self, "coin"):
-            self.coin = SimpleNamespace()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-
-        # Create pointlight in scenegraph
-        self.coin.light = coin.SoPointLight()
-        scene.insertChild(self.coin.light, 0)  # Insert frontwise
-
-    def on_delete_cb(self, feature, subelements):
-        """Complete 'onDelete' method (callback)."""
-        # Delete pointlight in scene
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.light)
-        return True  # If False, the object wouldn't be deleted
-
-    def _update_placement(self, fpo):
-        """Update object placement."""
-        self.coin.light.location.setValue(fpo.Placement.Base[:3])
-
-    def _change_visibility(self, vpdo):
-        """Change light visibility."""
-        self.coin.light.on.setValue(vpdo.Visibility)
-
-    def _update_power(self, fpo):
-        """Update arealight power."""
-        intensity = fpo.Power / 100 if fpo.Power <= 100 else 1
-        self.coin.light.intensity.setValue(intensity)
-
     def _update_color(self, fpo):
         """Update arealight color."""
         color = fpo.Color[:3]
         self.coin.shape.set_color(diffuse=color, emissive=color)
-        self.coin.light.color.setValue(color)
 
     def _update_size(self, fpo):
         """Update arealight size."""
