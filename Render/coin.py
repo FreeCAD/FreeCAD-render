@@ -91,7 +91,7 @@ class DisplayableCoinNode:
         self.set_position(placement.Base)
 
     def set_scale(self, scale):
-        """Set object scale
+        """Set object scale.
 
         Args:
             scale -- the scale to set object to (vec3)
