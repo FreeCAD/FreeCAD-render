@@ -325,21 +325,9 @@ class ImageLight(BaseFeature):
 
 
 class ViewProviderImageLight(BaseViewProvider):
-    """View Provider of ImageLight class."""
+    """View Provider of ImageLight class.
+
+    (no Coin representation)
+    """
 
     ICON = "ImageLight.svg"
-
-    DISPLAY_MODES = ["Shaded", "Wireframe"]
-
-    def on_attach_cb(self, vobj):
-        """Complete 'attach' method (callback)."""
-        # Here we create coin representation
-        # NB: Coin representation is blank, as Coin does not handle
-        # image-based lighting (the node is a dummy SoInfo)
-
-        # pylint: disable=attribute-defined-outside-init
-        self.coin = SimpleNamespace()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.dummy = coin.SoInfo()
-        scene.addChild(self.coin.dummy)
-        vobj.addDisplayMode(self.coin.dummy, "Shaded")
