@@ -31,20 +31,16 @@ Light objects allow to illuminate rendering scenes.
 # ===========================================================================
 
 
-from types import SimpleNamespace
 import itertools
 import math
 
-from pivy import coin
 from PySide.QtCore import QT_TRANSLATE_NOOP
-import FreeCAD as App
-import FreeCADGui as Gui
 
 from Render.base import (
-    BaseFeature,
-    Prop,
-    BaseViewProvider,
+    FeatureBase,
     PointableFeatureMixin,
+    Prop,
+    ViewProviderBase,
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
     CoinPointLightViewProviderMixin,
@@ -85,7 +81,7 @@ def make_star(subdiv=8, radius=1):
 # ===========================================================================
 
 
-class PointLight(BaseFeature):
+class PointLight(FeatureBase):
     """A point light object."""
 
     VIEWPROVIDER = "ViewProviderPointLight"
@@ -95,7 +91,7 @@ class PointLight(BaseFeature):
             "App::PropertyVector",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Location of light"),
-            App.Vector(0, 0, 15),
+            (0, 0, 15),
         ),
         "Color": Prop(
             "App::PropertyColor",
@@ -126,7 +122,7 @@ class PointLight(BaseFeature):
 class ViewProviderPointLight(
     CoinPointLightViewProviderMixin,
     CoinShapeViewProviderMixin,
-    BaseViewProvider,
+    ViewProviderBase,
 ):
     """View Provider of PointLight class."""
 
@@ -151,7 +147,7 @@ class ViewProviderPointLight(
 # ===========================================================================
 
 
-class AreaLight(PointableFeatureMixin, BaseFeature):
+class AreaLight(PointableFeatureMixin, FeatureBase):
     """An area light."""
 
     VIEWPROVIDER = "ViewProviderAreaLight"
@@ -194,7 +190,7 @@ class ViewProviderAreaLight(
     CoinPointLightViewProviderMixin,
     CoinShapeViewProviderMixin,
     PointableViewProviderMixin,
-    BaseViewProvider,
+    ViewProviderBase,
 ):
     """View Provider of AreaLight class."""
 
@@ -226,7 +222,7 @@ class ViewProviderAreaLight(
 # ===========================================================================
 
 
-class SunskyLight(BaseFeature):
+class SunskyLight(FeatureBase):
     """A sun+sky light - Hosek-Wilkie."""
 
     VIEWPROVIDER = "ViewProviderSunskyLight"
@@ -240,7 +236,7 @@ class SunskyLight(BaseFeature):
                 "Direction of sun from observer's point of view "
                 "-- (0,0,1) is zenith",
             ),
-            App.Vector(1, 1, 1),
+            (1, 1, 1),
         ),
         "Turbidity": Prop(
             "App::PropertyFloat",
@@ -265,7 +261,7 @@ class SunskyLight(BaseFeature):
 
 
 class ViewProviderSunskyLight(
-    CoinDirectionalLightViewProviderMixin, BaseViewProvider
+    CoinDirectionalLightViewProviderMixin, ViewProviderBase
 ):
     """View Provider of SunskyLight class."""
 
@@ -289,7 +285,7 @@ class ViewProviderSunskyLight(
 # ===========================================================================
 
 
-class ImageLight(BaseFeature):
+class ImageLight(FeatureBase):
     """An image-based light."""
 
     VIEWPROVIDER = "ViewProviderImageLight"
@@ -304,7 +300,7 @@ class ImageLight(BaseFeature):
     }
 
 
-class ViewProviderImageLight(BaseViewProvider):
+class ViewProviderImageLight(ViewProviderBase):
     """View Provider of ImageLight class.
 
     (no Coin representation)

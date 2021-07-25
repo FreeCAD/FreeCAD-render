@@ -90,8 +90,8 @@ CtxMenuItem = namedtuple(
 # ===========================================================================
 
 
-class InterfaceBaseFeature:
-    """An interface to base class for FreeCAD scripted objects (BaseFeature).
+class FeatureBaseInterface:
+    """An interface to base class for FreeCAD scripted objects (FeatureBase).
 
     This class lists methods and properties that can/should be overriden by
     subclasses.
@@ -138,7 +138,7 @@ class InterfaceBaseFeature:
         """
 
 
-class InterfaceBaseViewProvider:
+class ViewProviderBaseInterface:
     """An interface to base class for FreeCAD ViewProvider.
 
     This class lists methods and properties that can/should be overriden by
@@ -200,7 +200,7 @@ class InterfaceBaseViewProvider:
 # ===========================================================================
 
 
-class BaseFeature(InterfaceBaseFeature):
+class FeatureBase(FeatureBaseInterface):
     """A base class for FreeCAD Feature.
 
     This base is to be used for workbench scripted objects.
@@ -309,7 +309,7 @@ class BaseFeature(InterfaceBaseFeature):
         return obj, fpo, viewp
 
 
-class BaseViewProvider(InterfaceBaseViewProvider):
+class ViewProviderBase(ViewProviderBaseInterface):
     """A base class for FreeCAD ViewProvider.
 
     This base is to be used for workbench scripted objects' ViewProviders.
@@ -645,7 +645,7 @@ class CoinShapeViewProviderMixin:
     a SoFaceSet or a SoLineSet) in FreeCAD viewport.
     """
 
-    DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
 
     COIN_SHAPE_POINTS = ()
     COIN_SHAPE_VERTICES = ()
@@ -720,7 +720,7 @@ class CoinLightViewProviderMixin:
     should be used (see PointLight, DirectionalLight...)
     """
 
-    DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
     ON_CHANGED = {"Visibility": "_change_visibility"}
     ON_UPDATE = {
         "Power": "_update_power",

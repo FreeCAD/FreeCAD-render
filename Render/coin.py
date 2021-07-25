@@ -48,7 +48,7 @@ class DisplayableCoinNode:
         self.display_group = coin.SoGroup()
         self.switch.addChild(self.display_group)
 
-        self.set_visibility(True)  # TODO Where should it be?
+        self.set_visibility(True)
 
     def set_visibility(self, visible):
         """Set object visibility.

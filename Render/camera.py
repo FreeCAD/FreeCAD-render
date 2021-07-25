@@ -35,11 +35,11 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.base import (
-    BaseFeature,
-    Prop,
-    BaseViewProvider,
-    CtxMenuItem,
+    FeatureBase,
     PointableFeatureMixin,
+    Prop,
+    ViewProviderBase,
+    CtxMenuItem,
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
 )
@@ -61,7 +61,7 @@ VIEWPORTMAPPINGENUM = (
 # ===========================================================================
 
 
-class Camera(PointableFeatureMixin, BaseFeature):
+class Camera(PointableFeatureMixin, FeatureBase):
     """A camera for rendering.
 
     This object allows to record camera settings from the Coin camera, and to
@@ -148,7 +148,7 @@ class Camera(PointableFeatureMixin, BaseFeature):
 
 
 class ViewProviderCamera(
-    CoinShapeViewProviderMixin, PointableViewProviderMixin, BaseViewProvider
+    CoinShapeViewProviderMixin, PointableViewProviderMixin, ViewProviderBase
 ):
     """View Provider of Camera class."""
 
