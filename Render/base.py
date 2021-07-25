@@ -646,11 +646,13 @@ class CoinShapeViewProviderMixin:
     COIN_SHAPE_POINTS = ()
     COIN_SHAPE_VERTICES = ()
     COIN_SHAPE_WIREFRAME = False
+    COIN_SHAPE_COLORS = ["diffuse"]  # diffuse, emissive, ambient
 
     ON_CHANGED = {"Visibility": "_change_visibility"}
     ON_UPDATE = {
         "Placement": "_update_placement",
         "Location": "_update_location",
+        "Color": "_update_color",
     }
 
     def on_attach_mixin_cb(self, vobj):
@@ -689,11 +691,21 @@ class CoinShapeViewProviderMixin:
     def _update_location(self, fpo):
         """Update object location."""
         try:
-            location = fpo.Location[:3]
+            location = fpo.Location
         except AttributeError:
             pass
         else:
             self.coin.shape.set_position(location)
+
+    def _update_color(self, fpo):
+        """Update object color."""
+        try:
+            color = fpo.Color[:3]
+        except AttributeError:
+            pass
+        else:
+            kwargs = {colortype: color for colortype in self.COIN_SHAPE_COLORS}
+            self.coin.shape.set_color(**kwargs)
 
 
 class CoinPointlightViewProviderMixin:
