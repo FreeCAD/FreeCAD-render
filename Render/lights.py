@@ -123,7 +123,7 @@ class PointLight(BaseFeature):
 
 
 class ViewProviderPointLight(
-    CoinPointlightViewProviderMixin,
+    CoinPointLightViewProviderMixin,
     CoinShapeViewProviderMixin,
     BaseViewProvider,
 ):
