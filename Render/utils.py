@@ -81,7 +81,7 @@ def clamp(value, maxval=1e10):
 
 
 def reload():
-    """Reload all Render modules"""
+    """Reload all Render modules."""
     mods = (
         "Render",
         "Render.camera",
