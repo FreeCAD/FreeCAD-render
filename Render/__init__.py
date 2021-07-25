@@ -23,12 +23,7 @@
 
 """This is Render workbench main module.
 
-It provides the necessary objects to deal with rendering:
-- GUI Commands
-- Rendering Projects and Views
-
-On initialization, this module will retrieve all renderer modules and create
-the necessary UI controls.
+It imports all the public symbols which make up the Render Workbench API.
 """
 
 
