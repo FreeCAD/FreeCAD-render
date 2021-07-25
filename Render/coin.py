@@ -221,3 +221,28 @@ class ShapeCoinNode(DisplayableCoinNode):
             else:
                 raise KeyError("Unknown color attribute")
             attribute.setValue(color)
+
+
+class PointlightCoinNode(DisplayableCoinNode):
+    """A class to display a Coin Pointlight object."""
+
+    def __init__(self):
+        """Initialize object."""
+        super().__init__()
+        self.pointlight = coin.SoPointLight()
+        self.display_group.addChild(self.pointlight)
+
+    def set_color(self, color):
+        """Set point light color."""
+        color = coin.SbColor(color)
+        self.pointlight.color.setValue(color)
+
+    def set_intensity(self, intensity):
+        """Set point light intensity."""
+        intensity = float(intensity)
+        self.pointlight.color.setValue(intensity)
+
+    def set_location(self, location):
+        """Set point light location."""
+        location = coin.SbVec3f(location)
+        self.pointlight.location.setValue(location)
