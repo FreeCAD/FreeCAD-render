@@ -715,12 +715,14 @@ class CoinLightViewProviderMixin:
     This mixin is abstract and should not be used as-is. Only subclasses
     should be used (see PointLight, DirectionalLight...)
     """
+
     DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
     ON_CHANGED = {"Visibility": "_change_visibility"}
     ON_UPDATE = {
         "Power": "_update_power",
         "Color": "_update_color",
     }
+    LIGHT_COIN_NODE = None  # Must be overriden by subclass
 
     def on_attach_mixin_cb(self, vobj):
         """Complete 'attach' method (callback, mixin version)."""
@@ -728,8 +730,11 @@ class CoinLightViewProviderMixin:
         if not hasattr(self, "coin"):
             self.coin = SimpleNamespace()
 
-        # Nota: Creating light node is delegated to subclass
-        # Light node should be recorded in self.coin.light
+        # Create light in scenegraph
+        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
+        # pylint: disable=not-callable
+        self.coin.light = self.LIGHT_COIN_NODE()
+        self.coin.light.add_to_scene(scene)  # Insert frontwise
 
     def on_delete_mixin_cb(self, feature, subelements):
         """Complete 'onDelete' method (callback, mixin version)."""
@@ -744,7 +749,7 @@ class CoinLightViewProviderMixin:
         self.coin.light.set_visibility(vpdo.Visibility)
 
     def _update_power(self, fpo):
-        """Update pointlight power."""
+        """Update light power."""
         try:
             power = fpo.Power
         except AttributeError:
@@ -754,7 +759,7 @@ class CoinLightViewProviderMixin:
             self.coin.light.set_intensity(intensity)
 
     def _update_color(self, fpo):
-        """Update pointlight color."""
+        """Update light color."""
         try:
             color = fpo.Color[:3]
         except AttributeError:
@@ -763,43 +768,18 @@ class CoinLightViewProviderMixin:
             self.coin.light.set_color(color)
 
 
-class CoinPointLightViewProviderMixin:
+class CoinPointLightViewProviderMixin(CoinLightViewProviderMixin):
     """Mixin for ViewProviders implementing a Coin light.
 
     This mixin allows a ViewProvider to be represented by a Coin PointLight.
     """
 
-    DISPLAY_MODES = ["Shaded", "Wireframe"]  # TODO Add Default?
-    ON_CHANGED = {"Visibility": "_change_visibility"}
+    LIGHT_COIN_NODE = PointLightCoinNode
+
     ON_UPDATE = {
         "Location": "_update_location",
         "Placement": "_update_placement",
-        "Power": "_update_power",
-        "Color": "_update_color",
     }
-
-    def on_attach_mixin_cb(self, vobj):
-        """Complete 'attach' method (callback, mixin version)."""
-        super().on_attach_mixin_cb(vobj)
-        if not hasattr(self, "coin"):
-            self.coin = SimpleNamespace()
-
-        # Create pointlight in scenegraph
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.light = PointLightCoinNode()
-        self.coin.light.add_to_scene(scene)  # Insert frontwise
-
-    def on_delete_mixin_cb(self, feature, subelements):
-        """Complete 'onDelete' method (callback, mixin version)."""
-        res = super().on_delete_mixin_cb(feature, subelements)
-        # Delete coin representation
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        self.coin.light.remove_from_scene(scene)
-        return res  # If False, the object wouldn't be deleted
-
-    def _change_visibility(self, vpdo):
-        """Change light visibility."""
-        self.coin.light.set_visibility(vpdo.Visibility)
 
     def _update_placement(self, fpo):
         """Update object placement."""
@@ -818,22 +798,3 @@ class CoinPointLightViewProviderMixin:
             pass
         else:
             self.coin.light.set_location(location)
-
-    def _update_power(self, fpo):
-        """Update pointlight power."""
-        try:
-            power = fpo.Power
-        except AttributeError:
-            pass
-        else:
-            intensity = power / 100 if power <= 100 else 1
-            self.coin.light.set_intensity(intensity)
-
-    def _update_color(self, fpo):
-        """Update pointlight color."""
-        try:
-            color = fpo.Color[:3]
-        except AttributeError:
-            pass
-        else:
-            self.coin.light.set_color(color)
