@@ -144,7 +144,6 @@ class ViewProviderPointLight(
         scale = [fpo.Radius] * 3
         self.coin.shape.set_scale(scale)
 
-    # TODO Update shape color
 
 # ===========================================================================
 #                           Area Light object
@@ -201,7 +200,6 @@ class ViewProviderAreaLight(
     ICON = "AreaLight.svg"
 
     ON_UPDATE = {
-        "Color": "_update_color",
         "SizeU": "_update_size",
         "SizeV": "_update_size",
     }
@@ -214,11 +212,7 @@ class ViewProviderAreaLight(
         (-0.5, -0.5, 0),
     )
     COIN_SHAPE_VERTICES = [5]
-
-    def _update_color(self, fpo):
-        """Update arealight color."""
-        color = fpo.Color[:3]
-        self.coin.shape.set_color(diffuse=color, emissive=color)
+    COIN_SHAPE_COLORS = ["diffuse", "emissive"]
 
     def _update_size(self, fpo):
         """Update arealight size."""
