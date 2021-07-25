@@ -47,6 +47,7 @@ from Render.base import (
     PointableFeatureMixin,
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
+    CoinPointlightViewProviderMixin,
 )
 
 
@@ -121,64 +122,22 @@ class PointLight(BaseFeature):
     }
 
 
-class ViewProviderPointLight(CoinShapeViewProviderMixin, BaseViewProvider):
+class ViewProviderPointLight(
+    CoinPointlightViewProviderMixin,
+    CoinShapeViewProviderMixin,
+    BaseViewProvider,
+):
     """View Provider of PointLight class."""
 
     ICON = "PointLight.svg"
 
-    DISPLAY_MODES = ["Shaded", "Wireframe"]
-
-    ON_CHANGED = {"Visibility": "_change_visibility"}
-
     ON_UPDATE = {
-        "Power": "_update_power",
-        "Color": "_update_color",
         "Radius": "_update_radius",
     }
 
     COIN_SHAPE_POINTS = make_star(radius=1)
     COIN_SHAPE_VERTICES = [2] * (len(COIN_SHAPE_POINTS) // 2)
     COIN_SHAPE_WIREFRAME = True
-
-    def on_attach_cb(self, vobj):
-        """Complete 'attach' method (callback)."""
-        # Here we create coin representation (point light)
-
-        # pylint: disable=attribute-defined-outside-init
-        if not hasattr(self, "coin"):
-            self.coin = SimpleNamespace()
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-
-        # Create pointlight in scenegraph
-        self.coin.light = coin.SoPointLight()
-        scene.insertChild(self.coin.light, 0)  # Insert frontwise
-
-    def on_delete_cb(self, feature, subelements):
-        """Complete 'onDelete' method (callback)."""
-        # Delete pointlight in scene
-        scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
-        scene.removeChild(self.coin.light)
-        return True  # If False, the object wouldn't be deleted
-
-    def _change_visibility(self, vpdo):
-        """Change light visibility."""
-        self.coin.light.on.setValue(vpdo.Visibility)
-
-    def _update_location(self, fpo):
-        """Update pointlight location."""
-        location = fpo.Location[:3]
-        self.coin.light.location.setValue(location)
-
-    def _update_power(self, fpo):
-        """Update pointlight power."""
-        intensity = fpo.Power / 100 if fpo.Power <= 100 else 1
-        self.coin.light.intensity.setValue(intensity)
-
-    def _update_color(self, fpo):
-        """Update pointlight color."""
-        color = fpo.Color[:3]
-        self.coin.shape.set_color(diffuse=color)
-        self.coin.light.color.setValue(color)
 
     def _update_radius(self, fpo):
         """Update pointlight radius."""
