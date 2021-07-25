@@ -223,7 +223,7 @@ class ShapeCoinNode(DisplayableCoinNode):
             attribute.setValue(color)
 
 
-class PointlightCoinNode():
+class PointlightCoinNode:
     """A class to display a Coin Pointlight object."""
 
     def __init__(self):
