@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -20,59 +20,34 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements some helpers for Render workbench."""
+"""This module implements constants for Render workbench."""
 
-import collections
-import ast
-
-try:
-    from draftutils.translate import translate as _translate  # 0.19
-except ImportError:
-    from Draft import translate as _translate  # 0.18
+import os
+import re
 
 import FreeCAD as App
 
+# Paths
+PKGDIR = os.path.dirname(__file__)  # Package directory (=this file directory)
+WBDIR = os.path.dirname(PKGDIR)  # Workbench root directory
+RDRDIR = os.path.join(PKGDIR, "renderers")
+ICONDIR = os.path.join(PKGDIR, "resources", "icons")
+TEMPLATEDIR = os.path.join(WBDIR, "templates")
+TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
+PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
+TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
 
-translate = _translate
+# Renderers lists
+RENDERERS = {
+    x.group(1)
+    for x in map(lambda x: re.match(r"^([A-Z].*)\.py$", x), os.listdir(RDRDIR))
+    if x
+}
+DEPRECATED_RENDERERS = {"Luxrender"}
+VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
+# FreeCAD version
+FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
 
-def debug(domain, object_name, msg):
-    """Print debug message."""
-    msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
-    App.Console.PrintLog(msg)
-
-
-def warn(domain, object_name, msg):
-    """Print warning message."""
-    msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
-    App.Console.PrintWarning(msg)
-
-
-def getproxyattr(obj, name, default):
-    """Get attribute on object's proxy.
-
-    Behaves like getattr, but on Proxy property, and with mandatory default...
-    """
-    try:
-        res = getattr(obj.Proxy, name, default)
-    except AttributeError:
-        res = default
-    return res
-
-
-RGB = collections.namedtuple("RGB", "r g b")
-RGBA = collections.namedtuple("RGBA", "r g b a")
-
-
-def str2rgb(string):
-    """Convert a ({r},{g},{b})-like string into RGB object."""
-    float_tuple = map(float, ast.literal_eval(string))
-    return RGB._make(float_tuple)
-
-
-def clamp(value, maxval=1e10):
-    """Clamp value between -maxval and +maxval."""
-    res = value
-    res = res if res <= maxval else maxval
-    res = res if res >= -maxval else -maxval
-    return res
+# Workbench parameters
+PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
