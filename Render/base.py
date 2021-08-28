@@ -213,7 +213,7 @@ class FeatureBase(FeatureBaseInterface):
     """
 
     # Internal variables, do not modify
-    _fpos = dict()
+    _fpos = {}
 
     def __init__(self, fpo):
         """Initialize object.

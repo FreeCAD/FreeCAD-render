@@ -80,7 +80,7 @@ def clamp(value, maxval=1e10):
     return res
 
 
-def reload(mod=None):
+def reload(module_name=None):
     """Reload Render modules."""
     mods = (
         "Render.camera",
@@ -104,7 +104,7 @@ def reload(mod=None):
         "Render.renderers.Povray",
         "Render.renderers.utils.sunlight",
         "Render",
-    ) if not mod else (mod,)
+    ) if not module_name else (module_name,)
     for mod in mods:
         try:
             module = sys.modules[mod]
