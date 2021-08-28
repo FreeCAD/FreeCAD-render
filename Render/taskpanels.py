@@ -56,7 +56,7 @@ import FreeCADGui as Gui
 
 from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR
 from Render.utils import str2rgb
-from Render.materials import (
+from Render.rdrmaterials import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
     is_valid_material,
