@@ -204,6 +204,7 @@ class Project(FeatureBase):
             fpo.addExtension("App::GroupExtensionPython", self)
         fpo.setEditorMode("Group", 2)
 
+    # TODO Move into base class
     def onChanged(self, obj, prop):  # pylint: disable=no-self-use
         """Respond to property changed event (callback).
 
