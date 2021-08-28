@@ -40,7 +40,7 @@ import MeshPart
 import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
-import Render.renderables as renderables
+from Render import renderables
 import Render.rdrmaterials as materials
 
 
