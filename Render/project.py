@@ -555,9 +555,8 @@ class ViewProviderProject(ViewProviderBase):
             App.ActiveDocument.openTransaction("ChangeTemplate")
             if fpo.getTypeIdOfProperty("Template") != "App::PropertyString":
                 # Ascending compatibility: convert Template property type if
-                # still in legacy
-                fpo.removeProperty("Template")
-                fpo.Proxy.set_properties(fpo)
+                # still of legacy type
+                fpo.reset_property("Template")
             fpo.Template = new_template
             App.ActiveDocument.commitTransaction()
 

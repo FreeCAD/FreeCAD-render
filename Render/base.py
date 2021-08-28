@@ -239,12 +239,39 @@ class FeatureBase(FeatureBaseInterface):
 
         properties = get_cumulative_dict_attribute(self, "PROPERTIES")
         for name in properties.keys() - set(fpo.PropertiesList):
-            _, specdata = properties[name][0]
-            spec = Prop._make(specdata)
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-            fpo.setEditorMode(name, spec.EditorMode)
+            self._set_property(name, properties)
+            # TODO
+            # _, specdata = properties[name][0]
+            # spec = Prop._make(specdata)
+            # prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+            # setattr(prop, name, spec.Default)
+            # fpo.setEditorMode(name, spec.EditorMode)
         self.on_set_properties_cb(fpo)
+
+    def _set_property(self, name, properties=None):
+        """Set one property for underlying FeaturePython.
+
+        fpo is assumed to have already been set.
+        if no 'properties' parameter is provided, properties are computed
+        from object's PROPERTIES attributes.
+        """
+        if not properties:
+            properties = get_cumulative_dict_attribute(self, "PROPERTIES")
+
+        _, specdata = properties[name][0]
+        spec = Prop._make(specdata)
+        prop = self.fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+        setattr(prop, name, spec.Default)
+        self.fpo.setEditorMode(name, spec.EditorMode)
+
+    def reset_property(self, propname):
+        """Set one property for underlying FeaturePython.
+
+        Remark: 'on_set_properties_cb' is called after.
+        """
+        self.fpo.removeProperty(propname)
+        self._set_property(propname)
+        self.on_set_properties_cb(self.fpo)
 
     @property
     def fpo(self):
