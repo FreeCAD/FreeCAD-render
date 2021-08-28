@@ -54,6 +54,10 @@ from Render.lights import (  # noqa: F401
     ImageLight,
     ViewProviderImageLight,
 )
-from Render.material import Material, ViewProviderMaterial  # noqa: F401
+from Render.material import (  # noqa: F401
+    Material,
+    ViewProviderMaterial,
+    make_material,
+)
 from Render.utils import reload  # noqa: F401
-from Render.commands import RENDER_COMMANDS, make_material  # noqa: F401
+from Render.commands import RENDER_COMMANDS  # noqa: F401
