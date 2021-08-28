@@ -94,7 +94,7 @@ def reload(mod=None):
         "Render.taskpanels",
         "Render.utils",
         "Render.view",
-        "Render.material_ui",  # TODO
+        "Render.material",
         "Render.renderers.Appleseed",
         "Render.renderers.Cycles",
         "Render.renderers.Luxcore",
