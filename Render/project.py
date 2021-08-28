@@ -387,7 +387,7 @@ class Project(FeatureBase):
             App.Console.PrintError(msg)
             return ""
 
-        with open(template_path, "r") as template_file:
+        with open(template_path, "r", encoding="utf8") as template_file:
             template = template_file.read()
 
         # Build a default camera, to be used if no camera is present in the
@@ -446,7 +446,7 @@ class Project(FeatureBase):
         fhandle, fpath = mkstemp(
             prefix=obj.Name, suffix=os.path.splitext(obj.Template)[-1]
         )
-        with open(fpath, "w") as fobj:
+        with open(fpath, "w", encoding="utf8") as fobj:
             fobj.write(template)
         os.close(fhandle)
         obj.PageResult = fpath
