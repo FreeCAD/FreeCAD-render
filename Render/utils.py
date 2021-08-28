@@ -80,10 +80,9 @@ def clamp(value, maxval=1e10):
     return res
 
 
-def reload():
-    """Reload all Render modules."""
+def reload(mod=None):
+    """Reload Render modules."""
     mods = (
-        "Render",
         "Render.camera",
         "Render.commands",
         "Render.constants",
@@ -95,6 +94,7 @@ def reload():
         "Render.taskpanels",
         "Render.utils",
         "Render.view",
+        "Render.material_ui",  # TODO
         "Render.renderers.Appleseed",
         "Render.renderers.Cycles",
         "Render.renderers.Luxcore",
@@ -103,7 +103,8 @@ def reload():
         "Render.renderers.Pbrt",
         "Render.renderers.Povray",
         "Render.renderers.utils.sunlight",
-    )
+        "Render",
+    ) if not mod else (mod,)
     for mod in mods:
         try:
             module = sys.modules[mod]
