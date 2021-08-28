@@ -41,7 +41,7 @@ import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
 import Render.renderables as renderables
-import Render.materials as materials
+import Render.rdrmaterials as materials
 
 
 # ===========================================================================
