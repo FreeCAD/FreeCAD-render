@@ -54,6 +54,8 @@ from PySide.QtCore import (
 import FreeCAD as App
 import FreeCADGui as Gui
 
+from ArchMaterial import _ArchMaterialTaskPanel
+
 from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR
 from Render.utils import str2rgb
 from Render.rdrmaterials import (
@@ -378,3 +380,9 @@ class MaterialSettingsTaskPanel:
         Gui.Control.closeDialog()
         App.ActiveDocument.recompute()
         return True
+
+
+class MaterialTaskPanel(_ArchMaterialTaskPanel):
+    def __init__(self, obj=None):
+        super().__init__(obj)
+        self.form.setWindowTitle("Render Material")

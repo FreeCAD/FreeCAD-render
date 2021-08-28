@@ -36,6 +36,8 @@ from ArchMaterial import (
     _ArchMaterialTaskPanel,
 )
 
+from Render.taskpanels import MaterialTaskPanel
+
 
 def make_material(name="Material", color=None, transparency=None):
     """Make an Material object."""
@@ -90,7 +92,7 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         self.__module__ = "Render"
 
     def setEdit(self, vobj, mode):
-        self.taskd = _ArchMaterialTaskPanel(vobj.Object)
+        self.taskd = MaterialTaskPanel(vobj.Object)
         Gui.Control.showDialog(self.taskd)
         self.taskd.form.FieldName.setFocus()
         self.taskd.form.FieldName.selectAll()
