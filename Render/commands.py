@@ -41,6 +41,7 @@ from Render.taskpanels import MaterialSettingsTaskPanel
 from Render.project import Project, user_select_template
 from Render.camera import Camera
 from Render.lights import PointLight, AreaLight, SunskyLight, ImageLight
+from Render.material_ui import make_material
 
 
 class RenderProjectCommand:
@@ -303,7 +304,7 @@ class ImageLightCommand:
 class MaterialCreatorCommand(_CommandArchMaterial):
     """GUI command to create a material.
 
-    This class is based on Arch 'ArchMaterial' command.
+    This class is partially based on Arch 'ArchMaterial' command.
     """
 
     def GetResources(self):
@@ -318,6 +319,18 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         )
         return res
 
+    def Activated(self):
+        App.ActiveDocument.openTransaction(translate("Arch","Create material"))
+        Gui.addModule("Render")
+        Gui.Control.closeDialog()
+        Gui.doCommand("mat = Render.make_material()")
+        cmd = """FreeCAD.ActiveDocument.getObject("{n}").Material = mat"""
+        sel = [o for o in Gui.Selection.getSelection() if hasattr(o, "Material")]
+        for obj in sel:
+            Gui.doCommand(cmd.format(obj.Name))
+        Gui.doCommandGui("mat.ViewObject.Document.setEdit(mat.ViewObject, 0)")
+        App.ActiveDocument.commitTransaction()
+        App.ActiveDocument.recompute()
 
 class MaterialRenderSettingsCommand:
     """GUI command to set render settings of a material object."""
