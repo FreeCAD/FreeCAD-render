@@ -383,6 +383,11 @@ class MaterialSettingsTaskPanel:
 
 
 class MaterialTaskPanel(_ArchMaterialTaskPanel):
+    """Task panel to create and edit Material.
+
+    Essentially derived from Arch Material Task Panel, except for
+    material cards directory.
+    """
     def __init__(self, obj=None):
         super().__init__(obj)
         self.form.setWindowTitle("Render Material")
