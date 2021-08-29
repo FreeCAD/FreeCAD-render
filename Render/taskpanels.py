@@ -401,16 +401,17 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         User cards with same name will override system cards.
         """
         join = os.path.join
+        splitext = os.path.splitext
         paths = [
-            join(App.getResourceDir(), "Mod", "Material", "StandardMaterial"),
-            join(App.ConfigGet("UserAppData"), "Materials"),
+            ("GENERAL", join(App.getResourceDir(), "Mod", "Material", "StandardMaterial")),
+            ("USER", join(App.ConfigGet("UserAppData"), "Materials")),
         ]
         self.cards = {
-            os.path.splitext(f)[0]: join(p, f)
-            for p in paths
+            "%s - %s" % (d, splitext(f)[0]): join(p, f)
+            for d, p in paths
             if os.path.exists(p)
             for f in os.listdir(p)
-            if os.path.splitext(f)[1].upper() == ".FCMAT"
+            if splitext(f)[1].upper() == ".FCMAT"
         }
         for k in sorted(self.cards.keys()):
             self.form.comboBox_MaterialsInDir.addItem(k)
