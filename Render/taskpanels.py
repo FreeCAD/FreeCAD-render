@@ -408,10 +408,12 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         User cards with same name will override system cards.
         """
         paths = [
-            ("FREECAD", FCDMATERIALDIR),
             ("USER", USERMATERIALDIR),
             ("RENDER", WBMATERIALDIR),
         ]
+        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        if params.GetBool("UseFCDMaterials", False):
+            paths.append(("FREECAD", FCDMATERIALDIR))
         self.cards = {
             "%s - %s" % (d, os.path.splitext(f)[0]): os.path.join(p, f)
             for d, p in paths
