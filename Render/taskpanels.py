@@ -388,6 +388,29 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
     Essentially derived from Arch Material Task Panel, except for
     material cards directory.
     """
+
     def __init__(self, obj=None):
         super().__init__(obj)
         self.form.setWindowTitle("Render Material")
+
+    def fillMaterialCombo(self):
+        """Fill Material combo box.
+
+        Look for cards in both Workbench directory and Materials sub-folder
+        in the user folder.
+        User cards with same name will override system cards.
+        """
+        join = os.path.join
+        paths = [
+            join(App.getResourceDir(), "Mod", "Material", "StandardMaterial"),
+            join(App.ConfigGet("UserAppData"), "Materials"),
+        ]
+        self.cards = {
+            os.path.splitext(f)[0]: join(p, f)
+            for p in paths
+            if os.path.exists(p)
+            for f in os.listdir(p)
+            if os.path.splitext(f)[1].upper() == ".FCMAT"
+        }
+        for k in sorted(self.cards.keys()):
+            self.form.comboBox_MaterialsInDir.addItem(k)
