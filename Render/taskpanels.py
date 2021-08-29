@@ -56,7 +56,7 @@ import FreeCADGui as Gui
 
 from ArchMaterial import _ArchMaterialTaskPanel
 
-from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR
+from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR, MATERIALDIR
 from Render.utils import str2rgb
 from Render.rdrmaterials import (
     STD_MATERIALS,
@@ -403,8 +403,9 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         join = os.path.join
         splitext = os.path.splitext
         paths = [
-            ("GENERAL", join(App.getResourceDir(), "Mod", "Material", "StandardMaterial")),
+            ("FREECAD", join(App.getResourceDir(), "Mod", "Material", "StandardMaterial")),
             ("USER", join(App.ConfigGet("UserAppData"), "Materials")),
+            ("RENDER", MATERIALDIR),
         ]
         self.cards = {
             "%s - %s" % (d, splitext(f)[0]): join(p, f)
