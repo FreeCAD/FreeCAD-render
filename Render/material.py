@@ -33,7 +33,6 @@ from ArchMaterial import (
     _ArchMaterial,
     _ViewProviderArchMaterial,
     getMaterialContainer,
-    _ArchMaterialTaskPanel,
 )
 
 from Render.taskpanels import MaterialTaskPanel

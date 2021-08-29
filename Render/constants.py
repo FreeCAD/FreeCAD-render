@@ -33,7 +33,11 @@ WBDIR = os.path.dirname(PKGDIR)  # Workbench root directory
 RDRDIR = os.path.join(PKGDIR, "renderers")
 ICONDIR = os.path.join(PKGDIR, "resources", "icons")
 TEMPLATEDIR = os.path.join(WBDIR, "templates")
-MATERIALDIR = os.path.join(WBDIR, "materials")
+WBMATERIALDIR = os.path.join(WBDIR, "materials")
+FCDMATERIALDIR = os.path.join(
+    App.getResourceDir(), "Mod", "Material", "StandardMaterial"
+)
+USERMATERIALDIR = os.path.join(App.ConfigGet("UserAppData"), "Materials")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
@@ -48,7 +52,7 @@ DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 # FreeCAD version
-FCDVERSION = App.Version()[0], App.Version()[1]  # FreeCAD version
+FCDVERSION = App.Version()[0], App.Version()[1]
 
 # Workbench parameters
 PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
