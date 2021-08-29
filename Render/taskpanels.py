@@ -56,7 +56,14 @@ import FreeCADGui as Gui
 
 from ArchMaterial import _ArchMaterialTaskPanel
 
-from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR, MATERIALDIR
+from Render.constants import (
+    TASKPAGE,
+    VALID_RENDERERS,
+    ICONDIR,
+    WBMATERIALDIR,
+    FCDMATERIALDIR,
+    USERMATERIALDIR,
+)
 from Render.utils import str2rgb
 from Render.rdrmaterials import (
     STD_MATERIALS,
@@ -400,19 +407,17 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         in the user folder.
         User cards with same name will override system cards.
         """
-        join = os.path.join
-        splitext = os.path.splitext
         paths = [
-            ("FREECAD", join(App.getResourceDir(), "Mod", "Material", "StandardMaterial")),
-            ("USER", join(App.ConfigGet("UserAppData"), "Materials")),
-            ("RENDER", MATERIALDIR),
+            ("FREECAD", FCDMATERIALDIR),
+            ("USER", USERMATERIALDIR),
+            ("RENDER", WBMATERIALDIR),
         ]
         self.cards = {
-            "%s - %s" % (d, splitext(f)[0]): join(p, f)
+            "%s - %s" % (d, os.path.splitext(f)[0]): os.path.join(p, f)
             for d, p in paths
             if os.path.exists(p)
             for f in os.listdir(p)
-            if splitext(f)[1].upper() == ".FCMAT"
+            if os.path.splitext(f)[1].upper() == ".FCMAT"
         }
         for k in sorted(self.cards.keys()):
             self.form.comboBox_MaterialsInDir.addItem(k)
