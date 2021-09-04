@@ -159,7 +159,6 @@ class ColorPickerExt(QWidget):
 
     def on_object_color_change(self, state):
         """Respond to checkbox change event."""
-        print("object_color")
         self.colorpicker.setEnabled(not state)
 
 
