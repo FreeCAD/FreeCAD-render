@@ -28,6 +28,7 @@ import os
 
 from PySide.QtGui import (
     QPushButton,
+    QCheckBox,
     QColor,
     QColorDialog,
     QPixmap,
@@ -38,6 +39,8 @@ from PySide.QtGui import (
     QListWidgetItem,
     QPlainTextEdit,
     QLayout,
+    QHBoxLayout,
+    QWidget,
     QListView,
     QLineEdit,
     QDoubleValidator,
@@ -64,7 +67,7 @@ from Render.constants import (
     FCDMATERIALDIR,
     USERMATERIALDIR,
 )
-from Render.utils import str2rgb
+from Render.utils import str2rgb, translate
 from Render.rdrmaterials import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
@@ -113,6 +116,51 @@ class ColorPicker(QPushButton):
         """Get widget color value, in text format."""
         color = self.color
         return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
+
+
+class ColorPickerExt(QWidget):
+    """An extended color picker widget.
+
+    This widget provides a color picker, and also a checkbox that allows to
+    specify to use object color in lieu of color selected in the picker.
+    """
+
+    def __init__(self, color=QColor(127, 127, 127), use_object_color=False):
+        """Initialize widget.
+
+        Args:
+            color -- RGB color used to initialize the color picker
+            use_object_color -- boolean used to initialize the 'use object
+                color' checkbox
+        """
+        super().__init__()
+        self.use_object_color = use_object_color
+        self.colorpicker = ColorPicker(color)
+        self.checkbox = QCheckBox()
+        self.checkbox.setText(translate("Render", "Use object color"))
+        self.checkbox.setChecked(use_object_color)
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(self.colorpicker)
+        self.layout().addWidget(self.checkbox)
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        QObject.connect(
+            self.checkbox,
+            SIGNAL("stateChanged(int)"),
+            self.on_object_color_change,
+        )
+
+    def get_color_text(self):
+        """Get color picker output value, in text format."""
+        return self.colorpicker.get_color_text()
+
+    def setToolTip(self, desc):
+        """Set widget tooltip."""
+        self.colorpicker.setToolTip(desc)
+
+    def on_object_color_change(self, state):
+        """Respond to checkbox change event."""
+        print("object_color")
+        self.colorpicker.setEnabled(not state)
 
 
 class MaterialSettingsTaskPanel:
@@ -317,9 +365,9 @@ class MaterialSettingsTaskPanel:
         elif param.type == "RGB":
             if value:
                 qcolor = QColor.fromRgbF(*str2rgb(value))
-                widget = ColorPicker(qcolor)
+                widget = ColorPickerExt(qcolor)
             else:
-                widget = ColorPicker()
+                widget = ColorPickerExt()
             self.fields.append((name, widget.get_color_text))
         else:
             widget = QLineEdit()
