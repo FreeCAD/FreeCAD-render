@@ -67,7 +67,7 @@ from Render.constants import (
     FCDMATERIALDIR,
     USERMATERIALDIR,
 )
-from Render.utils import str2rgb, translate
+from Render.utils import str2rgb, translate, parse_csv_str
 from Render.rdrmaterials import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
@@ -138,7 +138,6 @@ class ColorPickerExt(QWidget):
         self.colorpicker = ColorPicker(color)
         self.checkbox = QCheckBox()
         self.checkbox.setText(translate("Render", "Use object color"))
-        self.checkbox.setChecked(use_object_color)
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self.colorpicker)
         self.layout().addWidget(self.checkbox)
@@ -148,10 +147,21 @@ class ColorPickerExt(QWidget):
             SIGNAL("stateChanged(int)"),
             self.on_object_color_change,
         )
+        self.checkbox.setChecked(use_object_color)
 
     def get_color_text(self):
-        """Get color picker output value, in text format."""
+        """Get color picker value, in text format."""
         return self.colorpicker.get_color_text()
+
+    def get_use_object_color(self):
+        """Get 'use object color' checkbox value."""
+        return self.checkbox.isChecked()
+
+    def get_value(self):
+        """Get widget output value."""
+        res = ["Object"] if self.get_use_object_color else []
+        res += [self.get_color_text()]
+        return ";".join(res)
 
     def setToolTip(self, desc):
         """Set widget tooltip."""
@@ -363,11 +373,21 @@ class MaterialSettingsTaskPanel:
             )
         elif param.type == "RGB":
             if value:
-                qcolor = QColor.fromRgbF(*str2rgb(value))
-                widget = ColorPickerExt(qcolor)
+                parsedvalue = parse_csv_str(value)
+                if "Object" not in parsedvalue:
+                    color = str2rgb(parsedvalue[0])
+                    use_object_color = False
+                else:
+                    use_object_color = True
+                    if len(parsedvalue) > 1:
+                        color = str2rgb(parsedvalue[1])
+                    else:
+                        color = (0.8, 0.8, 0.8)
+                qcolor = QColor.fromRgbF(*color)
+                widget = ColorPickerExt(qcolor, use_object_color)
             else:
                 widget = ColorPickerExt()
-            self.fields.append((name, widget.get_color_text))
+            self.fields.append((name, widget.get_value))
         else:
             widget = QLineEdit()
             self.fields.append((name, widget.text))
