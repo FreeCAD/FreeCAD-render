@@ -29,6 +29,9 @@ Please note Render Material object is mainly derived from Arch Material.
 import FreeCAD as App
 import FreeCADGui as Gui
 
+from PySide.QtGui import QAction
+from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
+
 from ArchMaterial import (
     _ArchMaterial,
     _ViewProviderArchMaterial,
@@ -96,3 +99,24 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         self.taskd.form.FieldName.setFocus()
         self.taskd.form.FieldName.selectAll()
         return True
+
+    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
+        """Set up the object's context menu in GUI (callback)."""
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
+        )
+        QObject.connect(
+            action,
+            SIGNAL("triggered()"),
+            lambda: Gui.runCommand("Render_Materials", 1),
+        )
+        menu.addAction(action)
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
+        )
+        QObject.connect(
+            action,
+            SIGNAL("triggered()"),
+            lambda: Gui.activeDocument().setEdit(vobj.Object.Name, 0),
+        )
+        menu.addAction(action)
