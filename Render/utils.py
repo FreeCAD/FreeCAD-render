@@ -97,28 +97,32 @@ def clamp(value, maxval=1e10):
 def reload(module_name=None):
     """Reload Render modules."""
     mods = (
-        "Render.camera",
-        "Render.commands",
-        "Render.constants",
-        "Render.lights",
-        "Render.materials",
-        "Render.project",
-        "Render.rdrhandler",
-        "Render.renderables",
-        "Render.taskpanels",
-        "Render.utils",
-        "Render.view",
-        "Render.material",
-        "Render.renderers.Appleseed",
-        "Render.renderers.Cycles",
-        "Render.renderers.Luxcore",
-        "Render.renderers.Luxrender",
-        "Render.renderers.Ospray",
-        "Render.renderers.Pbrt",
-        "Render.renderers.Povray",
-        "Render.renderers.utils.sunlight",
-        "Render",
-    ) if not module_name else (module_name,)
+        (
+            "Render.camera",
+            "Render.commands",
+            "Render.constants",
+            "Render.lights",
+            "Render.materials",
+            "Render.project",
+            "Render.rdrhandler",
+            "Render.renderables",
+            "Render.taskpanels",
+            "Render.utils",
+            "Render.view",
+            "Render.material",
+            "Render.renderers.Appleseed",
+            "Render.renderers.Cycles",
+            "Render.renderers.Luxcore",
+            "Render.renderers.Luxrender",
+            "Render.renderers.Ospray",
+            "Render.renderers.Pbrt",
+            "Render.renderers.Povray",
+            "Render.renderers.utils.sunlight",
+            "Render",
+        )
+        if not module_name
+        else (module_name,)
+    )
     for mod in mods:
         try:
             module = sys.modules[mod]
