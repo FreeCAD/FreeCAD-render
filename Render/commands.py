@@ -314,24 +314,24 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         )
         res["ToolTip"] = QT_TRANSLATE_NOOP(
             "MaterialCreatorCommand",
-            "Create a new Material in current" "document",
+            "Create a new Material in current document",
         )
         return res
 
     def Activated(self):
         App.ActiveDocument.openTransaction(
-            translate("Arch", "Create material")
+            translate("Render", "Create material")
         )
-        Gui.addModule("Render")
         Gui.Control.closeDialog()
-        Gui.doCommand("mat = Render.make_material()")
-        cmd = """FreeCAD.ActiveDocument.getObject("{n}").Material = mat"""
-        sel = [
-            o for o in Gui.Selection.getSelection() if hasattr(o, "Material")
+        Gui.addModule("Render")
+        cmds = [
+            "obj = Render.make_material()",
+            "Gui.Selection.clearSelection()",
+            "Gui.Selection.addSelection(obj.Document.Name, obj.Name)",
+            "obj.ViewObject.Document.setEdit(obj.ViewObject, 0)",
         ]
-        for obj in sel:
-            Gui.doCommand(cmd.format(obj.Name))
-        Gui.doCommandGui("mat.ViewObject.Document.setEdit(mat.ViewObject, 0)")
+        for cmd in cmds:
+            Gui.doCommand(cmd)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
 
