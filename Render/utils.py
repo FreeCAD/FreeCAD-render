@@ -26,6 +26,8 @@ import collections
 import ast
 import sys
 import importlib
+import csv
+import itertools
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -70,6 +72,18 @@ def str2rgb(string):
     """Convert a ({r},{g},{b})-like string into RGB object."""
     float_tuple = map(float, ast.literal_eval(string))
     return RGB._make(float_tuple)
+
+
+def parse_csv_str(string, delimiter=";"):
+    """Parse a csv string, with ";" as default delimiter.
+
+    Multiline strings are accepted (but maybe should be avoided).
+    Returns: a list of strings (one for each field)
+    """
+    if not string:
+        return []
+    rows = csv.reader(string.splitlines(), delimiter=delimiter)
+    return list(itertools.chain(*rows))
 
 
 def clamp(value, maxval=1e10):
