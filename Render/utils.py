@@ -102,7 +102,7 @@ def reload(module_name=None):
             "Render.commands",
             "Render.constants",
             "Render.lights",
-            "Render.materials",
+            "Render.rdrmaterials",
             "Render.project",
             "Render.rdrhandler",
             "Render.renderables",
