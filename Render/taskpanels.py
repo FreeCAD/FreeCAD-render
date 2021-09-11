@@ -159,7 +159,7 @@ class ColorPickerExt(QWidget):
 
     def get_value(self):
         """Get widget output value."""
-        res = ["Object"] if self.get_use_object_color else []
+        res = ["Object"] if self.get_use_object_color() else []
         res += [self.get_color_text()]
         return ";".join(res)
 
