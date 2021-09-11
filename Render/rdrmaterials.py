@@ -36,6 +36,7 @@ import FreeCAD as App
 from Render.utils import (
     RGBA,
     str2rgb,
+    parse_csv_str,
     debug as ru_debug,
     getproxyattr,
     translate,
@@ -169,7 +170,19 @@ STD_MATERIALS_PARAMETERS = {
 
 STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
-CAST_FUNCTIONS = {"float": float, "RGB": str2rgb, "string": str}
+
+def _castrgb(value, objcol):
+    parsed = parse_csv_str(value)
+    if "Object" in parsed:
+        return objcol
+    return str2rgb(parsed[0])
+
+
+CAST_FUNCTIONS = {
+    "float": lambda x, y: float(x),
+    "RGB": _castrgb,
+    "string": lambda x, y: str(x),
+}
 
 
 def get_rendering_material(material, renderer, default_color):
@@ -245,10 +258,11 @@ def get_rendering_material(material, renderer, default_color):
             keyfmt = "Render.%s.%s"
             values = tuple(
                 (
-                    p.name,
-                    mat.get(keyfmt % (shadertype, p.name), None),
-                    p.default,
-                    p.type,
+                    p.name,  # Parameter name
+                    mat.get(keyfmt % (shadertype, p.name), None),  # Parm value
+                    p.default,  # Parameter default value
+                    p.type,  # Parameter type
+                    default_color,  # Object color
                 )
                 for p in params
             )
@@ -418,12 +432,12 @@ def _build_standard(shadertype, values):
     """Build standard material."""
     res = RenderMaterial(shadertype)
 
-    for nam, val, dft, typ in values:
+    for nam, val, dft, typ, objcol in values:
         cast_function = CAST_FUNCTIONS[typ]
         try:
-            value = cast_function(val)
+            value = cast_function(val, objcol)
         except TypeError:
-            value = cast_function(dft)
+            value = cast_function(str(dft), objcol)
         res.setshaderparam(nam, value)
 
     # Add a default_color, for fallback mechanisms in renderers.
@@ -456,6 +470,8 @@ def _build_fallback(color):
     except IndexError:
         _color = "0.8, 0.8, 0.8"
         _alpha = "0.0"
+    finally:
+        _rgbcolor = str2rgb(_color)
 
     # A simpler approach would have been to rely only on mixed material but it
     # leads to a lot of materials definitions in output files which hinders the
@@ -464,22 +480,22 @@ def _build_fallback(color):
     if float(_alpha) == 0:
         # Build diffuse
         shadertype = "Diffuse"
-        values = (("Color", _color, _color, "RGB"),)
+        values = (("Color", _color, _color, "RGB", _rgbcolor),)
     elif float(_alpha) == 1:
         # Build glass
         shadertype = "Glass"
         values = (
-            ("IOR", "1.5", "1.5", "float"),
-            ("Color", _color, _color, "RGB"),
+            ("IOR", "1.5", "1.5", "float", _rgbcolor),
+            ("Color", _color, _color, "RGB", _rgbcolor),
         )
     else:
         # Build mixed
         shadertype = "Mixed"
         values = (
-            ("Diffuse.Color", _color, _color, "RGB"),
-            ("Glass.IOR", "1.5", "1.5", "float"),
-            ("Glass.Color", _color, _color, "RGB"),
-            ("Transparency", _alpha, _alpha, "float"),
+            ("Diffuse.Color", _color, _color, "RGB", _rgbcolor),
+            ("Glass.IOR", "1.5", "1.5", "float", _rgbcolor),
+            ("Glass.Color", _color, _color, "RGB", _rgbcolor),
+            ("Transparency", _alpha, _alpha, "float", _rgbcolor),
         )
 
     return _build_standard(shadertype, values)
