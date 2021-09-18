@@ -240,12 +240,6 @@ class FeatureBase(FeatureBaseInterface):
         properties = get_cumulative_dict_attribute(self, "PROPERTIES")
         for name in properties.keys() - set(fpo.PropertiesList):
             self._set_property(name, properties)
-            # TODO
-            # _, specdata = properties[name][0]
-            # spec = Prop._make(specdata)
-            # prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            # setattr(prop, name, spec.Default)
-            # fpo.setEditorMode(name, spec.EditorMode)
         self.on_set_properties_cb(fpo)
 
     def _set_property(self, name, properties=None):
