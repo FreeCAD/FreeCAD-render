@@ -38,7 +38,7 @@ from ArchMaterial import (
     getMaterialContainer,
 )
 
-from Render.taskpanels import MaterialTaskPanel
+from Render.taskpanels import MaterialTaskPanel, MaterialSettingsTaskPanel
 
 
 def make_material(name="Material", color=None, transparency=None):
@@ -102,15 +102,18 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
 
     def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
         """Set up the object's context menu in GUI (callback)."""
+        # Edit Render Settings
         action = QAction(
             QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
         )
         QObject.connect(
             action,
             SIGNAL("triggered()"),
-            lambda: Gui.runCommand("Render_Materials", 1),
+            lambda: Gui.Control.showDialog(MaterialSettingsTaskPanel()),
         )
         menu.addAction(action)
+
+        # Edit General Settings
         action = QAction(
             QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
         )
