@@ -79,10 +79,9 @@ class View(FeatureBase):
         """Precede the operation of 'create' (callback)."""
         project = kwargs["project"]  # Note: 'project' kw argument is mandatory
         source = kwargs["source"]  # Note: 'source' kw argument is mandatory
-        version = FCDVERSION
-        assert project.Document == source.Document or version >= (
-            "0",
-            "19",
+        assert project.Document == source.Document or FCDVERSION >= (
+            0,
+            19,
         ), "Unable to create View: Project and Object not in same document"
 
     def on_create_cb(self, fpo, viewp, **kwargs):
