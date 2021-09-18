@@ -198,6 +198,11 @@ class Project(FeatureBase):
         ),
     }
 
+    ON_CHANGED = {
+        "DelayedBuild": "_on_changed_delayed_build",
+        "Renderer": "_on_changed_renderer",
+    }
+
     def on_set_properties_cb(self, fpo):
         """Complete the operation of internal _set_properties (callback)."""
         if "Group" not in fpo.PropertiesList:
@@ -208,18 +213,16 @@ class Project(FeatureBase):
                 fpo.addExtension("App::GroupExtensionPython", self)
         fpo.setEditorMode("Group", 2)
 
-    # TODO Move into base class
-    def onChanged(self, obj, prop):  # pylint: disable=no-self-use
-        """Respond to property changed event (callback).
+    def _on_changed_delayed_build(self, fpo):
+        """Respond to DelayedBuild property change event."""
+        if fpo.DelayedBuild:
+            return
+        for view in self.all_views():
+            view.touch()
 
-        This code is executed when a property of the FeaturePython object is
-        changed.
-        """
-        if prop == "DelayedBuild" and not obj.DelayedBuild:
-            for view in obj.Proxy.all_views():
-                view.touch()
-        if prop == "Renderer":
-            obj.PageResult = ""
+    def _on_changed_renderer(self, fpo):  # pylint: disable=no-self-use
+        """Respond to Renderer property change event."""
+        fpo.PageResult = ""
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete the operation of 'create' (callback)."""
@@ -228,7 +231,7 @@ class Project(FeatureBase):
 
         fpo.Label = "%s Project" % rdr
         fpo.Renderer = rdr
-        fpo.Template = str(template)
+        fpo.Template = template
 
     def write_groundplane(self, renderer):
         """Generate a ground plane rendering string for the scene.
