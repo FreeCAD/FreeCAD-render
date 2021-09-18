@@ -101,6 +101,12 @@ class FeatureBaseInterface:
     VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
     PROPERTIES = {}  # The properties of the object (dict of Prop)
 
+    # 'On change' mapping
+    ON_CHANGED = {}
+    # A dictionary Property: Method (strings).
+    # Handles changes in this object's properties,
+    # See 'onChanged' in FreeCAD scripted objects framework
+
     # These constants can be overriden when subclassing (optional)
     NAMESPACE = "Render"  # The namespace where feature and viewprovider are
     TYPE = ""  # The type of the object (str). If empty, default to class name
@@ -286,6 +292,33 @@ class FeatureBase(FeatureBaseInterface):
     def Type(self):  # pylint: disable=invalid-name
         """Get 'Type' property."""
         return self.TYPE if self.TYPE else self.__class__.__name__
+
+    @functools.lru_cache(maxsize=128)
+    def _on_changed_mapping(self):
+        """Get 'on change' mapping."""
+        return get_cumulative_dict_attribute(self, "ON_CHANGED")
+
+    def onChanged(self, obj, prop):
+        """Respond to property changed event (callback).
+
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            obj -- related FeaturePython object (where properties are
+                stored)
+            prop -- property name (as a string)
+        """
+        on_changed = self._on_changed_mapping()
+        try:
+            actions = on_changed[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            # Apply methods to object
+            for cls, action_name in actions:
+                action = getattr(cls, action_name)
+                action(self, obj)
 
     @classmethod
     def create(cls, document=None, **kwargs):
