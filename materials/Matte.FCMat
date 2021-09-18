@@ -1,0 +1,20 @@
+[General]
+; General name
+Name = RenderMatte
+Description = Matte Material for Render
+
+[Architectural]
+; Description to be updated
+Color = (0.8, 0.8, 0.8)
+
+; Description to be updated
+DiffuseColor = (0.8, 0.8, 0.8)
+SectionColor = (0.8, 0.8, 0.8)
+
+
+
+[Rendering]
+Render.Type = Diffuse
+Render.Diffuse.Color = Object
+
+; vi: ft=dosini
