@@ -45,7 +45,7 @@ try:
 except ImportError:
     pass
 
-from Render.constants import TEMPLATEDIR, PARAMS
+from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
@@ -201,11 +201,11 @@ class Project(FeatureBase):
     def on_set_properties_cb(self, fpo):
         """Complete the operation of internal _set_properties (callback)."""
         if "Group" not in fpo.PropertiesList:
-            fpo.addExtension("App::GroupExtensionPython", self)
-            # TODO Line above causes a warning in FCD when creating a new project
-            # 2nd argument should be removed?
-            # See https://forum.freecadweb.org/viewtopic.php?f=10&t=54370
-            # and https://forum.freecadweb.org/viewtopic.php?p=479142
+            if FCDVERSION >= (0, 19):
+                fpo.addExtension("App::GroupExtensionPython")
+                # See https://forum.freecadweb.org/viewtopic.php?f=10&t=54370
+            else:
+                fpo.addExtension("App::GroupExtensionPython", self)
         fpo.setEditorMode("Group", 2)
 
     # TODO Move into base class
