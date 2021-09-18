@@ -1,0 +1,23 @@
+[General]
+; General name
+Name = RenderGlass
+Description = Glass Material for Render
+
+[Architectural]
+; Description to be updated
+Color = (0.8, 0.8, 0.8)
+
+; Description to be updated
+DiffuseColor = (0.8, 0.8, 0.8)
+SectionColor = (0.8, 0.8, 0.8)
+Transparency = 100
+
+
+
+[Rendering]
+Render.Type = Glass
+Render.Glass.IOR = 1.5
+Render.Glass.Color = (1.0, 1.0, 1.0)
+
+
+; vi: ft=dosini
