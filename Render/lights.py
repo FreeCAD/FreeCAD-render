@@ -269,8 +269,6 @@ class ViewProviderSunskyLight(
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]
 
-    ON_CHANGED = {"Visibility": "_change_visibility"}
-
     ON_UPDATE = {"SunDirection": "_update_sun_direction"}
 
     def _update_sun_direction(self, fpo):
