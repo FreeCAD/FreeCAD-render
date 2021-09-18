@@ -172,6 +172,19 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 
 def _castrgb(value, objcol):
+    """Cast extended RGB field value to RGB object.
+
+    This function can handle "object color" special case:
+    'value' is treated as a semicolon separated value.
+    if 'value' contains "Object", 'objcol' is returned
+
+    Args:
+        value -- the value to parse and cast
+        objcol -- the object color
+
+    Returns:
+        a RGB object containing the targeted color
+    """
     parsed = parse_csv_str(value)
     if "Object" in parsed:
         return objcol
