@@ -540,6 +540,38 @@ def _convert_passthru(passthru):
     return passthru
 
 
+def printmat(fcdmat):
+    """Print a rendering material to a string, in Material Card format.
+
+    This function allows to rebuild a Material Card content from a FreeCAD
+    material object, for the Render part.
+
+    Args:
+        fcdmat -- a FreeCAD material object (App::MaterialObjectPython)
+
+    Returns:
+        a string containing the material in Material Card format
+    """
+    def keysort(item):
+        key, value, keyword = item
+        if keyword == "Type":
+            rank = 0
+        elif keyword in STD_MATERIALS_PARAMETERS:
+            rank = 1
+        else:
+            rank = 2
+        return (rank, key)
+
+    items = [
+        (i[0], i[1], i[0].split(".")[1])
+        for i in fcdmat.Material.items()
+        if i[0].startswith("Render.")
+    ]
+    items.sort(key=keysort)
+    lines = ["{} = {}".format(*i) for i in items]
+    print("\n".join(lines))
+
+
 def _clear():
     """Clear functions caches (debug purpose)."""
     _build_fallback.cache_clear()
