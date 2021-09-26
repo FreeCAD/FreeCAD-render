@@ -154,8 +154,19 @@
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
            <widget class="QPlainTextEdit" name="PassthroughEdit">
+            <property name="font">
+             <font>
+              <family>Monospace</family>
+             </font>
+            </property>
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="plainText">
+             <string notr="true"/>
+            </property>
+            <property name="placeholderText">
+             <string notr="true"/>
             </property>
            </widget>
           </item>
