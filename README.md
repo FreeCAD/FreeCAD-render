@@ -56,19 +56,19 @@ supported ones.
 In quick-start mode, after installation has correctly be done, rendering a
 FreeCAD model is just a 4-steps process:
 1. **Create a rendering project:** Press the button in the toolbar
-   corresponding to your renderer <img src=./icons/Appleseed.svg height=32>
-   <img src=./icons/Cycles.svg height=32> <img src=./icons/Luxcore.svg
-   height=32> <img src=./icons/Povray.svg height=32> and select a template
+   corresponding to your renderer <img src=./Render/resources/icons/Appleseed.svg height=32>
+   <img src=./Render/resources/icons/Cycles.svg height=32> <img src=./Render/resources/icons/Luxcore.svg
+   height=32> <img src=./Render/resources/icons/Povray.svg height=32> and select a template
    suitable for your renderer \ (you may start with a 'standard' flavour, like
    appleseed_standard.appleseed, cycles_standard.xml, luxcore_standard.cfg or
    povray_standard.pov) 
 2. **Add views of your objects to your rendering project:** Select both the
    objects and the project, and press the 'Add view' button <img
-   src=./icons/RenderView.svg height=32>
+   src=./Render/resources/icons/RenderView.svg height=32>
 3. **Set your point of view:** [Navigate in FreeCAD 3D View](https://wiki.freecadweb.org/Manual:Navigating_in_the_3D_view)
    to the desired position and switch to _Perspective_ mode.
 4. **Render:** Select your project and press the 'Render' button <img
-   src=./icons/Render.svg height=32> in toolbar (also available in project's
+   src=./Render/resources/icons/Render.svg height=32> in toolbar (also available in project's
    context menu).
 
 <br /> **...and you should get a first rendering of your model.** <br /> 
