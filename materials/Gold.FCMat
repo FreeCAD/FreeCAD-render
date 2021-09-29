@@ -1,0 +1,21 @@
+[General]
+; General name
+Name = RenderGold
+Description = Gold Material for Render
+
+[Architectural]
+; 215, 172, 55
+Color = (0.84, 0.67, 0.22)
+
+; Description to be updated
+DiffuseColor = (0.84, 0.67, 0.22)
+SectionColor = (0.84, 0.67, 0.22)
+
+
+
+[Rendering]
+Render.Type = Disney
+Render.Disney.BaseColor = (0.84, 0.67, 0.22)
+Render.Disney.Metallic = 1.0
+Render.Disney.Roughness = 0.3
+; vi: ft=dosini
