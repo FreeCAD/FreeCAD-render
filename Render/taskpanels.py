@@ -433,6 +433,10 @@ class MaterialSettingsTaskPanel:
         # Set passthru
         pthr_keys = self.PASSTHROUGH_KEYS
         for rdr, text in self.passthru_cache.items():
+            # Clear existing lines for rdr
+            for key in pthr_keys[rdr]:
+                tmp_mat.pop(key, None)
+            # Fill with new lines for rdr
             lines = dict(zip(sorted(pthr_keys[rdr]), text.splitlines()))
             tmp_mat.update(lines)
 
