@@ -26,6 +26,10 @@ Render.Disney.SheenTint = 0.0
 Render.Disney.Specular = 0.0
 Render.Disney.SpecularTint = 0.0
 Render.Disney.Subsurface = 0.0
+Render.Luxcore.0001 = scene.textures.%NAME%.type = fresnelpreset
+Render.Luxcore.0002 = scene.textures.%NAME%.name = gold
+Render.Luxcore.0003 = scene.materials.%NAME%.type = metal2
+Render.Luxcore.0004 = scene.materials.%NAME%.fresnel = %NAME%
 Render.Pbrt.0001 = Material "conductor"
 Render.Pbrt.0002 = "spectrum eta" [
 Render.Pbrt.0003 = 298.757050 1.795000
