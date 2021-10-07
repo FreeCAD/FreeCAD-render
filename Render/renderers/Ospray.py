@@ -199,7 +199,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         "newmtl material",
         "type luminous",
         "color {} {} {}".format(*color),
-        "intensity {}".format(power / 100),
+        "intensity {}".format(power / 10),
         "transparency {}".format(1.0 if transparent else 0.0),
     ]
 
