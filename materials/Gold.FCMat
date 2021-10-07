@@ -30,6 +30,10 @@ Render.Luxcore.0001 = scene.textures.%NAME%.type = fresnelpreset
 Render.Luxcore.0002 = scene.textures.%NAME%.name = gold
 Render.Luxcore.0003 = scene.materials.%NAME%.type = metal2
 Render.Luxcore.0004 = scene.materials.%NAME%.fresnel = %NAME%
+Render.Ospray.0001 = type metal
+Render.Ospray.0002 = eta 0.07 0.37 1.5
+Render.Ospray.0003 = k 3.7 2.3 1.7
+Render.Ospray.0004 = roughness 0.1
 Render.Pbrt.0001 = Material "conductor"
 Render.Pbrt.0002 = "spectrum eta" [
 Render.Pbrt.0003 = 298.757050 1.795000
