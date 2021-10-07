@@ -433,7 +433,7 @@ def _write_material(name, material):
 def _write_material_passthrough(name, material):
     """Compute a string in the renderer SDL for a passthrough material."""
     assert material.passthrough.renderer == "Ospray"
-    snippet = material.passthrough.string
+    snippet = "\n" + material.passthrough.string
     return snippet.format(n=name, c=material.default_color)
 
 
