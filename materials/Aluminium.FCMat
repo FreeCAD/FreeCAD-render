@@ -30,6 +30,11 @@ Render.Luxcore.0001 = scene.textures.%NAME%.type = fresnelpreset
 Render.Luxcore.0002 = scene.textures.%NAME%.name = aluminium
 Render.Luxcore.0003 = scene.materials.%NAME%.type = metal2
 Render.Luxcore.0004 = scene.materials.%NAME%.fresnel = %NAME%
+Render.Ospray.0001 = # https://refractiveindex.info/
+Render.Ospray.0002 = type metal
+Render.Ospray.0003 = eta 1.5 0.98 0.6
+Render.Ospray.0004 = k 7.6 6.6 5.4
+Render.Ospray.0005 = roughness 0.1
 Render.Pbrt.0001 = Material "conductor"
 Render.Pbrt.0002 = "spectrum eta" [
 Render.Pbrt.0003 = 304.994 0.38
