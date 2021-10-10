@@ -25,7 +25,6 @@
 Please note Render Material object is mainly derived from Arch Material.
 """
 
-
 import FreeCAD as App
 import FreeCADGui as Gui
 
@@ -74,6 +73,30 @@ class Material(_ArchMaterial):
     def onDocumentRestored(self, obj):
         super().onDocumentRestored(obj)
         self.__module__ = "Render"
+
+    _on_changed_counters = {}
+
+    @property
+    def on_changed_counter(self):
+        """Gets on_changed_counter."""
+        try:
+            res = self._on_changed_counters[id(self)]
+        except KeyError:
+            res = 0
+            self._on_changed_counters[id(self)] = res
+        return res
+
+    @on_changed_counter.setter
+    def on_changed_counter(self, new_counter):
+        """Sets on_changed_counter."""
+        self._on_changed_counters[id(self)] = new_counter
+
+    def onChanged(self, obj, prop):
+        # Use a counter to avoid reentrance (possible infinite recursion)
+        if not self.on_changed_counter:
+            self.on_changed_counter += 1
+            super().onChanged(obj, prop)
+            self.on_changed_counter -= 1
 
 
 class ViewProviderMaterial(_ViewProviderArchMaterial):
