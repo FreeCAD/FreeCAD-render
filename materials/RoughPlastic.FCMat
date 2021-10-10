@@ -1,6 +1,8 @@
 [General]
 Name = RenderRoughPlastic
 Description = Rough Plastic Material for Render
+; Don't use material color
+UseObjectColor = True
 
 [Rendering]
 Render.Type = Disney
