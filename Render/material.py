@@ -25,6 +25,8 @@
 Please note Render Material object is mainly derived from Arch Material.
 """
 
+import distutils.util
+
 import FreeCAD as App
 import FreeCADGui as Gui
 
@@ -97,6 +99,16 @@ class Material(_ArchMaterial):
             self.on_changed_counter += 1
             super().onChanged(obj, prop)
             self.on_changed_counter -= 1
+
+    def execute(self, obj):
+        # Prevent applying material color if UseObjectColor is set
+        try:
+            if bool(distutils.util.strtobool(obj.Material["UseObjectColor"])):
+                return
+        except KeyError:
+            pass
+
+        super().execute(obj)
 
 
 class ViewProviderMaterial(_ViewProviderArchMaterial):
