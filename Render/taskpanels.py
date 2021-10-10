@@ -28,6 +28,7 @@ import os
 
 from PySide.QtGui import (
     QPushButton,
+    QCheckBox,
     QColor,
     QColorDialog,
     QPixmap,
@@ -38,6 +39,8 @@ from PySide.QtGui import (
     QListWidgetItem,
     QPlainTextEdit,
     QLayout,
+    QHBoxLayout,
+    QWidget,
     QListView,
     QLineEdit,
     QDoubleValidator,
@@ -54,9 +57,18 @@ from PySide.QtCore import (
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import TASKPAGE, VALID_RENDERERS, ICONDIR
-from Render.utils import str2rgb
-from Render.materials import (
+from ArchMaterial import _ArchMaterialTaskPanel
+
+from Render.constants import (
+    TASKPAGE,
+    VALID_RENDERERS,
+    ICONDIR,
+    WBMATERIALDIR,
+    FCDMATERIALDIR,
+    USERMATERIALDIR,
+)
+from Render.utils import str2rgb, translate, parse_csv_str
+from Render.rdrmaterials import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
     is_valid_material,
@@ -104,6 +116,60 @@ class ColorPicker(QPushButton):
         """Get widget color value, in text format."""
         color = self.color
         return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
+
+
+class ColorPickerExt(QWidget):
+    """An extended color picker widget.
+
+    This widget provides a color picker, and also a checkbox that allows to
+    specify to use object color in lieu of color selected in the picker.
+    """
+
+    def __init__(self, color=QColor(127, 127, 127), use_object_color=False):
+        """Initialize widget.
+
+        Args:
+            color -- RGB color used to initialize the color picker
+            use_object_color -- boolean used to initialize the 'use object
+                color' checkbox
+        """
+        super().__init__()
+        self.use_object_color = use_object_color
+        self.colorpicker = ColorPicker(color)
+        self.checkbox = QCheckBox()
+        self.checkbox.setText(translate("Render", "Use object color"))
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(self.colorpicker)
+        self.layout().addWidget(self.checkbox)
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        QObject.connect(
+            self.checkbox,
+            SIGNAL("stateChanged(int)"),
+            self.on_object_color_change,
+        )
+        self.checkbox.setChecked(use_object_color)
+
+    def get_color_text(self):
+        """Get color picker value, in text format."""
+        return self.colorpicker.get_color_text()
+
+    def get_use_object_color(self):
+        """Get 'use object color' checkbox value."""
+        return self.checkbox.isChecked()
+
+    def get_value(self):
+        """Get widget output value."""
+        res = ["Object"] if self.get_use_object_color() else []
+        res += [self.get_color_text()]
+        return ";".join(res)
+
+    def setToolTip(self, desc):
+        """Set widget tooltip."""
+        self.colorpicker.setToolTip(desc)
+
+    def on_object_color_change(self, state):
+        """Respond to checkbox change event."""
+        self.colorpicker.setEnabled(not state)
 
 
 class MaterialSettingsTaskPanel:
@@ -307,11 +373,21 @@ class MaterialSettingsTaskPanel:
             )
         elif param.type == "RGB":
             if value:
-                qcolor = QColor.fromRgbF(*str2rgb(value))
-                widget = ColorPicker(qcolor)
+                parsedvalue = parse_csv_str(value)
+                if "Object" not in parsedvalue:
+                    color = str2rgb(parsedvalue[0])
+                    use_object_color = False
+                else:
+                    use_object_color = True
+                    if len(parsedvalue) > 1:
+                        color = str2rgb(parsedvalue[1])
+                    else:
+                        color = (0.8, 0.8, 0.8)
+                qcolor = QColor.fromRgbF(*color)
+                widget = ColorPickerExt(qcolor, use_object_color)
             else:
-                widget = ColorPicker()
-            self.fields.append((name, widget.get_color_text))
+                widget = ColorPickerExt()
+            self.fields.append((name, widget.get_value))
         else:
             widget = QLineEdit()
             self.fields.append((name, widget.text))
@@ -357,6 +433,10 @@ class MaterialSettingsTaskPanel:
         # Set passthru
         pthr_keys = self.PASSTHROUGH_KEYS
         for rdr, text in self.passthru_cache.items():
+            # Clear existing lines for rdr
+            for key in pthr_keys[rdr]:
+                tmp_mat.pop(key, None)
+            # Fill with new lines for rdr
             lines = dict(zip(sorted(pthr_keys[rdr]), text.splitlines()))
             tmp_mat.update(lines)
 
@@ -378,3 +458,39 @@ class MaterialSettingsTaskPanel:
         Gui.Control.closeDialog()
         App.ActiveDocument.recompute()
         return True
+
+
+class MaterialTaskPanel(_ArchMaterialTaskPanel):
+    """Task panel to create and edit Material.
+
+    Essentially derived from Arch Material Task Panel, except for
+    material cards directory.
+    """
+
+    def __init__(self, obj=None):
+        super().__init__(obj)
+        self.form.setWindowTitle("Render Material")
+
+    def fillMaterialCombo(self):
+        """Fill Material combo box.
+
+        Look for cards in both Workbench directory and Materials sub-folder
+        in the user folder.
+        User cards with same name will override system cards.
+        """
+        paths = [
+            ("USER", USERMATERIALDIR),
+            ("RENDER", WBMATERIALDIR),
+        ]
+        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        if params.GetBool("UseFCDMaterials", False):
+            paths.append(("FREECAD", FCDMATERIALDIR))
+        self.cards = {
+            "%s - %s" % (d, os.path.splitext(f)[0]): os.path.join(p, f)
+            for d, p in paths
+            if os.path.exists(p)
+            for f in os.listdir(p)
+            if os.path.splitext(f)[1].upper() == ".FCMAT"
+        }
+        for k in sorted(self.cards.keys()):
+            self.form.comboBox_MaterialsInDir.addItem(k)

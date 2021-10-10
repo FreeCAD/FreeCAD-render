@@ -202,11 +202,11 @@ class ViewProviderAreaLight(
     }
 
     COIN_SHAPE_POINTS = (
-        (-0.5, -0.5, 0),
-        (0.5, -0.5, 0),
-        (0.5, 0.5, 0),
-        (-0.5, 0.5, 0),
-        (-0.5, -0.5, 0),
+        (-0.5, -0.5, 0.0),
+        (+0.5, -0.5, 0.0),
+        (+0.5, +0.5, 0.0),
+        (-0.5, +0.5, 0.0),
+        (-0.5, -0.5, 0.0),
     )
     COIN_SHAPE_VERTICES = [5]
     COIN_SHAPE_COLORS = ["diffuse", "emissive"]
@@ -268,8 +268,6 @@ class ViewProviderSunskyLight(
     ICON = "SunskyLight.svg"
 
     DISPLAY_MODES = ["Shaded", "Wireframe"]
-
-    ON_CHANGED = {"Visibility": "_change_visibility"}
 
     ON_UPDATE = {"SunDirection": "_update_sun_direction"}
 

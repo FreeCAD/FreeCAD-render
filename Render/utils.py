@@ -26,6 +26,8 @@ import collections
 import ast
 import sys
 import importlib
+import csv
+import itertools
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -72,6 +74,18 @@ def str2rgb(string):
     return RGB._make(float_tuple)
 
 
+def parse_csv_str(string, delimiter=";"):
+    """Parse a csv string, with ";" as default delimiter.
+
+    Multiline strings are accepted (but maybe should be avoided).
+    Returns: a list of strings (one for each field)
+    """
+    if not string:
+        return []
+    rows = csv.reader(string.splitlines(), delimiter=delimiter)
+    return list(itertools.chain(*rows))
+
+
 def clamp(value, maxval=1e10):
     """Clamp value between -maxval and +maxval."""
     res = value
@@ -80,29 +94,34 @@ def clamp(value, maxval=1e10):
     return res
 
 
-def reload():
-    """Reload all Render modules."""
+def reload(module_name=None):
+    """Reload Render modules."""
     mods = (
-        "Render",
-        "Render.camera",
-        "Render.commands",
-        "Render.constants",
-        "Render.lights",
-        "Render.materials",
-        "Render.project",
-        "Render.rdrhandler",
-        "Render.renderables",
-        "Render.taskpanels",
-        "Render.utils",
-        "Render.view",
-        "Render.renderers.Appleseed",
-        "Render.renderers.Cycles",
-        "Render.renderers.Luxcore",
-        "Render.renderers.Luxrender",
-        "Render.renderers.Ospray",
-        "Render.renderers.Pbrt",
-        "Render.renderers.Povray",
-        "Render.renderers.utils.sunlight",
+        (
+            "Render.camera",
+            "Render.commands",
+            "Render.constants",
+            "Render.lights",
+            "Render.rdrmaterials",
+            "Render.project",
+            "Render.rdrhandler",
+            "Render.renderables",
+            "Render.taskpanels",
+            "Render.utils",
+            "Render.view",
+            "Render.material",
+            "Render.renderers.Appleseed",
+            "Render.renderers.Cycles",
+            "Render.renderers.Luxcore",
+            "Render.renderers.Luxrender",
+            "Render.renderers.Ospray",
+            "Render.renderers.Pbrt",
+            "Render.renderers.Povray",
+            "Render.renderers.utils.sunlight",
+            "Render",
+        )
+        if not module_name
+        else (module_name,)
     )
     for mod in mods:
         try:

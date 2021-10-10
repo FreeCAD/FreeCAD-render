@@ -45,7 +45,7 @@ try:
 except ImportError:
     pass
 
-from Render.constants import TEMPLATEDIR, PARAMS
+from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
@@ -198,23 +198,31 @@ class Project(FeatureBase):
         ),
     }
 
+    ON_CHANGED = {
+        "DelayedBuild": "_on_changed_delayed_build",
+        "Renderer": "_on_changed_renderer",
+    }
+
     def on_set_properties_cb(self, fpo):
         """Complete the operation of internal _set_properties (callback)."""
         if "Group" not in fpo.PropertiesList:
-            fpo.addExtension("App::GroupExtensionPython", self)
+            if FCDVERSION >= (0, 19):
+                fpo.addExtension("App::GroupExtensionPython")
+                # See https://forum.freecadweb.org/viewtopic.php?f=10&t=54370
+            else:
+                fpo.addExtension("App::GroupExtensionPython", self)
         fpo.setEditorMode("Group", 2)
 
-    def onChanged(self, obj, prop):  # pylint: disable=no-self-use
-        """Respond to property changed event (callback).
+    def _on_changed_delayed_build(self, fpo):
+        """Respond to DelayedBuild property change event."""
+        if fpo.DelayedBuild:
+            return
+        for view in self.all_views():
+            view.touch()
 
-        This code is executed when a property of the FeaturePython object is
-        changed.
-        """
-        if prop == "DelayedBuild" and not obj.DelayedBuild:
-            for view in obj.Proxy.all_views():
-                view.touch()
-        if prop == "Renderer":
-            obj.PageResult = ""
+    def _on_changed_renderer(self, fpo):  # pylint: disable=no-self-use
+        """Respond to Renderer property change event."""
+        fpo.PageResult = ""
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete the operation of 'create' (callback)."""
@@ -223,7 +231,7 @@ class Project(FeatureBase):
 
         fpo.Label = "%s Project" % rdr
         fpo.Renderer = rdr
-        fpo.Template = str(template)
+        fpo.Template = template
 
     def write_groundplane(self, renderer):
         """Generate a ground plane rendering string for the scene.
@@ -387,7 +395,7 @@ class Project(FeatureBase):
             App.Console.PrintError(msg)
             return ""
 
-        with open(template_path, "r") as template_file:
+        with open(template_path, "r", encoding="utf8") as template_file:
             template = template_file.read()
 
         # Build a default camera, to be used if no camera is present in the
@@ -446,7 +454,7 @@ class Project(FeatureBase):
         fhandle, fpath = mkstemp(
             prefix=obj.Name, suffix=os.path.splitext(obj.Template)[-1]
         )
-        with open(fpath, "w") as fobj:
+        with open(fpath, "w", encoding="utf8") as fobj:
             fobj.write(template)
         os.close(fhandle)
         obj.PageResult = fpath
@@ -507,7 +515,7 @@ class ViewProviderProject(ViewProviderBase):
         ),
     ]
 
-    def onDelete(self, feature, subelements):
+    def on_delete_cb(self, feature, subelements):
         """Respond to delete object event (callback)."""
         delete = True
 
@@ -555,9 +563,8 @@ class ViewProviderProject(ViewProviderBase):
             App.ActiveDocument.openTransaction("ChangeTemplate")
             if fpo.getTypeIdOfProperty("Template") != "App::PropertyString":
                 # Ascending compatibility: convert Template property type if
-                # still in legacy
-                fpo.removeProperty("Template")
-                fpo.Proxy.set_properties(fpo)
+                # still of legacy type
+                fpo.Proxy.reset_property("Template")
             fpo.Template = new_template
             App.ActiveDocument.commitTransaction()
 

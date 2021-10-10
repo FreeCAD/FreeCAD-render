@@ -1,0 +1,83 @@
+[General]
+; General name
+Name = RenderAluminium
+Description = Aluminium Material for Render
+
+[Architectural]
+; 244, 245, 245 (thanks to Physically Based Rendering Encyclopedia)
+Color = (0.96, 0.96, 0.96)
+
+; Description to be updated
+DiffuseColor = (0.96, 0.96, 0.97)
+SectionColor = (0.96, 0.96, 0.97)
+
+
+
+[Rendering]
+Render.Type = Disney
+Render.Disney.Anisotropic = 0.0
+Render.Disney.BaseColor = (0.96, 0.96, 0.97)
+Render.Disney.ClearCoat = 0.0
+Render.Disney.ClearCoatGloss = 0.0
+Render.Disney.Metallic = 1.0
+Render.Disney.Roughness = 0.3
+Render.Disney.Sheen = 0.0
+Render.Disney.SheenTint = 0.0
+Render.Disney.Specular = 0.0
+Render.Disney.SpecularTint = 0.0
+Render.Disney.Subsurface = 0.0
+Render.Luxcore.0001 = scene.textures.%NAME%.type = fresnelpreset
+Render.Luxcore.0002 = scene.textures.%NAME%.name = aluminium
+Render.Luxcore.0003 = scene.materials.%NAME%.type = metal2
+Render.Luxcore.0004 = scene.materials.%NAME%.fresnel = %NAME%
+Render.Ospray.0001 = # https://refractiveindex.info/
+Render.Ospray.0002 = type metal
+Render.Ospray.0003 = eta 1.5 0.98 0.6
+Render.Ospray.0004 = k 7.6 6.6 5.4
+Render.Ospray.0005 = roughness 0.1
+Render.Pbrt.0001 = Material "conductor"
+Render.Pbrt.0002 = "spectrum eta" [
+Render.Pbrt.0003 = 304.994 0.38
+Render.Pbrt.0004 = 309.95 0.34
+Render.Pbrt.0005 = 312.292 0.287
+Render.Pbrt.0006 = 334.178 0.089
+Render.Pbrt.0007 = 364.647 0.052
+Render.Pbrt.0008 = 405.163 0.041
+Render.Pbrt.0009 = 420.271 0.041
+Render.Pbrt.0010 = 439.64502 0.043
+Render.Pbrt.0011 = 469.621 0.043
+Render.Pbrt.0012 = 506.04102 0.046
+Render.Pbrt.0013 = 546.167 0.049
+Render.Pbrt.0014 = 598.937 0.053
+Render.Pbrt.0015 = 662.99506 0.05
+Render.Pbrt.0016 = 751.394 0.044
+Render.Pbrt.0017 = 860.972 0.04
+Render.Pbrt.0018 = ]
+Render.Pbrt.0019 = "spectrum k" [
+Render.Pbrt.0020 = 304.994 0.07
+Render.Pbrt.0021 = 309.95 0.08
+Render.Pbrt.0022 = 312.292 0.091
+Render.Pbrt.0023 = 334.178 0.288
+Render.Pbrt.0024 = 364.647 0.549
+Render.Pbrt.0025 = 405.163 0.799
+Render.Pbrt.0026 = 420.271 0.898
+Render.Pbrt.0027 = 439.64502 1.02
+Render.Pbrt.0028 = 469.621 1.14
+Render.Pbrt.0029 = 506.04102 1.28
+Render.Pbrt.0030 = 546.167 1.43
+Render.Pbrt.0031 = 598.937 1.62
+Render.Pbrt.0032 = 662.99506 1.84
+Render.Pbrt.0033 = 751.394 2.19
+Render.Pbrt.0034 = 860.972 2.56
+Render.Pbrt.0035 = ]
+Render.Pbrt.0036 = "float roughness" [ 0.01 ]
+Render.Povray.0001 = finish {
+Render.Povray.0002 =     brilliance 4
+Render.Povray.0003 =     diffuse 0
+Render.Povray.0004 =     ambient <0.96, 0.96, 0.97>
+Render.Povray.0005 =     reflection <0.96, 0.96, 0.97>
+Render.Povray.0006 =     metallic 1
+Render.Povray.0007 =     specular 0.60
+Render.Povray.0008 =     roughness 1/20
+Render.Povray.0009 = }
+; vi: ft=dosini

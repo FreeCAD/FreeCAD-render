@@ -50,10 +50,9 @@ from math import degrees, asin, sqrt, atan2
 import FreeCAD as App
 
 # Transformation matrix from fcd coords to osp coords
-TRANSFORM = App.Placement(App.Matrix(1, 0, 0, 0,
-                                     0, 0, 1, 0,
-                                     0, -1, 0, 0,
-                                     0, 0, 0, 1))
+TRANSFORM = App.Placement(
+    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
+)
 
 TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
@@ -75,7 +74,6 @@ def write_object(name, mesh, material):
     # We want to insert a 'o ...' statement before the first 'f ...'
     with open(objfile, "r") as f:
         buffer = f.readlines()
-    print(objfile)
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
     # buffer.insert(i, "o %s\n" % name)
@@ -135,9 +133,7 @@ def write_camera(name, pos, updir, target, fov):
     plc = TRANSFORM.multiply(pos)
     plc = plc.inverse()
 
-    return snippet.format(n=name,
-                          p=plc.Base,
-                          r=plc.Rotation.Q)
+    return snippet.format(n=name, p=plc.Base, r=plc.Rotation.Q)
 
 
 def write_pointlight(name, pos, color, power):
@@ -192,33 +188,34 @@ def write_pointlight(name, pos, color, power):
         ]
       }},"""
     osp_pos = TRANSFORM.multVec(pos)
-    return snippet.format(n=name,
-                          c=color,
-                          p=osp_pos,
-                          s=power)
+    return snippet.format(n=name, c=color, p=osp_pos, s=power)
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     # Write mtl file (material)
-    mtl = ["# Created by FreeCAD <http://www.freecadweb.org>",
-           "newmtl material",
-           "type luminous",
-           "color {} {} {}".format(*color),
-           "intensity {}".format(power / 100),
-           "transparency {}".format(1.0 if transparent else 0.0)]
+    mtl = [
+        "# Created by FreeCAD <http://www.freecadweb.org>",
+        "newmtl material",
+        "type luminous",
+        "color {} {} {}".format(*color),
+        "intensity {}".format(power / 10),
+        "transparency {}".format(1.0 if transparent else 0.0),
+    ]
 
     f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
     os.close(f_handle)
     with open(mtlfile, "w") as f:
-        f.write('\n'.join(mtl))
+        f.write("\n".join(mtl))
 
     # Write obj file (geometry)
     osp_pos = TRANSFORM.multiply(pos)
-    verts = [(-size_u, -size_v, 0),
-             (+size_u, -size_v, 0),
-             (+size_u, +size_v, 0),
-             (-size_u, +size_v, 0)]
+    verts = [
+        (-size_u, -size_v, 0),
+        (+size_u, -size_v, 0),
+        (+size_u, +size_v, 0),
+        (-size_u, +size_v, 0),
+    ]
     verts = [osp_pos.multVec(App.Vector(*v)) for v in verts]
     normal = osp_pos.multVec(App.Vector(0, 0, 1))
 
@@ -234,7 +231,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     f_handle, objfile = mkstemp(suffix=".obj", prefix="light_")
     os.close(f_handle)
     with open(objfile, "w") as f:
-        f.write('\n'.join(obj))
+        f.write("\n".join(obj))
 
     # Return SDL
     snippet = """
@@ -259,7 +256,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     # We'll compute elevation and azimuth accordingly...
 
     _dir = TRANSFORM.multVec(App.Vector(direction))
-    elevation = asin(_dir.y / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
+    elevation = asin(_dir.y / sqrt(_dir.x ** 2 + _dir.y ** 2 + _dir.z ** 2))
     azimuth = atan2(_dir.x, _dir.z)
     snippet = """
       {{
@@ -358,12 +355,9 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
           }}
         ]
       }},"""
-    return snippet.format(n=name,
-                          t=turbidity,
-                          e=degrees(elevation),
-                          a=degrees(azimuth),
-                          g=albedo
-                          )
+    return snippet.format(
+        n=name, t=turbidity, e=degrees(elevation), a=degrees(azimuth), g=albedo
+    )
 
 
 def write_imagelight(name, image):
@@ -427,8 +421,10 @@ def _write_material(name, material):
     try:
         snippet_mat = MATERIALS[material.shadertype](name, material)
     except KeyError:
-        msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
-               "material\n")
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.default_color)
     return snippet_mat
@@ -437,7 +433,7 @@ def _write_material(name, material):
 def _write_material_passthrough(name, material):
     """Compute a string in the renderer SDL for a passthrough material."""
     assert material.passthrough.renderer == "Ospray"
-    snippet = material.passthrough.string
+    snippet = "\n" + material.passthrough.string
     return snippet.format(n=name, c=material.default_color)
 
 
@@ -448,14 +444,14 @@ type glass
 eta {i}
 attenuationColor {c.r} {c.g} {c.b}
 """
-    return snippet.format(n=name,
-                          c=material.glass.color,
-                          i=material.glass.ior)
+    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
-    # Nota: OSP Principled material does not handle SSS, nor specular tint
+    # Nota1: OSP Principled material does not handle SSS, nor specular tint
+    # Nota2: if metallic is set, specular should be 1.0. See here:
+    # https://github.com/ospray/ospray_studio/issues/5
     snippet = """
 type principled
 baseColor {1.r} {1.g} {1.b}
@@ -470,18 +466,20 @@ sheenTint {9}
 coat {10}
 coatRoughness {11}
 """
-    return snippet.format(name,
-                          material.disney.basecolor,
-                          material.disney.subsurface,
-                          material.disney.metallic,
-                          material.disney.specular,
-                          material.disney.speculartint,
-                          material.disney.roughness,
-                          material.disney.anisotropic,
-                          material.disney.sheen,
-                          material.disney.sheentint,
-                          material.disney.clearcoat,
-                          1 - float(material.disney.clearcoatgloss))
+    return snippet.format(
+        name,
+        material.disney.basecolor,
+        material.disney.subsurface,
+        material.disney.metallic,
+        material.disney.specular if not material.disney.metallic else 1.0,
+        material.disney.speculartint,
+        material.disney.roughness,
+        material.disney.anisotropic,
+        material.disney.sheen,
+        material.disney.sheentint,
+        material.disney.clearcoat,
+        1 - float(material.disney.clearcoatgloss),
+    )
 
 
 def _write_material_diffuse(name, material):
@@ -491,8 +489,7 @@ type obj
 kd {c.r} {c.g} {c.b}
 ns 2
 """
-    return snippet.format(n=name,
-                          c=material.diffuse.color)
+    return snippet.format(n=name, c=material.diffuse.color)
 
 
 def _write_material_mixed(name, material):
@@ -505,12 +502,14 @@ transmission {t}
 transmissionColor {c.r} {c.g} {c.b}
 opacity {o}
 """
-    return snippet.format(n=name,
-                          c=material.mixed.glass.color,
-                          i=material.mixed.glass.ior,
-                          k=material.mixed.diffuse.color,
-                          t=material.mixed.transparency,
-                          o=1.0 - material.mixed.transparency)
+    return snippet.format(
+        n=name,
+        c=material.mixed.glass.color,
+        i=material.mixed.glass.ior,
+        k=material.mixed.diffuse.color,
+        t=material.mixed.transparency,
+        o=1.0 - material.mixed.transparency,
+    )
 
 
 def _write_material_fallback(name, material):
@@ -530,18 +529,16 @@ type obj
 kd {r} {g} {b}
 ns 2
 """
-    return snippet.format(n=name,
-                          r=red,
-                          g=grn,
-                          b=blu)
+    return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
 MATERIALS = {
-        "Passthrough": _write_material_passthrough,
-        "Glass": _write_material_glass,
-        "Disney": _write_material_disney,
-        "Diffuse": _write_material_diffuse,
-        "Mixed": _write_material_mixed}
+    "Passthrough": _write_material_passthrough,
+    "Glass": _write_material_glass,
+    "Disney": _write_material_disney,
+    "Diffuse": _write_material_diffuse,
+    "Mixed": _write_material_mixed,
+}
 
 
 # ===========================================================================
@@ -565,22 +562,22 @@ def render(project, prefix, external, output, width, height):
         A path to output image file
     """
     # Move cameras up to root node
-    cameras = ['\n']
+    cameras = ["\n"]
     result = []
     with open(project.PageResult, "r") as f:
         for line in f:
             if '"camera"' in line:
                 cameras += line
-                nbr = line.count('{') - line.count('}')
+                nbr = line.count("{") - line.count("}")
                 for line2 in f:
                     cameras += line2
-                    nbr += line2.count('{') - line2.count('}')
+                    nbr += line2.count("{") - line2.count("}")
                     if not nbr:
                         break
             else:
                 result += line
         result[2:2] = cameras
-        result = ''.join(result)
+        result = "".join(result)
 
     # Merge light groups
     json_load = json.loads(result)
@@ -597,17 +594,22 @@ def render(project, prefix, external, output, width, height):
 
     while remaining_lightgroups():
         light = world_children.pop()
-        lights += (light["children"])
-    world_children.insert(0, {"description": "Lights",
-                              "name": "lights",
-                              "type": "LIGHTS",
-                              "subType": "lights",
-                              "children": lights})
+        lights += light["children"]
+    world_children.insert(
+        0,
+        {
+            "description": "Lights",
+            "name": "lights",
+            "type": "LIGHTS",
+            "subType": "lights",
+            "children": lights,
+        },
+    )
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
-        prefix=project.Name,
-        suffix=os.path.splitext(project.Template)[-1])
+        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
+    )
     os.close(f_handle)
     with open(f_path, "w") as f:
         f.write(json.dumps(json_load, indent=2))
@@ -623,15 +625,17 @@ def render(project, prefix, external, output, width, height):
     rpath = params.GetString("OspPath", "")
     args = params.GetString("OspParameters", "")
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. "
-                               "Please set the correct path in "
-                               "Edit -> Preferences -> Render\n")
+        App.Console.PrintError(
+            "Unable to locate renderer executable. "
+            "Please set the correct path in "
+            "Edit -> Preferences -> Render\n"
+        )
         return ""
 
     filepath = '"%s"' % project.PageResult
 
     cmd = prefix + rpath + " " + args + " " + filepath
-    App.Console.PrintMessage(cmd+'\n')
+    App.Console.PrintMessage(cmd + "\n")
 
     # Note: at the moment (02-19-2021), width, height, output, background are
     # not managed by osp

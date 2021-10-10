@@ -1,0 +1,11 @@
+[General]
+; General name
+Name = RenderMatte
+Description = Matte Material for Render
+UseObjectColor = True
+
+[Rendering]
+Render.Type = Diffuse
+Render.Diffuse.Color = Object
+
+; vi: ft=dosini

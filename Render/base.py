@@ -101,6 +101,12 @@ class FeatureBaseInterface:
     VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
     PROPERTIES = {}  # The properties of the object (dict of Prop)
 
+    # 'On change' mapping
+    ON_CHANGED = {}
+    # A dictionary Property: Method (strings).
+    # Handles changes in this object's properties,
+    # See 'onChanged' in FreeCAD scripted objects framework
+
     # These constants can be overriden when subclassing (optional)
     NAMESPACE = "Render"  # The namespace where feature and viewprovider are
     TYPE = ""  # The type of the object (str). If empty, default to class name
@@ -213,7 +219,7 @@ class FeatureBase(FeatureBaseInterface):
     """
 
     # Internal variables, do not modify
-    _fpos = dict()
+    _fpos = {}
 
     def __init__(self, fpo):
         """Initialize object.
@@ -239,12 +245,33 @@ class FeatureBase(FeatureBaseInterface):
 
         properties = get_cumulative_dict_attribute(self, "PROPERTIES")
         for name in properties.keys() - set(fpo.PropertiesList):
-            _, specdata = properties[name][0]
-            spec = Prop._make(specdata)
-            prop = fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
-            setattr(prop, name, spec.Default)
-            fpo.setEditorMode(name, spec.EditorMode)
+            self._set_property(name, properties)
         self.on_set_properties_cb(fpo)
+
+    def _set_property(self, name, properties=None):
+        """Set one property for underlying FeaturePython.
+
+        fpo is assumed to have already been set.
+        if no 'properties' parameter is provided, properties are computed
+        from object's PROPERTIES attributes.
+        """
+        if not properties:
+            properties = get_cumulative_dict_attribute(self, "PROPERTIES")
+
+        _, specdata = properties[name][0]
+        spec = Prop._make(specdata)
+        prop = self.fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+        setattr(prop, name, spec.Default)
+        self.fpo.setEditorMode(name, spec.EditorMode)
+
+    def reset_property(self, propname):
+        """Set one property for underlying FeaturePython.
+
+        Remark: 'on_set_properties_cb' is called after.
+        """
+        self.fpo.removeProperty(propname)
+        self._set_property(propname)
+        self.on_set_properties_cb(self.fpo)
 
     @property
     def fpo(self):
@@ -265,6 +292,33 @@ class FeatureBase(FeatureBaseInterface):
     def Type(self):  # pylint: disable=invalid-name
         """Get 'Type' property."""
         return self.TYPE if self.TYPE else self.__class__.__name__
+
+    @functools.lru_cache(maxsize=128)
+    def _on_changed_mapping(self):
+        """Get 'on change' mapping."""
+        return get_cumulative_dict_attribute(self, "ON_CHANGED")
+
+    def onChanged(self, obj, prop):
+        """Respond to property changed event (callback).
+
+        This code is executed when a property of the FeaturePython object is
+        changed.
+
+        Args:
+            obj -- related FeaturePython object (where properties are
+                stored)
+            prop -- property name (as a string)
+        """
+        on_changed = self._on_changed_mapping()
+        try:
+            actions = on_changed[prop]
+        except KeyError:
+            pass  # Silently ignore when switcher provides no action
+        else:
+            # Apply methods to object
+            for cls, action_name in actions:
+                action = getattr(cls, action_name)
+                action(self, obj)
 
     @classmethod
     def create(cls, document=None, **kwargs):

@@ -303,7 +303,7 @@ class ImageLightCommand:
 class MaterialCreatorCommand(_CommandArchMaterial):
     """GUI command to create a material.
 
-    This class is based on Arch 'ArchMaterial' command.
+    This class is partially based on Arch 'ArchMaterial' command.
     """
 
     def GetResources(self):
@@ -314,9 +314,26 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         )
         res["ToolTip"] = QT_TRANSLATE_NOOP(
             "MaterialCreatorCommand",
-            "Create a new Material in current" "document",
+            "Create a new Material in current document",
         )
         return res
+
+    def Activated(self):
+        App.ActiveDocument.openTransaction(
+            translate("Render", "Create material")
+        )
+        Gui.Control.closeDialog()
+        Gui.addModule("Render")
+        cmds = [
+            "obj = Render.make_material()",
+            "Gui.Selection.clearSelection()",
+            "Gui.Selection.addSelection(obj.Document.Name, obj.Name)",
+            "obj.ViewObject.Document.setEdit(obj.ViewObject, 0)",
+        ]
+        for cmd in cmds:
+            Gui.doCommand(cmd)
+        App.ActiveDocument.commitTransaction()
+        App.ActiveDocument.recompute()
 
 
 class MaterialRenderSettingsCommand:

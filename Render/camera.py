@@ -349,7 +349,7 @@ def get_coin_string_from_cam(cam):
     check_enum("Projection")
     check_enum("ViewportMapping")
 
-    res = list()
+    res = []
     res.append("#Inventor V2.1 ascii\n\n\n")
     res.append("{}Camera {{".format(cam.Projection))
     res.append(" viewportMapping {}".format(cam.ViewportMapping))

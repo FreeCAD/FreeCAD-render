@@ -1,0 +1,45 @@
+[General]
+; General name
+Name = RenderBrass
+Description = Brass Material for Render
+
+[Architectural]
+; 244, 228, 173 (thanks to Physically Based Rendering Encyclopedia)
+Color = (0.96, 0.89, 0.68)
+
+; Description to be updated
+DiffuseColor = (0.96, 0.89, 0.68)
+SectionColor = (0.96, 0.89, 0.68)
+
+[Rendering]
+Render.Type = Disney
+Render.Disney.Anisotropic = 0.0
+Render.Disney.BaseColor = (0.96, 0.89, 0.68)
+Render.Disney.ClearCoat = 0.0
+Render.Disney.ClearCoatGloss = 0.0
+Render.Disney.Metallic = 1.0
+Render.Disney.Roughness = 0.3
+Render.Disney.Sheen = 0.0
+Render.Disney.SheenTint = 0.0
+Render.Disney.Specular = 0.0
+Render.Disney.SpecularTint = 0.0
+Render.Disney.Subsurface = 0.0
+Render.Ospray.0001 = type metal
+Render.Ospray.0002 = # from refractiveindex.info, for wl 700, 550, 450
+Render.Ospray.0003 = eta 0.44600 0.52700 1.0940
+Render.Ospray.0004 = k 4.1060 2.7650 1.8290
+Render.Ospray.0005 = roughness 0.1
+Render.Pbrt.0001 = Material "conductor"
+Render.Pbrt.0002 = "spectrum eta" [ "metal-CuZn-eta" ]
+Render.Pbrt.0003 = "spectrum k" [ "metal-CuZn-k" ]
+Render.Pbrt.0004 = "float roughness" [ 0.01 ]
+Render.Povray.0001 = finish {
+Render.Povray.0002 =     brilliance 4
+Render.Povray.0003 =     diffuse 0
+Render.Povray.0004 =     ambient <0.96 0.89 0.68>
+Render.Povray.0005 =     reflection <0.96 0.89 0.68>
+Render.Povray.0006 =     metallic 1
+Render.Povray.0007 =     specular 0.60
+Render.Povray.0008 =     roughness 1/20
+Render.Povray.0009 = }
+; vi: ft=dosini
