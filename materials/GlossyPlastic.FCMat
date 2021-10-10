@@ -1,17 +1,8 @@
 [General]
 ; General name
 Name = RenderGlossyPlastic
-Description = Glossy Pastic Material for Render
-
-[Architectural]
-; Description to be updated
-Color = (0.8, 0.8, 0.8)
-
-; Description to be updated
-DiffuseColor = (0.8, 0.8, 0.8)
-SectionColor = (0.8, 0.8, 0.8)
-
-
+Description = Glossy Plastic Material for Render
+UseObjectColor = True
 
 [Rendering]
 Render.Type = Disney
