@@ -274,18 +274,24 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+
+        def mesher(shape):
+            """Mesh a shape."""
+            mesh = MeshPart.meshFromShape(
+                Shape=shape,
+                LinearDeflection=self.linear_deflection,
+                AngularDeflection=self.angular_deflection,
+                Relative=False,
+            )
+            mesh.harmonizeNormals()
+            return mesh
+
         source = view.Source
         label = getattr(source, "Label", name)
         debug("Object", label, "Processing")
 
         # Build a list of renderables from the object
         material = view.Material
-        mesher = functools.partial(
-            MeshPart.meshFromShape,
-            LinearDeflection=self.linear_deflection,
-            AngularDeflection=self.angular_deflection,
-            Relative=False,
-        )
         tpboost = self.transparency_boost
         rends = renderables.get_renderables(
             source, name, material, mesher, transparency_boost=tpboost
