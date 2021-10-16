@@ -45,7 +45,7 @@ import os
 import shlex
 from subprocess import Popen
 from tempfile import mkstemp
-from math import degrees, asin, sqrt, atan2
+from math import degrees, asin, sqrt, atan2, pi
 
 import FreeCAD as App
 
@@ -67,16 +67,19 @@ def write_object(name, mesh, material):
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
     tmpmesh = mesh.copy()
-    tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)
+    # Direct rotation of mesh is preferred to Placement modification
+    # because the latter is buggy (normals are not updated...)
+    # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
+    tmpmesh.rotate(-pi/2, 0, 0)  # OK
     tmpmesh.write(objfile)
 
     # Fix missing object name in OBJ file (mandatory)
     # We want to insert a 'o ...' statement before the first 'f ...'
+    # We add also a 'usemtl' statement
     with open(objfile, "r") as f:
         buffer = f.readlines()
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    # buffer.insert(i, "o %s\n" % name)
     buffer.insert(i, "o %s\nusemtl material\n" % name)
 
     # Write material
