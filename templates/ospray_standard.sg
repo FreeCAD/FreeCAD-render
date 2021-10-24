@@ -4,15 +4,6 @@
     "type": "WORLD",
     "children": [
       %RaytracingContent%
-      {
-        "description": "Lights",
-        "name": "lights",
-        "subType": "lights",
-        "type": "LIGHTS",
-        "children": [
-          
-        ]
-      },
       {"type": 9999, "name": "End-of-world"}
     ]
   },
