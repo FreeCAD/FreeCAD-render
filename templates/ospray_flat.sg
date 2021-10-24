@@ -8,7 +8,9 @@
     ]
   },
   "lightsManager": {
+    "name": "lights",
     "type": "LIGHTS",
+    "subType": "lights",
     "children": []
   }
 }
