@@ -96,12 +96,12 @@ def write_object(name, mesh, material):
 
     snippet_obj = """
       {{
-        "name": "{n}",
+        "name": {n},
         "type": "IMPORTER",
-        "filename": "{f}"
+        "filename": {f}
       }},"""
     filename = objfile.encode("unicode_escape").decode("utf-8")
-    return snippet_obj.format(n=name, f=filename)
+    return snippet_obj.format(n=json.dumps(name), f=json.dumps(filename))
 
 
 def write_camera(name, pos, updir, target, fov):
@@ -111,7 +111,7 @@ def write_camera(name, pos, updir, target, fov):
     # Nota: presently (02-19-2021), fov is not managed by osp importer...
     snippet = """
   "camera": {{
-    "name": "{n}",
+    "name": {n},
     "centerTranslation": {{
       "affine": [0.0, 0.0, 0.0],
       "linear": {{
@@ -136,7 +136,7 @@ def write_camera(name, pos, updir, target, fov):
     plc = TRANSFORM.multiply(pos)
     plc = plc.inverse()
 
-    return snippet.format(n=name, p=plc.Base, r=plc.Rotation.Q)
+    return snippet.format(n=json.dumps(name), p=plc.Base, r=plc.Rotation.Q)
 
 
 def write_pointlight(name, pos, color, power):
@@ -150,7 +150,7 @@ def write_pointlight(name, pos, color, power):
         "subType": "lights",
         "children": [
           {{
-            "name": "{n}",
+            "name": {n},
             "type": "LIGHT",
             "subType": "sphere",
             "children": [
@@ -191,7 +191,7 @@ def write_pointlight(name, pos, color, power):
         ]
       }},"""
     osp_pos = TRANSFORM.multVec(pos)
-    return snippet.format(n=name, c=color, p=osp_pos, s=power)
+    return snippet.format(n=json.dumps(name), c=color, p=osp_pos, s=power)
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
@@ -239,13 +239,13 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     # Return SDL
     snippet = """
       {{
-        "name": "{n}",
+        "name": {n},
         "type": "IMPORTER",
-        "filename": "{f}"
+        "filename": {f}
       }},"""
 
     filename = objfile.encode("unicode_escape").decode("utf-8")
-    return snippet.format(n=name, f=filename)
+    return snippet.format(n=json.dumps(name), f=json.dumps(filename))
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -269,7 +269,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
         "type": "LIGHTS",
         "children": [
           {{
-            "name": "{n}",
+            "name": {n},
             "description": "Sunsky light",
             "type": "LIGHT",
             "subType": "sunSky",
@@ -359,7 +359,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
         ]
       }},"""
     return snippet.format(
-        n=name, t=turbidity, e=degrees(elevation), a=degrees(azimuth), g=albedo
+        n=json.dumps(name), t=turbidity, e=degrees(elevation), a=degrees(azimuth), g=albedo
     )
 
 
@@ -403,11 +403,11 @@ def write_imagelight(name, image):
 
     snippet = """
       {{
-        "name": "{n}",
+        "name": {n},
         "type": "IMPORTER",
-        "filename": "{f}"
+        "filename": {f}
       }},"""
-    return snippet.format(n=name, f=gltf_file)
+    return snippet.format(n=json.dumps(name), f=json.dumps(gltf_file))
 
 
 # ===========================================================================
@@ -567,7 +567,7 @@ def render(project, prefix, external, output, width, height):
     # Move cameras up to root node
     cameras = ["\n"]
     result = []
-    with open(project.PageResult, "r") as f:
+    with open(project.PageResult, "r", encoding="utf8") as f:
         for line in f:
             if '"camera"' in line:
                 cameras += line
