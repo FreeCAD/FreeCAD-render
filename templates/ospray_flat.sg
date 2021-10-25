@@ -6,5 +6,11 @@
       %RaytracingContent%
       {"type": 9999, "name": "End-of-world"}
     ]
+  },
+  "lightsManager": {
+    "name": "lights",
+    "type": "LIGHTS",
+    "subType": "lights",
+    "children": []
   }
 }
