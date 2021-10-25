@@ -598,16 +598,8 @@ def render(project, prefix, external, output, width, height):
     while remaining_lightgroups():
         light = world_children.pop()
         lights += light["children"]
-    world_children.insert(
-        0,
-        {
-            "description": "Lights",
-            "name": "lights",
-            "type": "LIGHTS",
-            "subType": "lights",
-            "children": lights,
-        },
-    )
+    lightsmanager_children =  json_load["lightsManager"]["children"]
+    lightsmanager_children.extend(lights)
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
