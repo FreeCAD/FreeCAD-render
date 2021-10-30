@@ -302,9 +302,7 @@ def set_cam_from_coin_string(cam, camstr):
         cam.Placement = App.Placement(pos, rot)
         cam.FocalDistance = float(camdict["focalDistance"][0])
     except KeyError as err:
-        raise ValueError(
-            "Missing field in camera string: {}".format(err)
-        ) from err
+        raise ValueError(f"Missing field in camera string: {err}") from err
 
     # It may happen that aspect ratio and viewport mapping are not set in
     # camstr...
@@ -342,32 +340,37 @@ def get_coin_string_from_cam(cam):
 
     def check_enum(field):
         """Check whether the enum field value is valid."""
-        assert getattr(cam, field) in Camera.PROPERTIES[field].Default, (
-            "Invalid %s value" % field
-        )
+        assert (
+            getattr(cam, field) in Camera.PROPERTIES[field].Default
+        ), f"Camera: Invalid {field} value"
 
     check_enum("Projection")
     check_enum("ViewportMapping")
 
-    res = []
-    res.append("#Inventor V2.1 ascii\n\n\n")
-    res.append("{}Camera {{".format(cam.Projection))
-    res.append(" viewportMapping {}".format(cam.ViewportMapping))
-    res.append(" position {} {} {}".format(*cam.Placement.Base))
-    res.append(
-        " orientation {} {} {} {}".format(
-            *cam.Placement.Rotation.Axis, cam.Placement.Rotation.Angle
-        )
-    )
-    res.append(" nearDistance {}".format(float(cam.NearDistance)))
-    res.append(" farDistance {}".format(float(cam.FarDistance)))
-    res.append(" aspectRatio {}".format(float(cam.AspectRatio)))
-    res.append(" focalDistance {}".format(float(cam.FocalDistance)))
+    base = cam.Placement.Base
+    rot = cam.Placement.Rotation
+
     if cam.Projection == "Orthographic":
-        res.append(" height {}".format(float(cam.Height)))
+        height = f" height {float(cam.Height)}"
     elif cam.Projection == "Perspective":
-        res.append(" heightAngle {}".format(radians(cam.HeightAngle)))
-    res.append("}\n")
+        height = f" heightAngle {radians(cam.HeightAngle)}"
+    else:
+        height = ""
+
+    res = [
+        "#Inventor V2.1 ascii\n\n\n",
+        f"{cam.Projection}Camera {{",
+        f" viewportMapping {cam.ViewportMapping}",
+        f" position {base[0]} {base[1]} {base[2]}",
+        f" orientation {rot.Axis[0]} {rot.Axis[1]} {rot.Axis[2]} {rot.Angle}",
+        f" nearDistance {float(cam.NearDistance)}",
+        f" farDistance {float(cam.FarDistance)}",
+        f" aspectRatio {float(cam.AspectRatio)}",
+        f" focalDistance {float(cam.FocalDistance)}",
+        height,
+        "}}\n",
+    ]
+
     return "\n".join(res)
 
 
