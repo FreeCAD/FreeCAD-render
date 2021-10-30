@@ -61,13 +61,13 @@ def write_mesh(name, mesh, material):
 
     # Fix missing object name in OBJ file (mandatory in Appleseed)
     # We want to insert a 'o ...' statement before the first 'f ...'
-    with open(objfile, "r") as f:
+    with open(objfile, "r", encoding="utf-8") as f:
         buffer = f.readlines()
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
     buffer.insert(i, f"o {name}\n")
 
-    with open(objfile, "w") as f:
+    with open(objfile, "w", encoding="utf-8") as f:
         f.write("".join(buffer))
 
     # Format output
@@ -474,7 +474,7 @@ def render(project, prefix, external, output, width, height):
     # Make various adjustments on file:
     # Change image size in template, adjust camera ratio, reorganize cameras
     # declarations and specify default camera
-    with open(project.PageResult, "r") as f:
+    with open(project.PageResult, "r", encoding="utf-8") as f:
         template = f.read()
 
     # Gather cameras, environment_edf, environment_shader, environment elements
@@ -512,7 +512,7 @@ def render(project, prefix, external, output, width, height):
         prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
     )
     os.close(f_handle)
-    with open(f_path, "w") as f:
+    with open(f_path, "w", encoding="utf-8") as f:
         f.write(template)
     project.PageResult = f_path
     os.remove(f_path)
