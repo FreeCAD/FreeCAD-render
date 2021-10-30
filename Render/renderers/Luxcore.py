@@ -56,9 +56,7 @@ def write_mesh(name, mesh, material):
     scene.objects.{n}.transformation = 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
     """
     snippet = snippet_mat + snippet_obj
-    return dedent(snippet).format(n=name,
-                                  p=" ".join(points),
-                                  f=" ".join(tris))
+    return dedent(snippet).format(n=name, p=" ".join(points), f=" ".join(tris))
 
 
 def write_camera(name, pos, updir, target, fov):
@@ -90,12 +88,9 @@ def write_pointlight(name, pos, color, power):
     scene.lights.{n}.gain = {g} {g} {g}
     scene.lights.{n}.efficency = {e}
     """
-    return dedent(snippet).format(n=name,
-                                  o=pos,
-                                  c=color,
-                                  p=power,
-                                  g=gain,
-                                  e=efficency)
+    return dedent(snippet).format(
+        n=name, o=pos, c=color, p=power, g=gain, e=efficency
+    )
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
@@ -107,7 +102,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     # As 'transpose' method is in-place, we first make a copy
     placement = App.Matrix(pos.toMatrix())
     placement.transpose()
-    trans = ' '.join([str(a) for a in placement.A])
+    trans = " ".join([str(a) for a in placement.A])
 
     snippet = """
     scene.materials.{n}.type = matte
@@ -123,16 +118,17 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     scene.objects.{n}.transformation = {t}
     """
 
-    return dedent(snippet).format(n=name,
-                                  t=trans,
-                                  c=color,
-                                  p=power,
-                                  e=efficency,
-                                  g=gain,
-                                  u=size_u / 2,
-                                  v=size_v / 2,
-                                  a=0 if transparent else 1
-                                  )
+    return dedent(snippet).format(
+        n=name,
+        t=trans,
+        c=color,
+        p=power,
+        e=efficency,
+        g=gain,
+        u=size_u / 2,
+        v=size_v / 2,
+        a=0 if transparent else 1,
+    )
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -146,10 +142,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     scene.lights.{n}_sky.dir = {d.x} {d.y} {d.z}
     scene.lights.{n}_sky.groundalbedo = {g} {g} {g}
     """
-    return dedent(snippet).format(n=name,
-                                  t=turbidity,
-                                  d=direction,
-                                  g=albedo)
+    return dedent(snippet).format(n=name, t=turbidity, d=direction, g=albedo)
 
 
 def write_imagelight(name, image):
@@ -159,8 +152,7 @@ def write_imagelight(name, image):
     scene.lights.{n}.transformation = -1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
     scene.lights.{n}.file = "{f}"
     """
-    return dedent(snippet).format(n=name,
-                                  f=image)
+    return dedent(snippet).format(n=name, f=image)
 
 
 # ===========================================================================
@@ -168,6 +160,7 @@ def write_imagelight(name, image):
 # ===========================================================================
 
 # TODO Fix normals issue (see Gauge test file, with mirror)
+
 
 def _write_material(name, material):
     """Compute a string in the renderer SDL, to represent a material.
@@ -178,8 +171,10 @@ def _write_material(name, material):
     try:
         snippet_mat = MATERIALS[material.shadertype](name, material)
     except KeyError:
-        msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
-               "material\n")
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.default_color)
     return snippet_mat
@@ -199,9 +194,7 @@ def _write_material_glass(name, material):
     scene.materials.{n}.kt = {c.r} {c.g} {c.b}
     scene.materials.{n}.interiorior = {i}
     """
-    return snippet.format(n=name,
-                          c=material.glass.color,
-                          i=material.glass.ior)
+    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
 def _write_material_disney(name, material):
@@ -220,18 +213,20 @@ def _write_material_disney(name, material):
     scene.materials.{0}.clearcoat = {10}
     scene.materials.{0}.clearcoatgloss = {11}
     """
-    return snippet.format(name,
-                          material.disney.basecolor,
-                          material.disney.subsurface,
-                          material.disney.metallic,
-                          material.disney.specular,
-                          material.disney.speculartint,
-                          material.disney.roughness,
-                          material.disney.anisotropic,
-                          material.disney.sheen,
-                          material.disney.sheentint,
-                          material.disney.clearcoat,
-                          material.disney.clearcoatgloss)
+    return snippet.format(
+        name,
+        material.disney.basecolor,
+        material.disney.subsurface,
+        material.disney.metallic,
+        material.disney.specular,
+        material.disney.speculartint,
+        material.disney.roughness,
+        material.disney.anisotropic,
+        material.disney.sheen,
+        material.disney.sheentint,
+        material.disney.clearcoat,
+        material.disney.clearcoatgloss,
+    )
 
 
 def _write_material_diffuse(name, material):
@@ -240,8 +235,7 @@ def _write_material_diffuse(name, material):
     scene.materials.{n}.type = matte
     scene.materials.{n}.kd = {c.r} {c.g} {c.b}
     """
-    return snippet.format(n=name,
-                          c=material.diffuse.color)
+    return snippet.format(n=name, c=material.diffuse.color)
 
 
 def _write_material_mixed(name, material):
@@ -255,8 +249,7 @@ def _write_material_mixed(name, material):
     scene.materials.{n}.amount = {r}
     """
     snippet = snippet_g + snippet_d + snippet_m
-    return snippet.format(n=name,
-                          r=material.mixed.transparency)
+    return snippet.format(n=name, r=material.mixed.transparency)
 
 
 def _write_material_fallback(name, material):
@@ -275,18 +268,16 @@ def _write_material_fallback(name, material):
     scene.materials.{n}.type = matte
     scene.materials.{n}.kd = {r} {g} {b}
     """
-    return snippet.format(n=name,
-                          r=red,
-                          g=grn,
-                          b=blu)
+    return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
 MATERIALS = {
-        "Passthrough": _write_material_passthrough,
-        "Glass": _write_material_glass,
-        "Disney": _write_material_disney,
-        "Diffuse": _write_material_diffuse,
-        "Mixed": _write_material_mixed}
+    "Passthrough": _write_material_passthrough,
+    "Glass": _write_material_glass,
+    "Disney": _write_material_disney,
+    "Diffuse": _write_material_diffuse,
+    "Mixed": _write_material_mixed,
+}
 
 
 # ===========================================================================
@@ -309,9 +300,10 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
+
     def export_section(section, prefix, suffix):
         """Export a section to a temporary file."""
-        f_handle, f_path = mkstemp(prefix=prefix, suffix='.' + suffix)
+        f_handle, f_path = mkstemp(prefix=prefix, suffix="." + suffix)
         os.close(f_handle)
         result = [f"{k} = {v}" for k, v in dict(section).items()]
         with open(f_path, "w", encoding="utf-8") as output:
@@ -342,10 +334,13 @@ def render(project, prefix, external, output, width, height):
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxCoreParameters", "")
     rpath = params.GetString(
-        "LuxCorePath" if external else "LuxCoreConsolePath", "")
+        "LuxCorePath" if external else "LuxCoreConsolePath", ""
+    )
     if not rpath:
-        msg = "Unable to locate renderer executable. Please set the correct "\
-              "path in Edit -> Preferences -> Render\n"
+        msg = (
+            "Unable to locate renderer executable. Please set the correct "
+            "path in Edit -> Preferences -> Render\n"
+        )
         App.Console.PrintError(msg)
         return
 
