@@ -526,7 +526,7 @@ CIE_STD_OBSERVER_RANGE = range(360, 831, 1)
 CIE_STD_OBSERVER = dict(zip(CIE_STD_OBSERVER_RANGE, CIE_STD_OBSERVER_VALUES))
 
 # Maximal photopic luminous efficacy (lm/W)
-MAX_PHOTOPIC_LUMINOUS_EFFICACY = 683.  # Luminous efficiency=100%
+MAX_PHOTOPIC_LUMINOUS_EFFICACY = 683.0  # Luminous efficiency=100%
 
 
 # ===========================================================================
@@ -539,32 +539,95 @@ MAX_PHOTOPIC_LUMINOUS_EFFICACY = 683.  # Luminous efficiency=100%
 
 # Ozone spectral power distribution (sampled)
 OZONE_SAMPLED_SPD = (  # {{{1
-    (300, 10.0), (305, 4.8), (310, 2.7), (315, 1.35), (320, .8), (325, .380),
-    (330, .160), (335, .075), (340, .04), (345, .019), (350, .007), (355, .0),
-    (445, .003), (450, .003), (455, .004), (460, .006), (465, .008),
-    (470, .009), (475, .012), (480, .014), (485, .017), (490, .021),
-    (495, .025),
-    (500, .03), (505, .035), (510, .04), (515, .045), (520, .048), (525, .057),
-    (530, .063), (535, .07), (540, .075), (545, .08), (550, .085), (555, .095),
-    (560, .103), (565, .110), (570, .12), (575, .122), (580, .12), (585, .118),
-    (590, .115), (595, .12),
-    (600, .125), (605, .130), (610, .12), (620, .105), (630, .09), (640, .079),
-    (650, .067), (660, .057), (670, .048), (680, .036), (690, .028),
-    (700, .023), (710, .018), (720, .014), (730, .011), (740, .010),
-    (750, .009), (760, .007), (770, .004), (780, .0), (790, .0),
-    )  # }}}1
+    (300, 10.0),
+    (305, 4.8),
+    (310, 2.7),
+    (315, 1.35),
+    (320, 0.8),
+    (325, 0.380),
+    (330, 0.160),
+    (335, 0.075),
+    (340, 0.04),
+    (345, 0.019),
+    (350, 0.007),
+    (355, 0.0),
+    (445, 0.003),
+    (450, 0.003),
+    (455, 0.004),
+    (460, 0.006),
+    (465, 0.008),
+    (470, 0.009),
+    (475, 0.012),
+    (480, 0.014),
+    (485, 0.017),
+    (490, 0.021),
+    (495, 0.025),
+    (500, 0.03),
+    (505, 0.035),
+    (510, 0.04),
+    (515, 0.045),
+    (520, 0.048),
+    (525, 0.057),
+    (530, 0.063),
+    (535, 0.07),
+    (540, 0.075),
+    (545, 0.08),
+    (550, 0.085),
+    (555, 0.095),
+    (560, 0.103),
+    (565, 0.110),
+    (570, 0.12),
+    (575, 0.122),
+    (580, 0.12),
+    (585, 0.118),
+    (590, 0.115),
+    (595, 0.12),
+    (600, 0.125),
+    (605, 0.130),
+    (610, 0.12),
+    (620, 0.105),
+    (630, 0.09),
+    (640, 0.079),
+    (650, 0.067),
+    (660, 0.057),
+    (670, 0.048),
+    (680, 0.036),
+    (690, 0.028),
+    (700, 0.023),
+    (710, 0.018),
+    (720, 0.014),
+    (730, 0.011),
+    (740, 0.010),
+    (750, 0.009),
+    (760, 0.007),
+    (770, 0.004),
+    (780, 0.0),
+    (790, 0.0),
+)  # }}}1
 
 # Mixed gases spectral power distribution (sampled)
 GASES_SAMPLED_SPD = (  # {{{1
-    (759., 0.00), (760., 3.00), (770., 0.21), (771., 0.00)
+    (759.0, 0.00),
+    (760.0, 3.00),
+    (770.0, 0.21),
+    (771.0, 0.00),
 )  # }}}1
 
 # Water spectral power distribution (sampled)
 WATER_SAMPLED_SPD = (  # {{{1
-    (689., 0.000e+0), (690., 0.160e-1), (700., 0.240e-1), (710., 0.125e-1),
-    (720., 0.100e+1), (730., 0.870e+0), (740., 0.610e-1), (750., 0.100e-2),
-    (760., 0.100e-4), (770., 0.100e-4), (780., 0.600e-3), (790., 0.175e-1),
-    (800., 0.360e-1),
+    (689.0, 0.000e0),
+    (690.0, 0.160e-1),
+    (700.0, 0.240e-1),
+    (710.0, 0.125e-1),
+    (720.0, 0.100e1),
+    (730.0, 0.870e0),
+    (740.0, 0.610e-1),
+    (750.0, 0.100e-2),
+    (760.0, 0.100e-4),
+    (770.0, 0.100e-4),
+    (780.0, 0.600e-3),
+    (790.0, 0.175e-1),
+    (800.0, 0.360e-1),
 )  # }}}1
 
 # Amount of atmospheric absorbing components, in centimeters NTP
@@ -577,7 +640,7 @@ WATER_SAMPLED_SPD = (  # {{{1
 OZONE_AMOUNT = 0.35  # Centimeters NTP
 
 # Amount of precipitable water vapor in atmosphere
-WATER_AMOUNT = 2.  # Centimeters NTP
+WATER_AMOUNT = 2.0  # Centimeters NTP
 
 
 # ===========================================================================
@@ -587,20 +650,48 @@ WATER_AMOUNT = 2.  # Centimeters NTP
 # Sun spectral radiance distribution (sampled),
 # in range 380-750 nm by 10nm in W.m-2.sr-1.nm-1
 SUN_SAMPLED_SRD = (  # {{{1
-    (380, 16559.0), (390, 16233.7), (400, 21127.5), (410, 25888.2),
-    (420, 25829.1), (430, 24232.3), (440, 26760.5), (450, 29658.3),
-    (460, 30545.4), (470, 30057.5), (480, 30663.7), (490, 28830.4),
-    (500, 28712.1), (510, 27825.0), (520, 27100.6), (530, 27233.6),
-    (540, 26361.3), (550, 25503.8), (560, 25060.2), (570, 25311.6),
-    (580, 25355.9), (590, 25134.2), (600, 24631.5), (610, 24173.2),
-    (620, 23685.3), (630, 23212.1), (640, 22827.7), (650, 22339.8),
-    (660, 21970.2), (670, 21526.7), (680, 21097.9), (690, 20728.3),
-    (700, 20240.4), (710, 19870.8), (720, 19427.2), (730, 19072.4),
-    (740, 18628.9), (750, 18259.2)
+    (380, 16559.0),
+    (390, 16233.7),
+    (400, 21127.5),
+    (410, 25888.2),
+    (420, 25829.1),
+    (430, 24232.3),
+    (440, 26760.5),
+    (450, 29658.3),
+    (460, 30545.4),
+    (470, 30057.5),
+    (480, 30663.7),
+    (490, 28830.4),
+    (500, 28712.1),
+    (510, 27825.0),
+    (520, 27100.6),
+    (530, 27233.6),
+    (540, 26361.3),
+    (550, 25503.8),
+    (560, 25060.2),
+    (570, 25311.6),
+    (580, 25355.9),
+    (590, 25134.2),
+    (600, 24631.5),
+    (610, 24173.2),
+    (620, 23685.3),
+    (630, 23212.1),
+    (640, 22827.7),
+    (650, 22339.8),
+    (660, 21970.2),
+    (670, 21526.7),
+    (680, 21097.9),
+    (690, 20728.3),
+    (700, 20240.4),
+    (710, 19870.8),
+    (720, 19427.2),
+    (730, 19072.4),
+    (740, 18628.9),
+    (750, 18259.2),
 )  # }}}1
 
-SUN_RADIUS = 695500000.  # Meters
-SUN_MEAN_DISTANCE = 149600000000.  # Meters
+SUN_RADIUS = 695500000.0  # Meters
+SUN_MEAN_DISTANCE = 149600000000.0  # Meters
 
 
 # ===========================================================================
@@ -625,15 +716,17 @@ class Interpolation:
         assert len(samples) > 1, "Samples must contains at least 2 elements"
         x_list = self.x_list = [float(x[0]) for x in samples]
         y_list = self.y_list = [float(x[1]) for x in samples]
-        assert all(y - x > 0 for x, y in zip(x_list, x_list[1:])),\
-            "x list must be in strictly ascending order!"
+        assert all(
+            y - x > 0 for x, y in zip(x_list, x_list[1:])
+        ), "x list must be in strictly ascending order!"
         intervals = zip(x_list, x_list[1:], y_list, y_list[1:])
         self.slopes = [(y2 - y1) / (x2 - x1) for x1, x2, y1, y2 in intervals]
 
     def __repr__(self):
         """Get a representation of the object."""
-        res = ["(%s, %s)" % (x, y) for x, y in zip(self.x_list, self.y_list)]
-        return "Interpolate({})".format(", ".join(res))
+        res = [f"({x}, {y})" for x, y in zip(self.x_list, self.y_list)]
+        res = ", ".join(res)
+        return f"Interpolate({res})"
 
     def __getitem__(self, parameter):
         """Return an interpolated value.
@@ -647,11 +740,14 @@ class Interpolation:
 
         # Out of range?
         if not x_list[0] <= param <= x_list[-1]:
-            return 0.
+            return 0.0
 
         index = bisect.bisect_left(self.x_list, param) - 1
-        return (y_list[0] if index == -1 else
-                y_list[index] + slopes[index] * (param - x_list[index]))
+        return (
+            y_list[0]
+            if index == -1
+            else y_list[index] + slopes[index] * (param - x_list[index])
+        )
 
 
 # ===========================================================================
@@ -678,9 +774,7 @@ class ColorXYZ:
     @classmethod
     def from_xyY(cls, x, y, Y):
         """Initialize a ColorXYZ from a xyY color."""
-        return cls(Y / y * x,
-                   Y,
-                   Y / y * (1 - x - y))
+        return cls(Y / y * x, Y, Y / y * (1 - x - y))
 
     @classmethod
     def from_srd(cls, srd):
@@ -720,9 +814,9 @@ class ColorXYZ:
             return self
 
         try:
-            return ColorXYZ(self.X + other.X,
-                            self.Y + other.Y,
-                            self.Z + other.Z)
+            return ColorXYZ(
+                self.X + other.X, self.Y + other.Y, self.Z + other.Z
+            )
         except (AttributeError, TypeError):
             return NotImplemented
 
@@ -744,9 +838,9 @@ class ColorXYZ:
         """Compute multiplication between this object and a scalar."""
         try:
             _scalar = float(scalar)
-            return ColorXYZ(self.X * _scalar,
-                            self.Y * _scalar,
-                            self.Z * _scalar)
+            return ColorXYZ(
+                self.X * _scalar, self.Y * _scalar, self.Z * _scalar
+            )
         except (TypeError, ValueError):
             return NotImplemented
 
@@ -763,7 +857,8 @@ class ColorXYZ:
         """Convert this color to xyY color."""
         tot = self.X + self.Y + self.Z
         res = namedtuple("xyY", ["x", "y", "Y"])(
-            self.X / tot, self.Y / tot, self.Y)
+            self.X / tot, self.Y / tot, self.Y
+        )
         return res
 
     def to_srgb(self):
@@ -777,7 +872,9 @@ class ColorXYZ:
             Args:
                 u -- The RGB component.
             """
-            return 12.92 * u if u <= 0.0031308 else 1.055 * u ** (5/12) - 0.055
+            return (
+                12.92 * u if u <= 0.0031308 else 1.055 * u ** (5 / 12) - 0.055
+            )
 
         # Linear transformation
         red = +3.24096994 * self.X - 1.53738318 * self.Y - 0.49861076 * self.Z
@@ -853,7 +950,7 @@ def sunlight(theta, turbidity):
         """
         # Rayleigh scattering
         # (for this, wavelength should be in micrometers)
-        tau_r = exp(-mass * 0.008735 * (wavelength / 1000.) ** -4.08)
+        tau_r = exp(-mass * 0.008735 * (wavelength / 1000.0) ** -4.08)
 
         # Aerosols (water+dust) attenuation
         # (for this, wavelength should be in micrometers)
@@ -861,37 +958,47 @@ def sunlight(theta, turbidity):
         # beta -- amount of aerosols present
         alpha = 1.3
         beta = 0.04608365822050 * turbidity - 0.04586025928522
-        tau_a = exp(-mass * beta * (wavelength / 1000.) ** -alpha)
+        tau_a = exp(-mass * beta * (wavelength / 1000.0) ** -alpha)
 
         # Ozone absorption attenuation
         tau_o = exp(-mass * OZONE_SPD[wavelength] * OZONE_AMOUNT)
 
         # Mixed gases absorption attenuation
-        tau_g = exp(-1.41 * GASES_SPD[wavelength] * mass /
-                    (1. + 118.93 * GASES_SPD[wavelength] * mass) ** 0.45)
+        tau_g = exp(
+            -1.41
+            * GASES_SPD[wavelength]
+            * mass
+            / (1.0 + 118.93 * GASES_SPD[wavelength] * mass) ** 0.45
+        )
 
         # Water absorption attenuation
-        tau_wa = exp(-0.2385 * WATER_SPD[wavelength] * WATER_AMOUNT * mass /
-                     (1. + 20.07 * WATER_SPD[wavelength] * WATER_AMOUNT * mass)
-                     ** 0.45)
+        tau_wa = exp(
+            -0.2385
+            * WATER_SPD[wavelength]
+            * WATER_AMOUNT
+            * mass
+            / (1.0 + 20.07 * WATER_SPD[wavelength] * WATER_AMOUNT * mass)
+            ** 0.45
+        )
 
         return tau_r * tau_a * tau_o * tau_g * tau_wa
 
     # 'sunlight' function starts here
 
     # Relative atmosphere Optical Mass
-    mass = 1. / (cos(theta) + 0.00094 * (1.6386 - theta) ** -1.253)
+    mass = 1.0 / (cos(theta) + 0.00094 * (1.6386 - theta) ** -1.253)
 
     # Sun atmospheric-attenuated spectral radiance distribution (srd)
     # from Sun extraterrestrial srd and atmospheric transmittance
     # w -- wavelength (nm)
     attenuated_srd = Interpolation(
         (w, SUN_SRD[w] * atm_transmittance(w, mass, turbidity))
-        for w in range(350, 805, 5))
+        for w in range(350, 805, 5)
+    )
 
     # Solid angle for a 1 m2 area on Earth, normal to sun rays,
     # being seen from the Sun
-    solid_angle_1m2 = 1. * SUN_MEAN_DISTANCE ** -2  # sr.m-2
+    solid_angle_1m2 = 1.0 * SUN_MEAN_DISTANCE ** -2  # sr.m-2
 
     # Radiometric quantities
     radiance = sum([attenuated_srd[w] for w in range(380, 760)])  # W.sr-1.m-2
@@ -905,7 +1012,8 @@ def sunlight(theta, turbidity):
     illuminance = luminous_intensity * solid_angle_1m2  # lux (cd.sr.m-2)
 
     res = namedtuple("Sunlight", ["irradiance", "illuminance", "xyz"])(
-        irradiance=irradiance, illuminance=illuminance, xyz=xyz)
+        irradiance=irradiance, illuminance=illuminance, xyz=xyz
+    )
 
     return res
 
@@ -916,11 +1024,15 @@ def _test():
     def subtest(name, theta, turbidity):
         theta_r = radians(theta)
         sun = sunlight(theta_r, turbidity)
-        print(">>>>> {:9s} {} RGB({:3.2} {:3.2} {:3.2}) {:3.2e} W".format(
-            name + ":",
-            sun.xyz,
-            *sun.xyz.to_srgb_with_fixed_luminance(1.0),
-            sun.irradiance))
+        # pylint: disable=consider-using-f-string
+        print(
+            ">>>>> {:9s} {} RGB({:3.2} {:3.2} {:3.2}) {:3.2e} W".format(
+                name + ":",
+                sun.xyz,
+                *sun.xyz.to_srgb_with_fixed_luminance(1.0),
+                sun.irradiance,
+            )
+        )
 
     # For luminance (Y) orders of magnitude, see here:
     # https://en.wikipedia.org/wiki/Orders_of_magnitude_(luminance)
@@ -929,5 +1041,6 @@ def _test():
     subtest("45°", 45, turbidity)
     subtest("86°", 86, turbidity)
     subtest("Horizon", 90, turbidity)
+
 
 # vim: foldmethod=marker
