@@ -229,7 +229,7 @@ class Project(FeatureBase):
         rdr = str(kwargs["renderer"])
         template = str(kwargs.get("template", ""))
 
-        fpo.Label = "%s Project" % rdr
+        fpo.Label = f"{rdr} Project"
         fpo.Renderer = rdr
         fpo.Template = template
 
