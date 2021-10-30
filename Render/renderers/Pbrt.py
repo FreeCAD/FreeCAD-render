@@ -58,8 +58,8 @@ AttributeEnd
 # ~Object '{n}'
 """
     material = _write_material(name, material)
-    pnts = ["{0.x} {0.y} {0.z}".format(p) for p in mesh.Topology[0]]
-    inds = ["{} {} {}".format(*i) for i in mesh.Topology[1]]
+    pnts = [f"{p.x} {p.y} {p.z}" for p in mesh.Topology[0]]
+    inds = [f"{i[0]} {i[1]} {i[2]}" for i in mesh.Topology[1]]
     pnts = "  ".join(pnts)
     inds = "  ".join(inds)
     return snippet.format(n=name, m=material, p=pnts, i=inds)
@@ -99,7 +99,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
               (+size_u / 2, +size_v / 2, 0),
               (-size_u / 2, +size_v / 2, 0)]
     points = [pos.multVec(App.Vector(*p)) for p in points]
-    points = ["{0.x} {0.y} {0.z}".format(p) for p in points]
+    points = [f"{p.x} {p.y} {p.z}" for p in points]
     points = "  ".join(points)
 
     snippet = """# Arealight '{n}'
@@ -311,14 +311,14 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("PbrtPath", "")
     args = params.GetString("PbrtParameters", "")
-    args += """ --outfile "%s" """ % output
+    args += f' --outfile "{output}" '
     if not rpath:
         App.Console.PrintError("Unable to locate renderer executable. "
                                "Please set the correct path in "
                                "Edit -> Preferences -> Render\n")
         return ""
 
-    filepath = '"%s"' % project.PageResult
+    filepath = f'"{project.PageResult}"'
 
     cmd = prefix + rpath + " " + args + " " + filepath
     App.Console.PrintMessage(cmd+'\n')
