@@ -65,13 +65,13 @@ def write_mesh(name, mesh, material):
         buffer = f.readlines()
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    buffer.insert(i, "o %s\n" % name)
+    buffer.insert(i, f"o {name}\n")
 
     with open(objfile, "w") as f:
         f.write("".join(buffer))
 
     # Format output
-    mat_name = "{}.{}".format(name, uuid.uuid1())  # Avoid duplicate materials
+    mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
     snippet_mat = _write_material(mat_name, material)
     snippet_obj = """
             <object name="{o}" model="mesh_object">
@@ -357,8 +357,8 @@ def _write_material_diffuse(name, material):
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
-    snippet_g = _write_material_glass("%s_glass" % name, material.mixed)
-    snippet_d = _write_material_diffuse("%s_diffuse" % name, material.mixed)
+    snippet_g = _write_material_glass(f"{name}_glass", material.mixed)
+    snippet_d = _write_material_diffuse(f"{name}_diffuse", material.mixed)
     snippet_mixed = """
             <bsdf name="{n}_bsdf" model="bsdf_blend">
                 <parameter name="bsdf0" value="{n}_glass_bsdf" />
@@ -452,7 +452,7 @@ def render(project, prefix, external, output, width, height):
         contents = (str(regex_obj.findall(template)[-1]) if keep_one
                     else '\n'.join(regex_obj.findall(template)))
         template = regex_obj.sub("", template)
-        pos = re.search(r"<{d}>\n".format(d=destination), template).end()
+        pos = re.search(rf"<{destination}>\n", template).end()
         template = template[:pos] + contents + "\n" + template[pos:]
         return template
 
@@ -525,7 +525,7 @@ def render(project, prefix, external, output, width, height):
     if args:
         args += " "
 
-    filepath = '"%s"' % project.PageResult
+    filepath = f'"{project.PageResult}"'
 
     # Call Appleseed (asynchronously)
     cmd = prefix + rpath + " " + args + " " + filepath + "\n"
