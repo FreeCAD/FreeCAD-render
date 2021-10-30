@@ -84,7 +84,7 @@ class RendererHandler:
         self.transparency_boost = float(kwargs.get("transparency_boost", 0))
 
         try:
-            module_name = "Render.renderers.%s" % rdrname
+            module_name = f"Render.renderers.{rdrname}"
             self.renderer_module = import_module(module_name)
         except ModuleNotFoundError:
             raise RendererNotFoundError(rdrname) from None
