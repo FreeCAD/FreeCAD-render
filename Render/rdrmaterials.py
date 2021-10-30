@@ -552,7 +552,7 @@ def printmat(fcdmat):
         a string containing the material in Material Card format
     """
     def keysort(item):
-        key, value, keyword = item
+        key, _, keyword = item
         if keyword == "Type":
             rank = 0
         elif keyword in STD_MATERIALS_PARAMETERS:
