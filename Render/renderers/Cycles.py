@@ -75,8 +75,8 @@ def write_mesh(name, mesh, material):
 
     snippet = snippet_mat + snippet_obj
 
-    points = ["{0.x} {0.y} {0.z}".format(p) for p in mesh.Topology[0]]
-    verts = ["{} {} {}".format(*v) for v in mesh.Topology[1]]
+    points = [f"{p.x} {p.y} {p.z}" for p in mesh.Topology[0]]
+    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Topology[1]]
     nverts = ["3"] * len(verts)
 
     return snippet.format(n=name,
@@ -171,7 +171,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
               (+size_u / 2, +size_v / 2, 0),
               (-size_u / 2, +size_v / 2, 0)]
     points = [pos.multVec(App.Vector(*p)) for p in points]
-    points = ["{0.x} {0.y} {0.z}".format(p) for p in points]
+    points = [f"{p.x} {p.y} {p.z}" for p in points]
     points = "  ".join(points)
 
     snippet2 = """
@@ -435,7 +435,7 @@ def render(project, prefix, external, output, width, height):
         return ""
     args += " --width " + str(width)
     args += " --height " + str(height)
-    filepath = '"%s"' % project.PageResult
+    filepath = f'"{project.PageResult}"'
     cmd = prefix + rpath + " " + args + " " + filepath
     App.Console.PrintMessage(cmd+'\n')
     os.system(cmd)
