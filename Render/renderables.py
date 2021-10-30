@@ -113,7 +113,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
 
     # Array, PathArray
     elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
-        debug("Object", label, "'%s' detected" % obj_type)
+        debug("Object", label, f"'{obj_type}' detected")
         expand_array = getattr(obj, "ExpandArray", False)
         renderables = (
             _get_rends_from_array(obj, name, mat, mesher, **kwargs)
@@ -154,9 +154,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         renderables = []
         if not ignore_unknown:
             ascendants = ", ".join(obj.getAllDerivedFrom())
-            msg = translate(
-                "Render", "Unhandled object type (%s)" % ascendants
-            )
+            msg = translate("Render", f"Unhandled object type ({ascendants})")
             raise TypeError(msg)
         debug("Object", label, "Not renderable")
 
@@ -204,7 +202,7 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
 
     for element in elements:
         assert element.isDerivedFrom("App::LinkElement")
-        elem_name = "%s_%s" % (name, element.Name)
+        elem_name = f"{name}_{element.Name}"
         base_rends = get_renderables(
             element.LinkedObject, elem_name, material, mesher, **kwargs
         )
@@ -245,7 +243,7 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
     linkedobj_plc_inverse_matrix = linkedobj.Placement.inverse().toMatrix()
 
     def new_rend(base_rend):
-        new_name = "%s_%s" % (name, base_rend.name)
+        new_name = f"{name}_{base_rend.name}"
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
         new_color = base_rend.defcolor
@@ -302,7 +300,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
             new_mesh.transform(base_inv_plc_matrix)
         new_mesh.transform(plc.toMatrix())
         new_mesh.transform(obj_plc_matrix)
-        subname = "%s_%s_%s" % (name, base_rend.name, counter)
+        subname = f"{name}_{base_rend.name}_{counter}"
         new_mat = _get_material(base_rend, material)
         new_color = base_rend.defcolor
         return Renderable(subname, new_mesh, new_mat, new_color)
@@ -333,7 +331,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # WindowsParts
         window_parts = obj.CloneOf.WindowParts
     subnames = window_parts[0::5]  # Names every 5th item...
-    names = ["%s_%s" % (name, s.replace(" ", "_")) for s in subnames]
+    names = [f"{name}_{s.replace(' ', '_')}" for s in subnames]
 
     # Subobjects meshes
     meshes = [mesher(s) for s in obj.Shape.childShapes()]
@@ -387,7 +385,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     shapes = obj.Shape.childShapes()
 
     # Subobjects names
-    names = ["{}_{}".format(name, i) for i in range(len(shapes))]
+    names = [f"{name}_{i}" for i in range(len(shapes))]
 
     # Subobjects meshes
     meshes = [mesher(s) for s in shapes]
@@ -432,7 +430,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
 
     rends = []
     for subobj in obj.Group:
-        subname = "{}_{}".format(name, subobj.Name)
+        subname = f"{name}_{subobj.Name}"
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
             rends += get_renderables(
@@ -470,7 +468,7 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         # Multicolor: Process face by face
         faces = obj.Shape.Faces
         nfaces = len(faces)
-        names = ["{}_face{}".format(name, i) for i in range(nfaces)]
+        names = [f"{name}_face{i}" for i in range(nfaces)]
         meshes = [mesher(f) for f in faces]
         materials = [material] * nfaces
         renderables = [
