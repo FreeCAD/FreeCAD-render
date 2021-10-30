@@ -34,10 +34,9 @@ from tempfile import mkstemp
 import FreeCAD as App
 
 # Transformation matrix from fcd coords to osp coords
-TRANSFORM = App.Placement(App.Matrix(1, 0, 0, 0,
-                                     0, 0, 1, 0,
-                                     0, -1, 0, 0,
-                                     0, 0, 0, 1))
+TRANSFORM = App.Placement(
+    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
+)
 
 TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 
@@ -94,10 +93,12 @@ AttributeEnd
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
-    points = [(-size_u / 2, -size_v / 2, 0),
-              (+size_u / 2, -size_v / 2, 0),
-              (+size_u / 2, +size_v / 2, 0),
-              (-size_u / 2, +size_v / 2, 0)]
+    points = [
+        (-size_u / 2, -size_v / 2, 0),
+        (+size_u / 2, -size_v / 2, 0),
+        (+size_u / 2, +size_v / 2, 0),
+        (-size_u / 2, +size_v / 2, 0),
+    ]
     points = [pos.multVec(App.Vector(*p)) for p in points]
     points = [f"{p.x} {p.y} {p.z}" for p in points]
     points = "  ".join(points)
@@ -114,10 +115,7 @@ AttributeBegin
 AttributeEnd
 # ~Arealight '{n}'
 """
-    return snippet.format(n=name,
-                          c=color,
-                          s=power,
-                          p=points)
+    return snippet.format(n=name, c=color, s=power, p=points)
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -166,8 +164,10 @@ def _write_material(name, material):
     try:
         write_function = MATERIALS[material.shadertype]
     except KeyError:
-        msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
-               "material\n")
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         write_function = _write_material_fallback
     snippet_mat = write_function(name, material)
@@ -188,9 +188,7 @@ def _write_material_glass(name, material):
     "float eta" {i}
     "rgb tint" [{c.r} {c.g} {c.b}]
 """
-    return snippet.format(n=name,
-                          c=material.glass.color,
-                          i=material.glass.ior)
+    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
 def _write_material_disney(name, material):
@@ -207,8 +205,7 @@ def _write_material_diffuse(name, material):
   Material "diffuse"
     "rgb reflectance" [{c.r} {c.g} {c.b}]
 """
-    return snippet.format(n=name,
-                          c=material.diffuse.color)
+    return snippet.format(n=name, c=material.diffuse.color)
 
 
 def _write_material_mixed(name, material):
@@ -225,11 +222,13 @@ def _write_material_mixed(name, material):
     "string materials" ["{n}_1" "{n}_2"]
     "float amount" {r}
 """
-    return snippet.format(n=name,
-                          c=material.mixed.glass.color,
-                          i=material.mixed.glass.ior,
-                          k=material.mixed.diffuse.color,
-                          r=material.mixed.transparency)
+    return snippet.format(
+        n=name,
+        c=material.mixed.glass.color,
+        i=material.mixed.glass.ior,
+        k=material.mixed.diffuse.color,
+        r=material.mixed.transparency,
+    )
 
 
 def _write_material_fallback(name, material):
@@ -252,11 +251,12 @@ def _write_material_fallback(name, material):
 
 
 MATERIALS = {
-        "Passthrough": _write_material_passthrough,
-        "Glass": _write_material_glass,
-        # "Disney": _write_material_disney,  -- NOT SUPPORTED BY PBRT V4
-        "Diffuse": _write_material_diffuse,
-        "Mixed": _write_material_mixed}
+    "Passthrough": _write_material_passthrough,
+    "Glass": _write_material_glass,
+    # "Disney": _write_material_disney,  -- NOT SUPPORTED BY PBRT V4
+    "Diffuse": _write_material_diffuse,
+    "Mixed": _write_material_mixed,
+}
 
 
 # ===========================================================================
@@ -288,7 +288,7 @@ def render(project, prefix, external, output, width, height):
     pattern = r"(?m)# Camera[\s\S]*?# ~Camera.*$"
     regex_obj = re.compile(pattern)
     camera = str(regex_obj.findall(template)[-1])  # Keep only last camera
-    template = camera + '\n' + regex_obj.sub("", template)
+    template = camera + "\n" + regex_obj.sub("", template)
 
     # Set width and height
     template = template.replace("@@WIDTH@@", str(width))
@@ -296,8 +296,8 @@ def render(project, prefix, external, output, width, height):
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
-        prefix=project.Name,
-        suffix=os.path.splitext(project.Template)[-1])
+        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
+    )
     os.close(f_handle)
     with open(f_path, "w", encoding="utf-8") as f:
         f.write(template)
@@ -313,15 +313,17 @@ def render(project, prefix, external, output, width, height):
     args = params.GetString("PbrtParameters", "")
     args += f' --outfile "{output}" '
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. "
-                               "Please set the correct path in "
-                               "Edit -> Preferences -> Render\n")
+        App.Console.PrintError(
+            "Unable to locate renderer executable. "
+            "Please set the correct path in "
+            "Edit -> Preferences -> Render\n"
+        )
         return ""
 
     filepath = f'"{project.PageResult}"'
 
     cmd = prefix + rpath + " " + args + " " + filepath
-    App.Console.PrintMessage(cmd+'\n')
+    App.Console.PrintMessage(cmd + "\n")
 
     os.system(cmd)
 
