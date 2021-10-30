@@ -46,8 +46,8 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     snippet = """# Object '{n}'
 AttributeBegin
 {m}

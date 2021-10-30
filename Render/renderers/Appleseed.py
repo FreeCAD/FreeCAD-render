@@ -48,8 +48,8 @@ TEMPLATE_FILTER = "Appleseed templates (appleseed_*.appleseed)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Write the mesh as an OBJ tempfile
     # Known bug: mesh.Placement must be null, otherwise computation is wrong
     # due to special Appleseed coordinate system (to be fixed)

@@ -54,10 +54,10 @@ TEMPLATE_FILTER = "LuxRender templates (luxrender_*.lxs)"
 #                             Write functions
 # ===========================================================================
 
-# CAVEAT: THIS RENDERER PLUGIN IS DEPRECATED, DO NOT SPEND TIME ON IT...
+# CAVEAT: THIS RENDERER PLUGIN IS DEPRECATED, DO NOT WASTE TIME WITH IT...
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Minimal material support
     color = material.default_color
 
