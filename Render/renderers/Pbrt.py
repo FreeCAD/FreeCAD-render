@@ -281,7 +281,7 @@ def render(project, prefix, external, output, width, height):
     """
     # Make various adjustments on file:
     # Reorder camera declarations and set width/height
-    with open(project.PageResult, "r") as f:
+    with open(project.PageResult, "r", encoding="utf-8") as f:
         template = f.read()
 
     # Cameras
@@ -299,7 +299,7 @@ def render(project, prefix, external, output, width, height):
         prefix=project.Name,
         suffix=os.path.splitext(project.Template)[-1])
     os.close(f_handle)
-    with open(f_path, "w") as f:
+    with open(f_path, "w", encoding="utf-8") as f:
         f.write(template)
     project.PageResult = f_path
     os.remove(f_path)
