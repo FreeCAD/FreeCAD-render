@@ -314,7 +314,7 @@ def render(project, prefix, external, output, width, height):
         f_handle, f_path = mkstemp(prefix=prefix, suffix='.' + suffix)
         os.close(f_handle)
         result = [f"{k} = {v}" for k, v in dict(section).items()]
-        with open(f_path, "w") as output:
+        with open(f_path, "w", encoding="utf-8") as output:
             output.write("\n".join(result))
         return f_path
 
