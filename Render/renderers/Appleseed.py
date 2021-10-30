@@ -56,7 +56,7 @@ def write_mesh(name, mesh, material):
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
     tmpmesh = mesh.copy()
-    tmpmesh.rotate(-pi/2, 0, 0)
+    tmpmesh.rotate(-pi / 2, 0, 0)
     tmpmesh.write(objfile)
 
     # Fix missing object name in OBJ file (mandatory in Appleseed)
@@ -87,10 +87,12 @@ def write_mesh(name, mesh, material):
             </object_instance>"""
     snippet = snippet_mat + snippet_obj
 
-    return snippet.format(n=name,
-                          m=mat_name,
-                          o=os.path.splitext(os.path.basename(objfile))[0],
-                          f=objfile.encode("unicode_escape").decode("utf-8"))
+    return snippet.format(
+        n=name,
+        m=mat_name,
+        o=os.path.splitext(os.path.basename(objfile))[0],
+        f=objfile.encode("unicode_escape").decode("utf-8"),
+    )
 
 
 def write_camera(name, pos, updir, target, fov):
@@ -118,11 +120,13 @@ def write_camera(name, pos, updir, target, fov):
             </transform>
         </camera>"""
 
-    return snippet.format(n=name,
-                          o=_transform(pos.Base),
-                          t=_transform(target),
-                          u=_transform(updir),
-                          f=fov)
+    return snippet.format(
+        n=name,
+        o=_transform(pos.Base),
+        t=_transform(target),
+        u=_transform(updir),
+        f=fov,
+    )
 
 
 def write_pointlight(name, pos, color, power):
@@ -146,10 +150,12 @@ def write_pointlight(name, pos, color, power):
                 </transform>
             </light>"""
 
-    return snippet.format(n=name,
-                          c=color,
-                          p=power * 3,  # guesstimated factor...
-                          t=_transform(pos))
+    return snippet.format(
+        n=name,
+        c=color,
+        p=power * 3,  # guesstimated factor...
+        t=_transform(pos),
+    )
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
@@ -197,15 +203,17 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
                                  side="back"
                                  material="{n}_mat" />
             </object_instance>"""
-    return snippet.format(n=name,
-                          c=color,
-                          u=size_u,
-                          v=size_v,
-                          t=_transform(pos.Base),
-                          r=_transform(pos.Rotation.Axis),
-                          a=degrees(pos.Rotation.Angle),
-                          p=radiance * 100,  # guesstimated factor
-                          g=0.0 if transparent else 1.0)
+    return snippet.format(
+        n=name,
+        c=color,
+        u=size_u,
+        v=size_v,
+        t=_transform(pos.Base),
+        r=_transform(pos.Rotation.Axis),
+        a=degrees(pos.Rotation.Angle),
+        p=radiance * 100,  # guesstimated factor
+        g=0.0 if transparent else 1.0,
+    )
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -216,7 +224,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     # and Z+ points out of the screen, toward the viewer."
     vec = _transform(direction)
     phi = degrees(atan2(vec.z, vec.x))
-    theta = degrees(acos(vec.y / (sqrt(vec.x**2 + vec.y**2 + vec.z**2))))
+    theta = degrees(acos(vec.y / (sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2))))
 
     snippet = """
         <environment_edf name="{n}_env_edf" model="hosek_environment_edf">
@@ -238,11 +246,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 <parameter name="environment_edf" value="{n}_env_edf" />
                 <parameter name="turbidity" value="{t}" />
             </light>"""
-    return snippet.format(n=name,
-                          a=phi,
-                          b=theta,
-                          t=turbidity,
-                          g=albedo)
+    return snippet.format(n=name, a=phi, b=theta, t=turbidity, g=albedo)
 
 
 def write_imagelight(name, image):
@@ -265,8 +269,7 @@ def write_imagelight(name, image):
             <parameter name="environment_shader" value="{n}_env_shdr" />
         </environment>
     """
-    return snippet.format(n=name,
-                          f=image)
+    return snippet.format(n=name, f=image)
 
 
 # ===========================================================================
@@ -283,9 +286,11 @@ def _write_material(name, material):
     try:
         snippet_mat = MATERIALS[material.shadertype](name, material)
     except KeyError:
-        msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
-               "material\n")
-        App.Console.PrintWarning(msg.format(name, material.shadertype))
+        msg = (
+            f"'{name}' - Material '{material.shadertype}' unknown by renderer,"
+            " using fallback material\n"
+        )
+        App.Console.PrintWarning(msg)
         snippet_mat = _write_material_fallback(name, material.default_color)
     return snippet_mat
 
@@ -308,9 +313,7 @@ def _write_material_glass(name, material):
                            value="transmittance" />
             </bsdf>"""
     snippet = SNIPPET_COLOR + snippet_bsdf + SNIPPET_MATERIAL
-    return snippet.format(n=name,
-                          c=material.glass.color,
-                          i=material.glass.ior)
+    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
 def _write_material_disney(name, material):
@@ -330,18 +333,20 @@ def _write_material_disney(name, material):
                 <parameter name="clearcoat_gloss" value="{ccg}" />
             </bsdf>"""
     snippet = SNIPPET_COLOR + snippet_bsdf + SNIPPET_MATERIAL
-    return snippet.format(n=name,
-                          c=material.disney.basecolor,
-                          sb=material.disney.subsurface,
-                          m=material.disney.metallic,
-                          sp=material.disney.specular,
-                          spt=material.disney.speculartint,
-                          r=material.disney.roughness,
-                          a=material.disney.anisotropic,
-                          sh=material.disney.sheen,
-                          sht=material.disney.sheentint,
-                          cc=material.disney.clearcoat,
-                          ccg=material.disney.clearcoatgloss)
+    return snippet.format(
+        n=name,
+        c=material.disney.basecolor,
+        sb=material.disney.subsurface,
+        m=material.disney.metallic,
+        sp=material.disney.specular,
+        spt=material.disney.speculartint,
+        r=material.disney.roughness,
+        a=material.disney.anisotropic,
+        sh=material.disney.sheen,
+        sht=material.disney.sheentint,
+        cc=material.disney.clearcoat,
+        ccg=material.disney.clearcoatgloss,
+    )
 
 
 def _write_material_diffuse(name, material):
@@ -351,8 +356,7 @@ def _write_material_diffuse(name, material):
                 <parameter name="reflectance" value="{n}_color" />
             </bsdf>"""
     snippet = SNIPPET_COLOR + snippet_bsdf + SNIPPET_MATERIAL
-    return snippet.format(n=name,
-                          c=material.diffuse.color)
+    return snippet.format(n=name, c=material.diffuse.color)
 
 
 def _write_material_mixed(name, material):
@@ -366,8 +370,7 @@ def _write_material_mixed(name, material):
                 <parameter name="weight" value="{r}" />
             </bsdf>"""
     snippet = snippet_g + snippet_d + snippet_mixed + SNIPPET_MATERIAL
-    return snippet.format(n=name,
-                          r=material.mixed.transparency)
+    return snippet.format(n=name, r=material.mixed.transparency)
 
 
 def _write_material_fallback(name, material):
@@ -384,21 +387,25 @@ def _write_material_fallback(name, material):
         red, grn, blu = 1, 1, 1
     finally:
         color = RGB(red, grn, blu)
-    snippet = SNIPPET_COLOR + """
+    snippet = (
+        SNIPPET_COLOR
+        + """
             <!-- Generated by FreeCAD - Object '{n}' - FALLBACK -->
             <bsdf name="{n}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{n}_color" />
-            </bsdf>""" + SNIPPET_MATERIAL
-    return snippet.format(n=name,
-                          c=color)
+            </bsdf>"""
+        + SNIPPET_MATERIAL
+    )
+    return snippet.format(n=name, c=color)
 
 
 MATERIALS = {
-        "Passthrough": _write_material_passthrough,
-        "Glass": _write_material_glass,
-        "Disney": _write_material_disney,
-        "Diffuse": _write_material_diffuse,
-        "Mixed": _write_material_mixed}
+    "Passthrough": _write_material_passthrough,
+    "Glass": _write_material_glass,
+    "Disney": _write_material_disney,
+    "Diffuse": _write_material_diffuse,
+    "Mixed": _write_material_mixed,
+}
 
 SNIPPET_COLOR = """
             <!-- Generated by FreeCAD - Color '{n}_color' -->
@@ -442,6 +449,7 @@ def render(project, prefix, external, output, width, height):
     Returns:
         A path to output image file
     """
+
     def move_elements(element_tag, destination, template, keep_one=False):
         """Move elements into another (root) element.
 
@@ -449,8 +457,11 @@ def render(project, prefix, external, output, width, height):
         """
         pattern = r"(?m)^ *<{e}\s.*>[\s\S]*?<\/{e}>\n".format(e=element_tag)
         regex_obj = re.compile(pattern)
-        contents = (str(regex_obj.findall(template)[-1]) if keep_one
-                    else '\n'.join(regex_obj.findall(template)))
+        contents = (
+            str(regex_obj.findall(template)[-1])
+            if keep_one
+            else "\n".join(regex_obj.findall(template))
+        )
         template = regex_obj.sub("", template)
         pos = re.search(rf"<{destination}>\n", template).end()
         template = template[:pos] + contents + "\n" + template[pos:]
@@ -493,12 +504,13 @@ def render(project, prefix, external, output, width, height):
         template = re.sub(
             r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
             snippet.format(default_cam),
-            template)
+            template,
+        )
 
     # Write resulting output to file
     f_handle, f_path = mkstemp(
-        prefix=project.Name,
-        suffix=os.path.splitext(project.Template)[-1])
+        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
+    )
     os.close(f_handle)
     with open(f_path, "w") as f:
         f.write(template)
@@ -518,9 +530,11 @@ def render(project, prefix, external, output, width, height):
             args += " "
         args += "--output " + output
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. "
-                               "Please set the correct path in "
-                               "Edit -> Preferences -> Render\n")
+        App.Console.PrintError(
+            "Unable to locate renderer executable. "
+            "Please set the correct path in "
+            "Edit -> Preferences -> Render\n"
+        )
         return ""
     if args:
         args += " "
