@@ -45,8 +45,8 @@ def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     snippet_mat = _write_material(name, material)
 
-    points = ["{0.x} {0.y} {0.z}".format(v) for v in mesh.Topology[0]]
-    tris = ["{} {} {}".format(*t) for t in mesh.Topology[1]]
+    points = [f"{v.x} {v.y} {v.z}" for v in mesh.Topology[0]]
+    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.Topology[1]]
 
     snippet_obj = """
     scene.objects.{n}.type = inlinedmesh
@@ -246,8 +246,8 @@ def _write_material_diffuse(name, material):
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
-    snippet_g = _write_material_glass("%s_glass" % name, material.mixed)
-    snippet_d = _write_material_diffuse("%s_diffuse" % name, material.mixed)
+    snippet_g = _write_material_glass(f"{name}_glass", material.mixed)
+    snippet_d = _write_material_diffuse(f"{name}_diffuse", material.mixed)
     snippet_m = """
     scene.materials.{n}.type = mix
     scene.materials.{n}.material1 = {n}_diffuse
@@ -313,7 +313,7 @@ def render(project, prefix, external, output, width, height):
         """Export a section to a temporary file."""
         f_handle, f_path = mkstemp(prefix=prefix, suffix='.' + suffix)
         os.close(f_handle)
-        result = ["{} = {}".format(k, v) for k, v in dict(section).items()]
+        result = [f"{k} = {v}" for k, v in dict(section).items()]
         with open(f_path, "w") as output:
             output.write("\n".join(result))
         return f_path
@@ -350,8 +350,7 @@ def render(project, prefix, external, output, width, height):
         return
 
     # Prepare command line and call LuxCore
-    cmd = """{p}{r} {a} -o "{c}" -f "{s}"\n""".format(
-        p=prefix, r=rpath, a=args, c=cfg_path, s=scn_path)
+    cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
     App.Console.PrintMessage(cmd)
     try:
         Popen(shlex.split(cmd))
