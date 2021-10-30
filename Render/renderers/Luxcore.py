@@ -41,8 +41,8 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     snippet_mat = _write_material(name, material)
 
     points = ["{0.x} {0.y} {0.z}".format(v) for v in mesh.Topology[0]]

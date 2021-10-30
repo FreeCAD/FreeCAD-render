@@ -156,7 +156,7 @@ callbacks=cb_, _cb,
           updateData,
           render,
           write_camera,
-          write_object,
+          write_mesh,
           write_pointlight,
           write_arealight,
           write_sunsky

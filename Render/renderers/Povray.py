@@ -43,8 +43,8 @@ TEMPLATE_FILTER = "Povray templates (povray_*.pov)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + '_'

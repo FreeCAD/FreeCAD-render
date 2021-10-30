@@ -61,8 +61,8 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Write the mesh as an OBJ tempfile
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)

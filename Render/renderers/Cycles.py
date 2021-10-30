@@ -62,8 +62,8 @@ TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     snippet_mat = _write_material(name, material)
 
     snippet_obj = """
