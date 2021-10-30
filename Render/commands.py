@@ -491,7 +491,7 @@ class CommandGroup:
 
     def GetCommands(self):
         """Get command group's commands (callback)."""
-        return tuple("Render_%s" % name for name, _ in self.cmdlist)
+        return tuple(f"Render_{name}" for name, _ in self.cmdlist)
 
     def GetResources(self):
         """Get command group's resources (callback)."""
@@ -517,7 +517,7 @@ def _init_gui_commands():
             name -- Name of the command to add
             action -- Action of the command to add
         """
-        decorated_name = "Render_%s" % name
+        decorated_name = f"Render_{name}"
         Gui.addCommand(decorated_name, action)
         return decorated_name
 
