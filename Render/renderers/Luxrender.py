@@ -232,7 +232,7 @@ def render(project, prefix, external, output, width, height):
     App.Console.PrintWarning(msg)
 
     # change image size in template
-    with open(project.PageResult, "r") as f:
+    with open(project.PageResult, "r", encoding="utf-8") as f:
         template = f.read()
 
     res = re.findall("integer xresolution", template)
@@ -244,7 +244,7 @@ def render(project, prefix, external, output, width, height):
     res = re.findall("integer yresolution", template)
     if res:
         template = re.sub(r'"integer yresolution".*?\[.*?\]',
-                          '"integer yresolution" [{height}]',
+                          f'"integer yresolution" [{height}]',
                           template)
 
     if res:
@@ -252,7 +252,7 @@ def render(project, prefix, external, output, width, height):
             prefix=project.Name,
             suffix=os.path.splitext(project.Template)[-1])
         os.close(f_handle)
-        with open(f_path, "w") as f:
+        with open(f_path, "w", encoding="utf-8") as f:
             f.write(template)
         project.PageResult = f_path
         os.remove(f_path)
