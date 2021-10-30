@@ -76,7 +76,7 @@ def write_mesh(name, mesh, material):
     # Fix missing object name in OBJ file (mandatory)
     # We want to insert a 'o ...' statement before the first 'f ...'
     # We add also a 'usemtl' statement
-    with open(objfile, "r") as f:
+    with open(objfile, "r", encoding="utf-8") as f:
         buffer = f.readlines()
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
@@ -86,12 +86,12 @@ def write_mesh(name, mesh, material):
     f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="_")
     os.close(f_handle)
     mtl = "newmtl material" + _write_material(name, material)
-    with open(mtlfile, "w") as f:
+    with open(mtlfile, "w", encoding="utf-8") as f:
         f.write(mtl)
 
     buffer.insert(0, f"mtllib {os.path.basename(mtlfile)}\n")
 
-    with open(objfile, "w") as f:
+    with open(objfile, "w", encoding="utf-8") as f:
         f.write("".join(buffer))
 
     snippet_obj = """
@@ -210,7 +210,7 @@ transparency {transparency}
 
     f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
     os.close(f_handle)
-    with open(mtlfile, "w") as f:
+    with open(mtlfile, "w", encoding="utf-8") as f:
         f.write(mtl)
 
     # Write obj file (geometry)
@@ -238,7 +238,7 @@ f 1//1 2//1 3//1 4//1
 
     f_handle, objfile = mkstemp(suffix=".obj", prefix="light_")
     os.close(f_handle)
-    with open(objfile, "w") as f:
+    with open(objfile, "w", encoding="utf-8") as f:
         f.write(obj)
 
     # Return SDL
@@ -407,7 +407,7 @@ def write_imagelight(name, image):
     # so we have to manipulate pathes a bit...
     image_relpath = os.path.relpath(image, os.path.dirname(gltf_file))
 
-    with open(gltf_file, "w") as f:
+    with open(gltf_file, "w", encoding="utf-8") as f:
         f.write(gltf_snippet.format(f=image_relpath))
 
     snippet = """
@@ -615,7 +615,7 @@ def render(project, prefix, external, output, width, height):
         prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
     )
     os.close(f_handle)
-    with open(f_path, "w") as f:
+    with open(f_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(json_load, indent=2))
     project.PageResult = f_path
     os.remove(f_path)
