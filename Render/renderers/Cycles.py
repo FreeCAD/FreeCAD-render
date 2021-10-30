@@ -79,10 +79,9 @@ def write_mesh(name, mesh, material):
     verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Topology[1]]
     nverts = ["3"] * len(verts)
 
-    return snippet.format(n=name,
-                          p="  ".join(points),
-                          i="  ".join(nverts),
-                          v="  ".join(verts))
+    return snippet.format(
+        n=name, p="  ".join(points), i="  ".join(nverts), v="  ".join(verts)
+    )
 
 
 def write_camera(name, pos, updir, target, fov):
@@ -102,11 +101,13 @@ def write_camera(name, pos, updir, target, fov):
                 fov="{f}"/>
     </transform>"""
 
-    return snippet.format(n=name,
-                          a=degrees(pos.Rotation.Angle),
-                          r=pos.Rotation.Axis,
-                          p=pos.Base,
-                          f=radians(fov))
+    return snippet.format(
+        n=name,
+        a=degrees(pos.Rotation.Angle),
+        r=pos.Rotation.Axis,
+        p=pos.Base,
+        f=radians(fov),
+    )
 
 
 def write_pointlight(name, pos, color, power):
@@ -129,10 +130,7 @@ def write_pointlight(name, pos, color, power):
                strength="1 1 1"/>
     </state>\n"""
 
-    return snippet.format(n=name,
-                          c=color,
-                          p=pos,
-                          s=power*100)
+    return snippet.format(n=name, c=color, p=pos, s=power * 100)
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
@@ -166,10 +164,12 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     </state>\n"""
 
     # Opaque area light (--> mesh light)
-    points = [(-size_u / 2, -size_v / 2, 0),
-              (+size_u / 2, -size_v / 2, 0),
-              (+size_u / 2, +size_v / 2, 0),
-              (-size_u / 2, +size_v / 2, 0)]
+    points = [
+        (-size_u / 2, -size_v / 2, 0),
+        (+size_u / 2, -size_v / 2, 0),
+        (+size_u / 2, +size_v / 2, 0),
+        (-size_u / 2, +size_v / 2, 0),
+    ]
     points = [pos.multVec(App.Vector(*p)) for p in points]
     points = [f"{p.x} {p.y} {p.z}" for p in points]
     points = "  ".join(points)
@@ -194,16 +194,18 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     snippet = snippet1 if transparent else snippet2
     strength = power if transparent else power / (size_u * size_v)
 
-    return snippet.format(n=name,
-                          c=color,
-                          p=pos.Base,
-                          s=strength * 100,
-                          u=axis1,
-                          v=axis2,
-                          a=size_u,
-                          b=size_v,
-                          d=direction,
-                          P=points)
+    return snippet.format(
+        n=name,
+        c=color,
+        p=pos.Base,
+        s=strength * 100,
+        u=axis1,
+        v=axis2,
+        a=size_u,
+        b=size_v,
+        d=direction,
+        P=points,
+    )
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -213,7 +215,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     assert direction.Length
     _dir = App.Vector(direction)
     _dir.normalize()
-    theta = asin(_dir.z / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
+    theta = asin(_dir.z / sqrt(_dir.x ** 2 + _dir.y ** 2 + _dir.z ** 2))
     phi = atan2(_dir.x, _dir.y)
 
     snippet = """
@@ -232,11 +234,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
           <connect from="{n}_bg background" to="output surface" />
     </background>\n"""
 
-    return snippet.format(n=name,
-                          t=turbidity,
-                          g=albedo,
-                          e=theta,
-                          r=phi)
+    return snippet.format(n=name, t=turbidity, g=albedo, e=theta, r=phi)
 
 
 def write_imagelight(name, image):
@@ -253,8 +251,10 @@ def write_imagelight(name, image):
           <connect from="{n}_tex color" to="{n}_bg color" />
           <connect from="{n}_bg background" to="output surface" />
     </background>\n"""
-    return snippet.format(n=name,
-                          f=filename,)
+    return snippet.format(
+        n=name,
+        f=filename,
+    )
 
 
 # ===========================================================================
@@ -271,8 +271,10 @@ def _write_material(name, material):
     try:
         snippet_mat = MATERIALS[material.shadertype](name, material)
     except KeyError:
-        msg = ("'{}' - Material '{}' unknown by renderer, using fallback "
-               "material\n")
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.default_color)
     return snippet_mat
@@ -294,9 +296,7 @@ def _write_material_glass(name, material):
         <connect from="{n}_bsdf bsdf" to="output surface"/>
     </shader>"""
 
-    return snippet.format(n=name,
-                          c=material.glass.color,
-                          i=material.glass.ior)
+    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
 def _write_material_disney(name, material):
@@ -318,18 +318,20 @@ def _write_material_disney(name, material):
                          clearcoat_roughness = "{11}" />
         <connect from="{0}_bsdf bsdf" to="output surface"/>
     </shader>"""
-    return snippet.format(name,
-                          material.disney.basecolor,
-                          material.disney.subsurface,
-                          material.disney.metallic,
-                          material.disney.specular,
-                          material.disney.speculartint,
-                          material.disney.roughness,
-                          material.disney.anisotropic,
-                          material.disney.sheen,
-                          material.disney.sheentint,
-                          material.disney.clearcoat,
-                          1 - float(material.disney.clearcoatgloss))
+    return snippet.format(
+        name,
+        material.disney.basecolor,
+        material.disney.subsurface,
+        material.disney.metallic,
+        material.disney.specular,
+        material.disney.speculartint,
+        material.disney.roughness,
+        material.disney.anisotropic,
+        material.disney.sheen,
+        material.disney.sheentint,
+        material.disney.clearcoat,
+        1 - float(material.disney.clearcoatgloss),
+    )
 
 
 def _write_material_diffuse(name, material):
@@ -340,8 +342,7 @@ def _write_material_diffuse(name, material):
         <diffuse_bsdf name="{n}_bsdf" color="{c.r}, {c.g}, {c.b}"/>
         <connect from="{n}_bsdf bsdf" to="output surface"/>
     </shader>"""
-    return snippet.format(n=name,
-                          c=material.diffuse.color)
+    return snippet.format(n=name, c=material.diffuse.color)
 
 
 def _write_material_mixed(name, material):
@@ -357,11 +358,13 @@ def _write_material_mixed(name, material):
         <connect from="{n}_glass_bsdf bsdf" to="{n}_closure closure2"/>
         <connect from="{n}_closure closure" to="output surface"/>
     </shader>"""
-    return snippet.format(n=name,
-                          c=material.mixed.glass.color,
-                          i=material.mixed.glass.ior,
-                          k=material.mixed.diffuse.color,
-                          r=material.mixed.transparency)
+    return snippet.format(
+        n=name,
+        c=material.mixed.glass.color,
+        i=material.mixed.glass.ior,
+        k=material.mixed.diffuse.color,
+        r=material.mixed.transparency,
+    )
 
 
 def _write_material_fallback(name, material):
@@ -382,18 +385,16 @@ def _write_material_fallback(name, material):
         <diffuse_bsdf name="{n}_bsdf" color="{r}, {g}, {b}"/>
         <connect from="{n}_bsdf bsdf" to="output surface"/>
     </shader>"""
-    return snippet.format(n=name,
-                          r=red,
-                          g=grn,
-                          b=blu)
+    return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
 MATERIALS = {
-        "Passthrough": _write_material_passthrough,
-        "Glass": _write_material_glass,
-        "Disney": _write_material_disney,
-        "Diffuse": _write_material_diffuse,
-        "Mixed": _write_material_mixed}
+    "Passthrough": _write_material_passthrough,
+    "Glass": _write_material_glass,
+    "Disney": _write_material_disney,
+    "Diffuse": _write_material_diffuse,
+    "Mixed": _write_material_mixed,
+}
 
 
 # ===========================================================================
@@ -429,15 +430,17 @@ def render(project, prefix, external, output, width, height):
     if not external:
         args += " --background"
     if not rpath:
-        App.Console.PrintError("Unable to locate renderer executable. "
-                               "Please set the correct path in "
-                               "Edit -> Preferences -> Render\n")
+        App.Console.PrintError(
+            "Unable to locate renderer executable. "
+            "Please set the correct path in "
+            "Edit -> Preferences -> Render\n"
+        )
         return ""
     args += " --width " + str(width)
     args += " --height " + str(height)
     filepath = f'"{project.PageResult}"'
     cmd = prefix + rpath + " " + args + " " + filepath
-    App.Console.PrintMessage(cmd+'\n')
+    App.Console.PrintMessage(cmd + "\n")
     os.system(cmd)
 
     return output
