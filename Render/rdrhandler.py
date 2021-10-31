@@ -23,6 +23,16 @@
 """This module implements RendererHandler class.
 
 RendererHandler is a simplified and unified accessor to renderers plugins.
+
+Among important things, RendererHandler:
+- allows to get a rendering string for a given object
+- allows to run a renderer onto a scene
+- generates a ground plane on-the-fly, if needed
+
+Caveat about units:
+Please note that RendererHandler converts distance units from FreeCAD internals
+(millimeters) to standard (meters) before sending objects to renderers, as
+usual renderers expects meters as base unit.
 """
 
 
@@ -42,6 +52,14 @@ import Mesh
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render import renderables
 import Render.rdrmaterials as materials
+
+
+# ===========================================================================
+#                                  Constants
+# ===========================================================================
+
+# Scale from FreeCAD internal distance unit (mm) to renderers ones (m)
+SCALE = 0.001
 
 
 # ===========================================================================
@@ -258,6 +276,12 @@ class RendererHandler:
 
         mat = materials.get_rendering_material(None, "", color)
 
+        # Rescale to meters
+        scalemat = App.Matrix()
+        scalemat.scale(SCALE, SCALE, SCALE)
+        mesh.transform(scalemat)
+        mesh.Placement.Base.multiply(SCALE)  # pylint: disable=no-member
+
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
         return res
@@ -277,12 +301,14 @@ class RendererHandler:
 
         def mesher(shape):
             """Mesh a shape."""
+            # Generate mesh
             mesh = MeshPart.meshFromShape(
                 Shape=shape,
                 LinearDeflection=self.linear_deflection,
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
+            # Harmonize normals
             mesh.harmonizeNormals()
             return mesh
 
@@ -299,6 +325,13 @@ class RendererHandler:
 
         # Check renderables
         renderables.check_renderables(rends)
+
+        # Rescale to meters
+        scalemat = App.Matrix()
+        scalemat.scale(SCALE, SCALE, SCALE)
+        for rend in rends:
+            rend.mesh.transform(scalemat)
+            rend.mesh.Placement.Base.multiply(SCALE)
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(
@@ -336,6 +369,11 @@ class RendererHandler:
         )
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         field_of_view = float(getattr(source, "HeightAngle", 60))
+        # Rescale
+        pos.Base.multiply(SCALE)
+        target.multiply(SCALE)
+        updir.multiply(SCALE)
+
         return self._call_renderer(
             "write_camera", name, pos, updir, target, field_of_view
         )
@@ -356,14 +394,17 @@ class RendererHandler:
 
         source = view.Source
 
-        # get location, color
+        # Get location, color
         location = App.Base.Vector(source.Location)
         color = source.Color
 
-        # we accept missing Power (default value: 60)...
+        # Rescale
+        location.multiply(SCALE)
+
+        # We accept missing Power (default value: 60)...
         power = getattr(source, "Power", 60)
 
-        # send everything to renderer module
+        # Send everything to renderer module
         return self._call_renderer(
             "write_pointlight", name, location, color, power
         )
@@ -385,10 +426,11 @@ class RendererHandler:
         # Get properties
         source = view.Source
         placement = App.Base.Placement(source.Placement)
+        placement.Base.multiply(SCALE)  # Rescale
         color = source.Color
         power = float(source.Power)
-        size_u = float(source.SizeU)
-        size_v = float(source.SizeV)
+        size_u = float(source.SizeU) * SCALE
+        size_v = float(source.SizeV) * SCALE
         transparent = bool(source.Transparent)
 
         # Send everything to renderer module
