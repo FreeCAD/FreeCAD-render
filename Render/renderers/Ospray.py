@@ -61,8 +61,8 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 # ===========================================================================
 
 
-def write_object(name, mesh, material):
-    """Compute a string in renderer SDL to represent a FreeCAD object."""
+def write_mesh(name, mesh, material):
+    """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Write the mesh as an OBJ tempfile
     f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
@@ -70,28 +70,28 @@ def write_object(name, mesh, material):
     # Direct rotation of mesh is preferred to Placement modification
     # because the latter is buggy (normals are not updated...)
     # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
-    tmpmesh.rotate(-pi/2, 0, 0)  # OK
+    tmpmesh.rotate(-pi / 2, 0, 0)  # OK
     tmpmesh.write(objfile)
 
     # Fix missing object name in OBJ file (mandatory)
     # We want to insert a 'o ...' statement before the first 'f ...'
     # We add also a 'usemtl' statement
-    with open(objfile, "r") as f:
+    with open(objfile, "r", encoding="utf-8") as f:
         buffer = f.readlines()
 
     i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    buffer.insert(i, "o %s\nusemtl material\n" % name)
+    buffer.insert(i, f"o {name}\nusemtl material\n")
 
     # Write material
     f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="_")
     os.close(f_handle)
     mtl = "newmtl material" + _write_material(name, material)
-    with open(mtlfile, "w") as f:
+    with open(mtlfile, "w", encoding="utf-8") as f:
         f.write(mtl)
 
-    buffer.insert(0, "mtllib %s\n" % os.path.basename(mtlfile))
+    buffer.insert(0, f"mtllib {os.path.basename(mtlfile)}\n")
 
-    with open(objfile, "w") as f:
+    with open(objfile, "w", encoding="utf-8") as f:
         f.write("".join(buffer))
 
     snippet_obj = """
@@ -197,19 +197,21 @@ def write_pointlight(name, pos, color, power):
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     # Write mtl file (material)
-    mtl = [
-        "# Created by FreeCAD <http://www.freecadweb.org>",
-        "newmtl material",
-        "type luminous",
-        "color {} {} {}".format(*color),
-        "intensity {}".format(power / 10),
-        "transparency {}".format(1.0 if transparent else 0.0),
-    ]
+    power /= 10
+    transparency = 1.0 if transparent else 0.0
+    mtl = f"""
+# Created by FreeCAD <http://www.freecadweb.org>",
+newmtl material
+type luminous
+color {color[0]} {color[1]} {color[2]}
+intensity {power}
+transparency {transparency}
+"""
 
     f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
     os.close(f_handle)
-    with open(mtlfile, "w") as f:
-        f.write("\n".join(mtl))
+    with open(mtlfile, "w", encoding="utf-8") as f:
+        f.write(mtl)
 
     # Write obj file (geometry)
     osp_pos = TRANSFORM.multiply(pos)
@@ -220,23 +222,27 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         (-size_u, +size_v, 0),
     ]
     verts = [osp_pos.multVec(App.Vector(*v)) for v in verts]
+    verts = [f"v {v.x} {v.y} {v.z}" for v in verts]
+    verts = "\n".join(verts)
     normal = osp_pos.multVec(App.Vector(0, 0, 1))
 
-    obj = list()
-    obj += ["# Created by FreeCAD <http://www.freecadweb.org>"]
-    obj += ["mtllib {}".format(os.path.basename(mtlfile))]
-    obj += ["v {0.x} {0.y} {0.z}".format(v) for v in verts]
-    obj += ["vn {0.x} {0.y} {0.z}".format(normal)]
-    obj += ["o {}".format(name)]
-    obj += ["usemtl material"]
-    obj += ["f 1//1 2//1 3//1 4//1"]
+    obj = f"""
+# Created by FreeCAD <http://www.freecadweb.org>"]
+mtllib {os.path.basename(mtlfile)}
+{verts}
+vn {normal.x} {normal.y} {normal.z}
+o {name}
+usemtl material
+f 1//1 2//1 3//1 4//1
+"""
 
     f_handle, objfile = mkstemp(suffix=".obj", prefix="light_")
     os.close(f_handle)
-    with open(objfile, "w") as f:
-        f.write("\n".join(obj))
+    with open(objfile, "w", encoding="utf-8") as f:
+        f.write(obj)
 
     # Return SDL
+    filename = objfile.encode("unicode_escape").decode("utf-8")
     snippet = """
       {{
         "name": {n},
@@ -244,7 +250,6 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         "filename": {f}
       }},"""
 
-    filename = objfile.encode("unicode_escape").decode("utf-8")
     return snippet.format(n=json.dumps(name), f=json.dumps(filename))
 
 
@@ -359,7 +364,11 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
         ]
       }},"""
     return snippet.format(
-        n=json.dumps(name), t=turbidity, e=degrees(elevation), a=degrees(azimuth), g=albedo
+        n=json.dumps(name),
+        t=turbidity,
+        e=degrees(elevation),
+        a=degrees(azimuth),
+        g=albedo,
     )
 
 
@@ -398,7 +407,7 @@ def write_imagelight(name, image):
     # so we have to manipulate pathes a bit...
     image_relpath = os.path.relpath(image, os.path.dirname(gltf_file))
 
-    with open(gltf_file, "w") as f:
+    with open(gltf_file, "w", encoding="utf-8") as f:
         f.write(gltf_snippet.format(f=image_relpath))
 
     snippet = """
@@ -586,7 +595,7 @@ def render(project, prefix, external, output, width, height):
     json_load = json.loads(result)
     world_children = json_load["world"]["children"]
     world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
-    lights = list()
+    lights = []
 
     def remaining_lightgroups():
         try:
@@ -598,7 +607,7 @@ def render(project, prefix, external, output, width, height):
     while remaining_lightgroups():
         light = world_children.pop()
         lights += light["children"]
-    lightsmanager_children =  json_load["lightsManager"]["children"]
+    lightsmanager_children = json_load["lightsManager"]["children"]
     lightsmanager_children.extend(lights)
 
     # Write resulting output to file
@@ -606,7 +615,7 @@ def render(project, prefix, external, output, width, height):
         prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
     )
     os.close(f_handle)
-    with open(f_path, "w") as f:
+    with open(f_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(json_load, indent=2))
     project.PageResult = f_path
     os.remove(f_path)
@@ -627,9 +636,7 @@ def render(project, prefix, external, output, width, height):
         )
         return ""
 
-    filepath = '"%s"' % project.PageResult
-
-    cmd = prefix + rpath + " " + args + " " + filepath
+    cmd = prefix + rpath + " " + args + " " + f'"{project.PageResult}"'
     App.Console.PrintMessage(cmd + "\n")
 
     # Note: at the moment (02-19-2021), width, height, output, background are
@@ -638,7 +645,6 @@ def render(project, prefix, external, output, width, height):
     try:
         Popen(shlex.split(cmd))
     except OSError as err:
-        msg = "OspStudio call failed: '" + err.strerror + "'\n"
-        App.Console.PrintError(msg)
+        App.Console.PrintError(f"OspStudio call failed: '{err.strerror}'\n")
 
     return None

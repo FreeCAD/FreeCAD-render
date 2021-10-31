@@ -84,7 +84,7 @@ class RendererHandler:
         self.transparency_boost = float(kwargs.get("transparency_boost", 0))
 
         try:
-            module_name = "Render.renderers.%s" % rdrname
+            module_name = f"Render.renderers.{rdrname}"
             self.renderer_module = import_module(module_name)
         except ModuleNotFoundError:
             raise RendererNotFoundError(rdrname) from None
@@ -258,7 +258,7 @@ class RendererHandler:
 
         mat = materials.get_rendering_material(None, "", color)
 
-        res = self.renderer_module.write_object("ground_plane", mesh, mat)
+        res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
         return res
 
@@ -301,15 +301,15 @@ class RendererHandler:
         renderables.check_renderables(rends)
 
         # Call renderer on renderables, concatenate and return
-        write_object = functools.partial(
-            RendererHandler._call_renderer, self, "write_object"
+        write_mesh = functools.partial(
+            RendererHandler._call_renderer, self, "write_mesh"
         )
 
         get_mat = materials.get_rendering_material
         rdrname = self.renderer_name
 
         res = [
-            write_object(
+            write_mesh(
                 r.name, r.mesh, get_mat(r.material, rdrname, r.defcolor)
             )
             for r in rends

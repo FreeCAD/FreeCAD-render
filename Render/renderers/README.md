@@ -45,7 +45,7 @@ Valid plugins are collected in `Render.RENDERERS` constant (in Render.py) at wor
 #### Contents
 The plugin must contain the following functions:
 
-* `write_object(name, mesh, material)`
+* `write_mesh(name, mesh, material)`
 
   Expected behaviour:  
   Return a string containing a mesh object description in renderer SDL

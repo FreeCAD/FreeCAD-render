@@ -42,13 +42,13 @@ translate = _translate
 
 def debug(domain, object_name, msg):
     """Print debug message."""
-    msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
+    msg = f"[Render][{domain}] '{object_name}': {msg}\n"
     App.Console.PrintLog(msg)
 
 
 def warn(domain, object_name, msg):
     """Print warning message."""
-    msg = "[Render][{d}] '{n}': {m}\n".format(d=domain, n=object_name, m=msg)
+    msg = f"[Render][{domain}] '{object_name}': {msg}\n"
     App.Console.PrintWarning(msg)
 
 
@@ -127,8 +127,8 @@ def reload(module_name=None):
         try:
             module = sys.modules[mod]
         except KeyError:
-            print("Skip '%s'" % mod)
+            print(f"Skip '{mod}'")
         else:
-            print("Reload '%s'" % mod)
+            print(f"Reload '{mod}'")
             importlib.import_module(mod)
             importlib.reload(module)

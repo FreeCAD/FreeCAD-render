@@ -115,7 +115,7 @@ class ColorPicker(QPushButton):
     def get_color_text(self):
         """Get widget color value, in text format."""
         color = self.color
-        return "({},{},{})".format(color.redF(), color.greenF(), color.blueF())
+        return f"({color.redF()},{color.greenF()},{color.blueF()})"
 
 
 class ColorPickerExt(QWidget):
@@ -225,7 +225,7 @@ class MaterialSettingsTaskPanel:
         for rdr in VALID_RENDERERS:
             item = QListWidgetItem()
             item.setText(rdr)
-            item.setIcon(QIcon(os.path.join(ICONDIR, "%s.svg" % rdr)))
+            item.setIcon(QIcon(os.path.join(ICONDIR, f"{rdr}.svg")))
             rdrwidget.addItem(item)
         rdrwidget.setViewMode(QListView.IconMode)
         rdrwidget.setIconSize(QSize(48, 48))
@@ -307,7 +307,7 @@ class MaterialSettingsTaskPanel:
             mat_name = self.material_combo.currentText()
             for param in params:
                 value = self.existing_materials[mat_name].Material.get(
-                    "Render.{}.{}".format(material_type, param.name)
+                    f"Render.{material_type}.{param.name}"
                 )
                 self._add_field(param, value)
 
@@ -393,7 +393,7 @@ class MaterialSettingsTaskPanel:
             self.fields.append((name, widget.text))
         widget.setToolTip(param.desc)
         layout = self.form.findChild(QLayout, "FieldsLayout")
-        layout.addRow("%s:" % param.name, widget)
+        layout.addRow(f"{param.name}:", widget)
 
     def _delete_fields(self):
         """Delete all fields, except the first one (MaterialType selector)."""
@@ -427,7 +427,7 @@ class MaterialSettingsTaskPanel:
             # Set fields
             for field in self.fields:
                 field_name, get_value = field
-                param_name = "Render.{}.{}".format(render_type, field_name)
+                param_name = f"Render.{render_type}.{field_name}"
                 tmp_mat[param_name] = str(get_value())
 
         # Set passthru
@@ -486,7 +486,7 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         if params.GetBool("UseFCDMaterials", False):
             paths.append(("FREECAD", FCDMATERIALDIR))
         self.cards = {
-            "%s - %s" % (d, os.path.splitext(f)[0]): os.path.join(p, f)
+            f"{d} - {os.path.splitext(f)[0]}": os.path.join(p, f)
             for d, p in paths
             if os.path.exists(p)
             for f in os.listdir(p)

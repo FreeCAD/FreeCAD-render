@@ -266,13 +266,12 @@ def get_rendering_material(material, renderer, default_color):
         try:
             params = STD_MATERIALS_PARAMETERS[shadertype]
         except KeyError:
-            debug("Unknown material type '{}'".format(shadertype))
+            debug(f"Unknown material type '{shadertype}'")
         else:
-            keyfmt = "Render.%s.%s"
             values = tuple(
                 (
                     p.name,  # Parameter name
-                    mat.get(keyfmt % (shadertype, p.name), None),  # Parm value
+                    mat.get(f"Render.{shadertype}.{p.name}", None),  # Par val
                     p.default,  # Parameter default value
                     p.type,  # Parameter type
                     default_color,  # Object color
@@ -304,7 +303,7 @@ def get_rendering_material(material, renderer, default_color):
         debug(msg.format(father_name))
     else:
         # Found usable father
-        debug("Retrieve father material '{}'".format(father_name))
+        debug(f"Retrieve father material '{father_name}'")
         return get_rendering_material(father, renderer, default_color)
 
     # Try with Coin-like parameters (backward compatibility)
@@ -330,7 +329,7 @@ def get_rendering_material(material, renderer, default_color):
 @functools.lru_cache(maxsize=128)
 def passthrough_keys(renderer):
     """Compute material card keys for passthrough rendering material."""
-    return {"Render.{}.{:04}".format(renderer, i) for i in range(1, 9999)}
+    return {f"Render.{renderer}.{i:04}" for i in range(1, 9999)}
 
 
 def is_multimat(obj):
@@ -403,7 +402,7 @@ class RenderMaterial:
     def __repr__(self):
         """Represent object."""
         items = (f"{k}={v!r}" for k, v in self.__dict__.items())
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        return f"{type(self).__name__}({', '.join(items)})"
 
     def setshaderparam(self, name, value):
         """Set shader parameter.
@@ -553,7 +552,7 @@ def printmat(fcdmat):
         a string containing the material in Material Card format
     """
     def keysort(item):
-        key, value, keyword = item
+        key, _, keyword = item
         if keyword == "Type":
             rank = 0
         elif keyword in STD_MATERIALS_PARAMETERS:
@@ -568,7 +567,7 @@ def printmat(fcdmat):
         if i[0].startswith("Render.")
     ]
     items.sort(key=keysort)
-    lines = ["{} = {}".format(*i) for i in items]
+    lines = [f"{i[0]} = {i[1]}" for i in items]
     print("\n".join(lines))
 
 

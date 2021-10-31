@@ -63,7 +63,7 @@ enable=use-symbolic-message-instead,useless-supression,fixme
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 
-disable=suppressed-message
+disable=suppressed-message, duplicate-code
 
 
 [REPORTS]
@@ -156,7 +156,7 @@ callbacks=cb_, _cb,
           updateData,
           render,
           write_camera,
-          write_object,
+          write_mesh,
           write_pointlight,
           write_arealight,
           write_sunsky
