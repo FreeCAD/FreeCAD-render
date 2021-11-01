@@ -198,7 +198,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         n=name,
         c=color,
         p=pos.Base,
-        s=strength * 100,
+        s=strength / 100,
         u=axis1,
         v=axis2,
         a=size_u,
