@@ -105,14 +105,13 @@ def write_camera(name, pos, updir, target, fov):
     # @@ASPECT_RATIO@@, to be replaced by an actual value in 'render' function
 
     snippet = """
-        <camera name="{n}" model="thinlens_camera">
-            <parameter name="film_width" value="0.032" />
-            <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
-            <parameter name="horizontal_fov" value="{f}" />
+        <camera name="{n}" model="pinhole_camera">
             <parameter name="shutter_open_time" value="0" />
             <parameter name="shutter_close_time" value="1" />
-            <parameter name="focal_distance" value="1" />
-            <parameter name="f_stop" value="8" />
+            <parameter name="film_width" value="0.032" />
+            <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
+            <parameter name="focal_length" value="0" />
+            <parameter name="horizontal_fov" value="{f}" />
             <transform>
                 <look_at origin="{o.x} {o.y} {o.z}"
                          target="{t.x} {t.y} {t.z}"
