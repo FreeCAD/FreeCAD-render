@@ -103,6 +103,8 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     points = [f"{p.x} {p.y} {p.z}" for p in points]
     points = "  ".join(points)
 
+    power *= 100
+
     snippet = """# Arealight '{n}'
 AttributeBegin
   AreaLightSource "diffuse"

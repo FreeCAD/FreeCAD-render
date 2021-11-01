@@ -210,7 +210,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         t=_transform(pos.Base),
         r=_transform(pos.Rotation.Axis),
         a=degrees(pos.Rotation.Angle),
-        p=radiance * 100,  # guesstimated factor
+        p=radiance / 100,  # guesstimated factor
         g=0.0 if transparent else 1.0,
     )
 

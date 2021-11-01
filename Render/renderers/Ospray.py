@@ -197,7 +197,7 @@ def write_pointlight(name, pos, color, power):
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     # Write mtl file (material)
-    power /= 10
+    power *= 10
     transparency = 1.0 if transparent else 0.0
     mtl = f"""
 # Created by FreeCAD <http://www.freecadweb.org>",

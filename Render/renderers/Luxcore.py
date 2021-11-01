@@ -96,7 +96,7 @@ def write_pointlight(name, pos, color, power):
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     efficency = 15
-    gain = 10  # Guesstimated!
+    gain = 0.001  # Guesstimated!
 
     # We have to transpose 'pos' to make it fit for Lux
     # As 'transpose' method is in-place, we first make a copy
