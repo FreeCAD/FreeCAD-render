@@ -196,15 +196,19 @@ def write_pointlight(name, pos, color, power):
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
+    # Note: ospray expects a radiance (W/m²), we have to convert power
+    # See here: https://www.ospray.org/documentation.html#luminous
+
     # Write mtl file (material)
-    power /= 10
+    radiance = power / (size_u * size_v)
+    radiance /= 1000  # Magic number
     transparency = 1.0 if transparent else 0.0
     mtl = f"""
 # Created by FreeCAD <http://www.freecadweb.org>",
 newmtl material
 type luminous
 color {color[0]} {color[1]} {color[2]}
-intensity {power}
+intensity {radiance}
 transparency {transparency}
 """
 
