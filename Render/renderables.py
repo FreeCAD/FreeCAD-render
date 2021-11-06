@@ -147,7 +147,10 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
         color = _get_shapecolor(obj, transparency_boost)
-        renderables = [Renderable(name, obj.Mesh, mat, color)]
+        # Make a copy of obj.Mesh, otherwise we may have an immutable object
+        # and further treatments will fail
+        mesh = obj.Mesh.copy()
+        renderables = [Renderable(name, mesh, mat, color)]
 
     # Unhandled
     else:
