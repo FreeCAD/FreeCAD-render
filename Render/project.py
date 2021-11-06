@@ -236,9 +236,6 @@ class Project(FeatureBase):
     def write_groundplane(self, renderer):
         """Generate a ground plane rendering string for the scene.
 
-        For that purpose, dummy objects are temporarily added to the document
-        which the project belongs to, and eventually deleted
-
         Args:
         ----------
         renderer -- the renderer handler
@@ -250,10 +247,15 @@ class Project(FeatureBase):
         # Compute scene bounding box
         bbox = App.BoundBox()
         for view in self.all_views():
-            try:
-                bbox.add(view.Source.Shape.BoundBox)
-            except AttributeError:
-                pass
+            source = view.Source
+            for attr_name in ("Shape", "Mesh"):
+                try:
+                    attr = getattr(source, attr_name)
+                except AttributeError:
+                    pass
+                else:
+                    bbox.add(attr.BoundBox)
+                    break
 
         # Compute rendering string
         result = ""
