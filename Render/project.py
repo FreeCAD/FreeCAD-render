@@ -233,18 +233,12 @@ class Project(FeatureBase):
         fpo.Renderer = rdr
         fpo.Template = template
 
-    def write_groundplane(self, renderer):
-        """Generate a ground plane rendering string for the scene.
+    def get_bounding_box(self):
+        """Compute project bounding box.
 
-        Args:
-        ----------
-        renderer -- the renderer handler
-
-        Returns
-        -------
-        The rendering string for the ground plane
+        This the bounding box of the underlying objects referenced in the
+        scene.
         """
-        # Compute scene bounding box
         bbox = App.BoundBox()
         for view in self.all_views():
             source = view.Source
@@ -256,15 +250,26 @@ class Project(FeatureBase):
                 else:
                     bbox.add(attr.BoundBox)
                     break
+        return bbox
 
-        # Compute rendering string
+    def write_groundplane(self, renderer):
+        """Generate a ground plane rendering string for the scene.
+
+        Args:
+        ----------
+        renderer -- the renderer handler
+
+        Returns
+        -------
+        The rendering string for the ground plane
+        """
+        bbox = self.get_bounding_box()
         result = ""
         if bbox.isValid():
             zpos = self.fpo.GroundPlaneZ
             color = self.fpo.GroundPlaneColor
             factor = self.fpo.GroundPlaneSizeFactor
             result = renderer.get_groundplane_string(bbox, zpos, color, factor)
-
         return result
 
     def add_views(self, objs):
