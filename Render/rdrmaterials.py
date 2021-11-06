@@ -165,6 +165,14 @@ STD_MATERIALS_PARAMETERS = {
             ),
         ),
     ],
+    "Carpaint": [
+        Param(
+            "BaseColor",
+            "RGB",
+            (0.8, 0.2, 0.2),
+            translate("Render", "Base color"),
+        ),
+    ]
 }
 
 
