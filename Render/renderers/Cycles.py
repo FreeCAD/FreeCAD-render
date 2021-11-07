@@ -392,7 +392,8 @@ def _write_material_carpaint(name, material):
         <connect from="{n}_flakes_glossy1 bsdf" to="{n}_flakes_mix closure1"/>
 
         <glossy_bsdf name="{n}_flakes_glossy2"
-                     color="{f.r}, {f.g}, {f.b}"/>
+                     color="{f.r}, {f.g}, {f.b}"
+                     roughness="0.5"/>
         <connect from="{n}_flakes_glossy2 bsdf" to="{n}_flakes_mix closure2"/>
 
         <normal_map name="{n}_flakes_normalmap" strength="0.05"/>
