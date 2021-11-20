@@ -1,0 +1,87 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_ray_switch_surface.oso
+shader as_ray_switch_surface	%meta{string,help,"Ray switch surface shadear."} %meta{string,icon,"asRaySwitchSurface.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_ray_switch_surface.html"} %meta{string,as_node_name,"asRaySwitchSurface"} %meta{string,as_category,"shader"} %meta{string,as_max_class_id,"553479896 1617499966"} %meta{string,as_max_plugin_type,"material"} %meta{int,as_maya_type_id,1210891} %meta{string,as_maya_classification,"drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch"} 
+param	closure color	in_material_camera			%meta{string,as_maya_attribute_name,"materialCamera"} %meta{string,as_maya_attribute_short_name,"mca"} %meta{string,label,"Camera Ray Material"} %meta{string,page,"Material"}  %read{2,2} %write{2147483647,-1}
+param	closure color	in_material_light			%meta{string,as_maya_attribute_name,"materialLight"} %meta{string,as_maya_attribute_short_name,"mli"} %meta{string,label,"Light Ray Material"} %meta{string,page,"Material"}  %read{5,5} %write{2147483647,-1}
+param	closure color	in_material_shadow			%meta{string,as_maya_attribute_name,"materialShadow"} %meta{string,as_maya_attribute_short_name,"msh"} %meta{string,label,"Shadow Ray Material"} %meta{string,page,"Material"}  %read{8,8} %write{2147483647,-1}
+param	closure color	in_material_transparency			%meta{string,as_maya_attribute_name,"materialTransparency"} %meta{string,as_maya_attribute_short_name,"mtr"} %meta{string,label,"Transparency Ray Material"} %meta{string,page,"Material"}  %read{11,11} %write{2147483647,-1}
+param	closure color	in_material_diffuse			%meta{string,as_maya_attribute_name,"materialDiffuse"} %meta{string,as_maya_attribute_short_name,"mdi"} %meta{string,label,"Diffuse Ray Material"} %meta{string,page,"Material"}  %read{14,14} %write{2147483647,-1}
+param	closure color	in_material_glossy			%meta{string,as_maya_attribute_name,"materialGlossy"} %meta{string,as_maya_attribute_short_name,"cgl"} %meta{string,label,"Glossy Ray Material"} %meta{string,page,"Material"}  %read{17,17} %write{2147483647,-1}
+param	closure color	in_material_specular			%meta{string,as_maya_attribute_name,"materialSpecular"} %meta{string,as_maya_attribute_short_name,"msp"} %meta{string,label,"Specular Ray Material"} %meta{string,page,"Material"}  %read{20,20} %write{2147483647,-1}
+param	closure color	in_material_subsurface			%meta{string,as_maya_attribute_name,"materialSubsurface"} %meta{string,as_maya_attribute_short_name,"msu"} %meta{string,label,"Subsurface Ray Material"} %meta{string,page,"Material"}  %read{23,23} %write{2147483647,-1}
+oparam	closure color	out_color			%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,label,"Output Material"} %meta{string,page,"Output"} %meta{string,widget,"null"}  %read{2147483647,-1} %write{2,23}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+const	string	$const1	"camera"		%read{0,0} %write{2147483647,-1}
+temp	int	$tmp2	%read{4,4} %write{3,3}
+const	string	$const2	"light"		%read{3,3} %write{2147483647,-1}
+temp	int	$tmp3	%read{7,7} %write{6,6}
+const	string	$const3	"shadow"		%read{6,6} %write{2147483647,-1}
+temp	int	$tmp4	%read{10,10} %write{9,9}
+const	string	$const4	"transparency"		%read{9,9} %write{2147483647,-1}
+temp	int	$tmp5	%read{13,13} %write{12,12}
+const	string	$const5	"diffuse"		%read{12,12} %write{2147483647,-1}
+temp	int	$tmp6	%read{16,16} %write{15,15}
+const	string	$const6	"glossy"		%read{15,15} %write{2147483647,-1}
+temp	int	$tmp7	%read{19,19} %write{18,18}
+const	string	$const7	"specular"		%read{18,18} %write{2147483647,-1}
+temp	int	$tmp8	%read{22,22} %write{21,21}
+const	string	$const8	"subsurface"		%read{21,21} %write{2147483647,-1}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:112
+#     if (raytype("camera"))
+	raytype		$tmp1 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl"} %line{112} %argrw{"wr"}
+	if		$tmp1 3 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:114
+#         out_color = in_material_camera;
+	assign		out_color in_material_camera 	%line{114} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:116
+#     else if (raytype("light"))
+	raytype		$tmp2 $const2 	%line{116} %argrw{"wr"}
+	if		$tmp2 6 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:118
+#         out_color = in_material_light;
+	assign		out_color in_material_light 	%line{118} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:120
+#     else if (raytype("shadow"))
+	raytype		$tmp3 $const3 	%line{120} %argrw{"wr"}
+	if		$tmp3 9 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:122
+#         out_color = in_material_shadow;
+	assign		out_color in_material_shadow 	%line{122} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:124
+#     else if (raytype("transparency"))
+	raytype		$tmp4 $const4 	%line{124} %argrw{"wr"}
+	if		$tmp4 12 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:126
+#         out_color = in_material_transparency;
+	assign		out_color in_material_transparency 	%line{126} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:128
+#     else if (raytype("diffuse"))
+	raytype		$tmp5 $const5 	%line{128} %argrw{"wr"}
+	if		$tmp5 15 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:130
+#         out_color = in_material_diffuse;
+	assign		out_color in_material_diffuse 	%line{130} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:132
+#     else if (raytype("glossy"))
+	raytype		$tmp6 $const6 	%line{132} %argrw{"wr"}
+	if		$tmp6 18 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:134
+#         out_color = in_material_glossy;
+	assign		out_color in_material_glossy 	%line{134} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:136
+#     else if (raytype("specular"))
+	raytype		$tmp7 $const7 	%line{136} %argrw{"wr"}
+	if		$tmp7 21 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:138
+#         out_color = in_material_specular;
+	assign		out_color in_material_specular 	%line{138} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:140
+#     else if (raytype("subsurface"))
+	raytype		$tmp8 $const8 	%line{140} %argrw{"wr"}
+	if		$tmp8 24 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch_surface.osl:142
+#         out_color = in_material_subsurface;
+	assign		out_color in_material_subsurface 	%line{142} %argrw{"wr"}
+	end

@@ -1,0 +1,2550 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_invert_color.oso
+shader as_invert_color	%meta{string,icon,"asInvertColor.png"} %meta{string,help,"Inverts one or more individual color channels of the input color in the respective color model. The output is a RGB color."} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_invert_color.html"} %meta{string,as_node_name,"asInvertColor"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"1105087319 977155459"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210888} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	color	in_color	0 0 0		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Input Color"} %meta{string,page,"Color"} %meta{string,help,"Color to invert."} %meta{int,divider,1}  %read{3,18} %write{2147483647,-1}
+param	string	in_color_model	"RGB"		%meta{string,as_maya_attribute_name,"colorModel"} %meta{string,as_maya_attribute_short_name,"clm"} %meta{string,widget,"popup"} %meta{string,options,"RGB|HSV|HSL"} %meta{string,label,"Color Model"} %meta{string,page,"Color"} %meta{string,help,"The input color uses this color space."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{0,774} %write{2147483647,-1}
+param	int	in_invert_channel_x	0		%meta{string,as_maya_attribute_name,"invertChannelX"} %meta{string,as_maya_attribute_short_name,"icx"} %meta{int,min,0} %meta{int,max,1} %meta{string,widget,"checkBox"} %meta{string,label,"Invert X Component"} %meta{string,page,"Output"} %meta{string,help,"Inverts the X component of the input color."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{5,515} %write{2147483647,-1}
+param	int	in_invert_channel_y	0		%meta{string,as_maya_attribute_name,"invertChannelY"} %meta{string,as_maya_attribute_short_name,"icy"} %meta{int,min,0} %meta{int,max,1} %meta{string,widget,"checkBox"} %meta{string,label,"Invert Y Component"} %meta{string,page,"Output"} %meta{string,help,"Inverts the Y component of the input color."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{9,519} %write{2147483647,-1}
+param	int	in_invert_channel_z	0		%meta{string,as_maya_attribute_name,"invertChannelZ"} %meta{string,as_maya_attribute_short_name,"icz"} %meta{int,min,0} %meta{int,max,1} %meta{string,widget,"checkBox"} %meta{string,label,"Invert Z Component"} %meta{string,page,"Output"} %meta{string,help,"Inverts the Z component of the input color."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{13,523} %write{2147483647,-1}
+oparam	color	out_outColor	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,label,"Output Color"} %meta{string,page,"Output"} %meta{string,widget,"null"}  %read{6,14} %write{4,1020}
+local	float	___259_r	%read{165,981} %write{161,956}
+local	float	___259_g	%read{164,981} %write{162,957}
+local	float	___259_b	%read{164,978} %write{163,958}
+local	float	___259_mincomp	%read{168,963} %write{165,960}
+local	float	___259_maxcomp	%read{168,976} %write{167,962}
+local	float	___259_delta	%read{172,982} %write{168,963}
+local	float	___259_h	%read{189,988} %write{176,987}
+local	float	___259_s	%read{174,988} %write{172,968}
+local	float	___259_v	%read{193,988} %write{169,964}
+local	float	___261_minval	%read{238,1003} %write{201,954}
+local	color	___261_hsv	%read{236,990} %write{235,988}
+local	float	___261_maxval	%read{238,1002} %write{236,989}
+local	float	___261_h	%read{252,1005} %write{237,990}
+local	float	___261_s	%read{252,1005} %write{242,1004}
+local	float	___261_l	%read{243,1005} %write{239,992}
+local	color	___258_r	%read{267,1020} %write{157,1019}
+local	float	___264_h	%read{41,859} %write{35,856}
+local	float	___264_s	%read{38,866} %write{36,849}
+local	float	___264_v	%read{40,884} %write{37,850}
+local	color	___264_r	%read{72,885} %write{40,884}
+local	int	___266_hi	%read{45,881} %write{44,857}
+local	float	___266_f	%read{49,865} %write{46,859}
+local	float	___266_p	%read{58,884} %write{48,861}
+local	float	___266_q	%read{61,884} %write{51,864}
+local	float	___266_t	%read{58,883} %write{55,868}
+local	float	___267_h	%read{93,846} %write{76,829}
+local	float	___267_s	%read{81,846} %write{77,845}
+local	float	___267_l	%read{79,842} %write{78,831}
+local	float	___267_v	%read{86,846} %write{82,838}
+local	color	___267_r	%read{133,886} %write{88,885}
+local	float	___269_min	%read{91,844} %write{90,843}
+local	color	___263_r	%read{157,1019} %write{31,901}
+local	color	___361_color_rgb	%read{31,395} %write{19,19}
+local	color	___361_tmp	%read{516,901} %write{20,526}
+const	string	$const1	"RGB"		%read{0,906} %write{2147483647,-1}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+const	color	$const2	0 0 0		%read{4,20} %write{2147483647,-1}
+const	color	$const3	1 1 1		%read{3,18} %write{2147483647,-1}
+const	string	$const4	"clamp"		%read{2,17} %write{2147483647,-1}
+temp	color	$tmp4	%read{4,4} %write{3,3}
+const	float	$const5	1		%read{7,987} %write{2147483647,-1}
+const	int	$const6	0		%read{6,995} %write{2147483647,-1}
+temp	float	$tmp5	%read{7,7} %write{6,6}
+temp	float	$tmp6	%read{8,8} %write{7,7}
+const	int	$const7	1		%read{10,957} %write{2147483647,-1}
+temp	float	$tmp7	%read{11,11} %write{10,10}
+temp	float	$tmp8	%read{12,12} %write{11,11}
+const	int	$const8	2		%read{14,989} %write{2147483647,-1}
+temp	float	$tmp9	%read{15,15} %write{14,14}
+temp	float	$tmp10	%read{16,16} %write{15,15}
+temp	color	$tmp13	%read{19,19} %write{18,18}
+const	string	$const9	"HSL"		%read{21,527} %write{2147483647,-1}
+temp	int	$tmp14	%read{22,22} %write{21,21}
+const	string	$const10	"rgb"		%read{24,1018} %write{2147483647,-1}
+const	string	$const11	"hsl"		%read{73,947} %write{2147483647,-1}
+const	string	$const12	"transformc"		%read{23,902} %write{2147483647,-1}
+temp	int	$tmp15	%read{25,25} %write{24,24}
+temp	int	$tmp16	%read{26,30} %write{25,29}
+temp	int	$tmp17	%read{28,28} %write{27,27}
+temp	int	$tmp18	%read{29,29} %write{28,28}
+const	string	$const13	"hsv"		%read{32,911} %write{2147483647,-1}
+temp	int	$tmp19	%read{33,33} %write{32,32}
+const	string	$const14	"hsv_to_rgb"		%read{34,847} %write{2147483647,-1}
+const	float	$const15	9.99999975e-05		%read{38,851} %write{2147483647,-1}
+temp	int	$tmp20	%read{39,39} %write{38,38}
+temp	float	$tmp21	%read{42,42} %write{41,41}
+temp	float	$tmp22	%read{43,43} %write{42,42}
+const	float	$const17	6		%read{43,984} %write{2147483647,-1}
+temp	float	$tmp23	%read{46,46} %write{45,45}
+temp	float	$tmp24	%read{48,48} %write{47,47}
+temp	float	$tmp25	%read{50,50} %write{49,49}
+temp	float	$tmp26	%read{51,51} %write{50,50}
+temp	float	$tmp27	%read{53,53} %write{52,52}
+temp	float	$tmp28	%read{54,54} %write{53,53}
+temp	float	$tmp29	%read{55,55} %write{54,54}
+temp	int	$tmp30	%read{57,57} %write{56,56}
+temp	int	$tmp31	%read{60,60} %write{59,59}
+temp	int	$tmp32	%read{63,63} %write{62,62}
+const	int	$const18	3		%read{65,878} %write{2147483647,-1}
+temp	int	$tmp33	%read{66,66} %write{65,65}
+const	int	$const19	4		%read{68,881} %write{2147483647,-1}
+temp	int	$tmp34	%read{69,69} %write{68,68}
+temp	int	$tmp35	%read{74,74} %write{73,73}
+const	string	$const20	"hsl_to_rgb"		%read{75,828} %write{2147483647,-1}
+const	float	$const21	0.5		%read{79,996} %write{2147483647,-1}
+temp	int	$tmp36	%read{80,80} %write{79,79}
+temp	float	$tmp37	%read{82,82} %write{81,81}
+temp	float	$tmp38	%read{84,84} %write{83,83}
+temp	float	$tmp39	%read{85,85} %write{84,84}
+temp	int	$tmp40	%read{87,87} %write{86,86}
+temp	float	$tmp41	%read{90,90} %write{89,89}
+const	float	$const22	2		%read{89,1002} %write{2147483647,-1}
+temp	float	$tmp42	%read{92,92} %write{91,91}
+temp	color	$tmp43	%read{95,97} %write{93,93}
+temp	int	$tmp44	%read{99,99} %write{98,98}
+temp	float	$tmp45	%read{102,102} %write{101,101}
+temp	float	$tmp46	%read{103,103} %write{102,102}
+temp	float	$tmp47	%read{106,106} %write{105,105}
+temp	float	$tmp48	%read{108,108} %write{107,107}
+temp	float	$tmp49	%read{110,110} %write{109,109}
+temp	float	$tmp50	%read{111,111} %write{110,110}
+temp	float	$tmp51	%read{113,113} %write{112,112}
+temp	float	$tmp52	%read{114,114} %write{113,113}
+temp	float	$tmp53	%read{115,115} %write{114,114}
+temp	int	$tmp54	%read{117,117} %write{116,116}
+temp	int	$tmp55	%read{120,120} %write{119,119}
+temp	int	$tmp56	%read{123,123} %write{122,122}
+temp	int	$tmp57	%read{126,126} %write{125,125}
+temp	int	$tmp58	%read{129,129} %write{128,128}
+const	string	$const23	"YIQ"		%read{135,1006} %write{2147483647,-1}
+temp	int	$tmp59	%read{136,136} %write{135,135}
+temp	float	$tmp60	%read{140,140} %write{137,137}
+const	vector	$const24	1 0.95569998 0.619899988		%read{137,890} %write{2147483647,-1}
+temp	float	$tmp62	%read{140,140} %write{138,138}
+const	vector	$const25	1 -0.271600008 -0.646899998		%read{138,891} %write{2147483647,-1}
+temp	float	$tmp64	%read{140,140} %write{139,139}
+const	vector	$const26	1 -1.10819995 1.70510006		%read{139,892} %write{2147483647,-1}
+const	string	$const27	"XYZ"		%read{141,1012} %write{2147483647,-1}
+temp	int	$tmp66	%read{142,142} %write{141,141}
+temp	float	$tmp67	%read{146,146} %write{143,143}
+const	vector	$const28	3.24047899 -1.53715003 -0.498535007		%read{143,896} %write{2147483647,-1}
+temp	float	$tmp69	%read{146,146} %write{144,144}
+const	vector	$const29	-0.969255984 1.87599099 0.0415560007		%read{144,897} %write{2147483647,-1}
+temp	float	$tmp71	%read{146,146} %write{145,145}
+const	vector	$const30	0.055647999 -0.204043001 1.05731106		%read{145,898} %write{2147483647,-1}
+const	string	$const31	"Unknown color space \"%s\""		%read{147,1018} %write{2147483647,-1}
+temp	int	$tmp73	%read{151,151} %write{150,150}
+temp	int	$tmp74	%read{152,156} %write{151,155}
+temp	int	$tmp75	%read{154,154} %write{153,153}
+temp	int	$tmp76	%read{155,155} %write{154,154}
+temp	int	$tmp77	%read{159,159} %write{158,158}
+const	string	$const32	"rgb_to_hsv"		%read{160,955} %write{2147483647,-1}
+temp	float	$tmp78	%read{165,165} %write{164,164}
+temp	float	$tmp79	%read{167,167} %write{166,166}
+temp	int	$tmp80	%read{171,171} %write{170,170}
+temp	int	$tmp81	%read{175,175} %write{174,174}
+temp	int	$tmp82	%read{178,178} %write{177,177}
+temp	float	$tmp83	%read{180,180} %write{179,179}
+temp	int	$tmp84	%read{182,182} %write{181,181}
+temp	float	$tmp85	%read{184,184} %write{183,183}
+temp	float	$tmp86	%read{185,185} %write{184,184}
+temp	float	$tmp87	%read{187,187} %write{186,186}
+temp	float	$tmp88	%read{188,188} %write{187,187}
+const	float	$const33	4		%read{188,983} %write{2147483647,-1}
+temp	int	$tmp89	%read{191,191} %write{190,190}
+temp	int	$tmp90	%read{195,195} %write{194,194}
+const	string	$const34	"rgb_to_hsl"		%read{196,949} %write{2147483647,-1}
+temp	float	$tmp91	%read{201,201} %write{197,197}
+temp	float	$tmp92	%read{201,201} %write{200,200}
+temp	float	$tmp93	%read{200,200} %write{198,198}
+temp	float	$tmp94	%read{200,200} %write{199,199}
+temp	float	$tmp95	%read{207,207} %write{206,206}
+temp	float	$tmp96	%read{209,209} %write{208,208}
+temp	int	$tmp97	%read{213,213} %write{212,212}
+temp	int	$tmp98	%read{217,217} %write{216,216}
+temp	int	$tmp99	%read{220,220} %write{219,219}
+temp	float	$tmp100	%read{222,222} %write{221,221}
+temp	int	$tmp101	%read{224,224} %write{223,223}
+temp	float	$tmp102	%read{226,226} %write{225,225}
+temp	float	$tmp103	%read{227,227} %write{226,226}
+temp	float	$tmp104	%read{229,229} %write{228,228}
+temp	float	$tmp105	%read{230,230} %write{229,229}
+temp	int	$tmp106	%read{233,233} %write{232,232}
+temp	float	$tmp107	%read{239,239} %write{238,238}
+temp	int	$tmp108	%read{241,241} %write{240,240}
+temp	int	$tmp109	%read{244,244} %write{243,243}
+temp	float	$tmp110	%read{247,247} %write{245,245}
+temp	float	$tmp111	%read{247,247} %write{246,246}
+temp	float	$tmp112	%read{251,251} %write{248,248}
+temp	float	$tmp113	%read{250,250} %write{249,249}
+temp	float	$tmp114	%read{251,251} %write{250,250}
+temp	int	$tmp115	%read{254,254} %write{253,253}
+temp	float	$tmp116	%read{258,258} %write{255,255}
+const	vector	$const35	0.298999995 0.587000012 0.114		%read{255,1008} %write{2147483647,-1}
+temp	float	$tmp118	%read{258,258} %write{256,256}
+const	vector	$const36	0.596000016 -0.275000006 -0.32100001		%read{256,1009} %write{2147483647,-1}
+temp	float	$tmp120	%read{258,258} %write{257,257}
+const	vector	$const37	0.211999997 -0.523000002 0.31099999		%read{257,1010} %write{2147483647,-1}
+temp	int	$tmp122	%read{260,260} %write{259,259}
+temp	float	$tmp123	%read{264,264} %write{261,261}
+const	vector	$const38	0.412452996 0.357580006 0.180423006		%read{261,1014} %write{2147483647,-1}
+temp	float	$tmp125	%read{264,264} %write{262,262}
+const	vector	$const39	0.212670997 0.715160012 0.0721689984		%read{262,1015} %write{2147483647,-1}
+temp	float	$tmp127	%read{264,264} %write{263,263}
+const	vector	$const40	0.0193339996 0.119193003 0.950227022		%read{263,1016} %write{2147483647,-1}
+const	string	$const41	"HSV"		%read{268,774} %write{2147483647,-1}
+temp	int	$tmp129	%read{269,269} %write{268,268}
+temp	int	$tmp130	%read{272,272} %write{271,271}
+temp	int	$tmp131	%read{273,277} %write{272,276}
+temp	int	$tmp132	%read{275,275} %write{274,274}
+temp	int	$tmp133	%read{276,276} %write{275,275}
+temp	int	$tmp134	%read{280,280} %write{279,279}
+temp	int	$tmp135	%read{286,286} %write{285,285}
+temp	float	$tmp136	%read{289,289} %write{288,288}
+temp	float	$tmp137	%read{290,290} %write{289,289}
+temp	float	$tmp138	%read{293,293} %write{292,292}
+temp	float	$tmp139	%read{295,295} %write{294,294}
+temp	float	$tmp140	%read{297,297} %write{296,296}
+temp	float	$tmp141	%read{298,298} %write{297,297}
+temp	float	$tmp142	%read{300,300} %write{299,299}
+temp	float	$tmp143	%read{301,301} %write{300,300}
+temp	float	$tmp144	%read{302,302} %write{301,301}
+temp	int	$tmp145	%read{304,304} %write{303,303}
+temp	int	$tmp146	%read{307,307} %write{306,306}
+temp	int	$tmp147	%read{310,310} %write{309,309}
+temp	int	$tmp148	%read{313,313} %write{312,312}
+temp	int	$tmp149	%read{316,316} %write{315,315}
+temp	int	$tmp150	%read{321,321} %write{320,320}
+temp	int	$tmp151	%read{327,327} %write{326,326}
+temp	float	$tmp152	%read{329,329} %write{328,328}
+temp	float	$tmp153	%read{331,331} %write{330,330}
+temp	float	$tmp154	%read{332,332} %write{331,331}
+temp	int	$tmp155	%read{334,334} %write{333,333}
+temp	float	$tmp156	%read{337,337} %write{336,336}
+temp	float	$tmp157	%read{339,339} %write{338,338}
+temp	color	$tmp158	%read{342,344} %write{340,340}
+temp	int	$tmp159	%read{346,346} %write{345,345}
+temp	float	$tmp160	%read{349,349} %write{348,348}
+temp	float	$tmp161	%read{350,350} %write{349,349}
+temp	float	$tmp162	%read{353,353} %write{352,352}
+temp	float	$tmp163	%read{355,355} %write{354,354}
+temp	float	$tmp164	%read{357,357} %write{356,356}
+temp	float	$tmp165	%read{358,358} %write{357,357}
+temp	float	$tmp166	%read{360,360} %write{359,359}
+temp	float	$tmp167	%read{361,361} %write{360,360}
+temp	float	$tmp168	%read{362,362} %write{361,361}
+temp	int	$tmp169	%read{364,364} %write{363,363}
+temp	int	$tmp170	%read{367,367} %write{366,366}
+temp	int	$tmp171	%read{370,370} %write{369,369}
+temp	int	$tmp172	%read{373,373} %write{372,372}
+temp	int	$tmp173	%read{376,376} %write{375,375}
+temp	int	$tmp174	%read{383,383} %write{382,382}
+temp	float	$tmp175	%read{387,387} %write{384,384}
+temp	float	$tmp177	%read{387,387} %write{385,385}
+temp	float	$tmp179	%read{387,387} %write{386,386}
+temp	int	$tmp181	%read{389,389} %write{388,388}
+temp	float	$tmp182	%read{393,393} %write{390,390}
+temp	float	$tmp184	%read{393,393} %write{391,391}
+temp	float	$tmp186	%read{393,393} %write{392,392}
+temp	int	$tmp188	%read{398,398} %write{397,397}
+temp	int	$tmp189	%read{399,403} %write{398,402}
+temp	int	$tmp190	%read{401,401} %write{400,400}
+temp	int	$tmp191	%read{402,402} %write{401,401}
+temp	int	$tmp192	%read{406,406} %write{405,405}
+temp	float	$tmp193	%read{412,412} %write{411,411}
+temp	float	$tmp194	%read{414,414} %write{413,413}
+temp	int	$tmp195	%read{418,418} %write{417,417}
+temp	int	$tmp196	%read{422,422} %write{421,421}
+temp	int	$tmp197	%read{425,425} %write{424,424}
+temp	float	$tmp198	%read{427,427} %write{426,426}
+temp	int	$tmp199	%read{429,429} %write{428,428}
+temp	float	$tmp200	%read{431,431} %write{430,430}
+temp	float	$tmp201	%read{432,432} %write{431,431}
+temp	float	$tmp202	%read{434,434} %write{433,433}
+temp	float	$tmp203	%read{435,435} %write{434,434}
+temp	int	$tmp204	%read{438,438} %write{437,437}
+temp	int	$tmp205	%read{442,442} %write{441,441}
+temp	float	$tmp206	%read{448,448} %write{444,444}
+temp	float	$tmp207	%read{448,448} %write{447,447}
+temp	float	$tmp208	%read{447,447} %write{445,445}
+temp	float	$tmp209	%read{447,447} %write{446,446}
+temp	float	$tmp210	%read{454,454} %write{453,453}
+temp	float	$tmp211	%read{456,456} %write{455,455}
+temp	int	$tmp212	%read{460,460} %write{459,459}
+temp	int	$tmp213	%read{464,464} %write{463,463}
+temp	int	$tmp214	%read{467,467} %write{466,466}
+temp	float	$tmp215	%read{469,469} %write{468,468}
+temp	int	$tmp216	%read{471,471} %write{470,470}
+temp	float	$tmp217	%read{473,473} %write{472,472}
+temp	float	$tmp218	%read{474,474} %write{473,473}
+temp	float	$tmp219	%read{476,476} %write{475,475}
+temp	float	$tmp220	%read{477,477} %write{476,476}
+temp	int	$tmp221	%read{480,480} %write{479,479}
+temp	float	$tmp222	%read{486,486} %write{485,485}
+temp	int	$tmp223	%read{488,488} %write{487,487}
+temp	int	$tmp224	%read{491,491} %write{490,490}
+temp	float	$tmp225	%read{494,494} %write{492,492}
+temp	float	$tmp226	%read{494,494} %write{493,493}
+temp	float	$tmp227	%read{498,498} %write{495,495}
+temp	float	$tmp228	%read{497,497} %write{496,496}
+temp	float	$tmp229	%read{498,498} %write{497,497}
+temp	int	$tmp230	%read{501,501} %write{500,500}
+temp	float	$tmp231	%read{505,505} %write{502,502}
+temp	float	$tmp233	%read{505,505} %write{503,503}
+temp	float	$tmp235	%read{505,505} %write{504,504}
+temp	int	$tmp237	%read{507,507} %write{506,506}
+temp	float	$tmp238	%read{511,511} %write{508,508}
+temp	float	$tmp240	%read{511,511} %write{509,509}
+temp	float	$tmp242	%read{511,511} %write{510,510}
+temp	float	$tmp244	%read{517,517} %write{516,516}
+temp	float	$tmp245	%read{518,518} %write{517,517}
+temp	float	$tmp246	%read{521,521} %write{520,520}
+temp	float	$tmp247	%read{522,522} %write{521,521}
+temp	float	$tmp248	%read{525,525} %write{524,524}
+temp	float	$tmp249	%read{526,526} %write{525,525}
+temp	int	$tmp250	%read{528,528} %write{527,527}
+temp	int	$tmp251	%read{531,531} %write{530,530}
+temp	int	$tmp252	%read{532,536} %write{531,535}
+temp	int	$tmp253	%read{534,534} %write{533,533}
+temp	int	$tmp254	%read{535,535} %write{534,534}
+temp	int	$tmp255	%read{539,539} %write{538,538}
+temp	int	$tmp256	%read{545,545} %write{544,544}
+temp	float	$tmp257	%read{548,548} %write{547,547}
+temp	float	$tmp258	%read{549,549} %write{548,548}
+temp	float	$tmp259	%read{552,552} %write{551,551}
+temp	float	$tmp260	%read{554,554} %write{553,553}
+temp	float	$tmp261	%read{556,556} %write{555,555}
+temp	float	$tmp262	%read{557,557} %write{556,556}
+temp	float	$tmp263	%read{559,559} %write{558,558}
+temp	float	$tmp264	%read{560,560} %write{559,559}
+temp	float	$tmp265	%read{561,561} %write{560,560}
+temp	int	$tmp266	%read{563,563} %write{562,562}
+temp	int	$tmp267	%read{566,566} %write{565,565}
+temp	int	$tmp268	%read{569,569} %write{568,568}
+temp	int	$tmp269	%read{572,572} %write{571,571}
+temp	int	$tmp270	%read{575,575} %write{574,574}
+temp	int	$tmp271	%read{580,580} %write{579,579}
+temp	int	$tmp272	%read{586,586} %write{585,585}
+temp	float	$tmp273	%read{588,588} %write{587,587}
+temp	float	$tmp274	%read{590,590} %write{589,589}
+temp	float	$tmp275	%read{591,591} %write{590,590}
+temp	int	$tmp276	%read{593,593} %write{592,592}
+temp	float	$tmp277	%read{596,596} %write{595,595}
+temp	float	$tmp278	%read{598,598} %write{597,597}
+temp	color	$tmp279	%read{601,603} %write{599,599}
+temp	int	$tmp280	%read{605,605} %write{604,604}
+temp	float	$tmp281	%read{608,608} %write{607,607}
+temp	float	$tmp282	%read{609,609} %write{608,608}
+temp	float	$tmp283	%read{612,612} %write{611,611}
+temp	float	$tmp284	%read{614,614} %write{613,613}
+temp	float	$tmp285	%read{616,616} %write{615,615}
+temp	float	$tmp286	%read{617,617} %write{616,616}
+temp	float	$tmp287	%read{619,619} %write{618,618}
+temp	float	$tmp288	%read{620,620} %write{619,619}
+temp	float	$tmp289	%read{621,621} %write{620,620}
+temp	int	$tmp290	%read{623,623} %write{622,622}
+temp	int	$tmp291	%read{626,626} %write{625,625}
+temp	int	$tmp292	%read{629,629} %write{628,628}
+temp	int	$tmp293	%read{632,632} %write{631,631}
+temp	int	$tmp294	%read{635,635} %write{634,634}
+temp	int	$tmp295	%read{642,642} %write{641,641}
+temp	float	$tmp296	%read{646,646} %write{643,643}
+temp	float	$tmp298	%read{646,646} %write{644,644}
+temp	float	$tmp300	%read{646,646} %write{645,645}
+temp	int	$tmp302	%read{648,648} %write{647,647}
+temp	float	$tmp303	%read{652,652} %write{649,649}
+temp	float	$tmp305	%read{652,652} %write{650,650}
+temp	float	$tmp307	%read{652,652} %write{651,651}
+temp	int	$tmp309	%read{657,657} %write{656,656}
+temp	int	$tmp310	%read{658,662} %write{657,661}
+temp	int	$tmp311	%read{660,660} %write{659,659}
+temp	int	$tmp312	%read{661,661} %write{660,660}
+temp	int	$tmp313	%read{665,665} %write{664,664}
+temp	float	$tmp314	%read{671,671} %write{670,670}
+temp	float	$tmp315	%read{673,673} %write{672,672}
+temp	int	$tmp316	%read{677,677} %write{676,676}
+temp	int	$tmp317	%read{681,681} %write{680,680}
+temp	int	$tmp318	%read{684,684} %write{683,683}
+temp	float	$tmp319	%read{686,686} %write{685,685}
+temp	int	$tmp320	%read{688,688} %write{687,687}
+temp	float	$tmp321	%read{690,690} %write{689,689}
+temp	float	$tmp322	%read{691,691} %write{690,690}
+temp	float	$tmp323	%read{693,693} %write{692,692}
+temp	float	$tmp324	%read{694,694} %write{693,693}
+temp	int	$tmp325	%read{697,697} %write{696,696}
+temp	int	$tmp326	%read{701,701} %write{700,700}
+temp	float	$tmp327	%read{707,707} %write{703,703}
+temp	float	$tmp328	%read{707,707} %write{706,706}
+temp	float	$tmp329	%read{706,706} %write{704,704}
+temp	float	$tmp330	%read{706,706} %write{705,705}
+temp	float	$tmp331	%read{713,713} %write{712,712}
+temp	float	$tmp332	%read{715,715} %write{714,714}
+temp	int	$tmp333	%read{719,719} %write{718,718}
+temp	int	$tmp334	%read{723,723} %write{722,722}
+temp	int	$tmp335	%read{726,726} %write{725,725}
+temp	float	$tmp336	%read{728,728} %write{727,727}
+temp	int	$tmp337	%read{730,730} %write{729,729}
+temp	float	$tmp338	%read{732,732} %write{731,731}
+temp	float	$tmp339	%read{733,733} %write{732,732}
+temp	float	$tmp340	%read{735,735} %write{734,734}
+temp	float	$tmp341	%read{736,736} %write{735,735}
+temp	int	$tmp342	%read{739,739} %write{738,738}
+temp	float	$tmp343	%read{745,745} %write{744,744}
+temp	int	$tmp344	%read{747,747} %write{746,746}
+temp	int	$tmp345	%read{750,750} %write{749,749}
+temp	float	$tmp346	%read{753,753} %write{751,751}
+temp	float	$tmp347	%read{753,753} %write{752,752}
+temp	float	$tmp348	%read{757,757} %write{754,754}
+temp	float	$tmp349	%read{756,756} %write{755,755}
+temp	float	$tmp350	%read{757,757} %write{756,756}
+temp	int	$tmp351	%read{760,760} %write{759,759}
+temp	float	$tmp352	%read{764,764} %write{761,761}
+temp	float	$tmp354	%read{764,764} %write{762,762}
+temp	float	$tmp356	%read{764,764} %write{763,763}
+temp	int	$tmp358	%read{766,766} %write{765,765}
+temp	float	$tmp359	%read{770,770} %write{767,767}
+temp	float	$tmp361	%read{770,770} %write{768,768}
+temp	float	$tmp363	%read{770,770} %write{769,769}
+temp	int	$tmp365	%read{775,775} %write{774,774}
+temp	int	$tmp366	%read{778,778} %write{777,777}
+temp	int	$tmp367	%read{779,783} %write{778,782}
+temp	int	$tmp368	%read{781,781} %write{780,780}
+temp	int	$tmp369	%read{782,782} %write{781,781}
+temp	int	$tmp370	%read{786,786} %write{785,785}
+temp	int	$tmp371	%read{792,792} %write{791,791}
+temp	float	$tmp372	%read{795,795} %write{794,794}
+temp	float	$tmp373	%read{796,796} %write{795,795}
+temp	float	$tmp374	%read{799,799} %write{798,798}
+temp	float	$tmp375	%read{801,801} %write{800,800}
+temp	float	$tmp376	%read{803,803} %write{802,802}
+temp	float	$tmp377	%read{804,804} %write{803,803}
+temp	float	$tmp378	%read{806,806} %write{805,805}
+temp	float	$tmp379	%read{807,807} %write{806,806}
+temp	float	$tmp380	%read{808,808} %write{807,807}
+temp	int	$tmp381	%read{810,810} %write{809,809}
+temp	int	$tmp382	%read{813,813} %write{812,812}
+temp	int	$tmp383	%read{816,816} %write{815,815}
+temp	int	$tmp384	%read{819,819} %write{818,818}
+temp	int	$tmp385	%read{822,822} %write{821,821}
+temp	int	$tmp386	%read{827,827} %write{826,826}
+temp	int	$tmp387	%read{833,833} %write{832,832}
+temp	float	$tmp388	%read{835,835} %write{834,834}
+temp	float	$tmp389	%read{837,837} %write{836,836}
+temp	float	$tmp390	%read{838,838} %write{837,837}
+temp	int	$tmp391	%read{840,840} %write{839,839}
+temp	float	$tmp392	%read{843,843} %write{842,842}
+temp	float	$tmp393	%read{845,845} %write{844,844}
+temp	color	$tmp394	%read{848,850} %write{846,846}
+temp	int	$tmp395	%read{852,852} %write{851,851}
+temp	float	$tmp396	%read{855,855} %write{854,854}
+temp	float	$tmp397	%read{856,856} %write{855,855}
+temp	float	$tmp398	%read{859,859} %write{858,858}
+temp	float	$tmp399	%read{861,861} %write{860,860}
+temp	float	$tmp400	%read{863,863} %write{862,862}
+temp	float	$tmp401	%read{864,864} %write{863,863}
+temp	float	$tmp402	%read{866,866} %write{865,865}
+temp	float	$tmp403	%read{867,867} %write{866,866}
+temp	float	$tmp404	%read{868,868} %write{867,867}
+temp	int	$tmp405	%read{870,870} %write{869,869}
+temp	int	$tmp406	%read{873,873} %write{872,872}
+temp	int	$tmp407	%read{876,876} %write{875,875}
+temp	int	$tmp408	%read{879,879} %write{878,878}
+temp	int	$tmp409	%read{882,882} %write{881,881}
+temp	int	$tmp410	%read{889,889} %write{888,888}
+temp	float	$tmp411	%read{893,893} %write{890,890}
+temp	float	$tmp413	%read{893,893} %write{891,891}
+temp	float	$tmp415	%read{893,893} %write{892,892}
+temp	int	$tmp417	%read{895,895} %write{894,894}
+temp	float	$tmp418	%read{899,899} %write{896,896}
+temp	float	$tmp420	%read{899,899} %write{897,897}
+temp	float	$tmp422	%read{899,899} %write{898,898}
+temp	int	$tmp424	%read{904,904} %write{903,903}
+temp	int	$tmp425	%read{905,909} %write{904,908}
+temp	int	$tmp426	%read{907,907} %write{906,906}
+temp	int	$tmp427	%read{908,908} %write{907,907}
+temp	int	$tmp428	%read{912,912} %write{911,911}
+temp	float	$tmp429	%read{918,918} %write{917,917}
+temp	float	$tmp430	%read{920,920} %write{919,919}
+temp	int	$tmp431	%read{924,924} %write{923,923}
+temp	int	$tmp432	%read{928,928} %write{927,927}
+temp	int	$tmp433	%read{931,931} %write{930,930}
+temp	float	$tmp434	%read{933,933} %write{932,932}
+temp	int	$tmp435	%read{935,935} %write{934,934}
+temp	float	$tmp436	%read{937,937} %write{936,936}
+temp	float	$tmp437	%read{938,938} %write{937,937}
+temp	float	$tmp438	%read{940,940} %write{939,939}
+temp	float	$tmp439	%read{941,941} %write{940,940}
+temp	int	$tmp440	%read{944,944} %write{943,943}
+temp	int	$tmp441	%read{948,948} %write{947,947}
+temp	float	$tmp442	%read{954,954} %write{950,950}
+temp	float	$tmp443	%read{954,954} %write{953,953}
+temp	float	$tmp444	%read{953,953} %write{951,951}
+temp	float	$tmp445	%read{953,953} %write{952,952}
+temp	float	$tmp446	%read{960,960} %write{959,959}
+temp	float	$tmp447	%read{962,962} %write{961,961}
+temp	int	$tmp448	%read{966,966} %write{965,965}
+temp	int	$tmp449	%read{970,970} %write{969,969}
+temp	int	$tmp450	%read{973,973} %write{972,972}
+temp	float	$tmp451	%read{975,975} %write{974,974}
+temp	int	$tmp452	%read{977,977} %write{976,976}
+temp	float	$tmp453	%read{979,979} %write{978,978}
+temp	float	$tmp454	%read{980,980} %write{979,979}
+temp	float	$tmp455	%read{982,982} %write{981,981}
+temp	float	$tmp456	%read{983,983} %write{982,982}
+temp	int	$tmp457	%read{986,986} %write{985,985}
+temp	float	$tmp458	%read{992,992} %write{991,991}
+temp	int	$tmp459	%read{994,994} %write{993,993}
+temp	int	$tmp460	%read{997,997} %write{996,996}
+temp	float	$tmp461	%read{1000,1000} %write{998,998}
+temp	float	$tmp462	%read{1000,1000} %write{999,999}
+temp	float	$tmp463	%read{1004,1004} %write{1001,1001}
+temp	float	$tmp464	%read{1003,1003} %write{1002,1002}
+temp	float	$tmp465	%read{1004,1004} %write{1003,1003}
+temp	int	$tmp466	%read{1007,1007} %write{1006,1006}
+temp	float	$tmp467	%read{1011,1011} %write{1008,1008}
+temp	float	$tmp469	%read{1011,1011} %write{1009,1009}
+temp	float	$tmp471	%read{1011,1011} %write{1010,1010}
+temp	int	$tmp473	%read{1013,1013} %write{1012,1012}
+temp	float	$tmp474	%read{1017,1017} %write{1014,1014}
+temp	float	$tmp476	%read{1017,1017} %write{1015,1015}
+temp	float	$tmp478	%read{1017,1017} %write{1016,1016}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:134
+#     if (in_color_model == "RGB")
+	eq		$tmp1 in_color_model $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl"} %line{134} %argrw{"wrr"}
+	if		$tmp1 17 1021 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:136
+#         out_outColor = clamp(in_color, color(0), color(1)); 
+	functioncall	$const4 5 	%line{136} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp4 in_color $const3 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{144} %argrw{"wrr"}
+	max		out_outColor $tmp4 $const2 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:138
+#         if (in_invert_channel_x) out_outColor[0] = 1.0 - out_outColor[0];
+	if		in_invert_channel_x 9 9 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl"} %line{138} %argrw{"r"}
+	compref		$tmp5 out_outColor $const6 	%argrw{"wrr"}
+	sub		$tmp6 $const5 $tmp5 	%argrw{"wrr"}
+	compassign	out_outColor $const6 $tmp6 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:139
+#         if (in_invert_channel_y) out_outColor[1] = 1.0 - out_outColor[1];
+	if		in_invert_channel_y 13 13 	%line{139} %argrw{"r"}
+	compref		$tmp7 out_outColor $const7 	%argrw{"wrr"}
+	sub		$tmp8 $const5 $tmp7 	%argrw{"wrr"}
+	compassign	out_outColor $const7 $tmp8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:140
+#         if (in_invert_channel_z) out_outColor[2] = 1.0 - out_outColor[2];
+	if		in_invert_channel_z 17 17 	%line{140} %argrw{"r"}
+	compref		$tmp9 out_outColor $const8 	%argrw{"wrr"}
+	sub		$tmp10 $const5 $tmp9 	%argrw{"wrr"}
+	compassign	out_outColor $const8 $tmp10 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:144
+#         color color_rgb = clamp(in_color, color(0), color(1)), tmp = color(0);
+	functioncall	$const4 20 	%line{144} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp13 in_color $const3 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %argrw{"wrr"}
+	max		___361_color_rgb $tmp13 $const2 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:144
+#         color color_rgb = clamp(in_color, color(0), color(1)), tmp = color(0);
+	assign		___361_tmp $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl"} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:146
+#         if (in_color_model == "HSL")
+	eq		$tmp14 in_color_model $const9 	%line{146} %argrw{"wrr"}
+	if		$tmp14 268 515 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:148
+#             tmp = transformc("rgb", "hsl", color_rgb);
+	functioncall	$const12 268 	%line{148} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:408
+#     if (from == "rgb" || from == "RGB")
+	eq		$tmp15 $const10 $const10 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{408} %argrw{"wrr"}
+	neq		$tmp16 $tmp15 $const6 	%argrw{"wrr"}
+	if		$tmp16 27 30 	%argrw{"r"}
+	eq		$tmp17 $const10 $const1 	%argrw{"wrr"}
+	neq		$tmp18 $tmp17 $const6 	%argrw{"wrr"}
+	assign		$tmp16 $tmp18 	%argrw{"wr"}
+	if		$tmp16 32 149 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:409
+#         r = x;
+	assign		___263_r ___361_color_rgb 	%line{409} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:410
+#     else if (from == "hsv")
+	eq		$tmp19 $const10 $const13 	%line{410} %argrw{"wrr"}
+	if		$tmp19 73 149 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:411
+#         r = hsv_to_rgb (x);
+	functioncall	$const14 73 	%line{411} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h ___361_color_rgb $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s ___361_color_rgb $const7 	%argrw{"wrr"}
+	compref		___264_v ___361_color_rgb $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp20 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp20 41 72 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp21 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp22 ___264_h $tmp21 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp22 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp23 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp24 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp24 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp25 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp26 $const5 $tmp25 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp26 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp27 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp28 ___264_s $tmp27 	%argrw{"wrr"}
+	sub		$tmp29 $const5 $tmp28 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp29 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp30 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp30 59 72 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp31 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp31 62 72 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp32 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp32 65 72 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp33 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp33 68 72 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp34 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp34 71 72 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___263_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:412
+#     else if (from == "hsl")
+	eq		$tmp35 $const10 $const11 	%line{412} %argrw{"wrr"}
+	if		$tmp35 135 149 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:413
+#         r = hsl_to_rgb (x);
+	functioncall	$const20 135 	%line{413} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:393
+#         float h = c[0], s = c[1], l = c[2];
+	compref		___267_h ___361_color_rgb $const6 	%line{393} %argrw{"wrr"}
+	compref		___267_s ___361_color_rgb $const7 	%argrw{"wrr"}
+	compref		___267_l ___361_color_rgb $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:395
+#         float v = (l <= 0.5) ? (l * (1 + s)) : (l * (1 - s) + s);
+	le		$tmp36 ___267_l $const21 	%line{395} %argrw{"wrr"}
+	if		$tmp36 83 86 	%argrw{"r"}
+	add		$tmp37 $const5 ___267_s 	%argrw{"wrr"}
+	mul		___267_v ___267_l $tmp37 	%argrw{"wrr"}
+	sub		$tmp38 $const5 ___267_s 	%argrw{"wrr"}
+	mul		$tmp39 ___267_l $tmp38 	%argrw{"wrr"}
+	add		___267_v $tmp39 ___267_s 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:397
+#         if (v <= 0) {
+	le		$tmp40 ___267_v $const6 	%line{397} %argrw{"wrr"}
+	if		$tmp40 89 133 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:398
+#             r = 0;
+	assign		___267_r $const6 	%line{398} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:400
+#             float min = 2 * l - v;
+	mul		$tmp41 $const22 ___267_l 	%line{400} %argrw{"wrr"}
+	sub		___269_min $tmp41 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:401
+#             s = (v - min) / v;
+	sub		$tmp42 ___267_v ___269_min 	%line{401} %argrw{"wrr"}
+	div		___267_s $tmp42 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:402
+#             r = hsv_to_rgb (color (h, s, v));
+	color		$tmp43 ___267_h ___267_s ___267_v 	%line{402} %argrw{"wrrr"}
+	functioncall	$const14 133 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h $tmp43 $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s $tmp43 $const7 	%argrw{"wrr"}
+	compref		___264_v $tmp43 $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp44 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp44 101 132 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp45 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp46 ___264_h $tmp45 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp46 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp47 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp47 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp48 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp48 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp49 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp50 $const5 $tmp49 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp50 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp51 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp52 ___264_s $tmp51 	%argrw{"wrr"}
+	sub		$tmp53 $const5 $tmp52 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp53 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp54 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp54 119 132 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp55 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp55 122 132 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp56 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp56 125 132 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp57 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp57 128 132 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp58 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp58 131 132 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___267_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:404
+#         return r;
+	assign		___263_r ___267_r 	%line{404} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:414
+#     else if (from == "YIQ")
+	eq		$tmp59 $const10 $const23 	%line{414} %argrw{"wrr"}
+	if		$tmp59 141 149 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	dot		$tmp60 $const24 ___361_color_rgb 	%line{415} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:416
+#                    dot (vector(1, -0.2716, -0.6469), (vector)x),
+	dot		$tmp62 $const25 ___361_color_rgb 	%line{416} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:417
+#                    dot (vector(1, -1.1082,  1.7051), (vector)x));
+	dot		$tmp64 $const26 ___361_color_rgb 	%line{417} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	color		___263_r $tmp60 $tmp62 $tmp64 	%line{415} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:418
+#     else if (from == "XYZ")
+	eq		$tmp66 $const10 $const27 	%line{418} %argrw{"wrr"}
+	if		$tmp66 147 149 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	dot		$tmp67 $const28 ___361_color_rgb 	%line{419} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:420
+#                    dot (vector(-0.969256,  1.875991,  0.041556), (vector)x),
+	dot		$tmp69 $const29 ___361_color_rgb 	%line{420} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:421
+#                    dot (vector( 0.055648, -0.204043,  1.057311), (vector)x));
+	dot		$tmp71 $const30 ___361_color_rgb 	%line{421} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	color		___263_r $tmp67 $tmp69 $tmp71 	%line{419} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:423
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const11 	%line{423} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:424
+#         r = x;
+	assign		___263_r ___361_color_rgb 	%line{424} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:426
+#     return transformc (to, r);
+	functioncall	$const12 268 	%line{426} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:346
+#     if (to == "rgb" || to == "RGB")
+	eq		$tmp73 $const11 $const10 	%line{346} %argrw{"wrr"}
+	neq		$tmp74 $tmp73 $const6 	%argrw{"wrr"}
+	if		$tmp74 153 156 	%argrw{"r"}
+	eq		$tmp75 $const11 $const1 	%argrw{"wrr"}
+	neq		$tmp76 $tmp75 $const6 	%argrw{"wrr"}
+	assign		$tmp74 $tmp76 	%argrw{"wr"}
+	if		$tmp74 158 267 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:347
+#         r = x;
+	assign		___258_r ___263_r 	%line{347} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:348
+#     else if (to == "hsv")
+	eq		$tmp77 $const11 $const13 	%line{348} %argrw{"wrr"}
+	if		$tmp77 194 267 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:349
+#         r = rgb_to_hsv (x);
+	functioncall	$const32 194 	%line{349} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp78 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp78 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp79 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp79 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp80 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp80 173 174 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp81 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp81 177 193 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp82 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp82 181 189 	%argrw{"r"}
+	sub		$tmp83 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp83 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp84 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp84 186 189 	%argrw{"r"}
+	sub		$tmp85 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp86 $tmp85 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp86 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp87 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp88 $tmp87 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp88 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp89 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp89 193 193 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___258_r ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:350
+#     else if (to == "hsl")
+	eq		$tmp90 $const11 $const11 	%line{350} %argrw{"wrr"}
+	if		$tmp90 253 267 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:351
+#         r = rgb_to_hsl (x);
+	functioncall	$const34 253 	%line{351} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:332
+#         float minval = min (rgb[0], min (rgb[1], rgb[2]));
+	compref		$tmp91 ___263_r $const6 	%line{332} %argrw{"wrr"}
+	compref		$tmp93 ___263_r $const7 	%argrw{"wrr"}
+	compref		$tmp94 ___263_r $const8 	%argrw{"wrr"}
+	min		$tmp92 $tmp93 $tmp94 	%argrw{"wrr"}
+	min		___261_minval $tmp91 $tmp92 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:333
+#         color hsv = rgb_to_hsv (rgb);
+	functioncall	$const32 236 	%line{333} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp95 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp95 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp96 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp96 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp97 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp97 215 216 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp98 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp98 219 235 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp99 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp99 223 231 	%argrw{"r"}
+	sub		$tmp100 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp100 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp101 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp101 228 231 	%argrw{"r"}
+	sub		$tmp102 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp103 $tmp102 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp103 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp104 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp105 $tmp104 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp105 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp106 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp106 235 235 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___261_hsv ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:334
+#         float maxval = hsv[2];   // v == maxval
+	compref		___261_maxval ___261_hsv $const8 	%line{334} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:335
+#         float h = hsv[0], s, l = (minval+maxval) / 2;
+	compref		___261_h ___261_hsv $const6 	%line{335} %argrw{"wrr"}
+	add		$tmp107 ___261_minval ___261_maxval 	%argrw{"wrr"}
+	div		___261_l $tmp107 $const22 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:336
+#         if (minval == maxval)
+	eq		$tmp108 ___261_minval ___261_maxval 	%line{336} %argrw{"wrr"}
+	if		$tmp108 243 252 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:337
+#             s = 0;  // special 'achromatic' case, hue is 0
+	assign		___261_s $const6 	%line{337} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:338
+#         else if (l <= 0.5)
+	le		$tmp109 ___261_l $const21 	%line{338} %argrw{"wrr"}
+	if		$tmp109 248 252 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:339
+#             s = (maxval - minval) / (maxval + minval);
+	sub		$tmp110 ___261_maxval ___261_minval 	%line{339} %argrw{"wrr"}
+	add		$tmp111 ___261_maxval ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp110 $tmp111 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:341
+#             s = (maxval - minval) / (2 - maxval - minval);
+	sub		$tmp112 ___261_maxval ___261_minval 	%line{341} %argrw{"wrr"}
+	sub		$tmp113 $const22 ___261_maxval 	%argrw{"wrr"}
+	sub		$tmp114 $tmp113 ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp112 $tmp114 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:342
+#         return color (h, s, l);
+	color		___258_r ___261_h ___261_s ___261_l 	%line{342} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:352
+#     else if (to == "YIQ")
+	eq		$tmp115 $const11 $const23 	%line{352} %argrw{"wrr"}
+	if		$tmp115 259 267 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	dot		$tmp116 $const35 ___263_r 	%line{353} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:354
+#                    dot (vector(0.596, -0.275, -0.321), (vector)x),
+	dot		$tmp118 $const36 ___263_r 	%line{354} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:355
+#                    dot (vector(0.212, -0.523,  0.311), (vector)x));
+	dot		$tmp120 $const37 ___263_r 	%line{355} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	color		___258_r $tmp116 $tmp118 $tmp120 	%line{353} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:356
+#     else if (to == "XYZ")
+	eq		$tmp122 $const11 $const27 	%line{356} %argrw{"wrr"}
+	if		$tmp122 265 267 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	dot		$tmp123 $const38 ___263_r 	%line{357} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:358
+#                    dot (vector(0.212671, 0.715160, 0.072169), (vector)x),
+	dot		$tmp125 $const39 ___263_r 	%line{358} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:359
+#                    dot (vector(0.019334, 0.119193, 0.950227), (vector)x));
+	dot		$tmp127 $const40 ___263_r 	%line{359} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	color		___258_r $tmp123 $tmp125 $tmp127 	%line{357} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:361
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const11 	%line{361} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:362
+#         r = x;
+	assign		___258_r ___263_r 	%line{362} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:364
+#     return r;
+	assign		___361_tmp ___258_r 	%line{364} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:150
+#         else if (in_color_model == "HSV")
+	eq		$tmp129 in_color_model $const41 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl"} %line{150} %argrw{"wrr"}
+	if		$tmp129 515 515 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:152
+#             tmp = transformc("rgb", "hsv", color_rgb);
+	functioncall	$const12 515 	%line{152} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:408
+#     if (from == "rgb" || from == "RGB")
+	eq		$tmp130 $const10 $const10 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{408} %argrw{"wrr"}
+	neq		$tmp131 $tmp130 $const6 	%argrw{"wrr"}
+	if		$tmp131 274 277 	%argrw{"r"}
+	eq		$tmp132 $const10 $const1 	%argrw{"wrr"}
+	neq		$tmp133 $tmp132 $const6 	%argrw{"wrr"}
+	assign		$tmp131 $tmp133 	%argrw{"wr"}
+	if		$tmp131 279 396 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:409
+#         r = x;
+	assign		___263_r ___361_color_rgb 	%line{409} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:410
+#     else if (from == "hsv")
+	eq		$tmp134 $const10 $const13 	%line{410} %argrw{"wrr"}
+	if		$tmp134 320 396 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:411
+#         r = hsv_to_rgb (x);
+	functioncall	$const14 320 	%line{411} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h ___361_color_rgb $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s ___361_color_rgb $const7 	%argrw{"wrr"}
+	compref		___264_v ___361_color_rgb $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp135 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp135 288 319 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp136 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp137 ___264_h $tmp136 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp137 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp138 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp138 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp139 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp139 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp140 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp141 $const5 $tmp140 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp141 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp142 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp143 ___264_s $tmp142 	%argrw{"wrr"}
+	sub		$tmp144 $const5 $tmp143 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp144 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp145 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp145 306 319 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp146 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp146 309 319 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp147 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp147 312 319 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp148 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp148 315 319 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp149 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp149 318 319 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___263_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:412
+#     else if (from == "hsl")
+	eq		$tmp150 $const10 $const11 	%line{412} %argrw{"wrr"}
+	if		$tmp150 382 396 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:413
+#         r = hsl_to_rgb (x);
+	functioncall	$const20 382 	%line{413} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:393
+#         float h = c[0], s = c[1], l = c[2];
+	compref		___267_h ___361_color_rgb $const6 	%line{393} %argrw{"wrr"}
+	compref		___267_s ___361_color_rgb $const7 	%argrw{"wrr"}
+	compref		___267_l ___361_color_rgb $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:395
+#         float v = (l <= 0.5) ? (l * (1 + s)) : (l * (1 - s) + s);
+	le		$tmp151 ___267_l $const21 	%line{395} %argrw{"wrr"}
+	if		$tmp151 330 333 	%argrw{"r"}
+	add		$tmp152 $const5 ___267_s 	%argrw{"wrr"}
+	mul		___267_v ___267_l $tmp152 	%argrw{"wrr"}
+	sub		$tmp153 $const5 ___267_s 	%argrw{"wrr"}
+	mul		$tmp154 ___267_l $tmp153 	%argrw{"wrr"}
+	add		___267_v $tmp154 ___267_s 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:397
+#         if (v <= 0) {
+	le		$tmp155 ___267_v $const6 	%line{397} %argrw{"wrr"}
+	if		$tmp155 336 380 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:398
+#             r = 0;
+	assign		___267_r $const6 	%line{398} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:400
+#             float min = 2 * l - v;
+	mul		$tmp156 $const22 ___267_l 	%line{400} %argrw{"wrr"}
+	sub		___269_min $tmp156 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:401
+#             s = (v - min) / v;
+	sub		$tmp157 ___267_v ___269_min 	%line{401} %argrw{"wrr"}
+	div		___267_s $tmp157 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:402
+#             r = hsv_to_rgb (color (h, s, v));
+	color		$tmp158 ___267_h ___267_s ___267_v 	%line{402} %argrw{"wrrr"}
+	functioncall	$const14 380 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h $tmp158 $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s $tmp158 $const7 	%argrw{"wrr"}
+	compref		___264_v $tmp158 $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp159 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp159 348 379 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp160 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp161 ___264_h $tmp160 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp161 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp162 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp162 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp163 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp163 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp164 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp165 $const5 $tmp164 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp165 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp166 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp167 ___264_s $tmp166 	%argrw{"wrr"}
+	sub		$tmp168 $const5 $tmp167 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp168 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp169 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp169 366 379 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp170 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp170 369 379 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp171 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp171 372 379 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp172 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp172 375 379 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp173 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp173 378 379 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___267_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:404
+#         return r;
+	assign		___263_r ___267_r 	%line{404} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:414
+#     else if (from == "YIQ")
+	eq		$tmp174 $const10 $const23 	%line{414} %argrw{"wrr"}
+	if		$tmp174 388 396 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	dot		$tmp175 $const24 ___361_color_rgb 	%line{415} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:416
+#                    dot (vector(1, -0.2716, -0.6469), (vector)x),
+	dot		$tmp177 $const25 ___361_color_rgb 	%line{416} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:417
+#                    dot (vector(1, -1.1082,  1.7051), (vector)x));
+	dot		$tmp179 $const26 ___361_color_rgb 	%line{417} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	color		___263_r $tmp175 $tmp177 $tmp179 	%line{415} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:418
+#     else if (from == "XYZ")
+	eq		$tmp181 $const10 $const27 	%line{418} %argrw{"wrr"}
+	if		$tmp181 394 396 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	dot		$tmp182 $const28 ___361_color_rgb 	%line{419} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:420
+#                    dot (vector(-0.969256,  1.875991,  0.041556), (vector)x),
+	dot		$tmp184 $const29 ___361_color_rgb 	%line{420} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:421
+#                    dot (vector( 0.055648, -0.204043,  1.057311), (vector)x));
+	dot		$tmp186 $const30 ___361_color_rgb 	%line{421} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	color		___263_r $tmp182 $tmp184 $tmp186 	%line{419} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:423
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const13 	%line{423} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:424
+#         r = x;
+	assign		___263_r ___361_color_rgb 	%line{424} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:426
+#     return transformc (to, r);
+	functioncall	$const12 515 	%line{426} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:346
+#     if (to == "rgb" || to == "RGB")
+	eq		$tmp188 $const13 $const10 	%line{346} %argrw{"wrr"}
+	neq		$tmp189 $tmp188 $const6 	%argrw{"wrr"}
+	if		$tmp189 400 403 	%argrw{"r"}
+	eq		$tmp190 $const13 $const1 	%argrw{"wrr"}
+	neq		$tmp191 $tmp190 $const6 	%argrw{"wrr"}
+	assign		$tmp189 $tmp191 	%argrw{"wr"}
+	if		$tmp189 405 514 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:347
+#         r = x;
+	assign		___258_r ___263_r 	%line{347} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:348
+#     else if (to == "hsv")
+	eq		$tmp192 $const13 $const13 	%line{348} %argrw{"wrr"}
+	if		$tmp192 441 514 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:349
+#         r = rgb_to_hsv (x);
+	functioncall	$const32 441 	%line{349} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp193 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp193 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp194 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp194 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp195 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp195 420 421 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp196 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp196 424 440 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp197 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp197 428 436 	%argrw{"r"}
+	sub		$tmp198 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp198 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp199 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp199 433 436 	%argrw{"r"}
+	sub		$tmp200 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp201 $tmp200 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp201 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp202 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp203 $tmp202 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp203 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp204 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp204 440 440 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___258_r ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:350
+#     else if (to == "hsl")
+	eq		$tmp205 $const13 $const11 	%line{350} %argrw{"wrr"}
+	if		$tmp205 500 514 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:351
+#         r = rgb_to_hsl (x);
+	functioncall	$const34 500 	%line{351} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:332
+#         float minval = min (rgb[0], min (rgb[1], rgb[2]));
+	compref		$tmp206 ___263_r $const6 	%line{332} %argrw{"wrr"}
+	compref		$tmp208 ___263_r $const7 	%argrw{"wrr"}
+	compref		$tmp209 ___263_r $const8 	%argrw{"wrr"}
+	min		$tmp207 $tmp208 $tmp209 	%argrw{"wrr"}
+	min		___261_minval $tmp206 $tmp207 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:333
+#         color hsv = rgb_to_hsv (rgb);
+	functioncall	$const32 483 	%line{333} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp210 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp210 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp211 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp211 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp212 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp212 462 463 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp213 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp213 466 482 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp214 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp214 470 478 	%argrw{"r"}
+	sub		$tmp215 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp215 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp216 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp216 475 478 	%argrw{"r"}
+	sub		$tmp217 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp218 $tmp217 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp218 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp219 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp220 $tmp219 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp220 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp221 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp221 482 482 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___261_hsv ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:334
+#         float maxval = hsv[2];   // v == maxval
+	compref		___261_maxval ___261_hsv $const8 	%line{334} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:335
+#         float h = hsv[0], s, l = (minval+maxval) / 2;
+	compref		___261_h ___261_hsv $const6 	%line{335} %argrw{"wrr"}
+	add		$tmp222 ___261_minval ___261_maxval 	%argrw{"wrr"}
+	div		___261_l $tmp222 $const22 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:336
+#         if (minval == maxval)
+	eq		$tmp223 ___261_minval ___261_maxval 	%line{336} %argrw{"wrr"}
+	if		$tmp223 490 499 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:337
+#             s = 0;  // special 'achromatic' case, hue is 0
+	assign		___261_s $const6 	%line{337} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:338
+#         else if (l <= 0.5)
+	le		$tmp224 ___261_l $const21 	%line{338} %argrw{"wrr"}
+	if		$tmp224 495 499 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:339
+#             s = (maxval - minval) / (maxval + minval);
+	sub		$tmp225 ___261_maxval ___261_minval 	%line{339} %argrw{"wrr"}
+	add		$tmp226 ___261_maxval ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp225 $tmp226 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:341
+#             s = (maxval - minval) / (2 - maxval - minval);
+	sub		$tmp227 ___261_maxval ___261_minval 	%line{341} %argrw{"wrr"}
+	sub		$tmp228 $const22 ___261_maxval 	%argrw{"wrr"}
+	sub		$tmp229 $tmp228 ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp227 $tmp229 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:342
+#         return color (h, s, l);
+	color		___258_r ___261_h ___261_s ___261_l 	%line{342} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:352
+#     else if (to == "YIQ")
+	eq		$tmp230 $const13 $const23 	%line{352} %argrw{"wrr"}
+	if		$tmp230 506 514 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	dot		$tmp231 $const35 ___263_r 	%line{353} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:354
+#                    dot (vector(0.596, -0.275, -0.321), (vector)x),
+	dot		$tmp233 $const36 ___263_r 	%line{354} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:355
+#                    dot (vector(0.212, -0.523,  0.311), (vector)x));
+	dot		$tmp235 $const37 ___263_r 	%line{355} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	color		___258_r $tmp231 $tmp233 $tmp235 	%line{353} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:356
+#     else if (to == "XYZ")
+	eq		$tmp237 $const13 $const27 	%line{356} %argrw{"wrr"}
+	if		$tmp237 512 514 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	dot		$tmp238 $const38 ___263_r 	%line{357} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:358
+#                    dot (vector(0.212671, 0.715160, 0.072169), (vector)x),
+	dot		$tmp240 $const39 ___263_r 	%line{358} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:359
+#                    dot (vector(0.019334, 0.119193, 0.950227), (vector)x));
+	dot		$tmp242 $const40 ___263_r 	%line{359} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	color		___258_r $tmp238 $tmp240 $tmp242 	%line{357} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:361
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const13 	%line{361} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:362
+#         r = x;
+	assign		___258_r ___263_r 	%line{362} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:364
+#     return r;
+	assign		___361_tmp ___258_r 	%line{364} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:164
+#         if (in_invert_channel_x) tmp[0] = 1.0 - tmp[0];
+	if		in_invert_channel_x 519 519 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl"} %line{164} %argrw{"r"}
+	compref		$tmp244 ___361_tmp $const6 	%argrw{"wrr"}
+	sub		$tmp245 $const5 $tmp244 	%argrw{"wrr"}
+	compassign	___361_tmp $const6 $tmp245 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:165
+#         if (in_invert_channel_y) tmp[1] = 1.0 - tmp[1];
+	if		in_invert_channel_y 523 523 	%line{165} %argrw{"r"}
+	compref		$tmp246 ___361_tmp $const7 	%argrw{"wrr"}
+	sub		$tmp247 $const5 $tmp246 	%argrw{"wrr"}
+	compassign	___361_tmp $const7 $tmp247 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:166
+#         if (in_invert_channel_z) tmp[2] = 1.0 - tmp[2];
+	if		in_invert_channel_z 527 527 	%line{166} %argrw{"r"}
+	compref		$tmp248 ___361_tmp $const8 	%argrw{"wrr"}
+	sub		$tmp249 $const5 $tmp248 	%argrw{"wrr"}
+	compassign	___361_tmp $const8 $tmp249 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:168
+#         if (in_color_model == "HSL")
+	eq		$tmp250 in_color_model $const9 	%line{168} %argrw{"wrr"}
+	if		$tmp250 774 1021 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:170
+#             out_outColor = transformc("hsl", "rgb", tmp);
+	functioncall	$const12 774 	%line{170} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:408
+#     if (from == "rgb" || from == "RGB")
+	eq		$tmp251 $const11 $const10 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{408} %argrw{"wrr"}
+	neq		$tmp252 $tmp251 $const6 	%argrw{"wrr"}
+	if		$tmp252 533 536 	%argrw{"r"}
+	eq		$tmp253 $const11 $const1 	%argrw{"wrr"}
+	neq		$tmp254 $tmp253 $const6 	%argrw{"wrr"}
+	assign		$tmp252 $tmp254 	%argrw{"wr"}
+	if		$tmp252 538 655 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:409
+#         r = x;
+	assign		___263_r ___361_tmp 	%line{409} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:410
+#     else if (from == "hsv")
+	eq		$tmp255 $const11 $const13 	%line{410} %argrw{"wrr"}
+	if		$tmp255 579 655 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:411
+#         r = hsv_to_rgb (x);
+	functioncall	$const14 579 	%line{411} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h ___361_tmp $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s ___361_tmp $const7 	%argrw{"wrr"}
+	compref		___264_v ___361_tmp $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp256 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp256 547 578 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp257 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp258 ___264_h $tmp257 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp258 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp259 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp259 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp260 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp260 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp261 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp262 $const5 $tmp261 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp262 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp263 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp264 ___264_s $tmp263 	%argrw{"wrr"}
+	sub		$tmp265 $const5 $tmp264 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp265 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp266 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp266 565 578 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp267 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp267 568 578 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp268 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp268 571 578 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp269 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp269 574 578 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp270 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp270 577 578 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___263_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:412
+#     else if (from == "hsl")
+	eq		$tmp271 $const11 $const11 	%line{412} %argrw{"wrr"}
+	if		$tmp271 641 655 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:413
+#         r = hsl_to_rgb (x);
+	functioncall	$const20 641 	%line{413} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:393
+#         float h = c[0], s = c[1], l = c[2];
+	compref		___267_h ___361_tmp $const6 	%line{393} %argrw{"wrr"}
+	compref		___267_s ___361_tmp $const7 	%argrw{"wrr"}
+	compref		___267_l ___361_tmp $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:395
+#         float v = (l <= 0.5) ? (l * (1 + s)) : (l * (1 - s) + s);
+	le		$tmp272 ___267_l $const21 	%line{395} %argrw{"wrr"}
+	if		$tmp272 589 592 	%argrw{"r"}
+	add		$tmp273 $const5 ___267_s 	%argrw{"wrr"}
+	mul		___267_v ___267_l $tmp273 	%argrw{"wrr"}
+	sub		$tmp274 $const5 ___267_s 	%argrw{"wrr"}
+	mul		$tmp275 ___267_l $tmp274 	%argrw{"wrr"}
+	add		___267_v $tmp275 ___267_s 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:397
+#         if (v <= 0) {
+	le		$tmp276 ___267_v $const6 	%line{397} %argrw{"wrr"}
+	if		$tmp276 595 639 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:398
+#             r = 0;
+	assign		___267_r $const6 	%line{398} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:400
+#             float min = 2 * l - v;
+	mul		$tmp277 $const22 ___267_l 	%line{400} %argrw{"wrr"}
+	sub		___269_min $tmp277 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:401
+#             s = (v - min) / v;
+	sub		$tmp278 ___267_v ___269_min 	%line{401} %argrw{"wrr"}
+	div		___267_s $tmp278 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:402
+#             r = hsv_to_rgb (color (h, s, v));
+	color		$tmp279 ___267_h ___267_s ___267_v 	%line{402} %argrw{"wrrr"}
+	functioncall	$const14 639 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h $tmp279 $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s $tmp279 $const7 	%argrw{"wrr"}
+	compref		___264_v $tmp279 $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp280 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp280 607 638 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp281 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp282 ___264_h $tmp281 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp282 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp283 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp283 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp284 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp284 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp285 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp286 $const5 $tmp285 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp286 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp287 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp288 ___264_s $tmp287 	%argrw{"wrr"}
+	sub		$tmp289 $const5 $tmp288 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp289 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp290 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp290 625 638 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp291 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp291 628 638 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp292 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp292 631 638 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp293 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp293 634 638 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp294 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp294 637 638 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___267_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:404
+#         return r;
+	assign		___263_r ___267_r 	%line{404} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:414
+#     else if (from == "YIQ")
+	eq		$tmp295 $const11 $const23 	%line{414} %argrw{"wrr"}
+	if		$tmp295 647 655 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	dot		$tmp296 $const24 ___361_tmp 	%line{415} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:416
+#                    dot (vector(1, -0.2716, -0.6469), (vector)x),
+	dot		$tmp298 $const25 ___361_tmp 	%line{416} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:417
+#                    dot (vector(1, -1.1082,  1.7051), (vector)x));
+	dot		$tmp300 $const26 ___361_tmp 	%line{417} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	color		___263_r $tmp296 $tmp298 $tmp300 	%line{415} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:418
+#     else if (from == "XYZ")
+	eq		$tmp302 $const11 $const27 	%line{418} %argrw{"wrr"}
+	if		$tmp302 653 655 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	dot		$tmp303 $const28 ___361_tmp 	%line{419} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:420
+#                    dot (vector(-0.969256,  1.875991,  0.041556), (vector)x),
+	dot		$tmp305 $const29 ___361_tmp 	%line{420} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:421
+#                    dot (vector( 0.055648, -0.204043,  1.057311), (vector)x));
+	dot		$tmp307 $const30 ___361_tmp 	%line{421} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	color		___263_r $tmp303 $tmp305 $tmp307 	%line{419} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:423
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const10 	%line{423} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:424
+#         r = x;
+	assign		___263_r ___361_tmp 	%line{424} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:426
+#     return transformc (to, r);
+	functioncall	$const12 774 	%line{426} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:346
+#     if (to == "rgb" || to == "RGB")
+	eq		$tmp309 $const10 $const10 	%line{346} %argrw{"wrr"}
+	neq		$tmp310 $tmp309 $const6 	%argrw{"wrr"}
+	if		$tmp310 659 662 	%argrw{"r"}
+	eq		$tmp311 $const10 $const1 	%argrw{"wrr"}
+	neq		$tmp312 $tmp311 $const6 	%argrw{"wrr"}
+	assign		$tmp310 $tmp312 	%argrw{"wr"}
+	if		$tmp310 664 773 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:347
+#         r = x;
+	assign		___258_r ___263_r 	%line{347} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:348
+#     else if (to == "hsv")
+	eq		$tmp313 $const10 $const13 	%line{348} %argrw{"wrr"}
+	if		$tmp313 700 773 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:349
+#         r = rgb_to_hsv (x);
+	functioncall	$const32 700 	%line{349} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp314 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp314 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp315 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp315 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp316 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp316 679 680 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp317 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp317 683 699 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp318 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp318 687 695 	%argrw{"r"}
+	sub		$tmp319 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp319 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp320 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp320 692 695 	%argrw{"r"}
+	sub		$tmp321 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp322 $tmp321 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp322 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp323 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp324 $tmp323 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp324 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp325 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp325 699 699 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___258_r ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:350
+#     else if (to == "hsl")
+	eq		$tmp326 $const10 $const11 	%line{350} %argrw{"wrr"}
+	if		$tmp326 759 773 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:351
+#         r = rgb_to_hsl (x);
+	functioncall	$const34 759 	%line{351} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:332
+#         float minval = min (rgb[0], min (rgb[1], rgb[2]));
+	compref		$tmp327 ___263_r $const6 	%line{332} %argrw{"wrr"}
+	compref		$tmp329 ___263_r $const7 	%argrw{"wrr"}
+	compref		$tmp330 ___263_r $const8 	%argrw{"wrr"}
+	min		$tmp328 $tmp329 $tmp330 	%argrw{"wrr"}
+	min		___261_minval $tmp327 $tmp328 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:333
+#         color hsv = rgb_to_hsv (rgb);
+	functioncall	$const32 742 	%line{333} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp331 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp331 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp332 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp332 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp333 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp333 721 722 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp334 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp334 725 741 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp335 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp335 729 737 	%argrw{"r"}
+	sub		$tmp336 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp336 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp337 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp337 734 737 	%argrw{"r"}
+	sub		$tmp338 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp339 $tmp338 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp339 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp340 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp341 $tmp340 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp341 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp342 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp342 741 741 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___261_hsv ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:334
+#         float maxval = hsv[2];   // v == maxval
+	compref		___261_maxval ___261_hsv $const8 	%line{334} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:335
+#         float h = hsv[0], s, l = (minval+maxval) / 2;
+	compref		___261_h ___261_hsv $const6 	%line{335} %argrw{"wrr"}
+	add		$tmp343 ___261_minval ___261_maxval 	%argrw{"wrr"}
+	div		___261_l $tmp343 $const22 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:336
+#         if (minval == maxval)
+	eq		$tmp344 ___261_minval ___261_maxval 	%line{336} %argrw{"wrr"}
+	if		$tmp344 749 758 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:337
+#             s = 0;  // special 'achromatic' case, hue is 0
+	assign		___261_s $const6 	%line{337} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:338
+#         else if (l <= 0.5)
+	le		$tmp345 ___261_l $const21 	%line{338} %argrw{"wrr"}
+	if		$tmp345 754 758 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:339
+#             s = (maxval - minval) / (maxval + minval);
+	sub		$tmp346 ___261_maxval ___261_minval 	%line{339} %argrw{"wrr"}
+	add		$tmp347 ___261_maxval ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp346 $tmp347 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:341
+#             s = (maxval - minval) / (2 - maxval - minval);
+	sub		$tmp348 ___261_maxval ___261_minval 	%line{341} %argrw{"wrr"}
+	sub		$tmp349 $const22 ___261_maxval 	%argrw{"wrr"}
+	sub		$tmp350 $tmp349 ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp348 $tmp350 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:342
+#         return color (h, s, l);
+	color		___258_r ___261_h ___261_s ___261_l 	%line{342} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:352
+#     else if (to == "YIQ")
+	eq		$tmp351 $const10 $const23 	%line{352} %argrw{"wrr"}
+	if		$tmp351 765 773 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	dot		$tmp352 $const35 ___263_r 	%line{353} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:354
+#                    dot (vector(0.596, -0.275, -0.321), (vector)x),
+	dot		$tmp354 $const36 ___263_r 	%line{354} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:355
+#                    dot (vector(0.212, -0.523,  0.311), (vector)x));
+	dot		$tmp356 $const37 ___263_r 	%line{355} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	color		___258_r $tmp352 $tmp354 $tmp356 	%line{353} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:356
+#     else if (to == "XYZ")
+	eq		$tmp358 $const10 $const27 	%line{356} %argrw{"wrr"}
+	if		$tmp358 771 773 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	dot		$tmp359 $const38 ___263_r 	%line{357} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:358
+#                    dot (vector(0.212671, 0.715160, 0.072169), (vector)x),
+	dot		$tmp361 $const39 ___263_r 	%line{358} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:359
+#                    dot (vector(0.019334, 0.119193, 0.950227), (vector)x));
+	dot		$tmp363 $const40 ___263_r 	%line{359} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	color		___258_r $tmp359 $tmp361 $tmp363 	%line{357} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:361
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const10 	%line{361} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:362
+#         r = x;
+	assign		___258_r ___263_r 	%line{362} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:364
+#     return r;
+	assign		out_outColor ___258_r 	%line{364} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:172
+#         else if (in_color_model == "HSV")
+	eq		$tmp365 in_color_model $const41 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl"} %line{172} %argrw{"wrr"}
+	if		$tmp365 1021 1021 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_invert_color.osl:174
+#             out_outColor = transformc("hsv", "rgb", tmp);
+	functioncall	$const12 1021 	%line{174} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:408
+#     if (from == "rgb" || from == "RGB")
+	eq		$tmp366 $const13 $const10 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{408} %argrw{"wrr"}
+	neq		$tmp367 $tmp366 $const6 	%argrw{"wrr"}
+	if		$tmp367 780 783 	%argrw{"r"}
+	eq		$tmp368 $const13 $const1 	%argrw{"wrr"}
+	neq		$tmp369 $tmp368 $const6 	%argrw{"wrr"}
+	assign		$tmp367 $tmp369 	%argrw{"wr"}
+	if		$tmp367 785 902 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:409
+#         r = x;
+	assign		___263_r ___361_tmp 	%line{409} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:410
+#     else if (from == "hsv")
+	eq		$tmp370 $const13 $const13 	%line{410} %argrw{"wrr"}
+	if		$tmp370 826 902 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:411
+#         r = hsv_to_rgb (x);
+	functioncall	$const14 826 	%line{411} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h ___361_tmp $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s ___361_tmp $const7 	%argrw{"wrr"}
+	compref		___264_v ___361_tmp $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp371 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp371 794 825 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp372 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp373 ___264_h $tmp372 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp373 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp374 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp374 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp375 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp375 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp376 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp377 $const5 $tmp376 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp377 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp378 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp379 ___264_s $tmp378 	%argrw{"wrr"}
+	sub		$tmp380 $const5 $tmp379 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp380 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp381 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp381 812 825 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp382 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp382 815 825 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp383 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp383 818 825 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp384 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp384 821 825 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp385 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp385 824 825 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___263_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:412
+#     else if (from == "hsl")
+	eq		$tmp386 $const13 $const11 	%line{412} %argrw{"wrr"}
+	if		$tmp386 888 902 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:413
+#         r = hsl_to_rgb (x);
+	functioncall	$const20 888 	%line{413} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:393
+#         float h = c[0], s = c[1], l = c[2];
+	compref		___267_h ___361_tmp $const6 	%line{393} %argrw{"wrr"}
+	compref		___267_s ___361_tmp $const7 	%argrw{"wrr"}
+	compref		___267_l ___361_tmp $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:395
+#         float v = (l <= 0.5) ? (l * (1 + s)) : (l * (1 - s) + s);
+	le		$tmp387 ___267_l $const21 	%line{395} %argrw{"wrr"}
+	if		$tmp387 836 839 	%argrw{"r"}
+	add		$tmp388 $const5 ___267_s 	%argrw{"wrr"}
+	mul		___267_v ___267_l $tmp388 	%argrw{"wrr"}
+	sub		$tmp389 $const5 ___267_s 	%argrw{"wrr"}
+	mul		$tmp390 ___267_l $tmp389 	%argrw{"wrr"}
+	add		___267_v $tmp390 ___267_s 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:397
+#         if (v <= 0) {
+	le		$tmp391 ___267_v $const6 	%line{397} %argrw{"wrr"}
+	if		$tmp391 842 886 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:398
+#             r = 0;
+	assign		___267_r $const6 	%line{398} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:400
+#             float min = 2 * l - v;
+	mul		$tmp392 $const22 ___267_l 	%line{400} %argrw{"wrr"}
+	sub		___269_min $tmp392 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:401
+#             s = (v - min) / v;
+	sub		$tmp393 ___267_v ___269_min 	%line{401} %argrw{"wrr"}
+	div		___267_s $tmp393 ___267_v 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:402
+#             r = hsv_to_rgb (color (h, s, v));
+	color		$tmp394 ___267_h ___267_s ___267_v 	%line{402} %argrw{"wrrr"}
+	functioncall	$const14 886 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:371
+#         float h = c[0], s = c[1], v = c[2];
+	compref		___264_h $tmp394 $const6 	%line{371} %argrw{"wrr"}
+	compref		___264_s $tmp394 $const7 	%argrw{"wrr"}
+	compref		___264_v $tmp394 $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:373
+#         if (s < 0.0001) {
+	lt		$tmp395 ___264_s $const15 	%line{373} %argrw{"wrr"}
+	if		$tmp395 854 885 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:374
+#             r = v;
+	assign		___264_r ___264_v 	%line{374} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:376
+#             h = 6 * (h - floor(h));  // expand to [0..6)
+	floor		$tmp396 ___264_h 	%line{376} %argrw{"wr"}
+	sub		$tmp397 ___264_h $tmp396 	%argrw{"wrr"}
+	mul		___264_h $const17 $tmp397 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:377
+#             int hi = (int)h;
+	assign		___266_hi ___264_h 	%line{377} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:378
+#             float f = h - hi;
+	assign		$tmp398 ___266_hi 	%line{378} %argrw{"wr"}
+	sub		___266_f ___264_h $tmp398 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:379
+#             float p = v * (1-s);
+	sub		$tmp399 $const5 ___264_s 	%line{379} %argrw{"wrr"}
+	mul		___266_p ___264_v $tmp399 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:380
+#             float q = v * (1-s*f);
+	mul		$tmp400 ___264_s ___266_f 	%line{380} %argrw{"wrr"}
+	sub		$tmp401 $const5 $tmp400 	%argrw{"wrr"}
+	mul		___266_q ___264_v $tmp401 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:381
+#             float t = v * (1-s*(1-f));
+	sub		$tmp402 $const5 ___266_f 	%line{381} %argrw{"wrr"}
+	mul		$tmp403 ___264_s $tmp402 	%argrw{"wrr"}
+	sub		$tmp404 $const5 $tmp403 	%argrw{"wrr"}
+	mul		___266_t ___264_v $tmp404 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:382
+#             if      (hi == 0) r = color (v, t, p);
+	eq		$tmp405 ___266_hi $const6 	%line{382} %argrw{"wrr"}
+	if		$tmp405 872 885 	%argrw{"r"}
+	color		___264_r ___264_v ___266_t ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:383
+#             else if (hi == 1) r = color (q, v, p);
+	eq		$tmp406 ___266_hi $const7 	%line{383} %argrw{"wrr"}
+	if		$tmp406 875 885 	%argrw{"r"}
+	color		___264_r ___266_q ___264_v ___266_p 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:384
+#             else if (hi == 2) r = color (p, v, t);
+	eq		$tmp407 ___266_hi $const8 	%line{384} %argrw{"wrr"}
+	if		$tmp407 878 885 	%argrw{"r"}
+	color		___264_r ___266_p ___264_v ___266_t 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:385
+#             else if (hi == 3) r = color (p, q, v);
+	eq		$tmp408 ___266_hi $const18 	%line{385} %argrw{"wrr"}
+	if		$tmp408 881 885 	%argrw{"r"}
+	color		___264_r ___266_p ___266_q ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:386
+#             else if (hi == 4) r = color (t, p, v);
+	eq		$tmp409 ___266_hi $const19 	%line{386} %argrw{"wrr"}
+	if		$tmp409 884 885 	%argrw{"r"}
+	color		___264_r ___266_t ___266_p ___264_v 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:387
+#             else              r = color (v, p, q);
+	color		___264_r ___264_v ___266_p ___266_q 	%line{387} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:389
+#         return r;
+	assign		___267_r ___264_r 	%line{389} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:404
+#         return r;
+	assign		___263_r ___267_r 	%line{404} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:414
+#     else if (from == "YIQ")
+	eq		$tmp410 $const13 $const23 	%line{414} %argrw{"wrr"}
+	if		$tmp410 894 902 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	dot		$tmp411 $const24 ___361_tmp 	%line{415} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:416
+#                    dot (vector(1, -0.2716, -0.6469), (vector)x),
+	dot		$tmp413 $const25 ___361_tmp 	%line{416} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:417
+#                    dot (vector(1, -1.1082,  1.7051), (vector)x));
+	dot		$tmp415 $const26 ___361_tmp 	%line{417} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:415
+#         r = color (dot (vector(1,  0.9557,  0.6199), (vector)x),
+	color		___263_r $tmp411 $tmp413 $tmp415 	%line{415} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:418
+#     else if (from == "XYZ")
+	eq		$tmp417 $const13 $const27 	%line{418} %argrw{"wrr"}
+	if		$tmp417 900 902 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	dot		$tmp418 $const28 ___361_tmp 	%line{419} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:420
+#                    dot (vector(-0.969256,  1.875991,  0.041556), (vector)x),
+	dot		$tmp420 $const29 ___361_tmp 	%line{420} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:421
+#                    dot (vector( 0.055648, -0.204043,  1.057311), (vector)x));
+	dot		$tmp422 $const30 ___361_tmp 	%line{421} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:419
+#         r = color (dot (vector( 3.240479, -1.537150, -0.498535), (vector)x),
+	color		___263_r $tmp418 $tmp420 $tmp422 	%line{419} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:423
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const10 	%line{423} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:424
+#         r = x;
+	assign		___263_r ___361_tmp 	%line{424} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:426
+#     return transformc (to, r);
+	functioncall	$const12 1021 	%line{426} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:346
+#     if (to == "rgb" || to == "RGB")
+	eq		$tmp424 $const10 $const10 	%line{346} %argrw{"wrr"}
+	neq		$tmp425 $tmp424 $const6 	%argrw{"wrr"}
+	if		$tmp425 906 909 	%argrw{"r"}
+	eq		$tmp426 $const10 $const1 	%argrw{"wrr"}
+	neq		$tmp427 $tmp426 $const6 	%argrw{"wrr"}
+	assign		$tmp425 $tmp427 	%argrw{"wr"}
+	if		$tmp425 911 1020 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:347
+#         r = x;
+	assign		___258_r ___263_r 	%line{347} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:348
+#     else if (to == "hsv")
+	eq		$tmp428 $const10 $const13 	%line{348} %argrw{"wrr"}
+	if		$tmp428 947 1020 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:349
+#         r = rgb_to_hsv (x);
+	functioncall	$const32 947 	%line{349} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp429 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp429 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp430 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp430 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp431 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp431 926 927 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp432 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp432 930 946 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp433 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp433 934 942 	%argrw{"r"}
+	sub		$tmp434 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp434 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp435 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp435 939 942 	%argrw{"r"}
+	sub		$tmp436 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp437 $tmp436 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp437 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp438 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp439 $tmp438 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp439 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp440 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp440 946 946 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___258_r ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:350
+#     else if (to == "hsl")
+	eq		$tmp441 $const10 $const11 	%line{350} %argrw{"wrr"}
+	if		$tmp441 1006 1020 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:351
+#         r = rgb_to_hsl (x);
+	functioncall	$const34 1006 	%line{351} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:332
+#         float minval = min (rgb[0], min (rgb[1], rgb[2]));
+	compref		$tmp442 ___263_r $const6 	%line{332} %argrw{"wrr"}
+	compref		$tmp444 ___263_r $const7 	%argrw{"wrr"}
+	compref		$tmp445 ___263_r $const8 	%argrw{"wrr"}
+	min		$tmp443 $tmp444 $tmp445 	%argrw{"wrr"}
+	min		___261_minval $tmp442 $tmp443 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:333
+#         color hsv = rgb_to_hsv (rgb);
+	functioncall	$const32 989 	%line{333} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:308
+#         float r = rgb[0], g = rgb[1], b = rgb[2];
+	compref		___259_r ___263_r $const6 	%line{308} %argrw{"wrr"}
+	compref		___259_g ___263_r $const7 	%argrw{"wrr"}
+	compref		___259_b ___263_r $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:309
+#         float mincomp = min (r, min (g, b));
+	min		$tmp446 ___259_g ___259_b 	%line{309} %argrw{"wrr"}
+	min		___259_mincomp ___259_r $tmp446 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:310
+#         float maxcomp = max (r, max (g, b));
+	max		$tmp447 ___259_g ___259_b 	%line{310} %argrw{"wrr"}
+	max		___259_maxcomp ___259_r $tmp447 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:311
+#         float delta = maxcomp - mincomp;  // chroma
+	sub		___259_delta ___259_maxcomp ___259_mincomp 	%line{311} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:313
+#         v = maxcomp;
+	assign		___259_v ___259_maxcomp 	%line{313} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:314
+#         if (maxcomp > 0)
+	gt		$tmp448 ___259_maxcomp $const6 	%line{314} %argrw{"wrr"}
+	if		$tmp448 968 969 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:315
+#             s = delta / maxcomp;
+	div		___259_s ___259_delta ___259_maxcomp 	%line{315} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:316
+#         else s = 0;
+	assign		___259_s $const6 	%line{316} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:317
+#         if (s <= 0)
+	le		$tmp449 ___259_s $const6 	%line{317} %argrw{"wrr"}
+	if		$tmp449 972 988 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:318
+#             h = 0;
+	assign		___259_h $const6 	%line{318} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:320
+#             if      (r >= maxcomp) h = (g-b) / delta;
+	ge		$tmp450 ___259_r ___259_maxcomp 	%line{320} %argrw{"wrr"}
+	if		$tmp450 976 984 	%argrw{"r"}
+	sub		$tmp451 ___259_g ___259_b 	%argrw{"wrr"}
+	div		___259_h $tmp451 ___259_delta 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:321
+#             else if (g >= maxcomp) h = 2 + (b-r) / delta;
+	ge		$tmp452 ___259_g ___259_maxcomp 	%line{321} %argrw{"wrr"}
+	if		$tmp452 981 984 	%argrw{"r"}
+	sub		$tmp453 ___259_b ___259_r 	%argrw{"wrr"}
+	div		$tmp454 $tmp453 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const22 $tmp454 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:322
+#             else                   h = 4 + (r-g) / delta;
+	sub		$tmp455 ___259_r ___259_g 	%line{322} %argrw{"wrr"}
+	div		$tmp456 $tmp455 ___259_delta 	%argrw{"wrr"}
+	add		___259_h $const33 $tmp456 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:323
+#             h /= 6;
+	div		___259_h ___259_h $const17 	%line{323} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:324
+#             if (h < 0)
+	lt		$tmp457 ___259_h $const6 	%line{324} %argrw{"wrr"}
+	if		$tmp457 988 988 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:325
+#                 h += 1;
+	add		___259_h ___259_h $const5 	%line{325} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:327
+#         return color (h, s, v);
+	color		___261_hsv ___259_h ___259_s ___259_v 	%line{327} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:334
+#         float maxval = hsv[2];   // v == maxval
+	compref		___261_maxval ___261_hsv $const8 	%line{334} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:335
+#         float h = hsv[0], s, l = (minval+maxval) / 2;
+	compref		___261_h ___261_hsv $const6 	%line{335} %argrw{"wrr"}
+	add		$tmp458 ___261_minval ___261_maxval 	%argrw{"wrr"}
+	div		___261_l $tmp458 $const22 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:336
+#         if (minval == maxval)
+	eq		$tmp459 ___261_minval ___261_maxval 	%line{336} %argrw{"wrr"}
+	if		$tmp459 996 1005 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:337
+#             s = 0;  // special 'achromatic' case, hue is 0
+	assign		___261_s $const6 	%line{337} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:338
+#         else if (l <= 0.5)
+	le		$tmp460 ___261_l $const21 	%line{338} %argrw{"wrr"}
+	if		$tmp460 1001 1005 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:339
+#             s = (maxval - minval) / (maxval + minval);
+	sub		$tmp461 ___261_maxval ___261_minval 	%line{339} %argrw{"wrr"}
+	add		$tmp462 ___261_maxval ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp461 $tmp462 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:341
+#             s = (maxval - minval) / (2 - maxval - minval);
+	sub		$tmp463 ___261_maxval ___261_minval 	%line{341} %argrw{"wrr"}
+	sub		$tmp464 $const22 ___261_maxval 	%argrw{"wrr"}
+	sub		$tmp465 $tmp464 ___261_minval 	%argrw{"wrr"}
+	div		___261_s $tmp463 $tmp465 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:342
+#         return color (h, s, l);
+	color		___258_r ___261_h ___261_s ___261_l 	%line{342} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:352
+#     else if (to == "YIQ")
+	eq		$tmp466 $const10 $const23 	%line{352} %argrw{"wrr"}
+	if		$tmp466 1012 1020 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	dot		$tmp467 $const35 ___263_r 	%line{353} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:354
+#                    dot (vector(0.596, -0.275, -0.321), (vector)x),
+	dot		$tmp469 $const36 ___263_r 	%line{354} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:355
+#                    dot (vector(0.212, -0.523,  0.311), (vector)x));
+	dot		$tmp471 $const37 ___263_r 	%line{355} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:353
+#         r = color (dot (vector(0.299,  0.587,  0.114), (vector)x),
+	color		___258_r $tmp467 $tmp469 $tmp471 	%line{353} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:356
+#     else if (to == "XYZ")
+	eq		$tmp473 $const10 $const27 	%line{356} %argrw{"wrr"}
+	if		$tmp473 1018 1020 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	dot		$tmp474 $const38 ___263_r 	%line{357} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:358
+#                    dot (vector(0.212671, 0.715160, 0.072169), (vector)x),
+	dot		$tmp476 $const39 ___263_r 	%line{358} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:359
+#                    dot (vector(0.019334, 0.119193, 0.950227), (vector)x));
+	dot		$tmp478 $const40 ___263_r 	%line{359} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:357
+#         r = color (dot (vector(0.412453, 0.357580, 0.180423), (vector)x),
+	color		___258_r $tmp474 $tmp476 $tmp478 	%line{357} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:361
+#         error ("Unknown color space \"%s\"", to);
+	error		$const31 $const10 	%line{361} %argrw{"rr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:362
+#         r = x;
+	assign		___258_r ___263_r 	%line{362} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:364
+#     return r;
+	assign		out_outColor ___258_r 	%line{364} %argrw{"wr"}
+	end

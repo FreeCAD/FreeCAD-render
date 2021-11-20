@@ -1,0 +1,525 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_sbs_pbrmaterial.oso
+shader as_sbs_pbrmaterial	%meta{string,help,"Substance Painter PBR material."} %meta{string,icon,"asSbsPbrMaterial.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/material/as_sbs_pbrmaterial.html"} %meta{string,as_node_name,"asSbsPbrMaterial"} %meta{string,as_category,"shader"} %meta{string,as_max_class_id,"2003578504 779682628"} %meta{string,as_max_plugin_type,"material"} %meta{int,as_maya_type_id,1210884} %meta{string,as_maya_classification,"drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch"} 
+param	float	in_ambientOcclusion	1		%meta{string,as_maya_attribute_name,"ambientOcclusion"} %meta{string,as_maya_attribute_short_name,"aoc"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Ambient Occlusion"} %meta{string,page,"Ambient Occlusion"} %meta{string,help,"Ambient occlusion channel texture from Substance Painter."}  %read{29,29} %write{2147483647,-1}
+param	color	in_baseColor	0.5 0.5 0.5		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Surface Color"} %meta{string,page,"Base Color"} %meta{string,help,"Diffuse base color or surface color channel."}  %read{29,146} %write{2147483647,-1}
+param	color	in_emissiveColor	0 0 0		%meta{string,as_maya_attribute_name,"emissiveColor"} %meta{string,as_maya_attribute_short_name,"ecl"} %meta{string,label,"Emissive Color"} %meta{string,page,"Emissive"} %meta{string,help,"Emissive channel"}  %read{155,168} %write{2147483647,-1}
+param	float	in_emissiveIntensity	1		%meta{string,as_maya_attribute_name,"emissiveIntensity"} %meta{string,as_maya_attribute_short_name,"emi"} %meta{float,min,0} %meta{float,softmax,1} %meta{float,max,10} %meta{string,label,"Emissive Intensity"} %meta{string,page,"Emissive"} %meta{string,help,"Controls how much light is emitted from the surface."}  %read{155,167} %write{2147483647,-1}
+param	float	in_height	0.5		%meta{string,as_maya_attribute_name,"height"} %meta{string,as_maya_attribute_short_name,"hei"} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"Height"} %meta{string,page,"Height"} %meta{string,help,"Height channel."}  %read{2147483647,-1} %write{2147483647,-1}
+param	float	in_heightScale	0		%meta{string,as_maya_attribute_name,"heightScale"} %meta{string,as_maya_attribute_short_name,"hsc"} %meta{float,min,-1} %meta{float,max,1} %meta{string,label,"Scale"} %meta{string,page,"Height"} %meta{string,help,"A scaling factor for the height bump mapping."}  %read{2147483647,-1} %write{2147483647,-1}
+param	float	in_metallic	0		%meta{string,as_maya_attribute_name,"metallic"} %meta{string,as_maya_attribute_short_name,"met"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Metallic"} %meta{string,page,"Metallic"} %meta{string,help,"Metallicness channel."}  %read{139,139} %write{2147483647,-1}
+param	normal	in_normal	0 0 0		%meta{string,as_maya_attribute_name,"normalCamera"} %meta{string,as_maya_attribute_short_name,"n"} %meta{string,label,"Normal"} %meta{string,page,"Normal"} %meta{string,help,"Normal channel"}  %read{30,60} %write{0,0} %initexpr
+param	float	in_roughness	0.5		%meta{string,as_maya_attribute_name,"roughness"} %meta{string,as_maya_attribute_short_name,"rou"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Roughness"} %meta{string,page,"Roughness"} %meta{string,help,"Roughness channel."}  %read{134,145} %write{2147483647,-1}
+param	float	in_opacity	1		%meta{string,as_maya_attribute_name,"opacity"} %meta{string,as_maya_attribute_short_name,"opa"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Opacity"} %meta{string,page,"Opacity"} %meta{string,help,"Opacity channel"}  %read{1,167} %write{2147483647,-1}
+param	float	in_specularLevel	0.5		%meta{string,as_maya_attribute_name,"specularLevel"} %meta{string,as_maya_attribute_short_name,"spl"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Specular Level"} %meta{string,page,"Specular"} %meta{string,help,"Specular level channel."}  %read{49,114} %write{2147483647,-1}
+param	float	in_anisotropyLevel	0		%meta{string,as_maya_attribute_name,"anisotropyLevel"} %meta{string,as_maya_attribute_short_name,"anl"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Anisotropy Level"} %meta{string,page,"Anisotropy"} %meta{string,help,"Anisotropy Level channel"}  %read{52,146} %write{2147483647,-1}
+param	float	in_anisotropyAngle	0		%meta{string,as_maya_attribute_name,"anisotropyAngle"} %meta{string,as_maya_attribute_short_name,"ana"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Anisotropy Angle"} %meta{string,page,"Anisotropy"} %meta{string,help,"Anisotropy Angle channel, where 1 = 360 degrees."}  %read{55,59} %write{2147483647,-1}
+param	float	in_refraction	0		%meta{string,as_maya_attribute_name,"refraction"} %meta{string,as_maya_attribute_short_name,"rfa"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Refraction"} %meta{string,page,"Refraction"} %meta{string,help,"Refraction channel"} %meta{int,divider,1}  %read{33,41} %write{2147483647,-1}
+param	float	in_refractionIOR	1.5		%meta{string,as_maya_attribute_name,"refractionIOR"} %meta{string,as_maya_attribute_short_name,"ior"} %meta{float,min,0} %meta{float,softmax,5} %meta{float,max,10} %meta{string,widget,"slider"} %meta{float,slidermin,1} %meta{float,slidermax,10} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"IOR"} %meta{string,page,"Refraction"} %meta{string,help,"Index of Refraction"} %meta{int,divider,1}  %read{36,36} %write{2147483647,-1}
+param	float	in_scattering	0		%meta{string,as_maya_attribute_name,"scattering"} %meta{string,as_maya_attribute_short_name,"sca"} %meta{float,min,0} %meta{float,max,0.100000001} %meta{string,label,"Scattering"} %meta{string,page,"Refraction"} %meta{string,help,"Controls how much light is scattered through the surface."}  %read{2147483647,-1} %write{2147483647,-1}
+param	float	in_absorption	0		%meta{string,as_maya_attribute_name,"absorption"} %meta{string,as_maya_attribute_short_name,"abs"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Absorption"} %meta{string,page,"Refraction"} %meta{string,help,"Controls how much light is absorbed through the surface."}  %read{35,35} %write{2147483647,-1}
+param	color	in_absorptionColor	1 1 1		%meta{string,as_maya_attribute_name,"absorptionColor"} %meta{string,as_maya_attribute_short_name,"abc"} %meta{string,label,"Absorption Color"} %meta{string,page,"Refraction"} %meta{string,help,"Simulates shifts in color when light passes through the surface."}  %read{36,36} %write{2147483647,-1}
+param	int	in_enable_matte	0		%meta{string,as_maya_attribute_name,"enableMatte"} %meta{string,as_maya_attribute_short_name,"ema"} %meta{string,widget,"checkBox"} %meta{string,label,"Enable Matte Opacity"} %meta{string,page,"Matte Opacity"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{9,9} %write{2147483647,-1}
+param	float	in_matte_opacity	0		%meta{string,as_maya_attribute_name,"matteOpacity"} %meta{string,as_maya_attribute_short_name,"mao"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Matte Opacity"} %meta{string,page,"Matte Opacity"} %meta{int,gafferNoduleLayoutVisible,0}  %read{10,10} %write{2147483647,-1}
+param	color	in_matte_opacity_color	1 0.5 0		%meta{string,as_maya_attribute_name,"matteOpacityColor"} %meta{string,as_maya_attribute_short_name,"mac"} %meta{string,label,"Matte Opacity Color"} %meta{string,page,"Matte Opacity"} %meta{int,gafferNoduleLayoutVisible,0}  %read{10,10} %write{2147483647,-1}
+param	int	in_maximum_ray_depth	100		%meta{string,as_maya_attribute_name,"maximumRayDepth"} %meta{string,as_maya_attribute_short_name,"mr"} %meta{int,min,0} %meta{int,max,100} %meta{int,softmax,16} %meta{string,widget,"slider"} %meta{int,slidermin,0} %meta{int,slidermax,10} %meta{string,label,"Ray Depth"} %meta{string,page,"Advanced"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{21,21} %write{2147483647,-1}
+param	vector	Tn	0 0 0		%meta{int,lockgeom,0} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{31,51} %write{2147483647,-1}
+param	vector	Bn	0 0 0		%meta{int,lockgeom,0} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+oparam	closure color	out_outColor			%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,widget,"null"}  %read{6,171} %write{6,171}
+oparam	closure color	out_outTransparency			%meta{string,as_maya_attribute_name,"outTransparency"} %meta{string,as_maya_attribute_short_name,"ot"} %meta{string,widget,"null"}  %read{6,6} %write{5,5}
+oparam	closure color	out_outMatteOpacity			%meta{string,as_maya_attribute_name,"outMatteOpacity"} %meta{string,as_maya_attribute_short_name,"om"} %meta{string,widget,"null"} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{11,11} %write{10,10}
+global	vector	I	%read{116,116} %write{2147483647,-1}
+global	normal	N	%read{0,0} %write{2147483647,-1}
+local	vector	___254_axis	%read{66,68} %write{63,63}
+local	float	___254_cosang	%read{65,106} %write{64,64}
+local	float	___254_sinang	%read{76,101} %write{64,64}
+local	float	___254_cosang1	%read{75,100} %write{65,65}
+local	float	___254_x	%read{69,101} %write{66,66}
+local	float	___254_y	%read{74,99} %write{67,67}
+local	float	___254_z	%read{76,104} %write{68,68}
+local	matrix	___254_M	%read{110,110} %write{108,108}
+local	int	ray_depth	%read{21,21} %write{16,17}
+local	int	status	%read{18,18} %write{17,17}
+local	color	diffuse_color	%read{36,47} %write{29,29}
+local	normal	Nn	%read{36,146} %write{30,30}
+local	vector	tangent	%read{2147483647,-1} %write{31,31}
+local	closure color	bsdf	%read{39,151} %write{32,149}
+local	vector	___368_tangent	%read{109,146} %write{51,111}
+local	float	___370_F0	%read{122,129} %write{114,114}
+local	float	___370_F90	%read{122,122} %write{115,115}
+local	float	___370_tmp	%read{120,123} %write{119,119}
+local	float	___370_F	%read{127,127} %write{125,126}
+local	float	___370_sqrt_f0	%read{130,131} %write{129,129}
+local	float	___370_eta	%read{135,135} %write{133,133}
+local	float	___368_metallicness	%read{141,147} %write{140,140}
+const	float	$const1	1		%read{1,143} %write{2147483647,-1}
+temp	int	$tmp1	%read{2,2} %write{1,1}
+temp	closure color	$tmp2	%read{5,5} %write{3,3}
+const	string	$const2	"transparent"		%read{3,3} %write{2147483647,-1}
+temp	float	$tmp3	%read{5,5} %write{4,4}
+temp	int	$tmp4	%read{8,8} %write{7,7}
+const	string	$const3	"transparency"		%read{7,7} %write{2147483647,-1}
+const	string	$const4	"as_matte"		%read{10,10} %write{2147483647,-1}
+temp	int	$tmp5	%read{14,14} %write{13,13}
+const	string	$const5	"shadow"		%read{13,13} %write{2147483647,-1}
+const	int	$const6	0		%read{16,163} %write{2147483647,-1}
+const	string	$const7	"path:ray_depth"		%read{17,17} %write{2147483647,-1}
+temp	int	$tmp6	%read{19,19} %write{18,18}
+temp	int	$tmp7	%read{20,24} %write{19,23}
+temp	int	$tmp8	%read{22,22} %write{21,21}
+temp	int	$tmp9	%read{23,23} %write{22,22}
+const	float	$const8	0		%read{26,162} %write{2147483647,-1}
+temp	int	$tmp10	%read{27,27} %write{26,26}
+temp	int	$tmp11	%read{34,34} %write{33,33}
+temp	closure color	$tmp12	%read{38,38} %write{36,36}
+const	vector	$const9	0 0 0		%read{36,36} %write{2147483647,-1}
+const	color	$const10	1 1 1		%read{36,146} %write{2147483647,-1}
+const	color	$const11	0 0 0		%read{36,36} %write{2147483647,-1}
+const	float	$const12	0.00999999978		%read{36,145} %write{2147483647,-1}
+const	float	$const13	10		%read{35,35} %write{2147483647,-1}
+temp	float	$tmp16	%read{36,36} %write{35,35}
+const	string	$const14	"energy_compensation"		%read{36,146} %write{2147483647,-1}
+const	string	$const15	"as_glass"		%read{36,36} %write{2147483647,-1}
+temp	float	$tmp17	%read{38,38} %write{37,37}
+temp	closure color	$tmp18	%read{39,39} %write{38,38}
+temp	closure color	$tmp19	%read{44,44} %write{40,40}
+const	string	$const16	"diffuse"		%read{40,46} %write{2147483647,-1}
+temp	float	$tmp20	%read{42,42} %write{41,41}
+temp	float	$tmp21	%read{43,43} %write{42,42}
+temp	color	$tmp22	%read{44,44} %write{43,43}
+temp	closure color	$tmp23	%read{45,45} %write{44,44}
+temp	closure color	$tmp24	%read{48,48} %write{46,46}
+temp	color	$tmp25	%read{48,48} %write{47,47}
+temp	int	$tmp26	%read{50,50} %write{49,49}
+temp	int	$tmp27	%read{53,53} %write{52,52}
+temp	int	$tmp28	%read{54,58} %write{53,57}
+temp	int	$tmp29	%read{56,56} %write{55,55}
+temp	int	$tmp30	%read{57,57} %write{56,56}
+const	float	$const17	6.28318548		%read{59,59} %write{2147483647,-1}
+temp	float	$tmp31	%read{64,64} %write{59,59}
+const	point	$const18	0 0 0		%read{62,111} %write{2147483647,-1}
+temp	point	$tmp33	%read{62,62} %write{60,60}
+const	string	$const19	"rotate"		%read{61,61} %write{2147483647,-1}
+temp	vector	$tmp34	%read{63,63} %write{62,62}
+const	int	$const20	1		%read{67,158} %write{2147483647,-1}
+const	int	$const21	2		%read{68,159} %write{2147483647,-1}
+temp	float	$tmp35	%read{73,73} %write{69,69}
+temp	float	$tmp36	%read{71,71} %write{70,70}
+temp	float	$tmp37	%read{72,72} %write{71,71}
+temp	float	$tmp38	%read{73,73} %write{72,72}
+temp	float	$tmp39	%read{108,108} %write{73,73}
+temp	float	$tmp40	%read{75,75} %write{74,74}
+temp	float	$tmp41	%read{77,77} %write{75,75}
+temp	float	$tmp42	%read{77,77} %write{76,76}
+temp	float	$tmp43	%read{108,108} %write{77,77}
+temp	float	$tmp44	%read{79,79} %write{78,78}
+temp	float	$tmp45	%read{81,81} %write{79,79}
+temp	float	$tmp46	%read{81,81} %write{80,80}
+temp	float	$tmp47	%read{108,108} %write{81,81}
+temp	float	$tmp48	%read{83,83} %write{82,82}
+temp	float	$tmp49	%read{85,85} %write{83,83}
+temp	float	$tmp50	%read{85,85} %write{84,84}
+temp	float	$tmp51	%read{108,108} %write{85,85}
+temp	float	$tmp52	%read{90,90} %write{86,86}
+temp	float	$tmp53	%read{88,88} %write{87,87}
+temp	float	$tmp54	%read{89,89} %write{88,88}
+temp	float	$tmp55	%read{90,90} %write{89,89}
+temp	float	$tmp56	%read{108,108} %write{90,90}
+temp	float	$tmp57	%read{92,92} %write{91,91}
+temp	float	$tmp58	%read{94,94} %write{92,92}
+temp	float	$tmp59	%read{94,94} %write{93,93}
+temp	float	$tmp60	%read{108,108} %write{94,94}
+temp	float	$tmp61	%read{96,96} %write{95,95}
+temp	float	$tmp62	%read{98,98} %write{96,96}
+temp	float	$tmp63	%read{98,98} %write{97,97}
+temp	float	$tmp64	%read{108,108} %write{98,98}
+temp	float	$tmp65	%read{100,100} %write{99,99}
+temp	float	$tmp66	%read{102,102} %write{100,100}
+temp	float	$tmp67	%read{102,102} %write{101,101}
+temp	float	$tmp68	%read{108,108} %write{102,102}
+temp	float	$tmp69	%read{107,107} %write{103,103}
+temp	float	$tmp70	%read{105,105} %write{104,104}
+temp	float	$tmp71	%read{106,106} %write{105,105}
+temp	float	$tmp72	%read{107,107} %write{106,106}
+temp	float	$tmp73	%read{108,108} %write{107,107}
+temp	vector	$tmp74	%read{111,111} %write{110,110}
+temp	vector	$tmp75	%read{110,110} %write{109,109}
+temp	int	$tmp76	%read{113,113} %write{112,112}
+const	float	$const22	0.0799999982		%read{114,114} %write{2147483647,-1}
+temp	float	$tmp77	%read{119,119} %write{118,118}
+temp	float	$tmp78	%read{118,118} %write{117,117}
+temp	vector	$tmp79	%read{117,117} %write{116,116}
+temp	int	$tmp80	%read{121,121} %write{120,120}
+temp	float	$tmp81	%read{124,124} %write{122,122}
+temp	float	$tmp82	%read{124,124} %write{123,123}
+const	float	$const23	5		%read{123,123} %write{2147483647,-1}
+temp	float	$tmp83	%read{125,125} %write{124,124}
+temp	float	$tmp84	%read{128,128} %write{127,127}
+temp	float	$tmp85	%read{133,133} %write{130,130}
+temp	float	$tmp86	%read{133,133} %write{132,132}
+const	float	$const24	9.99999997e-07		%read{132,132} %write{2147483647,-1}
+temp	float	$tmp87	%read{132,132} %write{131,131}
+temp	closure color	$tmp88	%read{136,136} %write{135,135}
+temp	float	$tmp89	%read{135,135} %write{134,134}
+const	string	$const25	"as_glossy"		%read{135,135} %write{2147483647,-1}
+temp	closure color	$tmp90	%read{137,137} %write{136,136}
+const	string	$const26	"clamp"		%read{138,138} %write{2147483647,-1}
+temp	float	$tmp91	%read{140,140} %write{139,139}
+temp	int	$tmp92	%read{142,142} %write{141,141}
+temp	float	$tmp93	%read{144,144} %write{143,143}
+temp	closure color	$tmp94	%read{148,148} %write{146,146}
+temp	float	$tmp96	%read{146,146} %write{145,145}
+const	string	$const27	"as_metal"		%read{146,146} %write{2147483647,-1}
+temp	float	$tmp97	%read{148,148} %write{147,147}
+temp	closure color	$tmp98	%read{149,149} %write{148,148}
+temp	int	$tmp99	%read{153,153} %write{152,152}
+const	string	$const28	"light"		%read{152,152} %write{2147483647,-1}
+temp	int	$tmp100	%read{154,165} %write{153,164}
+temp	float	$tmp101	%read{162,162} %write{161,161}
+temp	color	$tmp102	%read{157,159} %write{155,155}
+const	string	$const29	"max"		%read{156,156} %write{2147483647,-1}
+temp	float	$tmp103	%read{161,161} %write{157,157}
+temp	float	$tmp104	%read{161,161} %write{160,160}
+temp	float	$tmp105	%read{160,160} %write{158,158}
+temp	float	$tmp106	%read{160,160} %write{159,159}
+temp	int	$tmp107	%read{163,163} %write{162,162}
+temp	int	$tmp108	%read{164,164} %write{163,163}
+temp	closure color	$tmp109	%read{170,170} %write{166,166}
+const	string	$const30	"emission"		%read{166,166} %write{2147483647,-1}
+temp	float	$tmp110	%read{168,168} %write{167,167}
+temp	color	$tmp111	%read{169,169} %write{168,168}
+const	float	$const31	2.8599999		%read{169,169} %write{2147483647,-1}
+temp	color	$tmp112	%read{170,170} %write{169,169}
+temp	closure color	$tmp113	%read{171,171} %write{170,170}
+code in_normal
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:121
+#     normal in_normal = N
+	assign		in_normal N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl"} %line{121} %argrw{"wr"}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:340
+#     if (in_opacity < 1.0)
+	lt		$tmp1 in_opacity $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl"} %line{340} %argrw{"wrr"}
+	if		$tmp1 7 7 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:342
+#         out_outTransparency = (1.0 - in_opacity) * transparent();
+	closure		$tmp2 $const2 	%line{342} %argrw{"wr"}
+	sub		$tmp3 $const1 in_opacity 	%argrw{"wrr"}
+	mul		out_outTransparency $tmp2 $tmp3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:343
+#         out_outColor += out_outTransparency;
+	add		out_outColor out_outColor out_outTransparency 	%line{343} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:346
+#     if (raytype("transparency"))
+	raytype		$tmp4 $const3 	%line{346} %argrw{"wr"}
+	if		$tmp4 13 13 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:348
+#         if (in_enable_matte)
+	if		in_enable_matte 12 12 	%line{348} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:350
+#             out_outMatteOpacity = as_matte(
+	closure		out_outMatteOpacity $const4 in_matte_opacity_color in_matte_opacity 	%line{350} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:354
+#             out_outColor += out_outMatteOpacity;
+	add		out_outColor out_outColor out_outMatteOpacity 	%line{354} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:356
+#         return;
+	exit	%line{356}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:359
+#     if (raytype("shadow"))
+	raytype		$tmp5 $const5 	%line{359} %argrw{"wr"}
+	if		$tmp5 16 16 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:361
+#         return;
+	exit	%line{361}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:364
+#     int ray_depth = 0;
+	assign		ray_depth $const6 	%line{364} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:365
+#     int status = getattribute("path:ray_depth", ray_depth);
+	getattribute	status $const7 ray_depth 	%line{365} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:367
+#     if (!status || ray_depth > in_maximum_ray_depth)
+	eq		$tmp6 status $const6 	%line{367} %argrw{"wrr"}
+	neq		$tmp7 $tmp6 $const6 	%argrw{"wrr"}
+	if		$tmp7 21 24 	%argrw{"r"}
+	gt		$tmp8 ray_depth in_maximum_ray_depth 	%argrw{"wrr"}
+	neq		$tmp9 $tmp8 $const6 	%argrw{"wrr"}
+	assign		$tmp7 $tmp9 	%argrw{"wr"}
+	if		$tmp7 26 26 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:369
+#         return;
+	exit	%line{369}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:372
+#     if (in_opacity == 0.0)
+	eq		$tmp10 in_opacity $const8 	%line{372} %argrw{"wrr"}
+	if		$tmp10 29 29 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:374
+#         return;
+	exit	%line{374}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:378
+#     color diffuse_color = in_baseColor * in_ambientOcclusion;
+	mul		diffuse_color in_baseColor in_ambientOcclusion 	%line{378} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:380
+#     normal Nn = normalize(in_normal);
+	normalize	Nn in_normal 	%line{380} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:381
+#     vector tangent = Tn;
+	assign		tangent Tn 	%line{381} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:390
+#     closure color bsdf = 0;
+	assign		bsdf $const6 	%line{390} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:392
+#     if (in_refraction > 0.0)
+	gt		$tmp11 in_refraction $const8 	%line{392} %argrw{"wrr"}
+	if		$tmp11 46 49 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:404
+#             in_absorption * 10.0, // original range [0,0.1], find match
+	mul		$tmp16 in_absorption $const13 	%line{404} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:394
+#         bsdf += in_refraction * in_opacity * as_glass(
+	closure		$tmp12 $const15 Nn $const9 $const10 $const11 diffuse_color $const12 $const8 in_refractionIOR in_absorptionColor $tmp16 $const14 $const8 	%line{394} %argrw{"wrrrrrrrrrrrrr"}
+	mul		$tmp17 in_refraction in_opacity 	%argrw{"wrr"}
+	mul		$tmp18 $tmp12 $tmp17 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:405
+#             "energy_compensation", 0.0);
+	add		bsdf bsdf $tmp18 	%line{405} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:408
+#             diffuse_color * diffuse(Nn);
+	closure		$tmp19 $const16 Nn 	%line{408} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:407
+#         bsdf += (1.0 - in_refraction) * in_opacity *
+	sub		$tmp20 $const1 in_refraction 	%line{407} %argrw{"wrr"}
+	mul		$tmp21 $tmp20 in_opacity 	%argrw{"wrr"}
+	mul		$tmp22 $tmp21 diffuse_color 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:408
+#             diffuse_color * diffuse(Nn);
+	mul		$tmp23 $tmp19 $tmp22 	%line{408} %argrw{"wrr"}
+	add		bsdf bsdf $tmp23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:412
+#         bsdf = in_opacity * diffuse_color * diffuse(Nn);
+	closure		$tmp24 $const16 Nn 	%line{412} %argrw{"wrr"}
+	mul		$tmp25 in_opacity diffuse_color 	%argrw{"wrr"}
+	mul		bsdf $tmp24 $tmp25 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:415
+#     if (in_specularLevel > 0.0)
+	gt		$tmp26 in_specularLevel $const8 	%line{415} %argrw{"wrr"}
+	if		$tmp26 151 152 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:417
+#         vector tangent = Tn;
+	assign		___368_tangent Tn 	%line{417} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:419
+#         if (in_anisotropyLevel > 0.0 && in_anisotropyAngle > 0.0)
+	gt		$tmp27 in_anisotropyLevel $const8 	%line{419} %argrw{"wrr"}
+	neq		$tmp28 $tmp27 $const6 	%argrw{"wrr"}
+	if		$tmp28 58 58 	%argrw{"r"}
+	gt		$tmp29 in_anisotropyAngle $const8 	%argrw{"wrr"}
+	neq		$tmp30 $tmp29 $const6 	%argrw{"wrr"}
+	assign		$tmp28 $tmp30 	%argrw{"wr"}
+	if		$tmp28 112 112 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:423
+#                 in_anisotropyAngle * M_2PI,
+	mul		$tmp31 in_anisotropyAngle $const17 	%line{423} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:425
+#                 point(in_normal));
+	assign		$tmp33 in_normal 	%line{425} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:421
+#             tangent = rotate(
+	functioncall	$const19 112 	%line{421} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:274
+#     vector axis = normalize (b - a);
+	sub		$tmp34 $tmp33 $const18 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{274} %argrw{"wrr"}
+	normalize	___254_axis $tmp34 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:276
+#     sincos (angle, sinang, cosang);
+	sincos		$tmp31 ___254_sinang ___254_cosang 	%line{276} %argrw{"rww"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:277
+#     float cosang1 = 1.0 - cosang;
+	sub		___254_cosang1 $const1 ___254_cosang 	%line{277} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:278
+#     float x = axis[0], y = axis[1], z = axis[2];
+	compref		___254_x ___254_axis $const6 	%line{278} %argrw{"wrr"}
+	compref		___254_y ___254_axis $const20 	%argrw{"wrr"}
+	compref		___254_z ___254_axis $const21 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:279
+#     matrix M = matrix (x * x + (1.0 - x * x) * cosang,
+	mul		$tmp35 ___254_x ___254_x 	%line{279} %argrw{"wrr"}
+	mul		$tmp36 ___254_x ___254_x 	%argrw{"wrr"}
+	sub		$tmp37 $const1 $tmp36 	%argrw{"wrr"}
+	mul		$tmp38 $tmp37 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp39 $tmp35 $tmp38 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:280
+#                        x * y * cosang1 + z * sinang,
+	mul		$tmp40 ___254_x ___254_y 	%line{280} %argrw{"wrr"}
+	mul		$tmp41 $tmp40 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp42 ___254_z ___254_sinang 	%argrw{"wrr"}
+	add		$tmp43 $tmp41 $tmp42 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:281
+#                        x * z * cosang1 - y * sinang,
+	mul		$tmp44 ___254_x ___254_z 	%line{281} %argrw{"wrr"}
+	mul		$tmp45 $tmp44 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp46 ___254_y ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp47 $tmp45 $tmp46 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:283
+#                        x * y * cosang1 - z * sinang,
+	mul		$tmp48 ___254_x ___254_y 	%line{283} %argrw{"wrr"}
+	mul		$tmp49 $tmp48 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp50 ___254_z ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp51 $tmp49 $tmp50 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:284
+#                        y * y + (1.0 - y * y) * cosang,
+	mul		$tmp52 ___254_y ___254_y 	%line{284} %argrw{"wrr"}
+	mul		$tmp53 ___254_y ___254_y 	%argrw{"wrr"}
+	sub		$tmp54 $const1 $tmp53 	%argrw{"wrr"}
+	mul		$tmp55 $tmp54 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp56 $tmp52 $tmp55 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:285
+#                        y * z * cosang1 + x * sinang,
+	mul		$tmp57 ___254_y ___254_z 	%line{285} %argrw{"wrr"}
+	mul		$tmp58 $tmp57 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp59 ___254_x ___254_sinang 	%argrw{"wrr"}
+	add		$tmp60 $tmp58 $tmp59 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:287
+#                        x * z * cosang1 + y * sinang,
+	mul		$tmp61 ___254_x ___254_z 	%line{287} %argrw{"wrr"}
+	mul		$tmp62 $tmp61 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp63 ___254_y ___254_sinang 	%argrw{"wrr"}
+	add		$tmp64 $tmp62 $tmp63 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:288
+#                        y * z * cosang1 - x * sinang,
+	mul		$tmp65 ___254_y ___254_z 	%line{288} %argrw{"wrr"}
+	mul		$tmp66 $tmp65 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp67 ___254_x ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp68 $tmp66 $tmp67 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:289
+#                        z * z + (1.0 - z * z) * cosang,
+	mul		$tmp69 ___254_z ___254_z 	%line{289} %argrw{"wrr"}
+	mul		$tmp70 ___254_z ___254_z 	%argrw{"wrr"}
+	sub		$tmp71 $const1 $tmp70 	%argrw{"wrr"}
+	mul		$tmp72 $tmp71 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp73 $tmp69 $tmp72 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:279
+#     matrix M = matrix (x * x + (1.0 - x * x) * cosang,
+	matrix		___254_M $tmp39 $tmp43 $tmp47 $const8 $tmp51 $tmp56 $tmp60 $const8 $tmp64 $tmp68 $tmp73 $const8 $const8 $const8 $const8 $const1 	%line{279} %argrw{"wrrrrrrrrrrrrrrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:292
+#     return transform (M, p-a) + a;
+	sub		$tmp75 ___368_tangent $const18 	%line{292} %argrw{"wrr"}
+	transformv	$tmp74 ___254_M $tmp75 	%argrw{"wrr"}
+	add		___368_tangent $tmp74 $const18 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:431
+#         if (in_specularLevel > 0.0)
+	gt		$tmp76 in_specularLevel $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl"} %line{431} %argrw{"wrr"}
+	if		$tmp76 138 138 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:433
+#             float F0 = in_specularLevel * 0.08; // from MDL (dielectric)
+	mul		___370_F0 in_specularLevel $const22 	%line{433} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:434
+#             float F90 = 1.0;
+	assign		___370_F90 $const1 	%line{434} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:436
+#             float tmp = 1.0 - max(0.0, dot(-I, Nn));
+	neg		$tmp79 I 	%line{436} %argrw{"wr"}
+	dot		$tmp78 $tmp79 Nn 	%argrw{"wrr"}
+	max		$tmp77 $const8 $tmp78 	%argrw{"wrr"}
+	sub		___370_tmp $const1 $tmp77 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:437
+#             float F = (tmp > 0.0) ? F0 + (F90 - F0) * pow(tmp, 5.0) : 0.0;
+	gt		$tmp80 ___370_tmp $const8 	%line{437} %argrw{"wrr"}
+	if		$tmp80 126 127 	%argrw{"r"}
+	sub		$tmp81 ___370_F90 ___370_F0 	%argrw{"wrr"}
+	pow		$tmp82 ___370_tmp $const23 	%argrw{"wrr"}
+	mul		$tmp83 $tmp81 $tmp82 	%argrw{"wrr"}
+	add		___370_F ___370_F0 $tmp83 	%argrw{"wrr"}
+	assign		___370_F $const8 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:439
+#             bsdf *= 1.0 - F;
+	sub		$tmp84 $const1 ___370_F 	%line{439} %argrw{"wrr"}
+	mul		bsdf bsdf $tmp84 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:442
+#             float sqrt_f0 = sqrt(F0);
+	sqrt		___370_sqrt_f0 ___370_F0 	%line{442} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:443
+#             float eta = (sqrt_f0 + 1.0) / max(1.0e-6, 1.0 - sqrt_f0);
+	add		$tmp85 ___370_sqrt_f0 $const1 	%line{443} %argrw{"wrr"}
+	sub		$tmp87 $const1 ___370_sqrt_f0 	%argrw{"wrr"}
+	max		$tmp86 $const24 $tmp87 	%argrw{"wrr"}
+	div		___370_eta $tmp85 $tmp86 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:448
+#                 max(0.01, in_roughness),
+	max		$tmp89 $const12 in_roughness 	%line{448} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:445
+#             bsdf += in_opacity * as_glossy(
+	closure		$tmp88 $const25 Nn ___368_tangent $tmp89 in_anisotropyLevel ___370_eta $const14 $const8 	%line{445} %argrw{"wrrrrrrrr"}
+	mul		$tmp90 $tmp88 in_opacity 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:452
+#                 "energy_compensation", 0.0);
+	add		bsdf bsdf $tmp90 	%line{452} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:455
+#         float metallicness = clamp(in_metallic, 0.0, 1.0);
+	functioncall	$const26 141 	%line{455} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp91 in_metallic $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		___368_metallicness $tmp91 $const8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:457
+#         if (metallicness > 0.0)
+	gt		$tmp92 ___368_metallicness $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl"} %line{457} %argrw{"wrr"}
+	if		$tmp92 150 150 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:459
+#             bsdf *= 1.0 - metallicness;
+	sub		$tmp93 $const1 ___368_metallicness 	%line{459} %argrw{"wrr"}
+	mul		bsdf bsdf $tmp93 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:466
+#                 max(0.01, in_roughness),
+	max		$tmp96 $const12 in_roughness 	%line{466} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:460
+#             bsdf += in_opacity * metallicness * as_metal(
+	closure		$tmp94 $const27 Nn ___368_tangent in_baseColor $const10 $const8 $tmp96 in_anisotropyLevel $const14 $const8 	%line{460} %argrw{"wrrrrrrrrrr"}
+	mul		$tmp97 in_opacity ___368_metallicness 	%argrw{"wrr"}
+	mul		$tmp98 $tmp94 $tmp97 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:468
+#                 "energy_compensation", 0.0);
+	add		bsdf bsdf $tmp98 	%line{468} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:470
+#         out_outColor += bsdf;
+	add		out_outColor out_outColor bsdf 	%line{470} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:474
+#         out_outColor += bsdf;
+	add		out_outColor out_outColor bsdf 	%line{474} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:477
+#     if (raytype("light") &&
+	raytype		$tmp99 $const28 	%line{477} %argrw{"wr"}
+	neq		$tmp100 $tmp99 $const6 	%argrw{"wrr"}
+	if		$tmp100 165 165 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:478
+#         max(in_emissiveIntensity * in_emissiveColor) > 0.0)
+	mul		$tmp102 in_emissiveIntensity in_emissiveColor 	%line{478} %argrw{"wrr"}
+	functioncall	$const29 162 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/as_osl_extensions.h:48
+# float max(color C)  { return max(C[0], max(C[1], C[2])); }
+	compref		$tmp103 $tmp102 $const6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/as_osl_extensions.h"} %line{48} %argrw{"wrr"}
+	compref		$tmp105 $tmp102 $const20 	%argrw{"wrr"}
+	compref		$tmp106 $tmp102 $const21 	%argrw{"wrr"}
+	max		$tmp104 $tmp105 $tmp106 	%argrw{"wrr"}
+	max		$tmp101 $tmp103 $tmp104 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:478
+#         max(in_emissiveIntensity * in_emissiveColor) > 0.0)
+	gt		$tmp107 $tmp101 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl"} %line{478} %argrw{"wrr"}
+	neq		$tmp108 $tmp107 $const6 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:477
+#     if (raytype("light") &&
+	assign		$tmp100 $tmp108 	%line{477} %argrw{"wr"}
+	if		$tmp100 172 172 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:481
+#             in_emissiveColor * 2.86 * emission();
+	closure		$tmp109 $const30 	%line{481} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:480
+#         out_outColor += in_opacity * in_emissiveIntensity *
+	mul		$tmp110 in_opacity in_emissiveIntensity 	%line{480} %argrw{"wrr"}
+	mul		$tmp111 $tmp110 in_emissiveColor 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_sbs_pbrmaterial.osl:481
+#             in_emissiveColor * 2.86 * emission();
+	mul		$tmp112 $tmp111 $const31 	%line{481} %argrw{"wrr"}
+	mul		$tmp113 $tmp109 $tmp112 	%argrw{"wrr"}
+	add		out_outColor out_outColor $tmp113 	%argrw{"wrr"}
+	end

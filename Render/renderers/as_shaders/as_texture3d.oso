@@ -1,0 +1,300 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_texture3d.oso
+shader as_texture3d	%meta{string,help,"A field3d format 3D texture lookup node."} %meta{string,icon,"asTexture3D.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/texture/as_texture3d.html"} %meta{string,as_node_name,"asTexture3D"} %meta{string,as_category,"texture3d"} %meta{string,as_max_class_id,"2105412220 306260647"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210879} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/texture/3d:swatch/AppleseedRenderSwatch:texture"} 
+param	string	in_filename	""		%meta{string,as_maya_attribute_name,"filename"} %meta{string,as_maya_attribute_short_name,"fil"} %meta{string,label,"Filename"} %meta{string,page,"3D Texture"} %meta{string,widget,"filename"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"The 3D texture file (field3d, f3d, etc)."} %meta{int,divider,1}  %read{1,93} %write{2147483647,-1}
+param	int	in_starting_channel	0		%meta{string,as_maya_attribute_name,"startingChannel"} %meta{string,as_maya_attribute_short_name,"sch"} %meta{string,label,"Starting Channel"} %meta{string,page,"3D Texture"} %meta{int,min,0} %meta{int,softmax,4} %meta{string,help,"Starting channel for the texture lookup, usually 0 for an ordinary RGB texture."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{93,93} %write{2147483647,-1}
+param	color	in_color	0 0 0		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Default Color"} %meta{string,page,"3D Texture"} %meta{string,help,"Default fill color to use if the texture lookup fails."}  %read{93,93} %write{2147483647,-1}
+param	float	in_channel_fill	0		%meta{string,as_maya_attribute_name,"channelFill"} %meta{string,as_maya_attribute_short_name,"chf"} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"Default Channel Fill"} %meta{string,page,"3D Texture"} %meta{string,help,"Default fill value for any channels requested but not present."} %meta{int,divider,1}  %read{93,93} %write{2147483647,-1}
+param	float	in_time	0		%meta{string,as_maya_attribute_name,"time"} %meta{string,as_maya_attribute_short_name,"tim"} %meta{float,softmin,0} %meta{string,label,"Time"} %meta{string,page,"3D Texture"} %meta{string,help,"Time value to use if the texture specifies a time varying local transformation."}  %read{93,93} %write{2147483647,-1}
+param	int	in_s_wrap	0		%meta{string,as_maya_attribute_name,"sWrap"} %meta{string,as_maya_attribute_short_name,"swa"} %meta{string,label,"S Wrapping"} %meta{string,page,"3D Texture.Wrap"} %meta{string,widget,"mapper"} %meta{string,options,"Default:0|Black:1|Periodic:2|Clamp:3|Mirror:4"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Use the wrapping mode set on the texture, or override it."}  %read{16,28} %write{2147483647,-1}
+param	int	in_t_wrap	0		%meta{string,as_maya_attribute_name,"tWrap"} %meta{string,as_maya_attribute_short_name,"twa"} %meta{string,label,"T Wrapping"} %meta{string,page,"3D Texture.Wrap"} %meta{string,widget,"mapper"} %meta{string,options,"Default:0|Black:1|Periodic:2|Clamp:3|Mirror:4"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Use the wrapping mode set on the texture, or override it."}  %read{36,48} %write{2147483647,-1}
+param	int	in_r_wrap	0		%meta{string,as_maya_attribute_name,"rWrap"} %meta{string,as_maya_attribute_short_name,"rwa"} %meta{string,label,"R Wrapping"} %meta{string,page,"3D Texture.Wrap"} %meta{string,widget,"mapper"} %meta{string,options,"Default:0|Black:1|Periodic:2|Clamp:3|Mirror:4"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Use the wrapping mode set on the texture, or override it."}  %read{56,68} %write{2147483647,-1}
+param	float	in_s_blur	0		%meta{string,as_maya_attribute_name,"sBlur"} %meta{string,as_maya_attribute_short_name,"sbl"} %meta{float,min,0} %meta{float,max,1} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Blur Width"} %meta{string,page,"3D Texture.Blur"} %meta{string,help,"Blur along the s direction, or width."}  %read{93,93} %write{2147483647,-1}
+param	float	in_t_blur	0		%meta{string,as_maya_attribute_name,"tBlur"} %meta{string,as_maya_attribute_short_name,"tbl"} %meta{float,min,0} %meta{float,max,1} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Blur Height"} %meta{string,page,"3D Texture.Blur"} %meta{string,help,"Blur along the t direction, or height."}  %read{93,93} %write{2147483647,-1}
+param	float	in_r_blur	0		%meta{string,as_maya_attribute_name,"rBlur"} %meta{string,as_maya_attribute_short_name,"rbl"} %meta{float,min,0} %meta{float,max,1} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Blur Depth"} %meta{string,page,"3D Texture.Blur"} %meta{string,help,"Blur along the r direction, or depth."} %meta{int,divider,1}  %read{93,93} %write{2147483647,-1}
+param	float	in_s_width	1		%meta{string,as_maya_attribute_name,"sWidth"} %meta{string,as_maya_attribute_short_name,"swi"} %meta{float,min,0} %meta{float,softmax,1} %meta{string,label,"Width Filter"} %meta{string,page,"3D Texture.Filter"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Scale the size of the filter defined by the partial derivatives along s or implicitly from P, with 0 disabling filtering altogether."}  %read{93,93} %write{2147483647,-1}
+param	float	in_t_width	1		%meta{string,as_maya_attribute_name,"tWidth"} %meta{string,as_maya_attribute_short_name,"twi"} %meta{float,min,0} %meta{float,softmax,1} %meta{string,label,"Height Filter"} %meta{string,page,"3D Texture.Filter"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Scale the size of the filter defined by the partial derivatives along t or implicitly from P, with 0 disabling filtering altogether."}  %read{93,93} %write{2147483647,-1}
+param	float	in_r_width	1		%meta{string,as_maya_attribute_name,"rWidth"} %meta{string,as_maya_attribute_short_name,"rwi"} %meta{float,min,0} %meta{float,softmax,1} %meta{string,label,"Depth Filter"} %meta{string,page,"3D Texture.Filter"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Scale the size of the filter defined by the partial derivatives along r or implicitly from P, with 0 disabling filtering altogether."}  %read{93,93} %write{2147483647,-1}
+param	point	in_surface_point	0 0 0		%meta{string,as_maya_attribute_name,"surfacePoint"} %meta{string,as_maya_attribute_short_name,"sp"} %meta{string,label,"Surface Point"} %meta{string,page,"Coordinates"} %meta{int,divider,1}  %read{88,89} %write{0,0} %derivs %initexpr
+param	int	in_coordsys	1		%meta{string,as_maya_attribute_name,"local"} %meta{string,as_maya_attribute_short_name,"loc"} %meta{string,label,"Coordinate System"} %meta{string,widget,"mapper"} %meta{string,options,"Object Space:0|World Space:1|Camera Space:2"} %meta{string,page,"Coordinates"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{75,79} %write{2147483647,-1}
+param	matrix	in_placement_matrix	1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1		%meta{string,as_maya_attribute_name,"placementMatrix"} %meta{string,as_maya_attribute_short_name,"pm"} %meta{string,label,"Placement Matrix"} %meta{string,page,"Coordinates"} %meta{string,widget,"null"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{78,84} %write{2147483647,-1} %derivs
+oparam	color	out_color	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,widget,"null"}  %read{2147483647,-1} %write{93,93}
+global	point	P	%read{0,0} %write{2147483647,-1} %derivs
+local	int	___745_valid_file	%read{6,6} %write{4,5}
+local	string	___745_texture_format	%read{11,11} %write{9,10}
+local	string[3]	wrap_mode	%read{90,92} %write{34,74}
+local	matrix	xform	%read{86,88} %write{78,84} %derivs
+local	point	Pp	%read{93,93} %write{88,89} %derivs
+const	string	$const1	""		%read{1,9} %write{2147483647,-1}
+temp	int	$tmp1	%read{2,2} %write{1,1}
+const	int	$const2	0		%read{4,90} %write{2147483647,-1}
+temp	int	$tmp2	%read{2147483647,-1} %write{5,5}
+const	string	$const3	"exists"		%read{5,5} %write{2147483647,-1}
+temp	int	$tmp3	%read{7,7} %write{6,6}
+temp	int	$tmp4	%read{2147483647,-1} %write{10,10}
+const	string	$const4	"textureformat"		%read{10,10} %write{2147483647,-1}
+const	string	$const5	"Volume Texture"		%read{11,11} %write{2147483647,-1}
+temp	int	$tmp5	%read{12,12} %write{11,11}
+const	string	$const6	"set_wrap_mode"		%read{14,14} %write{2147483647,-1}
+temp	string	$tmp6	%read{34,34} %write{18,32}
+const	string	$const7	"get_wrap_mode"		%read{15,55} %write{2147483647,-1}
+temp	int	$tmp7	%read{17,17} %write{16,16}
+const	string	$const8	"default"		%read{18,58} %write{2147483647,-1}
+const	int	$const9	1		%read{20,91} %write{2147483647,-1}
+temp	int	$tmp8	%read{21,21} %write{20,20}
+const	string	$const10	"black"		%read{22,62} %write{2147483647,-1}
+const	int	$const11	2		%read{24,92} %write{2147483647,-1}
+temp	int	$tmp9	%read{25,25} %write{24,24}
+const	string	$const12	"periodic"		%read{26,66} %write{2147483647,-1}
+const	int	$const13	3		%read{28,68} %write{2147483647,-1}
+temp	int	$tmp10	%read{29,29} %write{28,28}
+const	string	$const14	"clamp"		%read{30,70} %write{2147483647,-1}
+const	string	$const15	"mirror"		%read{32,72} %write{2147483647,-1}
+temp	string	$tmp11	%read{54,54} %write{38,52}
+temp	int	$tmp12	%read{37,37} %write{36,36}
+temp	int	$tmp13	%read{41,41} %write{40,40}
+temp	int	$tmp14	%read{45,45} %write{44,44}
+temp	int	$tmp15	%read{49,49} %write{48,48}
+temp	string	$tmp16	%read{74,74} %write{58,72}
+temp	int	$tmp17	%read{57,57} %write{56,56}
+temp	int	$tmp18	%read{61,61} %write{60,60}
+temp	int	$tmp19	%read{65,65} %write{64,64}
+temp	int	$tmp20	%read{69,69} %write{68,68}
+temp	int	$tmp21	%read{76,76} %write{75,75}
+temp	matrix	$tmp22	%read{78,78} %write{77,77} %derivs
+const	string	$const16	"common"		%read{77,83} %write{2147483647,-1}
+const	string	$const17	"object"		%read{77,77} %write{2147483647,-1}
+temp	int	$tmp23	%read{80,80} %write{79,79}
+temp	matrix	$tmp24	%read{82,82} %write{81,81} %derivs
+const	string	$const18	"world"		%read{81,81} %write{2147483647,-1}
+temp	matrix	$tmp25	%read{84,84} %write{83,83} %derivs
+const	string	$const19	"camera"		%read{83,83} %write{2147483647,-1}
+temp	matrix	$tmp26	%read{86,86} %write{85,85}
+const	float	$const20	1		%read{85,85} %write{2147483647,-1}
+temp	int	$tmp27	%read{87,87} %write{86,86}
+const	string	$const21	"sblur"		%read{93,93} %write{2147483647,-1}
+const	string	$const22	"tblur"		%read{93,93} %write{2147483647,-1}
+const	string	$const23	"rblur"		%read{93,93} %write{2147483647,-1}
+const	string	$const24	"swidth"		%read{93,93} %write{2147483647,-1}
+const	string	$const25	"twidth"		%read{93,93} %write{2147483647,-1}
+const	string	$const26	"rwidth"		%read{93,93} %write{2147483647,-1}
+const	string	$const27	"swrap"		%read{93,93} %write{2147483647,-1}
+temp	string	$tmp28	%read{93,93} %write{90,90}
+const	string	$const28	"twrap"		%read{93,93} %write{2147483647,-1}
+temp	string	$tmp29	%read{93,93} %write{91,91}
+const	string	$const29	"rwrap"		%read{93,93} %write{2147483647,-1}
+temp	string	$tmp30	%read{93,93} %write{92,92}
+const	string	$const30	"firstchannel"		%read{93,93} %write{2147483647,-1}
+const	string	$const31	"fill"		%read{93,93} %write{2147483647,-1}
+const	string	$const32	"missingcolor"		%read{93,93} %write{2147483647,-1}
+const	string	$const33	"time"		%read{93,93} %write{2147483647,-1}
+code in_surface_point
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:244
+#     point in_surface_point = P
+	assign		in_surface_point P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl"} %line{244} %argrw{"wr"}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:284
+#     if (in_filename == "")
+	eq		$tmp1 in_filename $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl"} %line{284} %argrw{"wrr"}
+	if		$tmp1 4 14 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:286
+#         return;
+	exit	%line{286}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:290
+#         int valid_file = 0;
+	assign		___745_valid_file $const2 	%line{290} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:291
+#         gettextureinfo(in_filename, "exists", valid_file);
+	gettextureinfo	$tmp2 in_filename $const3 ___745_valid_file 	%line{291} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:293
+#         if (!valid_file)
+	eq		$tmp3 ___745_valid_file $const2 	%line{293} %argrw{"wrr"}
+	if		$tmp3 9 9 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:295
+#             return;
+	exit	%line{295}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:298
+#         string texture_format = "";
+	assign		___745_texture_format $const1 	%line{298} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:299
+#         gettextureinfo(in_filename, "textureformat", texture_format);
+	gettextureinfo	$tmp4 in_filename $const4 ___745_texture_format 	%line{299} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:301
+#         if (texture_format != "Volume Texture")
+	neq		$tmp5 ___745_texture_format $const5 	%line{301} %argrw{"wrr"}
+	if		$tmp5 14 14 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:310
+#             return;
+	exit	%line{310}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:315
+#     set_wrap_mode(in_s_wrap, in_t_wrap, in_r_wrap, wrap_mode);
+	functioncall	$const6 75 	%line{315} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:88
+#     mode[0] = get_wrap_mode(wrap_smode);
+	functioncall	$const7 34 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h"} %line{88} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:34
+#     if (wrap_mode == 0)
+	eq		$tmp7 in_s_wrap $const2 	%line{34} %argrw{"wrr"}
+	if		$tmp7 20 34 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:36
+#         return "default";
+	assign		$tmp6 $const8 	%line{36} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:38
+#     else if (wrap_mode == 1)
+	eq		$tmp8 in_s_wrap $const9 	%line{38} %argrw{"wrr"}
+	if		$tmp8 24 34 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:40
+#         return "black";
+	assign		$tmp6 $const10 	%line{40} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:42
+#     else if (wrap_mode == 2)
+	eq		$tmp9 in_s_wrap $const11 	%line{42} %argrw{"wrr"}
+	if		$tmp9 28 34 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:44
+#         return "periodic";
+	assign		$tmp6 $const12 	%line{44} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:46
+#     else if (wrap_mode == 3)
+	eq		$tmp10 in_s_wrap $const13 	%line{46} %argrw{"wrr"}
+	if		$tmp10 32 34 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:48
+#         return "clamp";
+	assign		$tmp6 $const14 	%line{48} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:52
+#         return "mirror";
+	assign		$tmp6 $const15 	%line{52} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:88
+#     mode[0] = get_wrap_mode(wrap_smode);
+	aassign		wrap_mode $const2 $tmp6 	%line{88} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:89
+#     mode[1] = get_wrap_mode(wrap_tmode);
+	functioncall	$const7 54 	%line{89} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:34
+#     if (wrap_mode == 0)
+	eq		$tmp12 in_t_wrap $const2 	%line{34} %argrw{"wrr"}
+	if		$tmp12 40 54 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:36
+#         return "default";
+	assign		$tmp11 $const8 	%line{36} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:38
+#     else if (wrap_mode == 1)
+	eq		$tmp13 in_t_wrap $const9 	%line{38} %argrw{"wrr"}
+	if		$tmp13 44 54 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:40
+#         return "black";
+	assign		$tmp11 $const10 	%line{40} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:42
+#     else if (wrap_mode == 2)
+	eq		$tmp14 in_t_wrap $const11 	%line{42} %argrw{"wrr"}
+	if		$tmp14 48 54 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:44
+#         return "periodic";
+	assign		$tmp11 $const12 	%line{44} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:46
+#     else if (wrap_mode == 3)
+	eq		$tmp15 in_t_wrap $const13 	%line{46} %argrw{"wrr"}
+	if		$tmp15 52 54 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:48
+#         return "clamp";
+	assign		$tmp11 $const14 	%line{48} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:52
+#         return "mirror";
+	assign		$tmp11 $const15 	%line{52} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:89
+#     mode[1] = get_wrap_mode(wrap_tmode);
+	aassign		wrap_mode $const9 $tmp11 	%line{89} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:90
+#     mode[2] = get_wrap_mode(wrap_rmode);
+	functioncall	$const7 74 	%line{90} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:34
+#     if (wrap_mode == 0)
+	eq		$tmp17 in_r_wrap $const2 	%line{34} %argrw{"wrr"}
+	if		$tmp17 60 74 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:36
+#         return "default";
+	assign		$tmp16 $const8 	%line{36} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:38
+#     else if (wrap_mode == 1)
+	eq		$tmp18 in_r_wrap $const9 	%line{38} %argrw{"wrr"}
+	if		$tmp18 64 74 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:40
+#         return "black";
+	assign		$tmp16 $const10 	%line{40} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:42
+#     else if (wrap_mode == 2)
+	eq		$tmp19 in_r_wrap $const11 	%line{42} %argrw{"wrr"}
+	if		$tmp19 68 74 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:44
+#         return "periodic";
+	assign		$tmp16 $const12 	%line{44} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:46
+#     else if (wrap_mode == 3)
+	eq		$tmp20 in_r_wrap $const13 	%line{46} %argrw{"wrr"}
+	if		$tmp20 72 74 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:48
+#         return "clamp";
+	assign		$tmp16 $const14 	%line{48} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:52
+#         return "mirror";
+	assign		$tmp16 $const15 	%line{52} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/texture/as_texture_helpers.h:90
+#     mode[2] = get_wrap_mode(wrap_rmode);
+	aassign		wrap_mode $const11 $tmp16 	%line{90} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:319
+#     if (in_coordsys == 0)
+	eq		$tmp21 in_coordsys $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl"} %line{319} %argrw{"wrr"}
+	if		$tmp21 79 85 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:321
+#         xform = matrix("common", "object") * in_placement_matrix;
+	matrix		$tmp22 $const16 $const17 	%line{321} %argrw{"wrr"}
+	mul		xform $tmp22 in_placement_matrix 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:323
+#     else if (in_coordsys == 1)
+	eq		$tmp23 in_coordsys $const9 	%line{323} %argrw{"wrr"}
+	if		$tmp23 83 85 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:325
+#         xform = matrix("common", "world") * in_placement_matrix;
+	matrix		$tmp24 $const16 $const18 	%line{325} %argrw{"wrr"}
+	mul		xform $tmp24 in_placement_matrix 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:329
+#         xform = matrix("common", "camera") * in_placement_matrix;
+	matrix		$tmp25 $const16 $const19 	%line{329} %argrw{"wrr"}
+	mul		xform $tmp25 in_placement_matrix 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:332
+#     point Pp = (xform != matrix(1))
+	assign		$tmp26 $const20 	%line{332} %argrw{"wr"}
+	neq		$tmp27 xform $tmp26 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:333
+#         ? transform(xform, in_surface_point)
+	if		$tmp27 89 90 	%line{333} %argrw{"r"}
+	transform	Pp xform in_surface_point 	%argrw{"wrr"}
+	assign		Pp in_surface_point 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:345
+#         "swrap", wrap_mode[0],
+	aref		$tmp28 wrap_mode $const2 	%line{345} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:346
+#         "twrap", wrap_mode[1],
+	aref		$tmp29 wrap_mode $const9 	%line{346} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:347
+#         "rwrap", wrap_mode[2],
+	aref		$tmp30 wrap_mode $const11 	%line{347} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture3d.osl:336
+#     out_color = (color) texture3d(
+	texture3d	out_color in_filename Pp $const21 in_s_blur $const22 in_t_blur $const23 in_r_blur $const24 in_s_width $const25 in_t_width $const26 in_r_width $const27 $tmp28 $const28 $tmp29 $const29 $tmp30 $const30 in_starting_channel $const31 in_channel_fill $const32 in_color $const33 in_time 	%line{336} %argrw{"wrrrrrrrrrrrrrrrrrrrrrrrrrrrr"} %argderivs{2}
+	end

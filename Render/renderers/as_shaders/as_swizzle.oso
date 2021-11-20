@@ -1,0 +1,166 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_swizzle.oso
+shader as_swizzle	%meta{string,help,"RGBA or vector swizzle node."} %meta{string,icon,"asSwizzle.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_swizzle.html"} %meta{string,as_node_name,"asSwizzle"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"373182418 1670521488"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210866} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	color	in_color	1 1 1		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Color"} %meta{string,page,"Color"}  %read{0,11} %write{2147483647,-1}
+param	float	in_alpha	1		%meta{string,as_maya_attribute_name,"alpha"} %meta{string,as_maya_attribute_short_name,"a"} %meta{string,label,"Alpha Channel"} %meta{string,page,"Color"} %meta{int,divider,1}  %read{3,13} %write{2147483647,-1}
+param	int	in_red_channel	0		%meta{string,as_maya_attribute_name,"redChannel"} %meta{string,as_maya_attribute_short_name,"rch"} %meta{string,widget,"mapper"} %meta{string,options,"Red:0|Green:1|Blue:2|Alpha:3"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Red Channel"} %meta{string,page,"Color"}  %read{14,14} %write{2147483647,-1}
+param	int	in_green_channel	1		%meta{string,as_maya_attribute_name,"greenChannel"} %meta{string,as_maya_attribute_short_name,"gch"} %meta{string,widget,"mapper"} %meta{string,options,"Red:0|Green:1|Blue:2|Alpha:3"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Green Channel"} %meta{string,page,"Color"}  %read{15,15} %write{2147483647,-1}
+param	int	in_blue_channel	2		%meta{string,as_maya_attribute_name,"blueChannel"} %meta{string,as_maya_attribute_short_name,"bch"} %meta{string,widget,"mapper"} %meta{string,options,"Red:0|Green:1|Blue:2|Alpha:3"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Blue Channel"} %meta{string,page,"Color"}  %read{16,16} %write{2147483647,-1}
+param	int	in_alpha_channel	3		%meta{string,as_maya_attribute_name,"alphaChannel"} %meta{string,as_maya_attribute_short_name,"ach"} %meta{string,widget,"mapper"} %meta{string,options,"Red:0|Green:1|Blue:2|Alpha:3"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Alpha Channel"} %meta{string,page,"Color"} %meta{int,divider,1}  %read{18,18} %write{2147483647,-1}
+param	int	in_invert_red	0		%meta{string,as_maya_attribute_name,"invertRed"} %meta{string,as_maya_attribute_short_name,"inr"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert Red"} %meta{string,page,"Color"}  %read{19,19} %write{2147483647,-1}
+param	int	in_invert_green	0		%meta{string,as_maya_attribute_name,"invertgreen"} %meta{string,as_maya_attribute_short_name,"ing"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert Green"} %meta{string,page,"Color"}  %read{23,23} %write{2147483647,-1}
+param	int	in_invert_blue	0		%meta{string,as_maya_attribute_name,"invertBlue"} %meta{string,as_maya_attribute_short_name,"inb"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert Blue"} %meta{string,page,"Color"}  %read{27,27} %write{2147483647,-1}
+param	int	in_invert_alpha	0		%meta{string,as_maya_attribute_name,"invertAlpha"} %meta{string,as_maya_attribute_short_name,"ina"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert Alpha"} %meta{string,page,"Color"}  %read{31,31} %write{2147483647,-1}
+param	vector	in_vector	0 0 0		%meta{string,as_maya_attribute_name,"vector"} %meta{string,as_maya_attribute_short_name,"vec"} %meta{string,label,"Vector Type"} %meta{string,page,"Vector"} %meta{int,divider,1}  %read{35,39} %write{2147483647,-1}
+param	int	in_x_channel	0		%meta{string,as_maya_attribute_name,"xChannel"} %meta{string,as_maya_attribute_short_name,"xch"} %meta{string,widget,"mapper"} %meta{string,options,"X:0|Y:1|Z:2"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"X Component"} %meta{string,page,"Vector"}  %read{37,37} %write{2147483647,-1}
+param	int	in_y_channel	1		%meta{string,as_maya_attribute_name,"yChannel"} %meta{string,as_maya_attribute_short_name,"ych"} %meta{string,widget,"mapper"} %meta{string,options,"X:0|Y:1|Z:2"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Y Component"} %meta{string,page,"Vector"}  %read{38,38} %write{2147483647,-1}
+param	int	in_z_channel	2		%meta{string,as_maya_attribute_name,"zChannel"} %meta{string,as_maya_attribute_short_name,"zch"} %meta{string,widget,"mapper"} %meta{string,options,"X:0|Y:1|Z:2"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Z Component"} %meta{string,page,"Vector"} %meta{int,divider,1}  %read{39,39} %write{2147483647,-1}
+param	int	in_invert_x	0		%meta{string,as_maya_attribute_name,"invertX"} %meta{string,as_maya_attribute_short_name,"inx"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert X"} %meta{string,page,"Vector"}  %read{41,41} %write{2147483647,-1}
+param	int	in_invert_y	0		%meta{string,as_maya_attribute_name,"invertY"} %meta{string,as_maya_attribute_short_name,"iny"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert Y"} %meta{string,page,"Vector"}  %read{45,45} %write{2147483647,-1}
+param	int	in_invert_z	0		%meta{string,as_maya_attribute_name,"invertZ"} %meta{string,as_maya_attribute_short_name,"inz"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Invert Z"} %meta{string,page,"Vector"}  %read{49,49} %write{2147483647,-1}
+oparam	color	out_color	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,label,"Output Color"}  %read{20,32} %write{17,34}
+oparam	float	out_alpha	1		%meta{string,as_maya_attribute_name,"outAlpha"} %meta{string,as_maya_attribute_short_name,"oa"} %meta{string,label,"Output Alpha"}  %read{2147483647,-1} %write{18,18}
+oparam	vector	out_vector	0 0 0		%meta{string,as_maya_attribute_name,"outVector"} %meta{string,as_maya_attribute_short_name,"ov"} %meta{string,label,"Output Vector"}  %read{42,50} %write{40,52}
+local	float[4]	___360_RGBA	%read{14,18} %write{8,13}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+temp	int	$tmp2	%read{2,6} %write{1,5}
+const	int	$const1	0		%read{1,44} %write{2147483647,-1}
+temp	int	$tmp3	%read{4,4} %write{3,3}
+temp	int	$tmp4	%read{5,5} %write{4,4}
+temp	float	$tmp5	%read{8,8} %write{7,7}
+const	int	$const2	1		%read{9,48} %write{2147483647,-1}
+temp	float	$tmp6	%read{10,10} %write{9,9}
+const	int	$const3	2		%read{11,52} %write{2147483647,-1}
+temp	float	$tmp7	%read{12,12} %write{11,11}
+const	int	$const4	3		%read{13,34} %write{2147483647,-1}
+temp	float	$tmp8	%read{17,17} %write{14,14}
+temp	float	$tmp9	%read{17,17} %write{15,15}
+temp	float	$tmp10	%read{17,17} %write{16,16}
+const	float	$const5	1		%read{21,33} %write{2147483647,-1}
+temp	float	$tmp11	%read{21,21} %write{20,20}
+temp	float	$tmp12	%read{22,22} %write{21,21}
+temp	float	$tmp13	%read{25,25} %write{24,24}
+temp	float	$tmp14	%read{26,26} %write{25,25}
+temp	float	$tmp15	%read{29,29} %write{28,28}
+temp	float	$tmp16	%read{30,30} %write{29,29}
+temp	float	$tmp17	%read{33,33} %write{32,32}
+temp	float	$tmp18	%read{34,34} %write{33,33}
+temp	int	$tmp19	%read{36,36} %write{35,35}
+temp	float	$tmp20	%read{40,40} %write{37,37}
+temp	float	$tmp21	%read{40,40} %write{38,38}
+temp	float	$tmp22	%read{40,40} %write{39,39}
+temp	float	$tmp23	%read{43,43} %write{42,42}
+const	float	$const6	-1		%read{43,51} %write{2147483647,-1}
+temp	float	$tmp24	%read{44,44} %write{43,43}
+temp	float	$tmp25	%read{47,47} %write{46,46}
+temp	float	$tmp26	%read{48,48} %write{47,47}
+temp	float	$tmp27	%read{51,51} %write{50,50}
+temp	float	$tmp28	%read{52,52} %write{51,51}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:266
+#     if (isconnected(in_color) || isconnected(in_alpha))
+	isconnected	$tmp1 in_color 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl"} %line{266} %argrw{"wr"}
+	neq		$tmp2 $tmp1 $const1 	%argrw{"wrr"}
+	if		$tmp2 3 6 	%argrw{"r"}
+	isconnected	$tmp3 in_alpha 	%argrw{"wr"}
+	neq		$tmp4 $tmp3 $const1 	%argrw{"wrr"}
+	assign		$tmp2 $tmp4 	%argrw{"wr"}
+	if		$tmp2 35 35 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:268
+#         float RGBA[4] = {in_color[0], in_color[1], in_color[2], in_alpha};
+	compref		$tmp5 in_color $const1 	%line{268} %argrw{"wrr"}
+	aassign		___360_RGBA $const1 $tmp5 	%argrw{"wrr"}
+	compref		$tmp6 in_color $const2 	%argrw{"wrr"}
+	aassign		___360_RGBA $const2 $tmp6 	%argrw{"wrr"}
+	compref		$tmp7 in_color $const3 	%argrw{"wrr"}
+	aassign		___360_RGBA $const3 $tmp7 	%argrw{"wrr"}
+	aassign		___360_RGBA $const4 in_alpha 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:271
+#             RGBA[in_red_channel],
+	aref		$tmp8 ___360_RGBA in_red_channel 	%line{271} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:272
+#             RGBA[in_green_channel],
+	aref		$tmp9 ___360_RGBA in_green_channel 	%line{272} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:273
+#             RGBA[in_blue_channel]);
+	aref		$tmp10 ___360_RGBA in_blue_channel 	%line{273} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:270
+#         out_color = color(
+	color		out_color $tmp8 $tmp9 $tmp10 	%line{270} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:275
+#         out_alpha = RGBA[in_alpha_channel];
+	aref		out_alpha ___360_RGBA in_alpha_channel 	%line{275} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:277
+#         if (in_invert_red)
+	if		in_invert_red 23 23 	%line{277} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:278
+#             out_color[0] = 1.0 - out_color[0];
+	compref		$tmp11 out_color $const1 	%line{278} %argrw{"wrr"}
+	sub		$tmp12 $const5 $tmp11 	%argrw{"wrr"}
+	compassign	out_color $const1 $tmp12 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:280
+#         if (in_invert_green)
+	if		in_invert_green 27 27 	%line{280} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:281
+#             out_color[1] = 1.0 - out_color[1];
+	compref		$tmp13 out_color $const2 	%line{281} %argrw{"wrr"}
+	sub		$tmp14 $const5 $tmp13 	%argrw{"wrr"}
+	compassign	out_color $const2 $tmp14 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:283
+#         if (in_invert_blue)
+	if		in_invert_blue 31 31 	%line{283} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:284
+#             out_color[2] = 1.0 - out_color[2];
+	compref		$tmp15 out_color $const3 	%line{284} %argrw{"wrr"}
+	sub		$tmp16 $const5 $tmp15 	%argrw{"wrr"}
+	compassign	out_color $const3 $tmp16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:286
+#         if (in_invert_alpha)
+	if		in_invert_alpha 35 35 	%line{286} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:287
+#             out_color[3] = 1.0 - out_color[3];
+	compref		$tmp17 out_color $const4 	%line{287} %argrw{"wrr"}
+	sub		$tmp18 $const5 $tmp17 	%argrw{"wrr"}
+	compassign	out_color $const4 $tmp18 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:290
+#     if (isconnected(in_vector))
+	isconnected	$tmp19 in_vector 	%line{290} %argrw{"wr"}
+	if		$tmp19 53 53 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:293
+#             in_vector[in_x_channel],
+	compref		$tmp20 in_vector in_x_channel 	%line{293} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:294
+#             in_vector[in_y_channel],
+	compref		$tmp21 in_vector in_y_channel 	%line{294} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:295
+#             in_vector[in_z_channel]);
+	compref		$tmp22 in_vector in_z_channel 	%line{295} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:292
+#         out_vector = vector(
+	vector		out_vector $tmp20 $tmp21 $tmp22 	%line{292} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:297
+#         if (in_invert_x)
+	if		in_invert_x 45 45 	%line{297} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:298
+#             out_vector[0] *= -1.0;
+	compref		$tmp23 out_vector $const1 	%line{298} %argrw{"wrr"}
+	mul		$tmp24 $tmp23 $const6 	%argrw{"wrr"}
+	compassign	out_vector $const1 $tmp24 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:300
+#         if (in_invert_y)
+	if		in_invert_y 49 49 	%line{300} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:301
+#             out_vector[1] *= -1.0;
+	compref		$tmp25 out_vector $const2 	%line{301} %argrw{"wrr"}
+	mul		$tmp26 $tmp25 $const6 	%argrw{"wrr"}
+	compassign	out_vector $const2 $tmp26 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:303
+#         if (in_invert_z)
+	if		in_invert_z 53 53 	%line{303} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_swizzle.osl:304
+#             out_vector[2] *= -1.0;
+	compref		$tmp27 out_vector $const3 	%line{304} %argrw{"wrr"}
+	mul		$tmp28 $tmp27 $const6 	%argrw{"wrr"}
+	compassign	out_vector $const3 $tmp28 	%argrw{"wrr"}
+	end
