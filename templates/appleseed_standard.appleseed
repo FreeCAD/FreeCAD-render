@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project format_revision="34">
+    <search_paths>
+    </search_paths>
     <scene>
         <!--RaytracingCamera-->
         <color name="horizon_radiance">

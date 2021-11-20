@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project format_revision="18">
-
+<project format_revision="34">
+    <search_paths>
+    </search_paths>
+    <scene>
+        <!--RaytracingCamera-->
         <environment name="SunskyLight_Template_env" model="generic_environment">
             <parameter name="environment_edf" value="SunskyLight_Template_env_edf" />
             <parameter name="environment_shader" value="SunskyLight_Template_env_shdr" />
         </environment>
-
         <environment_shader name="SunskyLight_Template_env_shdr" model="edf_environment_shader">
             <parameter name="environment_edf" value="SunskyLight_Template_env_edf" />
         </environment_shader>
-
         <environment_edf name="SunskyLight_Template_env_edf" model="hosek_environment_edf">
             <parameter name="sun_phi" value="21.08575684686511" />
             <parameter name="sun_theta" value="37.37568623690732" />
             <parameter name="turbidity" value="2.0" />
         </environment_edf>
-
-    <scene>
-        <!--RaytracingCamera-->
         <assembly name="assembly">
             <light name="SunskyLight_Template" model="sun_light">
                 <parameter name="environment_edf" value="SunskyLight_Template_env_edf" />
