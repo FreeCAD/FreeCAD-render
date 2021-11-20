@@ -1,0 +1,87 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_ray_switch.oso
+shader as_ray_switch	%meta{string,help,"Ray switch utility node."} %meta{string,icon,"asRaySwitch.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_ray_switch.html"} %meta{string,as_node_name,"asRaySwitch"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"553479896 1617499966"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210844} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	color	in_color	1 1 1		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Camera Ray Color"} %meta{string,page,"Color"}  %read{2,2} %write{2147483647,-1}
+param	color	in_color_light	0 0 0		%meta{string,as_maya_attribute_name,"colorLight"} %meta{string,as_maya_attribute_short_name,"cli"} %meta{string,label,"Light Ray Color"} %meta{string,page,"Color"}  %read{5,5} %write{2147483647,-1}
+param	color	in_color_shadow	0 0 0		%meta{string,as_maya_attribute_name,"colorShadow"} %meta{string,as_maya_attribute_short_name,"csh"} %meta{string,label,"Shadow Ray Color"} %meta{string,page,"Color"}  %read{8,8} %write{2147483647,-1}
+param	color	in_color_transparency	0 0 0		%meta{string,as_maya_attribute_name,"colorTransparency"} %meta{string,as_maya_attribute_short_name,"ctr"} %meta{string,label,"Transparency Ray Color"} %meta{string,page,"Color"}  %read{11,11} %write{2147483647,-1}
+param	color	in_color_diffuse	0 0 0		%meta{string,as_maya_attribute_name,"colorDiffuse"} %meta{string,as_maya_attribute_short_name,"cde"} %meta{string,label,"Diffuse Ray Color"} %meta{string,page,"Color"}  %read{14,14} %write{2147483647,-1}
+param	color	in_color_glossy	0 0 0		%meta{string,as_maya_attribute_name,"colorGlossy"} %meta{string,as_maya_attribute_short_name,"cgl"} %meta{string,label,"Glossy Ray Color"} %meta{string,page,"Color"}  %read{17,17} %write{2147483647,-1}
+param	color	in_color_specular	0 0 0		%meta{string,as_maya_attribute_name,"colorSpecular"} %meta{string,as_maya_attribute_short_name,"csp"} %meta{string,label,"Specular Ray Color"} %meta{string,page,"Color"}  %read{20,20} %write{2147483647,-1}
+param	color	in_color_subsurface	0 0 0		%meta{string,as_maya_attribute_name,"colorSubsurface"} %meta{string,as_maya_attribute_short_name,"csu"} %meta{string,label,"Subsurface Ray Color"} %meta{string,page,"Color"}  %read{23,23} %write{2147483647,-1}
+oparam	color	out_color	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,label,"Output Color"}  %read{2147483647,-1} %write{2,23}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+const	string	$const1	"camera"		%read{0,0} %write{2147483647,-1}
+temp	int	$tmp2	%read{4,4} %write{3,3}
+const	string	$const2	"light"		%read{3,3} %write{2147483647,-1}
+temp	int	$tmp3	%read{7,7} %write{6,6}
+const	string	$const3	"shadow"		%read{6,6} %write{2147483647,-1}
+temp	int	$tmp4	%read{10,10} %write{9,9}
+const	string	$const4	"transparency"		%read{9,9} %write{2147483647,-1}
+temp	int	$tmp5	%read{13,13} %write{12,12}
+const	string	$const5	"diffuse"		%read{12,12} %write{2147483647,-1}
+temp	int	$tmp6	%read{16,16} %write{15,15}
+const	string	$const6	"glossy"		%read{15,15} %write{2147483647,-1}
+temp	int	$tmp7	%read{19,19} %write{18,18}
+const	string	$const7	"specular"		%read{18,18} %write{2147483647,-1}
+temp	int	$tmp8	%read{22,22} %write{21,21}
+const	string	$const8	"subsurface"		%read{21,21} %write{2147483647,-1}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:110
+#     if (raytype("camera"))
+	raytype		$tmp1 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl"} %line{110} %argrw{"wr"}
+	if		$tmp1 3 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:112
+#         out_color = in_color;
+	assign		out_color in_color 	%line{112} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:114
+#     else if (raytype("light"))
+	raytype		$tmp2 $const2 	%line{114} %argrw{"wr"}
+	if		$tmp2 6 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:116
+#         out_color = in_color_light;
+	assign		out_color in_color_light 	%line{116} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:118
+#     else if (raytype("shadow"))
+	raytype		$tmp3 $const3 	%line{118} %argrw{"wr"}
+	if		$tmp3 9 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:120
+#         out_color = in_color_shadow;
+	assign		out_color in_color_shadow 	%line{120} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:122
+#     else if (raytype("transparency"))
+	raytype		$tmp4 $const4 	%line{122} %argrw{"wr"}
+	if		$tmp4 12 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:124
+#         out_color = in_color_transparency;
+	assign		out_color in_color_transparency 	%line{124} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:126
+#     else if (raytype("diffuse"))
+	raytype		$tmp5 $const5 	%line{126} %argrw{"wr"}
+	if		$tmp5 15 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:128
+#         out_color = in_color_diffuse;
+	assign		out_color in_color_diffuse 	%line{128} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:130
+#     else if (raytype("glossy"))
+	raytype		$tmp6 $const6 	%line{130} %argrw{"wr"}
+	if		$tmp6 18 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:132
+#         out_color = in_color_glossy;
+	assign		out_color in_color_glossy 	%line{132} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:134
+#     else if (raytype("specular"))
+	raytype		$tmp7 $const7 	%line{134} %argrw{"wr"}
+	if		$tmp7 21 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:136
+#         out_color = in_color_specular;
+	assign		out_color in_color_specular 	%line{136} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:138
+#     else if (raytype("subsurface"))
+	raytype		$tmp8 $const8 	%line{138} %argrw{"wr"}
+	if		$tmp8 24 24 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_ray_switch.osl:140
+#         out_color = in_color_subsurface;
+	assign		out_color in_color_subsurface 	%line{140} %argrw{"wr"}
+	end

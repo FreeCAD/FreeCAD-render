@@ -1,0 +1,157 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_globals.oso
+shader as_globals	%meta{string,help,"OSL global variables."} %meta{string,icon,"asGlobals.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_globals.html"} %meta{string,as_node_name,"asGlobals"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"2058487770 898187197"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210863} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	point	Pref	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_max_param_id,0}  %read{3,3} %write{0,0} %initexpr
+param	normal	Nref	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_max_param_id,1}  %read{6,6} %write{1,1} %initexpr
+oparam	point	out_world_P	0 0 0		%meta{string,as_maya_attribute_name,"worldP"} %meta{string,as_maya_attribute_short_name,"wp"} %meta{string,label,"Surface Position"} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{2,2} %initexpr
+oparam	point	out_world_Pref	0 0 0		%meta{string,as_maya_attribute_name,"worldPref"} %meta{string,as_maya_attribute_short_name,"wpr"} %meta{string,label,"Reference Point"} %meta{string,help,"World space reference point Pref."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{3,3} %initexpr
+oparam	point	out_world_Ps	0 0 0		%meta{string,as_maya_attribute_name,"worldPs"} %meta{string,as_maya_attribute_short_name,"wps"} %meta{string,label,"Light Point Position"} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{4,4} %initexpr
+oparam	normal	out_world_N	0 0 0		%meta{string,as_maya_attribute_name,"worldN"} %meta{string,as_maya_attribute_short_name,"n"} %meta{string,label,"Shading Normal"} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{5,5} %initexpr
+oparam	normal	out_world_Nref	0 0 0		%meta{string,as_maya_attribute_name,"worldNref"} %meta{string,as_maya_attribute_short_name,"nre"} %meta{string,label,"Reference Normal"} %meta{string,help,"World space reference normal Nref."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{6,6} %initexpr
+oparam	normal	out_world_Ng	0 0 0		%meta{string,as_maya_attribute_name,"worldNg"} %meta{string,as_maya_attribute_short_name,"ng"} %meta{string,label,"Geometric Normal"} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{7,7} %initexpr
+oparam	vector	out_world_I	0 0 0		%meta{string,as_maya_attribute_name,"worldI"} %meta{string,as_maya_attribute_short_name,"wri"} %meta{string,label,"Viewer Vector"} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{8,8} %initexpr
+oparam	vector	out_world_dPdu	0 0 0		%meta{string,as_maya_attribute_name,"worldDPdu"} %meta{string,as_maya_attribute_short_name,"dpu"} %meta{string,label,"dP/du"} %meta{string,help,"Partial derivative of P along the U direction."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{9,9} %initexpr
+oparam	vector	out_world_dPdv	0 0 0		%meta{string,as_maya_attribute_name,"worldDPdv"} %meta{string,as_maya_attribute_short_name,"dpv"} %meta{string,label,"dP/dv"} %meta{string,help,"Partial derivative of P along the V direction."} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{10,10} %initexpr
+oparam	vector	out_world_dPdx	0 0 0		%meta{string,as_maya_attribute_name,"worldDPdx"} %meta{string,as_maya_attribute_short_name,"dpx"} %meta{string,label,"dP/dx"} %meta{string,help,"Partial derivative of P along the X direction."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{11,11} %initexpr
+oparam	vector	out_world_dPdy	0 0 0		%meta{string,as_maya_attribute_name,"worldDPdy"} %meta{string,as_maya_attribute_short_name,"dpy"} %meta{string,label,"dP/dy"} %meta{string,help,"Partial derivative of P along the Y direction."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{12,12} %initexpr
+oparam	vector	out_world_dPdz	0 0 0		%meta{string,as_maya_attribute_name,"worldDPdz"} %meta{string,as_maya_attribute_short_name,"dpz"} %meta{string,label,"dP/dz"} %meta{string,help,"Partial derivative of P along the Z direction."} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{13,13} %initexpr
+param	normal	dNdu	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,widget,"null"}  %read{14,14} %write{2147483647,-1}
+param	normal	dNdv	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,widget,"null"}  %read{15,15} %write{2147483647,-1}
+oparam	normal	out_world_dNdu	0 0 0		%meta{string,as_maya_attribute_name,"worldDNdu"} %meta{string,as_maya_attribute_short_name,"dnu"} %meta{string,label,"dN/du"} %meta{string,help,"Partial derivative of N along the V direction."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{14,14} %initexpr
+oparam	normal	out_world_dNdv	0 0 0		%meta{string,as_maya_attribute_name,"worldDNdv"} %meta{string,as_maya_attribute_short_name,"dnv"} %meta{string,label,"dN/dv"} %meta{string,help,"Partial derivative of N along the U direction."} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{15,15} %initexpr
+param	normal	Tn	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,widget,"null"}  %read{16,16} %write{2147483647,-1}
+param	normal	Bn	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,widget,"null"}  %read{17,17} %write{2147483647,-1}
+oparam	vector	out_world_Tn	0 0 0		%meta{string,as_maya_attribute_name,"worldTn"} %meta{string,as_maya_attribute_short_name,"tn"} %meta{string,label,"Tangent Vector"} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{16,16} %initexpr
+oparam	vector	out_world_Bn	0 0 0		%meta{string,as_maya_attribute_name,"worldBn"} %meta{string,as_maya_attribute_short_name,"bn"} %meta{string,label,"Bitangent Vector"} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{17,17} %initexpr
+oparam	float	out_u_coord	0		%meta{string,as_maya_attribute_name,"outUCoord"} %meta{string,as_maya_attribute_short_name,"ouc"} %meta{string,label,"U Coordinate"} %meta{int,as_max_param_id,2}  %read{26,26} %write{18,18} %initexpr
+oparam	float	out_v_coord	0		%meta{string,as_maya_attribute_name,"outVCoord"} %meta{string,as_maya_attribute_short_name,"ovc"} %meta{string,label,"V Coordinate"} %meta{int,as_max_param_id,2}  %read{27,27} %write{19,19} %initexpr
+oparam	float[2]	out_uv_coord	0 0		%meta{string,as_maya_attribute_name,"outUV"} %meta{string,as_maya_attribute_short_name,"o"} %meta{string,label,"UV Coords"} %meta{int,divider,1} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{20,27} %initexpr
+param	color	vertex_color	1 1 1		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,widget,"null"}  %read{22,22} %write{2147483647,-1}
+oparam	color	out_vertex_color	0 0 0		%meta{string,as_maya_attribute_name,"vertexColor"} %meta{string,as_maya_attribute_short_name,"vrc"} %meta{string,label,"Vertex Color"}  %read{2147483647,-1} %write{22,22} %initexpr
+oparam	float	out_time	0		%meta{string,as_maya_attribute_name,"time"} %meta{string,as_maya_attribute_short_name,"tim"} %meta{string,label,"Shutter Time"} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{23,23} %initexpr
+oparam	float	out_dtime	0		%meta{string,as_maya_attribute_name,"dtime"} %meta{string,as_maya_attribute_short_name,"dti"} %meta{string,label,"Time Amount"} %meta{string,help,"The amount of time covered by this shading sample."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{24,24} %initexpr
+oparam	vector	out_world_dPdtime	0 0 0		%meta{string,as_maya_attribute_name,"worldDPdtime"} %meta{string,as_maya_attribute_short_name,"dpt"} %meta{string,label,"dP/dtime"} %meta{string,help,"Derivative of P along time, or how P changes per unit time."} %meta{int,as_max_param_id,2}  %read{2147483647,-1} %write{25,25} %initexpr
+global	point	P	%read{0,13} %write{2147483647,-1} %derivs
+global	vector	I	%read{8,8} %write{2147483647,-1}
+global	normal	N	%read{1,5} %write{2147483647,-1}
+global	normal	Ng	%read{7,7} %write{2147483647,-1}
+global	float	u	%read{18,20} %write{2147483647,-1}
+global	float	v	%read{19,21} %write{2147483647,-1}
+global	vector	dPdu	%read{9,9} %write{2147483647,-1}
+global	vector	dPdv	%read{10,10} %write{2147483647,-1}
+global	point	Ps	%read{4,4} %write{2147483647,-1}
+global	float	time	%read{23,23} %write{2147483647,-1}
+global	float	dtime	%read{24,24} %write{2147483647,-1}
+global	vector	dPdtime	%read{25,25} %write{2147483647,-1}
+const	int	$const1	0		%read{20,26} %write{2147483647,-1}
+const	int	$const2	1		%read{21,27} %write{2147483647,-1}
+code Pref
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:45
+#     point Pref = P
+	assign		Pref P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{45} %argrw{"wr"}
+code Nref
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:51
+#     normal Nref = N
+	assign		Nref N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{51} %argrw{"wr"}
+code out_world_P
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:57
+#     output point out_world_P = P
+	assign		out_world_P P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{57} %argrw{"wr"}
+code out_world_Pref
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:64
+#     output point out_world_Pref = Pref
+	assign		out_world_Pref Pref 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{64} %argrw{"wr"}
+code out_world_Ps
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:72
+#     output point out_world_Ps = Ps
+	assign		out_world_Ps Ps 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{72} %argrw{"wr"}
+code out_world_N
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:80
+#     output normal out_world_N = N
+	assign		out_world_N N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{80} %argrw{"wr"}
+code out_world_Nref
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:87
+#     output normal out_world_Nref = Nref
+	assign		out_world_Nref Nref 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{87} %argrw{"wr"}
+code out_world_Ng
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:95
+#     output normal out_world_Ng = Ng
+	assign		out_world_Ng Ng 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{95} %argrw{"wr"}
+code out_world_I
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:103
+#     output vector out_world_I = I
+	assign		out_world_I I 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{103} %argrw{"wr"}
+code out_world_dPdu
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:111
+#     output vector out_world_dPdu = dPdu
+	assign		out_world_dPdu dPdu 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{111} %argrw{"wr"}
+code out_world_dPdv
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:119
+#     output vector out_world_dPdv = dPdv
+	assign		out_world_dPdv dPdv 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{119} %argrw{"wr"}
+code out_world_dPdx
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:128
+#     output vector out_world_dPdx = Dx(P)
+	Dx		out_world_dPdx P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{128} %argrw{"wr"} %argderivs{1}
+code out_world_dPdy
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:136
+#     output vector out_world_dPdy = Dy(P)
+	Dy		out_world_dPdy P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{136} %argrw{"wr"} %argderivs{1}
+code out_world_dPdz
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:144
+#     output vector out_world_dPdz = Dz(P)
+	Dz		out_world_dPdz P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{144} %argrw{"wr"} %argderivs{1}
+code out_world_dNdu
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:175
+#     output normal out_world_dNdu = dNdu
+	assign		out_world_dNdu dNdu 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{175} %argrw{"wr"}
+code out_world_dNdv
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:183
+#     output normal out_world_dNdv = dNdv
+	assign		out_world_dNdv dNdv 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{183} %argrw{"wr"}
+code out_world_Tn
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:214
+#     output vector out_world_Tn = Tn
+	assign		out_world_Tn Tn 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{214} %argrw{"wr"}
+code out_world_Bn
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:221
+#     output vector out_world_Bn = Bn
+	assign		out_world_Bn Bn 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{221} %argrw{"wr"}
+code out_u_coord
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:229
+#     output float out_u_coord = u
+	assign		out_u_coord u 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{229} %argrw{"wr"}
+code out_v_coord
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:236
+#     output float out_v_coord = v
+	assign		out_v_coord v 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{236} %argrw{"wr"}
+code out_uv_coord
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:243
+#     output float out_uv_coord[2] = {u, v}
+	aassign		out_uv_coord $const1 u 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{243} %argrw{"wrr"}
+	aassign		out_uv_coord $const2 v 	%argrw{"wrr"}
+code out_vertex_color
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:262
+#     output color out_vertex_color = vertex_color
+	assign		out_vertex_color vertex_color 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{262} %argrw{"wr"}
+code out_time
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:268
+#     output float out_time = time
+	assign		out_time time 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{268} %argrw{"wr"}
+code out_dtime
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:275
+#     output float out_dtime = dtime
+	assign		out_dtime dtime 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{275} %argrw{"wr"}
+code out_world_dPdtime
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:283
+#     output vector out_world_dPdtime = dPdtime
+	assign		out_world_dPdtime dPdtime 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{283} %argrw{"wr"}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:293
+#     out_uv_coord[0] = out_u_coord;
+	aassign		out_uv_coord $const1 out_u_coord 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl"} %line{293} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_globals.osl:294
+#     out_uv_coord[1] = out_v_coord;
+	aassign		out_uv_coord $const2 out_v_coord 	%line{294} %argrw{"wrr"}
+	end

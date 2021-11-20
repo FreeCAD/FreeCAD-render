@@ -1,0 +1,317 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_texture_info.oso
+shader as_texture_info	%meta{string,help,"Texture Information node."} %meta{string,icon,"asTextureInfo.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_texture_info.html"} %meta{string,as_node_name,"asTextureInfo"} %meta{string,as_category,"texture2d"} %meta{string,as_max_class_id,"177883955 1775919360"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210876} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	string	in_texture_file	""		%meta{string,as_maya_attribute_name,"textureFile"} %meta{string,as_maya_attribute_short_name,"tex"} %meta{string,widget,"filename"} %meta{string,label,"Texture File"} %meta{string,page,"Texture"} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Texture file to query information from."}  %read{0,81} %write{2147483647,-1}
+oparam	color	out_average_color	0 0 0		%meta{string,as_maya_attribute_name,"averageColor"} %meta{string,as_maya_attribute_short_name,"avc"} %meta{string,label,"Average Color"} %meta{string,help,"Returns the average color of the first 3 channels of the texture file."}  %read{2147483647,-1} %write{2147483647,-1}
+oparam	float	out_average_alpha	1		%meta{string,as_maya_attribute_name,"averageAlpha"} %meta{string,as_maya_attribute_short_name,"ava"} %meta{string,label,"Average Alpha"} %meta{string,help,"Returns the average alpha of the channel with the 'A' name in the texture file, if it exists."}  %read{2147483647,-1} %write{2147483647,-1}
+oparam	vector	out_resolution	0 0 0		%meta{string,as_maya_attribute_name,"resolution"} %meta{string,as_maya_attribute_short_name,"res"} %meta{string,label,"Resolution"} %meta{string,help,"XY resolution, XYZ resolution for 3D textures."}  %read{2147483647,-1} %write{20,56}
+oparam	int	out_num_channels	0		%meta{string,as_maya_attribute_name,"numChannels"} %meta{string,as_maya_attribute_short_name,"cha"} %meta{string,label,"Channels"} %meta{string,help,"Number of channels in the texture."}  %read{2147483647,-1} %write{79,79}
+oparam	int	out_num_subimages	0		%meta{string,as_maya_attribute_name,"numSubImages"} %meta{string,as_maya_attribute_short_name,"sub"} %meta{string,label,"Subimages"} %meta{string,help,"Number of sub-images in the texture file."}  %read{2147483647,-1} %write{80,80}
+oparam	string	out_texture_type	""		%meta{string,as_maya_attribute_name,"textureType"} %meta{string,as_maya_attribute_short_name,"ttt"} %meta{string,label,"Texture Type"} %meta{string,help,"Semantic type of texture, plain texture, shadow, environmnet or volume texture."}  %read{9,9} %write{8,8}
+oparam	string	out_texture_format	""		%meta{string,as_maya_attribute_name,"textureFormat"} %meta{string,as_maya_attribute_short_name,"tfo"} %meta{string,label,"Texture Format"} %meta{string,help,"Returns the texture format, plain, shadow, cubeface, volume, cubeface or latlong environment, volume texture."}  %read{2147483647,-1} %write{81,81}
+oparam	vector	out_data_window_min	0 0 0		%meta{string,as_maya_attribute_name,"dataWindowMinimum"} %meta{string,as_maya_attribute_short_name,"dmi"} %meta{string,label,"Data Window Minimum"} %meta{string,help,"Pixel data window of the 2D/3D texture, XY(Z) minimum."}  %read{2147483647,-1} %write{27,61}
+oparam	vector	out_data_window_max	0 0 0		%meta{string,as_maya_attribute_name,"dataWindowMaximum"} %meta{string,as_maya_attribute_short_name,"dma"} %meta{string,label,"Data Window Maximum"} %meta{string,help,"Pixel data window of the 2D/3D texture, XY(Z) maximum."}  %read{2147483647,-1} %write{34,66}
+oparam	vector	out_display_window_min	0 0 0		%meta{string,as_maya_attribute_name,"displayWindowMinimum"} %meta{string,as_maya_attribute_short_name,"wmi"} %meta{string,label,"Display Window Minimum"} %meta{string,help,"Display (full) window of the 2D/3D texture, XY(Z) minimum."}  %read{2147483647,-1} %write{41,71}
+oparam	vector	out_display_window_max	0 0 0		%meta{string,as_maya_attribute_name,"displayWindowMaximum"} %meta{string,as_maya_attribute_short_name,"wma"} %meta{string,label,"Display Window Maximum"} %meta{string,help,"Display (full) window of the 2D/3D texture, XY(Z) maximum."}  %read{2147483647,-1} %write{48,76}
+oparam	matrix	out_world_to_camera	1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1		%meta{string,as_maya_attribute_name,"worldToCameraMatrix"} %meta{string,as_maya_attribute_short_name,"wtc"} %meta{string,label,"World To Camera Matrix"}  %read{2147483647,-1} %write{77,77}
+oparam	matrix	out_world_to_screen	1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1		%meta{string,as_maya_attribute_name,"worldToScreenMatrix"} %meta{string,as_maya_attribute_short_name,"wts"} %meta{string,label,"World To Screen Matrix"}  %read{2147483647,-1} %write{78,78}
+local	int	___361_valid_file	%read{5,5} %write{3,4}
+local	int[3]	___363_res	%read{14,18} %write{11,11}
+local	int[6]	___363_data_window	%read{21,32} %write{12,12}
+local	int[6]	___363_display_window	%read{35,46} %write{13,13}
+local	int[2]	___364_res	%read{52,54} %write{49,49}
+local	int[4]	___364_data_window	%read{57,64} %write{50,50}
+local	int[4]	___364_display_window	%read{67,74} %write{51,51}
+const	string	$const1	""		%read{0,0} %write{2147483647,-1}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+const	int	$const2	0		%read{3,67} %write{2147483647,-1}
+temp	int	$tmp2	%read{2147483647,-1} %write{4,4}
+const	string	$const3	"exists"		%read{4,4} %write{2147483647,-1}
+temp	int	$tmp3	%read{6,6} %write{5,5}
+temp	int	$tmp4	%read{2147483647,-1} %write{8,8}
+const	string	$const4	"type"		%read{8,8} %write{2147483647,-1}
+const	string	$const5	"Volume Texture"		%read{9,9} %write{2147483647,-1}
+temp	int	$tmp5	%read{10,10} %write{9,9}
+temp	int	$tmp6	%read{2147483647,-1} %write{11,11}
+const	string	$const6	"resolution"		%read{11,49} %write{2147483647,-1}
+temp	int	$tmp7	%read{2147483647,-1} %write{12,12}
+const	string	$const7	"datawindow"		%read{12,50} %write{2147483647,-1}
+temp	int	$tmp8	%read{2147483647,-1} %write{13,13}
+const	string	$const8	"displaywindow"		%read{13,51} %write{2147483647,-1}
+temp	int	$tmp9	%read{15,15} %write{14,14}
+temp	float	$tmp10	%read{20,20} %write{15,15}
+const	int	$const9	1		%read{16,69} %write{2147483647,-1}
+temp	int	$tmp11	%read{17,17} %write{16,16}
+temp	float	$tmp12	%read{20,20} %write{17,17}
+const	int	$const10	2		%read{18,72} %write{2147483647,-1}
+temp	int	$tmp13	%read{19,19} %write{18,18}
+temp	float	$tmp14	%read{20,20} %write{19,19}
+temp	int	$tmp15	%read{22,22} %write{21,21}
+temp	float	$tmp16	%read{27,27} %write{22,22}
+temp	int	$tmp17	%read{24,24} %write{23,23}
+temp	float	$tmp18	%read{27,27} %write{24,24}
+temp	int	$tmp19	%read{26,26} %write{25,25}
+temp	float	$tmp20	%read{27,27} %write{26,26}
+const	int	$const11	3		%read{28,74} %write{2147483647,-1}
+temp	int	$tmp21	%read{29,29} %write{28,28}
+temp	float	$tmp22	%read{34,34} %write{29,29}
+const	int	$const12	4		%read{30,44} %write{2147483647,-1}
+temp	int	$tmp23	%read{31,31} %write{30,30}
+temp	float	$tmp24	%read{34,34} %write{31,31}
+const	int	$const13	5		%read{32,46} %write{2147483647,-1}
+temp	int	$tmp25	%read{33,33} %write{32,32}
+temp	float	$tmp26	%read{34,34} %write{33,33}
+temp	int	$tmp27	%read{36,36} %write{35,35}
+temp	float	$tmp28	%read{41,41} %write{36,36}
+temp	int	$tmp29	%read{38,38} %write{37,37}
+temp	float	$tmp30	%read{41,41} %write{38,38}
+temp	int	$tmp31	%read{40,40} %write{39,39}
+temp	float	$tmp32	%read{41,41} %write{40,40}
+temp	int	$tmp33	%read{43,43} %write{42,42}
+temp	float	$tmp34	%read{48,48} %write{43,43}
+temp	int	$tmp35	%read{45,45} %write{44,44}
+temp	float	$tmp36	%read{48,48} %write{45,45}
+temp	int	$tmp37	%read{47,47} %write{46,46}
+temp	float	$tmp38	%read{48,48} %write{47,47}
+temp	int	$tmp39	%read{2147483647,-1} %write{49,49}
+temp	int	$tmp40	%read{2147483647,-1} %write{50,50}
+temp	int	$tmp41	%read{2147483647,-1} %write{51,51}
+temp	int	$tmp42	%read{53,53} %write{52,52}
+temp	float	$tmp43	%read{56,56} %write{53,53}
+temp	int	$tmp44	%read{55,55} %write{54,54}
+temp	float	$tmp45	%read{56,56} %write{55,55}
+const	float	$const14	1		%read{56,56} %write{2147483647,-1}
+temp	int	$tmp46	%read{58,58} %write{57,57}
+temp	float	$tmp47	%read{61,61} %write{58,58}
+temp	int	$tmp48	%read{60,60} %write{59,59}
+temp	float	$tmp49	%read{61,61} %write{60,60}
+const	float	$const15	0		%read{61,76} %write{2147483647,-1}
+temp	int	$tmp50	%read{63,63} %write{62,62}
+temp	float	$tmp51	%read{66,66} %write{63,63}
+temp	int	$tmp52	%read{65,65} %write{64,64}
+temp	float	$tmp53	%read{66,66} %write{65,65}
+temp	int	$tmp54	%read{68,68} %write{67,67}
+temp	float	$tmp55	%read{71,71} %write{68,68}
+temp	int	$tmp56	%read{70,70} %write{69,69}
+temp	float	$tmp57	%read{71,71} %write{70,70}
+temp	int	$tmp58	%read{73,73} %write{72,72}
+temp	float	$tmp59	%read{76,76} %write{73,73}
+temp	int	$tmp60	%read{75,75} %write{74,74}
+temp	float	$tmp61	%read{76,76} %write{75,75}
+temp	int	$tmp62	%read{2147483647,-1} %write{77,77}
+const	string	$const16	"worldtocamera"		%read{77,77} %write{2147483647,-1}
+temp	int	$tmp63	%read{2147483647,-1} %write{78,78}
+const	string	$const17	"worldtoscreen"		%read{78,78} %write{2147483647,-1}
+temp	int	$tmp64	%read{2147483647,-1} %write{79,79}
+const	string	$const18	"channels"		%read{79,79} %write{2147483647,-1}
+temp	int	$tmp65	%read{2147483647,-1} %write{80,80}
+const	string	$const19	"subimages"		%read{80,80} %write{2147483647,-1}
+temp	int	$tmp66	%read{2147483647,-1} %write{81,81}
+const	string	$const20	"textureformat"		%read{81,81} %write{2147483647,-1}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:149
+#     if (in_texture_file == "")
+	eq		$tmp1 in_texture_file $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl"} %line{149} %argrw{"wrr"}
+	if		$tmp1 3 8 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:151
+#         return;
+	exit	%line{151}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:155
+#         int valid_file = 0;
+	assign		___361_valid_file $const2 	%line{155} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:156
+#         gettextureinfo(in_texture_file, "exists", valid_file);
+	gettextureinfo	$tmp2 in_texture_file $const3 ___361_valid_file 	%line{156} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:158
+#         if (!valid_file)
+	eq		$tmp3 ___361_valid_file $const2 	%line{158} %argrw{"wrr"}
+	if		$tmp3 8 8 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:160
+#             return;
+	exit	%line{160}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:164
+#     gettextureinfo(in_texture_file, "type", out_texture_type);
+	gettextureinfo	$tmp4 in_texture_file $const4 out_texture_type 	%line{164} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:166
+#     if (out_texture_type == "Volume Texture")
+	eq		$tmp5 out_texture_type $const5 	%line{166} %argrw{"wrr"}
+	if		$tmp5 49 79 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:170
+#         gettextureinfo(in_texture_file, "resolution", res);
+	gettextureinfo	$tmp6 in_texture_file $const6 ___363_res 	%line{170} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:171
+#         gettextureinfo(in_texture_file, "datawindow", data_window);
+	gettextureinfo	$tmp7 in_texture_file $const7 ___363_data_window 	%line{171} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:172
+#         gettextureinfo(in_texture_file, "displaywindow", display_window);
+	gettextureinfo	$tmp8 in_texture_file $const8 ___363_display_window 	%line{172} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:174
+#         out_resolution = vector(res[0], res[1], res[2]);
+	aref		$tmp9 ___363_res $const2 	%line{174} %argrw{"wrr"}
+	assign		$tmp10 $tmp9 	%argrw{"wr"}
+	aref		$tmp11 ___363_res $const9 	%argrw{"wrr"}
+	assign		$tmp12 $tmp11 	%argrw{"wr"}
+	aref		$tmp13 ___363_res $const10 	%argrw{"wrr"}
+	assign		$tmp14 $tmp13 	%argrw{"wr"}
+	vector		out_resolution $tmp10 $tmp12 $tmp14 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:177
+#             data_window[0], data_window[1], data_window[2]);
+	aref		$tmp15 ___363_data_window $const2 	%line{177} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:176
+#         out_data_window_min = vector(
+	assign		$tmp16 $tmp15 	%line{176} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:177
+#             data_window[0], data_window[1], data_window[2]);
+	aref		$tmp17 ___363_data_window $const9 	%line{177} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:176
+#         out_data_window_min = vector(
+	assign		$tmp18 $tmp17 	%line{176} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:177
+#             data_window[0], data_window[1], data_window[2]);
+	aref		$tmp19 ___363_data_window $const10 	%line{177} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:176
+#         out_data_window_min = vector(
+	assign		$tmp20 $tmp19 	%line{176} %argrw{"wr"}
+	vector		out_data_window_min $tmp16 $tmp18 $tmp20 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:180
+#             data_window[3], data_window[4], data_window[5]);
+	aref		$tmp21 ___363_data_window $const11 	%line{180} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:179
+#         out_data_window_max = vector(
+	assign		$tmp22 $tmp21 	%line{179} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:180
+#             data_window[3], data_window[4], data_window[5]);
+	aref		$tmp23 ___363_data_window $const12 	%line{180} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:179
+#         out_data_window_max = vector(
+	assign		$tmp24 $tmp23 	%line{179} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:180
+#             data_window[3], data_window[4], data_window[5]);
+	aref		$tmp25 ___363_data_window $const13 	%line{180} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:179
+#         out_data_window_max = vector(
+	assign		$tmp26 $tmp25 	%line{179} %argrw{"wr"}
+	vector		out_data_window_max $tmp22 $tmp24 $tmp26 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:183
+#             display_window[0], display_window[1], display_window[2]);
+	aref		$tmp27 ___363_display_window $const2 	%line{183} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:182
+#         out_display_window_min = vector(
+	assign		$tmp28 $tmp27 	%line{182} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:183
+#             display_window[0], display_window[1], display_window[2]);
+	aref		$tmp29 ___363_display_window $const9 	%line{183} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:182
+#         out_display_window_min = vector(
+	assign		$tmp30 $tmp29 	%line{182} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:183
+#             display_window[0], display_window[1], display_window[2]);
+	aref		$tmp31 ___363_display_window $const10 	%line{183} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:182
+#         out_display_window_min = vector(
+	assign		$tmp32 $tmp31 	%line{182} %argrw{"wr"}
+	vector		out_display_window_min $tmp28 $tmp30 $tmp32 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:186
+#             display_window[3], display_window[4], display_window[5]);
+	aref		$tmp33 ___363_display_window $const11 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:185
+#         out_display_window_max = vector(
+	assign		$tmp34 $tmp33 	%line{185} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:186
+#             display_window[3], display_window[4], display_window[5]);
+	aref		$tmp35 ___363_display_window $const12 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:185
+#         out_display_window_max = vector(
+	assign		$tmp36 $tmp35 	%line{185} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:186
+#             display_window[3], display_window[4], display_window[5]);
+	aref		$tmp37 ___363_display_window $const13 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:185
+#         out_display_window_max = vector(
+	assign		$tmp38 $tmp37 	%line{185} %argrw{"wr"}
+	vector		out_display_window_max $tmp34 $tmp36 $tmp38 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:192
+#         gettextureinfo(in_texture_file, "resolution", res);
+	gettextureinfo	$tmp39 in_texture_file $const6 ___364_res 	%line{192} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:193
+#         gettextureinfo(in_texture_file, "datawindow", data_window);
+	gettextureinfo	$tmp40 in_texture_file $const7 ___364_data_window 	%line{193} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:194
+#         gettextureinfo(in_texture_file, "displaywindow", display_window);
+	gettextureinfo	$tmp41 in_texture_file $const8 ___364_display_window 	%line{194} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:196
+#         out_resolution = vector(res[0], res[1], 1.0);
+	aref		$tmp42 ___364_res $const2 	%line{196} %argrw{"wrr"}
+	assign		$tmp43 $tmp42 	%argrw{"wr"}
+	aref		$tmp44 ___364_res $const9 	%argrw{"wrr"}
+	assign		$tmp45 $tmp44 	%argrw{"wr"}
+	vector		out_resolution $tmp43 $tmp45 $const14 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:199
+#             data_window[0], data_window[1], 0.0);
+	aref		$tmp46 ___364_data_window $const2 	%line{199} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:198
+#         out_data_window_min = vector(
+	assign		$tmp47 $tmp46 	%line{198} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:199
+#             data_window[0], data_window[1], 0.0);
+	aref		$tmp48 ___364_data_window $const9 	%line{199} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:198
+#         out_data_window_min = vector(
+	assign		$tmp49 $tmp48 	%line{198} %argrw{"wr"}
+	vector		out_data_window_min $tmp47 $tmp49 $const15 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:202
+#             data_window[2], data_window[3], 0.0);
+	aref		$tmp50 ___364_data_window $const10 	%line{202} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:201
+#         out_data_window_max = vector(
+	assign		$tmp51 $tmp50 	%line{201} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:202
+#             data_window[2], data_window[3], 0.0);
+	aref		$tmp52 ___364_data_window $const11 	%line{202} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:201
+#         out_data_window_max = vector(
+	assign		$tmp53 $tmp52 	%line{201} %argrw{"wr"}
+	vector		out_data_window_max $tmp51 $tmp53 $const15 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:205
+#             display_window[0], display_window[1], 0.0);
+	aref		$tmp54 ___364_display_window $const2 	%line{205} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:204
+#         out_display_window_min = vector(
+	assign		$tmp55 $tmp54 	%line{204} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:205
+#             display_window[0], display_window[1], 0.0);
+	aref		$tmp56 ___364_display_window $const9 	%line{205} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:204
+#         out_display_window_min = vector(
+	assign		$tmp57 $tmp56 	%line{204} %argrw{"wr"}
+	vector		out_display_window_min $tmp55 $tmp57 $const15 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:208
+#             display_window[2], display_window[3], 0.0);
+	aref		$tmp58 ___364_display_window $const10 	%line{208} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:207
+#         out_display_window_max = vector(
+	assign		$tmp59 $tmp58 	%line{207} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:208
+#             display_window[2], display_window[3], 0.0);
+	aref		$tmp60 ___364_display_window $const11 	%line{208} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:207
+#         out_display_window_max = vector(
+	assign		$tmp61 $tmp60 	%line{207} %argrw{"wr"}
+	vector		out_display_window_max $tmp59 $tmp61 $const15 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:210
+#         gettextureinfo(in_texture_file, "worldtocamera", out_world_to_camera);
+	gettextureinfo	$tmp62 in_texture_file $const16 out_world_to_camera 	%line{210} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:211
+#         gettextureinfo(in_texture_file, "worldtoscreen", out_world_to_screen);
+	gettextureinfo	$tmp63 in_texture_file $const17 out_world_to_screen 	%line{211} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:214
+#     gettextureinfo(in_texture_file, "channels", out_num_channels);
+	gettextureinfo	$tmp64 in_texture_file $const18 out_num_channels 	%line{214} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:215
+#     gettextureinfo(in_texture_file, "subimages", out_num_subimages);
+	gettextureinfo	$tmp65 in_texture_file $const19 out_num_subimages 	%line{215} %argrw{"wrrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_texture_info.osl:216
+#     gettextureinfo(in_texture_file, "textureformat", out_texture_format);
+	gettextureinfo	$tmp66 in_texture_file $const20 out_texture_format 	%line{216} %argrw{"wrrw"}
+	end

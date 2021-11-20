@@ -1,0 +1,179 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_asc_cdl.oso
+shader as_asc_cdl	%meta{string,icon,"asAscCdl.png"} %meta{string,help,"Slope/Offset/Power Color Decision List utility shader according to the American Society of Cinematographers"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_asc_cdl.html"} %meta{string,as_node_name,"asAscCdl"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"1669361528 687027596"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210887} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	color	in_color	0 0 0		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Input Color"} %meta{string,page,"Color"} %meta{string,help,"Input color."} %meta{int,divider,1}  %read{0,0} %write{2147483647,-1}
+param	string	in_rgb_primaries	"sRGB/Rec.709"		%meta{string,as_maya_attribute_name,"rgbPrimaries"} %meta{string,as_maya_attribute_short_name,"pri"} %meta{string,widget,"popup"} %meta{string,options,"Rec.601|sRGB/Rec.709|AdobeRGB|Rec.2020|ACES|ACEScg|DCI-P3"} %meta{string,label,"RGBW Primaries"} %meta{string,page,"Color"} %meta{string,help,"RGB primaries and white point of the input color."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{4,32} %write{2147483647,-1}
+param	float	in_slope	1		%meta{string,as_maya_attribute_name,"slope"} %meta{string,as_maya_attribute_short_name,"slo"} %meta{float,min,0} %meta{float,max,10000} %meta{float,softmin,0} %meta{float,softmax,10} %meta{string,label,"Slope"} %meta{string,page,"Correction"} %meta{string,help,"Slope (adjusts the highlights)."}  %read{0,0} %write{2147483647,-1}
+param	float	in_offset	0		%meta{string,as_maya_attribute_name,"offset"} %meta{string,as_maya_attribute_short_name,"ofs"} %meta{float,min,-1} %meta{float,max,1} %meta{string,label,"Offset"} %meta{string,page,"Correction"} %meta{string,help,"Constant offset (adjusts the overall brightness)."}  %read{1,1} %write{2147483647,-1}
+param	float	in_power	1		%meta{string,as_maya_attribute_name,"power"} %meta{string,as_maya_attribute_short_name,"pow"} %meta{float,min,0} %meta{float,max,10000} %meta{float,softmin,0} %meta{float,softmax,5} %meta{string,label,"Power"} %meta{string,page,"Correction"} %meta{string,help,"Overall exponent (adjusts the midtones)."}  %read{2,2} %write{2147483647,-1}
+param	float	in_saturation	1		%meta{string,as_maya_attribute_name,"saturation"} %meta{string,as_maya_attribute_short_name,"sat"} %meta{float,min,0} %meta{float,max,10000} %meta{float,softmin,0} %meta{float,softmax,5} %meta{string,label,"Saturation"} %meta{string,page,"Output"} %meta{string,help,"Overall saturation applied after input color transformations."}  %read{48,48} %write{2147483647,-1}
+param	int	in_clamp_output	1		%meta{string,as_maya_attribute_name,"clampOutput"} %meta{string,as_maya_attribute_short_name,"clo"} %meta{int,min,0} %meta{int,max,1} %meta{string,widget,"checkBox"} %meta{string,label,"Clamp Output"} %meta{string,page,"Output"} %meta{string,help,"Clamps output values to the range [0,1]."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{49,49} %write{2147483647,-1}
+oparam	color	out_outColor	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,label,"Output Color"} %meta{string,page,"Output"} %meta{string,widget,"null"}  %read{2147483647,-1} %write{52,53}
+local	color	___659_coeffs	%read{36,43} %write{6,35}
+local	color	shifted_color	%read{2,2} %write{1,1}
+local	color	transformed_color	%read{37,48} %write{2,2}
+local	float	luma	%read{47,47} %write{46,46}
+local	color	unclamped	%read{51,53} %write{48,48}
+temp	color	$tmp1	%read{1,1} %write{0,0}
+const	string	$const1	"as_luminance"		%read{3,3} %write{2147483647,-1}
+const	string	$const2	"Rec.601"		%read{4,4} %write{2147483647,-1}
+temp	int	$tmp2	%read{5,5} %write{4,4}
+const	color	$const3	0.222004309 0.706654787 0.0713409185		%read{6,6} %write{2147483647,-1}
+const	string	$const4	"Rec.709"		%read{7,7} %write{2147483647,-1}
+temp	int	$tmp3	%read{8,8} %write{7,7}
+temp	int	$tmp4	%read{9,13} %write{8,12}
+const	int	$const5	0		%read{8,37} %write{2147483647,-1}
+const	string	$const6	"sRGB"		%read{10,10} %write{2147483647,-1}
+temp	int	$tmp5	%read{11,11} %write{10,10}
+temp	int	$tmp6	%read{12,12} %write{11,11}
+temp	int	$tmp7	%read{14,18} %write{13,17}
+const	string	$const7	"sRGB/Rec.709"		%read{15,15} %write{2147483647,-1}
+temp	int	$tmp8	%read{16,16} %write{15,15}
+temp	int	$tmp9	%read{17,17} %write{16,16}
+const	color	$const8	0.212639004 0.715168655 0.0721923187		%read{19,19} %write{2147483647,-1}
+const	string	$const9	"AdobeRGB"		%read{20,20} %write{2147483647,-1}
+temp	int	$tmp10	%read{21,21} %write{20,20}
+const	color	$const10	0.297340006 0.627359986 0.0752900019		%read{22,22} %write{2147483647,-1}
+const	string	$const11	"Rec.2020"		%read{23,23} %write{2147483647,-1}
+temp	int	$tmp11	%read{24,24} %write{23,23}
+const	color	$const12	0.2627002 0.677998066 0.0593017191		%read{25,25} %write{2147483647,-1}
+const	string	$const13	"ACES"		%read{26,26} %write{2147483647,-1}
+temp	int	$tmp12	%read{27,27} %write{26,26}
+const	color	$const14	0.343966454 0.728166103 -0.0721325502		%read{28,31} %write{2147483647,-1}
+const	string	$const15	"ACEScg"		%read{29,29} %write{2147483647,-1}
+temp	int	$tmp13	%read{30,30} %write{29,29}
+const	string	$const16	"DCI-P3"		%read{32,32} %write{2147483647,-1}
+temp	int	$tmp14	%read{33,33} %write{32,32}
+const	color	$const17	0.209491685 0.721595228 0.0689130723		%read{34,34} %write{2147483647,-1}
+const	color	$const18	0 0 0		%read{35,52} %write{2147483647,-1}
+temp	float	$tmp15	%read{38,38} %write{36,36}
+temp	float	$tmp16	%read{38,38} %write{37,37}
+temp	float	$tmp17	%read{42,42} %write{38,38}
+const	int	$const19	1		%read{39,40} %write{2147483647,-1}
+temp	float	$tmp18	%read{41,41} %write{39,39}
+temp	float	$tmp19	%read{41,41} %write{40,40}
+temp	float	$tmp20	%read{42,42} %write{41,41}
+temp	float	$tmp21	%read{46,46} %write{42,42}
+const	int	$const20	2		%read{43,44} %write{2147483647,-1}
+temp	float	$tmp22	%read{45,45} %write{43,43}
+temp	float	$tmp23	%read{45,45} %write{44,44}
+temp	float	$tmp24	%read{46,46} %write{45,45}
+temp	color	$tmp25	%read{48,48} %write{47,47}
+const	color	$const21	1 1 1		%read{51,51} %write{2147483647,-1}
+const	string	$const22	"clamp"		%read{50,50} %write{2147483647,-1}
+temp	color	$tmp28	%read{52,52} %write{51,51}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl:150
+#     color shifted_color = in_color * in_slope + in_offset;
+	mul		$tmp1 in_color in_slope 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl"} %line{150} %argrw{"wrr"}
+	add		shifted_color $tmp1 in_offset 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl:151
+#     color transformed_color = pow(shifted_color, in_power);
+	pow		transformed_color shifted_color in_power 	%line{151} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl:153
+#     float luma = as_luminance(transformed_color, in_rgb_primaries);
+	functioncall	$const1 47 	%line{153} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:204
+#     if (colorspace == "Rec.601")
+	eq		$tmp2 in_rgb_primaries $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h"} %line{204} %argrw{"wrr"}
+	if		$tmp2 7 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:206
+#         coeffs = color(REC601_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const3 	%line{206} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:208
+#     else if (colorspace == "Rec.709" || colorspace == "sRGB" ||
+	eq		$tmp3 in_rgb_primaries $const4 	%line{208} %argrw{"wrr"}
+	neq		$tmp4 $tmp3 $const5 	%argrw{"wrr"}
+	if		$tmp4 10 13 	%argrw{"r"}
+	eq		$tmp5 in_rgb_primaries $const6 	%argrw{"wrr"}
+	neq		$tmp6 $tmp5 $const5 	%argrw{"wrr"}
+	assign		$tmp4 $tmp6 	%argrw{"wr"}
+	neq		$tmp7 $tmp4 $const5 	%argrw{"wrr"}
+	if		$tmp7 15 18 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:209
+#              colorspace == "sRGB/Rec.709")
+	eq		$tmp8 in_rgb_primaries $const7 	%line{209} %argrw{"wrr"}
+	neq		$tmp9 $tmp8 $const5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:208
+#     else if (colorspace == "Rec.709" || colorspace == "sRGB" ||
+	assign		$tmp7 $tmp9 	%line{208} %argrw{"wr"}
+	if		$tmp7 20 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:211
+#         coeffs = color(REC709_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const8 	%line{211} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:213
+#     else if (colorspace == "AdobeRGB")
+	eq		$tmp10 in_rgb_primaries $const9 	%line{213} %argrw{"wrr"}
+	if		$tmp10 23 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:215
+#         coeffs = color(ADOBERGB_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const10 	%line{215} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:217
+#     else if (colorspace == "Rec.2020")
+	eq		$tmp11 in_rgb_primaries $const11 	%line{217} %argrw{"wrr"}
+	if		$tmp11 26 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:219
+#         coeffs = color(REC2020_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const12 	%line{219} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:221
+#     else if (colorspace == "ACES")
+	eq		$tmp12 in_rgb_primaries $const13 	%line{221} %argrw{"wrr"}
+	if		$tmp12 29 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:223
+#         coeffs = color(ACES_D60_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const14 	%line{223} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:225
+#     else if (colorspace == "ACEScg")
+	eq		$tmp13 in_rgb_primaries $const15 	%line{225} %argrw{"wrr"}
+	if		$tmp13 32 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:227
+#         coeffs = color(ACESCG_D60_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const14 	%line{227} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:229
+#     else if (colorspace == "DCI-P3")
+	eq		$tmp14 in_rgb_primaries $const16 	%line{229} %argrw{"wrr"}
+	if		$tmp14 35 36 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:231
+#         coeffs = color(DCIP3_DCI_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const17 	%line{231} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:235
+#         coeffs = color(0);
+	assign		___659_coeffs $const18 	%line{235} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:244
+#     return coeffs[0] * in_C[0] +
+	compref		$tmp15 ___659_coeffs $const5 	%line{244} %argrw{"wrr"}
+	compref		$tmp16 transformed_color $const5 	%argrw{"wrr"}
+	mul		$tmp17 $tmp15 $tmp16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:245
+#            coeffs[1] * in_C[1] +
+	compref		$tmp18 ___659_coeffs $const19 	%line{245} %argrw{"wrr"}
+	compref		$tmp19 transformed_color $const19 	%argrw{"wrr"}
+	mul		$tmp20 $tmp18 $tmp19 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:244
+#     return coeffs[0] * in_C[0] +
+	add		$tmp21 $tmp17 $tmp20 	%line{244} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:246
+#            coeffs[2] * in_C[2];
+	compref		$tmp22 ___659_coeffs $const20 	%line{246} %argrw{"wrr"}
+	compref		$tmp23 transformed_color $const20 	%argrw{"wrr"}
+	mul		$tmp24 $tmp22 $tmp23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:245
+#            coeffs[1] * in_C[1] +
+	add		luma $tmp21 $tmp24 	%line{245} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl:155
+#     color unclamped = mix(luma, transformed_color, in_saturation);
+	assign		$tmp25 luma 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl"} %line{155} %argrw{"wr"}
+	mix		unclamped $tmp25 transformed_color in_saturation 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl:158
+#         ? clamp(unclamped, color(0), color(1))
+	if		in_clamp_output 53 54 	%line{158} %argrw{"r"}
+	functioncall	$const22 53 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp28 unclamped $const21 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{144} %argrw{"wrr"}
+	max		out_outColor $tmp28 $const18 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl:158
+#         ? clamp(unclamped, color(0), color(1))
+	assign		out_outColor unclamped 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_asc_cdl.osl"} %line{158} %argrw{"wr"}
+	end

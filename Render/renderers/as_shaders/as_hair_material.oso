@@ -1,0 +1,58 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_hair_material.oso
+shader as_hair_material	%meta{string,help,"Hair Material."} %meta{string,icon,"asHair.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/material/as_hair.html"} %meta{string,as_node_name,"asHair"} %meta{string,as_category,"shader"} %meta{string,as_max_class_id,"799297017 247489034"} %meta{string,as_max_plugin_type,"material"} %meta{int,as_maya_type_id,1210891} %meta{string,as_maya_classification,"drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch"} 
+param	color	in_reflectance	0 0 0		%meta{string,as_maya_attribute_name,"reflectance"} %meta{string,as_maya_attribute_short_name,"ref"} %meta{string,label,"Reflectance Color"} %meta{string,page,"Reflectance"}  %read{13,13} %write{2147483647,-1}
+param	float	in_melanin	0.800000012		%meta{string,as_maya_attribute_name,"melanin"} %meta{string,as_maya_attribute_short_name,"mel"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Melanin Amount"} %meta{string,page,"Color"}  %read{13,13} %write{2147483647,-1}
+param	float	in_melanin_redness	0		%meta{string,as_maya_attribute_name,"melaninRedness"} %meta{string,as_maya_attribute_short_name,"melR"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Melanin Redness"} %meta{string,page,"Color"}  %read{13,13} %write{2147483647,-1}
+param	float	in_eta	1.54999995		%meta{string,as_maya_attribute_name,"eta"} %meta{string,as_maya_attribute_short_name,"et"} %meta{float,min,1} %meta{float,max,10} %meta{float,softmax,2} %meta{string,label,"Index Of Refraction"} %meta{string,page,"IOR"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{13,13} %write{2147483647,-1}
+param	float	in_beta_M	0.300000012		%meta{string,as_maya_attribute_name,"longRoughness"} %meta{string,as_maya_attribute_short_name,"roM"} %meta{float,min,0.00100000005} %meta{float,max,1} %meta{string,label,"Longitudinal Roughness"} %meta{string,page,"Hair Properties"}  %read{13,13} %write{2147483647,-1}
+param	float	in_beta_N	0.300000012		%meta{string,as_maya_attribute_name,"aziRoughness"} %meta{string,as_maya_attribute_short_name,"roN"} %meta{float,min,0.00100000005} %meta{float,max,1} %meta{string,label,"Azimuthal Roughness"} %meta{string,page,"Hair Properties"}  %read{13,13} %write{2147483647,-1}
+param	float	in_alpha	2		%meta{string,as_maya_attribute_name,"cuticleAngle"} %meta{string,as_maya_attribute_short_name,"cutAng"} %meta{float,min,0.00100000005} %meta{float,max,10} %meta{string,label,"Cuticle Angle"} %meta{string,page,"Hair Properties"}  %read{13,13} %write{2147483647,-1}
+param	int	in_maximum_ray_depth	100		%meta{string,as_maya_attribute_name,"maximumRayDepth"} %meta{string,as_maya_attribute_short_name,"mr"} %meta{int,min,0} %meta{int,max,100} %meta{int,softmax,16} %meta{string,label,"Ray Depth"} %meta{string,page,"Advanced"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{8,8} %write{2147483647,-1}
+oparam	closure color	out_outColor			%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,widget,"null"}  %read{14,14} %write{14,14}
+local	int	ray_depth	%read{8,8} %write{3,4}
+local	int	status	%read{5,5} %write{4,4}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+const	string	$const1	"shadow"		%read{0,0} %write{2147483647,-1}
+const	int	$const2	0		%read{3,9} %write{2147483647,-1}
+const	string	$const3	"path:ray_depth"		%read{4,4} %write{2147483647,-1}
+temp	int	$tmp2	%read{6,6} %write{5,5}
+temp	int	$tmp3	%read{7,11} %write{6,10}
+temp	int	$tmp4	%read{9,9} %write{8,8}
+temp	int	$tmp5	%read{10,10} %write{9,9}
+temp	closure color	$tmp6	%read{14,14} %write{13,13}
+const	string	$const4	"as_hair"		%read{13,13} %write{2147483647,-1}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:135
+#     if (raytype("shadow"))
+	raytype		$tmp1 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl"} %line{135} %argrw{"wr"}
+	if		$tmp1 3 3 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:137
+#         return;
+	exit	%line{137}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:140
+#     int ray_depth = 0;
+	assign		ray_depth $const2 	%line{140} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:141
+#     int status = getattribute("path:ray_depth", ray_depth);
+	getattribute	status $const3 ray_depth 	%line{141} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:143
+#     if (!status || ray_depth > in_maximum_ray_depth)
+	eq		$tmp2 status $const2 	%line{143} %argrw{"wrr"}
+	neq		$tmp3 $tmp2 $const2 	%argrw{"wrr"}
+	if		$tmp3 8 11 	%argrw{"r"}
+	gt		$tmp4 ray_depth in_maximum_ray_depth 	%argrw{"wrr"}
+	neq		$tmp5 $tmp4 $const2 	%argrw{"wrr"}
+	assign		$tmp3 $tmp5 	%argrw{"wr"}
+	if		$tmp3 13 13 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:145
+#         return;
+	exit	%line{145}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:148
+#     out_outColor += as_hair(
+	closure		$tmp6 $const4 in_reflectance in_melanin in_melanin_redness in_eta in_beta_M in_beta_N in_alpha 	%line{148} %argrw{"wrrrrrrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_hair_material.osl:155
+#         in_alpha);
+	add		out_outColor out_outColor $tmp6 	%line{155} %argrw{"wrr"}
+	end

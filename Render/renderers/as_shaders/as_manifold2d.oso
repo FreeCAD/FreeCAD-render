@@ -1,0 +1,1099 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_manifold2d.oso
+shader as_manifold2D	%meta{string,icon,"asManifold2D.png"} %meta{string,help,"Node to place and transform UV coordinates."} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_manifold2d.html"} %meta{string,as_node_name,"asManifold2D"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"1185226119 622806922"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210885} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	float[2]	in_uv_coord	0 0		%meta{string,as_maya_attribute_name,"uvCoord"} %meta{string,label,"UV Coordinates"} %meta{string,page,"Coordinates"} %meta{int,as_max_attribute_hidden,1}  %read{3,15} %write{0,1} %derivs %initexpr
+param	float[2]	in_uv_filter_size	-1 -1		%meta{string,as_maya_attribute_name,"uvFilterSize"} %meta{string,as_maya_attribute_short_name,"uvf"} %meta{string,label,"UV Filter Size"} %meta{string,page,"Coordinates"} %meta{string,help,"UV coordinates filter widths"} %meta{int,divider,1}  %read{5,11} %write{2147483647,-1} %derivs
+param	int	in_bypass_uv	0		%meta{string,as_maya_attribute_name,"bypassUV"} %meta{string,as_maya_attribute_short_name,"buv"} %meta{string,widget,"checkBox"} %meta{string,label,"Bypass UV transforms"} %meta{string,page,"Transforms"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{2,2} %write{2147483647,-1}
+param	int	in_compute_filters	1		%meta{string,as_maya_attribute_name,"computeFilters"} %meta{string,as_maya_attribute_short_name,"cfi"} %meta{string,widget,"checkBox"} %meta{string,label,"Compute UV Filters"} %meta{string,page,"Transforms"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Compute the filter widths of the UV coordinates."} %meta{int,divider,1}  %read{4,426} %write{2147483647,-1}
+param	float[2]	in_scale_frame	1 1		%meta{string,as_maya_attribute_name,"scaleFrame"} %meta{string,as_maya_attribute_short_name,"sfr"} %meta{string,label,"Scale UV Frame"} %meta{string,page,"Frame"} %meta{string,help,"Scale the UV frame."}  %read{50,55} %write{2147483647,-1} %derivs
+param	float[2]	in_translate_frame	0 0		%meta{string,as_maya_attribute_name,"translateFrame"} %meta{string,as_maya_attribute_short_name,"tfr"} %meta{string,label,"Translate UV Frame"} %meta{string,page,"Frame"} %meta{string,help,"Translate the UV frame."} %meta{int,divider,1}  %read{60,64} %write{2147483647,-1} %derivs
+param	float	in_rotate_frame	0		%meta{string,as_maya_attribute_name,"rotateFrame"} %meta{string,as_maya_attribute_short_name,"rfr"} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"Rotate UV Frame"} %meta{string,page,"Frame"} %meta{string,help,"Rotate the UV frame, where values in the unrestricted interval [0,1] map to [0,360] degrees."}  %read{67,72} %write{2147483647,-1} %derivs
+param	float[2]	in_frame_center	0.5 0.5		%meta{string,as_maya_attribute_name,"frameCenter"} %meta{string,as_maya_attribute_short_name,"fce"} %meta{string,label,"UV Frame Center"} %meta{string,page,"Frame"} %meta{int,divider,1}  %read{73,77} %write{2147483647,-1} %derivs
+param	string	in_wrap_mode_u	"Periodic"		%meta{string,as_maya_attribute_namne,"wrapModeU"} %meta{string,as_maya_attribute_short_name,"wmu"} %meta{string,widget,"popup"} %meta{string,options,"Periodic|Mirror|Clamp|Default Color"} %meta{string,label,"Wrap Along U"} %meta{string,page,"Frame"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Wrap mode outside the [0,1] UV square. Textures already  have their wrap modes, but you might want to use this for a procedural texture."}  %read{216,242} %write{2147483647,-1}
+param	string	in_wrap_mode_v	"Periodic"		%meta{string,as_maya_attribute_name,"wrapModeV"} %meta{string,as_maya_attribute_short_name,"wmv"} %meta{string,widget,"popup"} %meta{string,options,"Periodic|Mirror|Clamp|Default Color"} %meta{string,label,"Wrap Along V"} %meta{string,page,"Frame"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Wrap mode outside the [0,1] UV square. Textures already have their wrap modes, but you might want to use this for a procedural texture."} %meta{int,divider,1}  %read{250,276} %write{2147483647,-1}
+param	float[2]	in_uv_tiles	1 1		%meta{string,as_maya_attribute_name,"uvTiles"} %meta{string,as_maya_attribute_short_name,"uvt"} %meta{string,label,"UV Tiles"} %meta{string,page,"Transform"} %meta{string,help,"Number of UV tiles."}  %read{285,289} %write{2147483647,-1} %derivs
+param	float[2]	in_offset_tiles	0 0		%meta{string,as_maya_attribute_name,"offsetTiles"} %meta{string,as_maya_attribute_short_name,"oti"} %meta{string,label,"Offset Tiles"} %meta{string,page,"Transform"} %meta{string,help,"Offset UV Tiles along U, V or both."} %meta{int,divider,1}  %read{157,297} %write{2147483647,-1} %derivs
+param	float	in_rotate_tiles	0		%meta{string,as_maya_attribute_name,"rotateTiles"} %meta{string,as_maya_attribute_short_name,"rti"} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"Tiles Rotation"} %meta{string,page,"Transform"} %meta{string,help,"Rotate the UV tiles, where the unrestricted interval [0,1] maps to [0,360] degrees."}  %read{353,358} %write{2147483647,-1} %derivs
+param	float[2]	in_tiles_center	0.5 0.5		%meta{string,as_maya_attribute_name,"tilesCenter"} %meta{string,as_maya_attribute_short_name,"tle"} %meta{string,label,"Tiles Center"} %meta{string,page,"Transform"} %meta{string,help,"The center of rotation for the UV tiles."} %meta{int,divider,1}  %read{359,363} %write{2147483647,-1} %derivs
+param	float[2]	in_tiles_coverage	1 1		%meta{string,as_maya_attribute_name,"tilesCoverage"} %meta{string,as_maya_attribute_short_name,"tco"} %meta{string,label,"Tiles Coverage"} %meta{string,page,"Transform"} %meta{string,help,"The amount of area of the UV frame to cover."}  %read{134,137} %write{2147483647,-1} %derivs
+param	int	in_mirror_u	0		%meta{string,as_maya_attribute_name,"mirrorU"} %meta{string,as_maya_attribute_short_name,"mru"} %meta{string,label,"Mirror U"} %meta{string,widget,"checkBox"} %meta{string,page,"Transform.Tile"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Mirror the UV tile along the U direction."}  %read{315,315} %write{2147483647,-1}
+param	int	in_mirror_v	0		%meta{string,as_maya_attribute_name,"mirrorV"} %meta{string,as_maya_attribute_short_name,"mrv"} %meta{string,label,"Mirror V"} %meta{string,widget,"checkBox"} %meta{string,page,"Transform.Tile"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Mirror the UV tile along the V direction."}  %read{334,334} %write{2147483647,-1}
+param	int	in_wrap_u	0		%meta{string,as_maya_attribute_name,"wrapU"} %meta{string,as_maya_attribute_short_name,"wru"} %meta{string,label,"Wrap U"} %meta{string,widget,"checkBox"} %meta{string,page,"Transform.Tile"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Wrap the UV tile along the U direction."}  %read{175,175} %write{2147483647,-1}
+param	int	in_wrap_v	0		%meta{string,as_maya_attribute_name,"wrapV"} %meta{string,as_maya_attribute_short_name,"wrv"} %meta{string,label,"Wrap V"} %meta{string,widget,"checkBox"} %meta{string,page,"Transform.Tile"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Wrap the UV tile along the V direction."}  %read{185,185} %write{2147483647,-1}
+param	int	in_stagger_uv	0		%meta{string,as_maya_attribute_name,"stagger"} %meta{string,as_maya_attribute_short_name,"sta"} %meta{string,label,"Stagger"} %meta{string,widget,"checkBox"} %meta{string,page,"Transform.Tile"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Stagger each row half the tile width."}  %read{300,300} %write{2147483647,-1}
+param	int	in_swap_uv	0		%meta{string,as_maya_attribute_name,"swapUV"} %meta{string,as_maya_attribute_short_name,"swu"} %meta{string,label,"Swap UVs"} %meta{string,widget,"checkBox"} %meta{string,page,"Transform.Tile"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"Swap the U and V coordinates."}  %read{420,420} %write{2147483647,-1}
+param	float[2]	in_noise_uv	0 0		%meta{string,as_maya_attribute_name,"noiseUV"} %meta{string,as_maya_attribute_short_name,"nuv"} %meta{string,label,"Distort UV"} %meta{string,page,"Noise"} %meta{string,help,"Distort U, V, or UV coordinates with a signed Perlin noise function."}  %read{17,44} %write{2147483647,-1} %derivs
+oparam	float[2]	out_uvcoord	0 0		%meta{string,as_maya_attribute_name,"outUV"} %meta{string,as_maya_attribute_short_name,"ouv"} %meta{string,label,"UV Coords"} %meta{string,widget,"null"}  %read{427,436} %write{3,425} %derivs
+oparam	float[2]	out_uvcoord_filter	-1 -1		%meta{string,as_maya_attribute_name,"outUVFilter"} %meta{string,as_maya_attribute_short_name,"ouf"} %meta{string,label,"UV Filter Size"} %meta{string,widget,"null"}  %read{2147483647,-1} %write{7,438}
+global	float	u	%read{0,0} %write{2147483647,-1} %derivs
+global	float	v	%read{1,1} %write{2147483647,-1} %derivs
+local	vector	___254_axis	%read{84,372} %write{81,367} %derivs
+local	float	___254_cosang	%read{83,410} %write{82,368} %derivs
+local	float	___254_sinang	%read{94,405} %write{82,368} %derivs
+local	float	___254_cosang1	%read{93,404} %write{83,369} %derivs
+local	float	___254_x	%read{87,405} %write{84,370} %derivs
+local	float	___254_y	%read{92,403} %write{85,371} %derivs
+local	float	___254_z	%read{94,408} %write{86,372} %derivs
+local	matrix	___254_M	%read{128,414} %write{126,412} %derivs
+local	float[2]	st	%read{26,425} %write{14,424} %derivs
+local	vector	___708_uvnoise	%read{36,45} %write{30,30} %derivs
+local	point	___711_rot	%read{130,132} %write{129,129} %derivs
+local	float[2]	coverage	%read{140,187} %write{136,139} %derivs
+local	point	___730_rot	%read{416,418} %write{415,415} %derivs
+local	float	___731_tmp	%read{424,424} %write{421,421} %derivs
+const	int	$const1	0		%read{0,432} %write{2147483647,-1}
+const	int	$const2	1		%read{1,438} %write{2147483647,-1}
+temp	float	$tmp1	%read{7,7} %write{6,6}
+temp	float	$tmp2	%read{6,6} %write{5,5} %derivs
+temp	float	$tmp3	%read{10,10} %write{9,9}
+temp	float	$tmp4	%read{9,9} %write{8,8} %derivs
+temp	float	$tmp5	%read{14,14} %write{13,13} %derivs
+temp	float	$tmp6	%read{16,16} %write{15,15} %derivs
+temp	float	$tmp7	%read{18,18} %write{17,17}
+const	float	$const3	0		%read{18,412} %write{2147483647,-1}
+temp	int	$tmp8	%read{19,19} %write{18,18}
+temp	int	$tmp9	%read{20,25} %write{19,24}
+temp	float	$tmp10	%read{22,22} %write{21,21}
+temp	int	$tmp11	%read{23,23} %write{22,22}
+temp	int	$tmp12	%read{24,24} %write{23,23}
+const	string	$const4	"snoise"		%read{30,30} %write{2147483647,-1}
+temp	float	$tmp13	%read{27,27} %write{26,26} %derivs
+const	float	$const5	15		%read{27,29} %write{2147483647,-1}
+temp	float	$tmp14	%read{30,30} %write{27,27} %derivs
+temp	float	$tmp15	%read{29,29} %write{28,28} %derivs
+temp	float	$tmp16	%read{30,30} %write{29,29} %derivs
+temp	float	$tmp17	%read{32,32} %write{31,31}
+temp	int	$tmp18	%read{33,33} %write{32,32}
+temp	float	$tmp19	%read{38,38} %write{34,34} %derivs
+temp	float	$tmp20	%read{37,37} %write{35,35} %derivs
+temp	float	$tmp21	%read{37,37} %write{36,36} %derivs
+temp	float	$tmp22	%read{38,38} %write{37,37} %derivs
+temp	float	$tmp23	%read{39,39} %write{38,38} %derivs
+temp	float	$tmp24	%read{41,41} %write{40,40}
+temp	int	$tmp25	%read{42,42} %write{41,41}
+temp	float	$tmp26	%read{47,47} %write{43,43} %derivs
+temp	float	$tmp27	%read{46,46} %write{44,44} %derivs
+temp	float	$tmp28	%read{46,46} %write{45,45} %derivs
+temp	float	$tmp29	%read{47,47} %write{46,46} %derivs
+temp	float	$tmp30	%read{48,48} %write{47,47} %derivs
+temp	float	$tmp31	%read{52,52} %write{49,49} %derivs
+temp	float	$tmp32	%read{52,52} %write{51,51} %derivs
+const	float	$const6	9.99999997e-07		%read{51,138} %write{2147483647,-1}
+temp	float	$tmp33	%read{51,51} %write{50,50} %derivs
+temp	float	$tmp34	%read{53,53} %write{52,52} %derivs
+temp	float	$tmp35	%read{57,57} %write{54,54} %derivs
+temp	float	$tmp36	%read{57,57} %write{56,56} %derivs
+temp	float	$tmp37	%read{56,56} %write{55,55} %derivs
+temp	float	$tmp38	%read{58,58} %write{57,57} %derivs
+temp	float	$tmp39	%read{61,61} %write{59,59} %derivs
+temp	float	$tmp40	%read{61,61} %write{60,60} %derivs
+temp	float	$tmp41	%read{62,62} %write{61,61} %derivs
+temp	float	$tmp42	%read{65,65} %write{63,63} %derivs
+temp	float	$tmp43	%read{65,65} %write{64,64} %derivs
+temp	float	$tmp44	%read{66,66} %write{65,65} %derivs
+temp	int	$tmp45	%read{68,68} %write{67,67}
+temp	point	$tmp46	%read{127,127} %write{71,71} %derivs
+temp	float	$tmp47	%read{71,71} %write{69,69} %derivs
+temp	float	$tmp48	%read{71,71} %write{70,70} %derivs
+const	float	$const7	6.28318548		%read{72,358} %write{2147483647,-1}
+temp	float	$tmp49	%read{82,82} %write{72,72} %derivs
+temp	point	$tmp50	%read{80,129} %write{75,75} %derivs
+temp	float	$tmp51	%read{75,75} %write{73,73} %derivs
+temp	float	$tmp52	%read{75,75} %write{74,74} %derivs
+temp	point	$tmp53	%read{80,80} %write{78,78} %derivs
+temp	float	$tmp54	%read{78,78} %write{76,76} %derivs
+temp	float	$tmp55	%read{78,78} %write{77,77} %derivs
+const	float	$const8	1		%read{78,412} %write{2147483647,-1}
+const	string	$const9	"rotate"		%read{79,365} %write{2147483647,-1}
+temp	vector	$tmp56	%read{81,81} %write{80,80} %derivs
+const	int	$const10	2		%read{86,372} %write{2147483647,-1}
+temp	float	$tmp57	%read{91,91} %write{87,87} %derivs
+temp	float	$tmp58	%read{89,89} %write{88,88} %derivs
+temp	float	$tmp59	%read{90,90} %write{89,89} %derivs
+temp	float	$tmp60	%read{91,91} %write{90,90} %derivs
+temp	float	$tmp61	%read{126,126} %write{91,91} %derivs
+temp	float	$tmp62	%read{93,93} %write{92,92} %derivs
+temp	float	$tmp63	%read{95,95} %write{93,93} %derivs
+temp	float	$tmp64	%read{95,95} %write{94,94} %derivs
+temp	float	$tmp65	%read{126,126} %write{95,95} %derivs
+temp	float	$tmp66	%read{97,97} %write{96,96} %derivs
+temp	float	$tmp67	%read{99,99} %write{97,97} %derivs
+temp	float	$tmp68	%read{99,99} %write{98,98} %derivs
+temp	float	$tmp69	%read{126,126} %write{99,99} %derivs
+temp	float	$tmp70	%read{101,101} %write{100,100} %derivs
+temp	float	$tmp71	%read{103,103} %write{101,101} %derivs
+temp	float	$tmp72	%read{103,103} %write{102,102} %derivs
+temp	float	$tmp73	%read{126,126} %write{103,103} %derivs
+temp	float	$tmp74	%read{108,108} %write{104,104} %derivs
+temp	float	$tmp75	%read{106,106} %write{105,105} %derivs
+temp	float	$tmp76	%read{107,107} %write{106,106} %derivs
+temp	float	$tmp77	%read{108,108} %write{107,107} %derivs
+temp	float	$tmp78	%read{126,126} %write{108,108} %derivs
+temp	float	$tmp79	%read{110,110} %write{109,109} %derivs
+temp	float	$tmp80	%read{112,112} %write{110,110} %derivs
+temp	float	$tmp81	%read{112,112} %write{111,111} %derivs
+temp	float	$tmp82	%read{126,126} %write{112,112} %derivs
+temp	float	$tmp83	%read{114,114} %write{113,113} %derivs
+temp	float	$tmp84	%read{116,116} %write{114,114} %derivs
+temp	float	$tmp85	%read{116,116} %write{115,115} %derivs
+temp	float	$tmp86	%read{126,126} %write{116,116} %derivs
+temp	float	$tmp87	%read{118,118} %write{117,117} %derivs
+temp	float	$tmp88	%read{120,120} %write{118,118} %derivs
+temp	float	$tmp89	%read{120,120} %write{119,119} %derivs
+temp	float	$tmp90	%read{126,126} %write{120,120} %derivs
+temp	float	$tmp91	%read{125,125} %write{121,121} %derivs
+temp	float	$tmp92	%read{123,123} %write{122,122} %derivs
+temp	float	$tmp93	%read{124,124} %write{123,123} %derivs
+temp	float	$tmp94	%read{125,125} %write{124,124} %derivs
+temp	float	$tmp95	%read{126,126} %write{125,125} %derivs
+temp	vector	$tmp96	%read{129,129} %write{128,128} %derivs
+temp	vector	$tmp97	%read{128,128} %write{127,127} %derivs
+temp	float	$tmp98	%read{131,131} %write{130,130} %derivs
+temp	float	$tmp99	%read{133,133} %write{132,132} %derivs
+temp	float	$tmp100	%read{136,136} %write{135,135} %derivs
+temp	float	$tmp101	%read{135,135} %write{134,134} %derivs
+temp	float	$tmp102	%read{139,139} %write{138,138} %derivs
+temp	float	$tmp103	%read{138,138} %write{137,137} %derivs
+temp	float	$tmp104	%read{141,141} %write{140,140}
+temp	int	$tmp105	%read{142,142} %write{141,141}
+temp	int	$tmp106	%read{143,148} %write{142,147}
+temp	float	$tmp107	%read{145,145} %write{144,144}
+temp	int	$tmp108	%read{146,146} %write{145,145}
+temp	int	$tmp109	%read{147,147} %write{146,146}
+temp	float	$tmp110	%read{151,151} %write{149,149} %derivs
+temp	float	$tmp111	%read{151,151} %write{150,150} %derivs
+temp	float	$tmp112	%read{152,152} %write{151,151} %derivs
+temp	float	$tmp113	%read{155,155} %write{153,153} %derivs
+temp	float	$tmp114	%read{155,155} %write{154,154} %derivs
+temp	float	$tmp115	%read{156,156} %write{155,155} %derivs
+temp	float	$tmp116	%read{158,158} %write{157,157}
+temp	int	$tmp117	%read{159,159} %write{158,158}
+temp	float	$tmp118	%read{164,164} %write{160,160} %derivs
+temp	float	$tmp119	%read{163,163} %write{161,161} %derivs
+temp	float	$tmp120	%read{163,163} %write{162,162} %derivs
+temp	float	$tmp121	%read{164,164} %write{163,163} %derivs
+temp	float	$tmp122	%read{165,165} %write{164,164} %derivs
+temp	float	$tmp123	%read{167,167} %write{166,166}
+temp	int	$tmp124	%read{168,168} %write{167,167}
+temp	float	$tmp125	%read{173,173} %write{169,169} %derivs
+temp	float	$tmp126	%read{172,172} %write{170,170} %derivs
+temp	float	$tmp127	%read{172,172} %write{171,171} %derivs
+temp	float	$tmp128	%read{173,173} %write{172,172} %derivs
+temp	float	$tmp129	%read{174,174} %write{173,173} %derivs
+temp	float	$tmp130	%read{184,184} %write{183,183} %derivs
+temp	float	$tmp131	%read{180,183} %write{176,176} %derivs
+temp	float	$tmp132	%read{178,178} %write{177,177} %derivs
+temp	float	$tmp133	%read{180,182} %write{178,178} %derivs
+const	string	$const11	"mod"		%read{179,337} %write{2147483647,-1}
+temp	float	$tmp134	%read{182,182} %write{181,181} %derivs
+temp	float	$tmp135	%read{181,181} %write{180,180} %derivs
+temp	float	$tmp136	%read{183,183} %write{182,182} %derivs
+temp	float	$tmp137	%read{194,194} %write{193,193} %derivs
+temp	float	$tmp138	%read{190,193} %write{186,186} %derivs
+temp	float	$tmp139	%read{188,188} %write{187,187} %derivs
+temp	float	$tmp140	%read{190,192} %write{188,188} %derivs
+temp	float	$tmp141	%read{192,192} %write{191,191} %derivs
+temp	float	$tmp142	%read{191,191} %write{190,190} %derivs
+temp	float	$tmp143	%read{193,193} %write{192,192} %derivs
+temp	float	$tmp144	%read{196,196} %write{195,195}
+temp	int	$tmp145	%read{197,197} %write{196,196}
+temp	int	$tmp146	%read{198,203} %write{197,202}
+temp	float	$tmp147	%read{200,200} %write{199,199}
+temp	int	$tmp148	%read{201,201} %write{200,200}
+temp	int	$tmp149	%read{202,202} %write{201,201}
+temp	int	$tmp150	%read{204,209} %write{203,208}
+temp	float	$tmp151	%read{206,206} %write{205,205}
+temp	int	$tmp152	%read{207,207} %write{206,206}
+temp	int	$tmp153	%read{208,208} %write{207,207}
+temp	int	$tmp154	%read{210,215} %write{209,214}
+temp	float	$tmp155	%read{212,212} %write{211,211}
+temp	int	$tmp156	%read{213,213} %write{212,212}
+temp	int	$tmp157	%read{214,214} %write{213,213}
+const	string	$const12	"Periodic"		%read{216,250} %write{2147483647,-1}
+temp	int	$tmp158	%read{217,217} %write{216,216}
+temp	float	$tmp159	%read{224,224} %write{223,223} %derivs
+temp	float	$tmp160	%read{220,223} %write{218,218} %derivs
+temp	float	$tmp161	%read{222,222} %write{221,221} %derivs
+temp	float	$tmp162	%read{221,221} %write{220,220} %derivs
+temp	float	$tmp163	%read{223,223} %write{222,222} %derivs
+const	string	$const13	"Mirror"		%read{225,259} %write{2147483647,-1}
+temp	int	$tmp164	%read{226,226} %write{225,225}
+temp	float	$tmp165	%read{233,233} %write{232,232}
+temp	float	$tmp166	%read{229,232} %write{227,227}
+const	float	$const14	2		%read{229,348} %write{2147483647,-1}
+temp	float	$tmp167	%read{231,231} %write{230,230}
+temp	float	$tmp168	%read{230,230} %write{229,229}
+temp	float	$tmp169	%read{232,232} %write{231,231}
+temp	int	$tmp170	%read{234,234} %write{233,233}
+temp	float	$tmp171	%read{237,237} %write{236,236} %derivs
+temp	float	$tmp172	%read{236,236} %write{235,235} %derivs
+temp	float	$tmp173	%read{239,239} %write{237,237} %derivs
+temp	float	$tmp174	%read{239,239} %write{238,238} %derivs
+temp	float	$tmp175	%read{240,240} %write{239,239} %derivs
+temp	float	$tmp176	%read{241,241} %write{240,240} %derivs
+const	string	$const15	"Clamp"		%read{242,276} %write{2147483647,-1}
+temp	int	$tmp177	%read{243,243} %write{242,242}
+temp	float	$tmp178	%read{248,248} %write{247,247} %derivs
+temp	float	$tmp179	%read{246,246} %write{244,244} %derivs
+const	string	$const16	"clamp"		%read{245,279} %write{2147483647,-1}
+temp	float	$tmp180	%read{247,247} %write{246,246} %derivs
+const	int	$const17	999999		%read{249,434} %write{2147483647,-1}
+temp	int	$tmp181	%read{251,251} %write{250,250}
+temp	float	$tmp182	%read{258,258} %write{257,257} %derivs
+temp	float	$tmp183	%read{254,257} %write{252,252} %derivs
+temp	float	$tmp184	%read{256,256} %write{255,255} %derivs
+temp	float	$tmp185	%read{255,255} %write{254,254} %derivs
+temp	float	$tmp186	%read{257,257} %write{256,256} %derivs
+temp	int	$tmp187	%read{260,260} %write{259,259}
+temp	float	$tmp188	%read{267,267} %write{266,266}
+temp	float	$tmp189	%read{263,266} %write{261,261}
+temp	float	$tmp190	%read{265,265} %write{264,264}
+temp	float	$tmp191	%read{264,264} %write{263,263}
+temp	float	$tmp192	%read{266,266} %write{265,265}
+temp	int	$tmp193	%read{268,268} %write{267,267}
+temp	float	$tmp194	%read{271,271} %write{270,270} %derivs
+temp	float	$tmp195	%read{270,270} %write{269,269} %derivs
+temp	float	$tmp196	%read{273,273} %write{271,271} %derivs
+temp	float	$tmp197	%read{273,273} %write{272,272} %derivs
+temp	float	$tmp198	%read{274,274} %write{273,273} %derivs
+temp	float	$tmp199	%read{275,275} %write{274,274} %derivs
+temp	int	$tmp200	%read{277,277} %write{276,276}
+temp	float	$tmp201	%read{282,282} %write{281,281} %derivs
+temp	float	$tmp202	%read{280,280} %write{278,278} %derivs
+temp	float	$tmp203	%read{281,281} %write{280,280} %derivs
+temp	float	$tmp204	%read{286,286} %write{284,284} %derivs
+temp	float	$tmp205	%read{286,286} %write{285,285} %derivs
+temp	float	$tmp206	%read{287,287} %write{286,286} %derivs
+temp	float	$tmp207	%read{290,290} %write{288,288} %derivs
+temp	float	$tmp208	%read{290,290} %write{289,289} %derivs
+temp	float	$tmp209	%read{291,291} %write{290,290} %derivs
+temp	float	$tmp210	%read{294,294} %write{292,292} %derivs
+temp	float	$tmp211	%read{294,294} %write{293,293} %derivs
+temp	float	$tmp212	%read{295,295} %write{294,294} %derivs
+temp	float	$tmp213	%read{298,298} %write{296,296} %derivs
+temp	float	$tmp214	%read{298,298} %write{297,297} %derivs
+temp	float	$tmp215	%read{299,299} %write{298,298} %derivs
+temp	int	$tmp216	%read{301,311} %write{300,310}
+temp	float	$tmp217	%read{308,308} %write{307,307}
+temp	float	$tmp218	%read{304,307} %write{302,302}
+temp	float	$tmp219	%read{306,306} %write{305,305}
+temp	float	$tmp220	%read{305,305} %write{304,304}
+temp	float	$tmp221	%read{307,307} %write{306,306}
+temp	int	$tmp222	%read{309,309} %write{308,308}
+temp	int	$tmp223	%read{310,310} %write{309,309}
+temp	float	$tmp224	%read{313,313} %write{312,312} %derivs
+const	float	$const18	0.5		%read{313,313} %write{2147483647,-1}
+temp	float	$tmp225	%read{314,314} %write{313,313} %derivs
+temp	int	$tmp226	%read{316,326} %write{315,325}
+temp	float	$tmp227	%read{323,323} %write{322,322}
+temp	float	$tmp228	%read{319,322} %write{317,317}
+temp	float	$tmp229	%read{321,321} %write{320,320}
+temp	float	$tmp230	%read{320,320} %write{319,319}
+temp	float	$tmp231	%read{322,322} %write{321,321}
+temp	int	$tmp232	%read{324,324} %write{323,323}
+temp	int	$tmp233	%read{325,325} %write{324,324}
+temp	float	$tmp234	%read{329,329} %write{328,328} %derivs
+temp	float	$tmp235	%read{328,328} %write{327,327} %derivs
+temp	float	$tmp236	%read{331,331} %write{329,329} %derivs
+temp	float	$tmp237	%read{331,331} %write{330,330} %derivs
+temp	float	$tmp238	%read{332,332} %write{331,331} %derivs
+temp	float	$tmp239	%read{333,333} %write{332,332} %derivs
+temp	int	$tmp240	%read{335,345} %write{334,344}
+temp	float	$tmp241	%read{342,342} %write{341,341}
+temp	float	$tmp242	%read{338,341} %write{336,336}
+temp	float	$tmp243	%read{340,340} %write{339,339}
+temp	float	$tmp244	%read{339,339} %write{338,338}
+temp	float	$tmp245	%read{341,341} %write{340,340}
+temp	int	$tmp246	%read{343,343} %write{342,342}
+temp	int	$tmp247	%read{344,344} %write{343,343}
+temp	float	$tmp248	%read{348,348} %write{347,347} %derivs
+temp	float	$tmp249	%read{347,347} %write{346,346} %derivs
+temp	float	$tmp250	%read{350,350} %write{348,348} %derivs
+temp	float	$tmp251	%read{350,350} %write{349,349} %derivs
+temp	float	$tmp252	%read{351,351} %write{350,350} %derivs
+temp	float	$tmp253	%read{352,352} %write{351,351} %derivs
+temp	int	$tmp254	%read{354,354} %write{353,353}
+temp	point	$tmp255	%read{413,413} %write{357,357} %derivs
+temp	float	$tmp256	%read{357,357} %write{355,355} %derivs
+temp	float	$tmp257	%read{357,357} %write{356,356} %derivs
+temp	float	$tmp258	%read{368,368} %write{358,358} %derivs
+temp	point	$tmp259	%read{366,415} %write{361,361} %derivs
+temp	float	$tmp260	%read{361,361} %write{359,359} %derivs
+temp	float	$tmp261	%read{361,361} %write{360,360} %derivs
+temp	point	$tmp262	%read{366,366} %write{364,364} %derivs
+temp	float	$tmp263	%read{364,364} %write{362,362} %derivs
+temp	float	$tmp264	%read{364,364} %write{363,363} %derivs
+temp	vector	$tmp265	%read{367,367} %write{366,366} %derivs
+temp	float	$tmp266	%read{377,377} %write{373,373} %derivs
+temp	float	$tmp267	%read{375,375} %write{374,374} %derivs
+temp	float	$tmp268	%read{376,376} %write{375,375} %derivs
+temp	float	$tmp269	%read{377,377} %write{376,376} %derivs
+temp	float	$tmp270	%read{412,412} %write{377,377} %derivs
+temp	float	$tmp271	%read{379,379} %write{378,378} %derivs
+temp	float	$tmp272	%read{381,381} %write{379,379} %derivs
+temp	float	$tmp273	%read{381,381} %write{380,380} %derivs
+temp	float	$tmp274	%read{412,412} %write{381,381} %derivs
+temp	float	$tmp275	%read{383,383} %write{382,382} %derivs
+temp	float	$tmp276	%read{385,385} %write{383,383} %derivs
+temp	float	$tmp277	%read{385,385} %write{384,384} %derivs
+temp	float	$tmp278	%read{412,412} %write{385,385} %derivs
+temp	float	$tmp279	%read{387,387} %write{386,386} %derivs
+temp	float	$tmp280	%read{389,389} %write{387,387} %derivs
+temp	float	$tmp281	%read{389,389} %write{388,388} %derivs
+temp	float	$tmp282	%read{412,412} %write{389,389} %derivs
+temp	float	$tmp283	%read{394,394} %write{390,390} %derivs
+temp	float	$tmp284	%read{392,392} %write{391,391} %derivs
+temp	float	$tmp285	%read{393,393} %write{392,392} %derivs
+temp	float	$tmp286	%read{394,394} %write{393,393} %derivs
+temp	float	$tmp287	%read{412,412} %write{394,394} %derivs
+temp	float	$tmp288	%read{396,396} %write{395,395} %derivs
+temp	float	$tmp289	%read{398,398} %write{396,396} %derivs
+temp	float	$tmp290	%read{398,398} %write{397,397} %derivs
+temp	float	$tmp291	%read{412,412} %write{398,398} %derivs
+temp	float	$tmp292	%read{400,400} %write{399,399} %derivs
+temp	float	$tmp293	%read{402,402} %write{400,400} %derivs
+temp	float	$tmp294	%read{402,402} %write{401,401} %derivs
+temp	float	$tmp295	%read{412,412} %write{402,402} %derivs
+temp	float	$tmp296	%read{404,404} %write{403,403} %derivs
+temp	float	$tmp297	%read{406,406} %write{404,404} %derivs
+temp	float	$tmp298	%read{406,406} %write{405,405} %derivs
+temp	float	$tmp299	%read{412,412} %write{406,406} %derivs
+temp	float	$tmp300	%read{411,411} %write{407,407} %derivs
+temp	float	$tmp301	%read{409,409} %write{408,408} %derivs
+temp	float	$tmp302	%read{410,410} %write{409,409} %derivs
+temp	float	$tmp303	%read{411,411} %write{410,410} %derivs
+temp	float	$tmp304	%read{412,412} %write{411,411} %derivs
+temp	vector	$tmp305	%read{415,415} %write{414,414} %derivs
+temp	vector	$tmp306	%read{414,414} %write{413,413} %derivs
+temp	float	$tmp307	%read{417,417} %write{416,416} %derivs
+temp	float	$tmp308	%read{419,419} %write{418,418} %derivs
+temp	float	$tmp309	%read{423,423} %write{422,422} %derivs
+temp	float	$tmp310	%read{428,428} %write{427,427}
+temp	int	$tmp311	%read{429,429} %write{428,428}
+temp	float	$tmp312	%read{432,432} %write{431,431}
+temp	float	$tmp313	%read{431,431} %write{430,430} %derivs
+temp	float	$tmp314	%read{434,434} %write{433,433}
+temp	int	$tmp315	%read{435,435} %write{434,434}
+temp	float	$tmp316	%read{438,438} %write{437,437}
+temp	float	$tmp317	%read{437,437} %write{436,436} %derivs
+code in_uv_coord
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:47
+#     float in_uv_coord[2] = {u, v}
+	aassign		in_uv_coord $const1 u 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{47} %argrw{"wrr"}
+	aassign		in_uv_coord $const2 v 	%argrw{"wrr"}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:327
+#     if (in_bypass_uv)
+	if		in_bypass_uv 13 13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{327} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:329
+#         out_uvcoord = in_uv_coord;
+	arraycopy	out_uvcoord in_uv_coord 	%line{329} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:331
+#         if (in_compute_filters)
+	if		in_compute_filters 11 12 	%line{331} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:333
+#             out_uvcoord_filter[0] = filterwidth(in_uv_filter_size[0]);
+	aref		$tmp2 in_uv_filter_size $const1 	%line{333} %argrw{"wrr"}
+	filterwidth	$tmp1 $tmp2 	%argrw{"wr"} %argderivs{1}
+	aassign		out_uvcoord_filter $const1 $tmp1 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:334
+#             out_uvcoord_filter[1] = filterwidth(in_uv_filter_size[1]);
+	aref		$tmp4 in_uv_filter_size $const2 	%line{334} %argrw{"wrr"}
+	filterwidth	$tmp3 $tmp4 	%argrw{"wr"} %argderivs{1}
+	aassign		out_uvcoord_filter $const2 $tmp3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:338
+#             out_uvcoord_filter = in_uv_filter_size;
+	arraycopy	out_uvcoord_filter in_uv_filter_size 	%line{338} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:340
+#         return;
+	exit	%line{340}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:345
+#     float st[2] = {in_uv_coord[0], in_uv_coord[1]};
+	aref		$tmp5 in_uv_coord $const1 	%line{345} %argrw{"wrr"}
+	aassign		st $const1 $tmp5 	%argrw{"wrr"}
+	aref		$tmp6 in_uv_coord $const2 	%argrw{"wrr"}
+	aassign		st $const2 $tmp6 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:347
+#     if (in_noise_uv[0] > 0.0 || in_noise_uv[1] > 0.0)
+	aref		$tmp7 in_noise_uv $const1 	%line{347} %argrw{"wrr"}
+	gt		$tmp8 $tmp7 $const3 	%argrw{"wrr"}
+	neq		$tmp9 $tmp8 $const1 	%argrw{"wrr"}
+	if		$tmp9 21 25 	%argrw{"r"}
+	aref		$tmp10 in_noise_uv $const2 	%argrw{"wrr"}
+	gt		$tmp11 $tmp10 $const3 	%argrw{"wrr"}
+	neq		$tmp12 $tmp11 $const1 	%argrw{"wrr"}
+	assign		$tmp9 $tmp12 	%argrw{"wr"}
+	if		$tmp9 49 49 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:349
+#         vector uvnoise = noise("snoise", st[0] * 15.0, st[1] * 15.0);
+	aref		$tmp13 st $const1 	%line{349} %argrw{"wrr"}
+	mul		$tmp14 $tmp13 $const5 	%argrw{"wrr"}
+	aref		$tmp15 st $const2 	%argrw{"wrr"}
+	mul		$tmp16 $tmp15 $const5 	%argrw{"wrr"}
+	noise		___708_uvnoise $const4 $tmp14 $tmp16 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:351
+#         if (in_noise_uv[0] > 0.0)
+	aref		$tmp17 in_noise_uv $const1 	%line{351} %argrw{"wrr"}
+	gt		$tmp18 $tmp17 $const3 	%argrw{"wrr"}
+	if		$tmp18 40 40 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:353
+#             st[0] += in_noise_uv[0] * uvnoise[0];
+	aref		$tmp19 st $const1 	%line{353} %argrw{"wrr"}
+	aref		$tmp20 in_noise_uv $const1 	%argrw{"wrr"}
+	compref		$tmp21 ___708_uvnoise $const1 	%argrw{"wrr"}
+	mul		$tmp22 $tmp20 $tmp21 	%argrw{"wrr"}
+	add		$tmp23 $tmp19 $tmp22 	%argrw{"wrr"}
+	aassign		st $const1 $tmp23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:355
+#         if (in_noise_uv[1] > 0.0)
+	aref		$tmp24 in_noise_uv $const2 	%line{355} %argrw{"wrr"}
+	gt		$tmp25 $tmp24 $const3 	%argrw{"wrr"}
+	if		$tmp25 49 49 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:357
+#             st[1] += in_noise_uv[1] * uvnoise[1];
+	aref		$tmp26 st $const2 	%line{357} %argrw{"wrr"}
+	aref		$tmp27 in_noise_uv $const2 	%argrw{"wrr"}
+	compref		$tmp28 ___708_uvnoise $const2 	%argrw{"wrr"}
+	mul		$tmp29 $tmp27 $tmp28 	%argrw{"wrr"}
+	add		$tmp30 $tmp26 $tmp29 	%argrw{"wrr"}
+	aassign		st $const2 $tmp30 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:361
+#     st[0] /= max(EPS, in_scale_frame[0]);
+	aref		$tmp31 st $const1 	%line{361} %argrw{"wrr"}
+	aref		$tmp33 in_scale_frame $const1 	%argrw{"wrr"}
+	max		$tmp32 $const6 $tmp33 	%argrw{"wrr"}
+	div		$tmp34 $tmp31 $tmp32 	%argrw{"wrr"}
+	aassign		st $const1 $tmp34 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:362
+#     st[1] /= max(EPS, in_scale_frame[1]);
+	aref		$tmp35 st $const2 	%line{362} %argrw{"wrr"}
+	aref		$tmp37 in_scale_frame $const2 	%argrw{"wrr"}
+	max		$tmp36 $const6 $tmp37 	%argrw{"wrr"}
+	div		$tmp38 $tmp35 $tmp36 	%argrw{"wrr"}
+	aassign		st $const2 $tmp38 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:364
+#     st[0] += in_translate_frame[0];
+	aref		$tmp39 st $const1 	%line{364} %argrw{"wrr"}
+	aref		$tmp40 in_translate_frame $const1 	%argrw{"wrr"}
+	add		$tmp41 $tmp39 $tmp40 	%argrw{"wrr"}
+	aassign		st $const1 $tmp41 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:365
+#     st[1] += in_translate_frame[1];
+	aref		$tmp42 st $const2 	%line{365} %argrw{"wrr"}
+	aref		$tmp43 in_translate_frame $const2 	%argrw{"wrr"}
+	add		$tmp44 $tmp42 $tmp43 	%argrw{"wrr"}
+	aassign		st $const2 $tmp44 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:367
+#     if (in_rotate_frame != 0.0) // fract(x) != 0
+	neq		$tmp45 in_rotate_frame $const3 	%line{367} %argrw{"wrr"}
+	if		$tmp45 134 134 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:370
+#             point(st[0], st[1], 0.0),
+	aref		$tmp47 st $const1 	%line{370} %argrw{"wrr"}
+	aref		$tmp48 st $const2 	%argrw{"wrr"}
+	point		$tmp46 $tmp47 $tmp48 $const3 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:371
+#             in_rotate_frame * M_2PI,
+	mul		$tmp49 in_rotate_frame $const7 	%line{371} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:372
+#             point(in_frame_center[0], in_frame_center[1], 0.0),
+	aref		$tmp51 in_frame_center $const1 	%line{372} %argrw{"wrr"}
+	aref		$tmp52 in_frame_center $const2 	%argrw{"wrr"}
+	point		$tmp50 $tmp51 $tmp52 $const3 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:373
+#             point(in_frame_center[0], in_frame_center[1], 1.0));
+	aref		$tmp54 in_frame_center $const1 	%line{373} %argrw{"wrr"}
+	aref		$tmp55 in_frame_center $const2 	%argrw{"wrr"}
+	point		$tmp53 $tmp54 $tmp55 $const8 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:369
+#         point rot = rotate(
+	functioncall	$const9 130 	%line{369} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:274
+#     vector axis = normalize (b - a);
+	sub		$tmp56 $tmp53 $tmp50 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{274} %argrw{"wrr"}
+	normalize	___254_axis $tmp56 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:276
+#     sincos (angle, sinang, cosang);
+	sincos		$tmp49 ___254_sinang ___254_cosang 	%line{276} %argrw{"rww"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:277
+#     float cosang1 = 1.0 - cosang;
+	sub		___254_cosang1 $const8 ___254_cosang 	%line{277} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:278
+#     float x = axis[0], y = axis[1], z = axis[2];
+	compref		___254_x ___254_axis $const1 	%line{278} %argrw{"wrr"}
+	compref		___254_y ___254_axis $const2 	%argrw{"wrr"}
+	compref		___254_z ___254_axis $const10 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:279
+#     matrix M = matrix (x * x + (1.0 - x * x) * cosang,
+	mul		$tmp57 ___254_x ___254_x 	%line{279} %argrw{"wrr"}
+	mul		$tmp58 ___254_x ___254_x 	%argrw{"wrr"}
+	sub		$tmp59 $const8 $tmp58 	%argrw{"wrr"}
+	mul		$tmp60 $tmp59 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp61 $tmp57 $tmp60 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:280
+#                        x * y * cosang1 + z * sinang,
+	mul		$tmp62 ___254_x ___254_y 	%line{280} %argrw{"wrr"}
+	mul		$tmp63 $tmp62 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp64 ___254_z ___254_sinang 	%argrw{"wrr"}
+	add		$tmp65 $tmp63 $tmp64 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:281
+#                        x * z * cosang1 - y * sinang,
+	mul		$tmp66 ___254_x ___254_z 	%line{281} %argrw{"wrr"}
+	mul		$tmp67 $tmp66 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp68 ___254_y ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp69 $tmp67 $tmp68 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:283
+#                        x * y * cosang1 - z * sinang,
+	mul		$tmp70 ___254_x ___254_y 	%line{283} %argrw{"wrr"}
+	mul		$tmp71 $tmp70 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp72 ___254_z ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp73 $tmp71 $tmp72 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:284
+#                        y * y + (1.0 - y * y) * cosang,
+	mul		$tmp74 ___254_y ___254_y 	%line{284} %argrw{"wrr"}
+	mul		$tmp75 ___254_y ___254_y 	%argrw{"wrr"}
+	sub		$tmp76 $const8 $tmp75 	%argrw{"wrr"}
+	mul		$tmp77 $tmp76 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp78 $tmp74 $tmp77 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:285
+#                        y * z * cosang1 + x * sinang,
+	mul		$tmp79 ___254_y ___254_z 	%line{285} %argrw{"wrr"}
+	mul		$tmp80 $tmp79 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp81 ___254_x ___254_sinang 	%argrw{"wrr"}
+	add		$tmp82 $tmp80 $tmp81 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:287
+#                        x * z * cosang1 + y * sinang,
+	mul		$tmp83 ___254_x ___254_z 	%line{287} %argrw{"wrr"}
+	mul		$tmp84 $tmp83 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp85 ___254_y ___254_sinang 	%argrw{"wrr"}
+	add		$tmp86 $tmp84 $tmp85 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:288
+#                        y * z * cosang1 - x * sinang,
+	mul		$tmp87 ___254_y ___254_z 	%line{288} %argrw{"wrr"}
+	mul		$tmp88 $tmp87 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp89 ___254_x ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp90 $tmp88 $tmp89 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:289
+#                        z * z + (1.0 - z * z) * cosang,
+	mul		$tmp91 ___254_z ___254_z 	%line{289} %argrw{"wrr"}
+	mul		$tmp92 ___254_z ___254_z 	%argrw{"wrr"}
+	sub		$tmp93 $const8 $tmp92 	%argrw{"wrr"}
+	mul		$tmp94 $tmp93 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp95 $tmp91 $tmp94 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:279
+#     matrix M = matrix (x * x + (1.0 - x * x) * cosang,
+	matrix		___254_M $tmp61 $tmp65 $tmp69 $const3 $tmp73 $tmp78 $tmp82 $const3 $tmp86 $tmp90 $tmp95 $const3 $const3 $const3 $const3 $const8 	%line{279} %argrw{"wrrrrrrrrrrrrrrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:292
+#     return transform (M, p-a) + a;
+	sub		$tmp97 $tmp46 $tmp50 	%line{292} %argrw{"wrr"}
+	transformv	$tmp96 ___254_M $tmp97 	%argrw{"wrr"}
+	add		___711_rot $tmp96 $tmp50 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:375
+#         st[0] = rot[0];
+	compref		$tmp98 ___711_rot $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{375} %argrw{"wrr"}
+	aassign		st $const1 $tmp98 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:376
+#         st[1] = rot[1];
+	compref		$tmp99 ___711_rot $const2 	%line{376} %argrw{"wrr"}
+	aassign		st $const2 $tmp99 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:381
+#         max(EPS, in_tiles_coverage[0]),
+	aref		$tmp101 in_tiles_coverage $const1 	%line{381} %argrw{"wrr"}
+	max		$tmp100 $const6 $tmp101 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:379
+#     float coverage[2] =
+	aassign		coverage $const1 $tmp100 	%line{379} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:382
+#         max(EPS, in_tiles_coverage[1])
+	aref		$tmp103 in_tiles_coverage $const2 	%line{382} %argrw{"wrr"}
+	max		$tmp102 $const6 $tmp103 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:379
+#     float coverage[2] =
+	aassign		coverage $const2 $tmp102 	%line{379} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:385
+#     if (coverage[0] < 1.0 || coverage[1] < 1.0)
+	aref		$tmp104 coverage $const1 	%line{385} %argrw{"wrr"}
+	lt		$tmp105 $tmp104 $const8 	%argrw{"wrr"}
+	neq		$tmp106 $tmp105 $const1 	%argrw{"wrr"}
+	if		$tmp106 144 148 	%argrw{"r"}
+	aref		$tmp107 coverage $const2 	%argrw{"wrr"}
+	lt		$tmp108 $tmp107 $const8 	%argrw{"wrr"}
+	neq		$tmp109 $tmp108 $const1 	%argrw{"wrr"}
+	assign		$tmp106 $tmp109 	%argrw{"wr"}
+	if		$tmp106 175 175 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:387
+#         st[0] /= coverage[0];
+	aref		$tmp110 st $const1 	%line{387} %argrw{"wrr"}
+	aref		$tmp111 coverage $const1 	%argrw{"wrr"}
+	div		$tmp112 $tmp110 $tmp111 	%argrw{"wrr"}
+	aassign		st $const1 $tmp112 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:388
+#         st[1] /= coverage[1];
+	aref		$tmp113 st $const2 	%line{388} %argrw{"wrr"}
+	aref		$tmp114 coverage $const2 	%argrw{"wrr"}
+	div		$tmp115 $tmp113 $tmp114 	%argrw{"wrr"}
+	aassign		st $const2 $tmp115 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:390
+#         if (in_offset_tiles[0] != 0)
+	aref		$tmp116 in_offset_tiles $const1 	%line{390} %argrw{"wrr"}
+	neq		$tmp117 $tmp116 $const1 	%argrw{"wrr"}
+	if		$tmp117 166 166 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:392
+#             st[0] -= in_offset_tiles[0] / coverage[0];
+	aref		$tmp118 st $const1 	%line{392} %argrw{"wrr"}
+	aref		$tmp119 in_offset_tiles $const1 	%argrw{"wrr"}
+	aref		$tmp120 coverage $const1 	%argrw{"wrr"}
+	div		$tmp121 $tmp119 $tmp120 	%argrw{"wrr"}
+	sub		$tmp122 $tmp118 $tmp121 	%argrw{"wrr"}
+	aassign		st $const1 $tmp122 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:394
+#         if (in_offset_tiles[1] != 0)
+	aref		$tmp123 in_offset_tiles $const2 	%line{394} %argrw{"wrr"}
+	neq		$tmp124 $tmp123 $const1 	%argrw{"wrr"}
+	if		$tmp124 175 175 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:396
+#             st[1] -= in_offset_tiles[1] / coverage[1];
+	aref		$tmp125 st $const2 	%line{396} %argrw{"wrr"}
+	aref		$tmp126 in_offset_tiles $const2 	%argrw{"wrr"}
+	aref		$tmp127 coverage $const2 	%argrw{"wrr"}
+	div		$tmp128 $tmp126 $tmp127 	%argrw{"wrr"}
+	sub		$tmp129 $tmp125 $tmp128 	%argrw{"wrr"}
+	aassign		st $const2 $tmp129 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:400
+#     if (in_wrap_u)
+	if		in_wrap_u 185 185 	%line{400} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:402
+#         st[0] = mod(st[0], 1.0 / coverage[0]);
+	aref		$tmp131 st $const1 	%line{402} %argrw{"wrr"}
+	aref		$tmp132 coverage $const1 	%argrw{"wrr"}
+	div		$tmp133 $const8 $tmp132 	%argrw{"wrr"}
+	functioncall	$const11 184 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp135 $tmp131 $tmp133 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp134 $tmp135 	%argrw{"wr"}
+	mul		$tmp136 $tmp133 $tmp134 	%argrw{"wrr"}
+	sub		$tmp130 $tmp131 $tmp136 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:402
+#         st[0] = mod(st[0], 1.0 / coverage[0]);
+	aassign		st $const1 $tmp130 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{402} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:404
+#     if (in_wrap_v)
+	if		in_wrap_v 195 195 	%line{404} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:406
+#         st[1] = mod(st[1], 1.0 / coverage[1]);
+	aref		$tmp138 st $const2 	%line{406} %argrw{"wrr"}
+	aref		$tmp139 coverage $const2 	%argrw{"wrr"}
+	div		$tmp140 $const8 $tmp139 	%argrw{"wrr"}
+	functioncall	$const11 194 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp142 $tmp138 $tmp140 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp141 $tmp142 	%argrw{"wr"}
+	mul		$tmp143 $tmp140 $tmp141 	%argrw{"wrr"}
+	sub		$tmp137 $tmp138 $tmp143 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:406
+#         st[1] = mod(st[1], 1.0 / coverage[1]);
+	aassign		st $const2 $tmp137 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{406} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:411
+#     if (st[0] < 0.0 || st[0] > 1.0 || st[1] < 0.0 || st[1] > 1.0)
+	aref		$tmp144 st $const1 	%line{411} %argrw{"wrr"}
+	lt		$tmp145 $tmp144 $const3 	%argrw{"wrr"}
+	neq		$tmp146 $tmp145 $const1 	%argrw{"wrr"}
+	if		$tmp146 199 203 	%argrw{"r"}
+	aref		$tmp147 st $const1 	%argrw{"wrr"}
+	gt		$tmp148 $tmp147 $const8 	%argrw{"wrr"}
+	neq		$tmp149 $tmp148 $const1 	%argrw{"wrr"}
+	assign		$tmp146 $tmp149 	%argrw{"wr"}
+	neq		$tmp150 $tmp146 $const1 	%argrw{"wrr"}
+	if		$tmp150 205 209 	%argrw{"r"}
+	aref		$tmp151 st $const2 	%argrw{"wrr"}
+	lt		$tmp152 $tmp151 $const3 	%argrw{"wrr"}
+	neq		$tmp153 $tmp152 $const1 	%argrw{"wrr"}
+	assign		$tmp150 $tmp153 	%argrw{"wr"}
+	neq		$tmp154 $tmp150 $const1 	%argrw{"wrr"}
+	if		$tmp154 211 215 	%argrw{"r"}
+	aref		$tmp155 st $const2 	%argrw{"wrr"}
+	gt		$tmp156 $tmp155 $const8 	%argrw{"wrr"}
+	neq		$tmp157 $tmp156 $const1 	%argrw{"wrr"}
+	assign		$tmp154 $tmp157 	%argrw{"wr"}
+	if		$tmp154 284 420 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:413
+#         if (in_wrap_mode_u == "Periodic")
+	eq		$tmp158 in_wrap_mode_u $const12 	%line{413} %argrw{"wrr"}
+	if		$tmp158 225 250 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:415
+#             st[0] = mod(st[0], 1.0);
+	aref		$tmp160 st $const1 	%line{415} %argrw{"wrr"}
+	functioncall	$const11 224 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp162 $tmp160 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp161 $tmp162 	%argrw{"wr"}
+	mul		$tmp163 $const8 $tmp161 	%argrw{"wrr"}
+	sub		$tmp159 $tmp160 $tmp163 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:415
+#             st[0] = mod(st[0], 1.0);
+	aassign		st $const1 $tmp159 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{415} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:417
+#         else if (in_wrap_mode_u == "Mirror")
+	eq		$tmp164 in_wrap_mode_u $const13 	%line{417} %argrw{"wrr"}
+	if		$tmp164 242 250 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:419
+#             if (mod(st[0], 2) >= 1)
+	aref		$tmp166 st $const1 	%line{419} %argrw{"wrr"}
+	functioncall	$const11 233 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp168 $tmp166 $const14 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp167 $tmp168 	%argrw{"wr"}
+	mul		$tmp169 $const14 $tmp167 	%argrw{"wrr"}
+	sub		$tmp165 $tmp166 $tmp169 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:419
+#             if (mod(st[0], 2) >= 1)
+	ge		$tmp170 $tmp165 $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{419} %argrw{"wrr"}
+	if		$tmp170 242 242 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:420
+#                 st[0] = 2.0 * floor(st[0]) - st[0] + 1.0;
+	aref		$tmp172 st $const1 	%line{420} %argrw{"wrr"}
+	floor		$tmp171 $tmp172 	%argrw{"wr"}
+	mul		$tmp173 $const14 $tmp171 	%argrw{"wrr"}
+	aref		$tmp174 st $const1 	%argrw{"wrr"}
+	sub		$tmp175 $tmp173 $tmp174 	%argrw{"wrr"}
+	add		$tmp176 $tmp175 $const8 	%argrw{"wrr"}
+	aassign		st $const1 $tmp176 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:422
+#         else if (in_wrap_mode_u == "Clamp")
+	eq		$tmp177 in_wrap_mode_u $const15 	%line{422} %argrw{"wrr"}
+	if		$tmp177 249 250 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:424
+#             st[0] = clamp(st[0], 0.0, 1.0);
+	aref		$tmp179 st $const1 	%line{424} %argrw{"wrr"}
+	functioncall	$const16 248 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp180 $tmp179 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		$tmp178 $tmp180 $const3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:424
+#             st[0] = clamp(st[0], 0.0, 1.0);
+	aassign		st $const1 $tmp178 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{424} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:428
+#             st[0] = OUTSIDE_UVFRAME; // default color on downstream nodes
+	aassign		st $const1 $const17 	%line{428} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:431
+#         if (in_wrap_mode_v == "Periodic")
+	eq		$tmp181 in_wrap_mode_v $const12 	%line{431} %argrw{"wrr"}
+	if		$tmp181 259 284 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:433
+#             st[1] = mod(st[1], 1.0);
+	aref		$tmp183 st $const2 	%line{433} %argrw{"wrr"}
+	functioncall	$const11 258 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp185 $tmp183 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp184 $tmp185 	%argrw{"wr"}
+	mul		$tmp186 $const8 $tmp184 	%argrw{"wrr"}
+	sub		$tmp182 $tmp183 $tmp186 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:433
+#             st[1] = mod(st[1], 1.0);
+	aassign		st $const2 $tmp182 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{433} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:435
+#         else if (in_wrap_mode_v == "Mirror")
+	eq		$tmp187 in_wrap_mode_v $const13 	%line{435} %argrw{"wrr"}
+	if		$tmp187 276 284 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:437
+#             if (mod(st[1], 2) >= 1)
+	aref		$tmp189 st $const2 	%line{437} %argrw{"wrr"}
+	functioncall	$const11 267 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp191 $tmp189 $const14 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp190 $tmp191 	%argrw{"wr"}
+	mul		$tmp192 $const14 $tmp190 	%argrw{"wrr"}
+	sub		$tmp188 $tmp189 $tmp192 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:437
+#             if (mod(st[1], 2) >= 1)
+	ge		$tmp193 $tmp188 $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{437} %argrw{"wrr"}
+	if		$tmp193 276 276 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:438
+#                 st[1] = 2.0 * floor(st[1]) - st[1] + 1.0;
+	aref		$tmp195 st $const2 	%line{438} %argrw{"wrr"}
+	floor		$tmp194 $tmp195 	%argrw{"wr"}
+	mul		$tmp196 $const14 $tmp194 	%argrw{"wrr"}
+	aref		$tmp197 st $const2 	%argrw{"wrr"}
+	sub		$tmp198 $tmp196 $tmp197 	%argrw{"wrr"}
+	add		$tmp199 $tmp198 $const8 	%argrw{"wrr"}
+	aassign		st $const2 $tmp199 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:440
+#         else if (in_wrap_mode_v == "Clamp")
+	eq		$tmp200 in_wrap_mode_v $const15 	%line{440} %argrw{"wrr"}
+	if		$tmp200 283 284 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:442
+#             st[1] = clamp(st[1], 0.0, 1.0);
+	aref		$tmp202 st $const2 	%line{442} %argrw{"wrr"}
+	functioncall	$const16 282 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp203 $tmp202 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		$tmp201 $tmp203 $const3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:442
+#             st[1] = clamp(st[1], 0.0, 1.0);
+	aassign		st $const2 $tmp201 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{442} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:446
+#             st[1] = OUTSIDE_UVFRAME; // default color on downstream nodes
+	aassign		st $const2 $const17 	%line{446} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:451
+#         st[0] *= in_uv_tiles[0];
+	aref		$tmp204 st $const1 	%line{451} %argrw{"wrr"}
+	aref		$tmp205 in_uv_tiles $const1 	%argrw{"wrr"}
+	mul		$tmp206 $tmp204 $tmp205 	%argrw{"wrr"}
+	aassign		st $const1 $tmp206 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:452
+#         st[1] *= in_uv_tiles[1];
+	aref		$tmp207 st $const2 	%line{452} %argrw{"wrr"}
+	aref		$tmp208 in_uv_tiles $const2 	%argrw{"wrr"}
+	mul		$tmp209 $tmp207 $tmp208 	%argrw{"wrr"}
+	aassign		st $const2 $tmp209 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:453
+#         st[0] += in_offset_tiles[0];
+	aref		$tmp210 st $const1 	%line{453} %argrw{"wrr"}
+	aref		$tmp211 in_offset_tiles $const1 	%argrw{"wrr"}
+	add		$tmp212 $tmp210 $tmp211 	%argrw{"wrr"}
+	aassign		st $const1 $tmp212 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:454
+#         st[1] += in_offset_tiles[1];
+	aref		$tmp213 st $const2 	%line{454} %argrw{"wrr"}
+	aref		$tmp214 in_offset_tiles $const2 	%argrw{"wrr"}
+	add		$tmp215 $tmp213 $tmp214 	%argrw{"wrr"}
+	aassign		st $const2 $tmp215 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:456
+#         if (in_stagger_uv && mod(st[1], 2) >= 1)
+	neq		$tmp216 in_stagger_uv $const1 	%line{456} %argrw{"wrr"}
+	if		$tmp216 311 311 	%argrw{"r"}
+	aref		$tmp218 st $const2 	%argrw{"wrr"}
+	functioncall	$const11 308 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp220 $tmp218 $const14 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp219 $tmp220 	%argrw{"wr"}
+	mul		$tmp221 $const14 $tmp219 	%argrw{"wrr"}
+	sub		$tmp217 $tmp218 $tmp221 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:456
+#         if (in_stagger_uv && mod(st[1], 2) >= 1)
+	ge		$tmp222 $tmp217 $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{456} %argrw{"wrr"}
+	neq		$tmp223 $tmp222 $const1 	%argrw{"wrr"}
+	assign		$tmp216 $tmp223 	%argrw{"wr"}
+	if		$tmp216 315 315 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:458
+#             st[0] += 0.5;
+	aref		$tmp224 st $const1 	%line{458} %argrw{"wrr"}
+	add		$tmp225 $tmp224 $const18 	%argrw{"wrr"}
+	aassign		st $const1 $tmp225 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:460
+#         if (in_mirror_u && mod(st[0], 2) >= 1.0)
+	neq		$tmp226 in_mirror_u $const1 	%line{460} %argrw{"wrr"}
+	if		$tmp226 326 326 	%argrw{"r"}
+	aref		$tmp228 st $const1 	%argrw{"wrr"}
+	functioncall	$const11 323 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp230 $tmp228 $const14 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp229 $tmp230 	%argrw{"wr"}
+	mul		$tmp231 $const14 $tmp229 	%argrw{"wrr"}
+	sub		$tmp227 $tmp228 $tmp231 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:460
+#         if (in_mirror_u && mod(st[0], 2) >= 1.0)
+	ge		$tmp232 $tmp227 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{460} %argrw{"wrr"}
+	neq		$tmp233 $tmp232 $const1 	%argrw{"wrr"}
+	assign		$tmp226 $tmp233 	%argrw{"wr"}
+	if		$tmp226 334 334 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:462
+#             st[0] = 2.0 * floor(st[0]) - st[0] + 1.0;
+	aref		$tmp235 st $const1 	%line{462} %argrw{"wrr"}
+	floor		$tmp234 $tmp235 	%argrw{"wr"}
+	mul		$tmp236 $const14 $tmp234 	%argrw{"wrr"}
+	aref		$tmp237 st $const1 	%argrw{"wrr"}
+	sub		$tmp238 $tmp236 $tmp237 	%argrw{"wrr"}
+	add		$tmp239 $tmp238 $const8 	%argrw{"wrr"}
+	aassign		st $const1 $tmp239 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:464
+#         if (in_mirror_v && mod(st[1], 2) >= 1.0)
+	neq		$tmp240 in_mirror_v $const1 	%line{464} %argrw{"wrr"}
+	if		$tmp240 345 345 	%argrw{"r"}
+	aref		$tmp242 st $const2 	%argrw{"wrr"}
+	functioncall	$const11 342 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:136
+# float  mod (float  a, float  b) { return a - b*floor(a/b); }
+	div		$tmp244 $tmp242 $const14 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{136} %argrw{"wrr"}
+	floor		$tmp243 $tmp244 	%argrw{"wr"}
+	mul		$tmp245 $const14 $tmp243 	%argrw{"wrr"}
+	sub		$tmp241 $tmp242 $tmp245 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:464
+#         if (in_mirror_v && mod(st[1], 2) >= 1.0)
+	ge		$tmp246 $tmp241 $const8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{464} %argrw{"wrr"}
+	neq		$tmp247 $tmp246 $const1 	%argrw{"wrr"}
+	assign		$tmp240 $tmp247 	%argrw{"wr"}
+	if		$tmp240 353 353 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:466
+#             st[1] = 2.0 * floor(st[1]) - st[1] + 1.0;
+	aref		$tmp249 st $const2 	%line{466} %argrw{"wrr"}
+	floor		$tmp248 $tmp249 	%argrw{"wr"}
+	mul		$tmp250 $const14 $tmp248 	%argrw{"wrr"}
+	aref		$tmp251 st $const2 	%argrw{"wrr"}
+	sub		$tmp252 $tmp250 $tmp251 	%argrw{"wrr"}
+	add		$tmp253 $tmp252 $const8 	%argrw{"wrr"}
+	aassign		st $const2 $tmp253 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:469
+#         if (in_rotate_tiles != 0)
+	neq		$tmp254 in_rotate_tiles $const1 	%line{469} %argrw{"wrr"}
+	if		$tmp254 420 420 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:472
+#                 point(st[0], st[1], 0.0),
+	aref		$tmp256 st $const1 	%line{472} %argrw{"wrr"}
+	aref		$tmp257 st $const2 	%argrw{"wrr"}
+	point		$tmp255 $tmp256 $tmp257 $const3 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:473
+#                 in_rotate_tiles * M_2PI,
+	mul		$tmp258 in_rotate_tiles $const7 	%line{473} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:474
+#                 point(in_tiles_center[0], in_tiles_center[1], 0.0),
+	aref		$tmp260 in_tiles_center $const1 	%line{474} %argrw{"wrr"}
+	aref		$tmp261 in_tiles_center $const2 	%argrw{"wrr"}
+	point		$tmp259 $tmp260 $tmp261 $const3 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:475
+#                 point(in_tiles_center[0], in_tiles_center[1], 1.0));
+	aref		$tmp263 in_tiles_center $const1 	%line{475} %argrw{"wrr"}
+	aref		$tmp264 in_tiles_center $const2 	%argrw{"wrr"}
+	point		$tmp262 $tmp263 $tmp264 $const8 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:471
+#             point rot = rotate(
+	functioncall	$const9 416 	%line{471} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:274
+#     vector axis = normalize (b - a);
+	sub		$tmp265 $tmp262 $tmp259 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{274} %argrw{"wrr"}
+	normalize	___254_axis $tmp265 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:276
+#     sincos (angle, sinang, cosang);
+	sincos		$tmp258 ___254_sinang ___254_cosang 	%line{276} %argrw{"rww"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:277
+#     float cosang1 = 1.0 - cosang;
+	sub		___254_cosang1 $const8 ___254_cosang 	%line{277} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:278
+#     float x = axis[0], y = axis[1], z = axis[2];
+	compref		___254_x ___254_axis $const1 	%line{278} %argrw{"wrr"}
+	compref		___254_y ___254_axis $const2 	%argrw{"wrr"}
+	compref		___254_z ___254_axis $const10 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:279
+#     matrix M = matrix (x * x + (1.0 - x * x) * cosang,
+	mul		$tmp266 ___254_x ___254_x 	%line{279} %argrw{"wrr"}
+	mul		$tmp267 ___254_x ___254_x 	%argrw{"wrr"}
+	sub		$tmp268 $const8 $tmp267 	%argrw{"wrr"}
+	mul		$tmp269 $tmp268 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp270 $tmp266 $tmp269 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:280
+#                        x * y * cosang1 + z * sinang,
+	mul		$tmp271 ___254_x ___254_y 	%line{280} %argrw{"wrr"}
+	mul		$tmp272 $tmp271 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp273 ___254_z ___254_sinang 	%argrw{"wrr"}
+	add		$tmp274 $tmp272 $tmp273 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:281
+#                        x * z * cosang1 - y * sinang,
+	mul		$tmp275 ___254_x ___254_z 	%line{281} %argrw{"wrr"}
+	mul		$tmp276 $tmp275 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp277 ___254_y ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp278 $tmp276 $tmp277 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:283
+#                        x * y * cosang1 - z * sinang,
+	mul		$tmp279 ___254_x ___254_y 	%line{283} %argrw{"wrr"}
+	mul		$tmp280 $tmp279 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp281 ___254_z ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp282 $tmp280 $tmp281 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:284
+#                        y * y + (1.0 - y * y) * cosang,
+	mul		$tmp283 ___254_y ___254_y 	%line{284} %argrw{"wrr"}
+	mul		$tmp284 ___254_y ___254_y 	%argrw{"wrr"}
+	sub		$tmp285 $const8 $tmp284 	%argrw{"wrr"}
+	mul		$tmp286 $tmp285 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp287 $tmp283 $tmp286 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:285
+#                        y * z * cosang1 + x * sinang,
+	mul		$tmp288 ___254_y ___254_z 	%line{285} %argrw{"wrr"}
+	mul		$tmp289 $tmp288 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp290 ___254_x ___254_sinang 	%argrw{"wrr"}
+	add		$tmp291 $tmp289 $tmp290 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:287
+#                        x * z * cosang1 + y * sinang,
+	mul		$tmp292 ___254_x ___254_z 	%line{287} %argrw{"wrr"}
+	mul		$tmp293 $tmp292 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp294 ___254_y ___254_sinang 	%argrw{"wrr"}
+	add		$tmp295 $tmp293 $tmp294 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:288
+#                        y * z * cosang1 - x * sinang,
+	mul		$tmp296 ___254_y ___254_z 	%line{288} %argrw{"wrr"}
+	mul		$tmp297 $tmp296 ___254_cosang1 	%argrw{"wrr"}
+	mul		$tmp298 ___254_x ___254_sinang 	%argrw{"wrr"}
+	sub		$tmp299 $tmp297 $tmp298 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:289
+#                        z * z + (1.0 - z * z) * cosang,
+	mul		$tmp300 ___254_z ___254_z 	%line{289} %argrw{"wrr"}
+	mul		$tmp301 ___254_z ___254_z 	%argrw{"wrr"}
+	sub		$tmp302 $const8 $tmp301 	%argrw{"wrr"}
+	mul		$tmp303 $tmp302 ___254_cosang 	%argrw{"wrr"}
+	add		$tmp304 $tmp300 $tmp303 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:279
+#     matrix M = matrix (x * x + (1.0 - x * x) * cosang,
+	matrix		___254_M $tmp270 $tmp274 $tmp278 $const3 $tmp282 $tmp287 $tmp291 $const3 $tmp295 $tmp299 $tmp304 $const3 $const3 $const3 $const3 $const8 	%line{279} %argrw{"wrrrrrrrrrrrrrrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:292
+#     return transform (M, p-a) + a;
+	sub		$tmp306 $tmp255 $tmp259 	%line{292} %argrw{"wrr"}
+	transformv	$tmp305 ___254_M $tmp306 	%argrw{"wrr"}
+	add		___730_rot $tmp305 $tmp259 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:477
+#             st[0] = rot[0];
+	compref		$tmp307 ___730_rot $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl"} %line{477} %argrw{"wrr"}
+	aassign		st $const1 $tmp307 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:478
+#             st[1] = rot[1];
+	compref		$tmp308 ___730_rot $const2 	%line{478} %argrw{"wrr"}
+	aassign		st $const2 $tmp308 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:482
+#     if (in_swap_uv)
+	if		in_swap_uv 425 425 	%line{482} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:484
+#         float tmp = st[0];
+	aref		___731_tmp st $const1 	%line{484} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:485
+#         st[0] = st[1];
+	aref		$tmp309 st $const2 	%line{485} %argrw{"wrr"}
+	aassign		st $const1 $tmp309 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:486
+#         st[1] = tmp;
+	aassign		st $const2 ___731_tmp 	%line{486} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:489
+#     out_uvcoord = st;
+	arraycopy	out_uvcoord st 	%line{489} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:491
+#     if (in_compute_filters)
+	if		in_compute_filters 439 439 	%line{491} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:493
+#         if (out_uvcoord[0] != OUTSIDE_UVFRAME)
+	aref		$tmp310 out_uvcoord $const1 	%line{493} %argrw{"wrr"}
+	neq		$tmp311 $tmp310 $const17 	%argrw{"wrr"}
+	if		$tmp311 433 433 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:495
+#             out_uvcoord_filter[0] = filterwidth(out_uvcoord[0]);
+	aref		$tmp313 out_uvcoord $const1 	%line{495} %argrw{"wrr"}
+	filterwidth	$tmp312 $tmp313 	%argrw{"wr"} %argderivs{1}
+	aassign		out_uvcoord_filter $const1 $tmp312 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:497
+#         if (out_uvcoord[1] != OUTSIDE_UVFRAME)
+	aref		$tmp314 out_uvcoord $const2 	%line{497} %argrw{"wrr"}
+	neq		$tmp315 $tmp314 $const17 	%argrw{"wrr"}
+	if		$tmp315 439 439 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_manifold2d.osl:499
+#             out_uvcoord_filter[1] = filterwidth(out_uvcoord[1]);
+	aref		$tmp317 out_uvcoord $const2 	%line{499} %argrw{"wrr"}
+	filterwidth	$tmp316 $tmp317 	%argrw{"wr"} %argderivs{1}
+	aassign		out_uvcoord_filter $const2 $tmp316 	%argrw{"wrr"}
+	end

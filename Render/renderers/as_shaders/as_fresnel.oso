@@ -1,0 +1,908 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_fresnel.oso
+shader as_fresnel	%meta{string,help,"A viewer Fresnel term."} %meta{string,icon,"asFresnel.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_fresnel.html"} %meta{string,as_node_name,"asFresnel"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"1608738100 1656300655"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210865} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	string	in_fresnel_type	"Simple Dielectric"		%meta{string,as_maya_attribute_name,"fresnelType"} %meta{string,as_maya_attribute_short_name,"fty"} %meta{string,widget,"popup"} %meta{string,options,"Simple Dielectric|Artist Friendly|Physically Based"} %meta{string,label,"Fresnel Type"} %meta{string,page,"Fresnel"} %meta{string,help,"Simple dielectric allows a monochromatic dielectric IOR,  while artist friendly fresnel allows setting reflectance at normal and grazing incidences, and physically based mode, the explicit polychromatic eta+k complex ior."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{4,121} %write{2147483647,-1}
+param	float	in_ior	1.37		%meta{string,as_maya_attribute_name,"ior"} %meta{string,as_maya_attribute_short_name,"sio"} %meta{float,min,1} %meta{float,max,10} %meta{float,softmax,2} %meta{string,label,"Index Of Refraction"} %meta{string,page,"Fresnel"} %meta{string,help,"Dielectric monochromatic index of refraction."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,separator,1}  %read{15,56} %write{2147483647,-1}
+param	color	in_face_tint	0.850000024 0.209999993 0.0500000007		%meta{string,as_maya_attribute_name,"faceTint"} %meta{string,as_maya_attribute_short_name,"f0"} %meta{string,label,"Facing Tint"} %meta{string,page,"Fresnel"} %meta{string,help,"Reflectance at facing angle, for conductor Fresnel."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{124,187} %write{2147483647,-1}
+param	color	in_edge_tint	1 1 1		%meta{string,as_maya_attribute_name,"edgeTint"} %meta{string,as_maya_attribute_short_name,"f90"} %meta{string,label,"Edge Tint"} %meta{string,page,"Fresnel"} %meta{string,help,"Reflectance at grazing angle, conductor Fresnel only."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{125,147} %write{2147483647,-1}
+param	vector	in_complex_eta	0.215440005 1.00660002 1.24020004		%meta{string,as_maya_attribute_name,"complexEta"} %meta{string,as_maya_attribute_short_name,"cet"} %meta{string,label,"Complex IOR"} %meta{string,page,"Fresnel"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{202,202} %write{2147483647,-1}
+param	vector	in_complex_kappa	3.95560002 2.58229995 2.39289999		%meta{string,as_maya_attribute_name,"complexKappa"} %meta{string,as_maya_attribute_short_name,"cka"} %meta{string,label,"Extinction Coefficient"} %meta{string,page,"Fresnel"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{203,203} %write{2147483647,-1}
+param	normal	in_surface_normal	0 0 0		%meta{string,as_maya_attribute_name,"normalCamera"} %meta{string,as_maya_attribute_short_name,"n"} %meta{string,label,"Surface Normal"} %meta{string,page,"Globals"} %meta{string,help,"The unit length world space shading normal, it can be a bumped normal."}  %read{2147483647,-1} %write{0,0} %initexpr
+param	vector	in_viewer_vector	0 0 0		%meta{string,as_maya_attribute_name,"viewerVector"} %meta{string,as_maya_attribute_short_name,"i"} %meta{string,label,"Viewer Vector"} %meta{string,page,"Globals"} %meta{string,help,"The unit length world space vector pointing from the viewer position to the point being shaded."}  %read{2147483647,-1} %write{1,1} %initexpr
+oparam	color	out_color	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,label,"Output Color"} %meta{string,widget,"null"}  %read{291,298} %write{120,256}
+oparam	float	out_alpha	1		%meta{string,as_maya_attribute_name,"outAlpha"} %meta{string,as_maya_attribute_short_name,"oa"} %meta{string,label,"Output Alpha"} %meta{string,widget,"null"}  %read{120,120} %write{119,300}
+global	vector	I	%read{1,205} %write{2147483647,-1}
+global	normal	N	%read{0,204} %write{2147483647,-1}
+local	float	___237_IdotN	%read{100,108} %write{98,98}
+local	float	___237_k	%read{104,109} %write{103,103}
+local	float	___238_c	%read{60,88} %write{59,62}
+local	float	___238_g	%read{74,88} %write{73,76}
+local	float	___240_beta	%read{81,89} %write{77,77}
+local	float	___240_F	%read{85,93} %write{83,92}
+local	vector	___242_R	%read{2147483647,-1} %write{67,67}
+local	vector	___242_T	%read{2147483647,-1} %write{106,116}
+local	color	___659_coeffs	%read{290,297} %write{260,289}
+local	float	___702_eta_min	%read{134,156} %write{129,151}
+local	float	___702_sqrt_f0	%read{131,154} %write{130,152}
+local	float	___702_eta_max	%read{134,156} %write{133,155}
+local	float	___703_nr	%read{171,199} %write{169,197}
+local	float	___706_eta_i	%read{25,39} %write{14,17}
+local	float	___706_eta_t	%read{25,37} %write{15,18}
+local	float	___706_costheta_i	%read{21,38} %write{16,19}
+local	float	___706_sintheta_i	%read{26,26} %write{24,24}
+local	float	___706_sintheta_t	%read{27,32} %write{26,26}
+local	float	___706_costheta_t	%read{37,39} %write{35,35}
+local	float	___706_eta_t_costheta_i	%read{40,41} %write{36,36}
+local	float	___706_eta_t_costheta_t	%read{43,44} %write{37,37}
+local	float	___706_eta_i_costheta_i	%read{43,44} %write{38,38}
+local	float	___706_eta_i_costheta_t	%read{40,41} %write{39,39}
+local	float	___706_Rs	%read{47,47} %write{42,42}
+local	float	___706_Rp	%read{49,49} %write{45,45}
+local	float	___710_eta	%read{210,253} %write{210,253}
+local	float	___710_etak	%read{210,253} %write{210,253}
+local	float	___710_costheta_i2	%read{210,253} %write{210,253}
+local	float	___710_sintheta_i2	%read{210,253} %write{210,253}
+local	float	___710_eta2	%read{210,253} %write{210,253}
+local	float	___710_etak2	%read{210,253} %write{210,253}
+local	float	___710_t0	%read{210,253} %write{210,253}
+local	float	___710_a2b2sum	%read{210,253} %write{210,253}
+local	float	___710_t1	%read{210,253} %write{210,253}
+local	float	___710_sqrt_a	%read{210,253} %write{210,253}
+local	float	___710_t2	%read{210,253} %write{210,253}
+local	float	___710_Rs	%read{210,253} %write{210,253}
+local	float	___710_t3	%read{210,253} %write{210,253}
+local	float	___710_t4	%read{210,253} %write{210,253}
+local	float	___710_Rp	%read{210,253} %write{210,253}
+local	float	exterior_medium_ior	%read{6,253} %write{2,3}
+local	float	___711_Kr	%read{94,118} %write{29,114}
+local	float	___712_costheta	%read{16,19} %write{10,10}
+local	float	___713_Kt	%read{2147483647,-1} %write{96,115}
+local	color	___714_n	%read{160,253} %write{157,202}
+local	color	___714_k	%read{210,253} %write{201,203}
+local	color	___714_Kr	%read{255,255} %write{210,253}
+local	float	___714_costheta	%read{210,253} %write{207,207}
+local	int	___717_i	%read{210,253} %write{209,253}
+const	float	$const1	1		%read{2,219} %write{2147483647,-1}
+temp	int	$tmp1	%read{2147483647,-1} %write{3,3}
+const	string	$const2	"path:ray_ior"		%read{3,3} %write{2147483647,-1}
+const	string	$const3	"Simple Dielectric"		%read{4,4} %write{2147483647,-1}
+temp	int	$tmp2	%read{5,5} %write{4,4}
+temp	int	$tmp3	%read{7,7} %write{6,6}
+temp	normal	$tmp4	%read{10,10} %write{8,8}
+temp	vector	$tmp5	%read{10,10} %write{9,9}
+const	string	$const4	"dielectricDielectricFresnel"		%read{11,11} %write{2147483647,-1}
+temp	int	$tmp6	%read{13,13} %write{12,12}
+temp	float	$tmp7	%read{24,24} %write{23,23}
+const	float	$const5	0		%read{23,207} %write{2147483647,-1}
+temp	float	$tmp8	%read{22,22} %write{21,21}
+const	string	$const6	"sqr"		%read{20,242} %write{2147483647,-1}
+temp	float	$tmp9	%read{23,23} %write{22,22}
+temp	float	$tmp10	%read{26,26} %write{25,25}
+temp	int	$tmp11	%read{28,28} %write{27,27}
+temp	float	$tmp12	%read{35,35} %write{34,34}
+temp	float	$tmp13	%read{33,33} %write{32,32}
+temp	float	$tmp14	%read{34,34} %write{33,33}
+temp	float	$tmp15	%read{42,42} %write{40,40}
+temp	float	$tmp16	%read{42,42} %write{41,41}
+temp	float	$tmp17	%read{45,45} %write{43,43}
+temp	float	$tmp18	%read{45,45} %write{44,44}
+temp	float	$tmp19	%read{50,50} %write{47,47}
+temp	float	$tmp20	%read{50,50} %write{49,49}
+temp	float	$tmp21	%read{51,51} %write{50,50}
+const	float	$const7	2		%read{51,236} %write{2147483647,-1}
+temp	normal	$tmp22	%read{59,111} %write{52,52}
+temp	float	$tmp23	%read{69,108} %write{55,56}
+temp	int	$tmp24	%read{54,54} %write{53,53}
+const	string	$const8	"fresnel"		%read{57,58} %write{2147483647,-1}
+const	int	$const9	0		%read{60,291} %write{2147483647,-1}
+temp	int	$tmp25	%read{61,61} %write{60,60}
+const	string	$const10	"reflect"		%read{63,63} %write{2147483647,-1}
+const	int	$const11	2		%read{146,298} %write{2147483647,-1}
+temp	float	$tmp26	%read{65,65} %write{64,64}
+temp	float	$tmp27	%read{66,66} %write{65,65}
+temp	vector	$tmp28	%read{67,67} %write{66,66}
+temp	float	$tmp29	%read{70,70} %write{69,69}
+temp	float	$tmp30	%read{71,71} %write{70,70}
+temp	float	$tmp31	%read{73,73} %write{71,71}
+temp	float	$tmp32	%read{73,73} %write{72,72}
+temp	int	$tmp33	%read{75,75} %write{74,74}
+temp	float	$tmp34	%read{79,79} %write{78,78}
+temp	float	$tmp35	%read{80,80} %write{79,79}
+temp	float	$tmp36	%read{83,83} %write{80,80}
+temp	float	$tmp37	%read{82,82} %write{81,81}
+temp	float	$tmp38	%read{83,83} %write{82,82}
+const	float	$const12	0.5		%read{87,251} %write{2147483647,-1}
+temp	float	$tmp39	%read{86,86} %write{85,85}
+temp	float	$tmp40	%read{87,87} %write{86,86}
+temp	float	$tmp41	%read{92,92} %write{91,91}
+temp	float	$tmp42	%read{89,89} %write{88,88}
+temp	float	$tmp43	%read{91,91} %write{89,89}
+temp	float	$tmp44	%read{95,95} %write{94,94}
+temp	float	$tmp45	%read{96,96} %write{95,95}
+const	string	$const13	"refract"		%read{97,97} %write{2147483647,-1}
+const	int	$const14	1		%read{135,294} %write{2147483647,-1}
+temp	float	$tmp46	%read{102,102} %write{99,99}
+temp	float	$tmp47	%read{101,101} %write{100,100}
+temp	float	$tmp48	%read{102,102} %write{101,101}
+temp	float	$tmp49	%read{103,103} %write{102,102}
+temp	int	$tmp50	%read{105,105} %write{104,104}
+const	vector	$const15	0 0 0		%read{106,116} %write{2147483647,-1}
+temp	vector	$tmp51	%read{112,112} %write{107,107}
+temp	float	$tmp52	%read{110,110} %write{108,108}
+temp	float	$tmp53	%read{110,110} %write{109,109}
+temp	float	$tmp54	%read{111,111} %write{110,110}
+temp	vector	$tmp55	%read{112,112} %write{111,111}
+const	string	$const16	"clamp"		%read{117,254} %write{2147483647,-1}
+temp	float	$tmp56	%read{119,119} %write{118,118}
+const	string	$const17	"Artist Friendly"		%read{121,121} %write{2147483647,-1}
+temp	int	$tmp57	%read{122,122} %write{121,121}
+const	string	$const18	"get_eta"		%read{123,148} %write{2147483647,-1}
+temp	float	$tmp58	%read{157,157} %write{134,134}
+temp	float	$tmp59	%read{127,130} %write{124,124}
+temp	float	$tmp60	%read{134,134} %write{125,125}
+temp	float	$tmp61	%read{129,129} %write{127,127}
+temp	float	$tmp62	%read{129,129} %write{128,128}
+temp	float	$tmp63	%read{133,133} %write{131,131}
+temp	float	$tmp64	%read{133,133} %write{132,132}
+temp	float	$tmp65	%read{157,157} %write{145,145}
+temp	float	$tmp66	%read{138,141} %write{135,135}
+temp	float	$tmp67	%read{145,145} %write{136,136}
+temp	float	$tmp68	%read{140,140} %write{138,138}
+temp	float	$tmp69	%read{140,140} %write{139,139}
+temp	float	$tmp70	%read{144,144} %write{142,142}
+temp	float	$tmp71	%read{144,144} %write{143,143}
+temp	float	$tmp72	%read{157,157} %write{156,156}
+temp	float	$tmp73	%read{149,152} %write{146,146}
+temp	float	$tmp74	%read{156,156} %write{147,147}
+temp	float	$tmp75	%read{151,151} %write{149,149}
+temp	float	$tmp76	%read{151,151} %write{150,150}
+temp	float	$tmp77	%read{155,155} %write{153,153}
+temp	float	$tmp78	%read{155,155} %write{154,154}
+const	string	$const19	"get_kappa"		%read{158,189} %write{2147483647,-1}
+temp	float	$tmp79	%read{201,201} %write{172,172}
+temp	float	$tmp80	%read{165,170} %write{159,159}
+temp	float	$tmp81	%read{162,166} %write{160,160}
+temp	float	$tmp82	%read{165,165} %write{164,164}
+temp	float	$tmp83	%read{164,164} %write{162,162}
+temp	float	$tmp84	%read{169,169} %write{165,165}
+temp	float	$tmp85	%read{169,169} %write{168,168}
+temp	float	$tmp86	%read{168,168} %write{166,166}
+temp	float	$tmp87	%read{171,171} %write{170,170}
+temp	float	$tmp88	%read{172,172} %write{171,171}
+temp	float	$tmp89	%read{201,201} %write{186,186}
+temp	float	$tmp90	%read{179,184} %write{173,173}
+temp	float	$tmp91	%read{176,180} %write{174,174}
+temp	float	$tmp92	%read{179,179} %write{178,178}
+temp	float	$tmp93	%read{178,178} %write{176,176}
+temp	float	$tmp94	%read{183,183} %write{179,179}
+temp	float	$tmp95	%read{183,183} %write{182,182}
+temp	float	$tmp96	%read{182,182} %write{180,180}
+temp	float	$tmp97	%read{185,185} %write{184,184}
+temp	float	$tmp98	%read{186,186} %write{185,185}
+temp	float	$tmp99	%read{201,201} %write{200,200}
+temp	float	$tmp100	%read{193,198} %write{187,187}
+temp	float	$tmp101	%read{190,194} %write{188,188}
+temp	float	$tmp102	%read{193,193} %write{192,192}
+temp	float	$tmp103	%read{192,192} %write{190,190}
+temp	float	$tmp104	%read{197,197} %write{193,193}
+temp	float	$tmp105	%read{197,197} %write{196,196}
+temp	float	$tmp106	%read{196,196} %write{194,194}
+temp	float	$tmp107	%read{199,199} %write{198,198}
+temp	float	$tmp108	%read{200,200} %write{199,199}
+temp	float	$tmp109	%read{207,207} %write{206,206}
+temp	normal	$tmp110	%read{206,206} %write{204,204}
+temp	vector	$tmp111	%read{206,206} %write{205,205}
+const	int	$const20	3		%read{210,210} %write{2147483647,-1}
+temp	int	$tmp112	%read{210,253} %write{210,253}
+temp	int	$tmp113	%read{208,253} %write{209,253}
+temp	float	$tmp114	%read{210,253} %write{210,253}
+temp	float	$tmp115	%read{210,253} %write{210,253}
+temp	float	$tmp116	%read{210,253} %write{210,253}
+const	string	$const21	"dielectricConductorFresnel"		%read{214,214} %write{2147483647,-1}
+temp	float	$tmp117	%read{210,253} %write{210,253}
+temp	float	$tmp118	%read{210,253} %write{210,253}
+const	float	$const22	4		%read{228,228} %write{2147483647,-1}
+temp	float	$tmp119	%read{210,253} %write{210,253}
+temp	float	$tmp120	%read{210,253} %write{210,253}
+temp	float	$tmp121	%read{210,253} %write{210,253}
+temp	float	$tmp122	%read{210,253} %write{210,253}
+temp	float	$tmp123	%read{210,253} %write{210,253}
+temp	float	$tmp124	%read{210,253} %write{210,253}
+temp	float	$tmp125	%read{210,253} %write{210,253}
+temp	float	$tmp126	%read{210,253} %write{210,253}
+temp	float	$tmp127	%read{210,253} %write{210,253}
+temp	float	$tmp128	%read{210,253} %write{210,253}
+temp	float	$tmp129	%read{210,253} %write{210,253}
+temp	float	$tmp130	%read{210,253} %write{210,253}
+temp	float	$tmp131	%read{210,253} %write{210,253}
+temp	float	$tmp132	%read{210,253} %write{210,253}
+const	color	$const23	0 0 0		%read{256,289} %write{2147483647,-1}
+const	color	$const24	1 1 1		%read{255,255} %write{2147483647,-1}
+temp	color	$tmp135	%read{256,256} %write{255,255}
+const	string	$const25	"Rec.709"		%read{258,286} %write{2147483647,-1}
+const	string	$const26	"as_luminance"		%read{257,257} %write{2147483647,-1}
+const	string	$const27	"Rec.601"		%read{258,258} %write{2147483647,-1}
+temp	int	$tmp136	%read{259,259} %write{258,258}
+const	color	$const28	0.222004309 0.706654787 0.0713409185		%read{260,260} %write{2147483647,-1}
+temp	int	$tmp137	%read{262,262} %write{261,261}
+temp	int	$tmp138	%read{263,267} %write{262,266}
+const	string	$const29	"sRGB"		%read{264,264} %write{2147483647,-1}
+temp	int	$tmp139	%read{265,265} %write{264,264}
+temp	int	$tmp140	%read{266,266} %write{265,265}
+temp	int	$tmp141	%read{268,272} %write{267,271}
+const	string	$const30	"sRGB/Rec.709"		%read{269,269} %write{2147483647,-1}
+temp	int	$tmp142	%read{270,270} %write{269,269}
+temp	int	$tmp143	%read{271,271} %write{270,270}
+const	color	$const31	0.212639004 0.715168655 0.0721923187		%read{273,273} %write{2147483647,-1}
+const	string	$const32	"AdobeRGB"		%read{274,274} %write{2147483647,-1}
+temp	int	$tmp144	%read{275,275} %write{274,274}
+const	color	$const33	0.297340006 0.627359986 0.0752900019		%read{276,276} %write{2147483647,-1}
+const	string	$const34	"Rec.2020"		%read{277,277} %write{2147483647,-1}
+temp	int	$tmp145	%read{278,278} %write{277,277}
+const	color	$const35	0.2627002 0.677998066 0.0593017191		%read{279,279} %write{2147483647,-1}
+const	string	$const36	"ACES"		%read{280,280} %write{2147483647,-1}
+temp	int	$tmp146	%read{281,281} %write{280,280}
+const	color	$const37	0.343966454 0.728166103 -0.0721325502		%read{282,285} %write{2147483647,-1}
+const	string	$const38	"ACEScg"		%read{283,283} %write{2147483647,-1}
+temp	int	$tmp147	%read{284,284} %write{283,283}
+const	string	$const39	"DCI-P3"		%read{286,286} %write{2147483647,-1}
+temp	int	$tmp148	%read{287,287} %write{286,286}
+const	color	$const40	0.209491685 0.721595228 0.0689130723		%read{288,288} %write{2147483647,-1}
+temp	float	$tmp149	%read{292,292} %write{290,290}
+temp	float	$tmp150	%read{292,292} %write{291,291}
+temp	float	$tmp151	%read{296,296} %write{292,292}
+temp	float	$tmp152	%read{295,295} %write{293,293}
+temp	float	$tmp153	%read{295,295} %write{294,294}
+temp	float	$tmp154	%read{296,296} %write{295,295}
+temp	float	$tmp155	%read{300,300} %write{296,296}
+temp	float	$tmp156	%read{299,299} %write{297,297}
+temp	float	$tmp157	%read{299,299} %write{298,298}
+temp	float	$tmp158	%read{300,300} %write{299,299}
+code in_surface_normal
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:133
+#     normal in_surface_normal = N
+	assign		in_surface_normal N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{133} %argrw{"wr"}
+code in_viewer_vector
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:141
+#     vector in_viewer_vector = I
+	assign		in_viewer_vector I 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{141} %argrw{"wr"}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:166
+#     float exterior_medium_ior = 1.0;
+	assign		exterior_medium_ior $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{166} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:167
+#     getattribute("path:ray_ior", exterior_medium_ior);
+	getattribute	$tmp1 $const2 exterior_medium_ior 	%line{167} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:169
+#     if (in_fresnel_type == "Simple Dielectric")
+	eq		$tmp2 in_fresnel_type $const3 	%line{169} %argrw{"wrr"}
+	if		$tmp2 121 301 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:173
+#         if (exterior_medium_ior != 1.0)
+	neq		$tmp3 exterior_medium_ior $const1 	%line{173} %argrw{"wrr"}
+	if		$tmp3 52 117 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:175
+#             float costheta = dot(normalize(N), -I);
+	normalize	$tmp4 N 	%line{175} %argrw{"wr"}
+	neg		$tmp5 I 	%argrw{"wr"}
+	dot		___712_costheta $tmp4 $tmp5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:177
+#             Kr = dielectricDielectricFresnel(
+	functioncall	$const4 52 	%line{177} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:109
+#     if (backfacing())
+	backfacing	$tmp6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{109} %argrw{"w"}
+	if		$tmp6 17 20 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:111
+#         eta_i = etai;
+	assign		___706_eta_i exterior_medium_ior 	%line{111} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:112
+#         eta_t = etat;
+	assign		___706_eta_t in_ior 	%line{112} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:113
+#         costheta_i = costhetai;
+	assign		___706_costheta_i ___712_costheta 	%line{113} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:117
+#         eta_i = etat;
+	assign		___706_eta_i in_ior 	%line{117} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:118
+#         eta_t = etai;
+	assign		___706_eta_t exterior_medium_ior 	%line{118} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:119
+#         costheta_i = abs(costhetai);
+	abs		___706_costheta_i ___712_costheta 	%line{119} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:122
+#     float sintheta_i = sqrt(max(0.0, 1.0 - sqr(costheta_i)));
+	functioncall	$const6 22 	%line{122} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp8 ___706_costheta_i ___706_costheta_i 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:122
+#     float sintheta_i = sqrt(max(0.0, 1.0 - sqr(costheta_i)));
+	sub		$tmp9 $const1 $tmp8 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{122} %argrw{"wrr"}
+	max		$tmp7 $const5 $tmp9 	%argrw{"wrr"}
+	sqrt		___706_sintheta_i $tmp7 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:123
+#     float sintheta_t = eta_i / eta_t * sintheta_i;
+	div		$tmp10 ___706_eta_i ___706_eta_t 	%line{123} %argrw{"wrr"}
+	mul		___706_sintheta_t $tmp10 ___706_sintheta_i 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:125
+#     if (sintheta_t >= 1.0)
+	ge		$tmp11 ___706_sintheta_t $const1 	%line{125} %argrw{"wrr"}
+	if		$tmp11 31 31 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:127
+#         return 1.0; // TIR
+	assign		___711_Kr $const1 	%line{127} %argrw{"wr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:130
+#     float costheta_t = sqrt(max(0.0, 1.0 - sqr(sintheta_t)));
+	functioncall	$const6 33 	%line{130} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp13 ___706_sintheta_t ___706_sintheta_t 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:130
+#     float costheta_t = sqrt(max(0.0, 1.0 - sqr(sintheta_t)));
+	sub		$tmp14 $const1 $tmp13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{130} %argrw{"wrr"}
+	max		$tmp12 $const5 $tmp14 	%argrw{"wrr"}
+	sqrt		___706_costheta_t $tmp12 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:132
+#     float eta_t_costheta_i = eta_t * costheta_i;
+	mul		___706_eta_t_costheta_i ___706_eta_t ___706_costheta_i 	%line{132} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:133
+#     float eta_t_costheta_t = eta_t * costheta_t;
+	mul		___706_eta_t_costheta_t ___706_eta_t ___706_costheta_t 	%line{133} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:134
+#     float eta_i_costheta_i = eta_i * costheta_i;
+	mul		___706_eta_i_costheta_i ___706_eta_i ___706_costheta_i 	%line{134} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:135
+#     float eta_i_costheta_t = eta_i * costheta_t;
+	mul		___706_eta_i_costheta_t ___706_eta_i ___706_costheta_t 	%line{135} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:137
+#     float Rs = (eta_t_costheta_i - eta_i_costheta_t) /
+	sub		$tmp15 ___706_eta_t_costheta_i ___706_eta_i_costheta_t 	%line{137} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:138
+#                (eta_t_costheta_i + eta_i_costheta_t);
+	add		$tmp16 ___706_eta_t_costheta_i ___706_eta_i_costheta_t 	%line{138} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:137
+#     float Rs = (eta_t_costheta_i - eta_i_costheta_t) /
+	div		___706_Rs $tmp15 $tmp16 	%line{137} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:140
+#     float Rp = (eta_i_costheta_i - eta_t_costheta_t) /
+	sub		$tmp17 ___706_eta_i_costheta_i ___706_eta_t_costheta_t 	%line{140} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:141
+#                (eta_i_costheta_i + eta_t_costheta_t);
+	add		$tmp18 ___706_eta_i_costheta_i ___706_eta_t_costheta_t 	%line{141} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:140
+#     float Rp = (eta_i_costheta_i - eta_t_costheta_t) /
+	div		___706_Rp $tmp17 $tmp18 	%line{140} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:143
+#     return (sqr(Rs) + sqr(Rp)) / 2.0;
+	functioncall	$const6 48 	%line{143} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp19 ___706_Rs ___706_Rs 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:143
+#     return (sqr(Rs) + sqr(Rp)) / 2.0;
+	functioncall	$const6 50 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{143} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp20 ___706_Rp ___706_Rp 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:143
+#     return (sqr(Rs) + sqr(Rp)) / 2.0;
+	add		$tmp21 $tmp19 $tmp20 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{143} %argrw{"wrr"}
+	div		___711_Kr $tmp21 $const7 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:188
+#                 normalize(N),
+	normalize	$tmp22 N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{188} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:189
+#                 backfacing() ? in_ior : 1.0 / in_ior,
+	backfacing	$tmp24 	%line{189} %argrw{"w"}
+	if		$tmp24 56 57 	%argrw{"r"}
+	assign		$tmp23 in_ior 	%argrw{"wr"}
+	div		$tmp23 $const1 in_ior 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:186
+#             fresnel(
+	functioncall	$const8 117 	%line{186} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:255
+#     fresnel(I, N, eta, Kr, Kt, R, T);
+	functioncall	$const8 117 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{255} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:227
+#     float c = dot(I, N);
+	dot		___238_c I $tmp22 	%line{227} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:228
+#     if (c < 0)
+	lt		$tmp25 ___238_c $const9 	%line{228} %argrw{"wrr"}
+	if		$tmp25 63 63 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:229
+#         c = -c;
+	neg		___238_c ___238_c 	%line{229} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:230
+#     R = reflect(I, N);
+	functioncall	$const10 68 	%line{230} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:216
+# vector reflect (vector I, vector N) { return I - 2*dot(N,I)*N; }
+	dot		$tmp26 $tmp22 I 	%line{216} %argrw{"wrr"}
+	mul		$tmp27 $const7 $tmp26 	%argrw{"wrr"}
+	mul		$tmp28 $tmp27 $tmp22 	%argrw{"wrr"}
+	sub		___242_R I $tmp28 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:231
+#     float g = 1.0 / sqr(eta) - 1.0 + c * c;
+	functioncall	$const6 70 	%line{231} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:226
+#     float sqr(float x) { return x*x; }
+	mul		$tmp29 $tmp23 $tmp23 	%line{226} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:231
+#     float g = 1.0 / sqr(eta) - 1.0 + c * c;
+	div		$tmp30 $const1 $tmp29 	%line{231} %argrw{"wrr"}
+	sub		$tmp31 $tmp30 $const1 	%argrw{"wrr"}
+	mul		$tmp32 ___238_c ___238_c 	%argrw{"wrr"}
+	add		___238_g $tmp31 $tmp32 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:232
+#     if (g >= 0.0) {
+	ge		$tmp33 ___238_g $const5 	%line{232} %argrw{"wrr"}
+	if		$tmp33 114 117 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:233
+#         g = sqrt (g);
+	sqrt		___238_g ___238_g 	%line{233} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:234
+#         float beta = g - c;
+	sub		___240_beta ___238_g ___238_c 	%line{234} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:235
+#         float F = (c * (g+c) - 1.0) / (c * beta + 1.0);
+	add		$tmp34 ___238_g ___238_c 	%line{235} %argrw{"wrr"}
+	mul		$tmp35 ___238_c $tmp34 	%argrw{"wrr"}
+	sub		$tmp36 $tmp35 $const1 	%argrw{"wrr"}
+	mul		$tmp37 ___238_c ___240_beta 	%argrw{"wrr"}
+	add		$tmp38 $tmp37 $const1 	%argrw{"wrr"}
+	div		___240_F $tmp36 $tmp38 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:236
+#         F = 0.5 * (1.0 + sqr(F));
+	functioncall	$const6 86 	%line{236} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:226
+#     float sqr(float x) { return x*x; }
+	mul		$tmp39 ___240_F ___240_F 	%line{226} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:236
+#         F = 0.5 * (1.0 + sqr(F));
+	add		$tmp40 $const1 $tmp39 	%line{236} %argrw{"wrr"}
+	mul		___240_F $const12 $tmp40 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:237
+#         F *= sqr (beta / (g+c));
+	add		$tmp42 ___238_g ___238_c 	%line{237} %argrw{"wrr"}
+	div		$tmp43 ___240_beta $tmp42 	%argrw{"wrr"}
+	functioncall	$const6 92 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:226
+#     float sqr(float x) { return x*x; }
+	mul		$tmp41 $tmp43 $tmp43 	%line{226} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:237
+#         F *= sqr (beta / (g+c));
+	mul		___240_F ___240_F $tmp41 	%line{237} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:238
+#         Kr = F;
+	assign		___711_Kr ___240_F 	%line{238} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:239
+#         Kt = (1.0 - Kr) * eta*eta;
+	sub		$tmp44 $const1 ___711_Kr 	%line{239} %argrw{"wrr"}
+	mul		$tmp45 $tmp44 $tmp23 	%argrw{"wrr"}
+	mul		___713_Kt $tmp45 $tmp23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:242
+#         T = refract(I, N, eta);
+	functioncall	$const13 114 	%line{242} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:218
+#     float IdotN = dot (I, N);
+	dot		___237_IdotN I $tmp22 	%line{218} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:219
+#     float k = 1 - eta*eta * (1 - IdotN*IdotN);
+	mul		$tmp46 $tmp23 $tmp23 	%line{219} %argrw{"wrr"}
+	mul		$tmp47 ___237_IdotN ___237_IdotN 	%argrw{"wrr"}
+	sub		$tmp48 $const1 $tmp47 	%argrw{"wrr"}
+	mul		$tmp49 $tmp46 $tmp48 	%argrw{"wrr"}
+	sub		___237_k $const1 $tmp49 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:220
+#     return (k < 0) ? vector(0,0,0) : (eta*I - N * (eta*IdotN + sqrt(k)));
+	lt		$tmp50 ___237_k $const9 	%line{220} %argrw{"wrr"}
+	if		$tmp50 107 113 	%argrw{"r"}
+	assign		___242_T $const15 	%argrw{"wr"}
+	mul		$tmp51 $tmp23 I 	%argrw{"wrr"}
+	mul		$tmp52 $tmp23 ___237_IdotN 	%argrw{"wrr"}
+	sqrt		$tmp53 ___237_k 	%argrw{"wr"}
+	add		$tmp54 $tmp52 $tmp53 	%argrw{"wrr"}
+	mul		$tmp55 $tmp22 $tmp54 	%argrw{"wrr"}
+	sub		___242_T $tmp51 $tmp55 	%argrw{"wrr"}
+	return
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:245
+#         Kr = 1.0;
+	assign		___711_Kr $const1 	%line{245} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:246
+#         Kt = 0.0;
+	assign		___713_Kt $const5 	%line{246} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:247
+#         T = vector (0,0,0);
+	assign		___242_T $const15 	%line{247} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:193
+#         out_alpha = clamp(Kr, 0.0, 1.0);
+	functioncall	$const16 120 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{193} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp56 ___711_Kr $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		out_alpha $tmp56 $const5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:194
+#         out_color = color(out_alpha);
+	assign		out_color out_alpha 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{194} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:200
+#         if (in_fresnel_type == "Artist Friendly")
+	eq		$tmp57 in_fresnel_type $const17 	%line{200} %argrw{"wrr"}
+	if		$tmp57 202 204 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:202
+#             n = get_eta(in_face_tint, in_edge_tint);
+	functioncall	$const18 158 	%line{202} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:82
+#     return color(get_eta(f0[0], f90[0]),
+	compref		$tmp59 in_face_tint $const9 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{82} %argrw{"wrr"}
+	compref		$tmp60 in_edge_tint $const9 	%argrw{"wrr"}
+	functioncall	$const18 135 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:67
+#     float eta_min = (1.0 - f0) / (1.0 + f0);
+	sub		$tmp61 $const1 $tmp59 	%line{67} %argrw{"wrr"}
+	add		$tmp62 $const1 $tmp59 	%argrw{"wrr"}
+	div		___702_eta_min $tmp61 $tmp62 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:68
+#     float sqrt_f0 = sqrt(f0);
+	sqrt		___702_sqrt_f0 $tmp59 	%line{68} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:69
+#     float eta_max = (1.0 + sqrt_f0) / (1.0 - sqrt_f0);
+	add		$tmp63 $const1 ___702_sqrt_f0 	%line{69} %argrw{"wrr"}
+	sub		$tmp64 $const1 ___702_sqrt_f0 	%argrw{"wrr"}
+	div		___702_eta_max $tmp63 $tmp64 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:71
+#     return mix(eta_max, eta_min, f90);
+	mix		$tmp58 ___702_eta_max ___702_eta_min $tmp60 	%line{71} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:83
+#                  get_eta(f0[1], f90[1]),
+	compref		$tmp66 in_face_tint $const14 	%line{83} %argrw{"wrr"}
+	compref		$tmp67 in_edge_tint $const14 	%argrw{"wrr"}
+	functioncall	$const18 146 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:67
+#     float eta_min = (1.0 - f0) / (1.0 + f0);
+	sub		$tmp68 $const1 $tmp66 	%line{67} %argrw{"wrr"}
+	add		$tmp69 $const1 $tmp66 	%argrw{"wrr"}
+	div		___702_eta_min $tmp68 $tmp69 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:68
+#     float sqrt_f0 = sqrt(f0);
+	sqrt		___702_sqrt_f0 $tmp66 	%line{68} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:69
+#     float eta_max = (1.0 + sqrt_f0) / (1.0 - sqrt_f0);
+	add		$tmp70 $const1 ___702_sqrt_f0 	%line{69} %argrw{"wrr"}
+	sub		$tmp71 $const1 ___702_sqrt_f0 	%argrw{"wrr"}
+	div		___702_eta_max $tmp70 $tmp71 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:71
+#     return mix(eta_max, eta_min, f90);
+	mix		$tmp65 ___702_eta_max ___702_eta_min $tmp67 	%line{71} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:84
+#                  get_eta(f0[2], f90[2]));
+	compref		$tmp73 in_face_tint $const11 	%line{84} %argrw{"wrr"}
+	compref		$tmp74 in_edge_tint $const11 	%argrw{"wrr"}
+	functioncall	$const18 157 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:67
+#     float eta_min = (1.0 - f0) / (1.0 + f0);
+	sub		$tmp75 $const1 $tmp73 	%line{67} %argrw{"wrr"}
+	add		$tmp76 $const1 $tmp73 	%argrw{"wrr"}
+	div		___702_eta_min $tmp75 $tmp76 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:68
+#     float sqrt_f0 = sqrt(f0);
+	sqrt		___702_sqrt_f0 $tmp73 	%line{68} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:69
+#     float eta_max = (1.0 + sqrt_f0) / (1.0 - sqrt_f0);
+	add		$tmp77 $const1 ___702_sqrt_f0 	%line{69} %argrw{"wrr"}
+	sub		$tmp78 $const1 ___702_sqrt_f0 	%argrw{"wrr"}
+	div		___702_eta_max $tmp77 $tmp78 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:71
+#     return mix(eta_max, eta_min, f90);
+	mix		$tmp72 ___702_eta_max ___702_eta_min $tmp74 	%line{71} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:82
+#     return color(get_eta(f0[0], f90[0]),
+	color		___714_n $tmp58 $tmp65 $tmp72 	%line{82} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:203
+#             k = get_kappa(in_face_tint, n);
+	functioncall	$const19 202 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{203} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:89
+#     return color(get_kappa(f0[0], eta[0]),
+	compref		$tmp80 in_face_tint $const9 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{89} %argrw{"wrr"}
+	compref		$tmp81 ___714_n $const9 	%argrw{"wrr"}
+	functioncall	$const19 173 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	add		$tmp83 $tmp81 $const1 	%line{76} %argrw{"wrr"}
+	functioncall	$const6 165 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp82 $tmp83 $tmp83 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	mul		$tmp84 $tmp80 $tmp82 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{76} %argrw{"wrr"}
+	sub		$tmp86 $tmp81 $const1 	%argrw{"wrr"}
+	functioncall	$const6 169 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp85 $tmp86 $tmp86 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	sub		___703_nr $tmp84 $tmp85 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{76} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:77
+#     return sqrt(nr / (1.0 - f0));
+	sub		$tmp87 $const1 $tmp80 	%line{77} %argrw{"wrr"}
+	div		$tmp88 ___703_nr $tmp87 	%argrw{"wrr"}
+	sqrt		$tmp79 $tmp88 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:90
+#                  get_kappa(f0[1], eta[1]),
+	compref		$tmp90 in_face_tint $const14 	%line{90} %argrw{"wrr"}
+	compref		$tmp91 ___714_n $const14 	%argrw{"wrr"}
+	functioncall	$const19 187 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	add		$tmp93 $tmp91 $const1 	%line{76} %argrw{"wrr"}
+	functioncall	$const6 179 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp92 $tmp93 $tmp93 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	mul		$tmp94 $tmp90 $tmp92 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{76} %argrw{"wrr"}
+	sub		$tmp96 $tmp91 $const1 	%argrw{"wrr"}
+	functioncall	$const6 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp95 $tmp96 $tmp96 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	sub		___703_nr $tmp94 $tmp95 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{76} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:77
+#     return sqrt(nr / (1.0 - f0));
+	sub		$tmp97 $const1 $tmp90 	%line{77} %argrw{"wrr"}
+	div		$tmp98 ___703_nr $tmp97 	%argrw{"wrr"}
+	sqrt		$tmp89 $tmp98 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:91
+#                  get_kappa(f0[2], eta[2]));
+	compref		$tmp100 in_face_tint $const11 	%line{91} %argrw{"wrr"}
+	compref		$tmp101 ___714_n $const11 	%argrw{"wrr"}
+	functioncall	$const19 201 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	add		$tmp103 $tmp101 $const1 	%line{76} %argrw{"wrr"}
+	functioncall	$const6 193 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp102 $tmp103 $tmp103 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	mul		$tmp104 $tmp100 $tmp102 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{76} %argrw{"wrr"}
+	sub		$tmp106 $tmp101 $const1 	%argrw{"wrr"}
+	functioncall	$const6 197 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp105 $tmp106 $tmp106 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:76
+#     float nr = f0 * sqr(eta + 1.0) - sqr(eta - 1.0);
+	sub		___703_nr $tmp104 $tmp105 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{76} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:77
+#     return sqrt(nr / (1.0 - f0));
+	sub		$tmp107 $const1 $tmp100 	%line{77} %argrw{"wrr"}
+	div		$tmp108 ___703_nr $tmp107 	%argrw{"wrr"}
+	sqrt		$tmp99 $tmp108 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:89
+#     return color(get_kappa(f0[0], eta[0]),
+	color		___714_k $tmp79 $tmp89 $tmp99 	%line{89} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:207
+#             n = color(in_complex_eta);
+	assign		___714_n in_complex_eta 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{207} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:208
+#             k = color(in_complex_kappa);
+	assign		___714_k in_complex_kappa 	%line{208} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:211
+#         float costheta = max(0.0, dot(normalize(N), -I));
+	normalize	$tmp110 N 	%line{211} %argrw{"wr"}
+	neg		$tmp111 I 	%argrw{"wr"}
+	dot		$tmp109 $tmp110 $tmp111 	%argrw{"wrr"}
+	max		___714_costheta $const5 $tmp109 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:213
+#         for (int i = 0; i < 3; ++i)
+	for		$tmp113 210 212 253 254 	%line{213} %argrw{"r"}
+	assign		___717_i $const9 	%argrw{"wr"}
+	lt		$tmp112 ___717_i $const20 	%argrw{"wrr"}
+	neq		$tmp113 $tmp112 $const9 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:217
+#                 n[i],
+	compref		$tmp115 ___714_n ___717_i 	%line{217} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:218
+#                 k[i],
+	compref		$tmp116 ___714_k ___717_i 	%line{218} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:215
+#             Kr[i] = dielectricConductorFresnel(
+	functioncall	$const21 252 	%line{215} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:152
+#     float eta = etat / etai;
+	div		___710_eta $tmp115 exterior_medium_ior 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{152} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:153
+#     float etak = k / etai;
+	div		___710_etak $tmp116 exterior_medium_ior 	%line{153} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:155
+#     float costheta_i2 = sqr(costhetai);
+	functioncall	$const6 219 	%line{155} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		___710_costheta_i2 ___714_costheta ___714_costheta 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:156
+#     float sintheta_i2 = 1.0 - costheta_i2;
+	sub		___710_sintheta_i2 $const1 ___710_costheta_i2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{156} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:157
+#     float eta2 = sqr(eta);
+	functioncall	$const6 222 	%line{157} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		___710_eta2 ___710_eta ___710_eta 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:158
+#     float etak2 = sqr(etak);
+	functioncall	$const6 224 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{158} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		___710_etak2 ___710_etak ___710_etak 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:160
+#     float t0 = eta2 - etak2 - sintheta_i2;
+	sub		$tmp117 ___710_eta2 ___710_etak2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{160} %argrw{"wrr"}
+	sub		___710_t0 $tmp117 ___710_sintheta_i2 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:162
+#     float a2b2sum = sqrt(sqr(t0) + 4.0 * eta2 * etak2);
+	functioncall	$const6 228 	%line{162} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp118 ___710_t0 ___710_t0 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:162
+#     float a2b2sum = sqrt(sqr(t0) + 4.0 * eta2 * etak2);
+	mul		$tmp119 $const22 ___710_eta2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{162} %argrw{"wrr"}
+	mul		$tmp120 $tmp119 ___710_etak2 	%argrw{"wrr"}
+	add		$tmp121 $tmp118 $tmp120 	%argrw{"wrr"}
+	sqrt		___710_a2b2sum $tmp121 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:164
+#     float t1 = a2b2sum + costheta_i2;
+	add		___710_t1 ___710_a2b2sum ___710_costheta_i2 	%line{164} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:166
+#     float sqrt_a = sqrt(0.5 * (a2b2sum + t0));
+	add		$tmp122 ___710_a2b2sum ___710_t0 	%line{166} %argrw{"wrr"}
+	mul		$tmp123 $const12 $tmp122 	%argrw{"wrr"}
+	sqrt		___710_sqrt_a $tmp123 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:168
+#     float t2 = 2.0 * costhetai * sqrt_a;
+	mul		$tmp124 $const7 ___714_costheta 	%line{168} %argrw{"wrr"}
+	mul		___710_t2 $tmp124 ___710_sqrt_a 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:170
+#     float Rs = (t1 - t2) / (t1 + t2);
+	sub		$tmp125 ___710_t1 ___710_t2 	%line{170} %argrw{"wrr"}
+	add		$tmp126 ___710_t1 ___710_t2 	%argrw{"wrr"}
+	div		___710_Rs $tmp125 $tmp126 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:172
+#     float t3 = a2b2sum * costheta_i2 + sqr(sintheta_i2);
+	mul		$tmp127 ___710_a2b2sum ___710_costheta_i2 	%line{172} %argrw{"wrr"}
+	functioncall	$const6 244 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:34
+# float sqr(float x) { return x * x; }
+	mul		$tmp128 ___710_sintheta_i2 ___710_sintheta_i2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{34} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:172
+#     float t3 = a2b2sum * costheta_i2 + sqr(sintheta_i2);
+	add		___710_t3 $tmp127 $tmp128 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h"} %line{172} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:173
+#     float t4 = t2 * sintheta_i2;
+	mul		___710_t4 ___710_t2 ___710_sintheta_i2 	%line{173} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:175
+#     float Rp = Rs * (t3 - t4) / (t3 + t4);
+	sub		$tmp129 ___710_t3 ___710_t4 	%line{175} %argrw{"wrr"}
+	mul		$tmp130 ___710_Rs $tmp129 	%argrw{"wrr"}
+	add		$tmp131 ___710_t3 ___710_t4 	%argrw{"wrr"}
+	div		___710_Rp $tmp130 $tmp131 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/material/as_material_helpers.h:177
+#     return 0.5 * (Rp + Rs);
+	add		$tmp132 ___710_Rp ___710_Rs 	%line{177} %argrw{"wrr"}
+	mul		$tmp114 $const12 $tmp132 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:215
+#             Kr[i] = dielectricConductorFresnel(
+	compassign	___714_Kr ___717_i $tmp114 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{215} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:213
+#         for (int i = 0; i < 3; ++i)
+	add		___717_i ___717_i $const14 	%line{213} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:221
+#         out_color = clamp(Kr, color(0), color(1));
+	functioncall	$const16 257 	%line{221} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp135 ___714_Kr $const24 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{144} %argrw{"wrr"}
+	max		out_color $tmp135 $const23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl:222
+#         out_alpha = as_luminance(out_color, "Rec.709"); // ws=Rec.709 for now
+	functioncall	$const26 301 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_fresnel.osl"} %line{222} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:204
+#     if (colorspace == "Rec.601")
+	eq		$tmp136 $const25 $const27 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h"} %line{204} %argrw{"wrr"}
+	if		$tmp136 261 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:206
+#         coeffs = color(REC601_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const28 	%line{206} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:208
+#     else if (colorspace == "Rec.709" || colorspace == "sRGB" ||
+	eq		$tmp137 $const25 $const25 	%line{208} %argrw{"wrr"}
+	neq		$tmp138 $tmp137 $const9 	%argrw{"wrr"}
+	if		$tmp138 264 267 	%argrw{"r"}
+	eq		$tmp139 $const25 $const29 	%argrw{"wrr"}
+	neq		$tmp140 $tmp139 $const9 	%argrw{"wrr"}
+	assign		$tmp138 $tmp140 	%argrw{"wr"}
+	neq		$tmp141 $tmp138 $const9 	%argrw{"wrr"}
+	if		$tmp141 269 272 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:209
+#              colorspace == "sRGB/Rec.709")
+	eq		$tmp142 $const25 $const30 	%line{209} %argrw{"wrr"}
+	neq		$tmp143 $tmp142 $const9 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:208
+#     else if (colorspace == "Rec.709" || colorspace == "sRGB" ||
+	assign		$tmp141 $tmp143 	%line{208} %argrw{"wr"}
+	if		$tmp141 274 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:211
+#         coeffs = color(REC709_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const31 	%line{211} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:213
+#     else if (colorspace == "AdobeRGB")
+	eq		$tmp144 $const25 $const32 	%line{213} %argrw{"wrr"}
+	if		$tmp144 277 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:215
+#         coeffs = color(ADOBERGB_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const33 	%line{215} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:217
+#     else if (colorspace == "Rec.2020")
+	eq		$tmp145 $const25 $const34 	%line{217} %argrw{"wrr"}
+	if		$tmp145 280 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:219
+#         coeffs = color(REC2020_D65_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const35 	%line{219} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:221
+#     else if (colorspace == "ACES")
+	eq		$tmp146 $const25 $const36 	%line{221} %argrw{"wrr"}
+	if		$tmp146 283 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:223
+#         coeffs = color(ACES_D60_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const37 	%line{223} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:225
+#     else if (colorspace == "ACEScg")
+	eq		$tmp147 $const25 $const38 	%line{225} %argrw{"wrr"}
+	if		$tmp147 286 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:227
+#         coeffs = color(ACESCG_D60_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const37 	%line{227} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:229
+#     else if (colorspace == "DCI-P3")
+	eq		$tmp148 $const25 $const39 	%line{229} %argrw{"wrr"}
+	if		$tmp148 289 290 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:231
+#         coeffs = color(DCIP3_DCI_LUMINANCE_COEFFS);
+	assign		___659_coeffs $const40 	%line{231} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:235
+#         coeffs = color(0);
+	assign		___659_coeffs $const23 	%line{235} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:244
+#     return coeffs[0] * in_C[0] +
+	compref		$tmp149 ___659_coeffs $const9 	%line{244} %argrw{"wrr"}
+	compref		$tmp150 out_color $const9 	%argrw{"wrr"}
+	mul		$tmp151 $tmp149 $tmp150 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:245
+#            coeffs[1] * in_C[1] +
+	compref		$tmp152 ___659_coeffs $const14 	%line{245} %argrw{"wrr"}
+	compref		$tmp153 out_color $const14 	%argrw{"wrr"}
+	mul		$tmp154 $tmp152 $tmp153 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:244
+#     return coeffs[0] * in_C[0] +
+	add		$tmp155 $tmp151 $tmp154 	%line{244} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:246
+#            coeffs[2] * in_C[2];
+	compref		$tmp156 ___659_coeffs $const11 	%line{246} %argrw{"wrr"}
+	compref		$tmp157 out_color $const11 	%argrw{"wrr"}
+	mul		$tmp158 $tmp156 $tmp157 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_helpers.h:245
+#            coeffs[1] * in_C[1] +
+	add		out_alpha $tmp155 $tmp158 	%line{245} %argrw{"wrr"}
+	end

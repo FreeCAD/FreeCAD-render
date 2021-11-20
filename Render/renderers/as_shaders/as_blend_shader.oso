@@ -1,0 +1,218 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_blend_shader.oso
+shader as_blend_shader	%meta{string,help,"Shader blending or mixing node."} %meta{string,icon,"asBlendShader.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/material/as_blend_shader.html"} %meta{string,as_node_name,"asBlendShader"} %meta{string,as_category,"shader"} %meta{string,as_max_class_id,"966011775 1721377247"} %meta{string,as_max_plugin_type,"material"} %meta{int,as_maya_type_id,1210845} %meta{string,as_maya_classification,"drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch"} 
+param	closure color	in_color			%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Layer 0"} %meta{string,page,"Layers"}  %read{3,7} %write{2147483647,-1}
+param	float	in_weight	1		%meta{string,as_maya_attribute_name,"weight"} %meta{string,as_maya_attribute_short_name,"w"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 0 Weight"} %meta{string,page,"Layers"}  %read{7,7} %write{2147483647,-1}
+param	int	in_layer_visibility	1		%meta{string,as_maya_attribute_name,"layerVisibility"} %meta{string,as_maya_attribute_short_name,"lv"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 0 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,1} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{1,1} %write{2147483647,-1}
+param	closure color	in_color1			%meta{string,as_maya_attribute_name,"color1"} %meta{string,as_maya_attribute_short_name,"c1"} %meta{string,label,"Layer 1"} %meta{string,page,"Layers"}  %read{11,18} %write{2147483647,-1}
+param	float	in_weight1	1		%meta{string,as_maya_attribute_name,"weight1"} %meta{string,as_maya_attribute_short_name,"w1"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 1 Weight"} %meta{string,page,"Layers"}  %read{16,18} %write{2147483647,-1}
+param	int	in_layer_visibility1	0		%meta{string,as_maya_attribute_name,"layerVisibility1"} %meta{string,as_maya_attribute_short_name,"lv1"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 1 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,1} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{9,9} %write{2147483647,-1}
+param	closure color	in_color2			%meta{string,as_maya_attribute_name,"color2"} %meta{string,as_maya_attribute_short_name,"c2"} %meta{string,label,"Layer 2"} %meta{string,page,"Layers"}  %read{22,29} %write{2147483647,-1}
+param	float	in_weight2	1		%meta{string,as_maya_attribute_name,"weight2"} %meta{string,as_maya_attribute_short_name,"w2"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 2 Weight"} %meta{string,page,"Layers"}  %read{27,29} %write{2147483647,-1}
+param	int	in_layer_visibility2	0		%meta{string,as_maya_attribute_name,"layerVisibility2"} %meta{string,as_maya_attribute_short_name,"lv2"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 2 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,2} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{20,20} %write{2147483647,-1}
+param	closure color	in_color3			%meta{string,as_maya_attribute_name,"color3"} %meta{string,as_maya_attribute_short_name,"c3"} %meta{string,label,"Layer 3"} %meta{string,page,"Layers"}  %read{33,40} %write{2147483647,-1}
+param	float	in_weight3	1		%meta{string,as_maya_attribute_name,"weight3"} %meta{string,as_maya_attribute_short_name,"w3"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 3 Weight"} %meta{string,page,"Layers"}  %read{38,40} %write{2147483647,-1}
+param	int	in_layer_visibility3	0		%meta{string,as_maya_attribute_name,"layerVisibility3"} %meta{string,as_maya_attribute_short_name,"lv3"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 3 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,3} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{31,31} %write{2147483647,-1}
+param	closure color	in_color4			%meta{string,as_maya_attribute_name,"color4"} %meta{string,as_maya_attribute_short_name,"c4"} %meta{string,label,"Layer 4"} %meta{string,page,"Layers"}  %read{44,51} %write{2147483647,-1}
+param	float	in_weight4	1		%meta{string,as_maya_attribute_name,"weight4"} %meta{string,as_maya_attribute_short_name,"w4"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 4 Weight"} %meta{string,page,"Layers"}  %read{49,51} %write{2147483647,-1}
+param	int	in_layer_visibility4	0		%meta{string,as_maya_attribute_name,"layerVisibility4"} %meta{string,as_maya_attribute_short_name,"lv4"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 4 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,4} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{42,42} %write{2147483647,-1}
+param	closure color	in_color5			%meta{string,as_maya_attribute_name,"color5"} %meta{string,as_maya_attribute_short_name,"c5"} %meta{string,label,"Layer 5"} %meta{string,page,"Layers"}  %read{55,62} %write{2147483647,-1}
+param	float	in_weight5	1		%meta{string,as_maya_attribute_name,"weight5"} %meta{string,as_maya_attribute_short_name,"w5"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 5 Weight"} %meta{string,page,"Layers"}  %read{60,62} %write{2147483647,-1}
+param	int	in_layer_visibility5	0		%meta{string,as_maya_attribute_name,"layerVisibility5"} %meta{string,as_maya_attribute_short_name,"lv5"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 5 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,5} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{53,53} %write{2147483647,-1}
+param	closure color	in_color6			%meta{string,as_maya_attribute_name,"color6"} %meta{string,as_maya_attribute_short_name,"c6"} %meta{string,label,"Layer 6"} %meta{string,page,"Layers"}  %read{66,73} %write{2147483647,-1}
+param	float	in_weight6	1		%meta{string,as_maya_attribute_name,"weight6"} %meta{string,as_maya_attribute_short_name,"w6"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 6 Weight"} %meta{string,page,"Layers"}  %read{71,73} %write{2147483647,-1}
+param	int	in_layer_visibility6	0		%meta{string,as_maya_attribute_name,"layerVisibility6"} %meta{string,as_maya_attribute_short_name,"lv6"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 6 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,6} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{64,64} %write{2147483647,-1}
+param	closure color	in_color7			%meta{string,as_maya_attribute_name,"color7"} %meta{string,as_maya_attribute_short_name,"c7"} %meta{string,label,"Layer 7"} %meta{string,page,"Layers"}  %read{77,84} %write{2147483647,-1}
+param	float	in_weight7	1		%meta{string,as_maya_attribute_name,"weight7"} %meta{string,as_maya_attribute_short_name,"w7"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Layer 7 Weight"} %meta{string,page,"Layers"}  %read{82,84} %write{2147483647,-1}
+param	int	in_layer_visibility7	0		%meta{string,as_maya_attribute_name,"layerVisibility7"} %meta{string,as_maya_attribute_short_name,"lv7"} %meta{string,widget,"checkBox"} %meta{string,label,"Layer 7 Visibility"} %meta{string,page,"Layers"} %meta{int,divider,7} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{75,75} %write{2147483647,-1}
+oparam	closure color	out_color			%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,widget,"null"} %meta{string,label,"Layered Output"}  %read{2147483647,-1} %write{86,86}
+local	closure color	result	%read{8,86} %write{0,85}
+const	int	$const1	0		%read{0,78} %write{2147483647,-1}
+temp	int	$tmp1	%read{2,6} %write{1,5}
+temp	int	$tmp2	%read{4,4} %write{3,3}
+temp	int	$tmp3	%read{5,5} %write{4,4}
+temp	closure color	$tmp4	%read{8,8} %write{7,7}
+temp	int	$tmp5	%read{10,14} %write{9,13}
+temp	int	$tmp6	%read{12,12} %write{11,11}
+temp	int	$tmp7	%read{13,13} %write{12,12}
+const	string	$const2	"mix"		%read{15,81} %write{2147483647,-1}
+temp	float	$tmp8	%read{17,17} %write{16,16}
+const	float	$const4	1		%read{16,82} %write{2147483647,-1}
+temp	closure color	$tmp9	%read{19,19} %write{17,17}
+temp	closure color	$tmp10	%read{19,19} %write{18,18}
+temp	int	$tmp11	%read{21,25} %write{20,24}
+temp	int	$tmp12	%read{23,23} %write{22,22}
+temp	int	$tmp13	%read{24,24} %write{23,23}
+temp	float	$tmp14	%read{28,28} %write{27,27}
+temp	closure color	$tmp15	%read{30,30} %write{28,28}
+temp	closure color	$tmp16	%read{30,30} %write{29,29}
+temp	int	$tmp17	%read{32,36} %write{31,35}
+temp	int	$tmp18	%read{34,34} %write{33,33}
+temp	int	$tmp19	%read{35,35} %write{34,34}
+temp	float	$tmp20	%read{39,39} %write{38,38}
+temp	closure color	$tmp21	%read{41,41} %write{39,39}
+temp	closure color	$tmp22	%read{41,41} %write{40,40}
+temp	int	$tmp23	%read{43,47} %write{42,46}
+temp	int	$tmp24	%read{45,45} %write{44,44}
+temp	int	$tmp25	%read{46,46} %write{45,45}
+temp	float	$tmp26	%read{50,50} %write{49,49}
+temp	closure color	$tmp27	%read{52,52} %write{50,50}
+temp	closure color	$tmp28	%read{52,52} %write{51,51}
+temp	int	$tmp29	%read{54,58} %write{53,57}
+temp	int	$tmp30	%read{56,56} %write{55,55}
+temp	int	$tmp31	%read{57,57} %write{56,56}
+temp	float	$tmp32	%read{61,61} %write{60,60}
+temp	closure color	$tmp33	%read{63,63} %write{61,61}
+temp	closure color	$tmp34	%read{63,63} %write{62,62}
+temp	int	$tmp35	%read{65,69} %write{64,68}
+temp	int	$tmp36	%read{67,67} %write{66,66}
+temp	int	$tmp37	%read{68,68} %write{67,67}
+temp	float	$tmp38	%read{72,72} %write{71,71}
+temp	closure color	$tmp39	%read{74,74} %write{72,72}
+temp	closure color	$tmp40	%read{74,74} %write{73,73}
+temp	int	$tmp41	%read{76,80} %write{75,79}
+temp	int	$tmp42	%read{78,78} %write{77,77}
+temp	int	$tmp43	%read{79,79} %write{78,78}
+temp	float	$tmp44	%read{83,83} %write{82,82}
+temp	closure color	$tmp45	%read{85,85} %write{83,83}
+temp	closure color	$tmp46	%read{85,85} %write{84,84}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:295
+#     closure color result = 0;
+	assign		result $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{295} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:297
+#     if (in_layer_visibility && isconnected(in_color))
+	neq		$tmp1 in_layer_visibility $const1 	%line{297} %argrw{"wrr"}
+	if		$tmp1 6 6 	%argrw{"r"}
+	isconnected	$tmp2 in_color 	%argrw{"wr"}
+	neq		$tmp3 $tmp2 $const1 	%argrw{"wrr"}
+	assign		$tmp1 $tmp3 	%argrw{"wr"}
+	if		$tmp1 9 9 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:299
+#         result += in_weight * in_color;
+	mul		$tmp4 in_color in_weight 	%line{299} %argrw{"wrr"}
+	add		result result $tmp4 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:301
+#     if (in_layer_visibility1 && isconnected(in_color1))
+	neq		$tmp5 in_layer_visibility1 $const1 	%line{301} %argrw{"wrr"}
+	if		$tmp5 14 14 	%argrw{"r"}
+	isconnected	$tmp6 in_color1 	%argrw{"wr"}
+	neq		$tmp7 $tmp6 $const1 	%argrw{"wrr"}
+	assign		$tmp5 $tmp7 	%argrw{"wr"}
+	if		$tmp5 20 20 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:303
+#         result = mix(result, in_color1, in_weight1);
+	functioncall	$const2 20 	%line{303} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp8 $const4 in_weight1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp9 result $tmp8 	%argrw{"wrr"}
+	mul		$tmp10 in_color1 in_weight1 	%argrw{"wrr"}
+	add		result $tmp9 $tmp10 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:305
+#     if (in_layer_visibility2 && isconnected(in_color2))
+	neq		$tmp11 in_layer_visibility2 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{305} %argrw{"wrr"}
+	if		$tmp11 25 25 	%argrw{"r"}
+	isconnected	$tmp12 in_color2 	%argrw{"wr"}
+	neq		$tmp13 $tmp12 $const1 	%argrw{"wrr"}
+	assign		$tmp11 $tmp13 	%argrw{"wr"}
+	if		$tmp11 31 31 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:307
+#         result = mix(result, in_color2, in_weight2);
+	functioncall	$const2 31 	%line{307} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp14 $const4 in_weight2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp15 result $tmp14 	%argrw{"wrr"}
+	mul		$tmp16 in_color2 in_weight2 	%argrw{"wrr"}
+	add		result $tmp15 $tmp16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:309
+#     if (in_layer_visibility3 && isconnected(in_color3))
+	neq		$tmp17 in_layer_visibility3 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{309} %argrw{"wrr"}
+	if		$tmp17 36 36 	%argrw{"r"}
+	isconnected	$tmp18 in_color3 	%argrw{"wr"}
+	neq		$tmp19 $tmp18 $const1 	%argrw{"wrr"}
+	assign		$tmp17 $tmp19 	%argrw{"wr"}
+	if		$tmp17 42 42 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:311
+#         result = mix(result, in_color3, in_weight3);
+	functioncall	$const2 42 	%line{311} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp20 $const4 in_weight3 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp21 result $tmp20 	%argrw{"wrr"}
+	mul		$tmp22 in_color3 in_weight3 	%argrw{"wrr"}
+	add		result $tmp21 $tmp22 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:313
+#     if (in_layer_visibility4 && isconnected(in_color4))
+	neq		$tmp23 in_layer_visibility4 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{313} %argrw{"wrr"}
+	if		$tmp23 47 47 	%argrw{"r"}
+	isconnected	$tmp24 in_color4 	%argrw{"wr"}
+	neq		$tmp25 $tmp24 $const1 	%argrw{"wrr"}
+	assign		$tmp23 $tmp25 	%argrw{"wr"}
+	if		$tmp23 53 53 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:315
+#         result = mix(result, in_color4, in_weight4);
+	functioncall	$const2 53 	%line{315} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp26 $const4 in_weight4 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp27 result $tmp26 	%argrw{"wrr"}
+	mul		$tmp28 in_color4 in_weight4 	%argrw{"wrr"}
+	add		result $tmp27 $tmp28 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:317
+#     if (in_layer_visibility5 && isconnected(in_color5))
+	neq		$tmp29 in_layer_visibility5 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{317} %argrw{"wrr"}
+	if		$tmp29 58 58 	%argrw{"r"}
+	isconnected	$tmp30 in_color5 	%argrw{"wr"}
+	neq		$tmp31 $tmp30 $const1 	%argrw{"wrr"}
+	assign		$tmp29 $tmp31 	%argrw{"wr"}
+	if		$tmp29 64 64 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:319
+#         result = mix(result, in_color5, in_weight5);
+	functioncall	$const2 64 	%line{319} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp32 $const4 in_weight5 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp33 result $tmp32 	%argrw{"wrr"}
+	mul		$tmp34 in_color5 in_weight5 	%argrw{"wrr"}
+	add		result $tmp33 $tmp34 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:321
+#     if (in_layer_visibility6 && isconnected(in_color6))
+	neq		$tmp35 in_layer_visibility6 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{321} %argrw{"wrr"}
+	if		$tmp35 69 69 	%argrw{"r"}
+	isconnected	$tmp36 in_color6 	%argrw{"wr"}
+	neq		$tmp37 $tmp36 $const1 	%argrw{"wrr"}
+	assign		$tmp35 $tmp37 	%argrw{"wr"}
+	if		$tmp35 75 75 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:323
+#         result = mix(result, in_color6, in_weight6);
+	functioncall	$const2 75 	%line{323} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp38 $const4 in_weight6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp39 result $tmp38 	%argrw{"wrr"}
+	mul		$tmp40 in_color6 in_weight6 	%argrw{"wrr"}
+	add		result $tmp39 $tmp40 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:325
+#     if (in_layer_visibility7 && isconnected(in_color7))
+	neq		$tmp41 in_layer_visibility7 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{325} %argrw{"wrr"}
+	if		$tmp41 80 80 	%argrw{"r"}
+	isconnected	$tmp42 in_color7 	%argrw{"wr"}
+	neq		$tmp43 $tmp42 $const1 	%argrw{"wrr"}
+	assign		$tmp41 $tmp43 	%argrw{"wr"}
+	if		$tmp41 86 86 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:327
+#         result = mix(result, in_color7, in_weight7);
+	functioncall	$const2 86 	%line{327} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:168
+# closure color mix (closure color x, closure color y, float a) { return x*(1-a) + y*a; }
+	sub		$tmp44 $const4 in_weight7 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{168} %argrw{"wrr"}
+	mul		$tmp45 result $tmp44 	%argrw{"wrr"}
+	mul		$tmp46 in_color7 in_weight7 	%argrw{"wrr"}
+	add		result $tmp45 $tmp46 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl:330
+#     out_color = result;
+	assign		out_color result 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_blend_shader.osl"} %line{330} %argrw{"wr"}
+	end
