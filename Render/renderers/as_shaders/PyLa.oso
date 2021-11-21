@@ -68,62 +68,62 @@ temp	int	$tmp30	%read{51,51} %write{50,50}
 const	float	$const11	3		%read{53,53} %write{2147483647,-1}
 temp	int	$tmp31	%read{54,54} %write{53,53}
 code Base
-# pyla.osl:122
+# PyLa.osl:122
 #   closure color Base = diffuse(N),
-	closure		Base $const1 N 	%filename{"pyla.osl"} %line{122} %argrw{"wrr"}
+	closure		Base $const1 N 	%filename{"PyLa.osl"} %line{122} %argrw{"wrr"}
 code Layered
-# pyla.osl:131
+# PyLa.osl:131
 #   output closure color Layered = diffuse(N),
-	closure		Layered $const1 N 	%filename{"pyla.osl"} %line{131} %argrw{"wrr"}
+	closure		Layered $const1 N 	%filename{"PyLa.osl"} %line{131} %argrw{"wrr"}
 code ___main___
-# pyla.osl:136
+# PyLa.osl:136
 #   float Optim_Secondary = Secondary_Layer;
-	assign		Optim_Secondary Secondary_Layer 	%filename{"pyla.osl"} %line{136} %argrw{"wr"}
-# pyla.osl:138
+	assign		Optim_Secondary Secondary_Layer 	%filename{"PyLa.osl"} %line{136} %argrw{"wr"}
+# PyLa.osl:138
 #   int RTdirect = raytype("camera");
 	raytype		RTdirect $const2 	%line{138} %argrw{"wr"}
-# pyla.osl:140
+# PyLa.osl:140
 #   int Optimise = (RTdirect) | (Optim_Secondary == 0.0);
 	eq		$tmp1 Optim_Secondary $const3 	%line{140} %argrw{"wrr"}
 	bitor		Optimise RTdirect $tmp1 	%argrw{"wrr"}
-# pyla.osl:142
+# PyLa.osl:142
 #   if (Optimise)
 	if		Optimise 50 57 	%line{142} %argrw{"r"}
-# pyla.osl:145
+# PyLa.osl:145
 #     float InvDepth = 1.0 / max(depth, 0.01);
 	max		$tmp2 depth $const5 	%line{145} %argrw{"wrr"}
 	div		___333_InvDepth $const4 $tmp2 	%argrw{"wrr"}
-# pyla.osl:146
+# PyLa.osl:146
 #     float incidence = pow((1.0 - dot(I, N)), InvDepth);
 	dot		$tmp3 I N 	%line{146} %argrw{"wrr"}
 	sub		$tmp4 $const4 $tmp3 	%argrw{"wrr"}
 	pow		___333_incidence $tmp4 ___333_InvDepth 	%argrw{"wrr"}
-# pyla.osl:147
+# PyLa.osl:147
 #     float fresnelincidence = pow(fresnel_dielectric(I, N, IoR), InvDepth);
 	functioncall	$const6 39 	%line{147} %argrw{"r"}
-# pyla.osl:105
+# PyLa.osl:105
 #   float c = fabs(dot(Incoming, Normal));
 	dot		$tmp6 I N 	%line{105} %argrw{"wrr"}
 	fabs		___330_c $tmp6 	%argrw{"wr"}
-# pyla.osl:106
+# PyLa.osl:106
 #   float g = eta * eta - 1 + c * c;
 	mul		$tmp7 IoR IoR 	%line{106} %argrw{"wrr"}
 	sub		$tmp8 $tmp7 $const4 	%argrw{"wrr"}
 	mul		$tmp9 ___330_c ___330_c 	%argrw{"wrr"}
 	add		___330_g $tmp8 $tmp9 	%argrw{"wrr"}
-# pyla.osl:109
+# PyLa.osl:109
 #   if (g > 0) {
 	gt		$tmp10 ___330_g $const8 	%line{109} %argrw{"wrr"}
 	if		$tmp10 37 38 	%argrw{"r"}
-# pyla.osl:110
+# PyLa.osl:110
 #     g = sqrt(g);
 	sqrt		___330_g ___330_g 	%line{110} %argrw{"wr"}
-# pyla.osl:111
+# PyLa.osl:111
 #     float A = (g - c) / (g + c);
 	sub		$tmp11 ___330_g ___330_c 	%line{111} %argrw{"wrr"}
 	add		$tmp12 ___330_g ___330_c 	%argrw{"wrr"}
 	div		___331_A $tmp11 $tmp12 	%argrw{"wrr"}
-# pyla.osl:112
+# PyLa.osl:112
 #     float B = (c * (g + c) - 1) / (c * (g - c) + 1);
 	add		$tmp13 ___330_g ___330_c 	%line{112} %argrw{"wrr"}
 	mul		$tmp14 ___330_c $tmp13 	%argrw{"wrr"}
@@ -132,23 +132,23 @@ code ___main___
 	mul		$tmp17 ___330_c $tmp16 	%argrw{"wrr"}
 	add		$tmp18 $tmp17 $const4 	%argrw{"wrr"}
 	div		___331_B $tmp15 $tmp18 	%argrw{"wrr"}
-# pyla.osl:113
+# PyLa.osl:113
 #     result = 0.5 * A * A * (1 + B * B);
 	mul		$tmp19 $const9 ___331_A 	%line{113} %argrw{"wrr"}
 	mul		$tmp20 $tmp19 ___331_A 	%argrw{"wrr"}
 	mul		$tmp21 ___331_B ___331_B 	%argrw{"wrr"}
 	add		$tmp22 $const4 $tmp21 	%argrw{"wrr"}
 	mul		___330_result $tmp20 $tmp22 	%argrw{"wrr"}
-# pyla.osl:115
+# PyLa.osl:115
 #     result = 1.0;  // TIR (no refracted component)
 	assign		___330_result $const4 	%line{115} %argrw{"wr"}
-# pyla.osl:118
+# PyLa.osl:118
 #   return result;
 	assign		$tmp5 ___330_result 	%line{118} %argrw{"wr"}
-# pyla.osl:147
+# PyLa.osl:147
 #     float fresnelincidence = pow(fresnel_dielectric(I, N, IoR), InvDepth);
 	pow		___333_fresnelincidence $tmp5 ___333_InvDepth 	%line{147} %argrw{"wrr"}
-# pyla.osl:151
+# PyLa.osl:151
 #       MaskLayer * Opacity * ((Fresnel * fresnelincidence) + (1.0 - Fresnel) * incidence),
 	mul		$tmp23 MaskLayer Opacity 	%line{151} %argrw{"wrr"}
 	mul		$tmp24 Fresnel ___333_fresnelincidence 	%argrw{"wrr"}
@@ -156,31 +156,31 @@ code ___main___
 	mul		$tmp26 $tmp25 ___333_incidence 	%argrw{"wrr"}
 	add		$tmp27 $tmp24 $tmp26 	%argrw{"wrr"}
 	mul		$tmp28 $tmp23 $tmp27 	%argrw{"wrr"}
-# pyla.osl:150
+# PyLa.osl:150
 #     float MixLayer = clamp(
 	functioncall	$const10 49 	%line{150} %argrw{"r"}
 # /usr/share/OSL/shaders/stdosl.h:141
 # float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
 	min		$tmp29 $tmp28 $const4 	%filename{"/usr/share/OSL/shaders/stdosl.h"} %line{141} %argrw{"wrr"}
 	max		___333_MixLayer $tmp29 $const3 	%argrw{"wrr"}
-# pyla.osl:155
+# PyLa.osl:155
 #     layermix = MixLayer;
-	assign		layermix ___333_MixLayer 	%filename{"pyla.osl"} %line{155} %argrw{"wr"}
-# pyla.osl:157
+	assign		layermix ___333_MixLayer 	%filename{"PyLa.osl"} %line{155} %argrw{"wr"}
+# PyLa.osl:157
 #     if (Secondary_Layer == 1.0)
 	eq		$tmp30 Secondary_Layer $const4 	%line{157} %argrw{"wrr"}
 	if		$tmp30 53 57 	%argrw{"r"}
-# pyla.osl:159
+# PyLa.osl:159
 #       Layered = Base;
 	assign		Layered Base 	%line{159} %argrw{"wr"}
-# pyla.osl:161
+# PyLa.osl:161
 #       if (Secondary_Layer == 3.0)
 	eq		$tmp31 Secondary_Layer $const11 	%line{161} %argrw{"wrr"}
 	if		$tmp31 56 57 	%argrw{"r"}
-# pyla.osl:163
+# PyLa.osl:163
 #         Layered = 0.0;
 	assign		Layered $const3 	%line{163} %argrw{"wr"}
-# pyla.osl:165
+# PyLa.osl:165
 #         Layered = Layer;
 	assign		Layered Layer 	%line{165} %argrw{"wr"}
 	end
