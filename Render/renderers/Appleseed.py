@@ -568,8 +568,7 @@ def _write_material_carpaint(name, material):
 {o}
              </osl_code>
         </shader>
-        <shader type="surface" name="as_closure2surface" layer="surface">
-        </shader>
+        <shader type="surface" name="as_closure2surface" layer="surface" />
         <connect_shaders src_layer="source_code1"
                          src_param="Layered"
                          dst_layer="surface"
