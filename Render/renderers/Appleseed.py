@@ -404,12 +404,12 @@ def _write_material_carpaint(name, material):
             <parameter name="in_ior" value="float 20.0" />
         </shader>
         <shader layer="Reflects" type="shader" name="as_disney_material">
-            <parameter name="in_color" value="color {c.r} {c.g} {c.b}" />
+            <parameter name="in_color" value="color {k.r} {k.g} {k.b}" />
             <parameter name="in_specular_amount" value="float 1.0" />
             <parameter name="in_roughness" value="float 0.05" />
         </shader>
         <shader layer="Flakes" type="shader" name="as_disney_material">
-            <parameter name="in_color" value="color {c.r} {c.g} {c.b}" />
+            <parameter name="in_color" value="color {f.r} {f.g} {f.b}" />
             <parameter name="in_specular_amount" value="float 1.0" />
             <parameter name="in_roughness" value="float 0.5" />
         </shader>
@@ -423,7 +423,7 @@ def _write_material_carpaint(name, material):
             <parameter name="in_color" value="color {c.r} {c.g} {c.b}" />
         </shader>
         <shader layer="Effect" type="shader" name="as_disney_material">
-            <parameter name="in_color" value="color {c.r} {c.g} {c.b}" />
+            <parameter name="in_color" value="color {x.r} {x.g} {x.b}" />
         </shader>
         <shader layer="Diffuse+Effect" type="shader" name="as_blend_shader">
             <parameter name="in_layer_visibility1" value="int 1" />
@@ -460,8 +460,21 @@ def _write_material_carpaint(name, material):
                          dst_layer="Surface" dst_param="in_input" />
     </shader_group>
     """
-    return snippet.format(n=name, o=PYLA13, s=SHADERS_DIR, c=material.carpaint.basecolor)
 
+    class RGB:  # TODO
+        def __init__(self, r, g, b):
+            self.r = r
+            self.g = g
+            self.b = b
+
+    return snippet.format(
+        n=name,
+        s=SHADERS_DIR,
+        c=material.carpaint.basecolor,  # Base
+        f=RGB(0.8, 0.8, 0.8),  # Flakes
+        k=material.carpaint.basecolor,  # Coat
+        x=material.carpaint.basecolor,  # FX
+    )
 
 
 def _write_material_fallback(name, material):
@@ -547,7 +560,9 @@ def render(project, prefix, external, output, width, height):
 
         If keep_one is set, only last element is kept.
         """
-        pattern = r"(?m)^ *<{e}(?:\s.*|)>[\s\S]*?<\/{e}>\n".format(e=element_tag)
+        pattern = r"(?m)^ *<{e}(?:\s.*|)>[\s\S]*?<\/{e}>\n".format(
+            e=element_tag
+        )
         regex_obj = re.compile(pattern)
         contents = (
             str(regex_obj.findall(template)[-1])
