@@ -417,20 +417,16 @@ def _write_material_carpaint(name, material):
             <parameter name="in_layer_visibility1" value="int 1" />
         </shader>
         <shader layer="DiffuseFresnel" type="shader" name="as_fresnel">
+            <parameter name="in_fresnel_type" value="string Artist Friendly" />
+            <parameter name="in_face_tint" value="color {c.r} {c.g} {c.b}" />
+            <parameter name="in_edge_tint" value="color {x.r} {x.g} {x.b}" />
             <parameter name="in_ior" value="float 1.8" />
         </shader>
-        <shader layer="Diffuse" type="shader" name="as_disney_material">
-            <parameter name="in_color" value="color {c.r} {c.g} {c.b}" />
-        </shader>
-        <shader layer="Effect" type="shader" name="as_disney_material">
-            <parameter name="in_color" value="color {x.r} {x.g} {x.b}" />
-        </shader>
-        <shader layer="Diffuse+Effect" type="shader" name="as_blend_shader">
-            <parameter name="in_layer_visibility1" value="int 1" />
+        <shader layer="Diffuse+Effect" type="shader" name="as_disney_material">
         </shader>
         <shader layer="MasterMix" type="shader" name="as_blend_shader">
             <parameter name="in_layer_visibility1" value="int 1" />
-            <parameter name="in_weight1" value="float 0.5" />
+            <parameter name="in_weight1" value="float 1.0" />
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
 
@@ -447,13 +443,9 @@ def _write_material_carpaint(name, material):
         <connect_shaders src_layer="Flakes+Reflects" src_param="out_color"
                          dst_layer="MasterMix" dst_param="in_color" />
 
-        <connect_shaders src_layer="DiffuseFresnel" src_param="out_alpha"
-                         dst_layer="Diffuse+Effect" dst_param="in_weight1" />
-        <connect_shaders src_layer="Diffuse" src_param="out_outColor"
+        <connect_shaders src_layer="DiffuseFresnel" src_param="out_color"
                          dst_layer="Diffuse+Effect" dst_param="in_color" />
-        <connect_shaders src_layer="Effect" src_param="out_outColor"
-                         dst_layer="Diffuse+Effect" dst_param="in_color1" />
-        <connect_shaders src_layer="Diffuse+Effect" src_param="out_color"
+        <connect_shaders src_layer="Diffuse+Effect" src_param="out_outColor"
                          dst_layer="MasterMix" dst_param="in_color1" />
 
         <connect_shaders src_layer="MasterMix" src_param="out_color"
@@ -467,13 +459,14 @@ def _write_material_carpaint(name, material):
             self.g = g
             self.b = b
 
+    # TODO
     return snippet.format(
         n=name,
         s=SHADERS_DIR,
-        c=material.carpaint.basecolor,  # Base
+        c=RGB(1.0, 0.0, 0.0),  # Base
         f=RGB(0.8, 0.8, 0.8),  # Flakes
-        k=material.carpaint.basecolor,  # Coat
-        x=material.carpaint.basecolor,  # FX
+        k=RGB(1.0, 0.0, 0.0),  # Coat
+        x=RGB(0.0, 1.0, 0.0),  # FX
     )
 
 
