@@ -414,7 +414,7 @@ def _write_material_carpaint(name, material):
 
     return snippet.format(
         n=name,
-        s=SHADERS_DIR,
+        s=SHADERS_DIR.encode("unicode_escape").decode("utf-8"),
         c=material.carpaint.basecolor,  # Base
     )
 
