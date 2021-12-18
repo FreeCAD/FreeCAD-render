@@ -23,5 +23,8 @@ Render.Ospray.0003 = baseColor %RED% %GREEN% %BLUE%
 Render.Ospray.0004 = roughness 0.4
 Render.Ospray.0005 = coat 0.8
 Render.Ospray.0006 = coatRoughness 0.1
+Render.Pbrt.0001 = Material "coateddiffuse"
+Render.Pbrt.0002 =   "rgb reflectance" [ %RED% %GREEN% %BLUE% ]
+Render.Pbrt.0003 =   "float roughness" [ 0.1 ]
 
 ; vi: ft=dosini
