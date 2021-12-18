@@ -387,6 +387,24 @@ def _write_material_mixed(name, material):
     )
 
 
+def _write_material_carpaint(name, material):
+    """Compute a string in the renderer SDL for a carpaint material."""
+    snippet = """
+    texture {{
+        pigment {{ rgb <{c.r}, {c.g}, {c.b}> }}
+        finish {{
+            diffuse albedo 0.7
+            phong albedo 0
+            specular albedo 0.6
+            roughness 0.001
+            reflection {{ 0.05 }}
+            irid {{ 0.5 }}
+            conserve_energy
+        }}
+    }}"""
+    return snippet.format(n=name, c=material.carpaint.basecolor)
+
+
 def _write_material_fallback(name, material):
     """Compute a string in the renderer SDL for a fallback material.
 
@@ -414,6 +432,7 @@ MATERIALS = {
     "Disney": _write_material_disney,
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
+    "Carpaint": _write_material_carpaint,
 }
 
 
