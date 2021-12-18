@@ -252,6 +252,15 @@ def _write_material_mixed(name, material):
     return snippet.format(n=name, r=material.mixed.transparency)
 
 
+def _write_material_carpaint(name, material):
+    """Compute a string in the renderer SDL for a carpaint material."""
+    snippet = """
+    scene.materials.{n}.type = carpaint
+    scene.materials.{n}.kd = {c.r} {c.g} {c.b}
+    """
+    return snippet.format(n=name, c=material.carpaint.basecolor)
+
+
 def _write_material_fallback(name, material):
     """Compute a string in the renderer SDL for a fallback material.
 
@@ -277,6 +286,7 @@ MATERIALS = {
     "Disney": _write_material_disney,
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
+    "Carpaint": _write_material_carpaint,
 }
 
 
