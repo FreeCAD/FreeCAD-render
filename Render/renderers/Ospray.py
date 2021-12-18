@@ -528,6 +528,15 @@ opacity {o}
     )
 
 
+def _write_material_carpaint(name, material):
+    """Compute a string in the renderer SDL for a carpaint material."""
+    snippet = """
+type carPaint
+baseColor {c.r} {c.g} {c.b}
+"""
+    return snippet.format(n=name, c=material.carpaint.basecolor)
+
+
 def _write_material_fallback(name, material):
     """Compute a string in the renderer SDL for a fallback material.
 
@@ -554,6 +563,7 @@ MATERIALS = {
     "Disney": _write_material_disney,
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
+    "Carpaint": _write_material_carpaint,
 }
 
 
