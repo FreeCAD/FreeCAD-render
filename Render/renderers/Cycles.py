@@ -408,9 +408,11 @@ def _write_material_carpaint(name, material):
         <fresnel name="{n}_base_fresnel" IOR="1.8"/>
         <connect from="{n}_base_fresnel fac" to="{n}_base_mix fac"/>
 
+        <!-- Base shader -->
         <diffuse_bsdf name="{n}_base_diffuse1" color="{c.r}, {c.g}, {c.b}" roughness="0"/>
         <connect from="{n}_base_diffuse1 bsdf" to="{n}_base_mix closure1"/>
 
+        <!-- Effects shader -->
         <diffuse_bsdf name="{n}_base_diffuse2" color="{x.r}, {x.g}, {x.b}" roughness="0"/>
         <connect from="{n}_base_diffuse2 bsdf" to="{n}_base_mix closure2"/>
     </shader>"""
@@ -418,7 +420,8 @@ def _write_material_carpaint(name, material):
     return snippet.format(
         n=name,
         c=material.carpaint.basecolor,  # Base
-        f=(0.8, 0.8, 0.8),  # Flakes
+        f=material.carpaint.basecolor,
+        # f=(0.8, 0.8, 0.8),  # Flakes TODO
         k=material.carpaint.basecolor,  # Coat
         x=material.carpaint.basecolor,  # FX
     )
