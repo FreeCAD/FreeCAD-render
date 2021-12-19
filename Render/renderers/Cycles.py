@@ -378,7 +378,6 @@ def _write_material_carpaint(name, material):
         <mix_closure name="{n}_main_mix" fac="0.5" />
         <connect from="{n}_main_mix closure" to="output surface"/>
 
-
         <!-- Flakes -->
         <mix_closure name="{n}_flakes_mix"/>
         <connect from="{n}_flakes_mix closure" to="{n}_main_mix closure1"/>
@@ -392,7 +391,7 @@ def _write_material_carpaint(name, material):
         <connect from="{n}_flakes_glossy1 bsdf" to="{n}_flakes_mix closure1"/>
 
         <glossy_bsdf name="{n}_flakes_glossy2"
-                     color="{f.r}, {f.g}, {f.b}"
+                     color="{f[0]}, {f[1]}, {f[2]}"
                      roughness="0.5"/>
         <connect from="{n}_flakes_glossy2 bsdf" to="{n}_flakes_mix closure2"/>
 
@@ -415,16 +414,11 @@ def _write_material_carpaint(name, material):
         <diffuse_bsdf name="{n}_base_diffuse2" color="{x.r}, {x.g}, {x.b}" roughness="0"/>
         <connect from="{n}_base_diffuse2 bsdf" to="{n}_base_mix closure2"/>
     </shader>"""
-    class RGB:  # TODO
-        def __init__(self, r, g, b):
-            self.r = r
-            self.g = g
-            self.b = b
 
     return snippet.format(
         n=name,
         c=material.carpaint.basecolor,  # Base
-        f=RGB(0.8, 0.8, 0.8),  # Flakes
+        f=(0.8, 0.8, 0.8),  # Flakes
         k=material.carpaint.basecolor,  # Coat
         x=material.carpaint.basecolor,  # FX
     )
