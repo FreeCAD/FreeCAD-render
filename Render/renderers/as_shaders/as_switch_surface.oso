@@ -1,0 +1,613 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_switch_surface.oso
+shader as_switch_surface	%meta{string,help,"Material variation utility shader."} %meta{string,icon,"asSwitchSurface.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/material/as_switch_surface.html"} %meta{string,as_node_name,"asSwitchSurface"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"133437029 1618300620"} %meta{string,as_max_plugin_type,"material"} %meta{int,as_maya_type_id,1210878} %meta{string,as_maya_classification,"drawdb/shader/surface:rendernode/appleseed/surface:shader/surface:swatch/AppleseedRenderSwatch"} 
+param	closure color	in_color			%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Input Surface 0"} %meta{string,page,"Surface"}  %read{2,125} %write{2147483647,-1}
+param	closure color	in_color1			%meta{string,as_maya_attribute_name,"color1"} %meta{string,as_maya_attribute_short_name,"c1"} %meta{string,label,"Input Surface 1"} %meta{string,page,"Surface"}  %read{7,126} %write{2147483647,-1}
+param	closure color	in_color2			%meta{string,as_maya_attribute_name,"color2"} %meta{string,as_maya_attribute_short_name,"c2"} %meta{string,label,"Input Surface 2"} %meta{string,page,"Surface"}  %read{12,127} %write{2147483647,-1}
+param	closure color	in_color3			%meta{string,as_maya_attribute_name,"color3"} %meta{string,as_maya_attribute_short_name,"c3"} %meta{string,label,"Input Surface 3"} %meta{string,page,"Surface"}  %read{17,128} %write{2147483647,-1}
+param	closure color	in_color4			%meta{string,as_maya_attribute_name,"color4"} %meta{string,as_maya_attribute_short_name,"c4"} %meta{string,label,"Input Surface 4"} %meta{string,page,"Surface"}  %read{22,129} %write{2147483647,-1}
+param	closure color	in_color5			%meta{string,as_maya_attribute_name,"color5"} %meta{string,as_maya_attribute_short_name,"c5"} %meta{string,label,"Input Surface 5"} %meta{string,page,"Surface"}  %read{27,130} %write{2147483647,-1}
+param	closure color	in_color6			%meta{string,as_maya_attribute_name,"color6"} %meta{string,as_maya_attribute_short_name,"c6"} %meta{string,label,"Input Surface 6"} %meta{string,page,"Surface"}  %read{32,131} %write{2147483647,-1}
+param	closure color	in_color7			%meta{string,as_maya_attribute_name,"color7"} %meta{string,as_maya_attribute_short_name,"c7"} %meta{string,label,"Input Surface 7"} %meta{string,page,"Surface"} %meta{int,divider,1}  %read{37,132} %write{2147483647,-1}
+param	int	in_cycle_mode	0		%meta{string,as_maya_attribute_name,"cycleMode"} %meta{string,as_maya_attribute_short_name,"cm"} %meta{string,widget,"mapper"} %meta{string,options,"Cycle:0|Clamp:1"} %meta{string,label,"Cycle Mode"} %meta{string,page,"Surface"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{105,187} %write{2147483647,-1}
+param	int	in_connected_slots_only	1		%meta{string,as_maya_attribute_name,"connectedSlotsOnly"} %meta{string,as_maya_attribute_short_name,"cso"} %meta{string,widget,"checkBox"} %meta{string,label,"Connected Slots Only"} %meta{string,page,"Surface"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,help,"If on (default), restricts the variation to inputs which have upstream connections only. If off uses all inputs, even if they contain nothing."}  %read{0,0} %write{2147483647,-1}
+param	int	in_manifold_type	0		%meta{string,as_maya_attribute_name,"manifoldType"} %meta{string,as_maya_attribute_short_name,"mty"} %meta{string,widget,"mapper"} %meta{string,options,"Object Name:0|Object Instance Name:1|Assembly Name:2|Assembly Instance Name:3|Face ID:4|String Prefix:5|String Suffix:6|Find String:7"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Type"} %meta{string,page,"Manifold"} %meta{int,divider,1}  %read{57,175} %write{2147483647,-1}
+param	string	in_expression	""		%meta{string,as_maya_attribute_name,"expression"} %meta{string,as_maya_attribute_short_name,"xpr"} %meta{string,widget,"string"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Expression"} %meta{string,page,"Manifold.String"} %meta{string,help,"String expression to search in the object or object instance name."}  %read{76,180} %write{2147483647,-1}
+param	int	in_domain	0		%meta{string,as_maya_attribute_name,"domain"} %meta{string,as_maya_attribute_short_name,"dmn"} %meta{string,widget,"mapper"} %meta{string,options,"Object Name:0|Object Instance Name:1|Assembly Name:2|Assembly Instance Name:3"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Domain"} %meta{string,page,"Manifold.String"} %meta{int,divider,1}  %read{78,166} %write{2147483647,-1}
+param	int	in_seed	51966		%meta{string,as_maya_attribute_name,"seed"} %meta{string,as_maya_attribute_short_name,"see"} %meta{string,widget,"number"} %meta{int,min,0} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,0} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,1} %meta{string,label,"Seed"} %meta{string,page,"Manifold.String"}  %read{92,182} %write{2147483647,-1}
+oparam	closure color	out_outColor			%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,widget,"null"} %meta{string,label,"Output Color"}  %read{2147483647,-1} %write{47,219}
+local	int	___366_rem	%read{191,209} %write{190,208}
+local	string	___368_manifold_str	%read{60,180} %write{53,169}
+local	closure color[8]	___385_surfaces	%read{47,121} %write{6,41}
+local	int	___385_ndx	%read{4,51} %write{1,40}
+local	float	___396_grey_id	%read{115,115} %write{48,102}
+local	color	___396_cell_id	%read{2147483647,-1} %write{49,104}
+local	int	___396_hash_id	%read{101,113} %write{50,100}
+local	int	___396_len	%read{108,116} %write{51,51}
+local	int	___396_index	%read{121,121} %write{113,120}
+local	float	___397_grey_id	%read{212,212} %write{122,184}
+local	color	___397_cell_id	%read{2147483647,-1} %write{123,186}
+local	int	___397_hash_id	%read{183,190} %write{124,182}
+local	closure color[8]	___397_surfaces	%read{133,219} %write{125,132}
+local	int	___397_len	%read{190,213} %write{133,133}
+local	int	___397_index	%read{219,219} %write{209,218}
+const	int	$const1	0		%read{1,205} %write{2147483647,-1}
+temp	int	$tmp1	%read{3,3} %write{2,2}
+const	int	$const2	1		%read{5,213} %write{2147483647,-1}
+temp	int	$tmp2	%read{6,6} %write{4,4}
+temp	int	$tmp3	%read{8,8} %write{7,7}
+temp	int	$tmp4	%read{11,11} %write{9,9}
+temp	int	$tmp5	%read{13,13} %write{12,12}
+temp	int	$tmp6	%read{16,16} %write{14,14}
+temp	int	$tmp7	%read{18,18} %write{17,17}
+temp	int	$tmp8	%read{21,21} %write{19,19}
+temp	int	$tmp9	%read{23,23} %write{22,22}
+temp	int	$tmp10	%read{26,26} %write{24,24}
+temp	int	$tmp11	%read{28,28} %write{27,27}
+temp	int	$tmp12	%read{31,31} %write{29,29}
+temp	int	$tmp13	%read{33,33} %write{32,32}
+temp	int	$tmp14	%read{36,36} %write{34,34}
+temp	int	$tmp15	%read{38,38} %write{37,37}
+temp	int	$tmp16	%read{41,41} %write{39,39}
+temp	int	$tmp17	%read{43,43} %write{42,42}
+temp	int	$tmp18	%read{46,46} %write{45,45}
+const	float	$const3	0		%read{48,217} %write{2147483647,-1}
+const	color	$const4	0 0 0		%read{49,137} %write{2147483647,-1}
+const	string	$const5	"compute_id_manifold"		%read{52,134} %write{2147483647,-1}
+const	string	$const6	""		%read{53,158} %write{2147483647,-1}
+temp	int	$tmp19	%read{58,58} %write{57,57}
+temp	int	$tmp20	%read{2147483647,-1} %write{59,59}
+const	string	$const7	"object:object_name"		%read{59,162} %write{2147483647,-1}
+temp	int	$tmp21	%read{62,62} %write{61,61}
+temp	int	$tmp22	%read{2147483647,-1} %write{63,63}
+const	string	$const8	"object:object_instance_name"		%read{63,165} %write{2147483647,-1}
+const	int	$const9	2		%read{65,166} %write{2147483647,-1}
+temp	int	$tmp23	%read{66,66} %write{65,65}
+temp	int	$tmp24	%read{2147483647,-1} %write{67,67}
+const	string	$const10	"object:assembly_name"		%read{67,168} %write{2147483647,-1}
+const	int	$const11	3		%read{69,151} %write{2147483647,-1}
+temp	int	$tmp25	%read{70,70} %write{69,69}
+temp	int	$tmp26	%read{2147483647,-1} %write{71,71}
+const	string	$const12	"object:assembly_instance_name"		%read{71,169} %write{2147483647,-1}
+const	int	$const13	4		%read{73,155} %write{2147483647,-1}
+temp	int	$tmp27	%read{74,74} %write{73,73}
+temp	int	$tmp28	%read{2147483647,-1} %write{75,75}
+const	string	$const14	"object:face_id"		%read{75,157} %write{2147483647,-1}
+temp	int	$tmp29	%read{77,77} %write{76,76}
+temp	int	$tmp30	%read{79,79} %write{78,78}
+temp	int	$tmp31	%read{2147483647,-1} %write{80,80}
+temp	int	$tmp32	%read{82,82} %write{81,81}
+temp	int	$tmp33	%read{2147483647,-1} %write{83,83}
+temp	int	$tmp34	%read{85,85} %write{84,84}
+temp	int	$tmp35	%read{2147483647,-1} %write{86,86}
+temp	int	$tmp36	%read{2147483647,-1} %write{87,87}
+const	int	$const15	5		%read{88,170} %write{2147483647,-1}
+temp	int	$tmp37	%read{89,89} %write{88,88}
+temp	int	$tmp38	%read{91,91} %write{90,90}
+const	int	$const16	6		%read{93,175} %write{2147483647,-1}
+temp	int	$tmp39	%read{94,94} %write{93,93}
+temp	int	$tmp40	%read{96,96} %write{95,95}
+temp	int	$tmp41	%read{99,99} %write{98,98}
+temp	float	$tmp42	%read{102,102} %write{101,101}
+temp	float	$tmp43	%read{104,104} %write{103,103}
+temp	int	$tmp44	%read{106,106} %write{105,105}
+const	string	$const17	"mod"		%read{107,107} %write{2147483647,-1}
+temp	float	$tmp45	%read{111,111} %write{110,110}
+temp	int	$tmp46	%read{109,109} %write{108,108}
+temp	float	$tmp47	%read{110,110} %write{109,109}
+temp	int	$tmp48	%read{112,112} %write{111,111}
+temp	int	$tmp49	%read{113,113} %write{112,112}
+temp	float	$tmp50	%read{120,120} %write{119,119}
+temp	float	$tmp51	%read{118,118} %write{115,115}
+temp	float	$tmp52	%read{115,115} %write{114,114}
+temp	float	$tmp53	%read{118,118} %write{116,116}
+const	string	$const18	"clamp"		%read{117,215} %write{2147483647,-1}
+temp	float	$tmp54	%read{119,119} %write{118,118}
+const	int	$const19	7		%read{132,132} %write{2147483647,-1}
+temp	int	$tmp55	%read{140,140} %write{139,139}
+temp	int	$tmp56	%read{2147483647,-1} %write{141,141}
+temp	int	$tmp57	%read{144,144} %write{143,143}
+temp	int	$tmp58	%read{2147483647,-1} %write{145,145}
+temp	int	$tmp59	%read{148,148} %write{147,147}
+temp	int	$tmp60	%read{2147483647,-1} %write{149,149}
+temp	int	$tmp61	%read{152,152} %write{151,151}
+temp	int	$tmp62	%read{2147483647,-1} %write{153,153}
+temp	int	$tmp63	%read{156,156} %write{155,155}
+temp	int	$tmp64	%read{2147483647,-1} %write{157,157}
+temp	int	$tmp65	%read{159,159} %write{158,158}
+temp	int	$tmp66	%read{161,161} %write{160,160}
+temp	int	$tmp67	%read{2147483647,-1} %write{162,162}
+temp	int	$tmp68	%read{164,164} %write{163,163}
+temp	int	$tmp69	%read{2147483647,-1} %write{165,165}
+temp	int	$tmp70	%read{167,167} %write{166,166}
+temp	int	$tmp71	%read{2147483647,-1} %write{168,168}
+temp	int	$tmp72	%read{2147483647,-1} %write{169,169}
+temp	int	$tmp73	%read{171,171} %write{170,170}
+temp	int	$tmp74	%read{173,173} %write{172,172}
+temp	int	$tmp75	%read{176,176} %write{175,175}
+temp	int	$tmp76	%read{178,178} %write{177,177}
+temp	int	$tmp77	%read{181,181} %write{180,180}
+temp	float	$tmp78	%read{184,184} %write{183,183}
+temp	float	$tmp79	%read{186,186} %write{185,185}
+temp	int	$tmp80	%read{188,188} %write{187,187}
+const	string	$const20	"remainder"		%read{189,189} %write{2147483647,-1}
+temp	int	$tmp81	%read{192,192} %write{191,191}
+temp	int	$tmp82	%read{193,197} %write{192,196}
+temp	int	$tmp83	%read{195,195} %write{194,194}
+temp	int	$tmp84	%read{196,196} %write{195,195}
+temp	int	$tmp85	%read{198,207} %write{197,206}
+temp	int	$tmp86	%read{200,200} %write{199,199}
+temp	int	$tmp87	%read{201,205} %write{200,204}
+temp	int	$tmp88	%read{203,203} %write{202,202}
+temp	int	$tmp89	%read{204,204} %write{203,203}
+temp	int	$tmp90	%read{206,206} %write{205,205}
+temp	float	$tmp91	%read{218,218} %write{217,217}
+temp	int	$tmp92	%read{211,211} %write{210,210}
+temp	float	$tmp93	%read{216,216} %write{212,212}
+temp	float	$tmp94	%read{212,212} %write{211,211}
+temp	int	$tmp95	%read{214,214} %write{213,213}
+temp	float	$tmp96	%read{216,216} %write{214,214}
+temp	float	$tmp97	%read{217,217} %write{216,216}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:202
+#     if (in_connected_slots_only)
+	if		in_connected_slots_only 122 220 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{202} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:205
+#         int ndx = 0;
+	assign		___385_ndx $const1 	%line{205} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:207
+#         if (isconnected(in_color))
+	isconnected	$tmp1 in_color 	%line{207} %argrw{"wr"}
+	if		$tmp1 7 7 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:209
+#             surfaces[ndx++] = in_color;
+	assign		$tmp2 ___385_ndx 	%line{209} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp2 in_color 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:211
+#         if (isconnected(in_color1))
+	isconnected	$tmp3 in_color1 	%line{211} %argrw{"wr"}
+	if		$tmp3 12 12 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:213
+#             surfaces[ndx++] = in_color1;
+	assign		$tmp4 ___385_ndx 	%line{213} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp4 in_color1 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:215
+#         if (isconnected(in_color2))
+	isconnected	$tmp5 in_color2 	%line{215} %argrw{"wr"}
+	if		$tmp5 17 17 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:217
+#             surfaces[ndx++] = in_color2;
+	assign		$tmp6 ___385_ndx 	%line{217} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp6 in_color2 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:219
+#         if (isconnected(in_color3))
+	isconnected	$tmp7 in_color3 	%line{219} %argrw{"wr"}
+	if		$tmp7 22 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:221
+#             surfaces[ndx++] = in_color3;
+	assign		$tmp8 ___385_ndx 	%line{221} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp8 in_color3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:223
+#         if (isconnected(in_color4))
+	isconnected	$tmp9 in_color4 	%line{223} %argrw{"wr"}
+	if		$tmp9 27 27 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:225
+#             surfaces[ndx++] = in_color4;
+	assign		$tmp10 ___385_ndx 	%line{225} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp10 in_color4 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:227
+#         if (isconnected(in_color5))
+	isconnected	$tmp11 in_color5 	%line{227} %argrw{"wr"}
+	if		$tmp11 32 32 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:229
+#             surfaces[ndx++] = in_color5;
+	assign		$tmp12 ___385_ndx 	%line{229} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp12 in_color5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:231
+#         if (isconnected(in_color6))
+	isconnected	$tmp13 in_color6 	%line{231} %argrw{"wr"}
+	if		$tmp13 37 37 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:233
+#             surfaces[ndx++] = in_color6;
+	assign		$tmp14 ___385_ndx 	%line{233} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp14 in_color6 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:235
+#         if (isconnected(in_color7))
+	isconnected	$tmp15 in_color7 	%line{235} %argrw{"wr"}
+	if		$tmp15 42 42 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:237
+#             surfaces[ndx++] = in_color7;
+	assign		$tmp16 ___385_ndx 	%line{237} %argrw{"wr"}
+	add		___385_ndx ___385_ndx $const2 	%argrw{"wrr"}
+	aassign		___385_surfaces $tmp16 in_color7 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:240
+#         if (ndx == 0)
+	eq		$tmp17 ___385_ndx $const1 	%line{240} %argrw{"wrr"}
+	if		$tmp17 45 122 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:242
+#             return;
+	exit	%line{242}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:244
+#         else if (ndx == 1)
+	eq		$tmp18 ___385_ndx $const2 	%line{244} %argrw{"wrr"}
+	if		$tmp18 48 122 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:246
+#             out_outColor = surfaces[0];
+	aref		out_outColor ___385_surfaces $const1 	%line{246} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:250
+#             float grey_id = 0.0;
+	assign		___396_grey_id $const3 	%line{250} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:251
+#             color cell_id = color(0);
+	assign		___396_cell_id $const4 	%line{251} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:252
+#             int hash_id = 0, len = ndx - 1;
+	assign		___396_hash_id $const1 	%line{252} %argrw{"wr"}
+	sub		___396_len ___385_ndx $const2 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:254
+#             compute_id_manifold(
+	functioncall	$const5 105 	%line{254} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:39
+#     string manifold_str = "";
+	assign		___368_manifold_str $const6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h"} %line{39} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:41
+#     hash_id = 0;
+	assign		___396_hash_id $const1 	%line{41} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:42
+#     color_id = color(0);
+	assign		___396_cell_id $const4 	%line{42} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:43
+#     greyscale_id = 0.0;
+	assign		___396_grey_id $const3 	%line{43} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:45
+#     if (manifold_type == 0)
+	eq		$tmp19 in_manifold_type $const1 	%line{45} %argrw{"wrr"}
+	if		$tmp19 61 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:47
+#         getattribute("object:object_name", manifold_str);
+	getattribute	$tmp20 $const7 ___368_manifold_str 	%line{47} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:48
+#         hash_id = hash(manifold_str);
+	hash		___396_hash_id ___368_manifold_str 	%line{48} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:50
+#     else if (manifold_type == 1)
+	eq		$tmp21 in_manifold_type $const2 	%line{50} %argrw{"wrr"}
+	if		$tmp21 65 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:52
+#         getattribute("object:object_instance_name", manifold_str);
+	getattribute	$tmp22 $const8 ___368_manifold_str 	%line{52} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:53
+#         hash_id= hash(manifold_str);
+	hash		___396_hash_id ___368_manifold_str 	%line{53} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:55
+#     else if (manifold_type == 2)
+	eq		$tmp23 in_manifold_type $const9 	%line{55} %argrw{"wrr"}
+	if		$tmp23 69 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:57
+#         getattribute("object:assembly_name", manifold_str);
+	getattribute	$tmp24 $const10 ___368_manifold_str 	%line{57} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:58
+#         hash_id = hash(manifold_str);
+	hash		___396_hash_id ___368_manifold_str 	%line{58} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:60
+#     else if (manifold_type == 3)
+	eq		$tmp25 in_manifold_type $const11 	%line{60} %argrw{"wrr"}
+	if		$tmp25 73 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:62
+#         getattribute("object:assembly_instance_name", manifold_str);
+	getattribute	$tmp26 $const12 ___368_manifold_str 	%line{62} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:63
+#         hash_id = hash(manifold_str);
+	hash		___396_hash_id ___368_manifold_str 	%line{63} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:65
+#     else if (manifold_type == 4)
+	eq		$tmp27 in_manifold_type $const13 	%line{65} %argrw{"wrr"}
+	if		$tmp27 76 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:67
+#         getattribute("object:face_id", hash_id);
+	getattribute	$tmp28 $const14 ___396_hash_id 	%line{67} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:69
+#     else if (expression != "")
+	neq		$tmp29 in_expression $const6 	%line{69} %argrw{"wrr"}
+	if		$tmp29 101 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:71
+#         if (domain == 0)
+	eq		$tmp30 in_domain $const1 	%line{71} %argrw{"wrr"}
+	if		$tmp30 81 88 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:73
+#             getattribute("object:object_name", manifold_str);
+	getattribute	$tmp31 $const7 ___368_manifold_str 	%line{73} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:75
+#         else if (domain == 1)
+	eq		$tmp32 in_domain $const2 	%line{75} %argrw{"wrr"}
+	if		$tmp32 84 88 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:77
+#             getattribute("object:object_instance_name", manifold_str);
+	getattribute	$tmp33 $const8 ___368_manifold_str 	%line{77} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:79
+#         else if (domain == 2)
+	eq		$tmp34 in_domain $const9 	%line{79} %argrw{"wrr"}
+	if		$tmp34 87 88 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:81
+#             getattribute("object:assembly_name", manifold_str);
+	getattribute	$tmp35 $const10 ___368_manifold_str 	%line{81} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:85
+#             getattribute("object:assembly_instance_name", manifold_str);
+	getattribute	$tmp36 $const12 ___368_manifold_str 	%line{85} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:88
+#         if (manifold_type == 5)
+	eq		$tmp37 in_manifold_type $const15 	%line{88} %argrw{"wrr"}
+	if		$tmp37 93 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:90
+#             if (startswith(manifold_str, expression))
+	startswith	$tmp38 ___368_manifold_str in_expression 	%line{90} %argrw{"wrr"}
+	if		$tmp38 93 93 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:92
+#                 hash_id = hash(seed);
+	hash		___396_hash_id in_seed 	%line{92} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:95
+#         else if (manifold_type == 6)
+	eq		$tmp39 in_manifold_type $const16 	%line{95} %argrw{"wrr"}
+	if		$tmp39 98 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:97
+#             if (endswith(manifold_str, expression))
+	endswith	$tmp40 ___368_manifold_str in_expression 	%line{97} %argrw{"wrr"}
+	if		$tmp40 98 98 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:99
+#                 hash_id = hash(seed);
+	hash		___396_hash_id in_seed 	%line{99} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:102
+#         else if (regex_search(manifold_str, expression))
+	regex_search	$tmp41 ___368_manifold_str in_expression 	%line{102} %argrw{"wrr"}
+	if		$tmp41 101 101 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:104
+#             hash_id = hash(seed);
+	hash		___396_hash_id in_seed 	%line{104} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:108
+#     greyscale_id = (float) cellnoise(hash_id);
+	assign		$tmp42 ___396_hash_id 	%line{108} %argrw{"wr"}
+	cellnoise	___396_grey_id $tmp42 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:109
+#     color_id = (color) cellnoise(hash_id);
+	assign		$tmp43 ___396_hash_id 	%line{109} %argrw{"wr"}
+	cellnoise	___396_cell_id $tmp43 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:263
+#             int index = (in_cycle_mode == 0)
+	eq		$tmp44 in_cycle_mode $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{263} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:264
+#                 ? (int) mod(hash_id, len)
+	if		$tmp44 114 121 	%line{264} %argrw{"r"}
+	functioncall	$const17 114 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:127
+# int    mod (int    a, int    b) { return a - b*(int)floor(a/b); }
+	div		$tmp46 ___396_hash_id ___396_len 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{127} %argrw{"wrr"}
+	assign		$tmp47 $tmp46 	%argrw{"wr"}
+	floor		$tmp45 $tmp47 	%argrw{"wr"}
+	assign		$tmp48 $tmp45 	%argrw{"wr"}
+	mul		$tmp49 ___396_len $tmp48 	%argrw{"wrr"}
+	sub		___396_index ___396_hash_id $tmp49 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:265
+#                 : (int) clamp(grey_id * len, 0, len);
+	assign		$tmp52 ___396_len 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{265} %argrw{"wr"}
+	mul		$tmp51 ___396_grey_id $tmp52 	%argrw{"wrr"}
+	assign		$tmp53 ___396_len 	%argrw{"wr"}
+	functioncall	$const18 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp54 $tmp51 $tmp53 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		$tmp50 $tmp54 $const3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:265
+#                 : (int) clamp(grey_id * len, 0, len);
+	assign		___396_index $tmp50 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{265} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:267
+#             out_outColor = surfaces[index];
+	aref		out_outColor ___385_surfaces ___396_index 	%line{267} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:272
+#         float grey_id = 0.0;
+	assign		___397_grey_id $const3 	%line{272} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:273
+#         color cell_id = color(0);
+	assign		___397_cell_id $const4 	%line{273} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:274
+#         int hash_id = 0;
+	assign		___397_hash_id $const1 	%line{274} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:276
+#         closure color surfaces[8] = {
+	aassign		___397_surfaces $const1 in_color 	%line{276} %argrw{"wrr"}
+	aassign		___397_surfaces $const2 in_color1 	%argrw{"wrr"}
+	aassign		___397_surfaces $const9 in_color2 	%argrw{"wrr"}
+	aassign		___397_surfaces $const11 in_color3 	%argrw{"wrr"}
+	aassign		___397_surfaces $const13 in_color4 	%argrw{"wrr"}
+	aassign		___397_surfaces $const15 in_color5 	%argrw{"wrr"}
+	aassign		___397_surfaces $const16 in_color6 	%argrw{"wrr"}
+	aassign		___397_surfaces $const19 in_color7 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:280
+#         int len = arraylength(surfaces);
+	arraylength	___397_len ___397_surfaces 	%line{280} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:282
+#         compute_id_manifold(
+	functioncall	$const5 187 	%line{282} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:39
+#     string manifold_str = "";
+	assign		___368_manifold_str $const6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h"} %line{39} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:41
+#     hash_id = 0;
+	assign		___397_hash_id $const1 	%line{41} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:42
+#     color_id = color(0);
+	assign		___397_cell_id $const4 	%line{42} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:43
+#     greyscale_id = 0.0;
+	assign		___397_grey_id $const3 	%line{43} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:45
+#     if (manifold_type == 0)
+	eq		$tmp55 in_manifold_type $const1 	%line{45} %argrw{"wrr"}
+	if		$tmp55 143 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:47
+#         getattribute("object:object_name", manifold_str);
+	getattribute	$tmp56 $const7 ___368_manifold_str 	%line{47} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:48
+#         hash_id = hash(manifold_str);
+	hash		___397_hash_id ___368_manifold_str 	%line{48} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:50
+#     else if (manifold_type == 1)
+	eq		$tmp57 in_manifold_type $const2 	%line{50} %argrw{"wrr"}
+	if		$tmp57 147 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:52
+#         getattribute("object:object_instance_name", manifold_str);
+	getattribute	$tmp58 $const8 ___368_manifold_str 	%line{52} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:53
+#         hash_id= hash(manifold_str);
+	hash		___397_hash_id ___368_manifold_str 	%line{53} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:55
+#     else if (manifold_type == 2)
+	eq		$tmp59 in_manifold_type $const9 	%line{55} %argrw{"wrr"}
+	if		$tmp59 151 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:57
+#         getattribute("object:assembly_name", manifold_str);
+	getattribute	$tmp60 $const10 ___368_manifold_str 	%line{57} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:58
+#         hash_id = hash(manifold_str);
+	hash		___397_hash_id ___368_manifold_str 	%line{58} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:60
+#     else if (manifold_type == 3)
+	eq		$tmp61 in_manifold_type $const11 	%line{60} %argrw{"wrr"}
+	if		$tmp61 155 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:62
+#         getattribute("object:assembly_instance_name", manifold_str);
+	getattribute	$tmp62 $const12 ___368_manifold_str 	%line{62} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:63
+#         hash_id = hash(manifold_str);
+	hash		___397_hash_id ___368_manifold_str 	%line{63} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:65
+#     else if (manifold_type == 4)
+	eq		$tmp63 in_manifold_type $const13 	%line{65} %argrw{"wrr"}
+	if		$tmp63 158 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:67
+#         getattribute("object:face_id", hash_id);
+	getattribute	$tmp64 $const14 ___397_hash_id 	%line{67} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:69
+#     else if (expression != "")
+	neq		$tmp65 in_expression $const6 	%line{69} %argrw{"wrr"}
+	if		$tmp65 183 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:71
+#         if (domain == 0)
+	eq		$tmp66 in_domain $const1 	%line{71} %argrw{"wrr"}
+	if		$tmp66 163 170 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:73
+#             getattribute("object:object_name", manifold_str);
+	getattribute	$tmp67 $const7 ___368_manifold_str 	%line{73} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:75
+#         else if (domain == 1)
+	eq		$tmp68 in_domain $const2 	%line{75} %argrw{"wrr"}
+	if		$tmp68 166 170 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:77
+#             getattribute("object:object_instance_name", manifold_str);
+	getattribute	$tmp69 $const8 ___368_manifold_str 	%line{77} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:79
+#         else if (domain == 2)
+	eq		$tmp70 in_domain $const9 	%line{79} %argrw{"wrr"}
+	if		$tmp70 169 170 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:81
+#             getattribute("object:assembly_name", manifold_str);
+	getattribute	$tmp71 $const10 ___368_manifold_str 	%line{81} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:85
+#             getattribute("object:assembly_instance_name", manifold_str);
+	getattribute	$tmp72 $const12 ___368_manifold_str 	%line{85} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:88
+#         if (manifold_type == 5)
+	eq		$tmp73 in_manifold_type $const15 	%line{88} %argrw{"wrr"}
+	if		$tmp73 175 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:90
+#             if (startswith(manifold_str, expression))
+	startswith	$tmp74 ___368_manifold_str in_expression 	%line{90} %argrw{"wrr"}
+	if		$tmp74 175 175 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:92
+#                 hash_id = hash(seed);
+	hash		___397_hash_id in_seed 	%line{92} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:95
+#         else if (manifold_type == 6)
+	eq		$tmp75 in_manifold_type $const16 	%line{95} %argrw{"wrr"}
+	if		$tmp75 180 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:97
+#             if (endswith(manifold_str, expression))
+	endswith	$tmp76 ___368_manifold_str in_expression 	%line{97} %argrw{"wrr"}
+	if		$tmp76 180 180 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:99
+#                 hash_id = hash(seed);
+	hash		___397_hash_id in_seed 	%line{99} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:102
+#         else if (regex_search(manifold_str, expression))
+	regex_search	$tmp77 ___368_manifold_str in_expression 	%line{102} %argrw{"wrr"}
+	if		$tmp77 183 183 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:104
+#             hash_id = hash(seed);
+	hash		___397_hash_id in_seed 	%line{104} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:108
+#     greyscale_id = (float) cellnoise(hash_id);
+	assign		$tmp78 ___397_hash_id 	%line{108} %argrw{"wr"}
+	cellnoise	___397_grey_id $tmp78 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/transform/as_transform_helpers.h:109
+#     color_id = (color) cellnoise(hash_id);
+	assign		$tmp79 ___397_hash_id 	%line{109} %argrw{"wr"}
+	cellnoise	___397_cell_id $tmp79 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:291
+#         int index = (in_cycle_mode == 0)
+	eq		$tmp80 in_cycle_mode $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{291} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:292
+#             ? (int) remainder(hash_id, len)
+	if		$tmp80 210 219 	%line{292} %argrw{"r"}
+	functioncall	$const20 210 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:89
+#     int rem = x % y;
+	mod		___366_rem ___397_hash_id ___397_len 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h"} %line{89} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:90
+#     if ((rem > 0 && y < 0) || (rem < 0 && y > 0)) rem += y;
+	gt		$tmp81 ___366_rem $const1 	%line{90} %argrw{"wrr"}
+	neq		$tmp82 $tmp81 $const1 	%argrw{"wrr"}
+	if		$tmp82 197 197 	%argrw{"r"}
+	lt		$tmp83 ___397_len $const1 	%argrw{"wrr"}
+	neq		$tmp84 $tmp83 $const1 	%argrw{"wrr"}
+	assign		$tmp82 $tmp84 	%argrw{"wr"}
+	neq		$tmp85 $tmp82 $const1 	%argrw{"wrr"}
+	if		$tmp85 199 207 	%argrw{"r"}
+	lt		$tmp86 ___366_rem $const1 	%argrw{"wrr"}
+	neq		$tmp87 $tmp86 $const1 	%argrw{"wrr"}
+	if		$tmp87 205 205 	%argrw{"r"}
+	gt		$tmp88 ___397_len $const1 	%argrw{"wrr"}
+	neq		$tmp89 $tmp88 $const1 	%argrw{"wrr"}
+	assign		$tmp87 $tmp89 	%argrw{"wr"}
+	neq		$tmp90 $tmp87 $const1 	%argrw{"wrr"}
+	assign		$tmp85 $tmp90 	%argrw{"wr"}
+	if		$tmp85 209 209 	%argrw{"r"}
+	add		___366_rem ___366_rem ___397_len 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/math/as_math_helpers.h:91
+#     return rem;
+	assign		___397_index ___366_rem 	%line{91} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:293
+#             : (int) clamp(grey_id * (len - 1), 0, len - 1);
+	sub		$tmp92 ___397_len $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{293} %argrw{"wrr"}
+	assign		$tmp94 $tmp92 	%argrw{"wr"}
+	mul		$tmp93 ___397_grey_id $tmp94 	%argrw{"wrr"}
+	sub		$tmp95 ___397_len $const2 	%argrw{"wrr"}
+	assign		$tmp96 $tmp95 	%argrw{"wr"}
+	functioncall	$const18 218 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp97 $tmp93 $tmp96 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		$tmp91 $tmp97 $const3 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:293
+#             : (int) clamp(grey_id * (len - 1), 0, len - 1);
+	assign		___397_index $tmp91 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl"} %line{293} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_switch_surface.osl:295
+#         out_outColor = surfaces[index];
+	aref		out_outColor ___397_surfaces ___397_index 	%line{295} %argrw{"wrr"}
+	end

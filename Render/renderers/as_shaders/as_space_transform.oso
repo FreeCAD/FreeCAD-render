@@ -1,0 +1,34 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_space_transform.oso
+shader as_space_transform	%meta{string,help,"Coordinate system transform node."} %meta{string,icon,"asSpaceTransform.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_space_transform.html"} %meta{string,as_node_name,"asSpaceTransform"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"170548947 1158424113"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210864} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	point	in_point	0 0 0		%meta{string,as_maya_attribute_name,"point"} %meta{string,as_maya_attribute_short_name,"p"} %meta{string,label,"Point to Transform"} %meta{string,page,"Input"}  %read{0,0} %write{2147483647,-1}
+param	normal	in_normal	0 0 0		%meta{string,as_maya_attribute_name,"normal"} %meta{string,as_maya_attribute_short_name,"n"} %meta{string,label,"Normal to Transform"} %meta{string,page,"Input"}  %read{1,1} %write{2147483647,-1}
+param	vector	in_vector	0 0 0		%meta{string,as_maya_attribute_name,"vector"} %meta{string,as_maya_attribute_short_name,"ive"} %meta{string,label,"Vector to Transform"} %meta{string,page,"Input"} %meta{int,divider,1}  %read{2,2} %write{2147483647,-1}
+param	string	in_from_space	"common"		%meta{string,as_maya_attribute_name,"fromSpace"} %meta{string,as_maya_attribute_short_name,"fsp"} %meta{string,widget,"popup"} %meta{string,options,"common|object|shader|world|camera|screen|raster|NDC"} %meta{string,label,"From Space"} %meta{string,page,"Space"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{0,2} %write{2147483647,-1}
+param	string	in_to_space	"common"		%meta{string,as_maya_attribute_name,"toSpace"} %meta{string,as_maya_attribute_short_name,"tsp"} %meta{string,widget,"popup"} %meta{string,options,"common|object|shader|world|camera|screen|raster|NDC"} %meta{string,label,"To Space"} %meta{string,page,"Space"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{0,2} %write{2147483647,-1}
+param	int	in_normalize_vectors	0		%meta{string,as_maya_attribute_name,"normalizeVectors"} %meta{string,as_maya_attribute_sort_name,"nve"} %meta{string,widget,"checkBox"} %meta{string,label,"Normalize Output Vectors"} %meta{string,page,"Space"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{3,3} %write{2147483647,-1}
+oparam	point	out_transformed_point	0 0 0		%meta{string,as_maya_attribute_name,"outTransformedPoint"} %meta{string,as_maya_attribute_short_name,"tpo"} %meta{string,label,"Transformed Point"}  %read{2147483647,-1} %write{0,0}
+oparam	normal	out_transformed_normal	0 0 0		%meta{string,as_maya_attribute_name,"outTransformedNormal"} %meta{string,as_maya_attribute_short_name,"tno"} %meta{string,label,"Transformed Normal"}  %read{4,4} %write{1,4}
+oparam	vector	out_transformed_vector	0 0 0		%meta{string,as_maya_attribute_name,"outTransformedVector"} %meta{string,as_maya_attribute_short_name,"tve"} %meta{string,label,"Transformed Vector"}  %read{5,5} %write{2,5}
+oparam	matrix	out_transform_matrix	1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1		%meta{string,as_maya_attribute_name,"outTransformMatrix"} %meta{string,as_maya_attribute_short_name,"oma"} %meta{string,label,"Transform Matrix"}  %read{2147483647,-1} %write{2147483647,-1}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl:137
+#     out_transformed_point = transform(in_from_space, in_to_space, in_point);
+	transform	out_transformed_point in_from_space in_to_space in_point 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl"} %line{137} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl:138
+#     out_transformed_normal = transform(in_from_space, in_to_space, in_normal);
+	transformn	out_transformed_normal in_from_space in_to_space in_normal 	%line{138} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl:139
+#     out_transformed_vector = transform(in_from_space, in_to_space, in_vector);
+	transformv	out_transformed_vector in_from_space in_to_space in_vector 	%line{139} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl:141
+#     if (in_normalize_vectors)
+	if		in_normalize_vectors 6 6 	%line{141} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl:143
+#         out_transformed_normal = normalize(out_transformed_normal);
+	normalize	out_transformed_normal out_transformed_normal 	%line{143} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_space_transform.osl:144
+#         out_transformed_vector = normalize(out_transformed_vector);
+	normalize	out_transformed_vector out_transformed_vector 	%line{144} %argrw{"wr"}
+	end

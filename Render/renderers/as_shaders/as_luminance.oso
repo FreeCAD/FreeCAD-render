@@ -1,0 +1,1294 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_luminance.oso
+shader as_luminance	%meta{string,icon,"asLuminance.png"} %meta{string,help,"A node that outputs the (color space-aware) relative luminance of a color."} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_luminance.html"} %meta{string,as_node_name,"asLuminance"} %meta{string,as_category,"color"} %meta{string,as_max_class_id,"1648771987 792674094"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210829} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	color	in_color	0.5 0.5 0.5		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Input Color"} %meta{string,page,"Color"}  %read{0,440} %write{2147483647,-1}
+param	int	in_deriveFromMayaCMS	1		%meta{string,as_maya_attribute_name,"deriveFromMayaCMS"} %meta{string,as_maya_attribute_short_name,"dm"} %meta{string,widget,"checkBox"} %meta{string,label,"Use Maya CMS"} %meta{string,page,"Color Space"} %meta{int,divider,1} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2,2} %write{2147483647,-1}
+param	int	in_inputColorSpace	0		%meta{string,as_maya_attribute_name,"inputColorSpace"} %meta{string,as_maya_attribute_short_name,"is"} %meta{int,as_maya_attribute_keyable,4} %meta{string,widget,"mapper"} %meta{string,options,"ACES 2065-1 AP0:0|ACEScg AP1:1|Rec.2020:2|DCI-P3:3|Rec.709 or sRGB:4|Chromaticity Coordinates:5"} %meta{string,label,"Input Color Space"} %meta{string,page,"Color Space"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{22,428} %write{2147483647,-1}
+param	float[2]	in_chromaticityCoordsR	0.639999986 0.330000013		%meta{string,as_maya_attribute_name,"chromaticityCoordsR"} %meta{string,as_maya_attribute_short_name,"pr"} %meta{int,as_maya_attribute_keyable,0} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"R xy Coordinates"} %meta{string,page,"Color Space.RGB Primaries"}  %read{24,25} %write{2147483647,-1}
+param	float[2]	in_chromaticityCoordsG	0.300000012 0.600000024		%meta{string,as_maya_attribute_name,"chromaticityCoordsG"} %meta{string,as_maya_attribute_short_name,"pg"} %meta{int,as_maya_attribute_keyable,0} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"G xy Coordinates"} %meta{string,page,"Color Space.RGB Primaries"}  %read{49,50} %write{2147483647,-1}
+param	float[2]	in_chromaticityCoordsB	0.150000006 0.0599999987		%meta{string,as_maya_attribute_name,"chromaticityCoordsB"} %meta{string,as_maya_attribute_short_name,"pb"} %meta{int,as_maya_attribute_keyable,0} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"B xy Coordinates"} %meta{string,page,"Color Space.RGB Primaries"} %meta{int,divider,1}  %read{74,75} %write{2147483647,-1}
+param	int	in_inputIlluminants	0		%meta{string,as_maya_attribute_name,"inputIlluminants"} %meta{string,as_maya_attribute_short_name,"ii"} %meta{string,widget,"mapper"} %meta{string,options,"Standard Illuminant D50:0|Standard Illuminant D55:1|Standard Illuminant D60:2|Standard Illuminant D65:3|Standard Illuminant D75:4|DCI White Point:5|Equal Energy White Point E:6|Correlated Color Temperature:7|WP Chromaticity Coordinates:8"} %meta{string,label,"Illuminants"} %meta{string,page,"Color Space.Illuminants"} %meta{string,help,"Preset illuminants, correlated color temperature or explicit white point xy chromaticity coordinates."} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{99,188} %write{2147483647,-1}
+param	int	in_colorTemperature	6504		%meta{string,as_maya_attribute_name,"colorTemperature"} %meta{string,as_maya_attribute_short_name,"ct"} %meta{int,min,1667} %meta{int,max,25000} %meta{string,label,"Color Temperature"} %meta{string,page,"Color Space.Illuminants"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,1} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,1}  %read{190,277} %write{2147483647,-1}
+param	float[2]	in_chromaticityCoordsW	0.312700003 0.328999996		%meta{string,as_maya_attribute_name,"chromaticityCoordsW"} %meta{string,as_maya_attribute_short_name,"pw"} %meta{int,as_maya_attribute_keyable,0} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"W xy Coordinates"} %meta{string,page,"Color Space.Illuminants"}  %read{318,319} %write{2147483647,-1}
+param	int	in_colorProfile	0		%meta{string,as_maya_attribute_name,"colorProfile"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{string,label,"Color Profile"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+param	int	in_ignoreColorSpaceFileRules	0		%meta{string,as_maya_attribute_name,"ignoreColorSpaceFileRules"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{string,label,"Ignore Color Space File Rules"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+param	string	in_colorSpace	""		%meta{string,as_maya_attribute_name,"colorSpace"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{string,label,"Color Space"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+param	string	in_workingSpace	""		%meta{string,as_maya_attribute_name,"workingSpace"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Working Space"}  %read{6,18} %write{2147483647,-1}
+param	int	in_colorManagementEnabled	0		%meta{string,as_maya_attribute_name,"colorManagementEnabled"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{string,label,"Color Management Enabled"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{3,3} %write{2147483647,-1}
+param	int	in_colorManagementConfigFileEnabled	0		%meta{string,as_maya_attribute_name,"colorManagementConfigFileEnabled"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{string,label,"Enable CMS Config"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+param	string	in_colorManagementConfigFilePath	""		%meta{string,as_maya_attribute_name,"colorManagementConfigFilePath"} %meta{int,as_maya_attribute_hidden,1} %meta{string,widget,"null"} %meta{string,label,"Color Management Config File Path"} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+oparam	float	out_result	0		%meta{string,as_maya_attribute_name,"result"} %meta{string,as_maya_attribute_short_name,"r"} %meta{string,widget,"null"}  %read{2147483647,-1} %write{442,443}
+local	vector	___387_white_CIExyY	%read{141,141} %write{124,140}
+local	float	___430_x	%read{241,291} %write{238,290}
+local	float	___430_y	%read{290,292} %write{248,289}
+local	color	___705_coeffs	%read{432,439} %write{5,431}
+local	color[4]	___716_RGBW	%read{343,412} %write{48,342}
+local	string	___717_illuminant	%read{122,137} %write{101,119}
+local	float[2]	___727_Tc_xy	%read{293,294} %write{291,292}
+local	matrix	___716_M	%read{364,401} %write{363,363}
+local	float	___716_Sr	%read{408,408} %write{377,377}
+local	float	___716_Sg	%read{411,411} %write{391,391}
+local	float	___716_Sb	%read{414,414} %write{405,405}
+const	int	$const1	0		%read{0,433} %write{2147483647,-1}
+temp	int	$tmp1	%read{1,1} %write{0,0}
+temp	int	$tmp2	%read{4,4} %write{3,3}
+const	color	$const2	0.212639004 0.715168655 0.0721923187		%read{5,430} %write{2147483647,-1}
+const	string	$const3	"ACES2065-1"		%read{6,6} %write{2147483647,-1}
+temp	int	$tmp3	%read{7,7} %write{6,6}
+const	color	$const4	0.343966454 0.728166103 -0.0721325502		%read{8,421} %write{2147483647,-1}
+const	string	$const5	"ACEScg"		%read{9,9} %write{2147483647,-1}
+temp	int	$tmp4	%read{10,10} %write{9,9}
+const	string	$const6	"scene-linear Rec 2020"		%read{12,12} %write{2147483647,-1}
+temp	int	$tmp5	%read{13,13} %write{12,12}
+const	color	$const7	0.2627002 0.677998066 0.0593017191		%read{14,424} %write{2147483647,-1}
+const	string	$const8	"scene-linear DCI-P3"		%read{15,15} %write{2147483647,-1}
+temp	int	$tmp6	%read{16,16} %write{15,15}
+const	color	$const9	0.209491685 0.721595228 0.0689130723		%read{17,427} %write{2147483647,-1}
+const	string	$const10	"scene-linear Rec 709/sRGB"		%read{18,18} %write{2147483647,-1}
+temp	int	$tmp7	%read{19,19} %write{18,18}
+const	color	$const11	0 0 0		%read{21,431} %write{2147483647,-1}
+const	int	$const12	5		%read{22,117} %write{2147483647,-1}
+temp	int	$tmp8	%read{23,23} %write{22,22}
+temp	color	$tmp9	%read{48,48} %write{31,46}
+temp	color	$tmp10	%read{28,44} %write{26,26}
+temp	float	$tmp11	%read{26,26} %write{24,24}
+const	int	$const13	1		%read{25,436} %write{2147483647,-1}
+temp	float	$tmp12	%read{26,26} %write{25,25}
+const	float	$const14	1		%read{26,363} %write{2147483647,-1}
+const	string	$const15	"transform_CIExyY_to_CIEXYZ"		%read{27,321} %write{2147483647,-1}
+temp	float	$tmp13	%read{29,29} %write{28,28}
+const	float	$const16	0		%read{29,443} %write{2147483647,-1}
+temp	int	$tmp14	%read{30,30} %write{29,29}
+temp	float	$tmp15	%read{34,34} %write{32,32}
+const	int	$const17	2		%read{33,440} %write{2147483647,-1}
+temp	float	$tmp16	%read{34,34} %write{33,33}
+temp	float	$tmp17	%read{36,36} %write{34,34}
+temp	float	$tmp18	%read{36,36} %write{35,35}
+temp	float	$tmp19	%read{46,46} %write{36,36}
+temp	float	$tmp20	%read{46,46} %write{37,37}
+temp	float	$tmp21	%read{39,39} %write{38,38}
+temp	float	$tmp22	%read{41,41} %write{39,39}
+temp	float	$tmp23	%read{41,41} %write{40,40}
+temp	float	$tmp24	%read{43,43} %write{41,41}
+temp	float	$tmp25	%read{43,43} %write{42,42}
+temp	float	$tmp26	%read{45,45} %write{43,43}
+temp	float	$tmp27	%read{45,45} %write{44,44}
+temp	float	$tmp28	%read{46,46} %write{45,45}
+temp	color	$tmp29	%read{73,73} %write{56,71}
+temp	color	$tmp30	%read{53,69} %write{51,51}
+temp	float	$tmp31	%read{51,51} %write{49,49}
+temp	float	$tmp32	%read{51,51} %write{50,50}
+temp	float	$tmp33	%read{54,54} %write{53,53}
+temp	int	$tmp34	%read{55,55} %write{54,54}
+temp	float	$tmp35	%read{59,59} %write{57,57}
+temp	float	$tmp36	%read{59,59} %write{58,58}
+temp	float	$tmp37	%read{61,61} %write{59,59}
+temp	float	$tmp38	%read{61,61} %write{60,60}
+temp	float	$tmp39	%read{71,71} %write{61,61}
+temp	float	$tmp40	%read{71,71} %write{62,62}
+temp	float	$tmp41	%read{64,64} %write{63,63}
+temp	float	$tmp42	%read{66,66} %write{64,64}
+temp	float	$tmp43	%read{66,66} %write{65,65}
+temp	float	$tmp44	%read{68,68} %write{66,66}
+temp	float	$tmp45	%read{68,68} %write{67,67}
+temp	float	$tmp46	%read{70,70} %write{68,68}
+temp	float	$tmp47	%read{70,70} %write{69,69}
+temp	float	$tmp48	%read{71,71} %write{70,70}
+temp	color	$tmp49	%read{98,98} %write{81,96}
+temp	color	$tmp50	%read{78,94} %write{76,76}
+temp	float	$tmp51	%read{76,76} %write{74,74}
+temp	float	$tmp52	%read{76,76} %write{75,75}
+temp	float	$tmp53	%read{79,79} %write{78,78}
+temp	int	$tmp54	%read{80,80} %write{79,79}
+temp	float	$tmp55	%read{84,84} %write{82,82}
+temp	float	$tmp56	%read{84,84} %write{83,83}
+temp	float	$tmp57	%read{86,86} %write{84,84}
+temp	float	$tmp58	%read{86,86} %write{85,85}
+temp	float	$tmp59	%read{96,96} %write{86,86}
+temp	float	$tmp60	%read{96,96} %write{87,87}
+temp	float	$tmp61	%read{89,89} %write{88,88}
+temp	float	$tmp62	%read{91,91} %write{89,89}
+temp	float	$tmp63	%read{91,91} %write{90,90}
+temp	float	$tmp64	%read{93,93} %write{91,91}
+temp	float	$tmp65	%read{93,93} %write{92,92}
+temp	float	$tmp66	%read{95,95} %write{93,93}
+temp	float	$tmp67	%read{95,95} %write{94,94}
+temp	float	$tmp68	%read{96,96} %write{95,95}
+const	int	$const18	6		%read{99,164} %write{2147483647,-1}
+temp	int	$tmp69	%read{100,100} %write{99,99}
+const	string	$const19	""		%read{101,101} %write{2147483647,-1}
+temp	int	$tmp70	%read{103,103} %write{102,102}
+const	string	$const20	"D50"		%read{104,122} %write{2147483647,-1}
+temp	int	$tmp71	%read{106,106} %write{105,105}
+const	string	$const21	"D55"		%read{107,125} %write{2147483647,-1}
+temp	int	$tmp72	%read{109,109} %write{108,108}
+const	string	$const22	"D60"		%read{110,128} %write{2147483647,-1}
+const	int	$const23	3		%read{111,425} %write{2147483647,-1}
+temp	int	$tmp73	%read{112,112} %write{111,111}
+const	string	$const24	"D65"		%read{113,131} %write{2147483647,-1}
+const	int	$const25	4		%read{114,428} %write{2147483647,-1}
+temp	int	$tmp74	%read{115,115} %write{114,114}
+const	string	$const26	"D75"		%read{116,134} %write{2147483647,-1}
+temp	int	$tmp75	%read{118,118} %write{117,117}
+const	string	$const27	"DCI"		%read{119,119} %write{2147483647,-1}
+temp	color	$tmp76	%read{163,163} %write{146,161}
+const	string	$const28	"get_illuminant_CIEXYZ"		%read{120,120} %write{2147483647,-1}
+temp	vector	$tmp77	%read{143,159} %write{141,141}
+const	string	$const29	"get_illuminant_CIExyY"		%read{121,121} %write{2147483647,-1}
+temp	int	$tmp78	%read{123,123} %write{122,122}
+const	vector	$const30	0.345670015 0.358500004 1		%read{124,124} %write{2147483647,-1}
+temp	int	$tmp79	%read{126,126} %write{125,125}
+const	vector	$const31	0.332419991 0.347429991 1		%read{127,127} %write{2147483647,-1}
+temp	int	$tmp80	%read{129,129} %write{128,128}
+const	vector	$const32	0.321680009 0.337669998 1		%read{130,130} %write{2147483647,-1}
+temp	int	$tmp81	%read{132,132} %write{131,131}
+const	vector	$const33	0.312700003 0.328999996 1		%read{133,133} %write{2147483647,-1}
+temp	int	$tmp82	%read{135,135} %write{134,134}
+const	vector	$const34	0.299019992 0.314850003 1		%read{136,136} %write{2147483647,-1}
+const	string	$const35	"DCIP3"		%read{137,137} %write{2147483647,-1}
+temp	int	$tmp83	%read{138,138} %write{137,137}
+const	vector	$const36	0.31400001 0.351000011 1		%read{139,139} %write{2147483647,-1}
+const	vector	$const37	0 0 0		%read{140,140} %write{2147483647,-1}
+temp	float	$tmp84	%read{144,144} %write{143,143}
+temp	int	$tmp85	%read{145,145} %write{144,144}
+temp	float	$tmp86	%read{149,149} %write{147,147}
+temp	float	$tmp87	%read{149,149} %write{148,148}
+temp	float	$tmp88	%read{151,151} %write{149,149}
+temp	float	$tmp89	%read{151,151} %write{150,150}
+temp	float	$tmp90	%read{161,161} %write{151,151}
+temp	float	$tmp91	%read{161,161} %write{152,152}
+temp	float	$tmp92	%read{154,154} %write{153,153}
+temp	float	$tmp93	%read{156,156} %write{154,154}
+temp	float	$tmp94	%read{156,156} %write{155,155}
+temp	float	$tmp95	%read{158,158} %write{156,156}
+temp	float	$tmp96	%read{158,158} %write{157,157}
+temp	float	$tmp97	%read{160,160} %write{158,158}
+temp	float	$tmp98	%read{160,160} %write{159,159}
+temp	float	$tmp99	%read{161,161} %write{160,160}
+temp	int	$tmp100	%read{165,165} %write{164,164}
+temp	color	$tmp101	%read{187,187} %write{170,185}
+const	color	$const38	0.333330005 0.333330005 1		%read{167,183} %write{2147483647,-1}
+temp	float	$tmp103	%read{168,168} %write{167,167}
+temp	int	$tmp104	%read{169,169} %write{168,168}
+temp	float	$tmp105	%read{173,173} %write{171,171}
+temp	float	$tmp106	%read{173,173} %write{172,172}
+temp	float	$tmp107	%read{175,175} %write{173,173}
+temp	float	$tmp108	%read{175,175} %write{174,174}
+temp	float	$tmp109	%read{185,185} %write{175,175}
+temp	float	$tmp110	%read{185,185} %write{176,176}
+temp	float	$tmp111	%read{178,178} %write{177,177}
+temp	float	$tmp112	%read{180,180} %write{178,178}
+temp	float	$tmp113	%read{180,180} %write{179,179}
+temp	float	$tmp114	%read{182,182} %write{180,180}
+temp	float	$tmp115	%read{182,182} %write{181,181}
+temp	float	$tmp116	%read{184,184} %write{182,182}
+temp	float	$tmp117	%read{184,184} %write{183,183}
+temp	float	$tmp118	%read{185,185} %write{184,184}
+const	int	$const39	7		%read{188,188} %write{2147483647,-1}
+temp	int	$tmp119	%read{189,189} %write{188,188}
+const	int	$const40	6504		%read{190,190} %write{2147483647,-1}
+temp	int	$tmp120	%read{191,191} %write{190,190}
+temp	color	$tmp121	%read{213,213} %write{196,211}
+const	color	$const41	0.312700003 0.328999996 1		%read{193,209} %write{2147483647,-1}
+temp	float	$tmp123	%read{194,194} %write{193,193}
+temp	int	$tmp124	%read{195,195} %write{194,194}
+temp	float	$tmp125	%read{199,199} %write{197,197}
+temp	float	$tmp126	%read{199,199} %write{198,198}
+temp	float	$tmp127	%read{201,201} %write{199,199}
+temp	float	$tmp128	%read{201,201} %write{200,200}
+temp	float	$tmp129	%read{211,211} %write{201,201}
+temp	float	$tmp130	%read{211,211} %write{202,202}
+temp	float	$tmp131	%read{204,204} %write{203,203}
+temp	float	$tmp132	%read{206,206} %write{204,204}
+temp	float	$tmp133	%read{206,206} %write{205,205}
+temp	float	$tmp134	%read{208,208} %write{206,206}
+temp	float	$tmp135	%read{208,208} %write{207,207}
+temp	float	$tmp136	%read{210,210} %write{208,208}
+temp	float	$tmp137	%read{210,210} %write{209,209}
+temp	float	$tmp138	%read{211,211} %write{210,210}
+const	string	$const42	"get_CIExy_from_CCT_Kang"		%read{214,214} %write{2147483647,-1}
+const	int	$const43	1667		%read{215,215} %write{2147483647,-1}
+temp	int	$tmp139	%read{216,216} %write{215,215}
+temp	int	$tmp140	%read{217,221} %write{216,220}
+const	int	$const44	4000		%read{218,257} %write{2147483647,-1}
+temp	int	$tmp141	%read{219,219} %write{218,218}
+temp	int	$tmp142	%read{220,220} %write{219,219}
+const	float	$const45	-0.266123891		%read{223,223} %write{2147483647,-1}
+temp	float	$tmp143	%read{223,223} %write{222,222}
+const	float	$const46	10		%read{222,275} %write{2147483647,-1}
+const	float	$const47	9		%read{222,264} %write{2147483647,-1}
+temp	float	$tmp144	%read{226,226} %write{223,223}
+temp	float	$tmp145	%read{226,226} %write{225,225}
+temp	float	$tmp146	%read{225,225} %write{224,224}
+const	float	$const48	3		%read{225,281} %write{2147483647,-1}
+temp	float	$tmp147	%read{232,232} %write{226,226}
+const	float	$const49	0.234358907		%read{228,228} %write{2147483647,-1}
+temp	float	$tmp148	%read{228,228} %write{227,227}
+const	float	$const50	6		%read{227,269} %write{2147483647,-1}
+temp	float	$tmp149	%read{231,231} %write{228,228}
+temp	float	$tmp150	%read{231,231} %write{230,230}
+temp	float	$tmp151	%read{230,230} %write{229,229}
+const	float	$const51	2		%read{230,283} %write{2147483647,-1}
+temp	float	$tmp152	%read{232,232} %write{231,231}
+temp	float	$tmp153	%read{237,237} %write{232,232}
+const	float	$const52	0.877659619		%read{234,234} %write{2147483647,-1}
+temp	float	$tmp154	%read{234,234} %write{233,233}
+temp	float	$tmp155	%read{236,236} %write{234,234}
+temp	float	$tmp156	%read{237,237} %write{236,236}
+temp	float	$tmp157	%read{236,236} %write{235,235}
+temp	float	$tmp158	%read{238,238} %write{237,237}
+const	float	$const53	0.179910004		%read{238,238} %write{2147483647,-1}
+const	int	$const54	2222		%read{239,239} %write{2147483647,-1}
+temp	int	$tmp159	%read{240,240} %write{239,239}
+const	float	$const55	-1.10638142		%read{242,242} %write{2147483647,-1}
+temp	float	$tmp160	%read{242,242} %write{241,241}
+temp	float	$tmp161	%read{245,245} %write{242,242}
+const	float	$const56	1.3481102		%read{244,244} %write{2147483647,-1}
+temp	float	$tmp162	%read{244,244} %write{243,243}
+temp	float	$tmp163	%read{245,245} %write{244,244}
+temp	float	$tmp164	%read{247,247} %write{245,245}
+const	float	$const57	2.18555832		%read{246,246} %write{2147483647,-1}
+temp	float	$tmp165	%read{247,247} %write{246,246}
+temp	float	$tmp166	%read{248,248} %write{247,247}
+const	float	$const58	0.202196836		%read{248,248} %write{2147483647,-1}
+const	float	$const59	-0.954947591		%read{250,250} %write{2147483647,-1}
+temp	float	$tmp167	%read{250,250} %write{249,249}
+temp	float	$tmp168	%read{253,253} %write{250,250}
+const	float	$const60	1.37418592		%read{252,252} %write{2147483647,-1}
+temp	float	$tmp169	%read{252,252} %write{251,251}
+temp	float	$tmp170	%read{253,253} %write{252,252}
+temp	float	$tmp171	%read{255,255} %write{253,253}
+const	float	$const61	2.09137011		%read{254,254} %write{2147483647,-1}
+temp	float	$tmp172	%read{255,255} %write{254,254}
+temp	float	$tmp173	%read{256,256} %write{255,255}
+const	float	$const62	0.167488664		%read{256,256} %write{2147483647,-1}
+temp	int	$tmp174	%read{258,258} %write{257,257}
+temp	int	$tmp175	%read{259,263} %write{258,262}
+const	int	$const63	25000		%read{260,260} %write{2147483647,-1}
+temp	int	$tmp176	%read{261,261} %write{260,260}
+temp	int	$tmp177	%read{262,262} %write{261,261}
+const	float	$const64	-3.02584696		%read{265,265} %write{2147483647,-1}
+temp	float	$tmp178	%read{265,265} %write{264,264}
+temp	float	$tmp179	%read{268,268} %write{265,265}
+temp	float	$tmp180	%read{268,268} %write{267,267}
+temp	float	$tmp181	%read{267,267} %write{266,266}
+temp	float	$tmp182	%read{274,274} %write{268,268}
+const	float	$const65	2.10703778		%read{270,270} %write{2147483647,-1}
+temp	float	$tmp183	%read{270,270} %write{269,269}
+temp	float	$tmp184	%read{273,273} %write{270,270}
+temp	float	$tmp185	%read{273,273} %write{272,272}
+temp	float	$tmp186	%read{272,272} %write{271,271}
+temp	float	$tmp187	%read{274,274} %write{273,273}
+temp	float	$tmp188	%read{279,279} %write{274,274}
+const	float	$const66	0.222634703		%read{276,276} %write{2147483647,-1}
+temp	float	$tmp189	%read{276,276} %write{275,275}
+temp	float	$tmp190	%read{278,278} %write{276,276}
+temp	float	$tmp191	%read{279,279} %write{278,278}
+temp	float	$tmp192	%read{278,278} %write{277,277}
+temp	float	$tmp193	%read{280,280} %write{279,279}
+const	float	$const67	0.240390003		%read{280,280} %write{2147483647,-1}
+const	float	$const68	3.08175802		%read{282,282} %write{2147483647,-1}
+temp	float	$tmp194	%read{282,282} %write{281,281}
+temp	float	$tmp195	%read{285,285} %write{282,282}
+const	float	$const69	5.87338686		%read{284,284} %write{2147483647,-1}
+temp	float	$tmp196	%read{284,284} %write{283,283}
+temp	float	$tmp197	%read{285,285} %write{284,284}
+temp	float	$tmp198	%read{287,287} %write{285,285}
+const	float	$const70	3.75112987		%read{286,286} %write{2147483647,-1}
+temp	float	$tmp199	%read{287,287} %write{286,286}
+temp	float	$tmp200	%read{288,288} %write{287,287}
+const	float	$const71	0.370014817		%read{288,288} %write{2147483647,-1}
+temp	color	$tmp201	%read{317,317} %write{300,315}
+temp	color	$tmp202	%read{297,313} %write{295,295}
+temp	float	$tmp203	%read{295,295} %write{293,293}
+temp	float	$tmp204	%read{295,295} %write{294,294}
+temp	float	$tmp205	%read{298,298} %write{297,297}
+temp	int	$tmp206	%read{299,299} %write{298,298}
+temp	float	$tmp207	%read{303,303} %write{301,301}
+temp	float	$tmp208	%read{303,303} %write{302,302}
+temp	float	$tmp209	%read{305,305} %write{303,303}
+temp	float	$tmp210	%read{305,305} %write{304,304}
+temp	float	$tmp211	%read{315,315} %write{305,305}
+temp	float	$tmp212	%read{315,315} %write{306,306}
+temp	float	$tmp213	%read{308,308} %write{307,307}
+temp	float	$tmp214	%read{310,310} %write{308,308}
+temp	float	$tmp215	%read{310,310} %write{309,309}
+temp	float	$tmp216	%read{312,312} %write{310,310}
+temp	float	$tmp217	%read{312,312} %write{311,311}
+temp	float	$tmp218	%read{314,314} %write{312,312}
+temp	float	$tmp219	%read{314,314} %write{313,313}
+temp	float	$tmp220	%read{315,315} %write{314,314}
+temp	color	$tmp221	%read{342,342} %write{325,340}
+temp	color	$tmp222	%read{322,338} %write{320,320}
+temp	float	$tmp223	%read{320,320} %write{318,318}
+temp	float	$tmp224	%read{320,320} %write{319,319}
+temp	float	$tmp225	%read{323,323} %write{322,322}
+temp	int	$tmp226	%read{324,324} %write{323,323}
+temp	float	$tmp227	%read{328,328} %write{326,326}
+temp	float	$tmp228	%read{328,328} %write{327,327}
+temp	float	$tmp229	%read{330,330} %write{328,328}
+temp	float	$tmp230	%read{330,330} %write{329,329}
+temp	float	$tmp231	%read{340,340} %write{330,330}
+temp	float	$tmp232	%read{340,340} %write{331,331}
+temp	float	$tmp233	%read{333,333} %write{332,332}
+temp	float	$tmp234	%read{335,335} %write{333,333}
+temp	float	$tmp235	%read{335,335} %write{334,334}
+temp	float	$tmp236	%read{337,337} %write{335,335}
+temp	float	$tmp237	%read{337,337} %write{336,336}
+temp	float	$tmp238	%read{339,339} %write{337,337}
+temp	float	$tmp239	%read{339,339} %write{338,338}
+temp	float	$tmp240	%read{340,340} %write{339,339}
+temp	matrix	$tmp241	%read{363,363} %write{361,361}
+temp	float	$tmp242	%read{361,361} %write{344,344}
+temp	color	$tmp243	%read{344,344} %write{343,343}
+temp	float	$tmp244	%read{361,361} %write{346,346}
+temp	color	$tmp245	%read{346,346} %write{345,345}
+temp	float	$tmp246	%read{361,361} %write{348,348}
+temp	color	$tmp247	%read{348,348} %write{347,347}
+temp	float	$tmp248	%read{361,361} %write{350,350}
+temp	color	$tmp249	%read{350,350} %write{349,349}
+temp	float	$tmp250	%read{361,361} %write{352,352}
+temp	color	$tmp251	%read{352,352} %write{351,351}
+temp	float	$tmp252	%read{361,361} %write{354,354}
+temp	color	$tmp253	%read{354,354} %write{353,353}
+temp	float	$tmp254	%read{361,361} %write{356,356}
+temp	color	$tmp255	%read{356,356} %write{355,355}
+temp	float	$tmp256	%read{361,361} %write{358,358}
+temp	color	$tmp257	%read{358,358} %write{357,357}
+temp	float	$tmp258	%read{361,361} %write{360,360}
+temp	color	$tmp259	%read{360,360} %write{359,359}
+const	string	$const72	"inverse"		%read{362,362} %write{2147483647,-1}
+temp	float	$tmp260	%read{367,367} %write{364,364}
+temp	float	$tmp261	%read{367,367} %write{366,366}
+temp	color	$tmp262	%read{366,366} %write{365,365}
+temp	float	$tmp263	%read{372,372} %write{367,367}
+temp	float	$tmp264	%read{371,371} %write{368,368}
+temp	float	$tmp265	%read{371,371} %write{370,370}
+temp	color	$tmp266	%read{370,370} %write{369,369}
+temp	float	$tmp267	%read{372,372} %write{371,371}
+temp	float	$tmp268	%read{377,377} %write{372,372}
+temp	float	$tmp269	%read{376,376} %write{373,373}
+temp	float	$tmp270	%read{376,376} %write{375,375}
+temp	color	$tmp271	%read{375,375} %write{374,374}
+temp	float	$tmp272	%read{377,377} %write{376,376}
+temp	float	$tmp273	%read{381,381} %write{378,378}
+temp	float	$tmp274	%read{381,381} %write{380,380}
+temp	color	$tmp275	%read{380,380} %write{379,379}
+temp	float	$tmp276	%read{386,386} %write{381,381}
+temp	float	$tmp277	%read{385,385} %write{382,382}
+temp	float	$tmp278	%read{385,385} %write{384,384}
+temp	color	$tmp279	%read{384,384} %write{383,383}
+temp	float	$tmp280	%read{386,386} %write{385,385}
+temp	float	$tmp281	%read{391,391} %write{386,386}
+temp	float	$tmp282	%read{390,390} %write{387,387}
+temp	float	$tmp283	%read{390,390} %write{389,389}
+temp	color	$tmp284	%read{389,389} %write{388,388}
+temp	float	$tmp285	%read{391,391} %write{390,390}
+temp	float	$tmp286	%read{395,395} %write{392,392}
+temp	float	$tmp287	%read{395,395} %write{394,394}
+temp	color	$tmp288	%read{394,394} %write{393,393}
+temp	float	$tmp289	%read{400,400} %write{395,395}
+temp	float	$tmp290	%read{399,399} %write{396,396}
+temp	float	$tmp291	%read{399,399} %write{398,398}
+temp	color	$tmp292	%read{398,398} %write{397,397}
+temp	float	$tmp293	%read{400,400} %write{399,399}
+temp	float	$tmp294	%read{405,405} %write{400,400}
+temp	float	$tmp295	%read{404,404} %write{401,401}
+temp	float	$tmp296	%read{404,404} %write{403,403}
+temp	color	$tmp297	%read{403,403} %write{402,402}
+temp	float	$tmp298	%read{405,405} %write{404,404}
+temp	float	$tmp299	%read{408,408} %write{407,407}
+temp	color	$tmp300	%read{407,407} %write{406,406}
+temp	float	$tmp301	%read{415,415} %write{408,408}
+temp	float	$tmp302	%read{411,411} %write{410,410}
+temp	color	$tmp303	%read{410,410} %write{409,409}
+temp	float	$tmp304	%read{415,415} %write{411,411}
+temp	float	$tmp305	%read{414,414} %write{413,413}
+temp	color	$tmp306	%read{413,413} %write{412,412}
+temp	float	$tmp307	%read{415,415} %write{414,414}
+temp	int	$tmp308	%read{417,417} %write{416,416}
+temp	int	$tmp309	%read{420,420} %write{419,419}
+temp	int	$tmp310	%read{423,423} %write{422,422}
+temp	int	$tmp311	%read{426,426} %write{425,425}
+temp	int	$tmp312	%read{429,429} %write{428,428}
+temp	float	$tmp313	%read{434,434} %write{432,432}
+temp	float	$tmp314	%read{434,434} %write{433,433}
+temp	float	$tmp315	%read{438,438} %write{434,434}
+temp	float	$tmp316	%read{437,437} %write{435,435}
+temp	float	$tmp317	%read{437,437} %write{436,436}
+temp	float	$tmp318	%read{438,438} %write{437,437}
+temp	float	$tmp319	%read{442,442} %write{438,438}
+temp	float	$tmp320	%read{441,441} %write{439,439}
+temp	float	$tmp321	%read{441,441} %write{440,440}
+temp	float	$tmp322	%read{442,442} %write{441,441}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:168
+#     if (in_color != 0)
+	neq		$tmp1 in_color $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{168} %argrw{"wrr"}
+	if		$tmp1 443 444 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:172
+#         if (in_deriveFromMayaCMS)
+	if		in_deriveFromMayaCMS 22 432 	%line{172} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:174
+#             if (!in_colorManagementEnabled)
+	eq		$tmp2 in_colorManagementEnabled $const1 	%line{174} %argrw{"wrr"}
+	if		$tmp2 6 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:177
+#                 coeffs = color(REC709_D65_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const2 	%line{177} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:181
+#                 if (in_workingSpace == "ACES2065-1")
+	eq		$tmp3 in_workingSpace $const3 	%line{181} %argrw{"wrr"}
+	if		$tmp3 9 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:183
+#                     coeffs = color(ACES_D60_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const4 	%line{183} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:185
+#                 else if (in_workingSpace == "ACEScg")
+	eq		$tmp4 in_workingSpace $const5 	%line{185} %argrw{"wrr"}
+	if		$tmp4 12 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:187
+#                     coeffs = color(ACESCG_D60_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const4 	%line{187} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:189
+#                 else if (in_workingSpace == "scene-linear Rec 2020")
+	eq		$tmp5 in_workingSpace $const6 	%line{189} %argrw{"wrr"}
+	if		$tmp5 15 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:191
+#                     coeffs = color(REC2020_D65_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const7 	%line{191} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:193
+#                 else if (in_workingSpace == "scene-linear DCI-P3")
+	eq		$tmp6 in_workingSpace $const8 	%line{193} %argrw{"wrr"}
+	if		$tmp6 18 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:195
+#                     coeffs = color(DCIP3_DCI_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const9 	%line{195} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:197
+#                 else if (in_workingSpace == "scene-linear Rec 709/sRGB")
+	eq		$tmp7 in_workingSpace $const10 	%line{197} %argrw{"wrr"}
+	if		$tmp7 21 22 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:199
+#                     coeffs = color(REC709_D65_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const2 	%line{199} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:203
+#                     coeffs = color(0);
+	assign		___705_coeffs $const11 	%line{203} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:215
+#             if (in_inputColorSpace == 5)
+	eq		$tmp8 in_inputColorSpace $const12 	%line{215} %argrw{"wrr"}
+	if		$tmp8 416 432 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:220
+#                     color(in_chromaticityCoordsR[0],
+	aref		$tmp11 in_chromaticityCoordsR $const1 	%line{220} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:221
+#                           in_chromaticityCoordsR[1],
+	aref		$tmp12 in_chromaticityCoordsR $const13 	%line{221} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:220
+#                     color(in_chromaticityCoordsR[0],
+	color		$tmp10 $tmp11 $tmp12 $const14 	%line{220} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:219
+#                 RGBW[0] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 48 	%line{219} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp13 $tmp10 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp14 $tmp13 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp14 32 47 	%line{184} %argrw{"r"}
+	assign		$tmp9 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp15 $tmp10 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp16 $tmp10 $const17 	%argrw{"wrr"}
+	mul		$tmp17 $tmp15 $tmp16 	%argrw{"wrr"}
+	compref		$tmp18 $tmp10 $const13 	%argrw{"wrr"}
+	div		$tmp19 $tmp17 $tmp18 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp20 $tmp10 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp21 $tmp10 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp22 $const14 $tmp21 	%argrw{"wrr"}
+	compref		$tmp23 $tmp10 $const13 	%argrw{"wrr"}
+	sub		$tmp24 $tmp22 $tmp23 	%argrw{"wrr"}
+	compref		$tmp25 $tmp10 $const17 	%argrw{"wrr"}
+	mul		$tmp26 $tmp24 $tmp25 	%argrw{"wrr"}
+	compref		$tmp27 $tmp10 $const13 	%argrw{"wrr"}
+	div		$tmp28 $tmp26 $tmp27 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp9 $tmp19 $tmp20 $tmp28 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:219
+#                 RGBW[0] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const1 $tmp9 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{219} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:225
+#                     color(in_chromaticityCoordsG[0],
+	aref		$tmp31 in_chromaticityCoordsG $const1 	%line{225} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:226
+#                           in_chromaticityCoordsG[1],
+	aref		$tmp32 in_chromaticityCoordsG $const13 	%line{226} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:225
+#                     color(in_chromaticityCoordsG[0],
+	color		$tmp30 $tmp31 $tmp32 $const14 	%line{225} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:224
+#                 RGBW[1] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 73 	%line{224} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp33 $tmp30 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp34 $tmp33 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp34 57 72 	%line{184} %argrw{"r"}
+	assign		$tmp29 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp35 $tmp30 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp36 $tmp30 $const17 	%argrw{"wrr"}
+	mul		$tmp37 $tmp35 $tmp36 	%argrw{"wrr"}
+	compref		$tmp38 $tmp30 $const13 	%argrw{"wrr"}
+	div		$tmp39 $tmp37 $tmp38 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp40 $tmp30 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp41 $tmp30 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp42 $const14 $tmp41 	%argrw{"wrr"}
+	compref		$tmp43 $tmp30 $const13 	%argrw{"wrr"}
+	sub		$tmp44 $tmp42 $tmp43 	%argrw{"wrr"}
+	compref		$tmp45 $tmp30 $const17 	%argrw{"wrr"}
+	mul		$tmp46 $tmp44 $tmp45 	%argrw{"wrr"}
+	compref		$tmp47 $tmp30 $const13 	%argrw{"wrr"}
+	div		$tmp48 $tmp46 $tmp47 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp29 $tmp39 $tmp40 $tmp48 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:224
+#                 RGBW[1] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const13 $tmp29 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{224} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:230
+#                     color(in_chromaticityCoordsB[0],
+	aref		$tmp51 in_chromaticityCoordsB $const1 	%line{230} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:231
+#                           in_chromaticityCoordsB[1],
+	aref		$tmp52 in_chromaticityCoordsB $const13 	%line{231} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:230
+#                     color(in_chromaticityCoordsB[0],
+	color		$tmp50 $tmp51 $tmp52 $const14 	%line{230} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:229
+#                 RGBW[2] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 98 	%line{229} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp53 $tmp50 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp54 $tmp53 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp54 82 97 	%line{184} %argrw{"r"}
+	assign		$tmp49 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp55 $tmp50 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp56 $tmp50 $const17 	%argrw{"wrr"}
+	mul		$tmp57 $tmp55 $tmp56 	%argrw{"wrr"}
+	compref		$tmp58 $tmp50 $const13 	%argrw{"wrr"}
+	div		$tmp59 $tmp57 $tmp58 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp60 $tmp50 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp61 $tmp50 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp62 $const14 $tmp61 	%argrw{"wrr"}
+	compref		$tmp63 $tmp50 $const13 	%argrw{"wrr"}
+	sub		$tmp64 $tmp62 $tmp63 	%argrw{"wrr"}
+	compref		$tmp65 $tmp50 $const17 	%argrw{"wrr"}
+	mul		$tmp66 $tmp64 $tmp65 	%argrw{"wrr"}
+	compref		$tmp67 $tmp50 $const13 	%argrw{"wrr"}
+	div		$tmp68 $tmp66 $tmp67 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp49 $tmp59 $tmp60 $tmp68 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:229
+#                 RGBW[2] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const17 $tmp49 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{229} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:234
+#                 if (in_inputIlluminants < 6)
+	lt		$tmp69 in_inputIlluminants $const18 	%line{234} %argrw{"wrr"}
+	if		$tmp69 164 343 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:236
+#                     string illuminant = "";
+	assign		___717_illuminant $const19 	%line{236} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:238
+#                     if (in_inputIlluminants == 0)
+	eq		$tmp70 in_inputIlluminants $const1 	%line{238} %argrw{"wrr"}
+	if		$tmp70 105 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:240
+#                         illuminant = "D50";
+	assign		___717_illuminant $const20 	%line{240} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:242
+#                     else if (in_inputIlluminants == 1)
+	eq		$tmp71 in_inputIlluminants $const13 	%line{242} %argrw{"wrr"}
+	if		$tmp71 108 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:244
+#                         illuminant = "D55";
+	assign		___717_illuminant $const21 	%line{244} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:246
+#                     else if (in_inputIlluminants == 2)
+	eq		$tmp72 in_inputIlluminants $const17 	%line{246} %argrw{"wrr"}
+	if		$tmp72 111 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:248
+#                         illuminant = "D60";
+	assign		___717_illuminant $const22 	%line{248} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:250
+#                     else if (in_inputIlluminants == 3)
+	eq		$tmp73 in_inputIlluminants $const23 	%line{250} %argrw{"wrr"}
+	if		$tmp73 114 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:252
+#                         illuminant = "D65";
+	assign		___717_illuminant $const24 	%line{252} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:254
+#                     else if (in_inputIlluminants == 4)
+	eq		$tmp74 in_inputIlluminants $const25 	%line{254} %argrw{"wrr"}
+	if		$tmp74 117 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:256
+#                         illuminant = "D75";
+	assign		___717_illuminant $const26 	%line{256} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:258
+#                     else if (in_inputIlluminants == 5)
+	eq		$tmp75 in_inputIlluminants $const12 	%line{258} %argrw{"wrr"}
+	if		$tmp75 120 120 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:260
+#                         illuminant = "DCI";
+	assign		___717_illuminant $const27 	%line{260} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:263
+#                     RGBW[3] = get_illuminant_CIEXYZ(illuminant);
+	functioncall	$const28 163 	%line{263} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:197
+#     return transform_CIExyY_to_CIEXYZ(get_illuminant_CIExyY(illuminant));
+	functioncall	$const29 142 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{197} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:86
+#     if (illuminant == "D50")
+	eq		$tmp78 ___717_illuminant $const20 	%line{86} %argrw{"wrr"}
+	if		$tmp78 125 141 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:88
+#         white_CIExyY = vector(D50_WHITEPOINT_CIE1931_2DEG_xy, 1.0);
+	assign		___387_white_CIExyY $const30 	%line{88} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:90
+#     else if (illuminant == "D55")
+	eq		$tmp79 ___717_illuminant $const21 	%line{90} %argrw{"wrr"}
+	if		$tmp79 128 141 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:92
+#         white_CIExyY = vector(D55_WHITEPOINT_CIE1931_2DEG_xy, 1.0);
+	assign		___387_white_CIExyY $const31 	%line{92} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:94
+#     else if (illuminant == "D60")
+	eq		$tmp80 ___717_illuminant $const22 	%line{94} %argrw{"wrr"}
+	if		$tmp80 131 141 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:96
+#         white_CIExyY = vector(D60_WHITEPOINT_CIE1931_2DEG_xy, 1.0);
+	assign		___387_white_CIExyY $const32 	%line{96} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:98
+#     else if (illuminant == "D65")
+	eq		$tmp81 ___717_illuminant $const24 	%line{98} %argrw{"wrr"}
+	if		$tmp81 134 141 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:100
+#         white_CIExyY = vector(D65_WHITEPOINT_CIE1931_2DEG_xy, 1.0);
+	assign		___387_white_CIExyY $const33 	%line{100} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:102
+#     else if (illuminant == "D75")
+	eq		$tmp82 ___717_illuminant $const26 	%line{102} %argrw{"wrr"}
+	if		$tmp82 137 141 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:104
+#         white_CIExyY = vector(D75_WHITEPOINT_CIE1931_2DEG_xy, 1.0);
+	assign		___387_white_CIExyY $const34 	%line{104} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:106
+#     else if (illuminant == "DCIP3")
+	eq		$tmp83 ___717_illuminant $const35 	%line{106} %argrw{"wrr"}
+	if		$tmp83 140 141 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:108
+#         white_CIExyY = vector(DCIP3_WHITEPOINT_CIE1931_2DEG_xy, 1.0);
+	assign		___387_white_CIExyY $const36 	%line{108} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:112
+#         white_CIExyY = vector(0);
+	assign		___387_white_CIExyY $const37 	%line{112} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:114
+#     return white_CIExyY;
+	assign		$tmp77 ___387_white_CIExyY 	%line{114} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:197
+#     return transform_CIExyY_to_CIEXYZ(get_illuminant_CIExyY(illuminant));
+	functioncall	$const15 163 	%line{197} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp84 $tmp77 $const13 	%line{183} %argrw{"wrr"}
+	eq		$tmp85 $tmp84 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp85 147 162 	%line{184} %argrw{"r"}
+	assign		$tmp76 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp86 $tmp77 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp87 $tmp77 $const17 	%argrw{"wrr"}
+	mul		$tmp88 $tmp86 $tmp87 	%argrw{"wrr"}
+	compref		$tmp89 $tmp77 $const13 	%argrw{"wrr"}
+	div		$tmp90 $tmp88 $tmp89 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp91 $tmp77 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp92 $tmp77 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp93 $const14 $tmp92 	%argrw{"wrr"}
+	compref		$tmp94 $tmp77 $const13 	%argrw{"wrr"}
+	sub		$tmp95 $tmp93 $tmp94 	%argrw{"wrr"}
+	compref		$tmp96 $tmp77 $const17 	%argrw{"wrr"}
+	mul		$tmp97 $tmp95 $tmp96 	%argrw{"wrr"}
+	compref		$tmp98 $tmp77 $const13 	%argrw{"wrr"}
+	div		$tmp99 $tmp97 $tmp98 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp76 $tmp90 $tmp91 $tmp99 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:263
+#                     RGBW[3] = get_illuminant_CIEXYZ(illuminant);
+	aassign		___716_RGBW $const23 $tmp76 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{263} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:265
+#                 else if (in_inputIlluminants == 6)
+	eq		$tmp100 in_inputIlluminants $const18 	%line{265} %argrw{"wrr"}
+	if		$tmp100 188 343 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:267
+#                     RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 187 	%line{267} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp103 $const38 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp104 $tmp103 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp104 171 186 	%line{184} %argrw{"r"}
+	assign		$tmp101 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp105 $const38 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp106 $const38 $const17 	%argrw{"wrr"}
+	mul		$tmp107 $tmp105 $tmp106 	%argrw{"wrr"}
+	compref		$tmp108 $const38 $const13 	%argrw{"wrr"}
+	div		$tmp109 $tmp107 $tmp108 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp110 $const38 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp111 $const38 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp112 $const14 $tmp111 	%argrw{"wrr"}
+	compref		$tmp113 $const38 $const13 	%argrw{"wrr"}
+	sub		$tmp114 $tmp112 $tmp113 	%argrw{"wrr"}
+	compref		$tmp115 $const38 $const17 	%argrw{"wrr"}
+	mul		$tmp116 $tmp114 $tmp115 	%argrw{"wrr"}
+	compref		$tmp117 $const38 $const13 	%argrw{"wrr"}
+	div		$tmp118 $tmp116 $tmp117 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp101 $tmp109 $tmp110 $tmp118 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:267
+#                     RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const23 $tmp101 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{267} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:270
+#                 else if (in_inputIlluminants == 7)
+	eq		$tmp119 in_inputIlluminants $const39 	%line{270} %argrw{"wrr"}
+	if		$tmp119 318 343 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:274
+#                     if (in_colorTemperature == 6504) // D65
+	eq		$tmp120 in_colorTemperature $const40 	%line{274} %argrw{"wrr"}
+	if		$tmp120 214 318 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:276
+#                         RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 213 	%line{276} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp123 $const41 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp124 $tmp123 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp124 197 212 	%line{184} %argrw{"r"}
+	assign		$tmp121 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp125 $const41 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp126 $const41 $const17 	%argrw{"wrr"}
+	mul		$tmp127 $tmp125 $tmp126 	%argrw{"wrr"}
+	compref		$tmp128 $const41 $const13 	%argrw{"wrr"}
+	div		$tmp129 $tmp127 $tmp128 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp130 $const41 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp131 $const41 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp132 $const14 $tmp131 	%argrw{"wrr"}
+	compref		$tmp133 $const41 $const13 	%argrw{"wrr"}
+	sub		$tmp134 $tmp132 $tmp133 	%argrw{"wrr"}
+	compref		$tmp135 $const41 $const17 	%argrw{"wrr"}
+	mul		$tmp136 $tmp134 $tmp135 	%argrw{"wrr"}
+	compref		$tmp137 $const41 $const13 	%argrw{"wrr"}
+	div		$tmp138 $tmp136 $tmp137 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp121 $tmp129 $tmp130 $tmp138 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:276
+#                         RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const23 $tmp121 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{276} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:283
+#                         get_CIExy_from_CCT_Kang(in_colorTemperature, Tc_xy);
+	functioncall	$const42 293 	%line{283} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:596
+#     if (CCT >= 1667 && CCT <= 4000)
+	ge		$tmp139 in_colorTemperature $const43 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{596} %argrw{"wrr"}
+	neq		$tmp140 $tmp139 $const1 	%argrw{"wrr"}
+	if		$tmp140 221 221 	%argrw{"r"}
+	le		$tmp141 in_colorTemperature $const44 	%argrw{"wrr"}
+	neq		$tmp142 $tmp141 $const1 	%argrw{"wrr"}
+	assign		$tmp140 $tmp142 	%argrw{"wr"}
+	if		$tmp140 257 291 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:600
+#         x = -0.2661239 * pow(10.0, 9.0) / pow(CCT, 3.0) -
+	pow		$tmp143 $const46 $const47 	%line{600} %argrw{"wrr"}
+	mul		$tmp144 $const45 $tmp143 	%argrw{"wrr"}
+	assign		$tmp146 in_colorTemperature 	%argrw{"wr"}
+	pow		$tmp145 $tmp146 $const48 	%argrw{"wrr"}
+	div		$tmp147 $tmp144 $tmp145 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:601
+#              0.2343589 * pow(10.0, 6.0) / pow(CCT, 2.0) +
+	pow		$tmp148 $const46 $const50 	%line{601} %argrw{"wrr"}
+	mul		$tmp149 $const49 $tmp148 	%argrw{"wrr"}
+	assign		$tmp151 in_colorTemperature 	%argrw{"wr"}
+	pow		$tmp150 $tmp151 $const51 	%argrw{"wrr"}
+	div		$tmp152 $tmp149 $tmp150 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:600
+#         x = -0.2661239 * pow(10.0, 9.0) / pow(CCT, 3.0) -
+	sub		$tmp153 $tmp147 $tmp152 	%line{600} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:602
+#              0.8776596 * pow(10.0, 3.0) / CCT +
+	pow		$tmp154 $const46 $const48 	%line{602} %argrw{"wrr"}
+	mul		$tmp155 $const52 $tmp154 	%argrw{"wrr"}
+	assign		$tmp157 in_colorTemperature 	%argrw{"wr"}
+	div		$tmp156 $tmp155 $tmp157 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:601
+#              0.2343589 * pow(10.0, 6.0) / pow(CCT, 2.0) +
+	add		$tmp158 $tmp153 $tmp156 	%line{601} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:602
+#              0.8776596 * pow(10.0, 3.0) / CCT +
+	add		___430_x $tmp158 $const53 	%line{602} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:605
+#         if (CCT <= 2222)
+	le		$tmp159 in_colorTemperature $const54 	%line{605} %argrw{"wrr"}
+	if		$tmp159 249 257 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:607
+#             y = -1.10638140 * pow(x, 3.0) -
+	pow		$tmp160 ___430_x $const48 	%line{607} %argrw{"wrr"}
+	mul		$tmp161 $const55 $tmp160 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:608
+#                  1.34811020 * pow(x, 2.0) +
+	pow		$tmp162 ___430_x $const51 	%line{608} %argrw{"wrr"}
+	mul		$tmp163 $const56 $tmp162 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:607
+#             y = -1.10638140 * pow(x, 3.0) -
+	sub		$tmp164 $tmp161 $tmp163 	%line{607} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:609
+#                  2.18555832 * x -
+	mul		$tmp165 $const57 ___430_x 	%line{609} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:608
+#                  1.34811020 * pow(x, 2.0) +
+	add		$tmp166 $tmp164 $tmp165 	%line{608} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:609
+#                  2.18555832 * x -
+	sub		___430_y $tmp166 $const58 	%line{609} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:614
+#             y = -0.95494760 * pow(x, 3.0) -
+	pow		$tmp167 ___430_x $const48 	%line{614} %argrw{"wrr"}
+	mul		$tmp168 $const59 $tmp167 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:615
+#                  1.37418593 * pow(x, 2.0) +
+	pow		$tmp169 ___430_x $const51 	%line{615} %argrw{"wrr"}
+	mul		$tmp170 $const60 $tmp169 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:614
+#             y = -0.95494760 * pow(x, 3.0) -
+	sub		$tmp171 $tmp168 $tmp170 	%line{614} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:616
+#                  2.09137015 * x -
+	mul		$tmp172 $const61 ___430_x 	%line{616} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:615
+#                  1.37418593 * pow(x, 2.0) +
+	add		$tmp173 $tmp171 $tmp172 	%line{615} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:616
+#                  2.09137015 * x -
+	sub		___430_y $tmp173 $const62 	%line{616} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:620
+#     else if (CCT > 4000 && CCT < 25000)
+	gt		$tmp174 in_colorTemperature $const44 	%line{620} %argrw{"wrr"}
+	neq		$tmp175 $tmp174 $const1 	%argrw{"wrr"}
+	if		$tmp175 263 263 	%argrw{"r"}
+	lt		$tmp176 in_colorTemperature $const63 	%argrw{"wrr"}
+	neq		$tmp177 $tmp176 $const1 	%argrw{"wrr"}
+	assign		$tmp175 $tmp177 	%argrw{"wr"}
+	if		$tmp175 289 291 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:622
+#         x = -3.0258469 * pow(10.0, 9.0) / pow(CCT, 3.0) +
+	pow		$tmp178 $const46 $const47 	%line{622} %argrw{"wrr"}
+	mul		$tmp179 $const64 $tmp178 	%argrw{"wrr"}
+	assign		$tmp181 in_colorTemperature 	%argrw{"wr"}
+	pow		$tmp180 $tmp181 $const48 	%argrw{"wrr"}
+	div		$tmp182 $tmp179 $tmp180 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:623
+#              2.1070379 * pow(10.0, 6.0) / pow(CCT, 2.0) +
+	pow		$tmp183 $const46 $const50 	%line{623} %argrw{"wrr"}
+	mul		$tmp184 $const65 $tmp183 	%argrw{"wrr"}
+	assign		$tmp186 in_colorTemperature 	%argrw{"wr"}
+	pow		$tmp185 $tmp186 $const51 	%argrw{"wrr"}
+	div		$tmp187 $tmp184 $tmp185 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:622
+#         x = -3.0258469 * pow(10.0, 9.0) / pow(CCT, 3.0) +
+	add		$tmp188 $tmp182 $tmp187 	%line{622} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:624
+#              0.2226347 * pow(10.0, 3.0) / CCT +
+	pow		$tmp189 $const46 $const48 	%line{624} %argrw{"wrr"}
+	mul		$tmp190 $const66 $tmp189 	%argrw{"wrr"}
+	assign		$tmp192 in_colorTemperature 	%argrw{"wr"}
+	div		$tmp191 $tmp190 $tmp192 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:623
+#              2.1070379 * pow(10.0, 6.0) / pow(CCT, 2.0) +
+	add		$tmp193 $tmp188 $tmp191 	%line{623} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:624
+#              0.2226347 * pow(10.0, 3.0) / CCT +
+	add		___430_x $tmp193 $const67 	%line{624} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:627
+#         y = 3.08175800 * pow(x, 3.0) -
+	pow		$tmp194 ___430_x $const48 	%line{627} %argrw{"wrr"}
+	mul		$tmp195 $const68 $tmp194 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:628
+#             5.87338670 * pow(x, 2.0) +
+	pow		$tmp196 ___430_x $const51 	%line{628} %argrw{"wrr"}
+	mul		$tmp197 $const69 $tmp196 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:627
+#         y = 3.08175800 * pow(x, 3.0) -
+	sub		$tmp198 $tmp195 $tmp197 	%line{627} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:629
+#             3.75112997 * x -
+	mul		$tmp199 $const70 ___430_x 	%line{629} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:628
+#             5.87338670 * pow(x, 2.0) +
+	add		$tmp200 $tmp198 $tmp199 	%line{628} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:629
+#             3.75112997 * x -
+	sub		___430_y $tmp200 $const71 	%line{629} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:634
+#         x = y = 0.0; // CCT out of range
+	assign		___430_y $const16 	%line{634} %argrw{"wr"}
+	assign		___430_x ___430_y 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:636
+#     CIExy[0] = x;
+	aassign		___727_Tc_xy $const1 ___430_x 	%line{636} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:637
+#     CIExy[1] = y;
+	aassign		___727_Tc_xy $const13 ___430_y 	%line{637} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:286
+#                             color(Tc_xy[0], Tc_xy[1], 1.0));
+	aref		$tmp203 ___727_Tc_xy $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{286} %argrw{"wrr"}
+	aref		$tmp204 ___727_Tc_xy $const13 	%argrw{"wrr"}
+	color		$tmp202 $tmp203 $tmp204 $const14 	%argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:285
+#                         RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 317 	%line{285} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp205 $tmp202 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp206 $tmp205 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp206 301 316 	%line{184} %argrw{"r"}
+	assign		$tmp201 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp207 $tmp202 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp208 $tmp202 $const17 	%argrw{"wrr"}
+	mul		$tmp209 $tmp207 $tmp208 	%argrw{"wrr"}
+	compref		$tmp210 $tmp202 $const13 	%argrw{"wrr"}
+	div		$tmp211 $tmp209 $tmp210 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp212 $tmp202 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp213 $tmp202 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp214 $const14 $tmp213 	%argrw{"wrr"}
+	compref		$tmp215 $tmp202 $const13 	%argrw{"wrr"}
+	sub		$tmp216 $tmp214 $tmp215 	%argrw{"wrr"}
+	compref		$tmp217 $tmp202 $const17 	%argrw{"wrr"}
+	mul		$tmp218 $tmp216 $tmp217 	%argrw{"wrr"}
+	compref		$tmp219 $tmp202 $const13 	%argrw{"wrr"}
+	div		$tmp220 $tmp218 $tmp219 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp201 $tmp211 $tmp212 $tmp220 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:285
+#                         RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const23 $tmp201 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{285} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:294
+#                         color(in_chromaticityCoordsW[0],
+	aref		$tmp223 in_chromaticityCoordsW $const1 	%line{294} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:295
+#                               in_chromaticityCoordsW[1],
+	aref		$tmp224 in_chromaticityCoordsW $const13 	%line{295} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:294
+#                         color(in_chromaticityCoordsW[0],
+	color		$tmp222 $tmp223 $tmp224 $const14 	%line{294} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:293
+#                     RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	functioncall	$const15 342 	%line{293} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:183
+#     return (CIExyY[1] == 0.0)
+	compref		$tmp225 $tmp222 $const13 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h"} %line{183} %argrw{"wrr"}
+	eq		$tmp226 $tmp225 $const16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:184
+#         ? color(0)
+	if		$tmp226 326 341 	%line{184} %argrw{"r"}
+	assign		$tmp221 $const11 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	compref		$tmp227 $tmp222 $const1 	%line{185} %argrw{"wrr"}
+	compref		$tmp228 $tmp222 $const17 	%argrw{"wrr"}
+	mul		$tmp229 $tmp227 $tmp228 	%argrw{"wrr"}
+	compref		$tmp230 $tmp222 $const13 	%argrw{"wrr"}
+	div		$tmp231 $tmp229 $tmp230 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:186
+#                 CIExyY[2],
+	compref		$tmp232 $tmp222 $const17 	%line{186} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	compref		$tmp233 $tmp222 $const1 	%line{187} %argrw{"wrr"}
+	sub		$tmp234 $const14 $tmp233 	%argrw{"wrr"}
+	compref		$tmp235 $tmp222 $const13 	%argrw{"wrr"}
+	sub		$tmp236 $tmp234 $tmp235 	%argrw{"wrr"}
+	compref		$tmp237 $tmp222 $const17 	%argrw{"wrr"}
+	mul		$tmp238 $tmp236 $tmp237 	%argrw{"wrr"}
+	compref		$tmp239 $tmp222 $const13 	%argrw{"wrr"}
+	div		$tmp240 $tmp238 $tmp239 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:185
+#         : color(CIExyY[0] * CIExyY[2] / CIExyY[1],
+	color		$tmp221 $tmp231 $tmp232 $tmp240 	%line{185} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_transforms.h:187
+#                 (1.0 - CIExyY[0] - CIExyY[1]) * CIExyY[2] / CIExyY[1]);
+	return	%line{187}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:293
+#                     RGBW[3] = transform_CIExyY_to_CIEXYZ(
+	aassign		___716_RGBW $const23 $tmp221 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{293} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:300
+#                     RGBW[0][0], RGBW[1][0], RGBW[2][0], 0.0,
+	aref		$tmp243 ___716_RGBW $const1 	%line{300} %argrw{"wrr"}
+	compref		$tmp242 $tmp243 $const1 	%argrw{"wrr"}
+	aref		$tmp245 ___716_RGBW $const13 	%argrw{"wrr"}
+	compref		$tmp244 $tmp245 $const1 	%argrw{"wrr"}
+	aref		$tmp247 ___716_RGBW $const17 	%argrw{"wrr"}
+	compref		$tmp246 $tmp247 $const1 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:301
+#                     RGBW[0][1], RGBW[1][1], RGBW[2][1], 0.0,
+	aref		$tmp249 ___716_RGBW $const1 	%line{301} %argrw{"wrr"}
+	compref		$tmp248 $tmp249 $const13 	%argrw{"wrr"}
+	aref		$tmp251 ___716_RGBW $const13 	%argrw{"wrr"}
+	compref		$tmp250 $tmp251 $const13 	%argrw{"wrr"}
+	aref		$tmp253 ___716_RGBW $const17 	%argrw{"wrr"}
+	compref		$tmp252 $tmp253 $const13 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:302
+#                     RGBW[0][2], RGBW[1][2], RGBW[2][2], 0.0,
+	aref		$tmp255 ___716_RGBW $const1 	%line{302} %argrw{"wrr"}
+	compref		$tmp254 $tmp255 $const17 	%argrw{"wrr"}
+	aref		$tmp257 ___716_RGBW $const13 	%argrw{"wrr"}
+	compref		$tmp256 $tmp257 $const17 	%argrw{"wrr"}
+	aref		$tmp259 ___716_RGBW $const17 	%argrw{"wrr"}
+	compref		$tmp258 $tmp259 $const17 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:299
+#                 matrix M = inverse(matrix(
+	matrix		$tmp241 $tmp242 $tmp244 $tmp246 $const16 $tmp248 $tmp250 $tmp252 $const16 $tmp254 $tmp256 $tmp258 $const16 $const16 $const16 $const16 $const14 	%line{299} %argrw{"wrrrrrrrrrrrrrrrr"}
+	functioncall	$const72 364 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/as_osl_extensions.h:45
+# matrix inverse(matrix m) { return 1 / m; }
+	div		___716_M $const14 $tmp241 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/as_osl_extensions.h"} %line{45} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:305
+#                 float Sr = M[0][0] * RGBW[3][0] +
+	mxcompref	$tmp260 ___716_M $const1 $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl"} %line{305} %argrw{"wrrr"}
+	aref		$tmp262 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp261 $tmp262 $const1 	%argrw{"wrr"}
+	mul		$tmp263 $tmp260 $tmp261 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:306
+#                            M[0][1] * RGBW[3][1] +
+	mxcompref	$tmp264 ___716_M $const1 $const13 	%line{306} %argrw{"wrrr"}
+	aref		$tmp266 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp265 $tmp266 $const13 	%argrw{"wrr"}
+	mul		$tmp267 $tmp264 $tmp265 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:305
+#                 float Sr = M[0][0] * RGBW[3][0] +
+	add		$tmp268 $tmp263 $tmp267 	%line{305} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:307
+#                            M[0][2] * RGBW[3][2];
+	mxcompref	$tmp269 ___716_M $const1 $const17 	%line{307} %argrw{"wrrr"}
+	aref		$tmp271 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp270 $tmp271 $const17 	%argrw{"wrr"}
+	mul		$tmp272 $tmp269 $tmp270 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:306
+#                            M[0][1] * RGBW[3][1] +
+	add		___716_Sr $tmp268 $tmp272 	%line{306} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:309
+#                 float Sg = M[1][0] * RGBW[3][0] +
+	mxcompref	$tmp273 ___716_M $const13 $const1 	%line{309} %argrw{"wrrr"}
+	aref		$tmp275 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp274 $tmp275 $const1 	%argrw{"wrr"}
+	mul		$tmp276 $tmp273 $tmp274 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:310
+#                            M[1][1] * RGBW[3][1] +
+	mxcompref	$tmp277 ___716_M $const13 $const13 	%line{310} %argrw{"wrrr"}
+	aref		$tmp279 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp278 $tmp279 $const13 	%argrw{"wrr"}
+	mul		$tmp280 $tmp277 $tmp278 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:309
+#                 float Sg = M[1][0] * RGBW[3][0] +
+	add		$tmp281 $tmp276 $tmp280 	%line{309} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:311
+#                            M[1][2] * RGBW[3][2];
+	mxcompref	$tmp282 ___716_M $const13 $const17 	%line{311} %argrw{"wrrr"}
+	aref		$tmp284 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp283 $tmp284 $const17 	%argrw{"wrr"}
+	mul		$tmp285 $tmp282 $tmp283 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:310
+#                            M[1][1] * RGBW[3][1] +
+	add		___716_Sg $tmp281 $tmp285 	%line{310} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:313
+#                 float Sb = M[2][0] * RGBW[3][0] +
+	mxcompref	$tmp286 ___716_M $const17 $const1 	%line{313} %argrw{"wrrr"}
+	aref		$tmp288 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp287 $tmp288 $const1 	%argrw{"wrr"}
+	mul		$tmp289 $tmp286 $tmp287 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:314
+#                            M[2][1] * RGBW[3][1] +
+	mxcompref	$tmp290 ___716_M $const17 $const13 	%line{314} %argrw{"wrrr"}
+	aref		$tmp292 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp291 $tmp292 $const13 	%argrw{"wrr"}
+	mul		$tmp293 $tmp290 $tmp291 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:313
+#                 float Sb = M[2][0] * RGBW[3][0] +
+	add		$tmp294 $tmp289 $tmp293 	%line{313} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:315
+#                            M[2][2] * RGBW[3][2];
+	mxcompref	$tmp295 ___716_M $const17 $const17 	%line{315} %argrw{"wrrr"}
+	aref		$tmp297 ___716_RGBW $const23 	%argrw{"wrr"}
+	compref		$tmp296 $tmp297 $const17 	%argrw{"wrr"}
+	mul		$tmp298 $tmp295 $tmp296 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:314
+#                            M[2][1] * RGBW[3][1] +
+	add		___716_Sb $tmp294 $tmp298 	%line{314} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:325
+#                 coeffs = color(Sr * RGBW[0][1],
+	aref		$tmp300 ___716_RGBW $const1 	%line{325} %argrw{"wrr"}
+	compref		$tmp299 $tmp300 $const13 	%argrw{"wrr"}
+	mul		$tmp301 ___716_Sr $tmp299 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:326
+#                                Sg * RGBW[1][1],
+	aref		$tmp303 ___716_RGBW $const13 	%line{326} %argrw{"wrr"}
+	compref		$tmp302 $tmp303 $const13 	%argrw{"wrr"}
+	mul		$tmp304 ___716_Sg $tmp302 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:327
+#                                Sb * RGBW[2][1]);
+	aref		$tmp306 ___716_RGBW $const17 	%line{327} %argrw{"wrr"}
+	compref		$tmp305 $tmp306 $const13 	%argrw{"wrr"}
+	mul		$tmp307 ___716_Sb $tmp305 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:325
+#                 coeffs = color(Sr * RGBW[0][1],
+	color		___705_coeffs $tmp301 $tmp304 $tmp307 	%line{325} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:331
+#                 if (in_inputColorSpace == 0)
+	eq		$tmp308 in_inputColorSpace $const1 	%line{331} %argrw{"wrr"}
+	if		$tmp308 419 432 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:333
+#                     coeffs = color(ACES_D60_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const4 	%line{333} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:335
+#                 else if (in_inputColorSpace == 1)
+	eq		$tmp309 in_inputColorSpace $const13 	%line{335} %argrw{"wrr"}
+	if		$tmp309 422 432 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:337
+#                     coeffs = color(ACESCG_D60_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const4 	%line{337} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:339
+#                 else if (in_inputColorSpace == 2)
+	eq		$tmp310 in_inputColorSpace $const17 	%line{339} %argrw{"wrr"}
+	if		$tmp310 425 432 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:341
+#                     coeffs = color(REC2020_D65_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const7 	%line{341} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:343
+#                 else if (in_inputColorSpace == 3)
+	eq		$tmp311 in_inputColorSpace $const23 	%line{343} %argrw{"wrr"}
+	if		$tmp311 428 432 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:345
+#                     coeffs = color(DCIP3_DCI_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const9 	%line{345} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:347
+#                 else if (in_inputColorSpace == 4)
+	eq		$tmp312 in_inputColorSpace $const25 	%line{347} %argrw{"wrr"}
+	if		$tmp312 431 432 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:349
+#                     coeffs = color(REC709_D65_LUMINANCE_COEFFS);
+	assign		___705_coeffs $const2 	%line{349} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:353
+#                     coeffs = color(0);
+	assign		___705_coeffs $const11 	%line{353} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:357
+#         out_result = coeffs[0] * in_color[0] +
+	compref		$tmp313 ___705_coeffs $const1 	%line{357} %argrw{"wrr"}
+	compref		$tmp314 in_color $const1 	%argrw{"wrr"}
+	mul		$tmp315 $tmp313 $tmp314 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:358
+#                      coeffs[1] * in_color[1] +
+	compref		$tmp316 ___705_coeffs $const13 	%line{358} %argrw{"wrr"}
+	compref		$tmp317 in_color $const13 	%argrw{"wrr"}
+	mul		$tmp318 $tmp316 $tmp317 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:357
+#         out_result = coeffs[0] * in_color[0] +
+	add		$tmp319 $tmp315 $tmp318 	%line{357} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:359
+#                      coeffs[2] * in_color[2];
+	compref		$tmp320 ___705_coeffs $const17 	%line{359} %argrw{"wrr"}
+	compref		$tmp321 in_color $const17 	%argrw{"wrr"}
+	mul		$tmp322 $tmp320 $tmp321 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:358
+#                      coeffs[1] * in_color[1] +
+	add		out_result $tmp319 $tmp322 	%line{358} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_luminance.osl:363
+#         out_result = 0.0;
+	assign		out_result $const16 	%line{363} %argrw{"wr"}
+	end

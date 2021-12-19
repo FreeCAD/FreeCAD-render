@@ -1,0 +1,11 @@
+[General]
+; General name
+Name = RenderCarpaint
+Description = Carpaint Material for Render
+UseObjectColor = True
+
+[Rendering]
+Render.Type = Carpaint
+Render.Carpaint.BaseColor = Object
+
+; vi: ft=dosini

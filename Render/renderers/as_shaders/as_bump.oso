@@ -1,0 +1,242 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_bump.oso
+shader as_bump	%meta{string,help,"Bump and normal mapping node."} %meta{string,icon,"asBump.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_bump.html"} %meta{string,as_node_name,"asBump"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"1163801542 1876308219"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210880} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	string	in_mode	"Bump"		%meta{string,as_maya_attribute_name,"mode"} %meta{string,as_maya_attribute_short_name,"bmd"} %meta{string,label,"Bump Mode"} %meta{string,widget,"popup"} %meta{string,page,"Mode"} %meta{string,options,"Bump|Normal Map"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{3,3} %write{2147483647,-1}
+param	float	in_bump_value	0		%meta{string,as_maya_attribute_name,"bumpValue"} %meta{string,as_maya_attribute_short_name,"bva"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Bump Value"} %meta{string,page,"Bump"}  %read{5,10} %write{2147483647,-1} %derivs
+param	float	in_bump_depth	1		%meta{string,as_maya_attribute_name,"bumpDepth"} %meta{string,as_maya_attribute_short_name,"bde"} %meta{float,softmin,0} %meta{float,softmax,1} %meta{string,label,"Bump Depth"} %meta{string,page,"Bump"}  %read{5,10} %write{2147483647,-1} %derivs
+param	float	in_normal_map_weight	1		%meta{string,as_maya_attribute_name,"normalMapWeight"} %meta{string,as_maya_attribute_short_name,"nmw"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Normal Map Scale"} %meta{string,page,"Normal Map"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{20,68} %write{2147483647,-1}
+param	color	in_normal_map	0 0 0		%meta{string,as_maya_attribute_name,"normalMap"} %meta{string,as_maya_attribute_short_name,"anm"} %meta{string,label,"Normal Map"} %meta{string,page,"Normal Map"} %meta{int,divider,1}  %read{28,35} %write{2147483647,-1}
+param	string	in_normal_map_coordsys	"Tangent Space"		%meta{string,as_maya_attribute_name,"normalMapCoordSys"} %meta{string,as_maya_attribute_short_name,"ncs"} %meta{string,widget,"popup"} %meta{string,options,"Tangent Space|Object Space|World Space"} %meta{string,label,"Map Coordinate System"} %meta{string,page,"Normal Map"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{51,55} %write{2147483647,-1}
+param	string	in_normal_map_mode	"Unsigned"		%meta{string,as_maya_attribute_name,"normalMapMode"} %meta{string,as_maya_attribute_short_name,"nmm"} %meta{string,widget,"popup"} %meta{string,options,"Unsigned|Signed"} %meta{string,label,"Normal Map Mode"} %meta{string,page,"Normal Map.Advanced"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{int,divider,1}  %read{23,23} %write{2147483647,-1}
+param	int	in_normal_map_flip_r	0		%meta{string,as_maya_attribute_name,"normalMapFlipR"} %meta{string,as_maya_attribute_short_name,"nfr"} %meta{string,widget,"checkBox"} %meta{string,label,"Flip R"} %meta{string,page,"Normal Map.Advanced"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{37,37} %write{2147483647,-1}
+param	int	in_normal_map_flip_g	0		%meta{string,as_maya_attribute_name,"normalMapFlipG"} %meta{string,as_maya_attribute_short_name,"nfg"} %meta{string,widget,"checkBox"} %meta{string,label,"Flip G"} %meta{string,page,"Normal Map.Advanced"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{41,41} %write{2147483647,-1}
+param	int	in_normal_map_swap_rg	0		%meta{string,as_maya_attribute_name,"normalMapSwapRG"} %meta{string,as_maya_attribute_short_name,"srg"} %meta{string,widget,"checkBox"} %meta{string,label,"Swap RG"} %meta{string,page,"Normal Map.Advanced"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{45,45} %write{2147483647,-1}
+param	point	in_surface_point	0 0 0		%meta{string,as_maya_attribute_name,"surfacePoint"} %meta{string,as_maya_attribute_short_name,"p"} %meta{string,label,"Surface Point"} %meta{string,page,"Surface"} %meta{string,widget,"null"}  %read{17,17} %write{0,0} %derivs %initexpr
+param	normal	in_surface_normal	0 0 0		%meta{string,as_maya_attribute_name,"surfaceNormal"} %meta{string,as_maya_attribute_short_name,"n"} %meta{string,label,"Surface Normal"} %meta{string,page,"Surface"}  %read{15,50} %write{1,1} %derivs %initexpr
+param	vector	Tn	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{59,61} %write{2147483647,-1}
+param	vector	Bn	0 0 0		%meta{int,lockgeom,0} %meta{string,widget,"null"} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0}  %read{2147483647,-1} %write{2147483647,-1}
+oparam	normal	out_normal	0 0 0		%meta{string,as_maya_attribute_name,"outNormal"} %meta{string,label,"Output Normal"} %meta{string,help,"Resulting unit length world space normal."} %meta{string,widget,"null"}  %read{54,69} %write{2,69} %initexpr
+global	point	P	%read{0,0} %write{2147483647,-1} %derivs
+global	normal	N	%read{1,2} %write{2147483647,-1} %derivs
+local	float	___705_bump_depth	%read{11,13} %write{9,9} %derivs
+local	float	___705_bump_offset	%read{16,16} %write{14,14} %derivs
+local	normal	___705_surface_normal	%read{16,16} %write{15,15} %derivs
+local	normal	___707_lookup_normal	%read{38,65} %write{31,49}
+local	float	___711_lookup_tmp	%read{49,49} %write{46,46}
+local	normal	___707_surface_normal	%read{54,68} %write{50,50}
+local	vector	___714_bitangent	%read{63,63} %write{59,59}
+local	normal	___714_reoriented_normal	%read{68,68} %write{67,67}
+const	string	$const1	"Bump"		%read{3,3} %write{2147483647,-1}
+temp	int	$tmp1	%read{4,4} %write{3,3}
+temp	float	$tmp2	%read{6,6} %write{5,5}
+const	float	$const2	0		%read{6,25} %write{2147483647,-1}
+temp	int	$tmp3	%read{7,7} %write{6,6}
+temp	float	$tmp4	%read{13,13} %write{10,10} %derivs
+temp	float	$tmp5	%read{14,14} %write{11,11} %derivs
+const	string	$const3	"clamp"		%read{12,34} %write{2147483647,-1}
+temp	float	$tmp6	%read{14,14} %write{13,13} %derivs
+temp	vector	$tmp7	%read{19,19} %write{18,18}
+temp	vector	$tmp8	%read{17,17} %write{16,16} %derivs
+temp	point	$tmp9	%read{18,18} %write{17,17} %derivs
+temp	int	$tmp10	%read{21,21} %write{20,20}
+const	string	$const4	"Unsigned"		%read{23,23} %write{2147483647,-1}
+temp	int	$tmp11	%read{24,24} %write{23,23}
+temp	color	$tmp12	%read{30,30} %write{29,29}
+temp	color	$tmp13	%read{29,29} %write{25,25}
+const	float	$const5	1		%read{26,33} %write{2147483647,-1}
+temp	color	$tmp14	%read{28,28} %write{26,26}
+temp	color	$tmp15	%read{29,29} %write{28,28}
+const	float	$const6	2		%read{30,30} %write{2147483647,-1}
+temp	normal	$tmp16	%read{31,31} %write{30,30}
+const	float	$const7	-1		%read{32,32} %write{2147483647,-1}
+temp	color	$tmp17	%read{36,36} %write{32,32}
+temp	color	$tmp18	%read{35,35} %write{33,33}
+temp	color	$tmp19	%read{36,36} %write{35,35}
+const	int	$const8	0		%read{38,60} %write{2147483647,-1}
+temp	float	$tmp20	%read{39,39} %write{38,38}
+temp	float	$tmp21	%read{40,40} %write{39,39}
+const	int	$const9	1		%read{42,62} %write{2147483647,-1}
+temp	float	$tmp22	%read{43,43} %write{42,42}
+temp	float	$tmp23	%read{44,44} %write{43,43}
+temp	float	$tmp24	%read{48,48} %write{47,47}
+const	string	$const10	"World Space"		%read{51,51} %write{2147483647,-1}
+temp	int	$tmp25	%read{52,52} %write{51,51}
+const	string	$const11	"world"		%read{53,53} %write{2147483647,-1}
+const	string	$const12	"common"		%read{53,57} %write{2147483647,-1}
+const	string	$const13	"Object Space"		%read{55,55} %write{2147483647,-1}
+temp	int	$tmp26	%read{56,56} %write{55,55}
+const	string	$const14	"object"		%read{57,57} %write{2147483647,-1}
+temp	float	$tmp27	%read{61,61} %write{60,60}
+temp	vector	$tmp28	%read{64,64} %write{61,61}
+temp	float	$tmp29	%read{63,63} %write{62,62}
+temp	vector	$tmp30	%read{64,64} %write{63,63}
+temp	vector	$tmp31	%read{67,67} %write{64,64}
+const	int	$const15	2		%read{65,65} %write{2147483647,-1}
+temp	float	$tmp32	%read{66,66} %write{65,65}
+temp	normal	$tmp33	%read{67,67} %write{66,66}
+code in_surface_point
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:171
+#     point in_surface_point = P
+	assign		in_surface_point P 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{171} %argrw{"wr"}
+code in_surface_normal
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:179
+#     normal in_surface_normal = N
+	assign		in_surface_normal N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{179} %argrw{"wr"}
+code out_normal
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:203
+#     output normal out_normal = N
+	assign		out_normal N 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{203} %argrw{"wr"}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:212
+#     if (in_mode == "Bump")
+	eq		$tmp1 in_mode $const1 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{212} %argrw{"wrr"}
+	if		$tmp1 20 70 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:214
+#         if (in_bump_value * in_bump_depth == 0.0)
+	mul		$tmp2 in_bump_value in_bump_depth 	%line{214} %argrw{"wrr"}
+	eq		$tmp3 $tmp2 $const2 	%argrw{"wrr"}
+	if		$tmp3 9 9 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:216
+#             return;
+	exit	%line{216}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:219
+#         float bump_depth = abs(in_bump_depth);
+	abs		___705_bump_depth in_bump_depth 	%line{219} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:222
+#             in_bump_value * in_bump_depth,
+	mul		$tmp4 in_bump_value in_bump_depth 	%line{222} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:223
+#            -bump_depth,
+	neg		$tmp5 ___705_bump_depth 	%line{223} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:221
+#         float bump_offset = clamp(
+	functioncall	$const3 15 	%line{221} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp6 $tmp4 ___705_bump_depth 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		___705_bump_offset $tmp6 $tmp5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:226
+#         normal surface_normal = normalize(in_surface_normal);
+	normalize	___705_surface_normal in_surface_normal 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{226} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:229
+#             in_surface_point + (vector) surface_normal * bump_offset));
+	mul		$tmp8 ___705_surface_normal ___705_bump_offset 	%line{229} %argrw{"wrr"}
+	add		$tmp9 in_surface_point $tmp8 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:228
+#         out_normal = normalize(calculatenormal(
+	calculatenormal	$tmp7 $tmp9 	%line{228} %argrw{"wr"} %argderivs{1}
+	normalize	out_normal $tmp7 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:233
+#         if (in_normal_map_weight == 0.0)
+	eq		$tmp10 in_normal_map_weight $const2 	%line{233} %argrw{"wrr"}
+	if		$tmp10 23 23 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:235
+#             return;
+	exit	%line{235}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:238
+#         normal lookup_normal = (in_normal_map_mode == "Unsigned")
+	eq		$tmp11 in_normal_map_mode $const4 	%line{238} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:239
+#             ? (normal) clamp(in_normal_map, 0.0, 1.0) * 2.0 - 1.0
+	if		$tmp11 32 37 	%line{239} %argrw{"r"}
+	assign		$tmp13 $const2 	%argrw{"wr"}
+	assign		$tmp14 $const5 	%argrw{"wr"}
+	functioncall	$const3 30 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp15 in_normal_map $tmp14 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{144} %argrw{"wrr"}
+	max		$tmp12 $tmp15 $tmp13 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:239
+#             ? (normal) clamp(in_normal_map, 0.0, 1.0) * 2.0 - 1.0
+	mul		$tmp16 $tmp12 $const6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{239} %argrw{"wrr"}
+	sub		___707_lookup_normal $tmp16 $const5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:240
+#             : (normal) clamp(in_normal_map, -1.0, 1.0);
+	assign		$tmp17 $const7 	%line{240} %argrw{"wr"}
+	assign		$tmp18 $const5 	%argrw{"wr"}
+	functioncall	$const3 37 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp19 in_normal_map $tmp18 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{144} %argrw{"wrr"}
+	max		___707_lookup_normal $tmp19 $tmp17 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:242
+#         if (in_normal_map_flip_r)
+	if		in_normal_map_flip_r 41 41 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl"} %line{242} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:244
+#             lookup_normal[0] = -lookup_normal[0];
+	compref		$tmp20 ___707_lookup_normal $const8 	%line{244} %argrw{"wrr"}
+	neg		$tmp21 $tmp20 	%argrw{"wr"}
+	compassign	___707_lookup_normal $const8 $tmp21 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:246
+#         if (in_normal_map_flip_g)
+	if		in_normal_map_flip_g 45 45 	%line{246} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:248
+#             lookup_normal[1] = -lookup_normal[1];
+	compref		$tmp22 ___707_lookup_normal $const9 	%line{248} %argrw{"wrr"}
+	neg		$tmp23 $tmp22 	%argrw{"wr"}
+	compassign	___707_lookup_normal $const9 $tmp23 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:250
+#         if (in_normal_map_swap_rg)
+	if		in_normal_map_swap_rg 50 50 	%line{250} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:252
+#             float lookup_tmp = lookup_normal[0];
+	compref		___711_lookup_tmp ___707_lookup_normal $const8 	%line{252} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:253
+#             lookup_normal[0] = lookup_normal[1];
+	compref		$tmp24 ___707_lookup_normal $const9 	%line{253} %argrw{"wrr"}
+	compassign	___707_lookup_normal $const8 $tmp24 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:254
+#             lookup_normal[1] = lookup_tmp;
+	compassign	___707_lookup_normal $const9 ___711_lookup_tmp 	%line{254} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:257
+#         normal surface_normal = normalize(in_surface_normal);
+	normalize	___707_surface_normal in_surface_normal 	%line{257} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:259
+#         if (in_normal_map_coordsys == "World Space")
+	eq		$tmp25 in_normal_map_coordsys $const10 	%line{259} %argrw{"wrr"}
+	if		$tmp25 55 69 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:261
+#             out_normal = transform("world", "common", lookup_normal);
+	transformn	out_normal $const11 $const12 ___707_lookup_normal 	%line{261} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:262
+#             out_normal = mix(surface_normal, out_normal, in_normal_map_weight);
+	mix		out_normal ___707_surface_normal out_normal in_normal_map_weight 	%line{262} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:264
+#         else if (in_normal_map_coordsys == "Object Space")
+	eq		$tmp26 in_normal_map_coordsys $const13 	%line{264} %argrw{"wrr"}
+	if		$tmp26 59 69 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:266
+#             out_normal = transform("object", "common", lookup_normal);
+	transformn	out_normal $const14 $const12 ___707_lookup_normal 	%line{266} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:267
+#             out_normal = mix(surface_normal, out_normal, in_normal_map_weight);
+	mix		out_normal ___707_surface_normal out_normal in_normal_map_weight 	%line{267} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:271
+#             vector bitangent = cross(Tn, surface_normal);
+	cross		___714_bitangent Tn ___707_surface_normal 	%line{271} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:274
+#                 lookup_normal[0] * Tn +
+	compref		$tmp27 ___707_lookup_normal $const8 	%line{274} %argrw{"wrr"}
+	mul		$tmp28 $tmp27 Tn 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:275
+#                 lookup_normal[1] * bitangent +
+	compref		$tmp29 ___707_lookup_normal $const9 	%line{275} %argrw{"wrr"}
+	mul		$tmp30 $tmp29 ___714_bitangent 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:274
+#                 lookup_normal[0] * Tn +
+	add		$tmp31 $tmp28 $tmp30 	%line{274} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:276
+#                 lookup_normal[2] * surface_normal;
+	compref		$tmp32 ___707_lookup_normal $const15 	%line{276} %argrw{"wrr"}
+	mul		$tmp33 $tmp32 ___707_surface_normal 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:275
+#                 lookup_normal[1] * bitangent +
+	add		___714_reoriented_normal $tmp31 $tmp33 	%line{275} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:278
+#             out_normal = mix(
+	mix		out_normal ___707_surface_normal ___714_reoriented_normal in_normal_map_weight 	%line{278} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_bump.osl:283
+#         out_normal = normalize(out_normal);
+	normalize	out_normal out_normal 	%line{283} %argrw{"wr"}
+	end

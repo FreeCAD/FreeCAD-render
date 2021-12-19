@@ -1,0 +1,180 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_attributes.oso
+shader as_attributes	%meta{string,help,"OSL and appleseed attributes."} %meta{string,icon,"asAttributes.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_attributes.html"} %meta{string,as_node_name,"asAttributes"} %meta{string,as_category,"utility"} %meta{string,as_max_class_id,"1006520102 421015477"} %meta{string,as_max_plugin_type,"texture"} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} %meta{int,as_maya_type_id,1210872} 
+oparam	int	out_object_instance_id	0		%meta{string,as_maya_attribute_name,"objectInstanceId"} %meta{string,as_maya_attribute_short_name,"oid"} %meta{string,label,"Object Instance ID"}  %read{2147483647,-1} %write{0,0}
+oparam	int	out_object_instance_index	0		%meta{string,as_maya_attribute_name,"objectInstanceIndex"} %meta{string,as_maya_attribute_short_name,"odx"} %meta{string,label,"Object Instance Index"}  %read{2147483647,-1} %write{1,1}
+oparam	string	out_object_instance_name	""		%meta{string,as_maya_attribute_name,"objectInstanceName"} %meta{string,as_maya_attribute_short_name,"oin"} %meta{string,label,"Object Instance Name"}  %read{2147483647,-1} %write{2,2}
+oparam	string	out_object_name	""		%meta{string,as_maya_attribute_name,"objectName"} %meta{string,as_maya_attribute_short_name,"onn"} %meta{string,label,"Object Name"}  %read{2147483647,-1} %write{3,3}
+oparam	int	out_assembly_instance_id	0		%meta{string,as_maya_attribute_name,"assemblyInstanceId"} %meta{string,as_maya_attribute_short_name,"aid"} %meta{string,label,"Assembly Instance ID"}  %read{2147483647,-1} %write{4,4}
+oparam	string	out_assembly_name	""		%meta{string,as_maya_attribute_name,"assemblyName"} %meta{string,as_maya_attribute_short_name,"asn"} %meta{string,label,"Assembly Name"}  %read{2147483647,-1} %write{5,5}
+oparam	string	out_assembly_instance_name	""		%meta{string,as_maya_attribute_name,"assemblyInstanceName"} %meta{string,as_maya_attribute_short_name,"ain"} %meta{string,label,"Assembly Instance Name"}  %read{2147483647,-1} %write{6,6}
+oparam	int[2]	out_camera_resolution	0 0		%meta{string,as_maya_attribute_name,"cameraResolution"} %meta{string,as_maya_attribute_short_name,"r"} %meta{string,label,"Camera Resolution"}  %read{8,9} %write{7,7}
+oparam	int	out_camera_resolution_x	0		%meta{string,as_maya_attribute_name,"cameraResolutionX"} %meta{string,as_maya_attribute_short_name,"rx"} %meta{string,label,"Camera Resolution X"}  %read{2147483647,-1} %write{8,8}
+oparam	int	out_camera_resolution_y	0		%meta{string,as_maya_attribute_name,"cameraResolutionY"} %meta{string,as_maya_attribute_short_name,"ry"} %meta{string,label,"Camera Resolution Y"}  %read{2147483647,-1} %write{9,9}
+oparam	string	out_camera_projection	""		%meta{string,as_maya_attribute_name,"cameraProjection"} %meta{string,as_maya_attribute_short_name,"pr"} %meta{string,label,"Camera Projection"}  %read{2147483647,-1} %write{10,10}
+oparam	float	out_camera_pixel_aspect	1		%meta{string,as_maya_attribute_name,"cameraPixelAspect"} %meta{string,as_maya_attribute_short_name,"cpa"} %meta{string,label,"Camera Pixel Aspect"}  %read{2147483647,-1} %write{11,11}
+oparam	int[4]	out_camera_screen_window	0 0 0 0		%meta{string,as_maya_attribute_name,"cameraScreenWindow"} %meta{string,as_maya_attribute_short_name,"sw"} %meta{string,label,"Camera Screen Window"}  %read{13,19} %write{12,12}
+oparam	float	out_camera_screen_window_xmin	0		%meta{string,as_maya_attribute_name,"cameraScreenWindowXMin"} %meta{string,as_maya_attribute_short_name,"xi"} %meta{string,label,"Screen Window X Min"}  %read{2147483647,-1} %write{14,14}
+oparam	float	out_camera_screen_window_ymin	0		%meta{string,as_maya_attribute_name,"cameraScreenWindowYMin"} %meta{string,as_maya_attribute_short_name,"yi"} %meta{string,label,"Screen Window Y Min"}  %read{2147483647,-1} %write{16,16}
+oparam	float	out_camera_screen_window_xmax	0		%meta{string,as_maya_attribute_name,"cameraScreenWindowXMax"} %meta{string,as_maya_attribute_short_name,"xa"} %meta{string,label,"Screen Window X Max"}  %read{2147483647,-1} %write{18,18}
+oparam	float	out_camera_screen_window_ymax	0		%meta{string,as_maya_attribute_name,"cameraScreenWindowYMax"} %meta{string,as_maya_attribute_short_name,"ya"} %meta{string,label,"Screen Window Y Max"}  %read{2147483647,-1} %write{20,20}
+oparam	float	out_camera_fov	0		%meta{string,as_maya_attribute_name,"cameraFOV"} %meta{string,as_maya_attribute_short_name,"cfo"} %meta{string,label,"Camera FOV"}  %read{2147483647,-1} %write{21,21}
+oparam	float[2]	out_camera_clip	0 0		%meta{string,as_maya_attribute_name,"cameraClip"} %meta{string,as_maya_attribute_short_name,"li"} %meta{string,label,"Camera Clip Range"}  %read{2147483647,-1} %write{22,22}
+oparam	float	out_camera_clip_near	0		%meta{string,as_maya_attribute_name,"cameraClipNear"} %meta{string,as_maya_attribute_short_name,"ne"} %meta{string,label,"Camera Clip Near"}  %read{2147483647,-1} %write{23,23}
+oparam	float	out_camera_clip_far	0		%meta{string,as_maya_attribute_name,"cameraClipFar"} %meta{string,as_maya_attribute_short_name,"nf"} %meta{string,label,"Camera Clip Far"}  %read{2147483647,-1} %write{24,24}
+oparam	float[2]	out_camera_shutter	0 0		%meta{string,as_maya_attribute_name,"cameraShutter"} %meta{string,as_maya_attribute_short_name,"su"} %meta{string,label,"Camera Shutter"}  %read{2147483647,-1} %write{25,25}
+oparam	float	out_camera_shutter_open	0		%meta{string,as_maya_attribute_name,"cameraShutterOpen"} %meta{string,as_maya_attribute_short_name,"so"} %meta{string,label,"Shutter Open Time"}  %read{2147483647,-1} %write{26,26}
+oparam	float	out_camera_shutter_close	0		%meta{string,as_maya_attribute_name,"cameraShutterClose"} %meta{string,as_maya_attribute_short_name,"sc"} %meta{string,label,"Shutter Close Time"}  %read{2147483647,-1} %write{27,27}
+oparam	int	out_global_frame	0		%meta{string,as_maya_attribute_name,"globalFrame"} %meta{string,as_maya_attribute_short_name,"gfr"} %meta{string,label,"Global Frame Number"}  %read{2147483647,-1} %write{28,28}
+oparam	int	out_path_ray_depth	0		%meta{string,as_maya_attribute_name,"pathRayDepth"} %meta{string,as_maya_attribute_short_name,"prd"} %meta{string,label,"Ray Depth"}  %read{2147483647,-1} %write{29,29}
+oparam	int	out_path_has_ray_differentials	0		%meta{string,as_maya_attribute_name,"pathHasRayDifferentials"} %meta{string,as_maya_attribute_short_name,"phd"} %meta{string,label,"Ray Differentials"}  %read{2147483647,-1} %write{30,30}
+oparam	float	out_path_ray_length	0		%meta{string,as_maya_attribute_name,"pathRayLength"} %meta{string,as_maya_attribute_short_name,"prl"} %meta{string,label,"Ray Length"}  %read{2147483647,-1} %write{31,31}
+oparam	float	out_path_ray_ior	0		%meta{string,as_maya_attribute_name,"pathRayIOR"} %meta{string,as_maya_attribute_short_name,"pri"} %meta{string,label,"Ray IOR"}  %read{2147483647,-1} %write{32,32}
+temp	int	$tmp1	%read{2147483647,-1} %write{0,0}
+const	string	$const1	"object:object_instance_id"		%read{0,0} %write{2147483647,-1}
+temp	int	$tmp2	%read{2147483647,-1} %write{1,1}
+const	string	$const2	"object:object_instance_index"		%read{1,1} %write{2147483647,-1}
+temp	int	$tmp3	%read{2147483647,-1} %write{2,2}
+const	string	$const3	"object:object_instance_name"		%read{2,2} %write{2147483647,-1}
+temp	int	$tmp4	%read{2147483647,-1} %write{3,3}
+const	string	$const4	"object:object_name"		%read{3,3} %write{2147483647,-1}
+temp	int	$tmp5	%read{2147483647,-1} %write{4,4}
+const	string	$const5	"object:assembly_instance_id"		%read{4,4} %write{2147483647,-1}
+temp	int	$tmp6	%read{2147483647,-1} %write{5,5}
+const	string	$const6	"object:assembly_name"		%read{5,5} %write{2147483647,-1}
+temp	int	$tmp7	%read{2147483647,-1} %write{6,6}
+const	string	$const7	"object:assembly_instance_name"		%read{6,6} %write{2147483647,-1}
+temp	int	$tmp8	%read{2147483647,-1} %write{7,7}
+const	string	$const8	"camera:resolution"		%read{7,7} %write{2147483647,-1}
+const	int	$const9	0		%read{8,13} %write{2147483647,-1}
+const	int	$const10	1		%read{9,15} %write{2147483647,-1}
+temp	int	$tmp9	%read{2147483647,-1} %write{10,10}
+const	string	$const11	"camera:projection"		%read{10,10} %write{2147483647,-1}
+temp	int	$tmp10	%read{2147483647,-1} %write{11,11}
+const	string	$const12	"camera:pixelaspect"		%read{11,11} %write{2147483647,-1}
+temp	int	$tmp11	%read{2147483647,-1} %write{12,12}
+const	string	$const13	"camera:screen_window"		%read{12,12} %write{2147483647,-1}
+temp	int	$tmp12	%read{14,14} %write{13,13}
+temp	int	$tmp13	%read{16,16} %write{15,15}
+const	int	$const14	2		%read{17,17} %write{2147483647,-1}
+temp	int	$tmp14	%read{18,18} %write{17,17}
+const	int	$const15	3		%read{19,19} %write{2147483647,-1}
+temp	int	$tmp15	%read{20,20} %write{19,19}
+temp	int	$tmp16	%read{2147483647,-1} %write{21,21}
+const	string	$const16	"camera:fov"		%read{21,21} %write{2147483647,-1}
+temp	int	$tmp17	%read{2147483647,-1} %write{22,22}
+const	string	$const17	"camera:clip"		%read{22,22} %write{2147483647,-1}
+temp	int	$tmp18	%read{2147483647,-1} %write{23,23}
+const	string	$const18	"camera:clip_near"		%read{23,23} %write{2147483647,-1}
+temp	int	$tmp19	%read{2147483647,-1} %write{24,24}
+const	string	$const19	"camera:clip_far"		%read{24,24} %write{2147483647,-1}
+temp	int	$tmp20	%read{2147483647,-1} %write{25,25}
+const	string	$const20	"camera:shutter"		%read{25,25} %write{2147483647,-1}
+temp	int	$tmp21	%read{2147483647,-1} %write{26,26}
+const	string	$const21	"camera:shutter_open"		%read{26,26} %write{2147483647,-1}
+temp	int	$tmp22	%read{2147483647,-1} %write{27,27}
+const	string	$const22	"camera:shutter_close"		%read{27,27} %write{2147483647,-1}
+temp	int	$tmp23	%read{2147483647,-1} %write{28,28}
+const	string	$const23	"global:frame"		%read{28,28} %write{2147483647,-1}
+temp	int	$tmp24	%read{2147483647,-1} %write{29,29}
+const	string	$const24	"path:ray_depth"		%read{29,29} %write{2147483647,-1}
+temp	int	$tmp25	%read{2147483647,-1} %write{30,30}
+const	string	$const25	"path:ray_has_differentials"		%read{30,30} %write{2147483647,-1}
+temp	int	$tmp26	%read{2147483647,-1} %write{31,31}
+const	string	$const26	"path:ray_length"		%read{31,31} %write{2147483647,-1}
+temp	int	$tmp27	%read{2147483647,-1} %write{32,32}
+const	string	$const27	"path:ray_ior"		%read{32,32} %write{2147483647,-1}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:225
+#     getattribute("object:object_instance_id", out_object_instance_id);
+	getattribute	$tmp1 $const1 out_object_instance_id 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl"} %line{225} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:226
+#     getattribute("object:object_instance_index", out_object_instance_index);
+	getattribute	$tmp2 $const2 out_object_instance_index 	%line{226} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:227
+#     getattribute("object:object_instance_name", out_object_instance_name);
+	getattribute	$tmp3 $const3 out_object_instance_name 	%line{227} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:228
+#     getattribute("object:object_name", out_object_name);
+	getattribute	$tmp4 $const4 out_object_name 	%line{228} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:230
+#     getattribute("object:assembly_instance_id", out_assembly_instance_id);
+	getattribute	$tmp5 $const5 out_assembly_instance_id 	%line{230} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:231
+#     getattribute("object:assembly_name", out_assembly_name);
+	getattribute	$tmp6 $const6 out_assembly_name 	%line{231} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:232
+#     getattribute("object:assembly_instance_name", out_assembly_instance_name);
+	getattribute	$tmp7 $const7 out_assembly_instance_name 	%line{232} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:234
+#     getattribute("camera:resolution", out_camera_resolution);
+	getattribute	$tmp8 $const8 out_camera_resolution 	%line{234} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:235
+#     out_camera_resolution_x = out_camera_resolution[0];
+	aref		out_camera_resolution_x out_camera_resolution $const9 	%line{235} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:236
+#     out_camera_resolution_y = out_camera_resolution[1];
+	aref		out_camera_resolution_y out_camera_resolution $const10 	%line{236} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:238
+#     getattribute("camera:projection", out_camera_projection);
+	getattribute	$tmp9 $const11 out_camera_projection 	%line{238} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:239
+#     getattribute("camera:pixelaspect", out_camera_pixel_aspect);
+	getattribute	$tmp10 $const12 out_camera_pixel_aspect 	%line{239} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:241
+#     getattribute("camera:screen_window", out_camera_screen_window);
+	getattribute	$tmp11 $const13 out_camera_screen_window 	%line{241} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:242
+#     out_camera_screen_window_xmin = out_camera_screen_window[0];
+	aref		$tmp12 out_camera_screen_window $const9 	%line{242} %argrw{"wrr"}
+	assign		out_camera_screen_window_xmin $tmp12 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:243
+#     out_camera_screen_window_ymin = out_camera_screen_window[1];
+	aref		$tmp13 out_camera_screen_window $const10 	%line{243} %argrw{"wrr"}
+	assign		out_camera_screen_window_ymin $tmp13 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:244
+#     out_camera_screen_window_xmax = out_camera_screen_window[2];
+	aref		$tmp14 out_camera_screen_window $const14 	%line{244} %argrw{"wrr"}
+	assign		out_camera_screen_window_xmax $tmp14 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:245
+#     out_camera_screen_window_ymax = out_camera_screen_window[3];
+	aref		$tmp15 out_camera_screen_window $const15 	%line{245} %argrw{"wrr"}
+	assign		out_camera_screen_window_ymax $tmp15 	%argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:247
+#     getattribute("camera:fov", out_camera_fov);
+	getattribute	$tmp16 $const16 out_camera_fov 	%line{247} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:248
+#     getattribute("camera:clip", out_camera_clip);
+	getattribute	$tmp17 $const17 out_camera_clip 	%line{248} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:249
+#     getattribute("camera:clip_near", out_camera_clip_near);
+	getattribute	$tmp18 $const18 out_camera_clip_near 	%line{249} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:250
+#     getattribute("camera:clip_far", out_camera_clip_far);
+	getattribute	$tmp19 $const19 out_camera_clip_far 	%line{250} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:251
+#     getattribute("camera:shutter", out_camera_shutter);
+	getattribute	$tmp20 $const20 out_camera_shutter 	%line{251} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:252
+#     getattribute("camera:shutter_open", out_camera_shutter_open);
+	getattribute	$tmp21 $const21 out_camera_shutter_open 	%line{252} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:253
+#     getattribute("camera:shutter_close", out_camera_shutter_close);
+	getattribute	$tmp22 $const22 out_camera_shutter_close 	%line{253} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:255
+#     getattribute("global:frame", out_global_frame);
+	getattribute	$tmp23 $const23 out_global_frame 	%line{255} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:257
+#     getattribute("path:ray_depth", out_path_ray_depth);
+	getattribute	$tmp24 $const24 out_path_ray_depth 	%line{257} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:258
+#     getattribute("path:ray_has_differentials", out_path_has_ray_differentials);
+	getattribute	$tmp25 $const25 out_path_has_ray_differentials 	%line{258} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:259
+#     getattribute("path:ray_length", out_path_ray_length);
+	getattribute	$tmp26 $const26 out_path_ray_length 	%line{259} %argrw{"wrw"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_attributes.osl:260
+#     getattribute("path:ray_ior", out_path_ray_ior);
+	getattribute	$tmp27 $const27 out_path_ray_ior 	%line{260} %argrw{"wrw"}
+	end

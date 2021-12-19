@@ -233,11 +233,27 @@ class Project(FeatureBase):
         fpo.Renderer = rdr
         fpo.Template = template
 
+    def get_bounding_box(self):
+        """Compute project bounding box.
+
+        This the bounding box of the underlying objects referenced in the
+        scene.
+        """
+        bbox = App.BoundBox()
+        for view in self.all_views():
+            source = view.Source
+            for attr_name in ("Shape", "Mesh"):
+                try:
+                    attr = getattr(source, attr_name)
+                except AttributeError:
+                    pass
+                else:
+                    bbox.add(attr.BoundBox)
+                    break
+        return bbox
+
     def write_groundplane(self, renderer):
         """Generate a ground plane rendering string for the scene.
-
-        For that purpose, dummy objects are temporarily added to the document
-        which the project belongs to, and eventually deleted
 
         Args:
         ----------
@@ -247,22 +263,13 @@ class Project(FeatureBase):
         -------
         The rendering string for the ground plane
         """
-        # Compute scene bounding box
-        bbox = App.BoundBox()
-        for view in self.all_views():
-            try:
-                bbox.add(view.Source.Shape.BoundBox)
-            except AttributeError:
-                pass
-
-        # Compute rendering string
+        bbox = self.get_bounding_box()
         result = ""
         if bbox.isValid():
             zpos = self.fpo.GroundPlaneZ
             color = self.fpo.GroundPlaneColor
             factor = self.fpo.GroundPlaneSizeFactor
             result = renderer.get_groundplane_string(bbox, zpos, color, factor)
-
         return result
 
     def add_views(self, objs):

@@ -1,0 +1,247 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.14
+# options: -O2 -DNDEBUG -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/ -I/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include -o /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders/appleseed/as_composite_color.oso
+shader as_composite_color	%meta{string,help,"Porter-Duff Compositing operators node."} %meta{string,icon,"asCompositeColor.png"} %meta{string,URL,"https://appleseed.readthedocs.io/projects/appleseed-maya/en/latest/shaders/utilities/as_composite_color.html"} %meta{string,as_node_name,"asCompositeColor"} %meta{string,as_category,"color"} %meta{string,as_max_class_id,"1878686041 1992629660"} %meta{string,as_max_plugin_type,"texture"} %meta{int,as_maya_type_id,1210877} %meta{string,as_maya_classification,"drawdb/shader:rendernode/appleseed/utility"} 
+param	color	in_color	0 0 0		%meta{string,as_maya_attribute_name,"color"} %meta{string,as_maya_attribute_short_name,"c"} %meta{string,label,"Source Color"} %meta{string,page,"Color"}  %read{3,72} %write{2147483647,-1}
+param	float	in_alpha	1		%meta{string,as_maya_attribute_name,"alpha"} %meta{string,as_maya_attribute_short_name,"a"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Source Alpha"} %meta{string,page,"Color"} %meta{int,divider,1}  %read{4,73} %write{2147483647,-1}
+param	color	in_color2	1 1 1		%meta{string,as_maya_attribute_name,"color2"} %meta{string,as_maya_attribute_short_name,"c2"} %meta{string,label,"Destination Color"} %meta{string,page,"Color"}  %read{7,72} %write{2147483647,-1}
+param	float	in_alpha2	1		%meta{string,as_maya_attribute_name,"alpha2"} %meta{string,as_maya_attribute_short_name,"a2"} %meta{float,min,0} %meta{float,max,1} %meta{string,label,"Destination Alpha"} %meta{string,page,"Color"} %meta{int,divider,1}  %read{8,73} %write{2147483647,-1}
+param	string	in_composite_mode	"Matte"		%meta{string,as_maya_attribute_name,"compositeMode"} %meta{string,as_maya_attribute_short_name,"com"} %meta{string,widget,"popup"} %meta{string,options,"Source|Destination|Over|Under|In|Mask|Out|Stencil|Atop|Dst-Atop|Xor|Matte"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Composite Mode"} %meta{string,page,"Color"} %meta{string,help,"Compositing modes."} %meta{int,divider,1}  %read{1,70} %write{2147483647,-1}
+param	int	in_clamp_output	0		%meta{string,as_maya_attribute_name,"clampOutput"} %meta{string,as_maya_attribute_short_name,"cot"} %meta{string,widget,"checkBox"} %meta{int,as_maya_attribute_connectable,0} %meta{int,as_maya_attribute_keyable,0} %meta{int,as_maya_attribute_hidden,1} %meta{int,as_blender_input_socket,0} %meta{int,gafferNoduleLayoutVisible,0} %meta{string,label,"Clamp Output"} %meta{string,page,"Color"}  %read{80,80} %write{2147483647,-1}
+oparam	color	out_color	0 0 0		%meta{string,as_maya_attribute_name,"outColor"} %meta{string,as_maya_attribute_short_name,"oc"} %meta{string,widget,"null"} %meta{string,label,"Output Color"}  %read{82,82} %write{76,83}
+oparam	float	out_alpha	0		%meta{string,as_maya_attribute_name,"outAlpha"} %meta{string,as_maya_attribute_short_name,"oa"} %meta{string,widget,"null"} %meta{string,label,"Output Alpha"}  %read{78,78} %write{4,79}
+local	color	___772_rgb	%read{76,76} %write{3,74}
+const	string	$const1	"composite_color_rgba"		%read{0,0} %write{2147483647,-1}
+const	string	$const2	"Source"		%read{1,1} %write{2147483647,-1}
+temp	int	$tmp1	%read{2,2} %write{1,1}
+const	string	$const3	"Destination"		%read{5,5} %write{2147483647,-1}
+temp	int	$tmp2	%read{6,6} %write{5,5}
+const	string	$const4	"Over"		%read{9,9} %write{2147483647,-1}
+temp	int	$tmp3	%read{10,10} %write{9,9}
+temp	float	$tmp4	%read{12,12} %write{11,11}
+const	float	$const6	1		%read{11,78} %write{2147483647,-1}
+temp	color	$tmp5	%read{13,13} %write{12,12}
+temp	float	$tmp6	%read{16,16} %write{14,14}
+temp	float	$tmp7	%read{16,16} %write{15,15}
+const	string	$const7	"Under"		%read{17,17} %write{2147483647,-1}
+temp	int	$tmp8	%read{18,18} %write{17,17}
+temp	float	$tmp9	%read{20,20} %write{19,19}
+temp	color	$tmp10	%read{21,21} %write{20,20}
+temp	float	$tmp11	%read{24,24} %write{22,22}
+temp	float	$tmp12	%read{24,24} %write{23,23}
+const	string	$const8	"In"		%read{25,25} %write{2147483647,-1}
+temp	int	$tmp13	%read{26,26} %write{25,25}
+const	string	$const9	"Mask"		%read{29,29} %write{2147483647,-1}
+temp	int	$tmp14	%read{30,30} %write{29,29}
+const	string	$const10	"Out"		%read{33,33} %write{2147483647,-1}
+temp	int	$tmp15	%read{34,34} %write{33,33}
+temp	float	$tmp16	%read{36,36} %write{35,35}
+temp	float	$tmp17	%read{38,38} %write{37,37}
+const	string	$const11	"Stencil"		%read{39,39} %write{2147483647,-1}
+temp	int	$tmp18	%read{40,40} %write{39,39}
+temp	float	$tmp19	%read{42,42} %write{41,41}
+temp	float	$tmp20	%read{44,44} %write{43,43}
+const	string	$const12	"Atop"		%read{45,45} %write{2147483647,-1}
+temp	int	$tmp21	%read{46,46} %write{45,45}
+temp	color	$tmp22	%read{50,50} %write{47,47}
+temp	float	$tmp23	%read{49,49} %write{48,48}
+temp	color	$tmp24	%read{50,50} %write{49,49}
+const	string	$const13	"Dst-Atop"		%read{52,52} %write{2147483647,-1}
+temp	int	$tmp25	%read{53,53} %write{52,52}
+temp	color	$tmp26	%read{57,57} %write{54,54}
+temp	float	$tmp27	%read{56,56} %write{55,55}
+temp	color	$tmp28	%read{57,57} %write{56,56}
+const	string	$const14	"Xor"		%read{59,59} %write{2147483647,-1}
+temp	int	$tmp29	%read{60,60} %write{59,59}
+temp	float	$tmp30	%read{62,62} %write{61,61}
+temp	color	$tmp31	%read{65,65} %write{62,62}
+temp	float	$tmp32	%read{64,64} %write{63,63}
+temp	color	$tmp33	%read{65,65} %write{64,64}
+temp	float	$tmp34	%read{69,69} %write{66,66}
+const	float	$const15	2		%read{67,67} %write{2147483647,-1}
+temp	float	$tmp35	%read{68,68} %write{67,67}
+temp	float	$tmp36	%read{69,69} %write{68,68}
+const	string	$const16	"Matte"		%read{70,70} %write{2147483647,-1}
+temp	int	$tmp37	%read{71,71} %write{70,70}
+const	color	$const17	0 0 0		%read{74,83} %write{2147483647,-1}
+const	float	$const18	0		%read{75,79} %write{2147483647,-1}
+const	string	$const19	"clamp"		%read{77,81} %write{2147483647,-1}
+temp	float	$tmp38	%read{79,79} %write{78,78}
+const	color	$const20	1 1 1		%read{82,82} %write{2147483647,-1}
+temp	color	$tmp41	%read{83,83} %write{82,82}
+code ___main___
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl:127
+#     out_color = composite_color_rgba(
+	functioncall	$const1 77 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl"} %line{127} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:473
+#     if (mode == "Source") // A (Src)
+	eq		$tmp1 in_composite_mode $const2 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h"} %line{473} %argrw{"wrr"}
+	if		$tmp1 5 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:475
+#         rgb = A;
+	assign		___772_rgb in_color 	%line{475} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:476
+#         alpha = A_alpha;
+	assign		out_alpha in_alpha 	%line{476} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:478
+#     else if (mode == "Destination") // B (Dst)
+	eq		$tmp2 in_composite_mode $const3 	%line{478} %argrw{"wrr"}
+	if		$tmp2 9 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:480
+#         rgb = B;
+	assign		___772_rgb in_color2 	%line{480} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:481
+#         alpha = B_alpha;
+	assign		out_alpha in_alpha2 	%line{481} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:483
+#     else if (mode == "Over") // Src-Over
+	eq		$tmp3 in_composite_mode $const4 	%line{483} %argrw{"wrr"}
+	if		$tmp3 17 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:485
+#         rgb = A + B * (1 - A_alpha);
+	sub		$tmp4 $const6 in_alpha 	%line{485} %argrw{"wrr"}
+	mul		$tmp5 in_color2 $tmp4 	%argrw{"wrr"}
+	add		___772_rgb in_color $tmp5 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:486
+#         alpha = A_alpha + B_alpha - A_alpha * B_alpha;
+	add		$tmp6 in_alpha in_alpha2 	%line{486} %argrw{"wrr"}
+	mul		$tmp7 in_alpha in_alpha2 	%argrw{"wrr"}
+	sub		out_alpha $tmp6 $tmp7 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:488
+#     else if (mode == "Under") // Dst-Over
+	eq		$tmp8 in_composite_mode $const7 	%line{488} %argrw{"wrr"}
+	if		$tmp8 25 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:490
+#         rgb = B + A * (1 - B_alpha);
+	sub		$tmp9 $const6 in_alpha2 	%line{490} %argrw{"wrr"}
+	mul		$tmp10 in_color $tmp9 	%argrw{"wrr"}
+	add		___772_rgb in_color2 $tmp10 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:491
+#         alpha = A_alpha + B_alpha - A_alpha * B_alpha;
+	add		$tmp11 in_alpha in_alpha2 	%line{491} %argrw{"wrr"}
+	mul		$tmp12 in_alpha in_alpha2 	%argrw{"wrr"}
+	sub		out_alpha $tmp11 $tmp12 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:493
+#     else if (mode == "In") // Src-In
+	eq		$tmp13 in_composite_mode $const8 	%line{493} %argrw{"wrr"}
+	if		$tmp13 29 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:495
+#         rgb = A * B_alpha;
+	mul		___772_rgb in_color in_alpha2 	%line{495} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:496
+#         alpha = A_alpha * B_alpha;
+	mul		out_alpha in_alpha in_alpha2 	%line{496} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:498
+#     else if (mode == "Mask") // Dst-In
+	eq		$tmp14 in_composite_mode $const9 	%line{498} %argrw{"wrr"}
+	if		$tmp14 33 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:500
+#         rgb = B * A_alpha;
+	mul		___772_rgb in_color2 in_alpha 	%line{500} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:501
+#         alpha = A_alpha * B_alpha;
+	mul		out_alpha in_alpha in_alpha2 	%line{501} %argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:503
+#     else if (mode == "Out") // Src-Out
+	eq		$tmp15 in_composite_mode $const10 	%line{503} %argrw{"wrr"}
+	if		$tmp15 39 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:505
+#         rgb = A * (1.0 - B_alpha);
+	sub		$tmp16 $const6 in_alpha2 	%line{505} %argrw{"wrr"}
+	mul		___772_rgb in_color $tmp16 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:506
+#         alpha = A_alpha * (1.0 - B_alpha);
+	sub		$tmp17 $const6 in_alpha2 	%line{506} %argrw{"wrr"}
+	mul		out_alpha in_alpha $tmp17 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:508
+#     else if (mode == "Stencil") // Dst-Out
+	eq		$tmp18 in_composite_mode $const11 	%line{508} %argrw{"wrr"}
+	if		$tmp18 45 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:510
+#         rgb = B * (1.0 - A_alpha);
+	sub		$tmp19 $const6 in_alpha 	%line{510} %argrw{"wrr"}
+	mul		___772_rgb in_color2 $tmp19 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:511
+#         alpha = B_alpha * (1.0 - A_alpha);
+	sub		$tmp20 $const6 in_alpha 	%line{511} %argrw{"wrr"}
+	mul		out_alpha in_alpha2 $tmp20 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:513
+#     else if (mode == "Atop") // Src-Atop
+	eq		$tmp21 in_composite_mode $const12 	%line{513} %argrw{"wrr"}
+	if		$tmp21 52 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:515
+#         rgb = A * B_alpha + B * (1.0 - A_alpha);
+	mul		$tmp22 in_color in_alpha2 	%line{515} %argrw{"wrr"}
+	sub		$tmp23 $const6 in_alpha 	%argrw{"wrr"}
+	mul		$tmp24 in_color2 $tmp23 	%argrw{"wrr"}
+	add		___772_rgb $tmp22 $tmp24 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:516
+#         alpha = B_alpha;
+	assign		out_alpha in_alpha2 	%line{516} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:518
+#     else if (mode == "Dst-Atop") //
+	eq		$tmp25 in_composite_mode $const13 	%line{518} %argrw{"wrr"}
+	if		$tmp25 59 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:520
+#         rgb = B * A_alpha + A * (1.0 - B_alpha);
+	mul		$tmp26 in_color2 in_alpha 	%line{520} %argrw{"wrr"}
+	sub		$tmp27 $const6 in_alpha2 	%argrw{"wrr"}
+	mul		$tmp28 in_color $tmp27 	%argrw{"wrr"}
+	add		___772_rgb $tmp26 $tmp28 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:521
+#         alpha = A_alpha;
+	assign		out_alpha in_alpha 	%line{521} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:523
+#     else if (mode == "Xor") // Xor
+	eq		$tmp29 in_composite_mode $const14 	%line{523} %argrw{"wrr"}
+	if		$tmp29 70 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:525
+#         rgb = A * (1.0 - B_alpha) + B * (1.0 - A_alpha);
+	sub		$tmp30 $const6 in_alpha2 	%line{525} %argrw{"wrr"}
+	mul		$tmp31 in_color $tmp30 	%argrw{"wrr"}
+	sub		$tmp32 $const6 in_alpha 	%argrw{"wrr"}
+	mul		$tmp33 in_color2 $tmp32 	%argrw{"wrr"}
+	add		___772_rgb $tmp31 $tmp33 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:526
+#         alpha = A_alpha + B_alpha - 2.0 * A_alpha * B_alpha;
+	add		$tmp34 in_alpha in_alpha2 	%line{526} %argrw{"wrr"}
+	mul		$tmp35 $const15 in_alpha 	%argrw{"wrr"}
+	mul		$tmp36 $tmp35 in_alpha2 	%argrw{"wrr"}
+	sub		out_alpha $tmp34 $tmp36 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:528
+#     else if (mode == "Matte")
+	eq		$tmp37 in_composite_mode $const16 	%line{528} %argrw{"wrr"}
+	if		$tmp37 74 76 	%argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:530
+#         rgb = mix(A, B, A_alpha);
+	mix		___772_rgb in_color in_color2 in_alpha 	%line{530} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:531
+#         alpha = mix(A_alpha, B_alpha, A_alpha);
+	mix		out_alpha in_alpha in_alpha2 in_alpha 	%line{531} %argrw{"wrrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:541
+#         rgb = color(0);
+	assign		___772_rgb $const17 	%line{541} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:542
+#         alpha = 0.0;
+	assign		out_alpha $const18 	%line{542} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/include/appleseed/color/as_color_blend_modes.h:544
+#     return rgb;
+	assign		out_color ___772_rgb 	%line{544} %argrw{"wr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl:135
+#     out_alpha = clamp(out_alpha, 0.0, 1.0);
+	functioncall	$const19 80 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl"} %line{135} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:145
+# float  clamp (float x, float minval, float maxval) { return max(min(x,maxval),minval); }
+	min		$tmp38 out_alpha $const6 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{145} %argrw{"wrr"}
+	max		out_alpha $tmp38 $const18 	%argrw{"wrr"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl:137
+#     if (in_clamp_output)
+	if		in_clamp_output 84 84 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl"} %line{137} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/src/appleseed.shaders/src/appleseed/as_composite_color.osl:139
+#         out_color = clamp(out_color, color(0), color(1));
+	functioncall	$const19 84 	%line{139} %argrw{"r"}
+# /var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h:144
+# color  clamp (color x, color minval, color maxval) { return max(min(x,maxval),minval); }
+	min		$tmp41 out_color $const20 	%filename{"/var/cache/private/pikaur/build/appleseed-git/src/appleseed-git/sandbox/shaders//stdosl.h"} %line{144} %argrw{"wrr"}
+	max		out_color $tmp41 $const17 	%argrw{"wrr"}
+	end
