@@ -280,6 +280,7 @@ def render(project, prefix, external, output, width, height):
     cmd = prefix + rpath + " " + args + " " + project.PageResult + "\n"
     App.Console.PrintMessage(cmd)
     try:
+        # pylint: disable=consider-using-with
         Popen(shlex.split(cmd))
     except OSError as err:
         msg = "Luxrender call failed: '" + err.strerror + "'\n"

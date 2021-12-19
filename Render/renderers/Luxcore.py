@@ -358,6 +358,7 @@ def render(project, prefix, external, output, width, height):
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
     App.Console.PrintMessage(cmd)
     try:
+        # pylint: disable=consider-using-with
         Popen(shlex.split(cmd))
     except OSError as err:
         msg = "LuxCore call failed: '" + err.strerror + "'\n"
