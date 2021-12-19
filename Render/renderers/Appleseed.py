@@ -33,7 +33,7 @@ import os
 import re
 import shlex
 import uuid
-from tempfile import mkstemp, mkdtemp
+from tempfile import mkstemp
 from math import pi, degrees, acos, atan2, sqrt
 from subprocess import Popen
 from textwrap import indent
@@ -599,6 +599,7 @@ def render(project, prefix, external, output, width, height):
     cmd = prefix + rpath + " " + args + " " + filepath + "\n"
     App.Console.PrintMessage(cmd)
     try:
+        # pylint: disable=consider-using-with
         Popen(shlex.split(cmd))
     except OSError as err:
         msg = "Appleseed call failed: '" + err.strerror + "'\n"

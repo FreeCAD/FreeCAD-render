@@ -657,6 +657,7 @@ def render(project, prefix, external, output, width, height):
     # not managed by osp
 
     try:
+        # pylint: disable=consider-using-with
         Popen(shlex.split(cmd))
     except OSError as err:
         App.Console.PrintError(f"OspStudio call failed: '{err.strerror}'\n")
