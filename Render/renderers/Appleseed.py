@@ -520,8 +520,6 @@ def render(project, prefix, external, output, width, height):
     # executable and passing it the needed arguments, and
     # the file it needs to render
 
-    print(SHADERS_DIR)  # TODO
-
     # Make various adjustments on file:
     # Change image size in template, adjust camera ratio, reorganize cameras
     # declarations and specify default camera
