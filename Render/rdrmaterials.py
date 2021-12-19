@@ -172,7 +172,7 @@ STD_MATERIALS_PARAMETERS = {
             (0.8, 0.2, 0.2),
             translate("Render", "Base color"),
         ),
-    ]
+    ],
 }
 
 
@@ -559,6 +559,7 @@ def printmat(fcdmat):
     Returns:
         a string containing the material in Material Card format
     """
+
     def keysort(item):
         key, _, keyword = item
         if keyword == "Type":
