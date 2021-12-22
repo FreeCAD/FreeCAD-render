@@ -424,7 +424,10 @@ class Project(FeatureBase):
         cam = renderer.get_rendering_string(defaultcamview)
         del defaultcamview, camstr
 
+        import time  # TODO
+        # TODO
         # Get objects rendering strings (including lights, cameras...)
+        t0 = time.time()
         views = self.all_views()
         get_rdr_string = (
             renderer.get_rendering_string
@@ -439,6 +442,26 @@ class Project(FeatureBase):
             ]
         else:
             objstrings = [get_rdr_string(v) for v in views]
+        t1 = time.time()
+
+        # Get objects rendering strings (including lights, cameras...)
+        t2 = time.time()  # TODO
+        from concurrent import futures  # TODO
+        views = (
+            [v for v in self.all_views() if v.Source.ViewObject.Visibility]
+            if App.GuiUp
+            else [v for v in self.all_views()]
+        )
+        print(views)  # TODO
+        if obj.DelayedBuild:
+            with futures.ThreadPoolExecutor() as executor:
+                res = executor.map(renderer.get_rendering_string, views)
+            objstrings = list(res)
+        else:
+            objstrings = [v.ViewResult for v in views]
+        t3 = time.time()
+        print("Sequential: %s" % (t1 - t0))  # TODO
+        print("Concurrent: %s" % (t3 - t2))  # TODO
 
         # Add a ground plane if required
         if getattr(obj, "GroundPlane", False):
