@@ -457,8 +457,6 @@ class Project(FeatureBase):
         os.remove(fpath)
         assert obj.PageResult, "Rendering error: No page result"
 
-        App.ActiveDocument.recompute()
-
         # Fetch the rendering parameters
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
