@@ -44,6 +44,7 @@ import sys
 import functools
 import traceback
 from importlib import import_module
+from types import SimpleNamespace
 
 import FreeCAD as App
 import MeshPart
@@ -285,6 +286,12 @@ class RendererHandler:
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
         return res
+
+    def get_camsource_string(self, camsource):
+        """Get a rendering string from a camera in 'view.Source' format."""
+        return self._render_camera(
+            "Default_Camera", SimpleNamespace(Source=camsource)
+        )
 
     def _render_object(self, name, view):
         """Get a rendering string for a generic FreeCAD object.

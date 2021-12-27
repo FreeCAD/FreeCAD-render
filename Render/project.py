@@ -31,7 +31,6 @@ import math
 import sys
 import os
 import re
-from types import SimpleNamespace
 from operator import attrgetter
 from tempfile import mkstemp
 
@@ -49,7 +48,7 @@ from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.utils import translate
 from Render.view import View
-from Render.camera import DEFAULT_CAMERA_STRING, set_cam_from_coin_string
+from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
 
 
@@ -412,17 +411,7 @@ class Project(FeatureBase):
             if App.GuiUp
             else DEFAULT_CAMERA_STRING
         )
-        defaultcamview = SimpleNamespace()
-        defaultcamview.Source = SimpleNamespace()
-        defaultcamview.Source.Proxy = SimpleNamespace()
-        defaultcamview.Source.Proxy.type = "Camera"
-        defaultcamview.Source.Name = "Default_Camera"
-        defaultcamview.Source.Label = "Default_Camera"
-        defaultcamview.Name = "Default_CameraView"
-        defaultcamview.Label = View.view_label(defaultcamview.Source, obj)
-        set_cam_from_coin_string(defaultcamview.Source, camstr)
-        cam = renderer.get_rendering_string(defaultcamview)
-        del defaultcamview, camstr
+        cam = renderer.get_camsource_string(get_cam_from_coin_string(camstr))
 
         # Get objects rendering strings (including lights, cameras...)
         views = self.all_views()
