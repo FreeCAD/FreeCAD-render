@@ -42,8 +42,6 @@
 
 import json
 import os
-import shlex
-from subprocess import Popen
 from tempfile import mkstemp
 from math import degrees, asin, sqrt, atan2, pi
 
@@ -573,7 +571,7 @@ MATERIALS = {
 
 
 def render(project, prefix, external, output, width, height):
-    """Run renderer.
+    """Generate renderer command.
 
     Args:
         project -- The project to render
@@ -585,7 +583,10 @@ def render(project, prefix, external, output, width, height):
         height -- Rendered image height, in pixels
 
     Returns:
-        A path to output image file
+        The command to run renderer (string)
+        A 'modal' flag, indicating whether the command should be run in a
+            blocking/non-blocking way (bool)
+        A path to output image file (string)
     """
     # Move cameras up to root node
     cameras = ["\n"]
@@ -651,15 +652,8 @@ def render(project, prefix, external, output, width, height):
         return ""
 
     cmd = prefix + rpath + " " + args + " " + f'"{project.PageResult}"'
-    App.Console.PrintMessage(cmd + "\n")
 
     # Note: at the moment (02-19-2021), width, height, output, background are
     # not managed by osp
 
-    try:
-        # pylint: disable=consider-using-with
-        Popen(shlex.split(cmd))
-    except OSError as err:
-        App.Console.PrintError(f"OspStudio call failed: '{err.strerror}'\n")
-
-    return None
+    return cmd, False, None

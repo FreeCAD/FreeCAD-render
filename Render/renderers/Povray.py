@@ -442,7 +442,7 @@ MATERIALS = {
 
 
 def render(project, prefix, external, output, width, height):
-    """Run renderer.
+    """Generate renderer command.
 
     Args:
         project -- The project to render
@@ -454,7 +454,10 @@ def render(project, prefix, external, output, width, height):
         height -- Rendered image height, in pixels
 
     Returns:
-        A path to output image file
+        The command to run renderer (string)
+        A 'modal' flag, indicating whether the command should be run in a
+            blocking/non-blocking way (bool)
+        A path to output image file (string)
     """
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
 
@@ -488,9 +491,9 @@ def render(project, prefix, external, output, width, height):
     filepath = f'"{project.PageResult}"'
 
     cmd = prefix + rpath + " " + args + " " + filepath
-    App.Console.PrintMessage(f"Renderer command: {cmd}\n")
-    os.system(cmd)
 
-    return (
+    output = (
         output if output else os.path.splitext(project.PageResult)[0] + ".png"
     )
+
+    return cmd, True, output

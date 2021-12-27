@@ -26,9 +26,7 @@
 # https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.3
 
 import os
-import shlex
 from tempfile import mkstemp
-from subprocess import Popen
 from textwrap import dedent, indent
 import configparser
 
@@ -296,7 +294,7 @@ MATERIALS = {
 
 
 def render(project, prefix, external, output, width, height):
-    """Run renderer.
+    """Generate renderer command.
 
     Args:
         project -- The project to render
@@ -308,7 +306,10 @@ def render(project, prefix, external, output, width, height):
         height -- Rendered image height, in pixels
 
     Returns:
-        A path to output image file
+        The command to run renderer (string)
+        A 'modal' flag, indicating whether the command should be run in a
+            blocking/non-blocking way (bool)
+        A path to output image file (string)
     """
 
     def export_section(section, prefix, suffix):
@@ -352,16 +353,9 @@ def render(project, prefix, external, output, width, height):
             "path in Edit -> Preferences -> Render\n"
         )
         App.Console.PrintError(msg)
-        return
+        return "", False, None
 
-    # Prepare command line and call LuxCore
+    # Prepare command line and return
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
-    App.Console.PrintMessage(cmd)
-    try:
-        # pylint: disable=consider-using-with
-        Popen(shlex.split(cmd))
-    except OSError as err:
-        msg = "LuxCore call failed: '" + err.strerror + "'\n"
-        App.Console.PrintError(msg)
 
-    return
+    return cmd, False, None

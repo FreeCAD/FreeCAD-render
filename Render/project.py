@@ -31,8 +31,10 @@ import math
 import sys
 import os
 import re
+import shlex
 from operator import attrgetter
 from tempfile import mkstemp
+from subprocess import Popen
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
@@ -478,8 +480,14 @@ class Project(FeatureBase):
         except (AttributeError, ValueError, TypeError):
             height = 600
 
-        # Run the renderer on the generated temp file, with rendering params
-        img = renderer.render(obj, prefix, external, output, width, height)
+        # Get the renderer command on the generated temp file, with rendering
+        # params
+        cmd, modal, img = renderer.render(
+            obj, prefix, external, output, width, height
+        )
+
+        # Run renderer
+        _run(cmd, modal)
 
         # Open result in GUI if relevant
         try:
@@ -490,6 +498,20 @@ class Project(FeatureBase):
 
         # And eventually return result path
         return img
+
+
+def _run(cmd, modal=True):
+    """Run a command, in modal or non-modal mode."""
+    App.Console.PrintMessage(f"{cmd}\n")
+    if modal:
+        os.system(cmd)
+    else:
+        try:
+            # pylint: disable=consider-using-with
+            Popen(shlex.split(cmd))
+        except OSError as err:
+            msg = "Renderer call failed: '" + err.strerror + "'\n"
+            App.Console.PrintError(msg)
 
 
 class ViewProviderProject(ViewProviderBase):

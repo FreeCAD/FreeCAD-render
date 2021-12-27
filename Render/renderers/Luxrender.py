@@ -40,9 +40,7 @@
 
 import os
 import re
-import shlex
 from tempfile import mkstemp
-from subprocess import Popen
 from textwrap import dedent
 
 import FreeCAD as App
@@ -207,7 +205,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
 
 
 def render(project, prefix, external, output, width, height):
-    """Run renderer.
+    """Generate renderer command.
 
     Args:
         project -- The project to render
@@ -219,7 +217,10 @@ def render(project, prefix, external, output, width, height):
         height -- Rendered image height, in pixels
 
     Returns:
-        A path to output image file
+        The command to run renderer (string)
+        A 'modal' flag, indicating whether the command should be run in a
+            blocking/non-blocking way (bool)
+        A path to output image file (string)
     """
     # Here you trigger a render by firing the renderer
     # executable and passing it the needed arguments, and
@@ -274,16 +275,9 @@ def render(project, prefix, external, output, width, height):
             "Please set the correct path in "
             "Edit -> Preferences -> Render\n"
         )
-        return
+        return "", False, None
 
     # Call Luxrender
     cmd = prefix + rpath + " " + args + " " + project.PageResult + "\n"
-    App.Console.PrintMessage(cmd)
-    try:
-        # pylint: disable=consider-using-with
-        Popen(shlex.split(cmd))
-    except OSError as err:
-        msg = "Luxrender call failed: '" + err.strerror + "'\n"
-        App.Console.PrintError(msg)
 
-    return
+    return cmd, False, None
