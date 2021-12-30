@@ -488,33 +488,99 @@ class Project(FeatureBase):
         )
         img = img if obj.OpenAfterRender else None
 
-        # Run renderer
-        _start(cmd, img)
+        # Execute renderer
+        rdr_executor = RendererExecutor(cmd, img)
+        rdr_executor.start()
 
         # And eventually return result path
         return img
 
 
 import threading
-from subprocess import PIPE, STDOUT, TimeoutExpired
+from subprocess import PIPE, STDOUT
 
 import sys
 
 
-from PySide.QtGui import QImage, QOpenGLWindow, QOpenGLWidget, QPainter, QLabel, QPixmap
+from PySide.QtGui import (
+    QImage,
+    QOpenGLWindow,
+    QOpenGLWidget,
+    QPainter,
+    QLabel,
+    QPixmap,
+)
 
-def _start(cmd, img):
-    # Prepare Image result tab
-    img_widget = QLabel()
-    win = Gui.getMainWindow()
-    mdiarea = win.centralWidget()
-    subw = mdiarea.addSubWindow(img_widget)
-    subw.setWindowTitle("Rendering result")
-    img_widget.setText("(No image)")
 
-    # Start working thread
-    t = threading.Thread(target=_start2, args=(cmd, img, img_widget))
-    t.start()
+class RendererExecutor(threading.Thread):
+    """A class to execute a rendering engine.
+
+    This class is designed to run a renderer in a separate thread, keeping
+    console/gui responsive.  Meanwhile, stdout/stderr are piped to FreeCAD
+    console, in such a way it is possible to follow the evolution of the
+    rendering.
+    """
+    def __init__(self, cmd, img):
+        """Initialize executor.
+
+        Args:
+            cmd -- command to execute (str)
+            img -- path to resulting image (the renderer output) (str)
+        """
+        super().__init__()
+        self.cmd = str(cmd)
+        self.img = str(img)
+        self.img_widget = None
+
+    def start(self):
+        """Start executor."""
+        # Prepare Image result tab
+        img_widget = QLabel()
+        win = Gui.getMainWindow()
+        mdiarea = win.centralWidget()
+        subw = mdiarea.addSubWindow(img_widget)
+        subw.setWindowTitle("Rendering result")
+        img_widget.setText("(No image)")
+        self.img_widget = img_widget
+
+        # Call parent method to trigger run()
+        super().start()
+
+    def run(self):
+        """Run executor.
+
+        This method represents the thread activity. It is not intended to be
+        called directly (see 'threading' module documentation).
+        """
+        # TODO Test in Windows
+
+        App.Console.PrintMessage(f"Starting rendering...\n{self.cmd}")
+        try:
+            with Popen(
+                shlex.split(self.cmd),
+                stdout=PIPE,
+                stderr=STDOUT,
+                bufsize=1,
+                universal_newlines=True,
+            ) as proc:
+                for line in proc.stdout:
+                    App.Console.PrintMessage(line)
+        except Exception as err:
+            errclass = err.__class__.__name__
+            errmsg = str(err)
+            App.Console.PrintError(f"{errclass}: {errmsg}\n")
+            App.Console.PrintMessage("Aborting rendering...\n")
+        else:
+            rcode = proc.returncode
+            msg = f"Exiting rendering - Return code: {rcode}\n"
+            if not rcode:
+                App.Console.PrintMessage(msg)
+            else:
+                App.Console.PrintWarning(msg)
+
+            # Open result in GUI if relevant
+            if self.img:
+                _show_image(self.img, self.img_widget)
 
 
 def _show_image(img_filename, img_widget):
@@ -522,24 +588,6 @@ def _show_image(img_filename, img_widget):
     App.Console.PrintMessage("Loading image '{}'\n".format(img_filename))
     img_widget.setPixmap(QPixmap(img_filename))
     img_widget.show()
-
-
-def _start2(cmd, img, gl_widget):
-    # TODO Test in Windows
-    App.Console.PrintMessage(f"Starting rendering...\n{cmd}")
-    try:
-        with Popen(shlex.split(cmd), stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as p:
-            for line in p.stdout:
-                App.Console.PrintMessage(line)
-    except Exception as err:
-        App.Console.PrintError("{}: {}\n".format(err.__class__.__name__, str(err)))
-        App.Console.PrintMessage("Aborting rendering...\n")
-    else:
-        App.Console.PrintMessage("Exiting rendering - Return code: %s\n" % p.returncode)
-
-        # Open result in GUI if relevant
-        if img:
-            _show_image(img, gl_widget)
 
 
 class ViewProviderProject(ViewProviderBase):
