@@ -533,9 +533,8 @@ def _start2(cmd, img, gl_widget):
     App.Console.PrintMessage(f"Starting rendering...\n{cmd}")
     try:
         with Popen(shlex.split(cmd), stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as p:
-            while p.poll() is None:
-                for line in p.stdout:
-                    App.Console.PrintMessage(line)
+            for line in p.stdout:
+                App.Console.PrintMessage(line)
     except Exception as err:
         App.Console.PrintError("{}: {}\n".format(err.__class__.__name__, str(err)))
         App.Console.PrintMessage("Aborting rendering...\n")
