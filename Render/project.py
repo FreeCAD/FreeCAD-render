@@ -495,13 +495,11 @@ class Project(FeatureBase):
         return img
 
 
-import multiprocessing as mp
 import threading
-from subprocess import PIPE, STDOUT
+from subprocess import PIPE, STDOUT, TimeoutExpired
 
 import sys
 
-rdrpipe = mp.Pipe()
 
 from PySide.QtGui import QImage, QOpenGLWindow, QOpenGLWidget, QPainter, QLabel, QPixmap
 
@@ -513,7 +511,7 @@ def _start(cmd, img):
     subw = mdiarea.addSubWindow(img_widget)
     subw.hide()
     subw.setWindowTitle("Rendering result")
-    img_widget.setText("(Image result)")
+    img_widget.setText("(No image)")
 
     # Start working thread
     t = threading.Thread(target=_start2, args=(cmd, img, img_widget))
@@ -522,50 +520,31 @@ def _start(cmd, img):
 
 def _show_image(img_filename, img_widget):
     # TODO Test if App.GuiUp
-    print("show image")
-    print(img_filename)
+    App.Console.PrintMessage("Loading image '{}'".format(img_filename))
     img = QImage(img_filename)
     pix = QPixmap()
     pix.convertFromImage(img)
     img_widget.setPixmap(pix)
     img_widget.show()
-    # img_widget.setText("Should be an image")
 
 
 def _start2(cmd, img, gl_widget):
     # TODO Test in Windows
-    # mp.set_start_method("fork")
-    stdin_bak = sys.stdin
-    sys.stdin = sys.__stdin__  # To be restored after
-    p = mp.Process(target=_run, args=(cmd,))
-    App.Console.PrintMessage(f"Starting rendering...\n{cmd}\n")
-    p.start()
-    while p.is_alive():
-        if rdrpipe[0].poll(1):
-            msg = rdrpipe[0].recv()
-            App.Console.PrintMessage(msg)
-    p.join()
-    sys.stdin = stdin_bak
-    # Open result in GUI if relevant
-    try:
-        if img:
-            # ImageGui.open(img)
-            _show_image(img, gl_widget)
-    except (AttributeError, NameError):
-        pass
-
-def _run(cmd):
-    """Run a command."""
-    send = rdrpipe[1].send
+    App.Console.PrintMessage(f"Starting rendering...\n{cmd}")
     try:
         with Popen(shlex.split(cmd), stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as p:
-            for line in p.stdout:
-                send(line)
+            while p.poll() is None:
+                for line in p.stdout:
+                    App.Console.PrintMessage(line)
     except Exception as err:
-        send("{}: {}\n".format(err.__class__.__name__, str(err)))
-        send("Aborting rendering...\n")
+        App.Console.PrintError("{}: {}\n".format(err.__class__.__name__, str(err)))
+        App.Console.PrintMessage("Aborting rendering...\n")
     else:
-        send("Exiting rendering - Return code: %s\n" % p.returncode)
+        App.Console.PrintMessage("Exiting rendering - Return code: %s\n" % p.returncode)
+
+        # Open result in GUI if relevant
+        if img:
+            _show_image(img, gl_widget)
 
 
 class ViewProviderProject(ViewProviderBase):
