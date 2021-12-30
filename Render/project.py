@@ -509,7 +509,6 @@ def _start(cmd, img):
     win = Gui.getMainWindow()
     mdiarea = win.centralWidget()
     subw = mdiarea.addSubWindow(img_widget)
-    subw.hide()
     subw.setWindowTitle("Rendering result")
     img_widget.setText("(No image)")
 
@@ -520,11 +519,8 @@ def _start(cmd, img):
 
 def _show_image(img_filename, img_widget):
     # TODO Test if App.GuiUp
-    App.Console.PrintMessage("Loading image '{}'".format(img_filename))
-    img = QImage(img_filename)
-    pix = QPixmap()
-    pix.convertFromImage(img)
-    img_widget.setPixmap(pix)
+    App.Console.PrintMessage("Loading image '{}'\n".format(img_filename))
+    img_widget.setPixmap(QPixmap(img_filename))
     img_widget.show()
 
 
