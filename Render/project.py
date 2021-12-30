@@ -506,17 +506,22 @@ rdrpipe = mp.Pipe()
 from PySide.QtGui import QImage, QOpenGLWindow, QOpenGLWidget, QPainter, QLabel, QPixmap
 
 def _start(cmd, img):
+    # Prepare Image result tab
     img_widget = QLabel()
     win = Gui.getMainWindow()
     mdiarea = win.centralWidget()
-    mdiarea.addSubWindow(img_widget)
-    img_widget.setText("Image result")
+    subw = mdiarea.addSubWindow(img_widget)
+    subw.hide()
+    subw.setWindowTitle("Rendering result")
+    img_widget.setText("(Image result)")
 
+    # Start working thread
     t = threading.Thread(target=_start2, args=(cmd, img, img_widget))
     t.start()
 
 
 def _show_image(img_filename, img_widget):
+    # TODO Test if App.GuiUp
     print("show image")
     print(img_filename)
     img = QImage(img_filename)
