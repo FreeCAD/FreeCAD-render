@@ -482,36 +482,85 @@ class Project(FeatureBase):
 
         # Get the renderer command on the generated temp file, with rendering
         # params
+        # TODO Remove 'modal'
         cmd, modal, img = renderer.render(
             obj, prefix, external, output, width, height
         )
+        img = img if obj.OpenAfterRender else None
 
         # Run renderer
-        _run(cmd, modal)
-
-        # Open result in GUI if relevant
-        try:
-            if img and obj.OpenAfterRender:
-                ImageGui.open(img)
-        except (AttributeError, NameError):
-            pass
+        _start(cmd, img)
 
         # And eventually return result path
         return img
 
 
-def _run(cmd, modal=True):
-    """Run a command, in modal or non-modal mode."""
-    App.Console.PrintMessage(f"{cmd}\n")
-    if modal:
-        os.system(cmd)
+import multiprocessing as mp
+import threading
+from subprocess import PIPE, STDOUT
+
+import sys
+
+rdrpipe = mp.Pipe()
+
+from PySide.QtGui import QImage, QOpenGLWindow, QOpenGLWidget, QPainter, QLabel, QPixmap
+
+def _start(cmd, img):
+    img_widget = QLabel()
+    win = Gui.getMainWindow()
+    mdiarea = win.centralWidget()
+    mdiarea.addSubWindow(img_widget)
+    img_widget.setText("Image result")
+
+    t = threading.Thread(target=_start2, args=(cmd, img, img_widget))
+    t.start()
+
+
+def _show_image(img_filename, img_widget):
+    print("show image")
+    print(img_filename)
+    img = QImage(img_filename)
+    pix = QPixmap()
+    pix.convertFromImage(img)
+    img_widget.setPixmap(pix)
+    img_widget.show()
+    # img_widget.setText("Should be an image")
+
+
+def _start2(cmd, img, gl_widget):
+    # TODO Test in Windows
+    # mp.set_start_method("fork")
+    stdin_bak = sys.stdin
+    sys.stdin = sys.__stdin__  # To be restored after
+    p = mp.Process(target=_run, args=(cmd,))
+    App.Console.PrintMessage(f"Starting rendering...\n{cmd}\n")
+    p.start()
+    while p.is_alive():
+        if rdrpipe[0].poll(1):
+            msg = rdrpipe[0].recv()
+            App.Console.PrintMessage(msg)
+    p.join()
+    sys.stdin = stdin_bak
+    # Open result in GUI if relevant
+    try:
+        if img:
+            # ImageGui.open(img)
+            _show_image(img, gl_widget)
+    except (AttributeError, NameError):
+        pass
+
+def _run(cmd):
+    """Run a command."""
+    send = rdrpipe[1].send
+    try:
+        with Popen(shlex.split(cmd), stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as p:
+            for line in p.stdout:
+                send(line)
+    except Exception as err:
+        send("{}: {}\n".format(err.__class__.__name__, str(err)))
+        send("Aborting rendering...\n")
     else:
-        try:
-            # pylint: disable=consider-using-with
-            Popen(shlex.split(cmd))
-        except OSError as err:
-            msg = "Renderer call failed: '" + err.strerror + "'\n"
-            App.Console.PrintError(msg)
+        send("Exiting rendering - Return code: %s\n" % p.returncode)
 
 
 class ViewProviderProject(ViewProviderBase):
