@@ -499,17 +499,12 @@ class Project(FeatureBase):
         return img
 
 def _create_imageview_subwindow():  # TODO
-    # viewer = ImageView()
-    # mdiarea = Gui.getMainWindow().centralWidget()
-    # subw = mdiarea.addSubWindow(viewer)
-    # subw.setWindowTitle("Rendering result")
-    # subw.hide()
-    # # subw.showMaximized()
-    # subw2 = QMdiSubWindow()
-    # subw2.setWindowTitle("Pending")
-    # return subw
-    return ImageViewSubWindow(Gui.getMainWindow().centralWidget())
-
+    viewer = ImageView()
+    mdiarea = Gui.getMainWindow().centralWidget()
+    subw = mdiarea.addSubWindow(viewer)
+    subw.setWindowTitle("Rendering result")
+    subw.showMaximized()
+    return subw
 
 
 import threading
@@ -534,21 +529,6 @@ from PySide.QtGui import (
 )
 
 from PySide.QtCore import Qt
-
-
-class ImageViewSubWindow(QMdiSubWindow):
-    def __init__(self, parent=Gui.getMainWindow().centralWidget()):
-        super().__init__(parent)
-        self.viewer = ImageView()
-        self.setWidget(self.viewer)
-        self.setWindowTitle("Rendering result")
-
-    def load_image(self, img_path, show=True):
-        self.viewer.load_image(img_path)
-        if show:
-            self.showMaximized()
-
-
 
 class ImageView(QWidget):
     # TODO Test with console
@@ -636,10 +616,7 @@ class RendererExecutor(threading.Thread):
 
             # Open result in GUI if relevant
             if self.img and App.GuiUp:
-                # TODO
-                # self.subwindow.widget().load_image(self.img)
-                # self.subwindow.showMaximized()
-                self.subwindow.load_image(self.img)
+                self.subwindow.widget().load_image(self.img)
 
 
 class ViewProviderProject(ViewProviderBase):
