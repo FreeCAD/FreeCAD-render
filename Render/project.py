@@ -488,12 +488,23 @@ class Project(FeatureBase):
         )
         img = img if obj.OpenAfterRender else None
 
+        # Create image view subwindow
+        subw = _create_imageview_subwindow()
+
         # Execute renderer
-        rdr_executor = RendererExecutor(cmd, img)
+        rdr_executor = RendererExecutor(cmd, img, subw)
         rdr_executor.start()
 
         # And eventually return result path
         return img
+
+def _create_imageview_subwindow():  # TODO
+    viewer = ImageView()
+    mdiarea = Gui.getMainWindow().centralWidget()
+    subw = mdiarea.addSubWindow(viewer)
+    subw.setWindowTitle("Rendering result")
+    subw.showMaximized()
+    return subw
 
 
 import threading
@@ -504,12 +515,50 @@ import sys
 
 from PySide.QtGui import (
     QImage,
-    QOpenGLWindow,
-    QOpenGLWidget,
     QPainter,
     QLabel,
     QPixmap,
+    QScrollArea,
+    QMdiSubWindow,
+    QVBoxLayout,
+    QWidget,
+    QSizePolicy,
+    QPalette,
+    QAbstractScrollArea,
+    QFrame,
 )
+
+from PySide.QtCore import Qt
+
+class ImageView(QWidget):
+    # TODO Test with console
+    # Inspired by https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
+    # https://code.qt.io/cgit/pyside/pyside-setup.git/tree/examples/widgets/imageviewer
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setLayout(QVBoxLayout())
+
+
+        self.imglabel = QLabel()
+        self.imglabel.setBackgroundRole(QPalette.Base)
+        # self.imglabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+        self.namelabel = QLabel()
+
+        self.scrollarea = QScrollArea()
+        self.scrollarea.setWidget(self.imglabel)
+        self.scrollarea.setWidgetResizable(True)
+        self.imglabel.setAlignment(Qt.AlignCenter)
+
+        self.layout().addWidget(self.scrollarea)
+        self.layout().addWidget(self.namelabel)
+        self.imglabel.setText("(No image yet)")
+        # self.scrollarea.show()
+        # self.imglabel.show()
+
+    def load_image(self, img_path):
+        self.imglabel.setPixmap(QPixmap(img_path))
+        self.namelabel.setText(img_path)
 
 
 class RendererExecutor(threading.Thread):
@@ -520,31 +569,18 @@ class RendererExecutor(threading.Thread):
     console, in such a way it is possible to follow the evolution of the
     rendering.
     """
-    def __init__(self, cmd, img):
+    def __init__(self, cmd, img, subw):
         """Initialize executor.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
+            subw -- the subwindow where to display the resulting image
         """
         super().__init__()
         self.cmd = str(cmd)
         self.img = str(img)
-        self.img_widget = None
-
-    def start(self):
-        """Start executor."""
-        # Prepare Image result tab
-        img_widget = QLabel()
-        win = Gui.getMainWindow()
-        mdiarea = win.centralWidget()
-        subw = mdiarea.addSubWindow(img_widget)
-        subw.setWindowTitle("Rendering result")
-        img_widget.setText("(No image)")
-        self.img_widget = img_widget
-
-        # Call parent method to trigger run()
-        super().start()
+        self.subwindow = subw
 
     def run(self):
         """Run executor.
@@ -554,7 +590,7 @@ class RendererExecutor(threading.Thread):
         """
         # TODO Test in Windows
 
-        App.Console.PrintMessage(f"Starting rendering...\n{self.cmd}")
+        App.Console.PrintMessage(f"Starting rendering...\n{self.cmd}\n")
         try:
             with Popen(
                 shlex.split(self.cmd),
@@ -579,15 +615,8 @@ class RendererExecutor(threading.Thread):
                 App.Console.PrintWarning(msg)
 
             # Open result in GUI if relevant
-            if self.img:
-                _show_image(self.img, self.img_widget)
-
-
-def _show_image(img_filename, img_widget):
-    # TODO Test if App.GuiUp
-    App.Console.PrintMessage("Loading image '{}'\n".format(img_filename))
-    img_widget.setPixmap(QPixmap(img_filename))
-    img_widget.show()
+            if self.img and App.GuiUp:
+                self.subwindow.widget().load_image(self.img)
 
 
 class ViewProviderProject(ViewProviderBase):
