@@ -503,7 +503,7 @@ def _create_imageview_subwindow():  # TODO
     mdiarea = Gui.getMainWindow().centralWidget()
     subw = mdiarea.addSubWindow(viewer)
     subw.setWindowTitle("Rendering result")
-    subw.showMaximized()
+    subw.setVisible(False)
     return subw
 
 
@@ -553,8 +553,6 @@ class ImageView(QWidget):
         self.layout().addWidget(self.scrollarea)
         self.layout().addWidget(self.namelabel)
         self.imglabel.setText("(No image yet)")
-        # self.scrollarea.show()
-        # self.imglabel.show()
 
     def load_image(self, img_path):
         self.imglabel.setPixmap(QPixmap(img_path))
@@ -616,7 +614,11 @@ class RendererExecutor(threading.Thread):
 
             # Open result in GUI if relevant
             if self.img and App.GuiUp:
-                self.subwindow.widget().load_image(self.img)
+                try:
+                    self.subwindow.widget().load_image(self.img)
+                    self.subwindow.showMaximized()
+                except RuntimeError:
+                    App.Console.PrintWarning("Warning: Could not load rendering result")
 
 
 class ViewProviderProject(ViewProviderBase):
