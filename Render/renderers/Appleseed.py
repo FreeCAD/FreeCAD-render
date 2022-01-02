@@ -493,8 +493,6 @@ def render(project, prefix, external, output, width, height):
 
     Returns:
         The command to run renderer (string)
-        A 'modal' flag, indicating whether the command should be run in a
-            blocking/non-blocking way (bool)
         A path to output image file (string)
     """
 
@@ -598,7 +596,7 @@ def render(project, prefix, external, output, width, height):
     cmd = prefix + rpath + " " + args + " " + filepath + "\n"
 
     # Return cmd, sync, output
-    return cmd, False, output if not external else None
+    return cmd, output if not external else None
 
 
 # ===========================================================================

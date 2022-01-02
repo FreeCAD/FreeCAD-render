@@ -455,8 +455,6 @@ def render(project, prefix, external, output, width, height):
 
     Returns:
         The command to run renderer (string)
-        A 'modal' flag, indicating whether the command should be run in a
-            blocking/non-blocking way (bool)
         A path to output image file (string)
     """
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
@@ -496,4 +494,4 @@ def render(project, prefix, external, output, width, height):
         output if output else os.path.splitext(project.PageResult)[0] + ".png"
     )
 
-    return cmd, True, output
+    return cmd, output

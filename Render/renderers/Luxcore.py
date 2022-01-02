@@ -307,8 +307,6 @@ def render(project, prefix, external, output, width, height):
 
     Returns:
         The command to run renderer (string)
-        A 'modal' flag, indicating whether the command should be run in a
-            blocking/non-blocking way (bool)
         A path to output image file (string)
     """
 
@@ -358,4 +356,4 @@ def render(project, prefix, external, output, width, height):
     # Prepare command line and return
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
 
-    return cmd, False, None
+    return cmd, None

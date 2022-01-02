@@ -501,16 +501,12 @@ class Project(FeatureBase):
 
         # Get the renderer command on the generated temp file, with rendering
         # params
-        # TODO Remove 'modal'
-        cmd, modal, img = renderer.render(
-            obj, prefix, external, output, width, height
-        )
+        cmd, img = renderer.render(obj, prefix, external, output, width, height)
         img = img if obj.OpenAfterRender else None
 
         # Create image view subwindow
         subw = _create_imageview_subwindow()
 
-        print("here")
         # Execute renderer
         rdr_executor = RendererExecutor(cmd, img, subw)
         rdr_executor.start()

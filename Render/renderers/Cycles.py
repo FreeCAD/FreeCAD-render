@@ -450,8 +450,6 @@ def render(project, prefix, external, output, width, height):
 
     Returns:
         The command to run renderer (string)
-        A 'modal' flag, indicating whether the command should be run in a
-            blocking/non-blocking way (bool)
         A path to output image file (string)
     """
     # Here you trigger a render by firing the renderer
@@ -478,4 +476,4 @@ def render(project, prefix, external, output, width, height):
     filepath = f'"{project.PageResult}"'
     cmd = prefix + rpath + " " + args + " " + filepath
 
-    return cmd, True, output
+    return cmd, output

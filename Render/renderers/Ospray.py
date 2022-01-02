@@ -584,8 +584,6 @@ def render(project, prefix, external, output, width, height):
 
     Returns:
         The command to run renderer (string)
-        A 'modal' flag, indicating whether the command should be run in a
-            blocking/non-blocking way (bool)
         A path to output image file (string)
     """
     # Move cameras up to root node
@@ -656,4 +654,4 @@ def render(project, prefix, external, output, width, height):
     # Note: at the moment (02-19-2021), width, height, output, background are
     # not managed by osp
 
-    return cmd, False, None
+    return cmd, None
