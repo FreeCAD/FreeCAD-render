@@ -269,7 +269,7 @@ def render(project, prefix, external, output, width, height):
             "Please set the correct path in "
             "Edit -> Preferences -> Render\n"
         )
-        return "", False, None
+        return None, None
 
     # Call Luxrender
     cmd = prefix + rpath + " " + args + " " + project.PageResult + "\n"

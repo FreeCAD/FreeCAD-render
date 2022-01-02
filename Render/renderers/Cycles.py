@@ -470,7 +470,7 @@ def render(project, prefix, external, output, width, height):
             "Please set the correct path in "
             "Edit -> Preferences -> Render\n"
         )
-        return ""
+        return None, None
     args += " --width " + str(width)
     args += " --height " + str(height)
     filepath = f'"{project.PageResult}"'

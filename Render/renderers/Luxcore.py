@@ -351,7 +351,7 @@ def render(project, prefix, external, output, width, height):
             "path in Edit -> Preferences -> Render\n"
         )
         App.Console.PrintError(msg)
-        return "", False, None
+        return None, None
 
     # Prepare command line and return
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
