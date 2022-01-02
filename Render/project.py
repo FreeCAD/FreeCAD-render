@@ -48,6 +48,7 @@ except ImportError:
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
+from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
@@ -529,29 +530,6 @@ def _create_imageview_subwindow():  # TODO
     return subw
 
 
-import threading
-from subprocess import PIPE, STDOUT
-
-import sys
-
-
-from PySide.QtGui import (
-    QImage,
-    QPainter,
-    QLabel,
-    QPixmap,
-    QScrollArea,
-    QMdiSubWindow,
-    QVBoxLayout,
-    QWidget,
-    QSizePolicy,
-    QPalette,
-    QAbstractScrollArea,
-    QFrame,
-)
-
-from PySide.QtCore import Qt
-
 class ImageView(QWidget):
     # TODO Test with console
     # Inspired by https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
@@ -579,71 +557,6 @@ class ImageView(QWidget):
     def load_image(self, img_path):
         self.imglabel.setPixmap(QPixmap(img_path))
         self.namelabel.setText(img_path)
-
-
-class RendererExecutor(threading.Thread):
-    """A class to execute a rendering engine.
-
-    This class is designed to run a renderer in a separate thread, keeping
-    console/gui responsive.  Meanwhile, stdout/stderr are piped to FreeCAD
-    console, in such a way it is possible to follow the evolution of the
-    rendering.
-    """
-    def __init__(self, cmd, img, subw):
-        """Initialize executor.
-
-        Args:
-            cmd -- command to execute (str)
-            img -- path to resulting image (the renderer output) (str)
-            subw -- the subwindow where to display the resulting image
-        """
-        super().__init__()
-        self.cmd = str(cmd)
-        self.img = str(img)
-        self.subwindow = subw
-
-    def run(self):
-        """Run executor.
-
-        This method represents the thread activity. It is not intended to be
-        called directly (see 'threading' module documentation).
-        """
-        # TODO Test in Windows
-
-        App.Console.PrintMessage(f"Starting rendering...\n{self.cmd}\n")
-        try:
-            with Popen(
-                shlex.split(self.cmd),
-                stdout=PIPE,
-                stderr=STDOUT,
-                bufsize=1,
-                universal_newlines=True,
-            ) as proc:
-                for line in proc.stdout:
-                    App.Console.PrintMessage(line)
-        except Exception as err:
-            errclass = err.__class__.__name__
-            errmsg = str(err)
-            App.Console.PrintError(f"{errclass}: {errmsg}\n")
-            App.Console.PrintMessage("Aborting rendering...\n")
-        else:
-            rcode = proc.returncode
-            msg = f"Exiting rendering - Return code: {rcode}\n"
-            if not rcode:
-                App.Console.PrintMessage(msg)
-            else:
-                App.Console.PrintWarning(msg)
-
-            # Open result in GUI if relevant
-            if self.img:
-                if App.GuiUp:
-                    try:
-                        self.subwindow.widget().load_image(self.img)
-                        self.subwindow.showMaximized()
-                    except RuntimeError:
-                        App.Console.PrintWarning("Warning: Could not load rendering result")
-                else:
-                    App.Console.PrintMessage(f"Output file written to '{self.img}'\n")
 
 
 class ViewProviderProject(ViewProviderBase):

@@ -105,6 +105,7 @@ def reload(module_name=None):
             "Render.rdrmaterials",
             "Render.project",
             "Render.rdrhandler",
+            "Render.rdrexecutor",
             "Render.renderables",
             "Render.taskpanels",
             "Render.utils",
