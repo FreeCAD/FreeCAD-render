@@ -48,7 +48,7 @@ except ImportError:
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
-from Render.rdrexecutor import RendererExecutor
+from Render.rdrexecutor import RendererExecutor, create_imageview_subwindow
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
@@ -506,7 +506,7 @@ class Project(FeatureBase):
         img = img if obj.OpenAfterRender else None
 
         # Create image view subwindow
-        subw = _create_imageview_subwindow()
+        subw = create_imageview_subwindow()
 
         # Execute renderer
         rdr_executor = RendererExecutor(cmd, img, subw)
@@ -517,47 +517,6 @@ class Project(FeatureBase):
 
         # And eventually return result path
         return img
-
-def _create_imageview_subwindow():  # TODO
-    if App.GuiUp:
-        viewer = ImageView()
-        mdiarea = Gui.getMainWindow().centralWidget()
-        subw = mdiarea.addSubWindow(viewer)
-        subw.setWindowTitle("Rendering result")
-        subw.setVisible(False)
-    else:
-        subw = None
-    return subw
-
-
-class ImageView(QWidget):
-    # TODO Test with console
-    # Inspired by https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
-    # https://code.qt.io/cgit/pyside/pyside-setup.git/tree/examples/widgets/imageviewer
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setLayout(QVBoxLayout())
-
-
-        self.imglabel = QLabel()
-        self.imglabel.setBackgroundRole(QPalette.Base)
-        # self.imglabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-
-        self.namelabel = QLabel()
-
-        self.scrollarea = QScrollArea()
-        self.scrollarea.setWidget(self.imglabel)
-        self.scrollarea.setWidgetResizable(True)
-        self.imglabel.setAlignment(Qt.AlignCenter)
-
-        self.layout().addWidget(self.scrollarea)
-        self.layout().addWidget(self.namelabel)
-        self.imglabel.setText("(No image yet)")
-
-    def load_image(self, img_path):
-        self.imglabel.setPixmap(QPixmap(img_path))
-        self.namelabel.setText(img_path)
-
 
 class ViewProviderProject(ViewProviderBase):
     """View provider for the rendering project object."""

@@ -34,23 +34,18 @@ from subprocess import Popen, PIPE, STDOUT
 
 
 from PySide.QtGui import (
-    QImage,
-    QPainter,
     QLabel,
     QPixmap,
     QScrollArea,
-    QMdiSubWindow,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
     QPalette,
-    QAbstractScrollArea,
-    QFrame,
 )
 
 from PySide.QtCore import Qt
 
 import FreeCAD as App
+import FreeCADGui as Gui
 
 
 class RendererExecutor(threading.Thread):
@@ -122,3 +117,43 @@ class RendererExecutor(threading.Thread):
                     App.Console.PrintMessage(
                         f"Output file written to '{self.img}'\n"
                     )
+
+
+def create_imageview_subwindow():  # TODO
+    if App.GuiUp:
+        viewer = ImageView()
+        mdiarea = Gui.getMainWindow().centralWidget()
+        subw = mdiarea.addSubWindow(viewer)
+        subw.setWindowTitle("Rendering result")
+        subw.setVisible(False)
+    else:
+        subw = None
+    return subw
+
+
+class ImageView(QWidget):
+    # Inspired by :
+    # https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
+    # https://code.qt.io/cgit/pyside/pyside-setup.git/tree/examples/widgets/imageviewer
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setLayout(QVBoxLayout())
+
+        self.imglabel = QLabel()
+        self.imglabel.setBackgroundRole(QPalette.Base)
+        # self.imglabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+        self.namelabel = QLabel()
+
+        self.scrollarea = QScrollArea()
+        self.scrollarea.setWidget(self.imglabel)
+        self.scrollarea.setWidgetResizable(True)
+        self.imglabel.setAlignment(Qt.AlignCenter)
+
+        self.layout().addWidget(self.scrollarea)
+        self.layout().addWidget(self.namelabel)
+        self.imglabel.setText("(No image yet)")
+
+    def load_image(self, img_path):
+        self.imglabel.setPixmap(QPixmap(img_path))
+        self.namelabel.setText(img_path)
