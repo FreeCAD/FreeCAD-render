@@ -502,8 +502,13 @@ class Project(FeatureBase):
 
         # Get the renderer command on the generated temp file, with rendering
         # params
-        cmd, img = renderer.render(obj, prefix, external, output, width, height)
+        cmd, img = renderer.render(
+            obj, prefix, external, output, width, height
+        )
         img = img if obj.OpenAfterRender else None
+        if not cmd:
+            # Command is empty (perhaps lack of data in parameters)
+            return None
 
         # Create image view subwindow
         subw = create_imageview_subwindow()
@@ -517,6 +522,7 @@ class Project(FeatureBase):
 
         # And eventually return result path
         return img
+
 
 class ViewProviderProject(ViewProviderBase):
     """View provider for the rendering project object."""
