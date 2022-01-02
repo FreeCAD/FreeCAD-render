@@ -321,7 +321,7 @@ class Project(FeatureBase):
                         )
                         + "\n"
                     )
-                    App.Console.PrintWarning(msg.format(o=obj.Label))
+                    App.Console.PrintWarning(msg.format(o=obj.fpo.Label))
 
         # add_views starts here
         add_to_group(iter(objs), self.fpo)
