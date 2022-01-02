@@ -58,7 +58,7 @@ class RendererExecutor(threading.Thread):
     To achieve that, renderer is executed in a separate thread.
     """
 
-    def __init__(self, cmd, img, subw):
+    def __init__(self, cmd, img):
         """Initialize executor.
 
         Args:
@@ -69,7 +69,12 @@ class RendererExecutor(threading.Thread):
         super().__init__()
         self.cmd = str(cmd)
         self.img = str(img)
-        self.subwindow = subw
+        self.subwindow = None
+
+    def start(self):
+        """Start thread."""
+        self.subwindow = create_imageview_subwindow()
+        super().start()
 
     def run(self):
         """Run executor.

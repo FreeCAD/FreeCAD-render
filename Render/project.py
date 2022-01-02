@@ -48,7 +48,7 @@ except ImportError:
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
-from Render.rdrexecutor import RendererExecutor, create_imageview_subwindow
+from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
@@ -510,11 +510,8 @@ class Project(FeatureBase):
             # Command is empty (perhaps lack of data in parameters)
             return None
 
-        # Create image view subwindow
-        subw = create_imageview_subwindow()
-
         # Execute renderer
-        rdr_executor = RendererExecutor(cmd, img, subw)
+        rdr_executor = RendererExecutor(cmd, img)
         rdr_executor.start()
         if wait_for_completion:
             # Useful in console mode...
