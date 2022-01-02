@@ -370,17 +370,21 @@ class Project(FeatureBase):
 
         return all_group_objs(self.fpo, include_groups)
 
-    def render(self, external=True):
+    # TODO Remove external
+    def render(self, external=True, wait_for_completion=False):
         """Render the project, calling an external renderer.
 
         Args:
             external -- flag to switch between internal/external version of
                 renderer
+            wait_for_completion -- flag to wait for rendering completion before
+                return, in a blocking way (default to False)
 
         Returns:
             Output file path
         """
         obj = self.fpo
+        wait_for_completion = bool(wait_for_completion)
 
         # Get a handle to renderer module
         try:
@@ -506,19 +510,26 @@ class Project(FeatureBase):
         # Create image view subwindow
         subw = _create_imageview_subwindow()
 
+        print("here")
         # Execute renderer
         rdr_executor = RendererExecutor(cmd, img, subw)
         rdr_executor.start()
+        if wait_for_completion:
+            # Useful in console mode...
+            rdr_executor.join()
 
         # And eventually return result path
         return img
 
 def _create_imageview_subwindow():  # TODO
-    viewer = ImageView()
-    mdiarea = Gui.getMainWindow().centralWidget()
-    subw = mdiarea.addSubWindow(viewer)
-    subw.setWindowTitle("Rendering result")
-    subw.setVisible(False)
+    if App.GuiUp:
+        viewer = ImageView()
+        mdiarea = Gui.getMainWindow().centralWidget()
+        subw = mdiarea.addSubWindow(viewer)
+        subw.setWindowTitle("Rendering result")
+        subw.setVisible(False)
+    else:
+        subw = None
     return subw
 
 
@@ -628,12 +639,15 @@ class RendererExecutor(threading.Thread):
                 App.Console.PrintWarning(msg)
 
             # Open result in GUI if relevant
-            if self.img and App.GuiUp:
-                try:
-                    self.subwindow.widget().load_image(self.img)
-                    self.subwindow.showMaximized()
-                except RuntimeError:
-                    App.Console.PrintWarning("Warning: Could not load rendering result")
+            if self.img:
+                if App.GuiUp:
+                    try:
+                        self.subwindow.widget().load_image(self.img)
+                        self.subwindow.showMaximized()
+                    except RuntimeError:
+                        App.Console.PrintWarning("Warning: Could not load rendering result")
+                else:
+                    App.Console.PrintMessage(f"Output file written to '{self.img}'\n")
 
 
 class ViewProviderProject(ViewProviderBase):
