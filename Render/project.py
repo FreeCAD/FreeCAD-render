@@ -326,6 +326,21 @@ class Project(FeatureBase):
         # add_views starts here
         add_to_group(iter(objs), self.fpo)
 
+    def add_view(self, obj):
+        """Add a single object as a new view to the project.
+
+        This method is essentially provided for console mode, as above method
+        'add_views' may not be handy for a single object.  However, it heavily
+        relies on 'add_views', so please check the latter for more information.
+
+        Args::
+        -----------
+        obj -- a FreeCAD object to add to project
+        """
+        objs = []
+        objs.append(obj)
+        self.add_views(objs)
+
     def all_views(self, include_groups=False):
         """Give the list of all the views contained in the project.
 
