@@ -30,7 +30,7 @@ graphical interface.
 
 import threading
 import shlex
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, SubprocessError
 
 
 from PySide.QtGui import (
@@ -90,7 +90,7 @@ class RendererExecutor(threading.Thread):
             ) as proc:
                 for line in proc.stdout:
                     App.Console.PrintMessage(line)
-        except Exception as err:
+        except (OSError, SubprocessError) as err:
             errclass = err.__class__.__name__
             errmsg = str(err)
             App.Console.PrintError(f"{errclass}: {errmsg}\n")
