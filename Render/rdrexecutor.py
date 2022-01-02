@@ -119,7 +119,8 @@ class RendererExecutor(threading.Thread):
                     )
 
 
-def create_imageview_subwindow():  # TODO
+def create_imageview_subwindow():
+    """Create a subwindow in FreeCAD Gui to display an image."""
     if App.GuiUp:
         viewer = ImageView()
         mdiarea = Gui.getMainWindow().centralWidget()
@@ -132,10 +133,12 @@ def create_imageview_subwindow():  # TODO
 
 
 class ImageView(QWidget):
+    """A custom widget to display an image in FreeCAD Gui."""
     # Inspired by :
     # https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
     # https://code.qt.io/cgit/pyside/pyside-setup.git/tree/examples/widgets/imageviewer
     def __init__(self, parent=None):
+        """Initialize Widget."""
         super().__init__(parent)
         self.setLayout(QVBoxLayout())
 
@@ -155,5 +158,10 @@ class ImageView(QWidget):
         self.imglabel.setText("(No image yet)")
 
     def load_image(self, img_path):
+        """Load an image in widget from a file.
+
+        Args:
+            img_path -- Path of image file to load (str)
+        """
         self.imglabel.setPixmap(QPixmap(img_path))
         self.namelabel.setText(img_path)
