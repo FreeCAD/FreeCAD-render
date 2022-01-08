@@ -41,6 +41,7 @@ from PySide.QtGui import (
     QWidget,
     QPalette,
     QSizePolicy,
+    QGuiApplication,
 )
 
 
@@ -138,15 +139,22 @@ def create_imageview_subwindow():
 
     # Create contextual menu
     menu = subw.systemMenu()
-    menu.setTitle("Menu")
+
+    menu.addSeparator()
+
     zoom_in_act = menu.addAction("Zoom &In (25%)")
     zoom_in_act.triggered.connect(subw.widget().zoom_in)
 
     zoom_out_act = menu.addAction("Zoom &Out (25%)")
     zoom_out_act.triggered.connect(subw.widget().zoom_out)
 
-    zoom_normal_act = menu.addAction("&Normal size")
+    zoom_normal_act = menu.addAction("&Normal Size")
     zoom_normal_act.triggered.connect(subw.widget().normal_size)
+
+    menu.addSeparator()
+
+    copy_filename_act = menu.addAction("Copy &Filename")
+    copy_filename_act.triggered.connect(subw.widget().copy_filename)
 
     return subw
 
@@ -180,6 +188,7 @@ class ImageView(QWidget):
 
         self.scale_factor = 1.0
         self._initial_size = QSize(0, 0)
+        self._img_path = ""
 
     def load_image(self, img_path):
         """Load an image in widget from a file.
@@ -187,10 +196,12 @@ class ImageView(QWidget):
         Args:
             img_path -- Path of image file to load (str)
         """
+        img_path = str(img_path)
         pixmap = QPixmap(img_path)
         self.imglabel.setPixmap(pixmap)
         self.imglabel.resize(pixmap.size())
-        self.namelabel.setText(img_path)
+        self.namelabel.setText(f"File: {img_path}")
+        self._img_path = img_path
         self._initial_size = pixmap.size()
 
     def resize_image(self, new_size=None):
@@ -232,3 +243,8 @@ class ImageView(QWidget):
     def normal_size(self):
         """Set embedded image scale to 1:1 (slot)."""
         self.resize_image()
+
+    @Slot()
+    def copy_filename(self):
+        """Copy file name to clipboard (slot)."""
+        QGuiApplication.clipboard().setText(self._img_path)
