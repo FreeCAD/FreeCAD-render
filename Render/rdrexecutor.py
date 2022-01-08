@@ -40,9 +40,11 @@ from PySide.QtGui import (
     QVBoxLayout,
     QWidget,
     QPalette,
+    QSizePolicy,
 )
 
-from PySide.QtCore import Qt
+
+from PySide.QtCore import Qt, Slot, QSize
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -82,8 +84,6 @@ class RendererExecutor(threading.Thread):
         This method represents the thread activity. It is not intended to be
         called directly (see 'threading' module documentation).
         """
-        # TODO Test in Windows
-
         App.Console.PrintMessage(f"Starting rendering...\n{self.cmd}\n")
         try:
             with Popen(
@@ -126,19 +126,34 @@ class RendererExecutor(threading.Thread):
 
 def create_imageview_subwindow():
     """Create a subwindow in FreeCAD Gui to display an image."""
-    if App.GuiUp:
-        viewer = ImageView()
-        mdiarea = Gui.getMainWindow().centralWidget()
-        subw = mdiarea.addSubWindow(viewer)
-        subw.setWindowTitle("Rendering result")
-        subw.setVisible(False)
-    else:
-        subw = None
+    if not App.GuiUp:
+        return None
+
+    # Create widget and subwindow
+    viewer = ImageView()
+    mdiarea = Gui.getMainWindow().centralWidget()
+    subw = mdiarea.addSubWindow(viewer)
+    subw.setWindowTitle("Rendering result")
+    subw.setVisible(False)
+
+    # Create contextual menu
+    menu = subw.systemMenu()
+    menu.setTitle("Menu")
+    zoom_in_act = menu.addAction("Zoom &In (25%)")
+    zoom_in_act.triggered.connect(subw.widget().zoom_in)
+
+    zoom_out_act = menu.addAction("Zoom &Out (25%)")
+    zoom_out_act.triggered.connect(subw.widget().zoom_out)
+
+    zoom_normal_act = menu.addAction("&Normal size")
+    zoom_normal_act.triggered.connect(subw.widget().normal_size)
+
     return subw
 
 
 class ImageView(QWidget):
     """A custom widget to display an image in FreeCAD Gui."""
+
     # Inspired by :
     # https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
     # https://code.qt.io/cgit/pyside/pyside-setup.git/tree/examples/widgets/imageviewer
@@ -149,18 +164,22 @@ class ImageView(QWidget):
 
         self.imglabel = QLabel()
         self.imglabel.setBackgroundRole(QPalette.Base)
-        # self.imglabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.imglabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         self.namelabel = QLabel()
 
         self.scrollarea = QScrollArea()
         self.scrollarea.setWidget(self.imglabel)
-        self.scrollarea.setWidgetResizable(True)
+        self.scrollarea.setWidgetResizable(False)
+        self.imglabel.setScaledContents(True)  # Resize pixmap along with label
         self.imglabel.setAlignment(Qt.AlignCenter)
 
         self.layout().addWidget(self.scrollarea)
         self.layout().addWidget(self.namelabel)
         self.imglabel.setText("(No image yet)")
+
+        self.scale_factor = 1.0
+        self._initial_size = QSize(0, 0)
 
     def load_image(self, img_path):
         """Load an image in widget from a file.
@@ -168,5 +187,48 @@ class ImageView(QWidget):
         Args:
             img_path -- Path of image file to load (str)
         """
-        self.imglabel.setPixmap(QPixmap(img_path))
+        pixmap = QPixmap(img_path)
+        self.imglabel.setPixmap(pixmap)
+        self.imglabel.resize(pixmap.size())
         self.namelabel.setText(img_path)
+        self._initial_size = pixmap.size()
+
+    def resize_image(self, new_size=None):
+        """Resize embedded image to target size.
+
+        Args:
+            new_size -- target size to resize image to (QSize)
+        """
+        if not new_size:
+            new_size = self._initial_size
+            self.scale_factor = 1.0
+        new_size = QSize(new_size)
+        self.imglabel.setMinimumSize(new_size)
+        self.imglabel.setMaximumSize(new_size)
+
+    def scale_image(self, factor):
+        """Rescale embedded image applying a factor.
+
+        Factor is applied relatively to current scale.
+
+        Args:
+            factor -- factor to apply (float)
+        """
+        self.scale_factor *= float(factor)
+        new_size = self.scale_factor * self._initial_size
+        self.resize_image(new_size)
+
+    @Slot()
+    def zoom_in(self):
+        """Zoom embedded image in (slot)."""
+        self.scale_image(1.25)
+
+    @Slot()
+    def zoom_out(self):
+        """Zoom embedded image out (slot)."""
+        self.scale_image(0.8)
+
+    @Slot()
+    def normal_size(self):
+        """Set embedded image scale to 1:1 (slot)."""
+        self.resize_image()
