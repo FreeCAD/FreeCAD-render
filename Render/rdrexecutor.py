@@ -42,6 +42,7 @@ from PySide.QtGui import (
     QPalette,
     QSizePolicy,
     QGuiApplication,
+    QMenu,
 )
 
 
@@ -139,27 +140,31 @@ def create_imageview_subwindow():
 
     # Create contextual menu
     menu = subw.systemMenu()
+    add_actions_to_menu(menu, subw.widget())
 
+
+    return subw
+
+def add_actions_to_menu(menu, imgviewer):
+    # TODO In ImageViewer...
     menu.addSeparator()
 
     zoom_in_act = menu.addAction("Zoom &In (25%)")
-    zoom_in_act.triggered.connect(subw.widget().zoom_in)
+    zoom_in_act.triggered.connect(imgviewer.zoom_in)
 
     zoom_out_act = menu.addAction("Zoom &Out (25%)")
-    zoom_out_act.triggered.connect(subw.widget().zoom_out)
+    zoom_out_act.triggered.connect(imgviewer.zoom_out)
 
     zoom_normal_act = menu.addAction("&Normal Size")
-    zoom_normal_act.triggered.connect(subw.widget().normal_size)
+    zoom_normal_act.triggered.connect(imgviewer.normal_size)
 
     menu.addSeparator()
 
     copy_filename_act = menu.addAction("Copy &Filename to Clipboard")
-    copy_filename_act.triggered.connect(subw.widget().copy_filename)
+    copy_filename_act.triggered.connect(imgviewer.copy_filename)
 
     copy_filename_act = menu.addAction("Copy &Image to Clipboard")
-    copy_filename_act.triggered.connect(subw.widget().copy_image)
-
-    return subw
+    copy_filename_act.triggered.connect(imgviewer.copy_image)
 
 
 class ImageView(QWidget):
@@ -192,6 +197,12 @@ class ImageView(QWidget):
         self.scale_factor = 1.0
         self._initial_size = QSize(0, 0)
         self._img_path = ""
+
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        # pylint: disable=no-member
+        self.customContextMenuRequested.connect(self.show_context_menu)
+        self.menu = QMenu()
+        add_actions_to_menu(self.menu, self)
 
     def load_image(self, img_path):
         """Load an image in widget from a file.
@@ -256,3 +267,8 @@ class ImageView(QWidget):
     def copy_image(self):
         """Copy embedded image to clipboard (slot)."""
         QGuiApplication.clipboard().setImage(self.imglabel.pixmap().toImage())
+
+    @Slot()
+    def show_context_menu(self, pos):
+        """Show context menu."""
+        self.menu.exec_(self.mapToGlobal(pos))
