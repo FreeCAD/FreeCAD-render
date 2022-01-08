@@ -153,8 +153,11 @@ def create_imageview_subwindow():
 
     menu.addSeparator()
 
-    copy_filename_act = menu.addAction("Copy &Filename")
+    copy_filename_act = menu.addAction("Copy &Filename to Clipboard")
     copy_filename_act.triggered.connect(subw.widget().copy_filename)
+
+    copy_filename_act = menu.addAction("Copy &Image to Clipboard")
+    copy_filename_act.triggered.connect(subw.widget().copy_image)
 
     return subw
 
@@ -248,3 +251,8 @@ class ImageView(QWidget):
     def copy_filename(self):
         """Copy file name to clipboard (slot)."""
         QGuiApplication.clipboard().setText(self._img_path)
+
+    @Slot()
+    def copy_image(self):
+        """Copy embedded image to clipboard (slot)."""
+        QGuiApplication.clipboard().setImage(self.imglabel.pixmap().toImage())
