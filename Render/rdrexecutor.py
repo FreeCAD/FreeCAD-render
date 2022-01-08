@@ -140,31 +140,10 @@ def create_imageview_subwindow():
 
     # Create contextual menu
     menu = subw.systemMenu()
-    add_actions_to_menu(menu, subw.widget())
-
+    menu.addSeparator()
+    subw.widget().add_actions_to_menu(menu)
 
     return subw
-
-def add_actions_to_menu(menu, imgviewer):
-    # TODO In ImageViewer...
-    menu.addSeparator()
-
-    zoom_in_act = menu.addAction("Zoom &In (25%)")
-    zoom_in_act.triggered.connect(imgviewer.zoom_in)
-
-    zoom_out_act = menu.addAction("Zoom &Out (25%)")
-    zoom_out_act.triggered.connect(imgviewer.zoom_out)
-
-    zoom_normal_act = menu.addAction("&Normal Size")
-    zoom_normal_act.triggered.connect(imgviewer.normal_size)
-
-    menu.addSeparator()
-
-    copy_filename_act = menu.addAction("Copy &Filename to Clipboard")
-    copy_filename_act.triggered.connect(imgviewer.copy_filename)
-
-    copy_filename_act = menu.addAction("Copy &Image to Clipboard")
-    copy_filename_act.triggered.connect(imgviewer.copy_image)
 
 
 class ImageView(QWidget):
@@ -173,6 +152,7 @@ class ImageView(QWidget):
     # Inspired by :
     # https://doc.qt.io/qt-6/qtwidgets-widgets-imageviewer-example.html
     # https://code.qt.io/cgit/pyside/pyside-setup.git/tree/examples/widgets/imageviewer
+
     def __init__(self, parent=None):
         """Initialize Widget."""
         super().__init__(parent)
@@ -202,7 +182,30 @@ class ImageView(QWidget):
         # pylint: disable=no-member
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.menu = QMenu()
-        add_actions_to_menu(self.menu, self)
+        self.add_actions_to_menu(self.menu)
+
+    def add_actions_to_menu(self, menu):
+        """Add widget actions to a given menu.
+
+        Args:
+            menu -- the menu to add the actions (QMenu)
+        """
+        zoom_in_act = menu.addAction("Zoom &In (25%)")
+        zoom_in_act.triggered.connect(self.zoom_in)
+
+        zoom_out_act = menu.addAction("Zoom &Out (25%)")
+        zoom_out_act.triggered.connect(self.zoom_out)
+
+        zoom_normal_act = menu.addAction("&Normal Size")
+        zoom_normal_act.triggered.connect(self.normal_size)
+
+        menu.addSeparator()
+
+        copy_filename_act = menu.addAction("Copy &Filename to Clipboard")
+        copy_filename_act.triggered.connect(self.copy_filename)
+
+        copy_filename_act = menu.addAction("Copy &Image to Clipboard")
+        copy_filename_act.triggered.connect(self.copy_image)
 
     def load_image(self, img_path):
         """Load an image in widget from a file.
@@ -237,7 +240,7 @@ class ImageView(QWidget):
         Factor is applied relatively to current scale.
 
         Args:
-            factor -- factor to apply (float)
+            factor -- Factor to apply (float)
         """
         self.scale_factor *= float(factor)
         new_size = self.scale_factor * self._initial_size
