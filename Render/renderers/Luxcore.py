@@ -353,13 +353,17 @@ def render(project, prefix, external, output, width, height):
         )
         App.Console.PrintError(msg)
         return
+    lpath = params.GetString("LuxCoreLibPath", "")
+    lenv = os.environ
+    if lpath:
+        lenv["LD_LIBRARY_PATH"] = f"""{lpath}""";
 
     # Prepare command line and call LuxCore
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
     App.Console.PrintMessage(cmd)
     try:
         # pylint: disable=consider-using-with
-        Popen(shlex.split(cmd))
+        Popen(shlex.split(cmd), env=lenv)
     except OSError as err:
         msg = "LuxCore call failed: '" + err.strerror + "'\n"
         App.Console.PrintError(msg)
