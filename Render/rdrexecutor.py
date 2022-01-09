@@ -54,6 +54,7 @@ from PySide.QtCore import (
     Signal,
     QObject,
     QCoreApplication,
+    QEventLoop,
 )
 
 
@@ -174,6 +175,7 @@ class RendererExecutorGui(QObject):
         super().__init__(QCoreApplication.instance())
         self.thread = QThread()
         self.worker = Worker(cmd, img)
+        self.thread.setObjectName("fcd-renderexec")
 
     def start(self):
         """Start executor."""
@@ -187,6 +189,7 @@ class RendererExecutorGui(QObject):
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.finished.connect(self.thread.exit)
         self.thread.finished.connect(self.thread.deleteLater)
+        # self.thread.finished.connect(lambda: print("Thread finished"))  # Debug
 
         self.worker.result_ready.connect(display_result)
 
@@ -194,8 +197,15 @@ class RendererExecutorGui(QObject):
         self.thread.start()
 
     def join(self):
-        """Join thread."""
-        self.thread.wait()
+        """Join thread.
+
+        This method is provided for consistency with CLI executor, but it should
+        not be of much use.
+        """
+        loop = QEventLoop()
+        self.thread.finished.connect(loop.quit)
+        if not self.thread.isFinished():
+            loop.exec_(flags=QEventLoop.ExcludeUserInputEvents)
 
 
 class RendererExecutorCli(threading.Thread):
