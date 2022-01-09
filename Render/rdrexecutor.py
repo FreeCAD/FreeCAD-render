@@ -46,18 +46,38 @@ from PySide.QtGui import (
 )
 
 
-from PySide.QtCore import Qt, Slot, QSize, QThread, Signal, QObject, QCoreApplication
+from PySide.QtCore import (
+    Qt,
+    Slot,
+    QSize,
+    QThread,
+    Signal,
+    QObject,
+    QCoreApplication,
+)
 
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
-class Worker(QObject):
-    finished = Signal(int)
-    result_ready = Signal(str)
 
+class Worker(QObject):
+    """Worker class to run renderer.
+
+    This class embeds the treatment to be executed to run renderer in separate
+    thread.
+    """
+
+    finished = Signal(int)
+    result_ready = Signal(str)  # Triggered when result is ready for display
 
     def __init__(self, cmd, img):
+        """Initialize worker.
+
+        Args:
+            cmd -- command to execute (str)
+            img -- path to resulting image (the renderer output) (str)
+        """
         super().__init__()
         self.cmd = str(cmd)
         self.img = str(img)
@@ -66,7 +86,7 @@ class Worker(QObject):
         """Run worker.
 
         This method represents the thread activity. It is not intended to be
-        called directly, but via QThread.start().
+        called directly, but via thread's run() method.
         """
         message = App.Console.PrintMessage
         warning = App.Console.PrintWarning
@@ -101,89 +121,112 @@ class Worker(QObject):
             # Open result in GUI if relevant
             if self.img:
                 if App.GuiUp:
-                    try:  # TODO Delete: No more exception
-                        result_ready(self.img)
-                        # self.subwindow.load_image(self.img)  TODO
-                        # self.subwindow.showMaximized() TODO
-                    except RuntimeError:
-                        warning("Warning: Could not load rendering result")
+                    result_ready(self.img)
                 else:
                     message(f"Output file written to '{self.img}'\n")
+
+            # Terminate (for Qt)
             self.finished.emit(rcode)
 
 
-class RendererExecutorGui(QObject):
-    """A class to execute a rendering engine.
+@Slot()
+def display_result(img_path):
+    """Create a subwindow in FreeCAD Gui to display an image (slot).
 
-    This class is designed to run a renderer in a separate thread, keeping
-    console/gui responsive.  Meanwhile, stdout/stderr are piped to FreeCAD
-    console, in such a way it is possible to follow the evolution of the
-    rendering.
-    To achieve that, renderer is executed in a separate thread.
+    This slot is intended to be connected to worker's 'result_ready'
+    signal.
+    """
+    # Create widget and subwindow
+    viewer = ImageView()
+    mdiarea = Gui.getMainWindow().centralWidget()
+    subw = mdiarea.addSubWindow(viewer)
+    subw.setWindowTitle("Rendering result")
+    subw.setVisible(False)
+
+    # Create contextual menu
+    menu = subw.systemMenu()
+    menu.addSeparator()
+    subw.widget().add_actions_to_menu(menu)
+
+    # Load image and show window
+    subw.widget().load_image(img_path)
+    subw.showMaximized()
+
+
+class RendererExecutorGui(QObject):
+    """A class to execute a rendering engine in Graphical User Interface mode.
+
+    This class is designed to run a renderer in a separate thread, keeping GUI
+    responsive.  Meanwhile, stdout/stderr are piped to FreeCAD console, in such
+    a way it is possible to follow the evolution of the rendering.  To achieve
+    that, renderer is executed in a separate thread, using **QThread**.
+    Nota: in this class, it is assumed that Qt GUI is up, so it is not tested
+    anywhere.
     """
 
-    def __init__(self):
-        """Initialize executor."""
-        super().__init__(QCoreApplication.instance())
-        self.thread = None
-        self.worker = None
-
-    def start(self, cmd, img):
-        """Start executor.
+    def __init__(self, cmd, img):
+        """Initialize executor.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
         """
-        # Create thread and move worker to it
+        super().__init__(QCoreApplication.instance())
         self.thread = QThread()
         self.worker = Worker(cmd, img)
+
+    def start(self):
+        """Start executor."""
+        # Move worker to thread
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
+        # pylint: disable=no-member
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.finished.connect(self.thread.exit)
         self.thread.finished.connect(self.thread.deleteLater)
-        # self.worker.finished.connect(lambda: print("Worker finished"))
-        # self.thread.finished.connect(lambda: print("Thread finished"))
 
-        self.worker.result_ready.connect(self.display_result)
+        self.worker.result_ready.connect(display_result)
 
         # Start the thread
         self.thread.start()
 
-    @Slot()
-    def display_result(self, img_path):
-        """Create a subwindow in FreeCAD Gui to display an image."""
-        if not App.GuiUp:
-            return None
-
-        # Create widget and subwindow
-        viewer = ImageView()
-        mdiarea = Gui.getMainWindow().centralWidget()
-        subw = mdiarea.addSubWindow(viewer)
-        subw.setWindowTitle("Rendering result")
-        subw.setVisible(False)
-
-        # Create contextual menu
-        menu = subw.systemMenu()
-        menu.addSeparator()
-        subw.widget().add_actions_to_menu(menu)
-
-        # Load image and show window
-        subw.widget().load_image(img_path)
-        subw.showMaximized()
+    def join(self):
+        """Join thread."""
+        self.thread.wait()
 
 
-class RendererExecutorConsole(threading.Thread):
-    pass  # TODO
+class RendererExecutorCli(threading.Thread):
+    """A class to execute a rendering engine in Command Line Interface mode.
 
-# TODO Implement join()
+    This class is designed to run a renderer in a separate thread, keeping CLI
+    responsive.  Meanwhile, stdout/stderr are piped to FreeCAD console, in such
+    a way it is possible to follow the evolution of the rendering.  To achieve
+    that, renderer is executed in a separate thread, using **Python threads**.
+    """
 
-from PySide.QtCore import QObject
+    def __init__(self, cmd, img):
+        """Initialize executor.
 
+        Args:
+            cmd -- command to execute (str)
+            img -- path to resulting image (the renderer output) (str)
+        """
+        super().__init__()
+        self.worker = Worker(cmd, img)
+
+    def run(self):
+        """Run thread.
+
+        This method represents the thread activity. It is not intended to be
+        called directly, but via Thread.start().
+        """
+        self.worker.run()
+
+
+# TODO Rename ImageView into ImageViewer and move it to separate file
 class ImageView(QWidget):
     """A custom widget to display an image in FreeCAD Gui."""
 
@@ -313,3 +356,6 @@ class ImageView(QWidget):
     def show_context_menu(self, pos):
         """Show context menu."""
         self.menu.exec_(self.mapToGlobal(pos))
+
+
+RendererExecutor = RendererExecutorGui if App.GuiUp else RendererExecutorCli
