@@ -511,8 +511,9 @@ class Project(FeatureBase):
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor(cmd, img)
-        rdr_executor.start()
+        rdr_executor = RendererExecutor()
+        rdr_executor.start(cmd, img)
+        # rdr_executor.deleteLater()  TODO
         if wait_for_completion:
             # Useful in console mode...
             rdr_executor.join()

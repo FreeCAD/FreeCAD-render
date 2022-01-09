@@ -46,13 +46,74 @@ from PySide.QtGui import (
 )
 
 
-from PySide.QtCore import Qt, Slot, QSize
+from PySide.QtCore import Qt, Slot, QSize, QThread, Signal, QObject
+
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
+class Worker(QObject):
+    finished = Signal()
+    message = Signal(str)
+    warning = Signal(str)
+    error = Signal(str)
+    result_ready = Signal(str)
 
-class RendererExecutor(threading.Thread):
+
+    def __init__(self, cmd, img):
+        super().__init__()
+        self.cmd = str(cmd)
+        self.img = str(img)
+
+    def run(self):
+        """Run worker.
+
+        This method represents the thread activity. It is not intended to be
+        called directly, but via QThread.start().
+        """
+        message = self.message.emit
+        warning = self.warning.emit
+        error = self.error.emit
+
+        message(f"Starting rendering...\n{self.cmd}\n")
+        try:
+            # Main loop
+            with Popen(
+                shlex.split(self.cmd),
+                stdout=PIPE,
+                stderr=STDOUT,
+                bufsize=1,
+                universal_newlines=True,
+            ) as proc:
+                for line in proc.stdout:
+                    message(line)
+        except (OSError, SubprocessError) as err:
+            errclass = err.__class__.__name__
+            errmsg = str(err)
+            error(f"{errclass}: {errmsg}\n")
+            message("Aborting rendering...\n")
+        else:
+            rcode = proc.returncode
+            msg = f"Exiting rendering - Return code: {rcode}\n"
+            if not rcode:
+                message(msg)
+            else:
+                warning(msg)
+
+            # Open result in GUI if relevant
+            if self.img:
+                if App.GuiUp:
+                    try:  # TODO Delete: No more exception
+                        self.result_ready.emit(self.img)
+                        # self.subwindow.load_image(self.img)  TODO
+                        # self.subwindow.showMaximized() TODO
+                    except RuntimeError:
+                        warning("Warning: Could not load rendering result")
+                else:
+                    message(f"Output file written to '{self.img}'\n")
+
+
+class RendererExecutor(QObject):
     """A class to execute a rendering engine.
 
     This class is designed to run a renderer in a separate thread, keeping
@@ -62,7 +123,7 @@ class RendererExecutor(threading.Thread):
     To achieve that, renderer is executed in a separate thread.
     """
 
-    def __init__(self, cmd, img):
+    def __init__(self):
         """Initialize executor.
 
         Args:
@@ -70,80 +131,105 @@ class RendererExecutor(threading.Thread):
             img -- path to resulting image (the renderer output) (str)
             subw -- the subwindow where to display the resulting image
         """
-        super().__init__()
-        self.cmd = str(cmd)
-        self.img = str(img)
+        # TODO Test console mode
+        super().__init__(Gui.getMainWindow())  # TODO (console mode ?)
+        self.thread = None
+        self.worker = None
+
+    def start(self, cmd, img):
+        # Create thread and move worker to it
+        self.thread = QThread()
+        self.worker = Worker(cmd, img)
+        self.worker.moveToThread(self.thread)
+
+        # Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.worker.message.connect(self.print_message)
+        self.worker.warning.connect(self.print_warning)
+        self.worker.error.connect(self.print_error)
+        self.worker.result_ready.connect(self.display_result)
+
+        # Start the thread
+        self.thread.start()
+
+    @Slot()
+    def print_message(self, msg):
+        App.Console.PrintMessage(msg)
+
+    @Slot()
+    def print_warning(self, msg):
+        App.Console.PrintWarning(msg)
+
+    @Slot()
+    def print_error(self, msg):
+        App.Console.PrintError(msg)
+
+    @Slot()
+    def display_result(self, img_path):
+        """Create a subwindow in FreeCAD Gui to display an image."""
+        if not App.GuiUp:
+            return None
+
+        # Create widget and subwindow
+        viewer = ImageView()
+        mdiarea = Gui.getMainWindow().centralWidget()
+        subw = mdiarea.addSubWindow(viewer)
+        subw.setWindowTitle("Rendering result")
+        subw.setVisible(False)
+
+        # Create contextual menu
+        menu = subw.systemMenu()
+        menu.addSeparator()
+        subw.widget().add_actions_to_menu(menu)
+
+        # Load image and show window
+        subw.widget().load_image(img_path)
+        subw.showMaximized()
+
+
+
+# TODO Implement join()
+
+from PySide.QtCore import QObject
+
+class SubwindowHandler(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.subwindow = None
 
-    def start(self):
-        """Start thread."""
-        self.subwindow = create_imageview_subwindow()
-        super().start()
+    @Slot()
+    def print_message(self, msg):
+        App.Console.PrintMessage(msg)
 
-    def run(self):
-        """Run executor.
+    @Slot()
+    def create_imageview_subwindow(self):  # TODO Rename
+        """Create a subwindow in FreeCAD Gui to display an image."""
+        if not App.GuiUp:
+            return None
 
-        This method represents the thread activity. It is not intended to be
-        called directly (see 'threading' module documentation).
-        """
-        App.Console.PrintMessage(f"Starting rendering...\n{self.cmd}\n")
-        try:
-            with Popen(
-                shlex.split(self.cmd),
-                stdout=PIPE,
-                stderr=STDOUT,
-                bufsize=1,
-                universal_newlines=True,
-            ) as proc:
-                for line in proc.stdout:
-                    App.Console.PrintMessage(line)
-        except (OSError, SubprocessError) as err:
-            errclass = err.__class__.__name__
-            errmsg = str(err)
-            App.Console.PrintError(f"{errclass}: {errmsg}\n")
-            App.Console.PrintMessage("Aborting rendering...\n")
-        else:
-            rcode = proc.returncode
-            msg = f"Exiting rendering - Return code: {rcode}\n"
-            if not rcode:
-                App.Console.PrintMessage(msg)
-            else:
-                App.Console.PrintWarning(msg)
+        print(self.thread())  # TODO
 
-            # Open result in GUI if relevant
-            if self.img:
-                if App.GuiUp:
-                    try:
-                        self.subwindow.widget().load_image(self.img)
-                        self.subwindow.showMaximized()
-                    except RuntimeError:
-                        App.Console.PrintWarning(
-                            "Warning: Could not load rendering result"
-                        )
-                else:
-                    App.Console.PrintMessage(
-                        f"Output file written to '{self.img}'\n"
-                    )
+        # Create widget and subwindow
+        viewer = ImageView()
+        mdiarea = Gui.getMainWindow().centralWidget()
+        subw = mdiarea.addSubWindow(viewer)
+        subw.setWindowTitle("Rendering result")
+        subw.setVisible(False)
 
+        # Create contextual menu
+        menu = subw.systemMenu()
+        menu.addSeparator()
+        subw.widget().add_actions_to_menu(menu)
 
-def create_imageview_subwindow():
-    """Create a subwindow in FreeCAD Gui to display an image."""
-    if not App.GuiUp:
-        return None
+        self.subwindow = subw
 
-    # Create widget and subwindow
-    viewer = ImageView()
-    mdiarea = Gui.getMainWindow().centralWidget()
-    subw = mdiarea.addSubWindow(viewer)
-    subw.setWindowTitle("Rendering result")
-    subw.setVisible(False)
-
-    # Create contextual menu
-    menu = subw.systemMenu()
-    menu.addSeparator()
-    subw.widget().add_actions_to_menu(menu)
-
-    return subw
+    @Slot()
+    def load_image(self, img_path):
+        self.subwindow.widget().load_image(img_path)
 
 
 class ImageView(QWidget):
