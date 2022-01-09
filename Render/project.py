@@ -429,7 +429,7 @@ class Project(FeatureBase):
         cam = renderer.get_camsource_string(get_cam_from_coin_string(camstr))
 
         # Get objects rendering strings (including lights, cameras...)
-        views = self.all_views()
+        # views = self.all_views()
         get_rdr_string = (
             renderer.get_rendering_string
             if obj.DelayedBuild
@@ -438,11 +438,11 @@ class Project(FeatureBase):
         if App.GuiUp:
             objstrings = [
                 get_rdr_string(v)
-                for v in views
+                for v in self.all_views()
                 if v.Source.ViewObject.Visibility
             ]
         else:
-            objstrings = [get_rdr_string(v) for v in views]
+            objstrings = [get_rdr_string(v) for v in self.all_views()]
 
         # Add a ground plane if required
         if getattr(obj, "GroundPlane", False):
