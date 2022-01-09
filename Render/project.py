@@ -31,7 +31,6 @@ import math
 import sys
 import os
 import re
-from types import SimpleNamespace
 from operator import attrgetter
 from tempfile import mkstemp
 
@@ -40,16 +39,12 @@ from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
-try:
-    import ImageGui
-except ImportError:
-    pass
-
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
+from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate
 from Render.view import View
-from Render.camera import DEFAULT_CAMERA_STRING, set_cam_from_coin_string
+from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
 
 
@@ -320,10 +315,25 @@ class Project(FeatureBase):
                         )
                         + "\n"
                     )
-                    App.Console.PrintWarning(msg.format(o=obj.Label))
+                    App.Console.PrintWarning(msg.format(o=obj.fpo.Label))
 
         # add_views starts here
         add_to_group(iter(objs), self.fpo)
+
+    def add_view(self, obj):
+        """Add a single object as a new view to the project.
+
+        This method is essentially provided for console mode, as above method
+        'add_views' may not be handy for a single object.  However, it heavily
+        relies on 'add_views', so please check the latter for more information.
+
+        Args::
+        -----------
+        obj -- a FreeCAD object to add to project
+        """
+        objs = []
+        objs.append(obj)
+        self.add_views(objs)
 
     def all_views(self, include_groups=False):
         """Give the list of all the views contained in the project.
@@ -354,17 +364,21 @@ class Project(FeatureBase):
 
         return all_group_objs(self.fpo, include_groups)
 
-    def render(self, external=True):
+    # TODO Remove external
+    def render(self, external=True, wait_for_completion=False):
         """Render the project, calling an external renderer.
 
         Args:
             external -- flag to switch between internal/external version of
                 renderer
+            wait_for_completion -- flag to wait for rendering completion before
+                return, in a blocking way (default to False)
 
         Returns:
             Output file path
         """
         obj = self.fpo
+        wait_for_completion = bool(wait_for_completion)
 
         # Get a handle to renderer module
         try:
@@ -412,20 +426,10 @@ class Project(FeatureBase):
             if App.GuiUp
             else DEFAULT_CAMERA_STRING
         )
-        defaultcamview = SimpleNamespace()
-        defaultcamview.Source = SimpleNamespace()
-        defaultcamview.Source.Proxy = SimpleNamespace()
-        defaultcamview.Source.Proxy.type = "Camera"
-        defaultcamview.Source.Name = "Default_Camera"
-        defaultcamview.Source.Label = "Default_Camera"
-        defaultcamview.Name = "Default_CameraView"
-        defaultcamview.Label = View.view_label(defaultcamview.Source, obj)
-        set_cam_from_coin_string(defaultcamview.Source, camstr)
-        cam = renderer.get_rendering_string(defaultcamview)
-        del defaultcamview, camstr
+        cam = renderer.get_camsource_string(get_cam_from_coin_string(camstr))
 
         # Get objects rendering strings (including lights, cameras...)
-        views = self.all_views()
+        # views = self.all_views()
         get_rdr_string = (
             renderer.get_rendering_string
             if obj.DelayedBuild
@@ -434,11 +438,11 @@ class Project(FeatureBase):
         if App.GuiUp:
             objstrings = [
                 get_rdr_string(v)
-                for v in views
+                for v in self.all_views()
                 if v.Source.ViewObject.Visibility
             ]
         else:
-            objstrings = [get_rdr_string(v) for v in views]
+            objstrings = [get_rdr_string(v) for v in self.all_views()]
 
         # Add a ground plane if required
         if getattr(obj, "GroundPlane", False):
@@ -468,8 +472,6 @@ class Project(FeatureBase):
         os.remove(fpath)
         assert obj.PageResult, "Rendering error: No page result"
 
-        App.ActiveDocument.recompute()
-
         # Fetch the rendering parameters
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
@@ -491,15 +493,22 @@ class Project(FeatureBase):
         except (AttributeError, ValueError, TypeError):
             height = 600
 
-        # Run the renderer on the generated temp file, with rendering params
-        img = renderer.render(obj, prefix, external, output, width, height)
+        # Get the renderer command on the generated temp file, with rendering
+        # params
+        cmd, img = renderer.render(
+            obj, prefix, external, output, width, height
+        )
+        img = img if obj.OpenAfterRender else None
+        if not cmd:
+            # Command is empty (perhaps lack of data in parameters)
+            return None
 
-        # Open result in GUI if relevant
-        try:
-            if img and obj.OpenAfterRender:
-                ImageGui.open(img)
-        except (AttributeError, NameError):
-            pass
+        # Execute renderer
+        rdr_executor = RendererExecutor(cmd, img)
+        rdr_executor.start()
+        if wait_for_completion:
+            # Useful in console mode...
+            rdr_executor.join()
 
         # And eventually return result path
         return img
