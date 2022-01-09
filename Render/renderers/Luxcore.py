@@ -353,6 +353,11 @@ def render(project, prefix, external, output, width, height):
         App.Console.PrintError(msg)
         return None, None
 
+    lpath = params.GetString("LuxCoreLibPath", "")
+    lenv = os.environ
+    if lpath:
+        lenv["LD_LIBRARY_PATH"] = f"""{lpath}""";
+        
     # Prepare command line and return
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
 
