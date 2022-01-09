@@ -184,7 +184,7 @@ def display_image(img_path):
     """
     if not img_path:
         return
-    print("Display image", img_path)
+
     # Create widget and subwindow
     viewer = ImageViewer()
     mdiarea = Gui.getMainWindow().centralWidget()
