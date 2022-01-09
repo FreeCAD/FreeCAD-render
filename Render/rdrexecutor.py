@@ -63,8 +63,8 @@ class Worker(QObject):
             img -- path to resulting image (the renderer output) (str)
         """
         super().__init__()
-        self.cmd = str(cmd)
-        self.img = str(img)
+        self.cmd = cmd
+        self.img = img
 
     def run(self):
         """Run worker.

@@ -595,8 +595,9 @@ def render(project, prefix, external, output, width, height):
     # Build Appleseed command
     cmd = prefix + rpath + " " + args + " " + filepath + "\n"
 
-    # Return cmd, sync, output
-    return cmd, output if not external else None
+    # Return cmd, output
+    # output is None, as no resulting image is output by Appleseed
+    return cmd, None
 
 
 # ===========================================================================
