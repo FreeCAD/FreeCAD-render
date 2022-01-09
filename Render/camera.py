@@ -27,6 +27,7 @@ later for rendering.
 """
 
 from math import degrees, radians
+from types import SimpleNamespace
 import shlex
 
 from pivy import coin
@@ -329,6 +330,17 @@ def set_cam_from_coin_string(cam, camstr):
         cam.Height = float(camdict["height"][0])
     elif cam.Projection == "Perspective":
         cam.HeightAngle = degrees(float(camdict["heightAngle"][0]))
+
+
+def get_cam_from_coin_string(camstr):
+    """Get a Camera object in view.Source format from a Coin camera string.
+
+    The same as set_cam_from_coin_string, but result is created and returned,
+    instead of being ref-passed in first parameter.
+    """
+    res = SimpleNamespace()
+    set_cam_from_coin_string(res, camstr)
+    return res
 
 
 def get_coin_string_from_cam(cam):

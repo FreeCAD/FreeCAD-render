@@ -31,11 +31,9 @@
 
 import os
 import re
-import shlex
 import uuid
 from tempfile import mkstemp
 from math import pi, degrees, acos, atan2, sqrt
-from subprocess import Popen
 from textwrap import indent
 import collections
 
@@ -482,8 +480,7 @@ RGB = collections.namedtuple("RGB", "r g b")
 
 
 def render(project, prefix, external, output, width, height):
-    """Run renderer.
-
+    """Generate renderer command.
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
@@ -494,7 +491,8 @@ def render(project, prefix, external, output, width, height):
         height -- Rendered image height, in pixels
 
     Returns:
-        A path to output image file
+        The command to run renderer (string)
+        A path to output image file (string)
     """
 
     def move_elements(element_tag, destination, template, keep_one=False):
@@ -587,23 +585,18 @@ def render(project, prefix, external, output, width, height):
             "Please set the correct path in "
             "Edit -> Preferences -> Render\n"
         )
-        return ""
+        return None, None
     if args:
         args += " "
 
     filepath = f'"{project.PageResult}"'
 
-    # Call Appleseed (asynchronously)
+    # Build Appleseed command
     cmd = prefix + rpath + " " + args + " " + filepath + "\n"
-    App.Console.PrintMessage(cmd)
-    try:
-        # pylint: disable=consider-using-with
-        Popen(shlex.split(cmd))
-    except OSError as err:
-        msg = "Appleseed call failed: '" + err.strerror + "'\n"
-        App.Console.PrintError(msg)
 
-    return output if not external else None
+    # Return cmd, output
+    # output is None, as no resulting image is output by Appleseed
+    return cmd, None
 
 
 # ===========================================================================

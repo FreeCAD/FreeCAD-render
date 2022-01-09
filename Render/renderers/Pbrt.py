@@ -279,7 +279,7 @@ MATERIALS = {
 
 
 def render(project, prefix, external, output, width, height):
-    """Run renderer.
+    """Generate renderer command.
 
     Args:
         project -- The project to render
@@ -291,7 +291,8 @@ def render(project, prefix, external, output, width, height):
         height -- Rendered image height, in pixels
 
     Returns:
-        A path to output image file
+        The command to run renderer (string)
+        A path to output image file (string)
     """
     # Make various adjustments on file:
     # Reorder camera declarations and set width/height
@@ -332,13 +333,10 @@ def render(project, prefix, external, output, width, height):
             "Please set the correct path in "
             "Edit -> Preferences -> Render\n"
         )
-        return ""
+        return None, None
 
     filepath = f'"{project.PageResult}"'
 
     cmd = prefix + rpath + " " + args + " " + filepath
-    App.Console.PrintMessage(cmd + "\n")
 
-    os.system(cmd)
-
-    return output
+    return cmd, output
