@@ -481,7 +481,6 @@ RGB = collections.namedtuple("RGB", "r g b")
 
 def render(project, prefix, external, output, width, height):
     """Generate renderer command.
-
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to

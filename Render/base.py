@@ -357,11 +357,13 @@ class FeatureBase(FeatureBaseInterface):
             msg = msg.format(d=cls.__name__, v=cls.VIEWPROVIDER)
             trace = sys.exc_info()[2]
             raise ValueError(msg).with_traceback(trace) from original_exc
+
         if fpo.ViewObject:
             viewp = viewp_class(fpo.ViewObject)
         else:
             # Console case: no view provider is available
             viewp = None
+
         obj.on_create_cb(fpo, viewp, **kwargs)
         App.ActiveDocument.recompute()
         return obj, fpo, viewp
