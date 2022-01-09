@@ -48,7 +48,7 @@ except ImportError:
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
-from Render.rdrexecutor import RendererExecutor
+from Render.rdrexecutor import RendererExecutorGui, RendererExecutorConsole
 from Render.utils import translate
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
@@ -511,7 +511,7 @@ class Project(FeatureBase):
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor()
+        rdr_executor = RendererExecutorGui() if App.GuiUp else RendererExecutorConsole()
         rdr_executor.start(cmd, img)
         # rdr_executor.deleteLater()  TODO
         if wait_for_completion:
