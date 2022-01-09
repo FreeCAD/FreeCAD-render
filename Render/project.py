@@ -31,20 +31,13 @@ import math
 import sys
 import os
 import re
-import shlex
 from operator import attrgetter
 from tempfile import mkstemp
-from subprocess import Popen
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
-
-try:
-    import ImageGui
-except ImportError:
-    pass
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
