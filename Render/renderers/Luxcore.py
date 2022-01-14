@@ -74,8 +74,8 @@ def write_pointlight(name, pos, color, power):
     """Compute a string in renderer SDL to represent a point light."""
     # From LuxCore doc:
     # power is in watts
-    # efficency (sic) is in lumens/watt
-    efficency = 15  # incandescent light bulb ratio (average)
+    # efficiency (sic) is in lumens/watt
+    efficiency = 15  # incandescent light bulb ratio (average)
     gain = 10  # Guesstimated! (don't hesitate to propose more sensible values)
 
     snippet = """
@@ -84,16 +84,16 @@ def write_pointlight(name, pos, color, power):
     scene.lights.{n}.color = {c[0]} {c[1]} {c[2]}
     scene.lights.{n}.power = {p}
     scene.lights.{n}.gain = {g} {g} {g}
-    scene.lights.{n}.efficency = {e}
+    scene.lights.{n}.efficiency = {e}
     """
     return dedent(snippet).format(
-        n=name, o=pos, c=color, p=power, g=gain, e=efficency
+        n=name, o=pos, c=color, p=power, g=gain, e=efficiency
     )
 
 
 def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
-    efficency = 15
+    efficiency = 15
     gain = 0.001  # Guesstimated!
 
     # We have to transpose 'pos' to make it fit for Lux
@@ -107,7 +107,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     scene.materials.{n}.emission = {c[0]} {c[1]} {c[2]}
     scene.materials.{n}.emission.gain = {g} {g} {g}
     scene.materials.{n}.emission.power = {p}
-    scene.materials.{n}.emission.efficency = {e}
+    scene.materials.{n}.emission.efficiency = {e}
     scene.materials.{n}.transparency = {a}
     scene.objects.{n}.type = inlinedmesh
     scene.objects.{n}.vertices = -{u} -{v} 0 {u} -{v} 0 {u} {v} 0 -{u} {v} 0
@@ -121,7 +121,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         t=trans,
         c=color,
         p=power,
-        e=efficency,
+        e=efficiency,
         g=gain,
         u=size_u / 2,
         v=size_v / 2,
