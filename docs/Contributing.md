@@ -35,7 +35,7 @@ Please note we do not translate:
 * Debug messages (calls to debug()), as they are supposed to be hidden in
   normal functioning.
 * Assert messages, as they are supposed not to appear in normal functioning,
-  and to be reported as is to developpers if they occur.
+  and to be reported as is to developers if they occur.
 
 ## To Do (not exhaustive)
 

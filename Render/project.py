@@ -410,7 +410,7 @@ class Project(FeatureBase):
 
         if not os.path.isfile(template_path):
             msg = translate(
-                "Render", "Cannot render projet: Template not found ('%s')"
+                "Render", "Cannot render project: Template not found ('%s')"
             )
             msg = "[Render] " + (msg % template_path) + "\n"
             App.Console.PrintError(msg)

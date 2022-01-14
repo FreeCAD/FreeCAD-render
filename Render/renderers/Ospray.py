@@ -406,7 +406,7 @@ def write_imagelight(name, image):
     os.close(f_handle)
     # osp requires the hdr file path to be relative from the gltf file path
     # (see GLTFData::createLights insg/importer/glTF.cpp, ),
-    # so we have to manipulate pathes a bit...
+    # so we have to manipulate paths a bit...
     image_relpath = os.path.relpath(image, os.path.dirname(gltf_file))
 
     with open(gltf_file, "w", encoding="utf-8") as f:

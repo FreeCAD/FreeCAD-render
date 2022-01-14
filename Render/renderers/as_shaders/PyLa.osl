@@ -38,8 +38,8 @@
  *  Base = the base shader, the layer will come on top of it.
  *
  *  Layer = The layer Material.
- *          You can use any shader, except tranparent or glass shader.
- *          Pyla is a mixer, and not a real layer simulation, so tranparent
+ *          You can use any shader, except transparent or glass shader.
+ *          Pyla is a mixer, and not a real layer simulation, so transparent
  *          shader should give unwanted results !
  *
  *  Opacity = Between 0.0 and 1.0,  0.0 = no visible layer, 1.0 = full
@@ -51,7 +51,7 @@
  *
  *  Fresnel = Fresnel visibility for the layer. A full fresnel (1.0)
  *            is perfect for clear coat simulation.
- *            0.0 = the depth only control the visibilty, and not the fresnel
+ *            0.0 = the depth only control the visibility, and not the fresnel
  *            effect.
  *
  *  IoR = The Index of Refraction for the fresnel effect.
