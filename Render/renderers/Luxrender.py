@@ -113,8 +113,8 @@ def write_pointlight(name, pos, color, power):
 
     # From Luxcore doc:
     # power is in watts
-    # efficiency (sic) is in lumens/watt
-    efficiency = 15  # incandescent light bulb ratio (average)
+    # efficency (sic) is in lumens/watt
+    efficency = 15  # incandescent light bulb ratio (average)
     gain = 10  # Guesstimated! (don't hesitate to propose more sensible values)
 
     snippet = """
@@ -125,19 +125,19 @@ def write_pointlight(name, pos, color, power):
          "float from"        [{f.x} {f.y} {f.z}]
          "color L"           [{L[0]} {L[1]} {L[2]}]
          "float power"       [{p}]
-         "float efficiency"   [{e}]
+         "float efficency"   [{e}]
          "float gain"        [{g}]
     AttributeEnd # {n}
     \n"""
 
     return dedent(snippet).format(
-        n=name, f=pos, L=color, p=power, e=efficiency, g=gain
+        n=name, f=pos, L=color, p=power, e=efficency, g=gain
     )
 
 
 def write_arealight(name, pos, size_u, size_v, color, power):
     """Compute a string in renderer SDL to represent an area light."""
-    efficiency = 15
+    efficency = 15
     gain = 10  # Guesstimated!
 
     # We have to transpose 'pos' to make it fit for Lux
@@ -154,7 +154,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
     AreaLightSource "area"
         "color L"           [{L[0]} {L[1]} {L[2]}]
         "float power"       [{p}]
-        "float efficiency"   [{e}]
+        "float efficency"   [{e}]
         "float importance"  [1.000000000000000]
         "float gain"        [{g}]
     Shape "mesh"
@@ -169,7 +169,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
         t=trans,
         L=color,
         p=power,
-        e=efficiency,
+        e=efficency,
         g=gain,
         u=size_u / 2,
         v=size_v / 2,
