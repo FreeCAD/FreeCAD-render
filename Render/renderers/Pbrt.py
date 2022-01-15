@@ -188,7 +188,6 @@ def _write_material_glass(name, material):
     snippet = """  # Material '{n}'
   Material "dielectric"
     "float eta" {i}
-    "rgb tint" [{c.r} {c.g} {c.b}]
 """
     return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
