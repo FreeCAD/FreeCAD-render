@@ -57,18 +57,19 @@ class ImageViewer(QWidget):
         self.imglabel = QLabel()
         self.imglabel.setBackgroundRole(QPalette.Base)
         self.imglabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.imglabel.setScaledContents(True)  # Resize pixmap along with label
+        self.imglabel.setAlignment(Qt.AlignCenter)
+        self.imglabel.setText("(No image yet)")
 
         self.namelabel = QLabel()
 
         self.scrollarea = QScrollArea()
         self.scrollarea.setWidget(self.imglabel)
         self.scrollarea.setWidgetResizable(False)
-        self.imglabel.setScaledContents(True)  # Resize pixmap along with label
-        self.imglabel.setAlignment(Qt.AlignCenter)
+        self.scrollarea.setAlignment(Qt.AlignCenter)
 
         self.layout().addWidget(self.scrollarea)
         self.layout().addWidget(self.namelabel)
-        self.imglabel.setText("(No image yet)")
 
         self.scale_factor = 1.0
         self._initial_size = QSize(0, 0)
@@ -86,22 +87,22 @@ class ImageViewer(QWidget):
         Args:
             menu -- the menu to add the actions (QMenu)
         """
-        zoom_in_act = menu.addAction("Zoom &In (25%)")
+        zoom_in_act = menu.addAction("Zoom In (25%)")
         zoom_in_act.triggered.connect(self.zoom_in)
 
-        zoom_out_act = menu.addAction("Zoom &Out (25%)")
+        zoom_out_act = menu.addAction("Zoom Out (25%)")
         zoom_out_act.triggered.connect(self.zoom_out)
 
-        zoom_normal_act = menu.addAction("&Normal Size")
+        zoom_normal_act = menu.addAction("Normal Size")
         zoom_normal_act.triggered.connect(self.normal_size)
 
         menu.addSeparator()
 
-        copy_filename_act = menu.addAction("Copy &Filename to Clipboard")
-        copy_filename_act.triggered.connect(self.copy_filename)
-
-        copy_filename_act = menu.addAction("Copy &Image to Clipboard")
+        copy_filename_act = menu.addAction("Copy Image to Clipboard")
         copy_filename_act.triggered.connect(self.copy_image)
+
+        copy_filename_act = menu.addAction("Copy Filename to Clipboard")
+        copy_filename_act.triggered.connect(self.copy_filename)
 
     def load_image(self, img_path):
         """Load an image in widget from a file.
@@ -186,13 +187,24 @@ def display_image(img_path):
         return
 
     # Create widget and subwindow
-    viewer = ImageViewer()
+    viewer = ImageViewer(Gui.getMainWindow())
     mdiarea = Gui.getMainWindow().centralWidget()
     subw = mdiarea.addSubWindow(viewer)
     subw.setWindowTitle("Rendering result")
-    subw.setVisible(False)
+    subw.setVisible(True)
 
-    # Create contextual menu
+    # Set subwindow background to opaque
+    bkg = Gui.getMainWindow().palette().color(QPalette.Background)
+    style = (
+        "QMdiSubWindow {"
+        f"background-color:rgb({bkg.red()},{bkg.green()},{bkg.blue()});"
+        "border-style:none;"
+        "margin:0px;"
+        "}"
+    )
+    subw.setStyleSheet(style)
+
+    # Create context menu
     menu = subw.systemMenu()
     menu.addSeparator()
     subw.widget().add_actions_to_menu(menu)
