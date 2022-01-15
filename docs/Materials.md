@@ -135,7 +135,7 @@ should be used only when standard material is not sufficient.
 In [Step #1](#step-1-create-a-material-in-your-document) above, you have imported a
 Material Card into a Material, and then set up the rendering parameters.
 
-If you don't want to specify your rendering paramaters each time you create a
+If you don't want to specify your rendering parameters each time you create a
 new Material in your document, you can also directly set your rendering
 parameters in the Material Card.
 A description of the FreeCAD material card format, the creation and the import

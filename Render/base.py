@@ -58,7 +58,7 @@ def get_cumulative_dict_attribute(obj, attr_name):
     Args:
     obj -- obj from which to determine class hierarchy
     attr_name -- class attribute name to cumulate (string). The class attribute
-        thus designated should be a dictionay
+        thus designated should be a dictionary
 
     Returns:
     {<key>: [(<class>, <value>)]}
@@ -93,11 +93,11 @@ CtxMenuItem = namedtuple(
 class FeatureBaseInterface:
     """An interface to base class for FreeCAD scripted objects (FeatureBase).
 
-    This class lists methods and properties that can/should be overriden by
+    This class lists methods and properties that can/should be overridden by
     subclasses.
     """
 
-    # These constants must be overriden when subclassing (mandatory)
+    # These constants must be overridden when subclassing (mandatory)
     VIEWPROVIDER = ""  # The name of the associated ViewProvider class (str)
     PROPERTIES = {}  # The properties of the object (dict of Prop)
 
@@ -107,7 +107,7 @@ class FeatureBaseInterface:
     # Handles changes in this object's properties,
     # See 'onChanged' in FreeCAD scripted objects framework
 
-    # These constants can be overriden when subclassing (optional)
+    # These constants can be overridden when subclassing (optional)
     NAMESPACE = "Render"  # The namespace where feature and viewprovider are
     TYPE = ""  # The type of the object (str). If empty, default to class name
 
@@ -147,7 +147,7 @@ class FeatureBaseInterface:
 class ViewProviderBaseInterface:
     """An interface to base class for FreeCAD ViewProvider.
 
-    This class lists methods and properties that can/should be overriden by
+    This class lists methods and properties that can/should be overridden by
     subclasses.
     """
 
@@ -395,7 +395,7 @@ class ViewProviderBase(ViewProviderBaseInterface):
         self.__module__ = "Render"
 
         # Hook for mixins
-        self.on_attach_mixin_cb(vobj)  # Can be overriden by mixins
+        self.on_attach_mixin_cb(vobj)  # Can be overridden by mixins
 
         # Hook for objects
         self.on_attach_cb(vobj)
@@ -786,7 +786,7 @@ class CoinLightViewProviderMixin:
         "Power": "_update_power",
         "Color": "_update_color",
     }
-    LIGHT_COIN_NODE = None  # Must be overriden by subclass
+    LIGHT_COIN_NODE = None  # Must be overridden by subclass
 
     def on_attach_mixin_cb(self, vobj):
         """Complete 'attach' method (callback, mixin version)."""
