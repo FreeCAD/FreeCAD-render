@@ -37,7 +37,7 @@ from PySide.QtGui import (
     QGuiApplication,
     QMenu,
 )
-from PySide.QtCore import Qt, Slot, QSize
+from PySide.QtCore import Qt, Slot, QSize, QPoint
 
 import FreeCADGui as Gui
 
@@ -167,13 +167,13 @@ class ImageViewer(QWidget):
         """Copy embedded image to clipboard (slot)."""
         QGuiApplication.clipboard().setImage(self.imglabel.pixmap().toImage())
 
-    @Slot()
+    @Slot(QPoint)
     def show_context_menu(self, pos):
         """Show context menu."""
         self.menu.exec_(self.mapToGlobal(pos))
 
 
-@Slot()
+@Slot(str)
 def display_image(img_path):
     """Display an image in FreeCAD Gui, using MDI (slot).
 
