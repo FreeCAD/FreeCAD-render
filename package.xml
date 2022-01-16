@@ -2,7 +2,8 @@
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
   <name>Render</name>
   <description>A workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines.
-Designed as a replacement for internal Raytracing Workbench.</description>
+
+Designed as a modern replacement for internal Raytracing Workbench.</description>
   <version>2022.01</version>
   <date>2022-01-01</date>
   <maintainer email="@howetuft">howetuft</maintainer>
