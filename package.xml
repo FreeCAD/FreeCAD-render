@@ -1,20 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
   <name>Render</name>
-  <description></description>
-  <version>2022-01</version>
+  <description>
+      A workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines.
+  </description>
+  <version>2022.01</version>
   <date>2022-01-01</date>
   <maintainer email="@howetuft">howetuft</maintainer>
   <maintainer email="@yorikvanhave">Yorik Van Havre</maintainer>
   <license file="LICENSE">LGPLv2.1</license>
   <url type="repository" branch="master">https://github.com/FreeCAD/FreeCAD-render</url>
   <url type="bugtracker">https://github.com/FreeCAD/FreeCAD-render/issues</url>
-  <icon>Render/resources/icons/preferences-render.svg</icon>
+  <url type="readme">
+      https://github.com/FreeCAD/FreeCAD-render/blob/master/README.md
+  </url>
+  <icon>Render/resources/icons/Render.svg</icon>
 
   <content>
     <workbench>
+      <name>Render Workbench</name>
+      <subdirectory>Render</subdirectory>
+      <icon>resources/icons/Render.svg</icon>
       <classname>RenderWorkbench</classname>
-      <subdirectory>./</subdirectory>
     </workbench>
   </content>
 
