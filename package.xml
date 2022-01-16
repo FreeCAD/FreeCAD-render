@@ -17,7 +17,7 @@ Designed as a replacement for internal Raytracing Workbench.</description>
     <workbench>
       <name>Render Workbench</name>
       <subdirectory>./</subdirectory>
-      <icon>resources/icons/Render.svg</icon>
+      <icon>Render/resources/icons/Render.svg</icon>
       <classname>RenderWorkbench</classname>
     </workbench>
   </content>
