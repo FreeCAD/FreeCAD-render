@@ -113,8 +113,8 @@ def write_pointlight(name, pos, color, power):
 
     # From Luxcore doc:
     # power is in watts
-    # efficency (sic) is in lumens/watt
-    efficency = 15  # incandescent light bulb ratio (average)
+    # efficiency is in lumens/watt
+    efficiency = 15  # incandescent light bulb ratio (average)
     gain = 10  # Guesstimated! (don't hesitate to propose more sensible values)
 
     snippet = """
@@ -131,13 +131,13 @@ def write_pointlight(name, pos, color, power):
     \n"""
 
     return dedent(snippet).format(
-        n=name, f=pos, L=color, p=power, e=efficency, g=gain
+        n=name, f=pos, L=color, p=power, e=efficiency, g=gain
     )
 
 
 def write_arealight(name, pos, size_u, size_v, color, power):
     """Compute a string in renderer SDL to represent an area light."""
-    efficency = 15
+    efficiency = 15
     gain = 10  # Guesstimated!
 
     # We have to transpose 'pos' to make it fit for Lux
@@ -169,7 +169,7 @@ def write_arealight(name, pos, size_u, size_v, color, power):
         t=trans,
         L=color,
         p=power,
-        e=efficency,
+        e=efficiency,
         g=gain,
         u=size_u / 2,
         v=size_v / 2,
