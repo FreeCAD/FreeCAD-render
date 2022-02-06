@@ -632,7 +632,6 @@ def render(project, prefix, external, output, width, height):
         f.write(json.dumps(json_load, indent=2))
     project.PageResult = f_path
     os.remove(f_path)
-    App.ActiveDocument.recompute()
 
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")

@@ -365,7 +365,6 @@ class FeatureBase(FeatureBaseInterface):
             viewp = None
 
         obj.on_create_cb(fpo, viewp, **kwargs)
-        App.ActiveDocument.recompute()
         return obj, fpo, viewp
 
 

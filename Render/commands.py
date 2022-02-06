@@ -28,7 +28,7 @@ import os
 import itertools as it
 
 from PySide.QtCore import QT_TRANSLATE_NOOP
-from PySide.QtGui import QMessageBox, QInputDialog
+from PySide.QtGui import QMessageBox, QInputDialog, QApplication, QCursor, Qt
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -86,8 +86,6 @@ class RenderProjectCommand:
             App.ActiveDocument, renderer=self.renderer, template=template
         )
 
-        App.ActiveDocument.recompute()
-
 
 class RenderViewCommand:
     """GUI command to create a rendering view of an object in a project.
@@ -143,10 +141,10 @@ class RenderViewCommand:
             App.Console.PrintError(msg)
             return
 
-        # Finally, add objects to target project and recompute
+        # Finally, add objects to target project
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         target_project.Proxy.add_views(objs)
-
-        App.ActiveDocument.recompute()
+        QApplication.restoreOverrideCursor()
 
 
 class RenderCommand:
@@ -333,7 +331,6 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         for cmd in cmds:
             Gui.doCommand(cmd)
         App.ActiveDocument.commitTransaction()
-        App.ActiveDocument.recompute()
 
 
 class MaterialRenderSettingsCommand:
@@ -360,13 +357,10 @@ class MaterialRenderSettingsCommand:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        # App.setActiveTransaction("MaterialSettings")
         App.ActiveDocument.openTransaction("MaterialSettings")
         task = MaterialSettingsTaskPanel()
         Gui.Control.showDialog(task)
-        # App.closeActiveTransaction()
         App.ActiveDocument.commitTransaction()
-        App.ActiveDocument.recompute()
 
 
 class MaterialApplierCommand:

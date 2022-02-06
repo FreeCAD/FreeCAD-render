@@ -456,6 +456,7 @@ class MaterialSettingsTaskPanel:
         self._write_fields()
         Gui.ActiveDocument.resetEdit()
         Gui.Control.closeDialog()
+        # Modifying material may require projects recomputation:
         App.ActiveDocument.recompute()
         return True
 

@@ -256,7 +256,6 @@ def render(project, prefix, external, output, width, height):
             f.write(template)
         project.PageResult = f_path
         os.remove(f_path)
-        App.ActiveDocument.recompute()
 
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxParameters", "")
