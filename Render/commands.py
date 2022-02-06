@@ -28,7 +28,7 @@ import os
 import itertools as it
 
 from PySide.QtCore import QT_TRANSLATE_NOOP
-from PySide.QtGui import QMessageBox, QInputDialog
+from PySide.QtGui import QMessageBox, QInputDialog, QApplication, QCursor, Qt
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -142,7 +142,9 @@ class RenderViewCommand:
             return
 
         # Finally, add objects to target project
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         target_project.Proxy.add_views(objs)
+        QApplication.restoreOverrideCursor()
 
 
 class RenderCommand:
