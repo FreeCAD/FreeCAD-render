@@ -566,7 +566,6 @@ def render(project, prefix, external, output, width, height):
         f.write(template)
     project.PageResult = f_path
     os.remove(f_path)
-    App.ActiveDocument.recompute()
 
     # Prepare parameters
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
