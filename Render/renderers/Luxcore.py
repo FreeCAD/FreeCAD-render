@@ -329,10 +329,20 @@ def render(project, prefix, external, output, width, height):
     pageresult.optionxform = lambda option: option  # Case sensitive keys
     pageresult.read(project.PageResult)
 
+    # Compute output
+    output = (
+        output if output else os.path.splitext(project.PageResult)[0] + ".png"
+    )
+    # TODO Check output extension
+
     # Export configuration
     config = pageresult["Configuration"]
     config["film.width"] = str(width)
     config["film.height"] = str(height)
+    config["film.outputs.0.type"] = "RGB_IMAGEPIPELINE"
+    config["film.outputs.0.filename"] = output
+    config["film.outputs.0.index"] = "0"
+    config["periodicsave.film.outputs.period"] = "1"
     cfg_path = export_section(config, project.Name, "cfg")
 
     # Export scene
@@ -356,4 +366,4 @@ def render(project, prefix, external, output, width, height):
     # Prepare command line and return
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""
 
-    return cmd, None
+    return cmd, output
