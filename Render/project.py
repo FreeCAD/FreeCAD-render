@@ -315,13 +315,12 @@ class Project(FeatureBase):
                         )
                         + "\n"
                     )
-                    App.Console.PrintWarning(msg.format(o=obj.fpo.Label))
+                    App.Console.PrintWarning(msg.format(o=obj.Label))
 
         # add_views starts here
         add_to_group(iter(objs), self.fpo)
         if not self.fpo.DelayedBuild:
             App.ActiveDocument.recompute()
-
 
     def add_view(self, obj):
         """Add a single object as a new view to the project.

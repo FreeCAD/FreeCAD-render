@@ -155,6 +155,17 @@ class RendererHandler:
                         "ImageLight",
                     ]
                 )
+                or (
+                    obj.isDerivedFrom("App::GeometryPython")
+                    and getproxyattr(obj, "type", "")
+                    in [
+                        "PointLight",
+                        "Camera",
+                        "AreaLight",
+                        "SunskyLight",
+                        "ImageLight",
+                    ]
+                )
             )
         except AttributeError:
             res = False

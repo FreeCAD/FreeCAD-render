@@ -98,6 +98,7 @@ def reload(module_name=None):
     """Reload Render modules."""
     mods = (
         (
+            "Render.base",
             "Render.camera",
             "Render.commands",
             "Render.constants",
