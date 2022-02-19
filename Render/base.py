@@ -110,7 +110,7 @@ class FeatureBaseInterface:
     # These constants can be overridden when subclassing (optional)
     NAMESPACE = "Render"  # The namespace where feature and viewprovider are
     TYPE = ""  # The type of the object (str). If empty, default to class name
-    FCDTYPE = ""  # The FreeCAD type of the object (str). If empty, default to "App::FeaturePython"
+    FCDTYPE = ""  # The FreeCAD type (str, defaults to "App::FeaturePython")
 
     def on_set_properties_cb(self, fpo):
         """Complete the operation of internal _set_properties (callback).
