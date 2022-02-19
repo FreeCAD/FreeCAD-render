@@ -110,6 +110,7 @@ class FeatureBaseInterface:
     # These constants can be overridden when subclassing (optional)
     NAMESPACE = "Render"  # The namespace where feature and viewprovider are
     TYPE = ""  # The type of the object (str). If empty, default to class name
+    FCDTYPE = ""  # The FreeCAD type of the object (str). If empty, default to "App::FeaturePython"
 
     def on_set_properties_cb(self, fpo):
         """Complete the operation of internal _set_properties (callback).
@@ -241,6 +242,7 @@ class FeatureBase(FeatureBaseInterface):
         """Set underlying FeaturePython object's properties."""
         self.fpo = fpo
         self.__module__ = self.NAMESPACE
+
         fpo.Proxy = self
 
         properties = get_cumulative_dict_attribute(self, "PROPERTIES")
@@ -348,7 +350,8 @@ class FeatureBase(FeatureBaseInterface):
             "and no document is active"
         )
         _type = cls.TYPE if cls.TYPE else cls.__name__
-        fpo = doc.addObject("App::FeaturePython", _type)
+        fcdtype = cls.FCDTYPE if cls.FCDTYPE else "App::FeaturePython"
+        fpo = doc.addObject(fcdtype, _type)
         obj = cls(fpo)
         try:
             viewp_class = getattr(sys.modules[cls.NAMESPACE], cls.VIEWPROVIDER)
@@ -588,6 +591,8 @@ class PointableFeatureMixin:  # pylint: disable=too-few-public-methods
     This mixin allows a feature to be "pointable", ie to support
     'point_at' action.
     """
+
+    FCDTYPE = "App::GeometryPython"
 
     PROPERTIES = {
         "Placement": Prop(

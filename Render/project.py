@@ -322,7 +322,6 @@ class Project(FeatureBase):
         if not self.fpo.DelayedBuild:
             App.ActiveDocument.recompute()
 
-
     def add_view(self, obj):
         """Add a single object as a new view to the project.
 
