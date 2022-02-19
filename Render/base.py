@@ -594,15 +594,6 @@ class PointableFeatureMixin:  # pylint: disable=too-few-public-methods
 
     FCDTYPE = "App::GeometryPython"
 
-    PROPERTIES = {
-        "Placement": Prop(
-            "App::PropertyPlacement",
-            "Base",
-            QT_TRANSLATE_NOOP("Render", "Object placement"),
-            App.Placement(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 0),
-        ),
-    }
-
     def point_at(self, point):
         """Make camera point at a given target point.
 
@@ -749,6 +740,8 @@ class CoinShapeViewProviderMixin:
 
     def _update_placement(self, fpo):
         """Update object placement."""
+        if fpo.isDerivedFrom("App::GeometryPython"):
+            return  # GeometryPython already provides Coin placement update...
         try:
             placement = fpo.Placement
         except AttributeError:
