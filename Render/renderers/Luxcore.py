@@ -333,7 +333,6 @@ def render(project, prefix, external, output, width, height):
     output = (
         output if output else os.path.splitext(project.PageResult)[0] + ".png"
     )
-    # TODO Check output extension
 
     # Export configuration
     config = pageresult["Configuration"]

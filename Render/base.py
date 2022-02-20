@@ -77,8 +77,12 @@ def get_cumulative_dict_attribute(obj, attr_name):
 
 
 Prop = namedtuple(
-    "Prop", ["Type", "Group", "Doc", "Default", "EditorMode"], defaults=[0]
+    "Prop",
+    ["Type", "Group", "Doc", "Default", "EditorMode", "PropertyType"],
+    defaults=[0, 0],
 )
+# NB: for EditorMode and PropertyType valid values, see
+# https://wiki.freecadweb.org/Scripted_objects#Property_Type
 
 CtxMenuItem = namedtuple(
     "CtxMenuItem", ["name", "action", "icon"], defaults=[None]
@@ -262,7 +266,9 @@ class FeatureBase(FeatureBaseInterface):
 
         _, specdata = properties[name][0]
         spec = Prop._make(specdata)
-        prop = self.fpo.addProperty(spec.Type, name, spec.Group, spec.Doc, 0)
+        prop = self.fpo.addProperty(
+            spec.Type, name, spec.Group, spec.Doc, spec.PropertyType
+        )
         setattr(prop, name, spec.Default)
         self.fpo.setEditorMode(name, spec.EditorMode)
 
@@ -751,6 +757,8 @@ class CoinShapeViewProviderMixin:
 
     def _update_location(self, fpo):
         """Update object location."""
+        if fpo.isDerivedFrom("App::GeometryPython"):
+            return  # GeometryPython already provides Coin placement update...
         try:
             location = fpo.Location
         except AttributeError:
