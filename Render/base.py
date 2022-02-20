@@ -757,6 +757,8 @@ class CoinShapeViewProviderMixin:
 
     def _update_location(self, fpo):
         """Update object location."""
+        if fpo.isDerivedFrom("App::GeometryPython"):
+            return  # GeometryPython already provides Coin placement update...
         try:
             location = fpo.Location
         except AttributeError:
