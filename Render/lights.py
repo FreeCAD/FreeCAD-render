@@ -36,6 +36,8 @@ import math
 
 from PySide.QtCore import QT_TRANSLATE_NOOP
 
+import FreeCAD as App
+
 from Render.base import (
     FeatureBase,
     PointableFeatureMixin,
@@ -86,6 +88,11 @@ class PointLight(FeatureBase):
 
     VIEWPROVIDER = "ViewProviderPointLight"
 
+    # Note: Point light location is mainly controled by its Location property.
+    # However, to allow the use of Placement and Location features
+    # (Edit-->Placement... & Edit-->Location...), a replicated underlying
+    # Placement property is introduced, and some code has been added to keep it
+    # constantly synchronized with Location.
     PROPERTIES = {
         "Location": Prop(
             "App::PropertyVector",
@@ -117,6 +124,37 @@ class PointLight(FeatureBase):
             2.0,
         ),
     }
+
+    ON_CHANGED = {
+        "Location": "_on_changed_location",
+        "Placement": "_on_changed_placement",
+    }
+
+    FCDTYPE = "App::GeometryPython"
+
+    def _on_changed_location(self, obj):  # pylint: disable=no-self-use
+        """Respond to Location change event (by synchronizing Placement)."""
+        if (
+            "Placement" in obj.PropertiesList
+            and obj.Placement.Base != obj.Location
+        ):
+            obj.Placement.Base = obj.Location
+
+    def _on_changed_placement(self, obj):  # pylint: disable=no-self-use
+        """Respond to Placement change event (by synchronizing Location)."""
+        if (
+            "Location" in obj.PropertiesList
+            and obj.Location != obj.Placement.Base
+        ):
+            obj.Location = obj.Placement.Base
+
+    def on_create_cb(self, fpo, viewp, **kwargs):
+        """Complete the operation of 'create' (callback).
+
+        Initialize Placement.
+        """
+        fpo.setEditorMode("Placement", 3)
+        self._on_changed_location(fpo)
 
 
 class ViewProviderPointLight(
