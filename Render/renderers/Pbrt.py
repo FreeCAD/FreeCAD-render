@@ -218,7 +218,6 @@ def _write_material_mixed(name, material):
   MakeNamedMaterial "{n}_2"
     "string type" "dielectric"
     "float eta" {i}
-    "rgb tint" [{c.r} {c.g} {c.b}]
   Material "mix"
     "string materials" ["{n}_1" "{n}_2"]
     "float amount" {r}
