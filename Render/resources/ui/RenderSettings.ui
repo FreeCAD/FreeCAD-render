@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>452</width>
-    <height>942</height>
+    <height>999</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -44,7 +44,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_4" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_4">
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
@@ -105,7 +105,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="Gui::PrefFileChooser" name="prefFileChooser2" native="true">
+       <widget class="Gui::PrefFileChooser" name="prefFileChooser2">
         <property name="toolTip">
          <string>The path to the Appleseed cli executable</string>
         </property>
@@ -121,7 +121,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="Gui::PrefFileChooser" name="prefFileChooser3" native="true">
+       <widget class="Gui::PrefFileChooser" name="prefFileChooser3">
         <property name="toolTip">
          <string>The path to the Appleseed studio executable (optional)</string>
         </property>
@@ -188,7 +188,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_3" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_3">
         <property name="toolTip">
          <string>The path to the Pov-Ray executable</string>
         </property>
@@ -252,7 +252,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_9" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_9">
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
@@ -428,7 +428,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser">
         <property name="toolTip">
          <string>The path to the Luxrender console (luxconsole) executable</string>
         </property>
@@ -444,7 +444,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_2" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_2">
         <property name="toolTip">
          <string>The path to the luxrender UI executable</string>
         </property>
@@ -530,7 +530,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_6" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_6">
         <property name="toolTip">
          <string>The path to the luxrender UI executable</string>
         </property>
@@ -566,7 +566,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_5" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_5">
         <property name="toolTip">
          <string>The path to the Luxrender console (luxconsole) executable</string>
         </property>
@@ -630,7 +630,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_8" native="true">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_8">
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
@@ -648,7 +648,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string notr="true">--samples 100</string>
+         <string notr="true"/>
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>OspParameters</cstring>
@@ -716,13 +716,13 @@
    <header>Gui/PrefWidgets.h</header>
   </customwidget>
   <customwidget>
-   <class>Gui::PrefLineEdit</class>
-   <extends>QLineEdit</extends>
+   <class>Gui::PrefCheckBox</class>
+   <extends>QCheckBox</extends>
    <header>Gui/PrefWidgets.h</header>
   </customwidget>
   <customwidget>
-   <class>Gui::PrefCheckBox</class>
-   <extends>QCheckBox</extends>
+   <class>Gui::PrefLineEdit</class>
+   <extends>QLineEdit</extends>
    <header>Gui/PrefWidgets.h</header>
   </customwidget>
  </customwidgets>
