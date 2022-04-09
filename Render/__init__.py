@@ -54,6 +54,7 @@ from Render.lights import (  # noqa: F401
     ImageLight,
     ViewProviderImageLight,
 )
+from Render.texture import Texture, ViewProviderTexture  # noqa: F401
 from Render.material import (  # noqa: F401
     Material,
     ViewProviderMaterial,

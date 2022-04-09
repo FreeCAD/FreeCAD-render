@@ -111,6 +111,7 @@ def reload(module_name=None):
             "Render.taskpanels",
             "Render.utils",
             "Render.view",
+            "Render.texture",
             "Render.material",
             "Render.project",
             "Render.renderers.Appleseed",
