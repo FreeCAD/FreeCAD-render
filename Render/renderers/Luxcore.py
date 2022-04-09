@@ -109,12 +109,14 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     scene.materials.{n}.emission.power = {p}
     scene.materials.{n}.emission.efficency = {e}
     scene.materials.{n}.transparency = {a}
+    scene.materials.{n}.kd = 0.0 0.0 0.0
     scene.objects.{n}.type = inlinedmesh
     scene.objects.{n}.vertices = -{u} -{v} 0 {u} -{v} 0 {u} {v} 0 -{u} {v} 0
-    scene.objects.{n}.faces = 0 1 2 0 2 3
+    scene.objects.{n}.faces = 0 1 2 0 2 3 0 2 1 0 3 2
     scene.objects.{n}.material = {n}
     scene.objects.{n}.transformation = {t}
     """
+    # Note: area light is made double-sided (consistency with other renderers)
 
     return dedent(snippet).format(
         n=name,
