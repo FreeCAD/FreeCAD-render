@@ -151,12 +151,13 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     <state shader="{n}_shader">
         <light type="area"
                co="{p.x} {p.y} {p.z}"
-               strength="1 1 1"
+               strength="{s} {s} {s}"
                axisu="{u.x} {u.y} {u.z}"
                axisv="{v.x} {v.y} {v.z}"
                sizeu="{a}"
                sizev="{b}"
-               size="1"
+               size="0.0"
+               round="false"
                dir="{d.x} {d.y} {d.z}"
                use_mis = "true"
         />
