@@ -74,6 +74,21 @@ class Texture(FeatureBase):
         ),
     }
 
+    def on_create_cb(self, fpo, viewp, **kwargs):
+        try:
+            filepath = kwargs["filepath"]
+        except KeyError:
+            pass
+        else:
+            fpo.Image = filepath
+
+        try:
+            group = kwargs["group"]
+        except KeyError:
+            pass
+        else:
+            group.addObject(fpo)
+
 
 class ViewProviderTexture(ViewProviderBase):
     """View Provider of Texture class.

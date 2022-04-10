@@ -39,7 +39,9 @@ from ArchMaterial import (
     getMaterialContainer,
 )
 
+from Render.texture import Texture
 from Render.taskpanels import MaterialTaskPanel, MaterialSettingsTaskPanel
+from Render.constants import FCDVERSION
 
 
 def make_material(name="Material", color=None, transparency=None):
@@ -68,15 +70,31 @@ class Material(_ArchMaterial):
     This class is essentially derived from Arch WB's equivalent one.
     """
 
+    # Internal variables, do not modify
+    _fpos = {}
+    _on_changed_counters = {}
+
     def __init__(self, vobj):
         super().__init__(vobj)
+        self.fpo = vobj
+        self._add_group_property(vobj)
         self.__module__ = "Render"
 
     def onDocumentRestored(self, obj):
         super().onDocumentRestored(obj)
+        self.fpo = obj
+        self._add_group_property(obj)
         self.__module__ = "Render"
 
-    _on_changed_counters = {}
+    @property
+    def fpo(self):
+        """Get underlying FeaturePython object."""
+        return self._fpos[id(self)]
+
+    @fpo.setter
+    def fpo(self, new_fpo):
+        """Set underlying FeaturePython object."""
+        self._fpos[id(self)] = new_fpo
 
     @property
     def on_changed_counter(self):
@@ -109,6 +127,25 @@ class Material(_ArchMaterial):
             pass
 
         super().execute(obj)
+
+    def add_texture(self, img_path):
+        """Add a texture to the material.
+
+        Args:
+            filepath: path to image file (mandatory)
+        """
+        img_path = str(img_path)
+        Texture.create(filepath=img_path, group=self.fpo)
+
+    def _add_group_property(self, fpo):
+        """Add a Group property to object, if missing."""
+        if "Group" not in fpo.PropertiesList:
+            if FCDVERSION >= (0, 19):
+                fpo.addExtension("App::GroupExtensionPython")
+                # See https://forum.freecadweb.org/viewtopic.php?f=10&t=54370
+            else:
+                fpo.addExtension("App::GroupExtensionPython", self)
+        fpo.setEditorMode("Group", 2)
 
 
 class ViewProviderMaterial(_ViewProviderArchMaterial):
@@ -158,3 +195,25 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
             lambda: Gui.activeDocument().setEdit(vobj.Object.Name, 0),
         )
         menu.addAction(action)
+
+        # Add a texture to material
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Add Texture"), menu
+        )
+        QObject.connect(
+            action,
+            SIGNAL("triggered()"),
+            lambda: self._add_texture(vobj)
+        )
+        menu.addAction(action)
+
+    def claimChildren(self):
+        """Deliver the children belonging to this object (callback)."""
+        try:
+            return self.Object.Group
+        except AttributeError:
+            return []
+
+    def _add_texture(self, vobj):
+        """Add texture to related Material (private)."""
+        vobj.Object.Proxy.add_texture("")  # TODO
