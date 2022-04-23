@@ -26,6 +26,7 @@ Please note Render Material object is mainly derived from Arch Material.
 """
 
 import distutils.util
+import itertools
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -137,6 +138,18 @@ class Material(_ArchMaterial):
         img_path = str(img_path)
         Texture.create(filepath=img_path, group=self.fpo)
 
+    def get_textures(self):
+        """Retrieve material's textures."""
+        return [o for o in self.fpo.Group if o.Proxy.Type == "Texture"]
+
+    def get_texture_images(self):
+        """Retrieve material's texture images."""
+        return list(
+            itertools.chain.from_iterable(
+                [tex.Proxy.get_images() for tex in self.get_textures()]
+            )
+        )
+
     def _add_group_property(self, fpo):
         """Add a Group property to object, if missing."""
         if "Group" not in fpo.PropertiesList:
@@ -197,13 +210,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         menu.addAction(action)
 
         # Add a texture to material
-        action = QAction(
-            QT_TRANSLATE_NOOP("Render", "Add Texture"), menu
-        )
+        action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
         QObject.connect(
-            action,
-            SIGNAL("triggered()"),
-            lambda: self._add_texture(vobj)
+            action, SIGNAL("triggered()"), lambda: self._add_texture(vobj)
         )
         menu.addAction(action)
 
@@ -216,4 +225,14 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
 
     def _add_texture(self, vobj):
         """Add texture to related Material (private)."""
-        vobj.Object.Proxy.add_texture("")  # TODO
+        App.ActiveDocument.openTransaction("Material_AddTexture")
+        # TODO Add image file selection
+        vobj.Object.Proxy.add_texture("")
+        App.ActiveDocument.commitTransaction()
+
+    def onDelete(self, vobj, subelements):
+        """Respond to delete event."""
+        # Remove all subelements (textures) belonging to this material...
+        for subobj in vobj.Object.Group:
+            subobj.Document.removeObject(subobj.Name)
+        return True

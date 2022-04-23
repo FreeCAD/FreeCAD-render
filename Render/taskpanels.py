@@ -25,10 +25,10 @@
 
 
 import os
+from enum import Enum, auto
 
 from PySide.QtGui import (
     QPushButton,
-    QCheckBox,
     QColor,
     QColorDialog,
     QPixmap,
@@ -39,11 +39,12 @@ from PySide.QtGui import (
     QListWidgetItem,
     QPlainTextEdit,
     QLayout,
-    QHBoxLayout,
-    QWidget,
     QListView,
     QLineEdit,
     QDoubleValidator,
+    QGridLayout,
+    QRadioButton,
+    QGroupBox,
 )
 from PySide.QtCore import (
     QT_TRANSLATE_NOOP,
@@ -53,6 +54,7 @@ from PySide.QtCore import (
     QLocale,
     QSize,
 )
+
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -74,6 +76,7 @@ from Render.rdrmaterials import (
     is_valid_material,
     passthrough_keys,
 )
+from Render.texture import str2imageid
 
 
 class ColorPicker(QPushButton):
@@ -118,14 +121,67 @@ class ColorPicker(QPushButton):
         return f"({color.redF()},{color.greenF()},{color.blueF()})"
 
 
-class ColorPickerExt(QWidget):
+# TODO Move in Material?
+class ColorOption(Enum):
+    """Options for Colors in Material."""
+
+    OBJECT = auto()
+    CONSTANT = auto()
+    TEXTURE = auto()
+
+
+class TexturePicker(QComboBox):
+    """A texture picker widget.
+
+    This widget provides a combo box, allowing to select a texture.
+    """
+
+    def __init__(self, image_list, current_image):
+        """Initialize texture picker.
+
+        Args:
+            image_list -- list of texture images (list of Texture.ImageId)
+            current_image -- current texture image in list (Texture.ImageId)
+        """
+        super().__init__()
+        current_item = -1
+        for imageid in image_list:
+            texture = App.ActiveDocument.getObject(imageid.texture)
+            full_filename = texture.getPropertyByName(imageid.image)
+            filename = (
+                f'"{os.path.basename(full_filename)}"'
+                if full_filename
+                else "<No file>"
+            )
+            texturelabel = texture.Label
+            text = f"{texturelabel} - {imageid.image} ({filename})"
+            self.addItem(text, imageid)
+            if imageid == current_image:
+                current_item = self.count() - 1
+        self.setCurrentIndex(current_item)
+
+    def get_texture_text(self):
+        """Get user selected value in text format."""
+        imageid = self.currentData()
+        res = f"('{imageid.texture}','{imageid.image}')"
+        return res
+
+
+class ColorPickerExt(QGroupBox):
+    # TODO Rewrite docstring
     """An extended color picker widget.
 
     This widget provides a color picker, and also a checkbox that allows to
     specify to use object color in lieu of color selected in the picker.
     """
 
-    def __init__(self, color=QColor(127, 127, 127), use_object_color=False):
+    def __init__(
+        self,
+        option=None,
+        color=QColor(127, 127, 127),
+        image_list=None,
+        current_image=None,
+    ):
         """Initialize widget.
 
         Args:
@@ -134,42 +190,66 @@ class ColorPickerExt(QWidget):
                 color' checkbox
         """
         super().__init__()
-        self.use_object_color = use_object_color
-        self.colorpicker = ColorPicker(color)
-        self.checkbox = QCheckBox()
-        self.checkbox.setText(translate("Render", "Use object color"))
-        self.setLayout(QHBoxLayout())
-        self.layout().addWidget(self.colorpicker)
-        self.layout().addWidget(self.checkbox)
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        QObject.connect(
-            self.checkbox,
-            SIGNAL("stateChanged(int)"),
-            self.on_object_color_change,
+        if image_list is None:
+            image_list = []
+        self.setLayout(QGridLayout())
+        self.layout().setColumnStretch(0, 0)
+        self.layout().setColumnStretch(1, 10)
+
+        # Object color option
+        self.button_objectcolor = QRadioButton(
+            translate("Render", "Use object color")
         )
-        self.checkbox.setChecked(use_object_color)
+        self.layout().addWidget(self.button_objectcolor, 0, 0)
 
-    def get_color_text(self):
-        """Get color picker value, in text format."""
-        return self.colorpicker.get_color_text()
+        # Constant color option
+        self.button_constantcolor = QRadioButton(
+            translate("Render", "Use constant color")
+        )
+        self.colorpicker = ColorPicker(color)
+        self.layout().addWidget(self.button_constantcolor, 1, 0)
+        self.layout().addWidget(self.colorpicker, 1, 1)
+        self.colorpicker.setEnabled(False)
+        QObject.connect(
+            self.button_constantcolor,
+            SIGNAL("toggled(bool)"),
+            self.colorpicker.setEnabled,
+        )
 
-    def get_use_object_color(self):
-        """Get 'use object color' checkbox value."""
-        return self.checkbox.isChecked()
+        # Texture option
+        print(current_image)  # TODO
+        self.button_texture = QRadioButton(translate("Render", "Use texture"))
+        self.texturepicker = TexturePicker(image_list, current_image)
+        self.layout().addWidget(self.button_texture, 2, 0)
+        self.layout().addWidget(self.texturepicker, 2, 1)
+        self.texturepicker.setEnabled(False)
+        QObject.connect(
+            self.button_texture,
+            SIGNAL("toggled(bool)"),
+            self.texturepicker.setEnabled,
+        )
+
+        # Initialize (select button)
+        if option == ColorOption.OBJECT:
+            self.button_objectcolor.setChecked(True)
+        elif option == ColorOption.CONSTANT:
+            self.button_constantcolor.setChecked(True)
+        elif option == ColorOption.TEXTURE:
+            self.button_texture.setChecked(True)
 
     def get_value(self):
         """Get widget output value."""
-        res = ["Object"] if self.get_use_object_color() else []
-        res += [self.get_color_text()]
+        # TODO (add "Constant" if constant...)
+        if self.button_objectcolor.isChecked():
+            res = ["Object"]
+        elif self.button_constantcolor.isChecked():
+            res = []
+        elif self.button_texture.isChecked():
+            res = ["Texture"]
+            res += [self.texturepicker.get_texture_text()]
+
+        res += [self.colorpicker.get_color_text()]
         return ";".join(res)
-
-    def setToolTip(self, desc):
-        """Set widget tooltip."""
-        self.colorpicker.setToolTip(desc)
-
-    def on_object_color_change(self, state):
-        """Respond to checkbox change event."""
-        self.colorpicker.setEnabled(not state)
 
 
 class MaterialSettingsTaskPanel:
@@ -305,11 +385,14 @@ class MaterialSettingsTaskPanel:
         else:
             self._delete_fields()
             mat_name = self.material_combo.currentText()
+            material = self.existing_materials[mat_name]
+            # Get available texture images
+            images = material.Proxy.get_texture_images()
             for param in params:
                 value = self.existing_materials[mat_name].Material.get(
                     f"Render.{material_type}.{param.name}"
                 )
-                self._add_field(param, value)
+                self._add_field(param, value, images)
 
     def on_passthrough_renderer_changed(self, renderer):
         """Respond to passthrough renderer changed event."""
@@ -356,9 +439,18 @@ class MaterialSettingsTaskPanel:
             item = layout.itemAt(index)
             item.widget().setVisible(flag)
 
-    def _add_field(self, param, value):
-        """Add a field to the task panel."""
+    def _add_field(self, param, value, teximages=None):
+        """Add a field to the task panel.
+
+        Args:
+            param -- Parameter description (rdrmaterials.Param)
+            value -- Initial value
+            teximages -- List of appliable texture images (texture.ImageInfo)
+        """
         name = param.name
+        if teximages is None:
+            teximages = []
+
         if param.type == "float":
             widget = QLineEdit()
             widget.setAlignment(Qt.AlignRight)
@@ -373,22 +465,38 @@ class MaterialSettingsTaskPanel:
             )
         elif param.type == "RGB":
             if value:
+                # Parse value and initialize a ColorPickerExt accordingly
                 parsedvalue = parse_csv_str(value)
-                if "Object" not in parsedvalue:
-                    color = str2rgb(parsedvalue[0])
-                    use_object_color = False
-                else:
-                    use_object_color = True
+                color = (0.8, 0.8, 0.8)  # Default value
+                texture = None  # Default value
+                if "Object" in parsedvalue:
+                    # Object color
+                    option = ColorOption.OBJECT
                     if len(parsedvalue) > 1:
                         color = str2rgb(parsedvalue[1])
-                    else:
-                        color = (0.8, 0.8, 0.8)
+                elif "Constant" in parsedvalue:
+                    # Constant
+                    option = ColorOption.CONSTANT
+                    color = str2rgb(parsedvalue[1])
+                elif "Texture" in parsedvalue:
+                    # Texture
+                    option = ColorOption.TEXTURE
+                    texture = str2imageid(parsedvalue[1])
+                    if len(parsedvalue) > 2:
+                        # Ability to specify fallback color
+                        color = str2rgb(parsedvalue[2])
+                else:
+                    # Constant (fallback)
+                    option = ColorOption.CONSTANT
+                    color = str2rgb(parsedvalue[0])
                 qcolor = QColor.fromRgbF(*color)
-                widget = ColorPickerExt(qcolor, use_object_color)
+                widget = ColorPickerExt(option, qcolor, teximages, texture)
             else:
-                widget = ColorPickerExt()
+                # value is empty, default initialization
+                widget = ColorPickerExt(image_list=teximages)
             self.fields.append((name, widget.get_value))
         else:
+            # Fallback to string input
             widget = QLineEdit()
             self.fields.append((name, widget.text))
         widget.setToolTip(param.desc)
