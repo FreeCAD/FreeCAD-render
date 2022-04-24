@@ -30,6 +30,7 @@
 import collections
 import types
 import functools
+from collections import namedtuple
 
 import FreeCAD as App
 
@@ -41,6 +42,7 @@ from Render.utils import (
     getproxyattr,
     translate,
 )
+from Render.texture import str2imageid
 
 
 # ===========================================================================
@@ -179,8 +181,14 @@ STD_MATERIALS_PARAMETERS = {
 STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 
+RendererTexture = namedtuple(
+    "RendererTexture",
+    "file rotation scale_u scale_v translation_u translation_v",
+)
+
+
 def _castrgb(value, objcol):
-    """Cast extended RGB field value to RGB object.
+    """Cast extended RGB field value to RGB object or RendererTexture object.
 
     This function can handle "object color" special case:
     'value' is treated as a semicolon separated value.
@@ -191,12 +199,32 @@ def _castrgb(value, objcol):
         objcol -- the object color
 
     Returns:
-        a RGB object containing the targeted color
+        a RGB object containing the targeted color **or** a RendererTexture
+        object if appliable.
     """
     parsed = parse_csv_str(value)
     if "Object" in parsed:
         return objcol
-    return str2rgb(parsed[0])
+    elif "Texture" in parsed:
+        # Build RendererTexture
+        imageid = str2imageid(parsed[1])
+        texobject = App.ActiveDocument.getObject(
+            imageid.texture
+        )  # Texture object
+        file = texobject.getPropertyByName(imageid.image)
+        res = RendererTexture(
+            file,
+            texobject.Rotation,
+            texobject.ScaleU,
+            texobject.ScaleV,
+            texobject.TranslationU,
+            texobject.TranslationV,
+        )
+        print(res)  # TODO
+        return res
+    else:
+        # Default case, return color
+        return str2rgb(parsed[0])
 
 
 CAST_FUNCTIONS = {
