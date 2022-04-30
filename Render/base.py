@@ -79,14 +79,16 @@ def get_cumulative_dict_attribute(obj, attr_name):
 Prop = namedtuple(
     "Prop",
     ["Type", "Group", "Doc", "Default", "EditorMode", "PropertyType"],
-    defaults=[0, 0],
 )
+Prop.__new__.__defaults__ = (0,) * 2  # Python 3.6 style
 # NB: for EditorMode and PropertyType valid values, see
 # https://wiki.freecadweb.org/Scripted_objects#Property_Type
 
 CtxMenuItem = namedtuple(
-    "CtxMenuItem", ["name", "action", "icon"], defaults=[None]
+    "CtxMenuItem",
+    ["name", "action", "icon"],
 )
+CtxMenuItem.__new__.__defaults__ = (None,)  # Python 3.6 style
 
 
 # ===========================================================================
