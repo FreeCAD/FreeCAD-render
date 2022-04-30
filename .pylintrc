@@ -13,6 +13,10 @@ init-hook='import sys; sys.path.append("/usr/lib/freecad/lib"); sys.path.append(
 # paths.
 ignore=CVS
 
+# Python version
+# 2022-04-30: we target 3.6, same as FreeCAD 0.20
+py-version=3.6
+
 # Pickle collected data for later comparisons.
 persistent=yes
 
