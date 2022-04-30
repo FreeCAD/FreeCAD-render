@@ -27,8 +27,8 @@
 import os
 import itertools as it
 
-from PySide.QtCore import QT_TRANSLATE_NOOP
-from PySide.QtGui import QMessageBox, QInputDialog, QApplication, QCursor, Qt
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
+from PySide.QtGui import QMessageBox, QInputDialog, QApplication, QCursor
 
 import FreeCAD as App
 import FreeCADGui as Gui
