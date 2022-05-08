@@ -121,7 +121,6 @@ class ColorPicker(QPushButton):
         return f"({color.redF()},{color.greenF()},{color.blueF()})"
 
 
-# TODO Move in Material?
 class ColorOption(Enum):
     """Options for Colors in Material."""
 
@@ -168,7 +167,6 @@ class TexturePicker(QComboBox):
 
 
 class ColorPickerExt(QGroupBox):
-    # TODO Rewrite docstring
     """An extended color picker widget.
 
     This widget provides a color picker, and also a checkbox that allows to
@@ -217,7 +215,6 @@ class ColorPickerExt(QGroupBox):
         )
 
         # Texture option
-        print(current_image)  # TODO
         self.button_texture = QRadioButton(translate("Render", "Use texture"))
         self.texturepicker = TexturePicker(image_list, current_image)
         self.layout().addWidget(self.button_texture, 2, 0)
@@ -249,6 +246,88 @@ class ColorPickerExt(QGroupBox):
             res += [self.texturepicker.get_texture_text()]
 
         res += [self.colorpicker.get_color_text()]
+        return ";".join(res)
+
+class FloatOption(Enum):
+    """Options for Float in Material."""
+
+    CONSTANT = auto()
+    TEXTURE = auto()
+
+class FloatBox(QGroupBox):
+    """A float value input box widget.
+
+    This widget provides a field to enter a float, and also a
+    checkbox that allows to specify a texture in lieu of the float.
+    """
+    def __init__(self, option=None, default=None, image_list=None, current_image=None):
+        """Initialize widget.
+
+        Args:
+            color -- RGB color used to initialize the color picker
+            use_object_color -- boolean used to initialize the 'use object
+                color' checkbox
+        """
+        super().__init__()
+
+        # Normalize arguments
+        if image_list is None:
+            image_list = []
+        try:
+            default = QLocale().toString(float(default))
+        except (ValueError, TypeError):
+            default = None
+
+        # Initialize layout
+        self.setLayout(QGridLayout())
+        self.layout().setColumnStretch(0, 0)
+        self.layout().setColumnStretch(1, 10)
+
+        # Constant value option
+        self.button_constantvalue = QRadioButton(
+            translate("Render", "Use constant value")
+        )
+        self.floatbox = QLineEdit()
+        self.floatbox.setAlignment(Qt.AlignRight)
+        self.floatbox.setValidator(QDoubleValidator())
+        self.floatbox.setText(default)
+        self.layout().addWidget(self.button_constantvalue, 1, 0)
+        self.layout().addWidget(self.floatbox, 1, 1)
+        self.floatbox.setEnabled(False)
+        QObject.connect(
+            self.button_constantvalue,
+            SIGNAL("toggled(bool)"),
+            self.floatbox.setEnabled,
+        )
+
+        # Texture option
+        self.button_texture = QRadioButton(translate("Render", "Use texture"))
+        self.texturepicker = TexturePicker(image_list, current_image)
+        self.layout().addWidget(self.button_texture, 2, 0)
+        self.layout().addWidget(self.texturepicker, 2, 1)
+        self.texturepicker.setEnabled(False)
+        QObject.connect(
+            self.button_texture,
+            SIGNAL("toggled(bool)"),
+            self.texturepicker.setEnabled,
+        )
+
+        # Initialize (select button)
+        if option == FloatOption.CONSTANT:
+            self.button_constantvalue.setChecked(True)
+        elif option == FloatOption.TEXTURE:
+            self.button_texture.setChecked(True)
+
+    def get_value(self):
+        """Get widget output value."""
+        # TODO (add "Constant" if constant...)
+        if self.button_constantvalue.isChecked():
+            res = []
+        elif self.button_texture.isChecked():
+            res = ["Texture"]
+            res += [self.texturepicker.get_texture_text()]
+
+        res += [self.floatbox.get_text()]
         return ";".join(res)
 
 
@@ -452,17 +531,32 @@ class MaterialSettingsTaskPanel:
             teximages = []
 
         if param.type == "float":
-            widget = QLineEdit()
-            widget.setAlignment(Qt.AlignRight)
-            widget.setValidator(QDoubleValidator())
-            try:
-                value = QLocale().toString(float(value))
-            except (ValueError, TypeError):
-                value = None
-            widget.setText(value)
-            self.fields.append(
-                (name, lambda: QLocale().toDouble(widget.text())[0])
-            )
+            if value:
+                # Parse value and initialize a FloatBox accordingly
+                texture = None  # Default value
+                parsedvalue = parse_csv_str(value)
+                if "Constant" in parsedvalue:
+                    # Constant
+                    option = FloatOption.CONSTANT
+                    default = parsedvalue[1]
+                elif "Texture" in parsedvalue:
+                    # Texture
+                    option = FloatOption.TEXTURE
+                    texture = str2imageid(parsedvalue[1])
+                    if len(parsedvalue) > 2:
+                        # Ability to specify fallback color
+                        default = parsedvalue[2]
+                    else:
+                        default = None
+                else:
+                    # Constant (fallback)
+                    option = FloatOption.CONSTANT
+                    default = parsedvalue[0]
+                widget = FloatBox(option, default, teximages, texture)
+            else:
+                # value is empty, default initialization
+                widget = FloatBox(image_list=teximages)
+            self.fields.append((name, widget.get_value))
         elif param.type == "RGB":
             if value:
                 # Parse value and initialize a ColorPickerExt accordingly
