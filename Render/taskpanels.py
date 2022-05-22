@@ -175,7 +175,7 @@ class ColorPickerExt(QGroupBox):
 
     def __init__(
         self,
-        option=None,
+        option=ColorOption.OBJECT,
         color=QColor(127, 127, 127),
         image_list=None,
         current_image=None,
@@ -248,11 +248,13 @@ class ColorPickerExt(QGroupBox):
         res += [self.colorpicker.get_color_text()]
         return ";".join(res)
 
+
 class FloatOption(Enum):
     """Options for Float in Material."""
 
     CONSTANT = auto()
     TEXTURE = auto()
+
 
 class FloatBox(QGroupBox):
     """A float value input box widget.
@@ -260,7 +262,14 @@ class FloatBox(QGroupBox):
     This widget provides a field to enter a float, and also a
     checkbox that allows to specify a texture in lieu of the float.
     """
-    def __init__(self, option=None, default=None, image_list=None, current_image=None):
+
+    def __init__(
+        self,
+        option=FloatOption.CONSTANT,
+        default=0.0,
+        image_list=None,
+        current_image=None,
+    ):
         """Initialize widget.
 
         Args:
