@@ -203,9 +203,11 @@ def _castrgb(value, objcol):
         object if appliable.
     """
     parsed = parse_csv_str(value)
+
     if "Object" in parsed:
         return objcol
-    elif "Texture" in parsed:
+
+    if "Texture" in parsed:
         # Build RendererTexture
         imageid = str2imageid(parsed[1])
         texobject = App.ActiveDocument.getObject(
@@ -222,9 +224,9 @@ def _castrgb(value, objcol):
         )
         print(res)  # TODO
         return res
-    else:
-        # Default case, return color
-        return str2rgb(parsed[0])
+
+    # Default (and fallback) case, return color
+    return str2rgb(parsed[0])
 
 
 CAST_FUNCTIONS = {
@@ -518,8 +520,8 @@ def _build_fallback(color):
     except IndexError:
         _color = "0.8, 0.8, 0.8"
         _alpha = "0.0"
-    finally:
-        _rgbcolor = str2rgb(_color)
+
+    _rgbcolor = str2rgb(_color)
 
     # A simpler approach would have been to rely only on mixed material but it
     # leads to a lot of materials definitions in output files which hinders the

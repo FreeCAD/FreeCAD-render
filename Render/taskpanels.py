@@ -462,8 +462,7 @@ class MaterialSettingsTaskPanel:
             father = material.Material["Father"]
         except KeyError:
             father = ""
-        finally:
-            self.father_field.setText(father)
+        self.father_field.setText(father)
 
     def on_material_type_changed(self, material_type):
         """Respond to material type changed event."""
