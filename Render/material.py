@@ -25,7 +25,6 @@
 Please note Render Material object is mainly derived from Arch Material.
 """
 
-import distutils.util
 import itertools
 
 import FreeCAD as App
@@ -64,6 +63,21 @@ def make_material(name="Material", color=None, transparency=None):
         obj.Transparency = transparency
     return obj
 
+def strtobool(val):
+    """Convert a string representation of truth to True or False.
+
+    True values are y, yes, t, true, on and 1; false values are n, no, f,
+    false, off and 0, in a case-insensitive manner. Raises ValueError if val is
+    anything else.
+    This function is a local reimplementation of deprecated
+    `distutils.util.strtobool`.
+    """
+    val = str(val).lower()
+    if val in ["y", "yes", "t", "true", "on", "1"]:
+        return True
+    if val in ["n", "no", "f", "false", "off", "0"]:
+        return False
+    raise ValueError
 
 class Material(_ArchMaterial):
     """The Render Material object.
@@ -122,7 +136,7 @@ class Material(_ArchMaterial):
     def execute(self, obj):
         # Prevent applying material color if UseObjectColor is set
         try:
-            if bool(distutils.util.strtobool(obj.Material["UseObjectColor"])):
+            if strtobool(obj.Material["UseObjectColor"]):
                 return
         except KeyError:
             pass
