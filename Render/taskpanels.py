@@ -326,8 +326,10 @@ class FloatBox(QGroupBox):
         elif self.button_texture.isChecked():
             res = ["Texture"]
             res += [self.texturepicker.get_texture_text()]
+        else:
+            res = []
 
-        res += [self.floatbox.get_text()]
+        res += [self.floatbox.text()]
         return ";".join(res)
 
 

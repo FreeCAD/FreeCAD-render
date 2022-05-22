@@ -228,7 +228,7 @@ def _castrgb(value, objcol):
 
 
 CAST_FUNCTIONS = {
-    "float": lambda x, y: float(x),
+    "float": lambda x, y: float(x) if x else 0.0,
     "RGB": _castrgb,
     "string": lambda x, y: str(x),
 }
