@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>452</width>
-    <height>999</height>
+    <height>1020</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -663,11 +663,26 @@
    </item>
    <item row="9" column="1">
     <widget class="QGroupBox" name="groupBox_9">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Advanced and Debug parameters&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt; - Do not modify if you don't know what you do - Unexpected behaviours may result...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="statusTip">
+      <string>Advanced and Debug parameters WARNING - Do not modify if you don't know what you do - Unexpected behaviours may result...</string>
+     </property>
+     <property name="whatsThis">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Advanced and Debug parameters&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt; - Do not modify if you don't know what you do - Unexpected behaviours may result...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
      <property name="locale">
       <locale language="English" country="UnitedStates"/>
      </property>
      <property name="title">
-      <string>Advanced</string>
+      <string>Advanced &amp;&amp; Debug</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
       <item row="1" column="0">
@@ -680,6 +695,13 @@
         </property>
        </widget>
       </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="2">
        <widget class="Gui::PrefCheckBox" name="checkBox_3">
         <property name="text">
@@ -687,6 +709,19 @@
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>UseFCDMaterials</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>DryRun</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>

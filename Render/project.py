@@ -505,6 +505,16 @@ class Project(FeatureBase):
             # Command is empty (perhaps lack of data in parameters)
             return None
 
+        # Dry run?
+        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        dryrun = params.GetBool("DryRun")
+        if dryrun:
+            # "Dry run": Print command and return without running renderer
+            # Debug purpose only
+            App.Console.PrintMessage("*** DRY RUN ***\n")
+            App.Console.PrintMessage(cmd)
+            return None
+
         # Execute renderer
         rdr_executor = RendererExecutor(cmd, img)
         rdr_executor.start()
