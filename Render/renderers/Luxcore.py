@@ -22,6 +22,8 @@
 
 """LuxCore renderer plugin for FreeCAD Render workbench."""
 
+# TODO dedent all strings
+
 # Suggested links to renderer documentation:
 # https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.3
 
@@ -197,11 +199,65 @@ def _write_material_glass(name, material):
     return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
+def _write_textures(name, submaterial):
+    # TODO Relocate function
+    snippet = """
+    scene.textures.{n}.type = "imagemap"
+    scene.textures.{n}.file = "{f}"
+    scene.textures.{n}.gamma = 2.2
+    scene.textures.{n}.mapping.type = "uvmapping2d"
+    scene.textures.{n}.mapping.rotation = {r}
+    scene.textures.{n}.mapping.uvscale = {su} {sv}
+    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+    """
+    textures = []
+    print(submaterial.__dict__)  # TODO
+    for key, value in submaterial.__dict__.items():
+        try:
+            texname = f"{name}_{value.name}_{value.subname}"
+            texture = snippet.format(
+                n=texname,
+                f=value.file,
+                r=float(value.rotation),
+                su=float(value.scale_u),
+                sv=float(value.scale_v),
+                tu=float(value.translation_u),
+                tv=float(value.translation_v),
+            )
+        except AttributeError:
+            pass
+        else:
+            textures.append(dedent(texture))
+    # TODO make unique
+    return "\n".join(textures)
+
+
+def _write_color(value, material_name):
+    # TODO Relocate function
+    # Plain color
+    try:
+        res = f"{value.r} {value.g} {value.b}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # Texture
+    try:
+        res = f"{material_name}_{value.name}_{value.subname}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # No match - raise exception
+    raise ValueError
+
+
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
+    textures_text = _write_textures(name, material.disney)
     snippet = """
     scene.materials.{0}.type = disney
-    scene.materials.{0}.basecolor = {1.r} {1.g} {1.b}
+    scene.materials.{0}.basecolor = {1}
     scene.materials.{0}.subsurface = {2}
     scene.materials.{0}.metallic = {3}
     scene.materials.{0}.specular = {4}
@@ -213,9 +269,9 @@ def _write_material_disney(name, material):
     scene.materials.{0}.clearcoat = {10}
     scene.materials.{0}.clearcoatgloss = {11}
     """
-    return snippet.format(
+    material_text = snippet.format(
         name,
-        material.disney.basecolor,
+        _write_color(material.disney.basecolor, name),
         material.disney.subsurface,
         material.disney.metallic,
         material.disney.specular,
@@ -227,15 +283,18 @@ def _write_material_disney(name, material):
         material.disney.clearcoat,
         material.disney.clearcoatgloss,
     )
+    return textures_text + material_text
 
 
 def _write_material_diffuse(name, material):
     """Compute a string in the renderer SDL for a Diffuse material."""
+    textures_text = _write_textures(name, material.diffuse)
     snippet = """
     scene.materials.{n}.type = matte
-    scene.materials.{n}.kd = {c.r} {c.g} {c.b}
+    scene.materials.{n}.kd = {c}
     """
-    return snippet.format(n=name, c=material.diffuse.color)
+    material_text = snippet.format(n=name, c=_write_color(material.diffuse.color, name))
+    return textures_text + material_text
 
 
 def _write_material_mixed(name, material):

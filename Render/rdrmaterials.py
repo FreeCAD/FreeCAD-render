@@ -183,7 +183,7 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 RendererTexture = namedtuple(
     "RendererTexture",
-    "file rotation scale_u scale_v translation_u translation_v",
+    "name subname file rotation scale_u scale_v translation_u translation_v",
 )
 
 
@@ -215,14 +215,15 @@ def _castrgb(value, objcol):
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
         res = RendererTexture(
+            texobject.Label,
+            imageid.image,
             file,
-            texobject.Rotation,
-            texobject.ScaleU,
-            texobject.ScaleV,
-            texobject.TranslationU,
-            texobject.TranslationV,
+            texobject.Rotation.getValueAs("deg"),
+            float(texobject.ScaleU),
+            float(texobject.ScaleV),
+            texobject.TranslationU.getValueAs("m"),
+            texobject.TranslationV.getValueAs("m"),
         )
-        print(res)  # TODO
         return res
 
     # Default (and fallback) case, return color
