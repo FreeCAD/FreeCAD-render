@@ -280,6 +280,24 @@ def _write_color(value, material_name):
     # No match - raise exception
     raise ValueError
 
+def _write_float(value, material_name):
+    # Plain float
+    try:
+        res = f"{float(value)}"
+    except (ValueError, TypeError):
+        pass
+    else:
+        return res
+    # Texture
+    try:
+        res = f"{material_name}_{value.name}_{value.subname}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # No match - raise exception
+    raise ValueError
+
 
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
@@ -301,16 +319,16 @@ def _write_material_disney(name, material):
     material_text = snippet.format(
         name,
         _write_color(material.disney.basecolor, name),
-        material.disney.subsurface,
-        material.disney.metallic,
-        material.disney.specular,
-        material.disney.speculartint,
-        material.disney.roughness,
-        material.disney.anisotropic,
-        material.disney.sheen,
-        material.disney.sheentint,
-        material.disney.clearcoat,
-        material.disney.clearcoatgloss,
+        _write_float(material.disney.subsurface, name),
+        _write_float(material.disney.metallic, name),
+        _write_float(material.disney.specular, name),
+        _write_float(material.disney.speculartint, name),
+        _write_float(material.disney.roughness, name),
+        _write_float(material.disney.anisotropic, name),
+        _write_float(material.disney.sheen, name),
+        _write_float(material.disney.sheentint, name),
+        _write_float(material.disney.clearcoat, name),
+        _write_float(material.disney.clearcoatgloss, name),
     )
     return textures_text + material_text
 

@@ -229,9 +229,45 @@ def _castrgb(value, objcol):
     # Default (and fallback) case, return color
     return str2rgb(parsed[0])
 
+def _castfloat(value, dummy):
+    """Cast extended float field value to float or RendererTexture object.
+
+    Args:
+        value -- the value to parse and cast
+        dummy -- a dummy, unused value
+
+    Returns:
+        a float containing the targeted value **or** a RendererTexture object
+        if appliable.
+    """
+    parsed = parse_csv_str(value)
+
+    if "Texture" in parsed:
+        # Build RendererTexture
+        imageid = str2imageid(parsed[1])
+        texobject = App.ActiveDocument.getObject(
+            imageid.texture
+        )  # Texture object
+        file = texobject.getPropertyByName(imageid.image)
+        res = RendererTexture(
+            texobject.Label,
+            imageid.image,
+            file,
+            texobject.Rotation.getValueAs("deg"),
+            float(texobject.ScaleU),
+            float(texobject.ScaleV),
+            texobject.TranslationU.getValueAs("m"),
+            texobject.TranslationV.getValueAs("m"),
+        )
+        return res
+
+    # Default (and fallback) case, return float
+    x = parsed[0]
+    return float(x) if x else 0.0
+
 
 CAST_FUNCTIONS = {
-    "float": lambda x, y: float(x) if x else 0.0,
+    "float": _castfloat,
     "RGB": _castrgb,
     "string": lambda x, y: str(x),
 }
