@@ -28,17 +28,44 @@
 # https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.3
 
 import os
+import math
+from collections import namedtuple
 from tempfile import mkstemp
 from textwrap import dedent, indent
 import configparser
 
 import FreeCAD as App
 
+from Render.renderers.utils.vec3d import Vec3D
+
 TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 
 # ===========================================================================
 #                             Write functions
 # ===========================================================================
+
+TextureCoordinates = namedtuple("TextureCoordinates", "u v")
+
+def compute_barycenter(points):
+    """Compute the barycenter of a list of points."""
+    l = len(points)
+    if l == 0:
+        return Vec3D(0, 0, 0)
+    res = sum((Vec3D(p.x, p.y, p.z) for p in points), Vec3D(0, 0, 0)) / len(points)
+    return res
+
+def compute_texcoords(mesh):
+    # Spherical mapping
+    # TODO Beautify
+    # TODO Move to renderables?
+    res = []
+    bar = compute_barycenter(mesh.Points)
+    for vertex in [(Vec3D(p.x, p.y, p.z) - bar).normalize() for p in mesh.Points]:
+        # From https://en.wikipedia.org/wiki/UV_mapping
+        u = 0.5 + math.atan2(vertex.x, vertex.y) / (2 * math.pi)
+        v = 0.5 + math.asin(vertex.z) / math.pi
+        res.append(TextureCoordinates(u, v))
+    return res
 
 
 def write_mesh(name, mesh, material):
@@ -47,6 +74,7 @@ def write_mesh(name, mesh, material):
 
     points = [f"{v.x} {v.y} {v.z}" for v in mesh.Topology[0]]
     tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.Topology[1]]
+    tex = [f"{t.u} {t.v}" for t in compute_texcoords(mesh)]
 
     snippet_obj = """
     scene.objects.{n}.type = inlinedmesh
@@ -54,9 +82,10 @@ def write_mesh(name, mesh, material):
     scene.objects.{n}.faces = {f}
     scene.objects.{n}.material = {n}
     scene.objects.{n}.transformation = 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+    scene.objects.{n}.uvs = {t}
     """
     snippet = snippet_mat + snippet_obj
-    return dedent(snippet).format(n=name, p=" ".join(points), f=" ".join(tris))
+    return dedent(snippet).format(n=name, p=" ".join(points), f=" ".join(tris), t= " ".join(tex))
 
 
 def write_camera(name, pos, updir, target, fov):
