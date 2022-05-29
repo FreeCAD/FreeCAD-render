@@ -230,6 +230,7 @@ def _write_material_glass(name, material):
 
 def _write_textures(name, submaterial):
     # TODO Relocate function
+    # TODO Fix uvscale (inverse scaling?)
     snippet = """
     scene.textures.{n}.type = "imagemap"
     scene.textures.{n}.file = "{f}"
@@ -240,7 +241,6 @@ def _write_textures(name, submaterial):
     scene.textures.{n}.mapping.uvdelta = {tu} {tv}
     """
     textures = []
-    print(submaterial.__dict__)  # TODO
     for key, value in submaterial.__dict__.items():
         try:
             texname = f"{name}_{value.name}_{value.subname}"
