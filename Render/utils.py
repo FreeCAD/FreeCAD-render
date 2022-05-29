@@ -136,3 +136,15 @@ def reload(module_name=None):
             print(f"Reload '{mod}'")
             importlib.import_module(mod)
             importlib.reload(module)
+
+def set_dryrun(state):
+    """Set dry run parameter on/off.
+
+    Warning: debug purpose only. /!\\
+
+    Args:
+        state -- state to set dry run (boolean)
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    state = bool(state)
+    params.SetBool("DryRun", state)
