@@ -108,6 +108,7 @@ def reload(module_name=None):
             "Render.rdrhandler",
             "Render.rdrexecutor",
             "Render.renderables",
+            "Render.renderingmesh",
             "Render.utils",
             "Render.view",
             "Render.texture",

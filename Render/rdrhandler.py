@@ -49,9 +49,9 @@ from types import SimpleNamespace
 
 import FreeCAD as App
 import MeshPart
-import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
+from Render.renderingmesh import RenderingMesh
 from Render import renderables
 import Render.rdrmaterials as materials
 
@@ -293,7 +293,7 @@ class RendererHandler:
         vertices = [
             App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
         ]  # Clamp to avoid huge dimensions...
-        mesh = Mesh.Mesh()
+        mesh = RenderingMesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
 
@@ -337,8 +337,10 @@ class RendererHandler:
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
+            mesh = RenderingMesh(mesh)
             # Harmonize normals
             mesh.harmonizeNormals()
+            print(mesh)  # TODO
             return mesh
 
         source = view.Source
