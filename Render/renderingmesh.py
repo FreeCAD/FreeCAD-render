@@ -26,6 +26,9 @@ RenderingMesh is an extended version of FreeCAD Mesh.Mesh, designed for
 rendering purpose.
 """
 
+import math
+
+import FreeCAD as App
 import Mesh
 
 
@@ -125,4 +128,28 @@ class RenderingMesh:
         """Get mesh uv map."""
         return self.__uvmap
 
-    # TODO Generate UV map
+    def compute_uvmap(self):
+        """Compute UV map for this mesh."""
+        # Spherical mapping
+        # TODO Beautify and use tuple
+        res = []
+        points = self.Points
+        barycenter = compute_barycenter(points)
+        for vertex in [(p - barycenter).normalize() for p in points]:
+            # From https://en.wikipedia.org/wiki/UV_mapping
+            vec = App.Base.Vector2d(
+                0.5 + math.atan2(vertex.x, vertex.y) / (2 * math.pi),
+                0.5 + math.asin(vertex.z) / math.pi,
+            )
+            res.append(vec)
+        self.__uvmap = res
+
+
+def compute_barycenter(points):
+    """Compute the barycenter of a list of points."""
+    length = len(points)
+    nullvec = App.Vector(0, 0, 0)
+    if length == 0:
+        return nullvec
+    res = sum(points, nullvec) / length
+    return res
