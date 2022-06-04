@@ -390,13 +390,10 @@ class Project(FeatureBase):
                 angular_deflection=self.fpo.AngularDeflection,
                 transparency_boost=self.fpo.TransparencySensitivity,
             )
-        except ModuleNotFoundError:
-            msg = translate(
-                "Render", "Cannot render project: Renderer '%s' not found"
-            )
-            msg = "[Render] " + msg + "\n"
-            App.Console.PrintError(msg % self.fpo.Renderer)
-            return ""
+        except RendererNotFoundError as err:
+            msg = translate("Render", "Renderer not found ('{}') ")
+            msg = msg.format(self.fpo.Renderer)
+            raise RenderingError(msg) from err
 
         # Get the rendering template
         if self.fpo.getTypeIdOfProperty("Template") == "App::PropertyFile":
@@ -406,16 +403,13 @@ class Project(FeatureBase):
             # Current template path (relative path)
             template_path = os.path.join(TEMPLATEDIR, self.fpo.Template)
 
-        if not os.path.isfile(template_path):
-            msg = translate(
-                "Render", "Cannot render project: Template not found ('%s')"
-            )
-            msg = "[Render] " + (msg % template_path) + "\n"
-            App.Console.PrintError(msg)
-            return ""
-
-        with open(template_path, "r", encoding="utf8") as template_file:
-            template = template_file.read()
+        try:
+            with open(template_path, "r", encoding="utf8") as template_file:
+                template = template_file.read()
+        except FileNotFoundError:
+            msg = translate("Render", "Template not found ('{}')")
+            msg = msg.format(template_path)
+            raise RenderingError(msg)
 
         # Build a default camera, to be used if no camera is present in the
         # scene
@@ -442,7 +436,8 @@ class Project(FeatureBase):
         os.close(fhandle)
         self.fpo.PageResult = fpath
         os.remove(fpath)
-        assert self.fpo.PageResult, "Rendering error: No page result"
+        if not self.fpo.PageResult:
+            raise RenderingError("No page result")  # Quite unlikely...
 
         # Fetch the rendering parameters
         params = self._get_rendering_params()
@@ -460,14 +455,15 @@ class Project(FeatureBase):
         img = img if self.fpo.OpenAfterRender else None
         if not cmd:
             # Command is empty (perhaps lack of data in parameters)
-            return None
+            msg = translate("Render", "Empty rendering command")
+            raise RenderingError(msg)
 
         # Dry run?
         dryrun = PARAMS.GetBool("DryRun")
         if dryrun:
             # "Dry run": Print command and return without running renderer
             # Debug purpose only
-            App.Console.PrintMessage("*** DRY RUN ***\n")
+            App.Console.PrintWarning("*** DRY RUN ***\n")
             App.Console.PrintMessage(cmd)
             return None
 
@@ -573,6 +569,15 @@ def _get_default_cam(renderer):
     return renderer.get_camsource_string(get_cam_from_coin_string(camstr))
 
 
+class RenderingError(Exception):
+    """Exception to be raised when a blocking error occurs during rendering."""
+    def __init__(self, message):
+        """Initialize exception."""
+        prefix1 = "[Render] "
+        prefix2 = translate("Render", "Cannot render project:")
+        self.message = prefix1 + prefix2 + " " + message
+
+
 class ViewProviderProject(ViewProviderBase):
     """View provider for the rendering project object."""
 
@@ -629,6 +634,8 @@ class ViewProviderProject(ViewProviderBase):
         except AttributeError as err:
             msg = translate("Render", "[Render] Cannot render: {e}") + "\n"
             App.Console.PrintError(msg.format(e=err))
+        except RenderingError as err:
+            App.Console.PrintError(err.message + "\n")
 
     def change_template(self):
         """Change the template of the project."""
