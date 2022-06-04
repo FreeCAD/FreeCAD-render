@@ -396,20 +396,7 @@ class Project(FeatureBase):
             raise RenderingError(msg) from err
 
         # Get the rendering template
-        if self.fpo.getTypeIdOfProperty("Template") == "App::PropertyFile":
-            # Legacy template path (absolute path)
-            template_path = self.fpo.Template
-        else:
-            # Current template path (relative path)
-            template_path = os.path.join(TEMPLATEDIR, self.fpo.Template)
-
-        try:
-            with open(template_path, "r", encoding="utf8") as template_file:
-                template = template_file.read()
-        except FileNotFoundError:
-            msg = translate("Render", "Template not found ('{}')")
-            msg = msg.format(template_path)
-            raise RenderingError(msg)
+        template = self._get_rendering_template()
 
         # Build a default camera, to be used if no camera is present in the
         # scene
@@ -422,22 +409,14 @@ class Project(FeatureBase):
         if getattr(self.fpo, "GroundPlane", False):
             objstrings.append(self.write_groundplane(renderer))
 
-        # Merge all strings (cam, objects, ground plane...) into rendering
-        # template
-        template = self._instantiate_template(template, objstrings, defaultcam)
+        # Instantiate template: merge all strings (cam, objects, ground
+        # plane...) into rendering template
+        instantiated = _instantiate_template(template, objstrings, defaultcam)
 
         # Write instantiated template into a temporary file
-        fhandle, fpath = mkstemp(
-            prefix=self.fpo.Name,
-            suffix=os.path.splitext(self.fpo.Template)[-1],
-        )
-        with open(fpath, "w", encoding="utf8") as fobj:
-            fobj.write(template)
-        os.close(fhandle)
+        fpath = self._write_instantiated_template_to_file(instantiated)
         self.fpo.PageResult = fpath
-        os.remove(fpath)
-        if not self.fpo.PageResult:
-            raise RenderingError("No page result")  # Quite unlikely...
+        os.remove(fpath)  # Ask for removing, but file is hold by PageResult
 
         # Fetch the rendering parameters
         params = self._get_rendering_params()
@@ -477,8 +456,35 @@ class Project(FeatureBase):
         # And eventually return result path
         return img
 
+    def _get_rendering_template(self):
+        """Get the rendering template for the project.
+
+        This method is a (private) subroutine of `render` method.
+        RenderingError is raised if template file is not found.
+        """
+        # Compute template_path from project's Template parameter.
+        # This parameter gives a relative path to template.
+        # However, a legacy behaviour (absolute path) is also handled.
+        if self.fpo.getTypeIdOfProperty("Template") == "App::PropertyFile":
+            # Legacy template path (absolute path)
+            template_path = self.fpo.Template
+        else:
+            # Current template path (relative path)
+            template_path = os.path.join(TEMPLATEDIR, self.fpo.Template)
+
+        # Open file and get content
+        try:
+            with open(template_path, "r", encoding="utf8") as template_file:
+                template = template_file.read()
+        except FileNotFoundError as err:
+            msg = translate("Render", "Template not found ('{}')")
+            msg = msg.format(template_path)
+            raise RenderingError(msg) from err
+
+        return template
+
     def _get_objstrings(self, renderer):
-        """Get rendering strings for all objects in project
+        """Get rendering strings for all objects in project.
 
         This method is a (private) subroutine of `render` method.
         Besides standard FCD objects (parts, shapes...), objects encompass
@@ -504,23 +510,21 @@ class Project(FeatureBase):
 
         return objstrings
 
-    def _instantiate_template(self, template, objstrings, defaultcam):
-        """Instantiate template (merge all objects into template).
+    def _write_instantiated_template_to_file(self, template):
+        """Write an instantiated template to a temporary file.
 
         This method is a (private) subroutine of `render` method.
+
+        Returns path to temp file.
         """
-        renderobjs = "\n".join(objstrings)
-
-        if "RaytracingCamera" in template:
-            template = re.sub("(.*RaytracingCamera.*)", defaultcam, template)
-            template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
-        else:
-            content = defaultcam + "\n" + renderobjs
-            template = re.sub("(.*RaytracingContent.*)", content, template)
-
-        version_major = sys.version_info.major
-
-        return template.encode("utf8") if version_major < 3 else template
+        fhandle, fpath = mkstemp(
+            prefix=self.fpo.Name,
+            suffix=os.path.splitext(self.fpo.Template)[-1],
+        )
+        with open(fpath, "w", encoding="utf8") as fobj:
+            fobj.write(template)
+        os.close(fhandle)
+        return fpath
 
     def _get_rendering_params(self):
         """Fetch the rendering parameters.
@@ -569,10 +573,31 @@ def _get_default_cam(renderer):
     return renderer.get_camsource_string(get_cam_from_coin_string(camstr))
 
 
+def _instantiate_template(template, objstrings, defaultcam):
+    """Instantiate template (merge all objects into template).
+
+    This function is a (private) subroutine of `render` method.
+    """
+    renderobjs = "\n".join(objstrings)
+
+    if "RaytracingCamera" in template:
+        template = re.sub("(.*RaytracingCamera.*)", defaultcam, template)
+        template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
+    else:
+        content = defaultcam + "\n" + renderobjs
+        template = re.sub("(.*RaytracingContent.*)", content, template)
+
+    version_major = sys.version_info.major
+
+    return template.encode("utf8") if version_major < 3 else template
+
+
 class RenderingError(Exception):
     """Exception to be raised when a blocking error occurs during rendering."""
+
     def __init__(self, message):
         """Initialize exception."""
+        super().__init__()
         prefix1 = "[Render] "
         prefix2 = translate("Render", "Cannot render project:")
         self.message = prefix1 + prefix2 + " " + message
