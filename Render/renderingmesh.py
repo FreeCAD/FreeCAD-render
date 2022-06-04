@@ -131,18 +131,16 @@ class RenderingMesh:
     def compute_uvmap(self):
         """Compute UV map for this mesh."""
         # Spherical mapping
-        # TODO Beautify and use tuple
-        res = []
         points = self.Points
         barycenter = compute_barycenter(points)
-        for vertex in [(p.Vector - barycenter).normalize() for p in points]:
-            # From https://en.wikipedia.org/wiki/UV_mapping
-            vec = App.Base.Vector2d(
-                0.5 + math.atan2(vertex.x, vertex.y) / (2 * math.pi),
-                0.5 + math.asin(vertex.z) / math.pi,
+        vectors = [(p.Vector - barycenter).normalize() for p in points]
+        self.__uvmap = tuple(
+            App.Base.Vector2d(
+                0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
+                0.5 + math.asin(v.z) / math.pi,
             )
-            res.append(vec)
-        self.__uvmap = res
+            for v in vectors
+        )
 
     def has_uvmap(self):
         """Check if object has a uv map."""
