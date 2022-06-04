@@ -41,6 +41,7 @@ import math
 
 from Render.utils import translate, debug, warn, getproxyattr, RGBA
 from Render.rdrmaterials import is_multimat, is_valid_material
+from Render.renderingmesh import RenderingMesh
 
 
 # ===========================================================================
@@ -149,7 +150,8 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         color = _get_shapecolor(obj, transparency_boost)
         # Make a copy of obj.Mesh, otherwise we may have an immutable object
         # and further treatments will fail
-        mesh = obj.Mesh.copy()
+        mesh = RenderingMesh(obj.Mesh.copy())
+        mesh.compute_uvmap()
         renderables = [Renderable(name, mesh, mat, color)]
 
     # Unhandled

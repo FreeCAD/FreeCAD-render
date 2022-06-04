@@ -135,7 +135,7 @@ class RenderingMesh:
         res = []
         points = self.Points
         barycenter = compute_barycenter(points)
-        for vertex in [(p - barycenter).normalize() for p in points]:
+        for vertex in [(p.Vector - barycenter).normalize() for p in points]:
             # From https://en.wikipedia.org/wiki/UV_mapping
             vec = App.Base.Vector2d(
                 0.5 + math.atan2(vertex.x, vertex.y) / (2 * math.pi),
@@ -144,12 +144,16 @@ class RenderingMesh:
             res.append(vec)
         self.__uvmap = res
 
+    def has_uvmap(self):
+        """Check if object has a uv map."""
+        return self.__uvmap is not None
+
 
 def compute_barycenter(points):
     """Compute the barycenter of a list of points."""
     length = len(points)
-    nullvec = App.Vector(0, 0, 0)
+    origin = App.Vector(0, 0, 0)
     if length == 0:
-        return nullvec
-    res = sum(points, nullvec) / length
+        return origin
+    res = sum([p.Vector for p in points], origin) / length
     return res

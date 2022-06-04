@@ -328,8 +328,11 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
 
-        def mesher(shape):
-            """Mesh a shape."""
+        def mesher(shape, compute_uvmap=True):
+            """Mesh a shape.
+
+            Returns a RenderingMesh.
+            """
             # Generate mesh
             mesh = MeshPart.meshFromShape(
                 Shape=shape,
@@ -338,9 +341,9 @@ class RendererHandler:
                 Relative=False,
             )
             mesh = RenderingMesh(mesh)
-            # Harmonize normals
             mesh.harmonizeNormals()
-            print(mesh)  # TODO
+            if compute_uvmap:
+                mesh.compute_uvmap()
             return mesh
 
         source = view.Source
