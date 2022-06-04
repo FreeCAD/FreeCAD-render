@@ -226,7 +226,7 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         # Add a texture to material
         action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
         QObject.connect(
-            action, SIGNAL("triggered()"), lambda: self._add_texture(vobj)
+            action, SIGNAL("triggered()"), lambda: _add_texture(vobj)
         )
         menu.addAction(action)
 
@@ -237,16 +237,16 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         except AttributeError:
             return []
 
-    def _add_texture(self, vobj):
-        """Add texture to related Material (private)."""
-        App.ActiveDocument.openTransaction("Material_AddTexture")
-        # TODO Add image file selection
-        vobj.Object.Proxy.add_texture("")
-        App.ActiveDocument.commitTransaction()
-
-    def onDelete(self, vobj, subelements):
+    def onDelete(self, vobj, subelements):  # pylint: disable=no-self-use
         """Respond to delete event."""
         # Remove all subelements (textures) belonging to this material...
         for subobj in vobj.Object.Group:
             subobj.Document.removeObject(subobj.Name)
         return True
+
+
+def _add_texture(vobj):
+    """Add texture to a related Material (private)."""
+    App.ActiveDocument.openTransaction("Material_AddTexture")
+    vobj.Object.Proxy.add_texture("")
+    App.ActiveDocument.commitTransaction()
