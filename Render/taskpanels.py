@@ -338,7 +338,9 @@ class FloatBox(QGroupBox):
         else:
             res = []
 
-        res += [self.floatbox.text()]
+        floatval, _ = QLocale().toDouble(self.floatbox.text())
+        res += [str(floatval)]
+
         return ";".join(res)
 
 
