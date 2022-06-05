@@ -209,12 +209,18 @@ def _write_material_passthrough(name, material):
 
 def _write_material_glass(name, material):
     """Compute a string in the renderer SDL for a glass material."""
+    textures_text = _write_textures(name, material.glass)
     snippet = """
     scene.materials.{n}.type = glass
-    scene.materials.{n}.kt = {c.r} {c.g} {c.b}
+    scene.materials.{n}.kt = {c}
     scene.materials.{n}.interiorior = {i}
     """
-    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
+    material_text = snippet.format(
+        n=name,
+        c=_color(material.glass.color, name),
+        i=_float(material.glass.ior, name),
+    )
+    return material_text + textures_text
 
 
 def _write_material_disney(name, material):
@@ -266,6 +272,7 @@ def _write_material_diffuse(name, material):
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
+    textures_text = _write_textures(name, material.mixed)
     snippet_g = _write_material_glass(f"{name}_glass", material.mixed)
     snippet_d = _write_material_diffuse(f"{name}_diffuse", material.mixed)
     snippet_m = """
@@ -275,7 +282,11 @@ def _write_material_mixed(name, material):
     scene.materials.{n}.amount = {r}
     """
     snippet = snippet_g + snippet_d + snippet_m
-    return snippet.format(n=name, r=material.mixed.transparency)
+    material_text = snippet.format(
+        n=name, r=_float(material.mixed.transparency, name)
+    )
+
+    return material_text + textures_text
 
 
 def _write_material_carpaint(name, material):
@@ -285,7 +296,9 @@ def _write_material_carpaint(name, material):
     scene.materials.{n}.type = carpaint
     scene.materials.{n}.kd = {c}
     """
-    material_text = snippet.format(n=name, c=_color(material.carpaint.basecolor, name))
+    material_text = snippet.format(
+        n=name, c=_color(material.carpaint.basecolor, name)
+    )
     return material_text + textures_text
 
 
@@ -351,7 +364,6 @@ def _write_textures(name, submaterial):
             pass
         else:
             textures.append(texture)
-    # TODO make unique
     return "\n".join(textures)
 
 
