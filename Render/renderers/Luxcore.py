@@ -280,11 +280,13 @@ def _write_material_mixed(name, material):
 
 def _write_material_carpaint(name, material):
     """Compute a string in the renderer SDL for a carpaint material."""
+    textures_text = _write_textures(name, material.carpaint)
     snippet = """
     scene.materials.{n}.type = carpaint
-    scene.materials.{n}.kd = {c.r} {c.g} {c.b}
+    scene.materials.{n}.kd = {c}
     """
-    return snippet.format(n=name, c=material.carpaint.basecolor)
+    material_text = snippet.format(n=name, c=_color(material.carpaint.basecolor, name))
+    return material_text + textures_text
 
 
 def _write_material_fallback(name, material):
