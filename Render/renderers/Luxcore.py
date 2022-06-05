@@ -22,14 +22,10 @@
 
 """LuxCore renderer plugin for FreeCAD Render workbench."""
 
-# TODO dedent all strings
-
 # Suggested links to renderer documentation:
 # https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.6
 
 import os
-import math
-from collections import namedtuple
 from tempfile import mkstemp
 from textwrap import dedent, indent
 import configparser
@@ -221,78 +217,6 @@ def _write_material_glass(name, material):
     return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
-def _write_textures(name, submaterial):
-    # TODO Relocate function
-    # TODO Fix uvscale (inverse scaling?)
-    snippet = """
-    scene.textures.{n}.type = imagemap
-    scene.textures.{n}.file = "{f}"
-    scene.textures.{n}.gamma = 2.2
-    scene.textures.{n}.mapping.type = uvmapping2d
-    scene.textures.{n}.mapping.rotation = {r}
-    scene.textures.{n}.mapping.uvscale = {su} {sv}
-    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
-    """
-    textures = []
-    for key, value in submaterial.__dict__.items():
-        try:
-            texname = f"{name}_{value.name}_{value.subname}"
-            texture = snippet.format(
-                n=texname,
-                f=value.file,
-                r=float(value.rotation),
-                su=float(value.scale_u),
-                sv=float(value.scale_v),
-                tu=float(value.translation_u),
-                tv=float(value.translation_v),
-            )
-        except AttributeError:
-            pass
-        else:
-            textures.append(texture)
-    # TODO make unique
-    return "\n".join(textures)
-
-
-def _write_color(value, material_name):
-    # TODO Relocate function
-    # Plain color
-    try:
-        res = f"{value.r} {value.g} {value.b}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # Texture
-    try:
-        res = f"{material_name}_{value.name}_{value.subname}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # No match - raise exception
-    raise ValueError
-
-
-def _write_float(value, material_name):
-    # Plain float
-    try:
-        res = f"{float(value)}"
-    except (ValueError, TypeError):
-        pass
-    else:
-        return res
-    # Texture
-    try:
-        res = f"{material_name}_{value.name}_{value.subname}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # No match - raise exception
-    raise ValueError
-
-
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
     textures_text = _write_textures(name, material.disney)
@@ -312,17 +236,17 @@ def _write_material_disney(name, material):
     """
     material_text = snippet.format(
         name,
-        _write_color(material.disney.basecolor, name),
-        _write_float(material.disney.subsurface, name),
-        _write_float(material.disney.metallic, name),
-        _write_float(material.disney.specular, name),
-        _write_float(material.disney.speculartint, name),
-        _write_float(material.disney.roughness, name),
-        _write_float(material.disney.anisotropic, name),
-        _write_float(material.disney.sheen, name),
-        _write_float(material.disney.sheentint, name),
-        _write_float(material.disney.clearcoat, name),
-        _write_float(material.disney.clearcoatgloss, name),
+        _color(material.disney.basecolor, name),
+        _float(material.disney.subsurface, name),
+        _float(material.disney.metallic, name),
+        _float(material.disney.specular, name),
+        _float(material.disney.speculartint, name),
+        _float(material.disney.roughness, name),
+        _float(material.disney.anisotropic, name),
+        _float(material.disney.sheen, name),
+        _float(material.disney.sheentint, name),
+        _float(material.disney.clearcoat, name),
+        _float(material.disney.clearcoatgloss, name),
     )
     return material_text + textures_text
 
@@ -335,7 +259,7 @@ def _write_material_diffuse(name, material):
     scene.materials.{n}.kd = {c}
     """
     material_text = snippet.format(
-        n=name, c=_write_color(material.diffuse.color, name)
+        n=name, c=_color(material.diffuse.color, name)
     )
     return material_text + textures_text
 
@@ -390,6 +314,83 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
 }
+
+# ===========================================================================
+#                           Texture management
+# ===========================================================================
+
+
+def _write_textures(name, submaterial):
+    """Compute textures string for a given submaterial."""
+    # TODO Fix uvscale (inverse scaling?)
+    snippet = """
+    scene.textures.{n}.type = imagemap
+    scene.textures.{n}.file = "{f}"
+    scene.textures.{n}.gamma = 2.2
+    scene.textures.{n}.mapping.type = uvmapping2d
+    scene.textures.{n}.mapping.rotation = {r}
+    scene.textures.{n}.mapping.uvscale = {su} {sv}
+    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+    """
+    textures = []
+    for value in submaterial.__dict__.values():
+        try:
+            texname = f"{name}_{value.name}_{value.subname}"
+            texture = snippet.format(
+                n=texname,
+                f=value.file,
+                r=float(value.rotation),
+                su=float(value.scale_u),
+                sv=float(value.scale_v),
+                tu=float(value.translation_u),
+                tv=float(value.translation_v),
+            )
+        except AttributeError:
+            pass
+        else:
+            textures.append(texture)
+    # TODO make unique
+    return "\n".join(textures)
+
+
+def _color(value, material_name):
+    """Write a color in a material, with texture support."""
+    # Plain color
+    try:
+        res = f"{value.r} {value.g} {value.b}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # Texture
+    try:
+        res = f"{material_name}_{value.name}_{value.subname}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # No match - raise exception
+    raise ValueError
+
+
+def _float(value, material_name):
+    """Write a float in a material, with texture support."""
+    # Plain float
+    try:
+        res = f"{float(value)}"
+    except (ValueError, TypeError):
+        pass
+    else:
+        return res
+    # Texture
+    try:
+        res = f"{material_name}_{value.name}_{value.subname}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # No match - raise exception
+    raise ValueError
 
 
 # ===========================================================================
