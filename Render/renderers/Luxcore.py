@@ -256,17 +256,38 @@ def _write_material_disney(name, material):
     )
     return material_text + textures_text
 
+# TODO Relocate
+def _has_bump(submat):
+    """Check whether submat has normals information."""
+    return hasattr(submat, "bump") and submat.bump
+
+# TODO Relocate
+def _texonly(value, material_name):
+    """Write texture only value in a material."""
+    # Texture
+    try:
+        res = f"{material_name}_{value.name}_{value.subname}"
+    except AttributeError:
+        pass
+    else:
+        return res
+    # No match - raise exception
+    raise ValueError
 
 def _write_material_diffuse(name, material):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    textures_text = _write_textures(name, material.diffuse)
+    submat = material.diffuse
+    textures_text = _write_textures(name, submat)
     snippet = """
     scene.materials.{n}.type = matte
     scene.materials.{n}.kd = {c}
     """
-    material_text = snippet.format(
-        n=name, c=_color(material.diffuse.color, name)
-    )
+    if _has_bump(submat):
+        snippet += """scene.materials.{n}.bumptex = {t}\n"""
+        bumptex = _normals(submat.bump, name)
+    else:
+        bumptex = ""
+    material_text = snippet.format(n=name, c=_color(submat.color, name), t=bumptex)
     return material_text + textures_text
 
 
@@ -341,7 +362,7 @@ def _write_textures(name, submaterial):
     snippet = """
     scene.textures.{n}.type = imagemap
     scene.textures.{n}.file = "{f}"
-    scene.textures.{n}.gamma = 2.2
+    scene.textures.{n}.gamma = 1.0
     scene.textures.{n}.mapping.type = uvmapping2d
     scene.textures.{n}.mapping.rotation = {r}
     scene.textures.{n}.mapping.uvscale = {su} {sv}
