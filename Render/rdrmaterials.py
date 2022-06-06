@@ -61,6 +61,12 @@ STD_MATERIALS_PARAMETERS = {
             "Color", "RGB", (1, 1, 1), translate("Render", "Transmitted color")
         ),
         Param("IOR", "float", 1.5, translate("Render", "Index of refraction")),
+        Param(
+            "Bump",
+            "texonly",
+            "",
+            translate("Render", "Bump"),
+        ),
     ],
     "Disney": [
         Param(
@@ -124,6 +130,12 @@ STD_MATERIALS_PARAMETERS = {
             0.0,
             translate("Render", "Clear coat gloss coefficient"),
         ),
+        Param(
+            "Bump",
+            "texonly",
+            "",
+            translate("Render", "Bump"),
+        ),
     ],
     "Diffuse": [
         Param(
@@ -131,7 +143,13 @@ STD_MATERIALS_PARAMETERS = {
             "RGB",
             (0.8, 0.8, 0.8),
             translate("Render", "Diffuse color"),
-        )
+        ),
+        Param(
+            "Bump",
+            "texonly",
+            "",
+            translate("Render", "Bump"),
+        ),
     ],
     # NB: Above 'Mixed' material could be extended with reflectivity in the
     # future, with the addition of a Glossy material. See for instance:
@@ -166,6 +184,12 @@ STD_MATERIALS_PARAMETERS = {
                 "may lead to undefined behaviour)",
             ),
         ),
+        Param(
+            "Bump",
+            "texonly",
+            "",
+            translate("Render", "Bump"),
+        ),
     ],
     "Carpaint": [
         Param(
@@ -173,6 +197,12 @@ STD_MATERIALS_PARAMETERS = {
             "RGB",
             (0.8, 0.2, 0.2),
             translate("Render", "Base color"),
+        ),
+        Param(
+            "Bump",
+            "texonly",
+            "",
+            translate("Render", "Bump"),
         ),
     ],
 }
@@ -284,10 +314,47 @@ def _caststr(*args):
     return value
 
 
+def _casttexonly(*args):
+    """Cast to texonly value.
+
+    Args:
+        value -- the value to cast
+
+    Returns:
+        The cast string value.
+    """
+    value = str(args[0])
+
+    parsed = parse_csv_str(value)
+
+    if "Texture" in parsed:
+        # Build RendererTexture
+        imageid = str2imageid(parsed[1])
+        texobject = App.ActiveDocument.getObject(
+            imageid.texture
+        )  # Texture object
+        file = texobject.getPropertyByName(imageid.image)
+        res = RendererTexture(
+            texobject.Label,
+            imageid.image,
+            file,
+            texobject.Rotation.getValueAs("deg"),
+            float(texobject.ScaleU),
+            float(texobject.ScaleV),
+            texobject.TranslationU.getValueAs("m"),
+            texobject.TranslationV.getValueAs("m"),
+        )
+        return res
+
+    # Default (and fallback), return empty
+    return None
+
+
 CAST_FUNCTIONS = {
     "float": _castfloat,
     "RGB": _castrgb,
     "string": _caststr,
+    "texonly": _casttexonly,
 }
 
 

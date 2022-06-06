@@ -344,6 +344,79 @@ class FloatBox(QGroupBox):
         return ";".join(res)
 
 
+class TexonlyOption(Enum):
+    """Options for normals in Material."""
+
+    NO_VALUE = auto()
+    TEXTURE = auto()
+
+
+class TexonlyPicker(QGroupBox):
+    """A texture only input widget.
+
+    This widget provides a way to enter a texture only, or nothing,
+    like a bump texture in a material.
+    """
+
+    def __init__(
+        self,
+        option=TexonlyOption.NO_VALUE,
+        image_list=None,
+        current_image=None,
+    ):
+        """Initialize widget.
+
+        Args:
+            color -- RGB color used to initialize the color picker
+            use_object_color -- boolean used to initialize the 'use object
+                color' checkbox
+        """
+        super().__init__()
+
+        # Normalize arguments
+        if image_list is None:
+            image_list = []
+
+        # Initialize layout
+        self.setLayout(QGridLayout())
+        self.layout().setColumnStretch(0, 0)
+        self.layout().setColumnStretch(1, 10)
+
+        # No value option
+        self.button_novalue = QRadioButton(translate("Render", "Don't use"))
+        self.layout().addWidget(self.button_novalue, 0, 0)
+
+        # Texture option
+        self.button_texture = QRadioButton(translate("Render", "Use texture"))
+        self.texturepicker = TexturePicker(image_list, current_image)
+        self.layout().addWidget(self.button_texture, 1, 0)
+        self.layout().addWidget(self.texturepicker, 1, 1)
+        self.texturepicker.setEnabled(False)
+        QObject.connect(
+            self.button_texture,
+            SIGNAL("toggled(bool)"),
+            self.texturepicker.setEnabled,
+        )
+
+        # Initialize (select button)
+        if option == TexonlyOption.NO_VALUE:
+            self.button_novalue.setChecked(True)
+        elif option == TexonlyOption.TEXTURE:
+            self.button_texture.setChecked(True)
+
+    def get_value(self):
+        """Get widget output value."""
+        if self.button_novalue.isChecked():
+            res = []
+        elif self.button_texture.isChecked():
+            res = ["Texture"]
+            res += [self.texturepicker.get_texture_text()]
+        else:
+            res = []
+
+        return ";".join(res)
+
+
 class MaterialSettingsTaskPanel:
     """Task panel to edit Material render settings."""
 
@@ -601,6 +674,24 @@ class MaterialSettingsTaskPanel:
                 # value is empty, default initialization
                 widget = ColorPickerExt(image_list=teximages)
             self.fields.append((name, widget.get_value))
+        elif param.type == "texonly":
+            if value:
+                # Parse value and initialize a TexonlyPicker accordingly
+                parsedvalue = parse_csv_str(value)
+                texture = None  # Default value
+                if "Texture" in parsedvalue:
+                    # Texture
+                    option = TexonlyOption.TEXTURE
+                    texture = str2imageid(parsedvalue[1])
+                else:
+                    # No value (fallback)
+                    option = TexonlyOption.NO_VALUE
+                    texture = None
+                widget = TexonlyPicker(option, teximages, texture)
+            else:
+                # value is empty, default initialization
+                widget = TexonlyPicker(image_list=teximages)
+            self.fields.append((name, widget.get_value))
         else:
             # Fallback to string input
             widget = QLineEdit()
@@ -641,6 +732,7 @@ class MaterialSettingsTaskPanel:
             # Set fields
             for field in self.fields:
                 field_name, get_value = field
+                print(field_name)  # TODO
                 param_name = f"Render.{render_type}.{field_name}"
                 tmp_mat[param_name] = str(get_value())
 

@@ -63,6 +63,7 @@ def make_material(name="Material", color=None, transparency=None):
         obj.Transparency = transparency
     return obj
 
+
 def strtobool(val):
     """Convert a string representation of truth to True or False.
 
@@ -78,6 +79,7 @@ def strtobool(val):
     if val in ["n", "no", "f", "false", "off", "0"]:
         return False
     raise ValueError
+
 
 class Material(_ArchMaterial):
     """The Render Material object.
