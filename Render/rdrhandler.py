@@ -52,6 +52,7 @@ import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render import renderables
+from Render import camera, lights
 import Render.rdrmaterials as materials
 
 
@@ -215,22 +216,26 @@ class RendererHandler:
         for the supplied 'view'
         """
         try:
+            # determine the Render Handler to use for this object
+            # Camera and lighting objects use their own handlers
             source = view.Source
-
-            objtype = getproxyattr(source, "type", "Object")
-
             name = str(source.Name)
 
-            switcher = {
-                "Object": RendererHandler._render_object,
-                "PointLight": RendererHandler._render_pointlight,
-                "Camera": RendererHandler._render_camera,
-                "AreaLight": RendererHandler._render_arealight,
-                "SunskyLight": RendererHandler._render_sunskylight,
-                "ImageLight": RendererHandler._render_imagelight,
-            }
+            handler = RendererHandler._render_object
+            if hasattr(source, "Proxy"):
+                objtype = type(source.Proxy)
+                if objtype == camera.Camera:
+                    handler = RendererHandler._render_camera
+                elif objtype == lights.PointLight:
+                    handler = RendererHandler._render_pointlight
+                elif objtype == lights.AreaLight:
+                    handler = RendererHandler._render_arealight
+                elif objtype == lights.SunskyLight:
+                    handler = RendererHandler._render_sunskylight
+                elif objtype == lights.ImageLight:
+                    handler = RendererHandler._render_imagelight
 
-            res = switcher[objtype](self, name, view)
+            res = handler(self, name, view)
 
         except (AttributeError, TypeError, AssertionError) as err:
             msg = (
