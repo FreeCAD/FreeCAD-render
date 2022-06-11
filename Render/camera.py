@@ -44,6 +44,7 @@ from Render.base import (
     PointableViewProviderMixin,
     CoinShapeViewProviderMixin,
 )
+from Render.rdrhandler import RenderingTypes
 
 
 # Enumeration of allowed values for ViewportMapping parameter (see Coin
@@ -136,6 +137,8 @@ class Camera(PointableFeatureMixin, FeatureBase):
             60,
         ),
     }
+
+    RENDERING_TYPE = RenderingTypes.CAMERA
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete 'create' (callback)."""

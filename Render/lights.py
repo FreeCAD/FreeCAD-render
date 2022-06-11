@@ -46,6 +46,7 @@ from Render.base import (
     CoinPointLightViewProviderMixin,
     CoinDirectionalLightViewProviderMixin,
 )
+from Render.rdrhandler import RenderingTypes
 
 
 # ===========================================================================
@@ -129,6 +130,8 @@ class PointLight(FeatureBase):
     }
 
     FCDTYPE = "App::GeometryPython"
+
+    RENDERING_TYPE = RenderingTypes.POINTLIGHT
 
     def _on_changed_location(self, obj):  # pylint: disable=no-self-use
         """Respond to Location change event (by synchronizing Placement)."""
@@ -221,6 +224,8 @@ class AreaLight(PointableFeatureMixin, FeatureBase):
         ),
     }
 
+    RENDERING_TYPE = RenderingTypes.AREALIGHT
+
 
 class ViewProviderAreaLight(
     CoinPointLightViewProviderMixin,
@@ -295,6 +300,8 @@ class SunskyLight(FeatureBase):
         ),
     }
 
+    RENDERING_TYPE = RenderingTypes.SUNSKYLIGHT
+
 
 class ViewProviderSunskyLight(
     CoinDirectionalLightViewProviderMixin, ViewProviderBase
@@ -332,6 +339,8 @@ class ImageLight(FeatureBase):
             "",
         ),
     }
+
+    RENDERING_TYPE = RenderingTypes.IMAGELIGHT
 
 
 class ViewProviderImageLight(ViewProviderBase):

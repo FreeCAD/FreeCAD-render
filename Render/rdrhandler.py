@@ -43,6 +43,7 @@ usual renderers expects meters as base unit.
 import sys
 import functools
 import traceback
+import enum
 from importlib import import_module
 from types import SimpleNamespace
 
@@ -52,7 +53,6 @@ import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render import renderables
-from Render import camera, lights
 import Render.rdrmaterials as materials
 
 
@@ -62,6 +62,18 @@ import Render.rdrmaterials as materials
 
 # Scale from FreeCAD internal distance unit (mm) to renderers ones (m)
 SCALE = 0.001
+
+
+@enum.unique
+class RenderingTypes(enum.Enum):
+    """Enumeration of handled rendering types."""
+
+    OBJECT = 0
+    CAMERA = 1
+    POINTLIGHT = 2
+    AREALIGHT = 3
+    SUNSKYLIGHT = 4
+    IMAGELIGHT = 5
 
 
 # ===========================================================================
@@ -108,6 +120,15 @@ class RendererHandler:
             self.renderer_module = import_module(module_name)
         except ModuleNotFoundError:
             raise RendererNotFoundError(rdrname) from None
+
+        self.switcher = {
+            RenderingTypes.OBJECT: RendererHandler._render_object,
+            RenderingTypes.CAMERA: RendererHandler._render_camera,
+            RenderingTypes.POINTLIGHT: RendererHandler._render_pointlight,
+            RenderingTypes.AREALIGHT: RendererHandler._render_arealight,
+            RenderingTypes.SUNSKYLIGHT: RendererHandler._render_sunskylight,
+            RenderingTypes.IMAGELIGHT: RendererHandler._render_imagelight,
+        }
 
     def render(self, project, prefix, external, output, width, height):
         """Run the external renderer.
@@ -215,52 +236,36 @@ class RendererHandler:
         Returns: a rendering string in the format of the external renderer
         for the supplied 'view'
         """
+        source = view.Source
+        name = str(source.Name)
+
+        # Render Workbench objects
         try:
-            # determine the Render Handler to use for this object
-            # Camera and lighting objects use their own handlers
-            source = view.Source
-            name = str(source.Name)
-
-            handler = RendererHandler._render_object
-            if hasattr(source, "Proxy"):
-                objtype = type(source.Proxy)
-                if objtype == camera.Camera:
-                    handler = RendererHandler._render_camera
-                elif objtype == lights.PointLight:
-                    handler = RendererHandler._render_pointlight
-                elif objtype == lights.AreaLight:
-                    handler = RendererHandler._render_arealight
-                elif objtype == lights.SunskyLight:
-                    handler = RendererHandler._render_sunskylight
-                elif objtype == lights.ImageLight:
-                    handler = RendererHandler._render_imagelight
-
-            res = handler(self, name, view)
-
-        except (AttributeError, TypeError, AssertionError) as err:
-            msg = (
-                translate(
-                    "Render",
-                    "[Render] Cannot render view '{0}': {1} (file {2}, "
-                    "line {3} in {4}). Skipping...",
-                )
-                + "\n"
-            )
-            _, _, exc_traceback = sys.exc_info()
-            framestack = traceback.extract_tb(exc_traceback)[-1]
-            App.Console.PrintWarning(
-                msg.format(
-                    getattr(view, "Label", "<No label>"),
-                    err,
-                    framestack.filename,
-                    framestack.lineno,
-                    framestack.name,
-                )
-            )
-            return ""
-
+            # If this is a renderable object of Render WB, it appoints a
+            # rendering method
+            rendering_type = view.Source.Proxy.RENDERING_TYPE
+            method = self.switcher[rendering_type]
+        except AttributeError:
+            pass
         else:
-            return res
+            return method(self, name, view)
+
+        # ArchTexture PointLight (or everything that looks like)
+        try:
+            # Duck typing
+            source.getPropertyByName("Location")
+            source.getPropertyByName("Color")
+            source.getPropertyByName("Power")
+            # And type-checking...
+            if source.Proxy.type != "PointLight":
+                raise TypeError
+        except (AttributeError, TypeError):
+            pass
+        else:
+            return RendererHandler._render_pointlight(self, name, view)
+
+        # Fallback/default: render it as an 'object'
+        return RendererHandler._render_object(self, name, view)
 
     def get_groundplane_string(self, bbox, zpos, color, sizefactor):
         """Get a rendering string for a ground plane.
@@ -342,12 +347,35 @@ class RendererHandler:
         # Build a list of renderables from the object
         material = view.Material
         tpboost = self.transparency_boost
-        rends = renderables.get_renderables(
-            source, name, material, mesher, transparency_boost=tpboost
-        )
-
-        # Check renderables
-        renderables.check_renderables(rends)
+        try:
+            rends = renderables.get_renderables(
+                source, name, material, mesher, transparency_boost=tpboost
+            )
+            renderables.check_renderables(rends)
+        except (TypeError, ValueError) as err:
+            # 'get_renderables' will raise TypeError if unable to render
+            # or ValueError if the result is malformed
+            # In this case, we pass with a warning
+            msg = (
+                translate(
+                    "Render",
+                    "[Render] Cannot render view '{0}': {1} (file {2}, "
+                    "line {3} in {4}). Skipping...",
+                )
+                + "\n"
+            )
+            _, _, exc_traceback = sys.exc_info()
+            framestack = traceback.extract_tb(exc_traceback)[-1]
+            App.Console.PrintWarning(
+                msg.format(
+                    getattr(view, "Label", "<No label>"),
+                    err,
+                    framestack.filename,
+                    framestack.lineno,
+                    framestack.name,
+                )
+            )
+            return ""
 
         # Rescale to meters
         scalemat = App.Matrix()
