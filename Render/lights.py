@@ -86,7 +86,7 @@ class PointLight(FeatureBase):
 
     VIEWPROVIDER = "ViewProviderPointLight"
 
-    # Note: Point light location is mainly controled by its Location property.
+    # Note: Point light location is mainly controlled by its Location property.
     # However, to allow the use of Placement and Location features
     # (Edit-->Placement... & Edit-->Location...), a replicated underlying
     # Placement property is introduced, and some code has been added to keep it
