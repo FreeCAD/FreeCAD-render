@@ -61,7 +61,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     compound of subobjects, so the result of this function is a **list**
     of renderables.
     If this function does not know how to extract renderables from the
-    given object, a TypeError is raised
+    given object, a TypeError is raised.
 
     Parameters:
         obj -- the FreeCAD object from which to extract the renderables
@@ -165,17 +165,22 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
 
 
 def check_renderables(renderables):
-    """Assert compliance of a list of renderables."""
-    assert renderables, translate("Render", "Nothing to render")
+    """Assert compliance of a list of renderables.
+
+    If an error is detected (malformed renderable), a ValueError is raised.
+    """
+    if not renderables:
+        raise ValueError(translate("Render", "Nothing to render"))
     for renderable in renderables:
         mesh = renderable.mesh
-        assert mesh, translate("Render", "Cannot find mesh data")
-        assert mesh.Topology[0] and mesh.Topology[1], translate(
-            "Render", "Mesh topology is empty"
-        )
-        assert mesh.getPointNormals(), translate(
-            "Render", "Mesh topology has no normals"
-        )
+        if not mesh:
+            raise ValueError(translate("Render", "Cannot find mesh data"))
+        if not mesh.Topology[0] or not mesh.Topology[1]:
+            raise ValueError(translate("Render", "Mesh topology is empty"))
+        if not mesh.getPointNormals():
+            raise ValueError(
+                translate("Render", "Mesh topology has no normals")
+            )
 
 
 # ===========================================================================

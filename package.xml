@@ -4,10 +4,10 @@
   <description>A workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines.
 
 Designed as a modern replacement for internal Raytracing Workbench.</description>
-  <version>2022.01</version>
-  <date>2022-01-01</date>
+  <version>2022.02</version>
+  <date>2022-06-11</date>
   <maintainer email="@howetuft">howetuft</maintainer>
-  <maintainer email="@yorikvanhave">Yorik Van Havre</maintainer>
+  <maintainer email="@yorikvanhavre">Yorik Van Havre</maintainer>
   <license file="LICENSE">LGPLv2.1</license>
   <url type="repository" branch="master">https://github.com/FreeCAD/FreeCAD-render</url>
   <url type="bugtracker">https://github.com/FreeCAD/FreeCAD-render/issues</url>
