@@ -189,7 +189,7 @@ def _write_material(name, material):
     a fallback material is provided.
     """
     try:
-        snippet_mat = MATERIALS[material.shadertype](name, material)
+        write_function = MATERIALS[material.shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
@@ -197,6 +197,8 @@ def _write_material(name, material):
         )
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.default_color)
+    else:
+        snippet_mat = write_function(name, material)
     return snippet_mat
 
 
@@ -256,10 +258,12 @@ def _write_material_disney(name, material):
     )
     return material_text + textures_text
 
+
 # TODO Relocate
 def _has_bump(submat):
     """Check whether submat has normals information."""
     return hasattr(submat, "bump") and submat.bump
+
 
 # TODO Relocate
 def _texonly(value, material_name):
@@ -274,53 +278,68 @@ def _texonly(value, material_name):
     # No match - raise exception
     raise ValueError
 
+def _write_bump(name, matval):
+    """Compute a string in the renderer SDL for bump statement."""
+    if matval.has_bump():
+        # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
+        res = f"""scene.materials.{name}.bumptex = {matval["bump"]}\n"""
+    else:
+        res = ""
+    return res
+    # TODO
+    # snippet += """
+    # scene.materials.{n}.bumptex = {n}_bump
+    # scene.textures.{n}_bump.type = scale
+    # scene.textures.{n}_bump.texture1 = 0.01
+    # scene.textures.{n}_bump.texture2 = {t}
+    # """
+
+
+
 def _write_material_diffuse(name, material):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    submat = material.diffuse
-    textures_text = _write_textures(name, submat)
-    snippet = """
-    scene.materials.{n}.type = matte
-    scene.materials.{n}.kd = {c}
+    matval = MaterialValues(name, material)
+    textures_text = matval.write_textures()
+
+    material_text = f"""
+    scene.materials.{name}.type = matte
+    scene.materials.{name}.kd = {matval["color"]}
     """
-    if _has_bump(submat):
-        snippet += """scene.materials.{n}.bumptex = {t}\n"""
-        bumptex = _normals(submat.bump, name)
-    else:
-        bumptex = ""
-    material_text = snippet.format(n=name, c=_color(submat.color, name), t=bumptex)
-    return material_text + textures_text
+    bump_text = _write_bump(name, matval)
+    return material_text + bump_text + textures_text
 
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
-    textures_text = _write_textures(name, material.mixed)
+    print(material)
+    matval = MaterialValues(name, material)
+    textures_text = matval.write_textures()
+
     snippet_g = _write_material_glass(f"{name}_glass", material.mixed)
     snippet_d = _write_material_diffuse(f"{name}_diffuse", material.mixed)
-    snippet_m = """
-    scene.materials.{n}.type = mix
-    scene.materials.{n}.material1 = {n}_diffuse
-    scene.materials.{n}.material2 = {n}_glass
-    scene.materials.{n}.amount = {r}
+    snippet_m = f"""
+    scene.materials.{name}.type = mix
+    scene.materials.{name}.material1 = {name}_diffuse
+    scene.materials.{name}.material2 = {name}_glass
+    scene.materials.{name}.amount = {matval["transparency"]}
     """
-    snippet = snippet_g + snippet_d + snippet_m
-    material_text = snippet.format(
-        n=name, r=_float(material.mixed.transparency, name)
-    )
+    material_text = snippet_g + snippet_d + snippet_m
+    bump_text = _write_bump(name, matval)
 
-    return material_text + textures_text
+    return material_text + bump_text + textures_text
 
 
 def _write_material_carpaint(name, material):
     """Compute a string in the renderer SDL for a carpaint material."""
-    textures_text = _write_textures(name, material.carpaint)
-    snippet = """
-    scene.materials.{n}.type = carpaint
-    scene.materials.{n}.kd = {c}
+    matval = MaterialValues(name, material)
+    textures_text = matval.write_textures()
+
+    material_text = f"""
+    scene.materials.{name}.type = carpaint
+    scene.materials.{name}.kd = {matval["basecolor"]}
     """
-    material_text = snippet.format(
-        n=name, c=_color(material.carpaint.basecolor, name)
-    )
-    return material_text + textures_text
+    bump_text = _write_bump(name, matval)
+    return material_text + bump_text + textures_text
 
 
 def _write_material_fallback(name, material):
@@ -355,6 +374,87 @@ MATERIALS = {
 #                           Texture management
 # ===========================================================================
 
+
+class MaterialValues:
+    """Material values wrapper.
+
+    This wrapper implements 2 main methods:
+    - a `textures` method which provides a list of the embedded textures
+      expanded in SDL.
+    - a `__setitem__` which provides the computed value for a parameter:
+      either a sheer value or a reference to a texture, depending on the actual
+      underlying value.
+    """
+
+    # TODO Fix uvscale (inverse scaling?)
+    TEXSNIPPET = """
+    scene.textures.{n}.type = imagemap
+    scene.textures.{n}.file = "{f}"
+    scene.textures.{n}.gamma = {g}
+    scene.textures.{n}.mapping.type = uvmapping2d
+    scene.textures.{n}.mapping.rotation = {r}
+    scene.textures.{n}.mapping.uvscale = {su} {sv}
+    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+    """
+
+    def __init__(self, objname, material):
+        self.material = material
+        self.shader = material.shader
+        self._values = {}
+        self._textures = []
+
+        # Build values and textures
+        for propkey, propvalue in material.shaderproperties.items():
+            # Get property type
+            proptype = material.get_param_type(propkey)
+
+            # Is it a texture?
+            if hasattr(propvalue, "is_texture"):
+                # Compute texture name
+                texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
+                # Compute gamma
+                gamma = 2.2 if proptype == "RGB" else 1.0
+                # Expand texture into SDL
+                texture = self.TEXSNIPPET.format(
+                    n=texname,
+                    f=propvalue.file,
+                    r=float(propvalue.rotation),
+                    su=float(propvalue.scale_u),
+                    sv=float(propvalue.scale_v),
+                    tu=float(propvalue.translation_u),
+                    tv=float(propvalue.translation_v),
+                    g=gamma,
+                )
+                # Add texture SDL to internal list of textures
+                self._textures.append(texture)
+                value = texname
+            else:  # Not a texture...
+                # Find property type
+                if proptype == "RGB":
+                    value = f"{propvalue.r} {propvalue.g} {propvalue.b}"
+                elif proptype == "float":
+                    value = f"{float(value)}"
+                elif proptype == "node":
+                    value = None
+                else:
+                    # Fallback: string
+                    value = str(propvalue)
+            # Store resulting value
+            self._values[propkey] = value
+
+    def textures(self):
+        return self._textures
+
+    def write_textures(self):
+        return "\n".join(self._textures)
+
+    def __getitem__(self, propname):
+        return self._values[propname]
+
+    def has_bump(self):
+        return "bump" in self._values
+
+# TODO Remove:
 
 def _write_textures(name, submaterial):
     """Compute textures string for a given submaterial."""

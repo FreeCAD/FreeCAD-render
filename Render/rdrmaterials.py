@@ -213,8 +213,9 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 RendererTexture = namedtuple(
     "RendererTexture",
-    "name subname file rotation scale_u scale_v translation_u translation_v",
+    "name subname file rotation scale_u scale_v translation_u translation_v is_texture",
 )
+RendererTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
 
 
 def _castrgb(*args):
@@ -558,26 +559,44 @@ class RenderMaterial:
         self.shadertype = shadertype
         setattr(self, shadertype.lower(), types.SimpleNamespace())
         self.default_color = RGBA(0.8, 0.8, 0.8, 1.0)
+        self._partypes = {}  # Record parameter types
 
     def __repr__(self):
         """Represent object."""
         items = (f"{k}={v!r}" for k, v in self.__dict__.items())
         return f"{type(self).__name__}({', '.join(items)})"
 
-    def setshaderparam(self, name, value):
+    def setshaderparam(self, name, value, paramtype=None):
         """Set shader parameter.
+
+        Args:
+            name -- The parameter's name
+            value -- The value to give to this parameter
+            paramtype -- The parameter type, to be recorded (should be the same
+                as in STD_MATERIALS_PARAMETERS)
 
         If parameter does not exist, add it.
         If parameter name is a compound like 'foo.bar.baz', foo and bar are
         added as SimpleNamespaces.
         """
+        # Break down parameter path
         path = [e.lower() for e in [self.shadertype] + name.split(".")]
-        res = self
-        for elem in path[:-1]:
-            if not hasattr(res, elem):
-                setattr(res, elem, types.SimpleNamespace())
-            res = getattr(res, elem)
-        setattr(res, path[-1], value)
+
+        # Find parameter position (and create sub-namespaces if necessary)
+        pos = self
+        for elem in path[:-1]:  # Except last subname
+            if not hasattr(pos, elem):
+                setattr(pos, elem, types.SimpleNamespace())
+                self._partypes[elem] = "node"
+                setattr(pos, "shader", elem)
+                self._partypes["shader"] = "str"
+            pos = getattr(pos, elem)
+
+        # Set parameter value
+        setattr(pos, path[-1], value)
+
+        # Record parameter type
+        self._partypes[path[-1]] = paramtype
 
     def getshaderparam(self, name):
         """Get shader parameter.
@@ -594,9 +613,24 @@ class RenderMaterial:
         return res
 
     @property
+    def shadername(self):
+        """Get shader name."""
+        return self.shadertype.lower()
+
+    @property
     def shader(self):
         """Get shader attribute, whatever underlying attribute it is."""
-        return getattr(self, self.shadertype.lower())
+        return getattr(self, self.shadername)
+
+    @property
+    def shaderproperties(self):
+        """Get shader's properties, as a dictionary."""
+        return self.shader.__dict__
+
+    def get_param_type(self, param_name):
+        """Get parameter type."""
+        return self._partypes[param_name]
+
 
 
 @functools.lru_cache(maxsize=128)
@@ -610,7 +644,7 @@ def _build_standard(shadertype, values):
             value = cast_function(val, objcol)
         except TypeError:
             value = cast_function(str(dft), objcol)
-        res.setshaderparam(nam, value)
+        res.setshaderparam(nam, value, typ)
 
     # Add a default_color, for fallback mechanisms in renderers.
     # By convention, the default color must be in the first parameter of the
