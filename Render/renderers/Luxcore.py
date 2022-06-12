@@ -315,8 +315,8 @@ def _write_material_mixed(name, material):
     matval = MaterialValues(name, material)
     textures_text = matval.write_textures()
 
-    snippet_g = _write_material_glass(f"{name}_glass", material.mixed)
-    snippet_d = _write_material_diffuse(f"{name}_diffuse", material.mixed)
+    snippet_g = _write_material_glass(f"{name}_glass", material.getmixedsubmat("glass"))
+    snippet_d = _write_material_diffuse(f"{name}_diffuse", material.getmixedsubmat("diffuse"))
     snippet_m = f"""
     scene.materials.{name}.type = mix
     scene.materials.{name}.material1 = {name}_diffuse

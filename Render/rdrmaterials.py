@@ -598,6 +598,19 @@ class RenderMaterial:
         # Record parameter type
         self._partypes[path[-1]] = paramtype
 
+    def getmixedsubmat(self, subname, nodename="mixed"):
+        res = RenderMaterial(subname)  # Resulting RenderMat to be returned
+        # Copy submat into result
+        node = getattr(self, nodename)
+        submatsrc = getattr(node, subname)
+        setattr(res, subname, submatsrc)  # TODO copy? (with module copy)
+
+        # Initialize _partypes
+        res._partypes = self._partypes
+
+        return res
+
+
     def getshaderparam(self, name):
         """Get shader parameter.
 
