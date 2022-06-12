@@ -65,7 +65,7 @@ SCALE = 0.001
 
 
 @enum.unique
-class RenderingTypes(enum.Enum):
+class RenderingTypes(enum.IntEnum):
     """Enumeration of handled rendering types."""
 
     OBJECT = 0
@@ -244,6 +244,7 @@ class RendererHandler:
             # If this is a renderable object of Render WB, it appoints a
             # rendering method
             rendering_type = view.Source.Proxy.RENDERING_TYPE
+            rendering_type = RenderingTypes(rendering_type)
             method = self.switcher[rendering_type]
         except AttributeError:
             pass
