@@ -311,7 +311,6 @@ def _write_material_diffuse(name, material):
 
 def _write_material_mixed(name, material):
     """Compute a string in the renderer SDL for a Mixed material."""
-    print(material)
     matval = MaterialValues(name, material)
     textures_text = matval.write_textures()
 
@@ -433,7 +432,7 @@ class MaterialValues:
                 if proptype == "RGB":
                     value = f"{propvalue.r} {propvalue.g} {propvalue.b}"
                 elif proptype == "float":
-                    value = f"{float(value)}"
+                    value = f"{float(propvalue)}"
                 elif proptype == "node":
                     value = None
                 else:
