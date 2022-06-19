@@ -227,36 +227,25 @@ def _write_material_glass(name, material):
 
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
-    textures_text = _write_textures(name, material.disney)
-    snippet = """
-    scene.materials.{0}.type = disney
-    scene.materials.{0}.basecolor = {1}
-    scene.materials.{0}.subsurface = {2}
-    scene.materials.{0}.metallic = {3}
-    scene.materials.{0}.specular = {4}
-    scene.materials.{0}.speculartint = {5}
-    scene.materials.{0}.roughness = {6}
-    scene.materials.{0}.anisotropic = {7}
-    scene.materials.{0}.sheen = {8}
-    scene.materials.{0}.sheentint = {9}
-    scene.materials.{0}.clearcoat = {10}
-    scene.materials.{0}.clearcoatgloss = {11}
+    matval = MaterialValues(name, material)
+    textures_text = matval.write_textures()
+
+    material_text = f"""
+    scene.materials.{name}.type = disney
+    scene.materials.{name}.basecolor = {matval["basecolor"]}
+    scene.materials.{name}.subsurface = {matval["subsurface"]}
+    scene.materials.{name}.metallic = {matval["metallic"]}
+    scene.materials.{name}.specular = {matval["specular"]}
+    scene.materials.{name}.speculartint = {matval["speculartint"]}
+    scene.materials.{name}.roughness = {matval["roughness"]}
+    scene.materials.{name}.anisotropic = {matval["anisotropic"]}
+    scene.materials.{name}.sheen = {matval["sheen"]}
+    scene.materials.{name}.sheentint = {matval["sheentint"]}
+    scene.materials.{name}.clearcoat = {matval["clearcoat"]}
+    scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
     """
-    material_text = snippet.format(
-        name,
-        _color(material.disney.basecolor, name),
-        _float(material.disney.subsurface, name),
-        _float(material.disney.metallic, name),
-        _float(material.disney.specular, name),
-        _float(material.disney.speculartint, name),
-        _float(material.disney.roughness, name),
-        _float(material.disney.anisotropic, name),
-        _float(material.disney.sheen, name),
-        _float(material.disney.sheentint, name),
-        _float(material.disney.clearcoat, name),
-        _float(material.disney.clearcoatgloss, name),
-    )
-    return material_text + textures_text
+    bump_text = _write_bump(name, matval)
+    return material_text + bump_text + textures_text
 
 
 # TODO Relocate
