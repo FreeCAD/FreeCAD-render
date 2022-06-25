@@ -204,9 +204,10 @@ def _write_material(name, material):
 
 def _write_material_passthrough(name, material):
     """Compute a string in the renderer SDL for a passthrough material."""
-    assert material.passthrough.renderer == "Luxcore"
-    snippet = indent(material.passthrough.string, "    ")
-    return snippet.format(n=name, c=material.default_color)
+    matval = MaterialValues(name, material)
+    textures_text = matval.write_textures()
+    snippet = indent(matval["string"], "    ")
+    return snippet.format(n=name, c=matval.default_color())
 
 
 def _write_material_glass(name, material):
@@ -422,6 +423,8 @@ class MaterialValues:
                     value = f"{float(propvalue)}"
                 elif proptype == "node":
                     value = None
+                elif proptype == "RGBA":
+                    value = f"{propvalue.r} {propvalue.g} {propvalue.b} {propvalue.a}"
                 else:
                     # Fallback: string
                     value = str(propvalue)
@@ -439,6 +442,9 @@ class MaterialValues:
 
     def has_bump(self):
         return "bump" in self._values
+
+    def default_color(self):
+        return self.material.default_color
 
 # TODO Remove:
 

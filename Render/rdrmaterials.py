@@ -674,6 +674,9 @@ def _build_passthrough(lines, renderer, default_color):
     res.shader.string = _convert_passthru("\n".join(lines))
     res.shader.renderer = renderer
     res.default_color = default_color
+    res._partypes["string"] = "str"
+    res._partypes["renderer"] = "str"
+    res._partypes["default_color"] = "RGBA"
     return res
 
 
