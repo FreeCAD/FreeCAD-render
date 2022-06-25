@@ -211,18 +211,16 @@ def _write_material_passthrough(name, material):
 
 def _write_material_glass(name, material):
     """Compute a string in the renderer SDL for a glass material."""
-    textures_text = _write_textures(name, material.glass)
-    snippet = """
-    scene.materials.{n}.type = glass
-    scene.materials.{n}.kt = {c}
-    scene.materials.{n}.interiorior = {i}
+    matval = MaterialValues(name, material)
+    textures_text = matval.write_textures()
+
+    material_text = f"""
+    scene.materials.{name}.type = glass
+    scene.materials.{name}.kt = {matval["color"]}
+    scene.materials.{name}.interiorior = {matval["ior"]}
     """
-    material_text = snippet.format(
-        n=name,
-        c=_color(material.glass.color, name),
-        i=_float(material.glass.ior, name),
-    )
-    return material_text + textures_text
+    bump_text = _write_bump(name, matval)
+    return material_text + bump_text + textures_text
 
 
 def _write_material_disney(name, material):
