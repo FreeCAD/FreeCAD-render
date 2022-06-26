@@ -345,6 +345,19 @@ class MaterialValues:
     scene.textures.{n}.mapping.uvdelta = {tu} {tv}
     """
 
+    BUMPTEXSNIPPET = """
+    scene.textures.{n}_bump.type = imagemap
+    scene.textures.{n}_bump.file = "{f}"
+    scene.textures.{n}_bump.gamma = {g}
+    scene.textures.{n}_bump.mapping.type = uvmapping2d
+    scene.textures.{n}_bump.mapping.rotation = {r}
+    scene.textures.{n}_bump.mapping.uvscale = {su} {sv}
+    scene.textures.{n}_bump.mapping.uvdelta = {tu} {tv}
+    scene.textures.{n}.type = scale
+    scene.textures.{n}.texture1 = 0.01
+    scene.textures.{n}.texture2 = {n}_bump
+    """
+
     # Snippets for values
     VALSNIPPETS = {
         "RGB": "{val.r} {val.g} {val.b}",
@@ -373,7 +386,8 @@ class MaterialValues:
                 # Compute gamma
                 gamma = 2.2 if proptype == "RGB" else 1.0
                 # Expand texture into SDL
-                texture = self.TEXSNIPPET.format(
+                snippet = self.TEXSNIPPET if propkey != "bump" else self.BUMPTEXSNIPPET
+                texture = snippet.format(
                     n=texname,
                     f=propvalue.file,
                     r=float(propvalue.rotation),
