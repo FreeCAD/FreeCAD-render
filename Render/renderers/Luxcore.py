@@ -247,43 +247,6 @@ def _write_material_disney(name, material):
     return material_text + bump_text + textures_text
 
 
-# TODO Relocate
-def _has_bump(submat):
-    """Check whether submat has normals information."""
-    return hasattr(submat, "bump") and submat.bump
-
-
-# TODO Relocate
-def _texonly(value, material_name):
-    """Write texture only value in a material."""
-    # Texture
-    try:
-        res = f"{material_name}_{value.name}_{value.subname}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # No match - raise exception
-    raise ValueError
-
-def _write_bump(name, matval):
-    """Compute a string in the renderer SDL for bump statement."""
-    if matval.has_bump():
-        # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
-        res = f"""scene.materials.{name}.bumptex = {matval["bump"]}\n"""
-    else:
-        res = ""
-    return res
-    # TODO
-    # snippet += """
-    # scene.materials.{n}.bumptex = {n}_bump
-    # scene.textures.{n}_bump.type = scale
-    # scene.textures.{n}_bump.texture1 = 0.01
-    # scene.textures.{n}_bump.texture2 = {t}
-    # """
-
-
-
 def _write_material_diffuse(name, material):
     """Compute a string in the renderer SDL for a Diffuse material."""
     matval = MaterialValues(name, material)
@@ -302,8 +265,12 @@ def _write_material_mixed(name, material):
     matval = MaterialValues(name, material)
     textures_text = matval.write_textures()
 
-    snippet_g = _write_material_glass(f"{name}_glass", material.getmixedsubmat("glass"))
-    snippet_d = _write_material_diffuse(f"{name}_diffuse", material.getmixedsubmat("diffuse"))
+    snippet_g = _write_material_glass(
+        f"{name}_glass", material.getmixedsubmat("glass")
+    )
+    snippet_d = _write_material_diffuse(
+        f"{name}_diffuse", material.getmixedsubmat("diffuse")
+    )
     snippet_m = f"""
     scene.materials.{name}.type = mix
     scene.materials.{name}.material1 = {name}_diffuse
@@ -348,6 +315,16 @@ def _write_material_fallback(name, material):
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
+def _write_bump(name, matval):
+    """Compute a string in the renderer SDL for bump statement."""
+    if matval.has_bump():
+        # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
+        res = f"""scene.materials.{name}.bumptex = {matval["bump"]}\n"""
+    else:
+        res = ""
+    return res
+
+
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
     "Glass": _write_material_glass,
@@ -373,6 +350,7 @@ class MaterialValues:
       underlying value.
     """
 
+    # Snippet for texture
     # TODO Fix uvscale (inverse scaling?)
     TEXSNIPPET = """
     scene.textures.{n}.type = imagemap
@@ -384,7 +362,16 @@ class MaterialValues:
     scene.textures.{n}.mapping.uvdelta = {tu} {tv}
     """
 
+    # Snippets for values
+    VALSNIPPETS = {
+        "RGB": "{val.r} {val.g} {val.b}",
+        "float": "{val}",
+        "node": None,
+        "RGBA": "{val.r} {val.g} {val.b} {val.a}",
+    }
+
     def __init__(self, objname, material):
+        """Initialize object."""
         self.material = material
         self.shader = material.shader
         self._values = {}
@@ -415,109 +402,35 @@ class MaterialValues:
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
                 value = texname
-            else:  # Not a texture...
-                # Find property type
-                if proptype == "RGB":
-                    value = f"{propvalue.r} {propvalue.g} {propvalue.b}"
-                elif proptype == "float":
-                    value = f"{float(propvalue)}"
-                elif proptype == "node":
-                    value = None
-                elif proptype == "RGBA":
-                    value = f"{propvalue.r} {propvalue.g} {propvalue.b} {propvalue.a}"
-                else:
-                    # Fallback: string
+            else:  # Not a texture, must be a plain value...
+                try:
+                    snippet = self.VALSNIPPETS[proptype]
+                except KeyError:
                     value = str(propvalue)
+                else:
+                    value = snippet.format(val=propvalue)
             # Store resulting value
             self._values[propkey] = value
 
     def textures(self):
+        """Get a list of material's textures."""
         return self._textures
 
     def write_textures(self):
+        """Get an SDL representation of all textures."""
         return "\n".join(self._textures)
 
     def __getitem__(self, propname):
+        """Implement self[propname]."""
         return self._values[propname]
 
     def has_bump(self):
+        """Check if material has a bump texture (boolean)."""
         return "bump" in self._values
 
     def default_color(self):
+        """Get material default color."""
         return self.material.default_color
-
-# TODO Remove:
-
-def _write_textures(name, submaterial):
-    """Compute textures string for a given submaterial."""
-    # TODO Fix uvscale (inverse scaling?)
-    snippet = """
-    scene.textures.{n}.type = imagemap
-    scene.textures.{n}.file = "{f}"
-    scene.textures.{n}.gamma = 1.0
-    scene.textures.{n}.mapping.type = uvmapping2d
-    scene.textures.{n}.mapping.rotation = {r}
-    scene.textures.{n}.mapping.uvscale = {su} {sv}
-    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
-    """
-    textures = []
-    for value in submaterial.__dict__.values():
-        try:
-            texname = f"{name}_{value.name}_{value.subname}"
-            texture = snippet.format(
-                n=texname,
-                f=value.file,
-                r=float(value.rotation),
-                su=float(value.scale_u),
-                sv=float(value.scale_v),
-                tu=float(value.translation_u),
-                tv=float(value.translation_v),
-            )
-        except AttributeError:
-            pass
-        else:
-            textures.append(texture)
-    return "\n".join(textures)
-
-
-def _color(value, material_name):
-    """Write a color in a material, with texture support."""
-    # Plain color
-    try:
-        res = f"{value.r} {value.g} {value.b}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # Texture
-    try:
-        res = f"{material_name}_{value.name}_{value.subname}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # No match - raise exception
-    raise ValueError
-
-
-def _float(value, material_name):
-    """Write a float in a material, with texture support."""
-    # Plain float
-    try:
-        res = f"{float(value)}"
-    except (ValueError, TypeError):
-        pass
-    else:
-        return res
-    # Texture
-    try:
-        res = f"{material_name}_{value.name}_{value.subname}"
-    except AttributeError:
-        pass
-    else:
-        return res
-    # No match - raise exception
-    raise ValueError
 
 
 # ===========================================================================
