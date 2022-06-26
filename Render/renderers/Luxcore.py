@@ -41,8 +41,11 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
-    # Material
-    snippet_mat = _write_material(name, material)
+    # Material (including textures and bump)
+    materialvalues = MaterialValues(name, material)
+    snippet_tex = materialvalues.write_textures()
+    snippet_bump = _write_bump(name, materialvalues)
+    snippet_mat = _write_material(name, materialvalues)
 
     # Core
     topology = mesh.Topology  # Compute once
@@ -70,7 +73,9 @@ def write_mesh(name, mesh, material):
         snippet_uv = ""
 
     # Consolidation
-    snippet = snippet_obj + snippet_uv + snippet_mat
+    snippet = (
+        snippet_obj + snippet_uv + snippet_mat + snippet_bump + snippet_tex
+    )
     return dedent(snippet)
 
 
@@ -202,34 +207,24 @@ def _write_material(name, material):
     return snippet_mat
 
 
-def _write_material_passthrough(name, material):
+def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    matval = MaterialValues(name, material)
-    textures_text = matval.write_textures()
     snippet = indent(matval["string"], "    ")
-    return snippet.format(n=name, c=matval.default_color())
+    return snippet.format(n=name, c=matval.default_color)
 
 
-def _write_material_glass(name, material):
+def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
-    matval = MaterialValues(name, material)
-    textures_text = matval.write_textures()
-
-    material_text = f"""
+    return f"""
     scene.materials.{name}.type = glass
     scene.materials.{name}.kt = {matval["color"]}
     scene.materials.{name}.interiorior = {matval["ior"]}
     """
-    bump_text = _write_bump(name, matval)
-    return material_text + bump_text + textures_text
 
 
-def _write_material_disney(name, material):
+def _write_material_disney(name, matval):
     """Compute a string in the renderer SDL for a Disney material."""
-    matval = MaterialValues(name, material)
-    textures_text = matval.write_textures()
-
-    material_text = f"""
+    return f"""
     scene.materials.{name}.type = disney
     scene.materials.{name}.basecolor = {matval["basecolor"]}
     scene.materials.{name}.subsurface = {matval["subsurface"]}
@@ -243,57 +238,44 @@ def _write_material_disney(name, material):
     scene.materials.{name}.clearcoat = {matval["clearcoat"]}
     scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
     """
-    bump_text = _write_bump(name, matval)
-    return material_text + bump_text + textures_text
 
 
-def _write_material_diffuse(name, material):
+def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    matval = MaterialValues(name, material)
-    textures_text = matval.write_textures()
-
-    material_text = f"""
+    return f"""
     scene.materials.{name}.type = matte
     scene.materials.{name}.kd = {matval["color"]}
     """
-    bump_text = _write_bump(name, matval)
-    return material_text + bump_text + textures_text
 
 
-def _write_material_mixed(name, material):
+def _write_material_mixed(name, matval):
     """Compute a string in the renderer SDL for a Mixed material."""
-    matval = MaterialValues(name, material)
-    textures_text = matval.write_textures()
+    # Glass
+    submat_g = matval.getmixedsubmat("glass")
+    snippet_g = _write_material_glass(f"{name}_glass", submat_g)
+    snippet_g_tex = submat_g.write_textures()
 
-    snippet_g = _write_material_glass(
-        f"{name}_glass", material.getmixedsubmat("glass")
-    )
-    snippet_d = _write_material_diffuse(
-        f"{name}_diffuse", material.getmixedsubmat("diffuse")
-    )
+    # Diffuse
+    submat_d = matval.getmixedsubmat("diffuse")
+    snippet_d = _write_material_diffuse(f"{name}_diffuse", submat_d)
+    snippet_d_tex = submat_d.write_textures()
+
+    # Mix
     snippet_m = f"""
     scene.materials.{name}.type = mix
     scene.materials.{name}.material1 = {name}_diffuse
     scene.materials.{name}.material2 = {name}_glass
     scene.materials.{name}.amount = {matval["transparency"]}
     """
-    material_text = snippet_g + snippet_d + snippet_m
-    bump_text = _write_bump(name, matval)
-
-    return material_text + bump_text + textures_text
+    return snippet_g + snippet_d + snippet_g_tex + snippet_d_tex + snippet_m
 
 
-def _write_material_carpaint(name, material):
+def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
-    matval = MaterialValues(name, material)
-    textures_text = matval.write_textures()
-
-    material_text = f"""
+    return f"""
     scene.materials.{name}.type = carpaint
     scene.materials.{name}.kd = {matval["basecolor"]}
     """
-    bump_text = _write_bump(name, matval)
-    return material_text + bump_text + textures_text
 
 
 def _write_material_fallback(name, material):
@@ -317,6 +299,7 @@ def _write_material_fallback(name, material):
 
 def _write_bump(name, matval):
     """Compute a string in the renderer SDL for bump statement."""
+    # TODO add amplitude (see bump.scn)
     if matval.has_bump():
         # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
         res = f"""scene.materials.{name}.bumptex = {matval["bump"]}\n"""
@@ -374,6 +357,7 @@ class MaterialValues:
         """Initialize object."""
         self.material = material
         self.shader = material.shader
+        self.objname = str(objname)
         self._values = {}
         self._textures = []
 
@@ -408,7 +392,7 @@ class MaterialValues:
                 except KeyError:
                     value = str(propvalue)
                 else:
-                    value = snippet.format(val=propvalue)
+                    value = snippet.format(val=propvalue) if snippet else ""
             # Store resulting value
             self._values[propkey] = value
 
@@ -428,9 +412,21 @@ class MaterialValues:
         """Check if material has a bump texture (boolean)."""
         return "bump" in self._values
 
+    @property
     def default_color(self):
         """Get material default color."""
         return self.material.default_color
+
+    @property
+    def shadertype(self):
+        """Get material default color."""
+        return self.material.shadertype
+
+    def getmixedsubmat(self, submat):
+        """Get mixed submaterial."""
+        return MaterialValues(
+            self.objname, self.material.getmixedsubmat(submat)
+        )
 
 
 # ===========================================================================
