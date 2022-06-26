@@ -655,10 +655,14 @@ class ViewProviderProject(ViewProviderBase):
         This method calls proxy's 'render' method.
         """
         try:
-            self.fpo.Proxy.render()
+            render_method = self.fpo.Proxy.render
         except AttributeError as err:
             msg = translate("Render", "[Render] Cannot render: {e}") + "\n"
             App.Console.PrintError(msg.format(e=err))
+            return
+
+        try:
+            render_method()
         except RenderingError as err:
             App.Console.PrintError(err.message + "\n")
 
