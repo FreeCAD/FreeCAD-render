@@ -107,34 +107,26 @@ def write_camera(name, pos, updir, target, fov):
     # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
     # in osp coords.
     # Nota: presently (02-19-2021), fov is not managed by osp importer...
+    # TODO Add fov
     snippet = """
   "camera": {{
     "name": {n},
-    "centerTranslation": {{
-      "affine": [0.0, 0.0, 0.0],
-      "linear": {{
-        "x": [1.0, 0.0, 0.0],
-        "y": [0.0, 1.0, 0.0],
-        "z": [0.0, 0.0, 1.0]
-      }}
-    }},
-    "rotation": {{"i": {r[0]}, "j": {r[1]}, "k": {r[2]}, "r": {r[3]}}},
-    "translation": {{
+    "cameraToWorld": {{
       "affine": [{p.x}, {p.y}, {p.z}],
       "linear": {{
-        "x": [1.0, 0.0, 0.0],
-        "y": [0.0, 1.0, 0.0],
-        "z": [0.0, 0.0, 1.0]
+        "x": [{m.A11}, {m.A21}, {m.A31}],
+        "y": [{m.A12}, {m.A22}, {m.A32}],
+        "z": [{m.A13}, {m.A23}, {m.A33}]
       }}
     }}
   }},"""
-
     # Final placement in osp = reciprocal(translation*rot*centerTranslation)
     # (see ArcballCamera::setState method in sources)
     plc = TRANSFORM.multiply(pos)
-    plc = plc.inverse()
 
-    return snippet.format(n=json.dumps(name), p=plc.Base, r=plc.Rotation.Q)
+    return snippet.format(
+        n=json.dumps(name), p=plc.Base, m=plc.Rotation.toMatrix()
+    )
 
 
 def write_pointlight(name, pos, color, power):
@@ -266,7 +258,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     # We'll compute elevation and azimuth accordingly...
 
     _dir = TRANSFORM.multVec(App.Vector(direction))
-    elevation = asin(_dir.y / sqrt(_dir.x ** 2 + _dir.y ** 2 + _dir.z ** 2))
+    elevation = asin(_dir.y / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
     azimuth = atan2(_dir.x, _dir.z)
     snippet = """
       {{
