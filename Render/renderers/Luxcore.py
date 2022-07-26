@@ -364,6 +364,7 @@ class MaterialValues:
         "float": "{val}",
         "node": None,
         "RGBA": "{val.r} {val.g} {val.b} {val.a}",
+        "texonly": "{val}",
     }
 
     def __init__(self, objname, material):
@@ -376,6 +377,10 @@ class MaterialValues:
 
         # Build values and textures
         for propkey, propvalue in material.shaderproperties.items():
+            # None value: not handled, continue
+            if propvalue is None:
+                continue
+
             # Get property type
             proptype = material.get_param_type(propkey)
 
@@ -386,7 +391,11 @@ class MaterialValues:
                 # Compute gamma
                 gamma = 2.2 if proptype == "RGB" else 1.0
                 # Expand texture into SDL
-                snippet = self.TEXSNIPPET if propkey != "bump" else self.BUMPTEXSNIPPET
+                snippet = (
+                    self.TEXSNIPPET
+                    if propkey != "bump"
+                    else self.BUMPTEXSNIPPET
+                )
                 texture = snippet.format(
                     n=texname,
                     f=propvalue.file,
@@ -401,12 +410,9 @@ class MaterialValues:
                 self._textures.append(texture)
                 value = texname
             else:  # Not a texture, must be a plain value...
-                try:
-                    snippet = self.VALSNIPPETS[proptype]
-                except KeyError:
-                    value = str(propvalue)
-                else:
-                    value = snippet.format(val=propvalue) if snippet else ""
+                snippet = self.VALSNIPPETS[proptype]
+                value = snippet.format(val=propvalue) if snippet else ""
+
             # Store resulting value
             self._values[propkey] = value
 
@@ -424,7 +430,7 @@ class MaterialValues:
 
     def has_bump(self):
         """Check if material has a bump texture (boolean)."""
-        return "bump" in self._values
+        return ("bump" in self._values) and (self._values["bump"] is not None)
 
     @property
     def default_color(self):

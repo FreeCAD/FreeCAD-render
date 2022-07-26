@@ -324,9 +324,9 @@ def _casttexonly(*args):
     Returns:
         The cast string value.
     """
-    value = str(args[0])
+    value = args[0]
 
-    parsed = parse_csv_str(value)
+    parsed = parse_csv_str(str(value))
 
     if "Texture" in parsed:
         # Build RendererTexture
@@ -610,7 +610,6 @@ class RenderMaterial:
 
         return res
 
-
     def getshaderparam(self, name):
         """Get shader parameter.
 
@@ -645,7 +644,6 @@ class RenderMaterial:
         return self._partypes[param_name]
 
 
-
 @functools.lru_cache(maxsize=128)
 def _build_standard(shadertype, values):
     """Build standard material."""
@@ -656,7 +654,7 @@ def _build_standard(shadertype, values):
         try:
             value = cast_function(val, objcol)
         except TypeError:
-            value = cast_function(str(dft), objcol)
+            value = cast_function(dft, objcol)
         res.setshaderparam(nam, value, typ)
 
     # Add a default_color, for fallback mechanisms in renderers.
