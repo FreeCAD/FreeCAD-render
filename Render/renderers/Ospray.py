@@ -249,7 +249,7 @@ f 1//1 2//1 3//1 4//1
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    # We make angle calculations in ocp's coordinates system
+    # We make angle calculations in osp's coordinates system
     # By default, Up is (0,1,0), Right is (1,0,0), and:
     #  - North (0°) is z (0, 0, 1)
     #  - East (90°) is x (1, 0, 0)
@@ -287,7 +287,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "sgOnly": false,
                 "subType": "float",
                 "type": "PARAMETER",
-                "value": 1.0
+                "value": 0.05
               }},
               {{
                 "description": "color of the light",
@@ -311,7 +311,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "sgOnly": false,
                 "subType": "vec3f",
                 "type": "PARAMETER",
-                "value": [0,1,0]
+                "value": [0.0, 1.0, 0.0]
               }},
               {{
                 "description": "Right direction",
@@ -319,7 +319,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
                 "sgOnly": true,
                 "subType": "vec3f",
                 "type": "PARAMETER",
-                "value": [1,0,0]
+                "value": [1.0, 0.0, 0.0]
               }},
               {{
                 "description": "Angle to horizon",
