@@ -732,7 +732,6 @@ class MaterialSettingsTaskPanel:
             # Set fields
             for field in self.fields:
                 field_name, get_value = field
-                print(field_name)  # TODO
                 param_name = f"Render.{render_type}.{field_name}"
                 tmp_mat[param_name] = str(get_value())
 

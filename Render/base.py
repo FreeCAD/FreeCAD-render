@@ -678,7 +678,7 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
                 msg = (
                     translate(
                         "Render",
-                        "[Point at] Target outside geometry " "-- Aborting",
+                        "[Point at] Target outside geometry -- Aborting",
                     )
                     + "\n"
                 )
@@ -689,7 +689,7 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
                 msg = (
                     translate(
                         "Render",
-                        "[Point at] Now pointing at " "({0.x}, {0.y}, {0.z})",
+                        "[Point at] Now pointing at ({0.x}, {0.y}, {0.z})",
                     )
                     + "\n"
                 )

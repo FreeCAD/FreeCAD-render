@@ -213,7 +213,17 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 RendererTexture = namedtuple(
     "RendererTexture",
-    "name subname file rotation scale_u scale_v translation_u translation_v is_texture",
+    [
+        "name",
+        "subname",
+        "file",
+        "rotation",
+        "scale_u",
+        "scale_v",
+        "translation_u",
+        "translation_v",
+        "is_texture",
+    ],
 )
 RendererTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
 
@@ -599,14 +609,15 @@ class RenderMaterial:
         self._partypes[path[-1]] = paramtype
 
     def getmixedsubmat(self, subname, nodename="mixed"):
+        """Build a RenderMaterial from a mixed submaterial."""
         res = RenderMaterial(subname)  # Resulting RenderMat to be returned
         # Copy submat into result
         node = getattr(self, nodename)
         submatsrc = getattr(node, subname)
-        setattr(res, subname, submatsrc)  # TODO copy? (with module copy)
+        setattr(res, subname, submatsrc)
 
         # Initialize _partypes
-        res._partypes = self._partypes
+        res._partypes = self._partypes  # pylint: disable=protected-access
 
         return res
 
@@ -672,6 +683,7 @@ def _build_passthrough(lines, renderer, default_color):
     res.shader.string = _convert_passthru("\n".join(lines))
     res.shader.renderer = renderer
     res.default_color = default_color
+    # pylint: disable=protected-access
     res._partypes["string"] = "str"
     res._partypes["renderer"] = "str"
     res._partypes["default_color"] = "RGBA"
@@ -780,7 +792,7 @@ def printmat(fcdmat):
     print("\n".join(lines))
 
 
-def _clear():
+def clear():
     """Clear functions caches (debug purpose)."""
     _build_fallback.cache_clear()
     _build_passthrough.cache_clear()
@@ -789,4 +801,4 @@ def _clear():
 
 
 # Clear cache when reload module (debug)
-_clear()
+clear()

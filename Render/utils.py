@@ -141,7 +141,7 @@ def reload(module_name=None):
     # Clear materials cache
     print("Clear material cache")
     rdrmaterials = importlib.import_module("Render.rdrmaterials")
-    rdrmaterials._clear()
+    rdrmaterials.clear()
 
 
 def set_dryrun(state):

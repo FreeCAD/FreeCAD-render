@@ -168,7 +168,7 @@ class ViewProviderTexture(ViewProviderBase):
             title = translate("Render", "Unallowed Image Removal")
             msg = translate(
                 "Render",
-                "Unallowed removal: " "not enough images in texture (<2)!\n",
+                "Unallowed removal: not enough images in texture (<2)!\n",
             )
             msg2 = translate(
                 "Render",

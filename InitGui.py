@@ -97,7 +97,7 @@ static char * Render_xpm[] = {
         This method is called by FreeCAD framework when the workbench is first
         loaded.
         """
-        # pylint: disable=no-self-use, import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from FreeCAD import Console
         from FreeCADGui import addIconPath, addPreferencePage, addLanguagePath

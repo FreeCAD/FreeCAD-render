@@ -195,7 +195,7 @@ class CameraCommand:
             "MenuText": QT_TRANSLATE_NOOP("CameraCommand", "Camera"),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "CameraCommand",
-                "Create a Camera object from " "the current camera position",
+                "Create a Camera object from the current camera position",
             ),
         }
 
@@ -346,7 +346,7 @@ class MaterialRenderSettingsCommand:
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialRenderSettingsCommand",
-                "Edit rendering parameters of " "the selected Material",
+                "Edit rendering parameters of the selected Material",
             ),
         }
 
@@ -392,7 +392,7 @@ class MaterialApplierCommand:
             title = translate("Render", "Empty Selection")
             msg = translate(
                 "Render",
-                "Please select object(s) before applying " "material.",
+                "Please select object(s) before applying material.",
             )
             QMessageBox.warning(None, title, msg)
             return

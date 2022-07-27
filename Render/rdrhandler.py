@@ -303,7 +303,7 @@ class RendererHandler:
         scalemat = App.Matrix()
         scalemat.scale(SCALE, SCALE, SCALE)
         mesh.transform(scalemat)
-        mesh.Placement.Base.multiply(SCALE)  # pylint: disable=no-member
+        mesh.Placement.Base.multiply(SCALE)
 
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 

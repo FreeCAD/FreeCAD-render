@@ -142,7 +142,6 @@ class RendererExecutorGui(QObject):
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
-        # pylint: disable=no-member
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
@@ -162,7 +161,7 @@ class RendererExecutorGui(QObject):
         should not be of much use in GUI context.
         """
         loop = QEventLoop()
-        self.thread.finished.connect(loop.quit)  # pylint: disable=no-member
+        self.thread.finished.connect(loop.quit)
         if not self.thread.isFinished():
             loop.exec_(flags=QEventLoop.ExcludeUserInputEvents)
 
