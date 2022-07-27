@@ -107,7 +107,6 @@ def write_camera(name, pos, updir, target, fov):
     # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
     # in osp coords.
     # Nota: presently (02-19-2021), fov is not managed by osp importer...
-    # TODO Add fov
     snippet = """
   "camera": {{
     "name": {n},
@@ -116,7 +115,7 @@ def write_camera(name, pos, updir, target, fov):
         "name": "fovy",
         "type": "PARAMETER",
         "subType": "float",
-        "value": 90.0
+        "value": {f}
       }}
     ],
     "cameraToWorld": {{
@@ -133,7 +132,7 @@ def write_camera(name, pos, updir, target, fov):
     plc = TRANSFORM.multiply(pos)
 
     return snippet.format(
-        n=json.dumps(name), p=plc.Base, m=plc.Rotation.toMatrix()
+        n=json.dumps(name), p=plc.Base, m=plc.Rotation.toMatrix(), f=fov
     )
 
 
