@@ -111,6 +111,14 @@ def write_camera(name, pos, updir, target, fov):
     snippet = """
   "camera": {{
     "name": {n},
+    "children": [
+      {{
+        "name": "fovy",
+        "type": "PARAMETER",
+        "subType": "float",
+        "value": 90.0
+      }}
+    ],
     "cameraToWorld": {{
       "affine": [{p.x}, {p.y}, {p.z}],
       "linear": {{
