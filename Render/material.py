@@ -166,6 +166,20 @@ class Material(_ArchMaterial):
             )
         )
 
+    # TODO
+    def import_textures(self, material):
+        """Import textures declared in the material dictionary.
+
+        This method is intended to be called after material card import.
+        After it has run, it will clean the material dictionary from any
+        data related to textures, leaving the information only in the Textures
+        objects which have been created.
+
+        Args:
+            material -- the material dictionary from which to import textures
+        """
+        return _import_textures(self, material)
+
     def _add_group_property(self, fpo):
         """Add a Group property to object, if missing."""
         if "Group" not in fpo.PropertiesList:
@@ -175,6 +189,45 @@ class Material(_ArchMaterial):
             else:
                 fpo.addExtension("App::GroupExtensionPython", self)
         fpo.setEditorMode("Group", 2)
+
+
+# TODO Implementation trick
+# TODO To be merged into Material.import_textures when it's done
+# TODO Update documentation (markdown)
+
+
+# TODO RESTART FROM HERE
+# Involved files:
+#   Render/taskpanel.py (MaterialTaskPanel)
+#   ~/.FreeCAD/Materials/TestMatTexture.FCMat
+
+def _import_textures(self, material):
+    texdata = {}
+    resdata = {}
+    prefix = "Render.Textures."
+
+    # Separate texture data and plain material data
+    for key in material.keys():
+        if key.startswith(prefix):
+            # Texture data
+            texname, texparam = key[len(prefix):].split(".")
+            if texname not in texdata:
+                texdata[texname] = {}
+            texdata[texname][texparam] = material[key]
+        else:
+            # Other material data
+            resdata[key] = material[key]
+    print(texdata)  # TODO Remove
+
+    # Process texture data (create textures)
+    # TODO!
+
+    # TODO Use cases to test:
+    #   Material has already data
+    #   User chooses from existing (this feature should perhaps be unactivated in taskpanel)
+
+    return resdata
+
 
 
 class ViewProviderMaterial(_ViewProviderArchMaterial):
