@@ -108,11 +108,15 @@ class Texture(FeatureBase):
         else:
             group.addObject(fpo)
 
-    def add_image(self):
+    def add_image(self, imagename=None, imagepath=None):
         """Add an image property."""
-        self.fpo.addProperty(
-            "App::PropertyFileIncluded", "Image", self.IMAGE_GROUP
+        if imagename is None:
+            imagename = "Image"
+        prop = self.fpo.addProperty(
+            "App::PropertyFileIncluded", imagename, self.IMAGE_GROUP
         )
+        if imagepath is not None:
+            setattr(prop, imagename, imagepath)
 
     def get_images(self):
         """Get the list of images properties of the texture."""
@@ -129,9 +133,7 @@ class Texture(FeatureBase):
         Args:
             img_name -- the name of the property containing the image
         """
-        find_image = [
-            o.image for o in self.get_images() if o.image == img_name
-        ]
+        find_image = [o.image for o in self.get_images() if o.image == img_name]
         if find_image:
             self.fpo.removeProperty(img_name)
 
@@ -145,12 +147,8 @@ class ViewProviderTexture(ViewProviderBase):
     ICON = ""  # TODO Add Icon
 
     CONTEXT_MENU = [
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Add Image Entry"), "_add_image"
-        ),
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Remove Image Entry"), "_del_image"
-        ),
+        CtxMenuItem(QT_TRANSLATE_NOOP("Render", "Add Image Entry"), "_add_image"),
+        CtxMenuItem(QT_TRANSLATE_NOOP("Render", "Remove Image Entry"), "_del_image"),
     ]
 
     def _add_image(self):

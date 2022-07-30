@@ -154,7 +154,7 @@ class Material(_ArchMaterial):
             filepath: path to image file (mandatory)
         """
         img_path = str(img_path)
-        Texture.create(filepath=img_path, group=self.fpo)
+        return Texture.create(filepath=img_path, group=self.fpo)
 
     def get_textures(self):
         """Retrieve material's textures."""
@@ -178,7 +178,7 @@ class Material(_ArchMaterial):
             material -- the material dictionary from which to import textures
             base path -- the base path where to search textures' image files
                          (in case of relative path)
-        
+
         Returns:
             the material dictionary without textures data
         """
@@ -207,48 +207,83 @@ class Material(_ArchMaterial):
 
 
 def _import_textures(self, material, basepath=None):
-    texdata = {}
-    resdata = {}
-    prefix = "Render.Textures."
+    cardname = material.get("CardName")
 
-    # Separate texture data and plain material data
+    # Separate texture data and other material data
+    texdata = {}
+    otherdata = {}
+    prefix = "Render.Textures."
     for key in material.keys():
         if key.startswith(prefix):
             # Texture data
-            texname, texparam = key[len(prefix) :].split(".")
+            texname, *texparam = key[len(prefix) :].split(".")
             if texname not in texdata:
                 texdata[texname] = {}
-            texdata[texname][texparam] = material[key]
+                texdata[texname]["Image"] = {}
+            if texparam[0] != "Image":
+                texdata[texname][texparam] = material[key]
+            else:
+                try:
+                    index = int(texparam[1])
+                except ValueError:
+                    msg = translate(
+                        "Render",
+                        "Error importing material card '{}' - Invalid image index ('{}') in texture '{}' - Skipping.",
+                    )
+                    App.Console.PrintError(msg.format(cardname, texparam[1], texname))
+                else:
+                    texdata[texname]["Image"][index] = material[key]
         else:
             # Other material data
-            resdata[key] = material[key]
+            otherdata[key] = material[key]
     print(texdata)  # TODO Remove
 
     # Process texture data (create textures)
-    for name, params in texdata.items():
-        # Get image path parameter
+    errmsg = translate(
+        "Render", "Error importing material card '{}' - Cannot create texture '{}': "
+    )
+    for texname, params in texdata.items():  # Iterate on textures
+        # Get primary image path parameter
         try:
-            imagepath = params["Image"]
+            imagepath = params["Image"][0]
         except KeyError:
-            msg = translate(
-                "Render", "Cannot create texture '{}': No image path provided"
+            submsg = translate(
+                "Render", "Missing primary image (index 0) in material card."
             )
-            App.Console.PrintError(msg.format(name))
-            continue
-        
-        # Format image path to absolute path and check whether the path exists
-        if not os.path.isabs(imagepath):
-            print(basepath, imagepath)  # TODO
-            imagepath = os.path.join(basepath, imagepath)
-        if not os.path.exists(imagepath):
-            msg = translate(
-                "Render", "Cannot create texture '{}': Invalid image path ('{}')"
-            )
-            App.Console.PrintError(msg.format(name, imagepath))
+            msg = errmsg + submsg
+            App.Console.PrintError(msg.format(cardname, texname))
             continue
 
-        # Add texture
-        self.add_texture(imagepath)
+        # Format image path to absolute path and check whether the path exists
+        if not os.path.isabs(imagepath):
+            imagepath = os.path.join(basepath, imagepath)
+        if not os.path.exists(imagepath):
+            submsg = translate(
+                "Render", "Invalid image path ('{}') in material card."
+            )
+            msg = errmsg + submsg
+            App.Console.PrintError(msg.format(cardname, texname, imagepath))
+            continue
+
+        # Add texture, with primary image
+        texture, *_ = self.add_texture(imagepath)
+        texture.fpo.Label = texname
+
+        # Add other images
+        images = params["Image"]
+        del images[0]  # Primary image is already processed
+        for index, imagepath in images.items():
+            if not os.path.isabs(imagepath):
+                imagepath = os.path.join(basepath, imagepath)
+            if not os.path.exists(imagepath):
+                submsg = translate(
+                    "Render", "Invalid image path ('{}') in material card."
+                )
+                msg = errmsg + submsg
+                App.Console.PrintError(msg.format(cardname, texname, imagepath))
+                continue
+            imagename = f"Image{index}"
+            texture.add_image(imagename, imagepath)
 
         # Complete parameters
         # TODO
@@ -257,7 +292,7 @@ def _import_textures(self, material, basepath=None):
     #   Material has already data
     #   User chooses from existing (this feature should perhaps be unactivated in taskpanel)
 
-    return resdata
+    return otherdata
 
 
 class ViewProviderMaterial(_ViewProviderArchMaterial):
