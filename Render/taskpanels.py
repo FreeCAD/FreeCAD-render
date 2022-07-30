@@ -804,10 +804,21 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
     def accept(self):
         """Respond to user acceptation.
 
-        Import the selected card into the underlying material, including textures.
+        Import the selected card into the underlying material, including
+        textures.
         """
+        # Get card file path (directory)
+        card = self.form.comboBox_MaterialsInDir.currentText()
+        try:
+            path = self.cards[card]
+        except KeyError:
+            path = None
+        else:
+            path = os.path.dirname(path)
+
         # Import textures (and remove texture data from self.material)
-        self.material = self.obj.Proxy.import_textures(self.material)
+        print(path)
+        self.material = self.obj.Proxy.import_textures(self.material, path)
 
         # Update material (relying on base class)
         super().accept()

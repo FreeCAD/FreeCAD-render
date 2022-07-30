@@ -26,6 +26,7 @@ Please note Render Material object is mainly derived from Arch Material.
 """
 
 import itertools
+import os
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -42,6 +43,7 @@ from ArchMaterial import (
 from Render.texture import Texture
 from Render.taskpanels import MaterialTaskPanel, MaterialSettingsTaskPanel
 from Render.constants import FCDVERSION
+from Render.utils import translate
 
 
 def make_material(name="Material", color=None, transparency=None):
@@ -167,18 +169,20 @@ class Material(_ArchMaterial):
         )
 
     # TODO
-    def import_textures(self, material):
+    def import_textures(self, material, basepath):
         """Import textures declared in the material dictionary.
 
         This method is intended to be called after material card import.
-        After it has run, it will clean the material dictionary from any
-        data related to textures, leaving the information only in the Textures
-        objects which have been created.
 
         Args:
             material -- the material dictionary from which to import textures
+            base path -- the base path where to search textures' image files
+                         (in case of relative path)
+        
+        Returns:
+            the material dictionary without textures data
         """
-        return _import_textures(self, material)
+        return _import_textures(self, material, basepath)
 
     def _add_group_property(self, fpo):
         """Add a Group property to object, if missing."""
@@ -201,7 +205,8 @@ class Material(_ArchMaterial):
 #   Render/taskpanel.py (MaterialTaskPanel)
 #   ~/.FreeCAD/Materials/TestMatTexture.FCMat
 
-def _import_textures(self, material):
+
+def _import_textures(self, material, basepath=None):
     texdata = {}
     resdata = {}
     prefix = "Render.Textures."
@@ -210,7 +215,7 @@ def _import_textures(self, material):
     for key in material.keys():
         if key.startswith(prefix):
             # Texture data
-            texname, texparam = key[len(prefix):].split(".")
+            texname, texparam = key[len(prefix) :].split(".")
             if texname not in texdata:
                 texdata[texname] = {}
             texdata[texname][texparam] = material[key]
@@ -220,14 +225,39 @@ def _import_textures(self, material):
     print(texdata)  # TODO Remove
 
     # Process texture data (create textures)
-    # TODO!
+    for name, params in texdata.items():
+        # Get image path parameter
+        try:
+            imagepath = params["Image"]
+        except KeyError:
+            msg = translate(
+                "Render", "Cannot create texture '{}': No image path provided"
+            )
+            App.Console.PrintError(msg.format(name))
+            continue
+        
+        # Format image path to absolute path and check whether the path exists
+        if not os.path.isabs(imagepath):
+            print(basepath, imagepath)  # TODO
+            imagepath = os.path.join(basepath, imagepath)
+        if not os.path.exists(imagepath):
+            msg = translate(
+                "Render", "Cannot create texture '{}': Invalid image path ('{}')"
+            )
+            App.Console.PrintError(msg.format(name, imagepath))
+            continue
+
+        # Add texture
+        self.add_texture(imagepath)
+
+        # Complete parameters
+        # TODO
 
     # TODO Use cases to test:
     #   Material has already data
     #   User chooses from existing (this feature should perhaps be unactivated in taskpanel)
 
     return resdata
-
 
 
 class ViewProviderMaterial(_ViewProviderArchMaterial):
@@ -257,9 +287,7 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
     def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
         """Set up the object's context menu in GUI (callback)."""
         # Edit Render Settings
-        action = QAction(
-            QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
-        )
+        action = QAction(QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu)
         QObject.connect(
             action,
             SIGNAL("triggered()"),
@@ -268,9 +296,7 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         menu.addAction(action)
 
         # Edit General Settings
-        action = QAction(
-            QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
-        )
+        action = QAction(QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu)
         QObject.connect(
             action,
             SIGNAL("triggered()"),
@@ -280,9 +306,7 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
 
         # Add a texture to material
         action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
-        QObject.connect(
-            action, SIGNAL("triggered()"), lambda: _add_texture(vobj)
-        )
+        QObject.connect(action, SIGNAL("triggered()"), lambda: _add_texture(vobj))
         menu.addAction(action)
 
     def claimChildren(self):
