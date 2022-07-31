@@ -762,6 +762,8 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
     def __init__(self, obj=None):
         super().__init__(obj)
         self.form.setWindowTitle("Render Material")
+        # Disable copy from existant (buggy with textures...)
+        self.form.comboBox_FromExisting.hide()
 
     def fillMaterialCombo(self):
         """Fill Material combo box.
