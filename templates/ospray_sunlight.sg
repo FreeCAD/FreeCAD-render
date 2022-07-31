@@ -32,7 +32,7 @@
             "sgOnly": false,
             "subType": "float",
             "type": "PARAMETER",
-            "value": 1.0
+            "value": 0.05
           },
           {
             "description": "color of the light",
