@@ -71,13 +71,13 @@ class Texture(FeatureBase):
             "App::PropertyFloat",
             MAPPING_GROUP,
             QT_TRANSLATE_NOOP("Render", "UV scale - U component"),
-            0,
+            1.0,
         ),
         "ScaleV": Prop(
             "App::PropertyFloat",
             MAPPING_GROUP,
             QT_TRANSLATE_NOOP("Render", "UV scale - V component"),
-            0,
+            1.0,
         ),
         "TranslationU": Prop(
             "App::PropertyDistance",
