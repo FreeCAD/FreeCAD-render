@@ -200,52 +200,71 @@ class Material(_ArchMaterial):
 # TODO Update documentation (markdown)
 
 
-# TODO RESTART FROM HERE
-# Involved files:
-#   Render/taskpanel.py (MaterialTaskPanel)
-#   ~/.FreeCAD/Materials/TestMatTexture.FCMat
+def _import_textures(material, input_material_dict, basepath=None):
+    """Import textures data into a Material.
 
+    This function could be a method of Material class. However, it has been
+    isolated for debugging purpose.
 
-def _import_textures(self, material, basepath=None):
-    cardname = material.get("CardName")
+    Args:
+        material -- The Material object to update
+        input_material_dict -- A material dictionary, resulting from the import
+            of a material card, containing the data to update 'material'.
+            WARNING: this is NOT a Material object.
+        basepath -- A string giving the base path to use for relative paths when
+            looking for texture files.
+    
+    Returns:
+        the 'input_material_dict' after texture data have been removed
+    """
+    cardname = input_material_dict.get("CardName")
 
-    # Separate texture data and other material data
+    # Separate texture data and other material data in input_material_dict
     texdata = {}
     otherdata = {}
     prefix = "Render.Textures."
-    for key in material.keys():
+    imgfield = "Images"
+    for key in input_material_dict.keys():
         if key.startswith(prefix):
             # Texture data
             texname, *texparam = key[len(prefix) :].split(".")
+
             if texname not in texdata:
+                # If texture name is unknown at the moment, create an empty dictionary
                 texdata[texname] = {}
-                texdata[texname]["Image"] = {}
-            if texparam[0] != "Image":
-                texdata[texname][texparam] = material[key]
-            else:
+                texdata[texname][imgfield] = {}
+
+            if texparam[0] == imgfield:
+                # Image: cast image index to int
                 try:
                     index = int(texparam[1])
                 except ValueError:
                     msg = translate(
                         "Render",
-                        "Error importing material card '{}' - Invalid image index ('{}') in texture '{}' - Skipping.",
+                        "Error importing material card '{}' - "
+                        "Invalid image index ('{}') in texture '{}' - Skipping.",
                     )
                     App.Console.PrintError(msg.format(cardname, texparam[1], texname))
                 else:
-                    texdata[texname]["Image"][index] = material[key]
+                    texdata[texname][imgfield][index] = input_material_dict[key]
+            else:
+                # Not an image (must be another texture parameter)
+                texdata[texname][".".join(texparam)] = input_material_dict[key]
         else:
             # Other material data
-            otherdata[key] = material[key]
-    print(texdata)  # TODO Remove
+            otherdata[key] = input_material_dict[key]
 
     # Process texture data (create textures)
     errmsg = translate(
         "Render", "Error importing material card '{}' - Cannot create texture '{}': "
     )
     for texname, params in texdata.items():  # Iterate on textures
+        # Get images subdictionary
+        images = params[imgfield]
+
         # Get primary image path parameter
         try:
-            imagepath = params["Image"][0]
+            imagepath = images[0]
         except KeyError:
             submsg = translate(
                 "Render", "Missing primary image (index 0) in material card."
@@ -266,12 +285,11 @@ def _import_textures(self, material, basepath=None):
             continue
 
         # Add texture, with primary image
-        texture, *_ = self.add_texture(imagepath)
+        texture, *_ = material.add_texture(imagepath)
         texture.fpo.Label = texname
+        del images[0]  # Primary image is now processed, so remove it...
 
         # Add other images
-        images = params["Image"]
-        del images[0]  # Primary image is already processed
         for index, imagepath in images.items():
             if not os.path.isabs(imagepath):
                 imagepath = os.path.join(basepath, imagepath)
@@ -284,13 +302,15 @@ def _import_textures(self, material, basepath=None):
                 continue
             imagename = f"Image{index}"
             texture.add_image(imagename, imagepath)
+        del params[imgfield]  # Remove all textures data
 
-        # Complete parameters
-        # TODO
+        # Add other parameters
+        for key, value in params.items():
+            # TODO
+            print(key, value)  # TODO
 
     # TODO Use cases to test:
     #   Material has already data
-    #   User chooses from existing (this feature should perhaps be unactivated in taskpanel)
 
     return otherdata
 
