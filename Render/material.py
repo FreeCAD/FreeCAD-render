@@ -306,8 +306,21 @@ def _import_textures(material, input_material_dict, basepath=None):
 
         # Add other parameters
         for key, value in params.items():
-            # TODO
-            print(key, value)  # TODO
+            # Check property existence
+            try:
+                prop = texture.fpo.getPropertyByName(key)
+            except AttributeError:
+                print("No attribute {} on texture".format(key))  # TODO
+                continue
+
+            # Try to cast and assign value to property
+            proptype = type(prop)
+            try:
+                cast_value = proptype(value)
+            except ValueError:
+                print("Key {} on texture, cannot convert {} to {}".format(key, value, proptype))  # TODO
+            else:
+                setattr(texture.fpo, key, cast_value)
 
     # TODO Use cases to test:
     #   Material has already data
