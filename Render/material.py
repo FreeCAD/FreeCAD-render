@@ -43,7 +43,7 @@ from ArchMaterial import (
 from Render.texture import Texture
 from Render.taskpanels import MaterialTaskPanel, MaterialSettingsTaskPanel
 from Render.constants import FCDVERSION
-from Render.utils import translate
+from Render.utils import translate, warn
 
 
 def make_material(name="Material", color=None, transparency=None):
@@ -196,8 +196,8 @@ class Material(_ArchMaterial):
 
 
 # TODO Implementation trick
-# TODO To be merged into Material.import_textures when it's done
 # TODO Update documentation (markdown)
+# TODO Test complete chain: with shader fields referencing textures...
 
 
 def _import_textures(material, input_material_dict, basepath=None):
@@ -218,6 +218,7 @@ def _import_textures(material, input_material_dict, basepath=None):
         the 'input_material_dict' after texture data have been removed
     """
     cardname = input_material_dict.get("CardName")
+    domain = "Material card import"  # For warning messages
 
     # Separate texture data and other material data in input_material_dict
     texdata = {}
@@ -230,7 +231,7 @@ def _import_textures(material, input_material_dict, basepath=None):
             texname, *texparam = key[len(prefix) :].split(".")
 
             if texname not in texdata:
-                # If texture name is unknown at the moment, create an empty dictionary
+                # If texture name is unknown at this stage, create an empty dictionary
                 texdata[texname] = {}
                 texdata[texname][imgfield] = {}
 
@@ -241,10 +242,9 @@ def _import_textures(material, input_material_dict, basepath=None):
                 except ValueError:
                     msg = translate(
                         "Render",
-                        "Error importing material card '{}' - "
-                        "Invalid image index ('{}') in texture '{}' - Skipping.",
-                    )
-                    App.Console.PrintError(msg.format(cardname, texparam[1], texname))
+                        "Invalid image index ('{}') in texture '{}' -- Skipping",
+                    ).format(texparam[1], texname)
+                    warn(domain, cardname, msg)
                 else:
                     texdata[texname][imgfield][index] = input_material_dict[key]
             else:
@@ -266,22 +266,22 @@ def _import_textures(material, input_material_dict, basepath=None):
         try:
             imagepath = images[0]
         except KeyError:
-            submsg = translate(
-                "Render", "Missing primary image (index 0) in material card."
-            )
-            msg = errmsg + submsg
-            App.Console.PrintError(msg.format(cardname, texname))
+            msg = translate(
+                "Render",
+                "Missing primary image (index 0) in texture '{}' -- Skipping"
+            ).format(texname)
+            warn(domain, cardname, msg)
             continue
 
         # Format image path to absolute path and check whether the path exists
         if not os.path.isabs(imagepath):
             imagepath = os.path.join(basepath, imagepath)
         if not os.path.exists(imagepath):
-            submsg = translate(
-                "Render", "Invalid image path ('{}') in material card."
-            )
-            msg = errmsg + submsg
-            App.Console.PrintError(msg.format(cardname, texname, imagepath))
+            msg = translate(
+                "Render",
+                "Invalid image path ('{}') in texture '{}' -- Skipping"
+            ).format(imagepath, texname)
+            warn(domain, cardname, msg)
             continue
 
         # Add texture, with primary image
@@ -294,11 +294,11 @@ def _import_textures(material, input_material_dict, basepath=None):
             if not os.path.isabs(imagepath):
                 imagepath = os.path.join(basepath, imagepath)
             if not os.path.exists(imagepath):
-                submsg = translate(
-                    "Render", "Invalid image path ('{}') in material card."
-                )
-                msg = errmsg + submsg
-                App.Console.PrintError(msg.format(cardname, texname, imagepath))
+                msg = translate(
+                    "Render",
+                    "Invalid image path ('{}') in texture '{}' -- Skipping"
+                ).format(imagepath, texname)
+                warn(domain, cardname, msg)
                 continue
             imagename = f"Image{index}"
             texture.add_image(imagename, imagepath)
@@ -310,7 +310,11 @@ def _import_textures(material, input_material_dict, basepath=None):
             try:
                 prop = texture.fpo.getPropertyByName(key)
             except AttributeError:
-                print("No attribute {} on texture".format(key))  # TODO
+                msg = translate(
+                    "Render",
+                    "Invalid attribute '{}' in texture '{}' -- Skipping"
+                ).format(key, texname)
+                warn(domain, cardname, msg)
                 continue
 
             # Try to cast and assign value to property
@@ -318,7 +322,13 @@ def _import_textures(material, input_material_dict, basepath=None):
             try:
                 cast_value = proptype(value)
             except ValueError:
-                print("Key {} on texture, cannot convert {} to {}".format(key, value, proptype))  # TODO
+                msg = translate(
+                    "Render",
+                    "Invalid type for attribute '{}' in texture '{}': "
+                    "Cannot convert '{}' to '{}' -- Skipping"
+                ).format(key, texname, value, proptype)
+                warn(domain, cardname, msg)
+                continue
             else:
                 setattr(texture.fpo, key, cast_value)
 
