@@ -27,6 +27,7 @@ Please note Render Material object is mainly derived from Arch Material.
 
 import itertools
 import os
+import ast
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -213,7 +214,7 @@ def _import_textures(material, input_material_dict, basepath=None):
             WARNING: this is NOT a Material object.
         basepath -- A string giving the base path to use for relative paths when
             looking for texture files.
-    
+
     Returns:
         the 'input_material_dict' after texture data have been removed
     """
@@ -246,7 +247,9 @@ def _import_textures(material, input_material_dict, basepath=None):
                     ).format(texparam[1], texname)
                     warn(domain, cardname, msg)
                 else:
-                    texdata[texname][imgfield][index] = input_material_dict[key]
+                    texdata[texname][imgfield][index] = input_material_dict[
+                        key
+                    ]
             else:
                 # Not an image (must be another texture parameter)
                 texdata[texname][".".join(texparam)] = input_material_dict[key]
@@ -256,7 +259,8 @@ def _import_textures(material, input_material_dict, basepath=None):
 
     # Process texture data (create textures)
     errmsg = translate(
-        "Render", "Error importing material card '{}' - Cannot create texture '{}': "
+        "Render",
+        "Error importing material card '{}' - Cannot create texture '{}': ",
     )
     for texname, params in texdata.items():  # Iterate on textures
         # Get images subdictionary
@@ -268,7 +272,7 @@ def _import_textures(material, input_material_dict, basepath=None):
         except KeyError:
             msg = translate(
                 "Render",
-                "Missing primary image (index 0) in texture '{}' -- Skipping"
+                "Missing primary image (index 0) in texture '{}' -- Skipping",
             ).format(texname)
             warn(domain, cardname, msg)
             continue
@@ -279,7 +283,7 @@ def _import_textures(material, input_material_dict, basepath=None):
         if not os.path.exists(imagepath):
             msg = translate(
                 "Render",
-                "Invalid image path ('{}') in texture '{}' -- Skipping"
+                "Invalid image path ('{}') in texture '{}' -- Skipping",
             ).format(imagepath, texname)
             warn(domain, cardname, msg)
             continue
@@ -296,7 +300,7 @@ def _import_textures(material, input_material_dict, basepath=None):
             if not os.path.exists(imagepath):
                 msg = translate(
                     "Render",
-                    "Invalid image path ('{}') in texture '{}' -- Skipping"
+                    "Invalid image path ('{}') in texture '{}' -- Skipping",
                 ).format(imagepath, texname)
                 warn(domain, cardname, msg)
                 continue
@@ -312,7 +316,7 @@ def _import_textures(material, input_material_dict, basepath=None):
             except AttributeError:
                 msg = translate(
                     "Render",
-                    "Invalid attribute '{}' in texture '{}' -- Skipping"
+                    "Invalid attribute '{}' in texture '{}' -- Skipping",
                 ).format(key, texname)
                 warn(domain, cardname, msg)
                 continue
@@ -325,16 +329,45 @@ def _import_textures(material, input_material_dict, basepath=None):
                 msg = translate(
                     "Render",
                     "Invalid type for attribute '{}' in texture '{}': "
-                    "Cannot convert '{}' to '{}' -- Skipping"
+                    "Cannot convert '{}' to '{}' -- Skipping",
                 ).format(key, texname, value, proptype)
                 warn(domain, cardname, msg)
                 continue
             else:
                 setattr(texture.fpo, key, cast_value)
 
+        # Update material fields that reference this texture:
+        # In the card, the fields reference the texture by the name given
+        # in the card (texname), but in FreeCAD, we must reference it by the
+        # internal object name.
+        # We update otherdata accordingly...
+        fcd_texname = texture.fpo.Name  # The internal object name
+        for key, value in otherdata.items():
+            # Look for Render parameter only
+            if not key.startswith("Render."):
+                continue  # Not Render stuff
+            # Check that value references a texture
+            parsed = [v.strip() for v in value.split(";")]
+            if len(parsed) < 2 or parsed[0] != "Texture":
+                continue  # Not a texture
+            # Parse texture reference
+            texture_ref = ast.literal_eval(parsed[1])
+            if not isinstance(texture_ref, tuple) or len(texture_ref) != 2:
+                msg = translate(
+                    "Render",
+                    "Invalid syntax for attribute '{}' in texture '{}': "
+                    "Reference to texture should be a 2-strings tuple -- Skipping",
+                ).format(key, texname)
+                warn(domain, cardname, msg)
+                continue
+            # Substitute texture reference in internal format
+            parsed[1] = str((str(fcd_texname), texture_ref[1]))
+            otherdata[key] = ";".join(parsed)
+
     # TODO Use cases to test:
     #   Material has already data
-
+    
+    # Finally return material data without texture data
     return otherdata
 
 
@@ -365,7 +398,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
     def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
         """Set up the object's context menu in GUI (callback)."""
         # Edit Render Settings
-        action = QAction(QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu)
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
+        )
         QObject.connect(
             action,
             SIGNAL("triggered()"),
@@ -374,7 +409,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         menu.addAction(action)
 
         # Edit General Settings
-        action = QAction(QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu)
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
+        )
         QObject.connect(
             action,
             SIGNAL("triggered()"),
@@ -384,7 +421,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
 
         # Add a texture to material
         action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
-        QObject.connect(action, SIGNAL("triggered()"), lambda: _add_texture(vobj))
+        QObject.connect(
+            action, SIGNAL("triggered()"), lambda: _add_texture(vobj)
+        )
         menu.addAction(action)
 
     def claimChildren(self):
