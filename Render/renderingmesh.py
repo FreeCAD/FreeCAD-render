@@ -27,6 +27,7 @@ rendering purpose.
 """
 
 import math
+import enum
 
 import FreeCAD as App
 import Mesh
@@ -133,7 +134,17 @@ class RenderingMesh:
         # Spherical mapping
         points = self.Points
         barycenter = compute_barycenter(points)
+        # TODO Should center be barycenter or boundingbox center?
         vectors = [(p.Vector - barycenter).normalize() for p in points]
+        # TODO determine optimal signature for _compute_uvmap_*
+        # self._compute_uvmap_sphere(points, barycenter, vectors)
+        self._compute_uvmap_cube(points, barycenter, vectors)
+
+    # TODO
+    # Useful resources: https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
+
+    def _compute_uvmap_sphere(self, points, barycenter, vectors):
+        """Compute UV map for spherical case."""
         self.__uvmap = tuple(
             App.Base.Vector2d(
                 0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
@@ -142,10 +153,142 @@ class RenderingMesh:
             for v in vectors
         )
 
+    def _compute_uvmap_cube(self, points, barycenter, vectors):
+        """Compute UV map for cubic case."""
+        res = []
+        for vec in vectors:
+            # Determine which face is intersected
+            face = _intersect_unitcube_face(vec)
+            # Determine intersection point
+            point = _intersect_unitcube_point(vec, face)
+            # Determine uv
+            uvcoord = _compute_uv_from_unitcube(point, face)
+            res.append(uvcoord)
+        self.__uvmap = tuple(res)
+
     def has_uvmap(self):
         """Check if object has a uv map."""
         return self.__uvmap is not None
 
+
+# ===========================================================================
+#                           Cube uvmap helpers
+# ===========================================================================
+
+class UnitCubeFaceEnum(enum.Enum):
+    """A class to describe a face of a unit cube.
+
+    A unit cube is cube centered on the origin, each face perpendicular to one
+    of the axes of the reference frame and the distance from the origin to each
+    face being equal to 1.
+    This cube is useful for projections for uv map...
+    """
+
+    XPLUS = enum.auto()
+    XMINUS = enum.auto()
+    YPLUS = enum.auto()
+    YMINUS = enum.auto()
+    ZPLUS = enum.auto()
+    ZMINUS = enum.auto()
+
+
+# Normals of the faces of the unit cube
+UNIT_CUBE_FACES_NORMALS = {
+    UnitCubeFaceEnum.XPLUS: (1.0, 0.0, 0.0),
+    UnitCubeFaceEnum.XMINUS: (-1.0, 0.0, 0.0),
+    UnitCubeFaceEnum.YPLUS: (0.0, 1.0, 0.0),
+    UnitCubeFaceEnum.YMINUS: (0.0, -1.0, 0.0),
+    UnitCubeFaceEnum.ZPLUS: (0.0, 0.0, 1.0),
+    UnitCubeFaceEnum.ZMINUS: (0.0, 0.0, -1.0),
+}
+
+
+def _intersect_unitcube_point(direction, cubeface):
+    """Get the intersection btw a line from the origin and a face of a unit cube.
+
+    Args:
+        direction -- a 3-tuple representing the directing vector of a line crossing
+        the origin
+        cubeface -- the unit cube face to be intersected (UnitCubeFaceEnum)
+
+    Returns:
+        The intersection point (3-tuple)
+
+    Rem: We solve the following system in (x, y, z, t):
+      cubeface[0].x + cubeface[1].y + cubeface[2].z = 1
+      x = direction[0].t
+      y = direction[1].t
+      z = direction[2].t
+    """
+    face_normal = UNIT_CUBE_FACES_NORMALS[cubeface]
+    det = sum(a * b for a, b in zip(direction, face_normal))
+    if det == 0.0:
+        raise ValueError
+    return tuple(d / det for d in direction)
+
+
+def _intersect_unitcube_face(direction):
+    """Get the face of the unit cube intersected by a line from origin.
+
+    Args:
+        direction -- The directing vector for the intersection line
+        (a 3-float sequence)
+
+    Returns:
+        A face from the unit cube (UnitCubeFaceEnum)
+    """
+    dabs = (abs(direction[0]), abs(direction[1]), abs(direction[2]))
+
+    if dabs[0] >= dabs[1] and dabs[0] >= dabs[2]:
+        return (
+            UnitCubeFaceEnum.XPLUS
+            if direction[0] >= 0
+            else UnitCubeFaceEnum.XMINUS
+        )
+
+    if dabs[1] >= dabs[0] and dabs[1] >= dabs[2]:
+        return (
+            UnitCubeFaceEnum.YPLUS
+            if direction[1] >= 0
+            else UnitCubeFaceEnum.YMINUS
+        )
+
+    return (
+        UnitCubeFaceEnum.ZPLUS
+        if direction[2] >= 0
+        else UnitCubeFaceEnum.ZMINUS
+    )
+
+
+def _compute_uv_from_unitcube(point, face):
+    """Compute UV coords from intersection point and face.
+    
+    The cube is unfold this way:
+    
+          +Z
+    +X +Y -X -Y
+          -Z
+
+    """
+    # TODO
+    if face == UnitCubeFaceEnum.XPLUS:
+        res = App.Base.Vector2d(point[1], point[2])
+    elif face == UnitCubeFaceEnum.YPLUS:
+        res = App.Base.Vector2d(-point[0] + 1.0, point[2])
+    elif face == UnitCubeFaceEnum.XMINUS:
+        res = App.Base.Vector2d(-point[1] + 2.0, point[2])
+    elif face == UnitCubeFaceEnum.YMINUS:
+        res = App.Base.Vector2d(point[0] + 3.0, point[2])
+    elif face == UnitCubeFaceEnum.ZPLUS:
+        res = App.Base.Vector2d(point[0] + 2.0, point[1] + 1.0)
+    elif face == UnitCubeFaceEnum.ZMINUS:
+        res = App.Base.Vector2d(point[0] + 2.0, -point[1] - 1.0)
+    return res
+
+
+# ===========================================================================
+#                           Other uvmap helpers
+# ===========================================================================
 
 def compute_barycenter(points):
     """Compute the barycenter of a list of points."""
