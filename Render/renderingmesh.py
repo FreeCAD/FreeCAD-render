@@ -28,6 +28,7 @@ rendering purpose.
 
 import math
 import enum
+import time  # TODO Remove
 
 import FreeCAD as App
 import Mesh
@@ -171,13 +172,23 @@ class RenderingMesh:
         # TODO Docstring
         # Sort facets by cube face
         facemeshes = {f: Mesh.Mesh() for f in UnitCubeFaceEnum}
+        facetriangles = {f: [] for f in UnitCubeFaceEnum}
+        print("Start", time.time())
+        # TODO Optimize
+        count_time = 0.0  # TODO
         for facet in self.__mesh.Facets:
             # Determine which cubeface the facet belongs to
-            facet_center = facet.InCircle[0]
+            facet_center = facet.InCircle[0]  # 0.05
             direction = facet_center - barycenter
-            cubeface = _intersect_unitcube_face(direction)
+            cubeface = _intersect_unitcube_face(direction)  # 0.06
             # Add facet to corresponding submesh
-            facemeshes[cubeface].addFacet(facet)
+            start_time = time.time()  # TODO
+            facetriangles[cubeface] += facet.Points
+            count_time += time.time() - start_time # TODO
+        for cubeface, triangles in facetriangles.items():
+            facemeshes[cubeface] = Mesh.Mesh(triangles)
+        print("Submeshes completed", time.time())
+        print("Subtime", count_time)
 
         # Rebuid a complete mesh from face meshes
         uvmap = []
@@ -195,6 +206,7 @@ class RenderingMesh:
             # Add submesh and uvmap
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
+        print("UVmap completed", time.time())
 
         # Replace previous values with newly computed ones
         self.__mesh = mesh
