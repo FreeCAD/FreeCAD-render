@@ -156,21 +156,21 @@ class RenderingMesh:
 
     # TODO Remove
     # def _compute_uvmap_cube(self, points, barycenter, vectors):
-        # """Compute UV map for cubic case."""
-        # res = []
-        # for vec in vectors:
-            # # Determine which face is intersected
-            # face = _intersect_unitcube_face(vec)
-            # # Determine intersection point
-            # point = _intersect_unitcube_point(vec, face)
-            # # Determine uv
-            # uvcoord = _compute_uv_from_unitcube(point, face)
-            # res.append(uvcoord)
-        # self.__uvmap = tuple(res)
+    # """Compute UV map for cubic case."""
+    # res = []
+    # for vec in vectors:
+    # # Determine which face is intersected
+    # face = _intersect_unitcube_face(vec)
+    # # Determine intersection point
+    # point = _intersect_unitcube_point(vec, face)
+    # # Determine uv
+    # uvcoord = _compute_uv_from_unitcube(point, face)
+    # res.append(uvcoord)
+    # self.__uvmap = tuple(res)
 
     def _compute_uvmap_cube(self, points, barycenter, vectors):
         """Compute UV map for cubic case.
-        
+
         We isolate submeshes by cube face in order to avoid trouble when
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
@@ -192,12 +192,13 @@ class RenderingMesh:
         for cubeface, triangles in facetriangles.items():
             facemesh = Mesh.Mesh(triangles)
             # Compute uvmap of the submesh
-            facemesh_uvmap = []
-            for point in facemesh.Points:
-                point2 = point.Vector - barycenter
-                intersect_point = _intersect_unitcube_point(point2, cubeface)
-                uvcoord = _compute_uv_from_unitcube(intersect_point, cubeface)
-                facemesh_uvmap.append(uvcoord)
+            facemesh_uvmap = [
+                _compute_uv_from_unitcube(
+                    _intersect_unitcube_point(p.Vector - barycenter, cubeface),
+                    cubeface,
+                )
+                for p in facemesh.Points
+            ]
             # Add submesh and uvmap
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
@@ -205,7 +206,6 @@ class RenderingMesh:
         # Replace previous values with newly computed ones
         self.__mesh = mesh
         self.__uvmap = tuple(uvmap)
-
 
     def has_uvmap(self):
         """Check if object has a uv map."""
@@ -215,6 +215,7 @@ class RenderingMesh:
 # ===========================================================================
 #                           Cube uvmap helpers
 # ===========================================================================
+
 
 class UnitCubeFaceEnum(enum.Enum):
     """A class to describe a face of a unit cube.
@@ -303,9 +304,9 @@ def _intersect_unitcube_face(direction):
 
 def _compute_uv_from_unitcube(point, face):
     """Compute UV coords from intersection point and face.
-    
+
     The cube is unfold this way:
-    
+
           +Z
     +X +Y -X -Y
           -Z
@@ -330,6 +331,7 @@ def _compute_uv_from_unitcube(point, face):
 # ===========================================================================
 #                           Other uvmap helpers
 # ===========================================================================
+
 
 def compute_barycenter(points):
     """Compute the barycenter of a list of points."""
