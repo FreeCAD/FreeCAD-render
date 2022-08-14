@@ -169,33 +169,28 @@ class RenderingMesh:
         # self.__uvmap = tuple(res)
 
     def _compute_uvmap_cube(self, points, barycenter, vectors):
-        # TODO Docstring
-        # Sort facets by cube face
-        facemeshes = {f: Mesh.Mesh() for f in UnitCubeFaceEnum}
+        """Compute UV map for cubic case.
+        
+        We isolate submeshes by cube face in order to avoid trouble when
+        one edge belongs to several cube faces (cf. simple cube case, for
+        instance)
+        """
+        # Isolate submeshes by cube face
         facetriangles = {f: [] for f in UnitCubeFaceEnum}
-        print("Start", time.time())
-        # TODO Optimize
-        count_time = 0.0  # TODO
         for facet in self.__mesh.Facets:
             # Determine which cubeface the facet belongs to
             facet_center = facet.InCircle[0]  # 0.05
             direction = facet_center - barycenter
-            cubeface = _intersect_unitcube_face(direction)  # 0.06
+            cubeface = _intersect_unitcube_face(direction)
             # Add facet to corresponding submesh
-            start_time = time.time()  # TODO
             facetriangles[cubeface] += facet.Points
-            count_time += time.time() - start_time # TODO
-        for cubeface, triangles in facetriangles.items():
-            facemeshes[cubeface] = Mesh.Mesh(triangles)
-        print("Submeshes completed", time.time())
-        print("Subtime", count_time)
 
-        # Rebuid a complete mesh from face meshes
+        # Rebuid a complete mesh from face submeshes, with uvmap
         uvmap = []
         mesh = Mesh.Mesh()
         mesh.Placement = self.Placement
-        for cubeface, facemesh in facemeshes.items():
-            facemesh.optimizeTopology()
+        for cubeface, triangles in facetriangles.items():
+            facemesh = Mesh.Mesh(triangles)
             # Compute uvmap of the submesh
             facemesh_uvmap = []
             for point in facemesh.Points:
@@ -206,7 +201,6 @@ class RenderingMesh:
             # Add submesh and uvmap
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
-        print("UVmap completed", time.time())
 
         # Replace previous values with newly computed ones
         self.__mesh = mesh
