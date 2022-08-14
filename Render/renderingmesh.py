@@ -153,18 +153,53 @@ class RenderingMesh:
             for v in vectors
         )
 
+    # TODO Remove
+    # def _compute_uvmap_cube(self, points, barycenter, vectors):
+        # """Compute UV map for cubic case."""
+        # res = []
+        # for vec in vectors:
+            # # Determine which face is intersected
+            # face = _intersect_unitcube_face(vec)
+            # # Determine intersection point
+            # point = _intersect_unitcube_point(vec, face)
+            # # Determine uv
+            # uvcoord = _compute_uv_from_unitcube(point, face)
+            # res.append(uvcoord)
+        # self.__uvmap = tuple(res)
+
     def _compute_uvmap_cube(self, points, barycenter, vectors):
-        """Compute UV map for cubic case."""
-        res = []
-        for vec in vectors:
-            # Determine which face is intersected
-            face = _intersect_unitcube_face(vec)
-            # Determine intersection point
-            point = _intersect_unitcube_point(vec, face)
-            # Determine uv
-            uvcoord = _compute_uv_from_unitcube(point, face)
-            res.append(uvcoord)
-        self.__uvmap = tuple(res)
+        # TODO Docstring
+        # Sort facets by cube face
+        facemeshes = {f: Mesh.Mesh() for f in UnitCubeFaceEnum}
+        for facet in self.__mesh.Facets:
+            # Determine which cubeface the facet belongs to
+            facet_center = facet.InCircle[0]
+            direction = facet_center - barycenter
+            cubeface = _intersect_unitcube_face(direction)
+            # Add facet to corresponding submesh
+            facemeshes[cubeface].addFacet(facet)
+
+        # Rebuid a complete mesh from face meshes
+        uvmap = []
+        mesh = Mesh.Mesh()
+        mesh.Placement = self.Placement
+        for cubeface, facemesh in facemeshes.items():
+            facemesh.optimizeTopology()
+            # Compute uvmap of the submesh
+            facemesh_uvmap = []
+            for point in facemesh.Points:
+                point2 = point.Vector - barycenter
+                intersect_point = _intersect_unitcube_point(point2, cubeface)
+                uvcoord = _compute_uv_from_unitcube(intersect_point, cubeface)
+                facemesh_uvmap.append(uvcoord)
+            # Add submesh and uvmap
+            mesh.addMesh(facemesh)
+            uvmap += facemesh_uvmap
+
+        # Replace previous values with newly computed ones
+        self.__mesh = mesh
+        self.__uvmap = tuple(uvmap)
+
 
     def has_uvmap(self):
         """Check if object has a uv map."""
