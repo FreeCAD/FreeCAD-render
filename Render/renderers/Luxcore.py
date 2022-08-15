@@ -365,6 +365,7 @@ class MaterialValues:
         "node": None,
         "RGBA": "{val.r} {val.g} {val.b} {val.a}",
         "texonly": "{val}",
+        "str": "{val}",
     }
 
     def __init__(self, objname, material):

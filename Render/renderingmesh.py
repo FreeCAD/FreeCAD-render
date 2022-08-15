@@ -129,7 +129,7 @@ class RenderingMesh:
         """Get mesh uv map."""
         return self.__uvmap
 
-    def compute_uvmap(self):
+    def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
         barycenter = compute_barycenter(self.Points)
         # self._compute_uvmap_sphere(barycenter)

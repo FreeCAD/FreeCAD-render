@@ -292,7 +292,14 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
         color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
-        return [Renderable(name, mesher(obj.Shape), material, color)]
+        return [
+            Renderable(
+                name,
+                mesher(obj.Shape, _needs_uvmap(material)),
+                material,
+                color,
+            )
+        ]
 
     base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
     obj_plc_matrix = obj.Placement.toMatrix()
@@ -343,9 +350,6 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     subnames = window_parts[0::5]  # Names every 5th item...
     names = [f"{name}_{s.replace(' ', '_')}" for s in subnames]
 
-    # Subobjects meshes
-    meshes = [mesher(s) for s in obj.Shape.childShapes()]
-
     # Subobjects colors
     transparency_boost = kwargs.get("transparency_boost", 0)
     faces_len = [len(s.Faces) for s in obj.Shape.Solids]
@@ -362,12 +366,19 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         assert is_multimat(material), "Multimaterial expected"
         mats_dict = dict(zip(material.Names, material.Materials))
         mats = [mats_dict.get(s) for s in subnames]
+        needs_uvmap = [_needs_uvmap(m) for m in mats]
         if [m for m in mats if not m]:
             msg = translate("Render", "Incomplete multimaterial (missing {m})")
             missing_mats = ", ".join(set(subnames) - mats_dict.keys())
             warn("Window", obj.Label, msg.format(m=missing_mats))
     else:
         mats = [None] * len(subnames)
+        needs_uvmap = [False] * len(subnames)
+
+    # Subobjects meshes
+    meshes = [
+        mesher(s, n) for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
+    ]
 
     # Build renderables
     return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
@@ -397,11 +408,12 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     # Subobjects names
     names = [f"{name}_{i}" for i in range(len(shapes))]
 
-    # Subobjects meshes
-    meshes = [mesher(s) for s in shapes]
-
     # Subobjects materials
     materials = material.Materials
+    needs_uvmap = [_needs_uvmap(m) for m in materials]
+
+    # Subobjects meshes
+    meshes = [mesher(s, n) for s, n in zip(shapes, needs_uvmap)]
 
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
@@ -473,13 +485,20 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         # Monocolor: Treat shape as a whole
         transparency_boost = int(kwargs.get("transparency_boost", 0))
         color = _get_shapecolor(obj, transparency_boost)
-        renderables = [Renderable(name, mesher(obj.Shape), material, color)]
+        renderables = [
+            Renderable(
+                name,
+                mesher(obj.Shape, _needs_uvmap(material)),
+                material,
+                color,
+            )
+        ]
     else:
         # Multicolor: Process face by face
         faces = obj.Shape.Faces
         nfaces = len(faces)
         names = [f"{name}_face{i}" for i in range(nfaces)]
-        meshes = [mesher(f) for f in faces]
+        meshes = [mesher(f, _needs_uvmap(material)) for f in faces]
         materials = [material] * nfaces
         renderables = [
             Renderable(*i) for i in zip(names, meshes, materials, colors)
@@ -520,3 +539,18 @@ def _boost_tp(color, boost_factor):
     """Get a color with boosted transparency."""
     transparency = math.pow(color[3], 1 / (boost_factor + 1))
     return RGBA(color[0], color[1], color[2], transparency)
+
+
+def _needs_uvmap(material):
+    """Check whether this material needs a UV map.
+
+    NB: An UV map is needed if the material contains textures.
+    """
+    if material is None:
+        return False
+
+    proxy = material.Proxy
+    try:
+        return proxy.has_textures()
+    except AttributeError:
+        return False

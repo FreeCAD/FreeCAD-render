@@ -161,6 +161,10 @@ class Material(_ArchMaterial):
         """Retrieve material's textures."""
         return [o for o in self.fpo.Group if o.Proxy.Type == "Texture"]
 
+    def has_textures(self):
+        """Check whether material has textures."""
+        return len(self.get_textures()) != 0
+
     def get_texture_images(self):
         """Retrieve material's texture images."""
         return list(

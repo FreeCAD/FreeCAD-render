@@ -328,8 +328,13 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
 
-        def mesher(shape, compute_uvmap=True):
+        def mesher(shape, compute_uvmap=True, uvmap_projection=None):
             """Mesh a shape.
+
+            Args:
+              compute_uvmap -- Determine if an uv map must be computed (bool)
+              uvmap_projection -- Type of uv map to compute (string, see View
+                object and RenderingMesh)
 
             Returns a RenderingMesh.
             """
@@ -343,7 +348,7 @@ class RendererHandler:
             mesh = RenderingMesh(mesh)
             mesh.harmonizeNormals()
             if compute_uvmap:
-                mesh.compute_uvmap()
+                mesh.compute_uvmap(uvmap_projection)
             return mesh
 
         source = view.Source
