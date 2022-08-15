@@ -161,7 +161,7 @@ class RenderingMesh:
         for facet in self.__mesh.Facets:
             # Determine which cubeface the facet belongs to
             facet_center = facet.InCircle[0]
-            direction = facet_center - origin
+            direction = facet_center - originpply
             cubeface = _intersect_unitcube_face(direction)
             # Add facet to corresponding submesh
             facetriangles[cubeface] += facet.Points
