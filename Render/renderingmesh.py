@@ -131,7 +131,7 @@ class RenderingMesh:
 
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
-        barycenter = compute_barycenter(self.Points)
+        barycenter = _compute_barycenter(self.Points)
         # self._compute_uvmap_sphere(barycenter)
         self._compute_uvmap_cube(barycenter)
 
@@ -157,7 +157,7 @@ class RenderingMesh:
         instance)
         """
         # Isolate submeshes by cube face
-        facetriangles = {f: [] for f in UnitCubeFaceEnum}
+        facetriangles = {f: [] for f in _UnitCubeFaceEnum}
         for facet in self.__mesh.Facets:
             # Determine which cubeface the facet belongs to
             facet_center = facet.InCircle[0]
@@ -198,7 +198,7 @@ class RenderingMesh:
 # ===========================================================================
 
 
-class UnitCubeFaceEnum(enum.Enum):
+class _UnitCubeFaceEnum(enum.Enum):
     """A class to describe a face of a unit cube.
 
     A unit cube is cube centered on the origin, each face perpendicular to one
@@ -216,13 +216,13 @@ class UnitCubeFaceEnum(enum.Enum):
 
 
 # Normals of the faces of the unit cube
-UNIT_CUBE_FACES_NORMALS = {
-    UnitCubeFaceEnum.XPLUS: (1.0, 0.0, 0.0),
-    UnitCubeFaceEnum.XMINUS: (-1.0, 0.0, 0.0),
-    UnitCubeFaceEnum.YPLUS: (0.0, 1.0, 0.0),
-    UnitCubeFaceEnum.YMINUS: (0.0, -1.0, 0.0),
-    UnitCubeFaceEnum.ZPLUS: (0.0, 0.0, 1.0),
-    UnitCubeFaceEnum.ZMINUS: (0.0, 0.0, -1.0),
+_UNIT_CUBE_FACES_NORMALS = {
+    _UnitCubeFaceEnum.XPLUS: (1.0, 0.0, 0.0),
+    _UnitCubeFaceEnum.XMINUS: (-1.0, 0.0, 0.0),
+    _UnitCubeFaceEnum.YPLUS: (0.0, 1.0, 0.0),
+    _UnitCubeFaceEnum.YMINUS: (0.0, -1.0, 0.0),
+    _UnitCubeFaceEnum.ZPLUS: (0.0, 0.0, 1.0),
+    _UnitCubeFaceEnum.ZMINUS: (0.0, 0.0, -1.0),
 }
 
 
@@ -232,7 +232,7 @@ def _intersect_unitcube_point(direction, cubeface):
     Args:
         direction -- the directing vector of a line starting from the origin
           (3-float tuple)
-        cubeface -- the unit cube face to be intersected (UnitCubeFaceEnum)
+        cubeface -- the unit cube face to be intersected (_UnitCubeFaceEnum)
 
     Returns:
         The intersection point (3-float tuple)
@@ -244,7 +244,7 @@ def _intersect_unitcube_point(direction, cubeface):
       y = direction[1].t
       z = direction[2].t
     """
-    face_normal = UNIT_CUBE_FACES_NORMALS[cubeface]
+    face_normal = _UNIT_CUBE_FACES_NORMALS[cubeface]
     det = sum(a * b for a, b in zip(direction, face_normal))
     if det == 0.0:
         raise ValueError
@@ -259,28 +259,28 @@ def _intersect_unitcube_face(direction):
         (a 3-float sequence)
 
     Returns:
-        A face from the unit cube (UnitCubeFaceEnum)
+        A face from the unit cube (_UnitCubeFaceEnum)
     """
     dabs = (abs(direction[0]), abs(direction[1]), abs(direction[2]))
 
     if dabs[0] >= dabs[1] and dabs[0] >= dabs[2]:
         return (
-            UnitCubeFaceEnum.XPLUS
+            _UnitCubeFaceEnum.XPLUS
             if direction[0] >= 0
-            else UnitCubeFaceEnum.XMINUS
+            else _UnitCubeFaceEnum.XMINUS
         )
 
     if dabs[1] >= dabs[0] and dabs[1] >= dabs[2]:
         return (
-            UnitCubeFaceEnum.YPLUS
+            _UnitCubeFaceEnum.YPLUS
             if direction[1] >= 0
-            else UnitCubeFaceEnum.YMINUS
+            else _UnitCubeFaceEnum.YMINUS
         )
 
     return (
-        UnitCubeFaceEnum.ZPLUS
+        _UnitCubeFaceEnum.ZPLUS
         if direction[2] >= 0
-        else UnitCubeFaceEnum.ZMINUS
+        else _UnitCubeFaceEnum.ZMINUS
     )
 
 
@@ -294,17 +294,17 @@ def _compute_uv_from_unitcube(point, face):
           -Z
 
     """
-    if face == UnitCubeFaceEnum.XPLUS:
+    if face == _UnitCubeFaceEnum.XPLUS:
         res = App.Base.Vector2d(point[1], point[2])
-    elif face == UnitCubeFaceEnum.YPLUS:
+    elif face == _UnitCubeFaceEnum.YPLUS:
         res = App.Base.Vector2d(-point[0] + 1.0, point[2])
-    elif face == UnitCubeFaceEnum.XMINUS:
+    elif face == _UnitCubeFaceEnum.XMINUS:
         res = App.Base.Vector2d(-point[1] + 2.0, point[2])
-    elif face == UnitCubeFaceEnum.YMINUS:
+    elif face == _UnitCubeFaceEnum.YMINUS:
         res = App.Base.Vector2d(point[0] + 3.0, point[2])
-    elif face == UnitCubeFaceEnum.ZPLUS:
+    elif face == _UnitCubeFaceEnum.ZPLUS:
         res = App.Base.Vector2d(point[0] + 2.0, point[1] + 1.0)
-    elif face == UnitCubeFaceEnum.ZMINUS:
+    elif face == _UnitCubeFaceEnum.ZMINUS:
         res = App.Base.Vector2d(point[0] + 2.0, -point[1] - 1.0)
     return res
 
@@ -314,7 +314,7 @@ def _compute_uv_from_unitcube(point, face):
 # ===========================================================================
 
 
-def compute_barycenter(points):
+def _compute_barycenter(points):
     """Compute the barycenter of a list of points."""
     length = len(points)
     origin = App.Vector(0, 0, 0)
