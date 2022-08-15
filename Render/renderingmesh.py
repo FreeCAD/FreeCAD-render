@@ -28,7 +28,6 @@ rendering purpose.
 
 import math
 import enum
-import time  # TODO Remove
 
 import FreeCAD as App
 import Mesh
@@ -132,20 +131,16 @@ class RenderingMesh:
 
     def compute_uvmap(self):
         """Compute UV map for this mesh."""
-        # Spherical mapping
-        points = self.Points
-        barycenter = compute_barycenter(points)
-        # TODO Should center be barycenter or boundingbox center?
-        vectors = [(p.Vector - barycenter).normalize() for p in points]
-        # TODO determine optimal signature for _compute_uvmap_*
-        # self._compute_uvmap_sphere(points, barycenter, vectors)
-        self._compute_uvmap_cube(points, barycenter, vectors)
+        barycenter = compute_barycenter(self.Points)
+        # self._compute_uvmap_sphere(barycenter)
+        self._compute_uvmap_cube(barycenter)
 
     # TODO
     # Useful resources: https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
-    def _compute_uvmap_sphere(self, points, barycenter, vectors):
+    def _compute_uvmap_sphere(self, origin):
         """Compute UV map for spherical case."""
+        vectors = [(p.Vector - origin).normalize() for p in self.Points]
         self.__uvmap = tuple(
             App.Base.Vector2d(
                 0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
@@ -154,21 +149,7 @@ class RenderingMesh:
             for v in vectors
         )
 
-    # TODO Remove
-    # def _compute_uvmap_cube(self, points, barycenter, vectors):
-    # """Compute UV map for cubic case."""
-    # res = []
-    # for vec in vectors:
-    # # Determine which face is intersected
-    # face = _intersect_unitcube_face(vec)
-    # # Determine intersection point
-    # point = _intersect_unitcube_point(vec, face)
-    # # Determine uv
-    # uvcoord = _compute_uv_from_unitcube(point, face)
-    # res.append(uvcoord)
-    # self.__uvmap = tuple(res)
-
-    def _compute_uvmap_cube(self, points, barycenter, vectors):
+    def _compute_uvmap_cube(self, origin):
         """Compute UV map for cubic case.
 
         We isolate submeshes by cube face in order to avoid trouble when
@@ -179,8 +160,8 @@ class RenderingMesh:
         facetriangles = {f: [] for f in UnitCubeFaceEnum}
         for facet in self.__mesh.Facets:
             # Determine which cubeface the facet belongs to
-            facet_center = facet.InCircle[0]  # 0.05
-            direction = facet_center - barycenter
+            facet_center = facet.InCircle[0]
+            direction = facet_center - origin
             cubeface = _intersect_unitcube_face(direction)
             # Add facet to corresponding submesh
             facetriangles[cubeface] += facet.Points
@@ -194,7 +175,7 @@ class RenderingMesh:
             # Compute uvmap of the submesh
             facemesh_uvmap = [
                 _compute_uv_from_unitcube(
-                    _intersect_unitcube_point(p.Vector - barycenter, cubeface),
+                    _intersect_unitcube_point(p.Vector - origin, cubeface),
                     cubeface,
                 )
                 for p in facemesh.Points
@@ -246,18 +227,19 @@ UNIT_CUBE_FACES_NORMALS = {
 
 
 def _intersect_unitcube_point(direction, cubeface):
-    """Get the intersection btw a line from the origin and a face of a unit cube.
+    """Get the intersection btw a line from origin and a face of a unit cube.
 
     Args:
-        direction -- a 3-tuple representing the directing vector of a line crossing
-        the origin
+        direction -- the directing vector of a line starting from the origin
+          (3-float tuple)
         cubeface -- the unit cube face to be intersected (UnitCubeFaceEnum)
 
     Returns:
-        The intersection point (3-tuple)
+        The intersection point (3-float tuple)
 
-    Rem: We solve the following system in (x, y, z, t):
-      cubeface[0].x + cubeface[1].y + cubeface[2].z = 1
+    Rem: Given 'normal' the normal to the face, we solve the following system
+    in (x, y, z, t):
+      normal[0].x + normal[1].y + normal[2].z = 1
       x = direction[0].t
       y = direction[1].t
       z = direction[2].t
@@ -312,7 +294,6 @@ def _compute_uv_from_unitcube(point, face):
           -Z
 
     """
-    # TODO
     if face == UnitCubeFaceEnum.XPLUS:
         res = App.Base.Vector2d(point[1], point[2])
     elif face == UnitCubeFaceEnum.YPLUS:
