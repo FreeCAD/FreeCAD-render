@@ -141,16 +141,23 @@ class RenderingMesh:
 
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
-        barycenter = _compute_barycenter(self.Points)
-        # self._compute_uvmap_sphere(barycenter)
-        self._compute_uvmap_cube(barycenter)
+        print(projection)  # TODO
+        projection = "Cubic" if projection is None else projection
+        if projection == "Cubic":
+            self._compute_uvmap_cube()
+        elif projection == "Spherical":
+            self._compute_uvmap_sphere()
+        else:
+            raise ValueError
 
     # TODO
     # Useful resources:
     #  https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
-    def _compute_uvmap_sphere(self, origin):
+    def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
+        # TODO Use local coords, like in cube
+        origin = _compute_barycenter(self.Points)
         vectors = [(p.Vector - origin).normalize() for p in self.Points]
         self.__uvmap = tuple(
             App.Base.Vector2d(
@@ -160,7 +167,7 @@ class RenderingMesh:
             for v in vectors
         )
 
-    def _compute_uvmap_cube(self, origin):
+    def _compute_uvmap_cube(self):
         """Compute UV map for cubic case.
 
         We isolate submeshes by cube face in order to avoid trouble when

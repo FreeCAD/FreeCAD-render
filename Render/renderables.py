@@ -76,6 +76,8 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
             of no renderable type
         transparency_boost -- a factor (positive integer) to boost
             transparency in shape color
+        uvprojection -- a string giving the type of uv projection (cubic,
+            spherical...). See View object and rdrhandler for valid values.
 
     Returns:
         A list of renderables
@@ -150,8 +152,9 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         color = _get_shapecolor(obj, transparency_boost)
         # Make a copy of obj.Mesh, otherwise we may have an immutable object
         # and further treatments will fail
+        uvprojection = kwargs.get("uvprojection")
         mesh = RenderingMesh(obj.Mesh.copy())
-        mesh.compute_uvmap()
+        mesh.compute_uvmap(uvprojection)
         renderables = [Renderable(name, mesh, mat, color)]
 
     # Unhandled
@@ -292,10 +295,11 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
         # Array does not use link...
         material = material if material else getattr(base, "Material", None)
         color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
+        uvprojection = kwargs.get("uvprojection")
         return [
             Renderable(
                 name,
-                mesher(obj.Shape, _needs_uvmap(material)),
+                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
                 material,
                 color,
             )
@@ -376,8 +380,10 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         needs_uvmap = [False] * len(subnames)
 
     # Subobjects meshes
+    uvprojection = kwargs.get("uvprojection")
     meshes = [
-        mesher(s, n) for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
+        mesher(s, n, uvprojection)
+        for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
     ]
 
     # Build renderables
@@ -413,7 +419,8 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     needs_uvmap = [_needs_uvmap(m) for m in materials]
 
     # Subobjects meshes
-    meshes = [mesher(s, n) for s, n in zip(shapes, needs_uvmap)]
+    uvprojection = kwargs.get("uvprojection")
+    meshes = [mesher(s, n, uvprojection) for s, n in zip(shapes, needs_uvmap)]
 
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
@@ -481,6 +488,8 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
     except AttributeError:
         colors = []
 
+    uvprojection = kwargs.get("uvprojection")
+
     if len(colors) <= 1:
         # Monocolor: Treat shape as a whole
         transparency_boost = int(kwargs.get("transparency_boost", 0))
@@ -488,7 +497,7 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         renderables = [
             Renderable(
                 name,
-                mesher(obj.Shape, _needs_uvmap(material)),
+                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
                 material,
                 color,
             )
@@ -498,7 +507,9 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         faces = obj.Shape.Faces
         nfaces = len(faces)
         names = [f"{name}_face{i}" for i in range(nfaces)]
-        meshes = [mesher(f, _needs_uvmap(material)) for f in faces]
+        meshes = [
+            mesher(f, _needs_uvmap(material), uvprojection) for f in faces
+        ]
         materials = [material] * nfaces
         renderables = [
             Renderable(*i) for i in zip(names, meshes, materials, colors)

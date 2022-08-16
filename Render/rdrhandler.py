@@ -353,6 +353,7 @@ class RendererHandler:
 
         source = view.Source
         label = getattr(source, "Label", name)
+        uvproj = getattr(view, "UvProjection", None)
         debug("Object", label, "Processing")
 
         # Build a list of renderables from the object
@@ -360,7 +361,12 @@ class RendererHandler:
         tpboost = self.transparency_boost
         try:
             rends = renderables.get_renderables(
-                source, name, material, mesher, transparency_boost=tpboost
+                source,
+                name,
+                material,
+                mesher,
+                transparency_boost=tpboost,
+                uvprojection=uvproj,
             )
             renderables.check_renderables(rends)
         except (TypeError, ValueError) as err:
