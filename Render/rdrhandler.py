@@ -345,7 +345,7 @@ class RendererHandler:
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
-            mesh = RenderingMesh(mesh)
+            mesh = RenderingMesh(mesh, placement=shape.Placement)
             mesh.harmonizeNormals()
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)

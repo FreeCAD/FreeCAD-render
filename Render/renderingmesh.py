@@ -47,7 +47,7 @@ class RenderingMesh:
     Mesh.Mesh.
     """
 
-    def __init__(self, mesh=None, uvmap=None):
+    def __init__(self, mesh=None, uvmap=None, placement=App.Base.Placement()):
         """Initialize RenderingMesh.
 
         Args:
@@ -56,6 +56,16 @@ class RenderingMesh:
         """
         if mesh:
             self.__mesh = mesh
+            assert mesh.Placement == App.Base.Placement()
+            self.__originalmesh = mesh.copy()
+            self.__originalmesh.transform(placement.inverse().Matrix)
+            self.__originalplacement = placement.copy()
+            # At the moment (08-16-2022), the mesh is generated with a null
+            # placement as the plugins don't know how to manage a non-null
+            # placement. However, for uv mapping, we have to turn back to this
+            # primary placement which is useful This is not a very clean way to
+            # do, so one day we'll have to manage placements in renderers
+            # (TODO).
         else:
             self.__mesh = Mesh.Mesh()
         self.__uvmap = uvmap
@@ -136,7 +146,8 @@ class RenderingMesh:
         self._compute_uvmap_cube(barycenter)
 
     # TODO
-    # Useful resources: https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
+    # Useful resources:
+    #  https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
     def _compute_uvmap_sphere(self, origin):
         """Compute UV map for spherical case."""
@@ -156,31 +167,28 @@ class RenderingMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        origin = App.Base.Vector(0, 0, 0)
         # Isolate submeshes by cube face
-        facetriangles = {f: [] for f in _UnitCubeFaceEnum}
-        for facet in self.__mesh.Facets:
+        face_facets = {f: [] for f in _UnitCubeFaceEnum}
+        for facet in self.__originalmesh.Facets:
             # Determine which cubeface the facet belongs to
-            facet_center = facet.InCircle[0]
-            direction = facet_center - originpply
-            cubeface = _intersect_unitcube_face(direction)
+            cubeface = _intersect_unitcube_face(facet.Normal)
             # Add facet to corresponding submesh
-            facetriangles[cubeface] += facet.Points
+            face_facets[cubeface].append(facet)
 
         # Rebuid a complete mesh from face submeshes, with uvmap
         uvmap = []
         mesh = Mesh.Mesh()
-        mesh.Placement = self.Placement
-        for cubeface, triangles in facetriangles.items():
-            facemesh = Mesh.Mesh(triangles)
+        for cubeface, facets in face_facets.items():
+            facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
             facemesh_uvmap = [
-                _compute_uv_from_unitcube(
-                    _intersect_unitcube_point(p.Vector - origin, cubeface),
-                    cubeface,
-                )
+                _compute_uv_from_unitcube(p.Vector / 1000, cubeface)
+                # pylint: disable=not-an-iterable
                 for p in facemesh.Points
             ]
             # Add submesh and uvmap
+            facemesh.transform(self.__originalplacement.Matrix)
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
 
@@ -224,31 +232,6 @@ _UNIT_CUBE_FACES_NORMALS = {
     _UnitCubeFaceEnum.ZPLUS: (0.0, 0.0, 1.0),
     _UnitCubeFaceEnum.ZMINUS: (0.0, 0.0, -1.0),
 }
-
-
-def _intersect_unitcube_point(direction, cubeface):
-    """Get the intersection btw a line from origin and a face of a unit cube.
-
-    Args:
-        direction -- the directing vector of a line starting from the origin
-          (3-float tuple)
-        cubeface -- the unit cube face to be intersected (_UnitCubeFaceEnum)
-
-    Returns:
-        The intersection point (3-float tuple)
-
-    Rem: Given 'normal' the normal to the face, we solve the following system
-    in (x, y, z, t):
-      normal[0].x + normal[1].y + normal[2].z = 1
-      x = direction[0].t
-      y = direction[1].t
-      z = direction[2].t
-    """
-    face_normal = _UNIT_CUBE_FACES_NORMALS[cubeface]
-    det = sum(a * b for a, b in zip(direction, face_normal))
-    if det == 0.0:
-        raise ValueError
-    return tuple(d / det for d in direction)
 
 
 def _intersect_unitcube_face(direction):
