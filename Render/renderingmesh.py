@@ -155,14 +155,13 @@ class RenderingMesh:
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
-        # TODO Use local coords, like in cube
-        origin = _compute_barycenter(self.Points)
-        vectors = [(p.Vector - origin).normalize() for p in self.Points]
+        origin = _compute_barycenter(self.__originalmesh.Points)
+        vectors = [p.Vector - origin for p in self.__originalmesh.Points]
         self.__uvmap = tuple(
             App.Base.Vector2d(
                 0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
-                0.5 + math.asin(v.z) / math.pi,
-            )
+                0.5 + math.asin(v.z / v.Length) / math.pi
+            ) * (v.Length / 1000.0 * math.pi )
             for v in vectors
         )
 
@@ -201,6 +200,7 @@ class RenderingMesh:
         # Replace previous values with newly computed ones
         self.__mesh = mesh
         self.__uvmap = tuple(uvmap)
+
 
     def has_uvmap(self):
         """Check if object has a uv map."""
@@ -286,15 +286,15 @@ def _compute_uv_from_unitcube(point, face):
     if face == _UnitCubeFaceEnum.XPLUS:
         res = App.Base.Vector2d(point[1], point[2])
     elif face == _UnitCubeFaceEnum.YPLUS:
-        res = App.Base.Vector2d(-point[0] + 1.0, point[2])
+        res = App.Base.Vector2d(-point[0], point[2])
     elif face == _UnitCubeFaceEnum.XMINUS:
-        res = App.Base.Vector2d(-point[1] + 2.0, point[2])
+        res = App.Base.Vector2d(-point[1], point[2])
     elif face == _UnitCubeFaceEnum.YMINUS:
-        res = App.Base.Vector2d(point[0] + 3.0, point[2])
+        res = App.Base.Vector2d(point[0], point[2])
     elif face == _UnitCubeFaceEnum.ZPLUS:
-        res = App.Base.Vector2d(point[0] + 2.0, point[1] + 1.0)
+        res = App.Base.Vector2d(point[0], point[1])
     elif face == _UnitCubeFaceEnum.ZMINUS:
-        res = App.Base.Vector2d(point[0] + 2.0, -point[1] - 1.0)
+        res = App.Base.Vector2d(point[0], -point[1])
     return res
 
 
