@@ -141,7 +141,6 @@ class RenderingMesh:
 
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
-        print(projection)  # TODO
         projection = "Cubic" if projection is None else projection
         if projection == "Cubic":
             self._compute_uvmap_cube()

@@ -133,7 +133,8 @@ class RendererHandler:
     def render(self, project, prefix, external, output, width, height):
         """Run the external renderer.
 
-        This method merely calls external renderer's 'render' method.
+        This method merely calls external renderer's 'render' method, after
+        having cleared materials' cache.
 
         Params:
         - project:  the project to render
@@ -147,6 +148,7 @@ class RendererHandler:
         Return:     path to image file generated, or None if no image has been
                     issued by external renderer
         """
+        materials.clear()  # Clear rdrmaterials' cache
         return self.renderer_module.render(
             project, prefix, external, output, width, height
         )
