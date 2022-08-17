@@ -153,6 +153,44 @@ class RenderingMesh:
     # Useful resources:
     #  https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
+    def _compute_uvmap_cylinder(self):
+        """Compute UV map for cylindric case.
+
+        Cylinder axis is supposed to be z.
+        """
+        # Split mesh into 2 submeshes: non z-normal (regular) and z-normal facets
+        faces = [[], []]  # faces[1] will contain z-normal facets
+        for facet in self.__originalmesh.Facets:
+            if facet.Normal != (0, 0, 1):
+                faces[0].append(facet)
+            else:
+                faces[1].append(facet)
+
+        # Rebuild a complete mesh from submeshes, with uvmap
+        mesh = Mesh.Mesh()
+        uvmap = []
+
+        # Non z-normal facets (regular)
+        regular_mesh = Mesh.Mesh(faces[0])
+        uvmap += [
+            App.Base.Vector2d(math.atan2(p.x, p.y) * math.hypot(p.x, p.y), p.z)
+            for p in regular_mesh.Points
+        ]
+        regular_mesh.transform(self.__originalplacement.Matrix)
+        mesh.addMesh(regular_mesh)
+
+        # Z-normal facets
+        z_mesh = Mesh.Mesh(faces[1])
+        uvmap += [App.Base.Vector2d(p.x, p.y) for p in z_mesh.Points]
+        z_mesh.transform(self.__originalplacement.Matrix)
+        mesh.addMesh(z_mesh)
+
+        # Replace previous values with newly computed ones
+        self.__mesh = mesh
+        self.__uvmap = tuple(uvmap)
+
+
+
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
         origin = _compute_barycenter(self.__originalmesh.Points)
