@@ -160,21 +160,27 @@ class RenderingMesh:
 
         Cylinder axis is supposed to be z.
         """
-        # Split mesh into 2 submeshes: non z-normal (regular) and z-normal facets
-        faces = [[], []]  # faces[1] will contain z-normal facets
+        # Split mesh into 3 submeshes:
+        # non z-normal facets, not on seam (regular)
+        # non z-normal facets, on seam (seam)
+        # z-normal facets
+        regular, seam, znormal = [], [], []
         z_vector = App.Base.Vector(0.0, 0.0, 1.0)
         for facet in self.__originalmesh.Facets:
             if _is_facet_normal_to_vector(facet, z_vector):
-                faces[1].append(facet)
+                znormal.append(facet)
             else:
-                faces[0].append(facet)
+                if _facet_overlap_seam(facet):
+                    seam.append(facet)
+                else:
+                    regular.append(facet)
 
         # Rebuild a complete mesh from submeshes, with uvmap
         mesh = Mesh.Mesh()
         uvmap = []
 
-        # Non z-normal facets (regular)
-        regular_mesh = Mesh.Mesh(faces[0])
+        # Non Z-normal facets (regular)
+        regular_mesh = Mesh.Mesh(regular)
         points = regular_mesh.Points
         avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
@@ -184,8 +190,19 @@ class RenderingMesh:
         regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
-        # Z-normal facets (special case)
-        z_mesh = Mesh.Mesh(faces[1])
+        # Non Z-normal facets (seam)
+        regular_mesh = Mesh.Mesh(seam)
+        points = regular_mesh.Points
+        avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
+        uvmap += [
+            App.Base.Vector2d(_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001
+            for p in points
+        ]
+        regular_mesh.transform(self.__originalplacement.Matrix)
+        mesh.addMesh(regular_mesh)
+
+        # Z-normal facets
+        z_mesh = Mesh.Mesh(znormal)
         uvmap += [
             App.Base.Vector2d(p.x / 1000, p.y / 1000) for p in z_mesh.Points
         ]
@@ -370,3 +387,15 @@ def _is_facet_normal_to_vector(facet, vector):
         vec1.dot(vector), 0.0, abs_tol=tolerance
     ) and math.isclose(vec2.dot(vector), 0.0, abs_tol=tolerance)
     return res
+
+
+def _facet_overlap_seam(facet):
+    """Test whether facet overlaps the seam."""
+    phis = [math.atan2(x, y) for x, y, _ in facet.Points]
+    return max(phis) * min(phis) < 0
+
+
+def _pos_atan2(p_x, p_y):
+    """Wrap atan2 to get only positive values (seam treatment)."""
+    atan2 = math.atan2(p_x, p_y)
+    return atan2 if atan2 >= 0 else atan2 + 2 * math.pi
