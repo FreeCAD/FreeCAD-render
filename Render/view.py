@@ -83,7 +83,7 @@ class View(FeatureBase):
                 "App::Property",
                 "The type of UV projection to use for textures",
             ),
-            ("Cubic", "Spherical"),
+            ("Cubic", "Spherical", "Cylindric"),
             0,
         ),
     }

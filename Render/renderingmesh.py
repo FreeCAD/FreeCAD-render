@@ -146,6 +146,8 @@ class RenderingMesh:
             self._compute_uvmap_cube()
         elif projection == "Spherical":
             self._compute_uvmap_sphere()
+        elif projection == "Cylindric":
+            self._compute_uvmap_cylinder()
         else:
             raise ValueError
 
@@ -160,11 +162,12 @@ class RenderingMesh:
         """
         # Split mesh into 2 submeshes: non z-normal (regular) and z-normal facets
         faces = [[], []]  # faces[1] will contain z-normal facets
+        z_vector = App.Base.Vector(0.0, 0.0, 1.0)
         for facet in self.__originalmesh.Facets:
-            if facet.Normal != (0, 0, 1):
-                faces[0].append(facet)
-            else:
+            if _is_facet_normal_to_vector(facet, z_vector):
                 faces[1].append(facet)
+            else:
+                faces[0].append(facet)
 
         # Rebuild a complete mesh from submeshes, with uvmap
         mesh = Mesh.Mesh()
@@ -172,24 +175,26 @@ class RenderingMesh:
 
         # Non z-normal facets (regular)
         regular_mesh = Mesh.Mesh(faces[0])
+        points = regular_mesh.Points
+        avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
-            App.Base.Vector2d(math.atan2(p.x, p.y) * math.hypot(p.x, p.y), p.z)
-            for p in regular_mesh.Points
+            App.Base.Vector2d(math.atan2(p.x, p.y) * avg_radius, p.z) * 0.001
+            for p in points
         ]
         regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
-        # Z-normal facets
+        # Z-normal facets (special case)
         z_mesh = Mesh.Mesh(faces[1])
-        uvmap += [App.Base.Vector2d(p.x, p.y) for p in z_mesh.Points]
+        uvmap += [
+            App.Base.Vector2d(p.x / 1000, p.y / 1000) for p in z_mesh.Points
+        ]
         z_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
         self.__mesh = mesh
         self.__uvmap = tuple(uvmap)
-
-
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
@@ -198,8 +203,9 @@ class RenderingMesh:
         self.__uvmap = tuple(
             App.Base.Vector2d(
                 0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
-                0.5 + math.asin(v.z / v.Length) / math.pi
-            ) * (v.Length / 1000.0 * math.pi )
+                0.5 + math.asin(v.z / v.Length) / math.pi,
+            )
+            * (v.Length / 1000.0 * math.pi)
             for v in vectors
         )
 
@@ -238,7 +244,6 @@ class RenderingMesh:
         # Replace previous values with newly computed ones
         self.__mesh = mesh
         self.__uvmap = tuple(uvmap)
-
 
     def has_uvmap(self):
         """Check if object has a uv map."""
@@ -348,4 +353,20 @@ def _compute_barycenter(points):
     if length == 0:
         return origin
     res = sum([p.Vector for p in points], origin) / length
+    return res
+
+
+def _is_facet_normal_to_vector(facet, vector):
+    """Test whether a facet is normal to a vector.
+
+    math.isclose is used to assess dot product nullity.
+    """
+    pt1, pt2, pt3 = facet.Points
+    vec1 = (App.Base.Vector(*pt2) - App.Base.Vector(*pt1)).normalize()
+    vec2 = (App.Base.Vector(*pt3) - App.Base.Vector(*pt1)).normalize()
+    vector = vector.normalize()
+    tolerance = 1e-5
+    res = math.isclose(
+        vec1.dot(vector), 0.0, abs_tol=tolerance
+    ) and math.isclose(vec2.dot(vector), 0.0, abs_tol=tolerance)
     return res
