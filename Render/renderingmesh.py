@@ -191,15 +191,15 @@ class RenderingMesh:
         mesh.addMesh(regular_mesh)
 
         # Non Z-normal facets (seam)
-        regular_mesh = Mesh.Mesh(seam)
-        points = regular_mesh.Points
+        seam_mesh = Mesh.Mesh(seam)
+        points = seam_mesh.Points
         avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
             App.Base.Vector2d(_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001
             for p in points
         ]
-        regular_mesh.transform(self.__originalplacement.Matrix)
-        mesh.addMesh(regular_mesh)
+        seam_mesh.transform(self.__originalplacement.Matrix)
+        mesh.addMesh(seam_mesh)
 
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
@@ -215,16 +215,52 @@ class RenderingMesh:
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
+        # Split mesh into 2 submeshes:
+        # - facets not on seam (regular)
+        # - facets on seam (seam)
+        regular, seam = [], []
+        for facet in self.__originalmesh.Facets:
+            if _facet_overlap_seam(facet):
+                seam.append(facet)
+            else:
+                regular.append(facet)
+
+        # Rebuild a complete mesh from submeshes, with uvmap
+        mesh = Mesh.Mesh()
+        uvmap = []
         origin = _compute_barycenter(self.__originalmesh.Points)
-        vectors = [p.Vector - origin for p in self.__originalmesh.Points]
-        self.__uvmap = tuple(
+
+        # Regular facets
+        regular_mesh = Mesh.Mesh(regular)
+        vectors = [p.Vector - origin for p in regular_mesh.Points]
+        uvmap += [
             App.Base.Vector2d(
                 0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
                 0.5 + math.asin(v.z / v.Length) / math.pi,
             )
             * (v.Length / 1000.0 * math.pi)
             for v in vectors
-        )
+        ]
+        regular_mesh.transform(self.__originalplacement.Matrix)
+        mesh.addMesh(regular_mesh)
+
+        # Seam facets
+        seam_mesh = Mesh.Mesh(seam)
+        vectors = [p.Vector - origin for p in seam_mesh.Points]
+        uvmap += [
+            App.Base.Vector2d(
+                0.5 + _pos_atan2(v.x, v.y) / (2 * math.pi),
+                0.5 + math.asin(v.z / v.Length) / math.pi,
+            )
+            * (v.Length / 1000.0 * math.pi)
+            for v in vectors
+        ]
+        seam_mesh.transform(self.__originalplacement.Matrix)
+        mesh.addMesh(seam_mesh)
+
+        # Replace previous values with newly computed ones
+        self.__mesh = mesh
+        self.__uvmap = tuple(uvmap)
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case.
