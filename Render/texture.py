@@ -125,7 +125,7 @@ class Texture(FeatureBase):
                     "App::PropertyFileIncluded", propertyname, self.IMAGE_GROUP
                 )
             except NameError:
-                counter +=1
+                counter += 1
                 propertyname = f"{imagename}{counter:03}"
             else:
                 created = True
@@ -152,7 +152,9 @@ class Texture(FeatureBase):
         Args:
             img_name -- the name of the property containing the image
         """
-        find_image = [o.image for o in self.get_images() if o.image == img_name]
+        find_image = [
+            o.image for o in self.get_images() if o.image == img_name
+        ]
         if find_image:
             self.fpo.removeProperty(img_name)
 
@@ -166,8 +168,12 @@ class ViewProviderTexture(ViewProviderBase):
     ICON = ""  # TODO Add Icon
 
     CONTEXT_MENU = [
-        CtxMenuItem(QT_TRANSLATE_NOOP("Render", "Add Image Entry"), "_add_image"),
-        CtxMenuItem(QT_TRANSLATE_NOOP("Render", "Remove Image Entry"), "_del_image"),
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Add Image Entry"), "_add_image"
+        ),
+        CtxMenuItem(
+            QT_TRANSLATE_NOOP("Render", "Remove Image Entry"), "_del_image"
+        ),
     ]
 
     def _add_image(self):
