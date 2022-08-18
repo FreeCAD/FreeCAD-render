@@ -620,6 +620,14 @@ class ViewProviderProject(ViewProviderBase):
         ),
     ]
 
+    def __init__(self, vobj):
+        super().__init__(vobj)
+        # This is a workaround to avoid a subtle bug in _ArchMaterial.execute
+        # if a material is erroneously set on the project (it can happen...)
+        vobj.addProperty(
+            "App::PropertyBool", "UseMaterialColor"
+        ).UseMaterialColor = False
+
     def on_delete_cb(self, feature, subelements):
         """Respond to delete object event (callback)."""
         delete = True
