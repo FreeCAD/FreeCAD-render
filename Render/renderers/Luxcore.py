@@ -315,7 +315,7 @@ def _write_bump(name, matval):
 
 def _write_normal(name, matval):
     """Compute a string in the renderer SDL for normal statement."""
-    if matval.has_bump():
+    if matval.has_normal():
         # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
         res = f"""scene.materials.{name}.normaltex = {matval["normal"]}\n"""
     else:
@@ -457,6 +457,10 @@ class MaterialValues:
     def has_bump(self):
         """Check if material has a bump texture (boolean)."""
         return ("bump" in self._values) and (self._values["bump"] is not None)
+
+    def has_normal(self):
+        """Check if material has a normal texture (boolean)."""
+        return ("normal" in self._values) and (self._values["normal"] is not None)
 
     @property
     def default_color(self):

@@ -67,6 +67,12 @@ STD_MATERIALS_PARAMETERS = {
             "",
             translate("Render", "Bump"),
         ),
+        Param(
+            "Normal",
+            "texonly",
+            "",
+            translate("Render", "Normal"),
+        ),
     ],
     "Disney": [
         Param(
@@ -202,6 +208,12 @@ STD_MATERIALS_PARAMETERS = {
             "",
             translate("Render", "Bump"),
         ),
+        Param(
+            "Normal",
+            "texonly",
+            "",
+            translate("Render", "Normal"),
+        ),
     ],
     "Carpaint": [
         Param(
@@ -215,6 +227,12 @@ STD_MATERIALS_PARAMETERS = {
             "texonly",
             "",
             translate("Render", "Bump"),
+        ),
+        Param(
+            "Normal",
+            "texonly",
+            "",
+            translate("Render", "Normal"),
         ),
     ],
 }
