@@ -45,6 +45,7 @@ def write_mesh(name, mesh, material):
     materialvalues = MaterialValues(name, material)
     snippet_tex = materialvalues.write_textures()
     snippet_bump = _write_bump(name, materialvalues)
+    snippet_normal = _write_normal(name, materialvalues)
     snippet_mat = _write_material(name, materialvalues)
 
     # Core
@@ -74,7 +75,12 @@ def write_mesh(name, mesh, material):
 
     # Consolidation
     snippet = (
-        snippet_obj + snippet_uv + snippet_mat + snippet_bump + snippet_tex
+        snippet_obj
+        + snippet_uv
+        + snippet_mat
+        + snippet_bump
+        + snippet_normal
+        + snippet_tex
     )
     return dedent(snippet)
 
@@ -299,10 +305,19 @@ def _write_material_fallback(name, material):
 
 def _write_bump(name, matval):
     """Compute a string in the renderer SDL for bump statement."""
-    # TODO add amplitude (see bump.scn)
     if matval.has_bump():
         # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
         res = f"""scene.materials.{name}.bumptex = {matval["bump"]}\n"""
+    else:
+        res = ""
+    return res
+
+
+def _write_normal(name, matval):
+    """Compute a string in the renderer SDL for normal statement."""
+    if matval.has_bump():
+        # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
+        res = f"""scene.materials.{name}.normaltex = {matval["normal"]}\n"""
     else:
         res = ""
     return res
@@ -356,6 +371,16 @@ class MaterialValues:
     scene.textures.{n}.type = scale
     scene.textures.{n}.texture1 = 0.01
     scene.textures.{n}.texture2 = {n}_bump
+    """
+
+    NORMALTEXSNIPPET = """
+    scene.textures.{n}_normal.type = normalmap
+    scene.textures.{n}_normal.file = "{f}"
+    scene.textures.{n}_normal.scale = 0.01
+    scene.textures.{n}_normal.mapping.type = uvmapping2d
+    scene.textures.{n}_normal.mapping.rotation = {r}
+    scene.textures.{n}_normal.mapping.uvscale = {su} {sv}
+    scene.textures.{n}_normal.mapping.uvdelta = {tu} {tv}
     """
 
     # Snippets for values

@@ -355,7 +355,19 @@ def _import_textures(material, input_material_dict, basepath=None):
             if len(parsed) < 2 or parsed[0] != "Texture":
                 continue  # Not a texture
             # Parse texture reference
-            texture_ref = ast.literal_eval(parsed[1])
+            try:
+                texture_ref = ast.literal_eval(parsed[1])
+            except ValueError:
+                msg = translate(
+                    "Render",
+                    "Invalid syntax for attribute '{}' in texture '{}': "
+                    "Maybe strings are not enclosed in quotes? "
+                    "Attribute = {} "
+                    "-- Skipping",
+                ).format(key, texname, parsed[1])
+                warn(domain, cardname, msg)
+                continue
+
             if not isinstance(texture_ref, tuple) or len(texture_ref) != 2:
                 msg = translate(
                     "Render",
@@ -370,7 +382,7 @@ def _import_textures(material, input_material_dict, basepath=None):
 
     # TODO Use cases to test:
     #   Material has already data
-    
+
     # Finally return material data without texture data
     return otherdata
 

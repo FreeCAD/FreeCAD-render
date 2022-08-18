@@ -136,6 +136,12 @@ STD_MATERIALS_PARAMETERS = {
             "",
             translate("Render", "Bump"),
         ),
+        Param(
+            "Normal",
+            "texonly",
+            "",
+            translate("Render", "Normal"),
+        ),
     ],
     "Diffuse": [
         Param(
@@ -149,6 +155,12 @@ STD_MATERIALS_PARAMETERS = {
             "texonly",
             "",
             translate("Render", "Bump"),
+        ),
+        Param(
+            "Normal",
+            "texonly",
+            "",
+            translate("Render", "Normal"),
         ),
     ],
     # NB: Above 'Mixed' material could be extended with reflectivity in the
