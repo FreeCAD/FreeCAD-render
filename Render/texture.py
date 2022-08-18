@@ -109,14 +109,33 @@ class Texture(FeatureBase):
             group.addObject(fpo)
 
     def add_image(self, imagename=None, imagepath=None):
-        """Add an image property."""
+        """Add an image property.
+
+        Returns: property name
+        """
+        # Normalize argument
         if imagename is None:
             imagename = "Image"
-        prop = self.fpo.addProperty(
-            "App::PropertyFileIncluded", imagename, self.IMAGE_GROUP
-        )
+
+        # Loop on names till one is suitable and create property
+        counter, propertyname, created = 0, imagename, False
+        while not created:
+            try:
+                prop = self.fpo.addProperty(
+                    "App::PropertyFileIncluded", propertyname, self.IMAGE_GROUP
+                )
+            except NameError:
+                counter +=1
+                propertyname = f"{imagename}{counter:03}"
+            else:
+                created = True
+
+        # Set value
         if imagepath is not None:
             setattr(prop, imagename, imagepath)
+
+        # Return eventual property name
+        return propertyname
 
     def get_images(self):
         """Get the list of images properties of the texture."""
