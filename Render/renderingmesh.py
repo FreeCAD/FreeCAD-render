@@ -193,7 +193,11 @@ class RenderingMesh:
         # Non Z-normal facets (seam)
         seam_mesh = Mesh.Mesh(seam)
         points = seam_mesh.Points
-        avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
+        avg_radius = (
+            sum(math.hypot(p.x, p.y) for p in points) / len(points)
+            if len(points)
+            else 0
+        )
         uvmap += [
             App.Base.Vector2d(_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001
             for p in points
