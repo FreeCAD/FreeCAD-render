@@ -165,7 +165,7 @@ class ViewProviderTexture(ViewProviderBase):
     (no Coin representation)
     """
 
-    ICON = ""  # TODO Add Icon
+    ICON = "Texture.svg"
 
     CONTEXT_MENU = [
         CtxMenuItem(
