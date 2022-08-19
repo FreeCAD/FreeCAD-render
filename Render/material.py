@@ -27,6 +27,7 @@ Please note Render Material object is mainly derived from Arch Material.
 
 import itertools
 import os
+import re
 import ast
 
 import FreeCAD as App
@@ -208,8 +209,8 @@ class Material(_ArchMaterial):
 def _import_textures(material, input_material_dict, basepath=None):
     """Import textures data into a Material.
 
-    This function could be a method of Material class. However, it has been
-    isolated for debugging purpose.
+    Nota: This function could be a method of Material class. However, it has
+    been isolated for debugging purpose.
 
     Args:
         material -- The Material object to update
@@ -340,31 +341,56 @@ def _import_textures(material, input_material_dict, basepath=None):
             else:
                 setattr(texture.fpo, key, cast_value)
 
-        # Update material fields that reference this texture:
-        # In the card, the fields reference the texture by the name given
-        # in the card (texname), but in FreeCAD, we must reference it by the
-        # internal object name.
+        # Parse and update material fields that reference this texture:
+        # In the card:
+        # - the expected syntax is:
+        #   Texture("<texture_name>", <index>); <fallback_color>
+        # - <texture_name> reference the texture by the name given in the card
+        # In FreeCAD:
+        # - the expected syntax is:
+        #   Texture;("<texture_name>", "<property_name>"); <fallback_color>
+        # - <texture_name> must reference the texture by the internal
+        #   object name, which may be slightly different (name collisions etc.),
+        # Thus we have to translate...
         # We update otherdata accordingly...
         fcd_texname = texture.fpo.Name  # The internal object name
         for key, value in otherdata.items():
             # Look for Render parameter only
             if not key.startswith("Render."):
                 continue  # Not Render stuff
-            # Check that value references a texture
-            parsed = [v.strip() for v in value.split(";")]
-            if len(parsed) < 2 or parsed[0] != "Texture":
-                continue  # Not a texture
-            # Parse texture reference
+
+            # Search for texture statement
+            parsed = [v.strip() for v in value.split(";")]  # Split and strip
+            texture_statement = re.search("Texture\s*(.*)", parsed[0])
+            if texture_statement is None:
+                continue  # Not a texture statement
+
+            # Find texture argument
             try:
-                texture_ref = ast.literal_eval(parsed[1])
-            except ValueError:
+                texture_argument = texture_statement.group(1)
+            except IndexError:
+                msg = translate(
+                    "Render",
+                    "Invalid syntax for texture '{}': "
+                    "No valid arguments in statement ('{}')"
+                    "-- Skipping",
+                ).format(key, texname, texture_argument)
+                warn(domain, cardname, msg)
+                continue
+
+            print("Tex arg:", texture_argument)  # TODO
+
+            # Parse texture argument (into texture reference)
+            try:
+                texture_ref = ast.literal_eval(texture_argument)
+            except (ValueError, SyntaxError):
                 msg = translate(
                     "Render",
                     "Invalid syntax for attribute '{}' in texture '{}': "
-                    "Maybe strings are not enclosed in quotes? "
-                    "Attribute = {} "
+                    """Expecting 'Texture("<texname>", <texindex>)', """
+                    "got '{}' instead"
                     "-- Skipping",
-                ).format(key, texname, parsed[1])
+                ).format(key, texname, parsed[0])
                 warn(domain, cardname, msg)
                 continue
 
@@ -372,13 +398,24 @@ def _import_textures(material, input_material_dict, basepath=None):
                 msg = translate(
                     "Render",
                     "Invalid syntax for attribute '{}' in texture '{}': "
-                    "Reference to texture should be a 2-strings tuple -- Skipping",
+                    "Reference to texture should be a tuple ('<texture>', <index>) "
+                    "-- Skipping",
                 ).format(key, texname)
                 warn(domain, cardname, msg)
                 continue
+
             # Substitute texture reference in internal format
-            parsed[1] = str((str(fcd_texname), texture_ref[1]))
-            otherdata[key] = ";".join(parsed)
+            # Internal format is ("<texturename>", "<imagepropertyname>")
+            # We have to recompute <imagepropertyname>
+            if texture_ref[1] != 0:
+                imgpropname = "Image{}".format(texture_ref[1])
+            else:
+                imgpropname = "Image"
+
+            # Translate in internal format and update 'otherdata'
+            internal = ["Texture", str((fcd_texname, imgpropname))]
+            internal += parsed[1:]
+            otherdata[key] = ";".join(internal)
 
     # TODO Use cases to test:
     #   Material has already data
