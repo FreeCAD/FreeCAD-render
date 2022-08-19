@@ -24,6 +24,7 @@
 
 # Suggested links to renderer documentation:
 # https://wiki.luxcorerender.org/LuxCore_SDL_Reference_Manual_v2.6
+# https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/displacement/displacement.scn
 
 import os
 from tempfile import mkstemp
@@ -56,20 +57,40 @@ def write_mesh(name, mesh, material):
     tris = [f"{t[0]} {t[1]} {t[2]}" for t in topology[1]]
     tris = " ".join(tris)
 
-    snippet_obj = f"""
-    # Object '{name}'
-    scene.objects.{name}.type = inlinedmesh
-    scene.objects.{name}.vertices = {points}
-    scene.objects.{name}.faces = {tris}
-    scene.objects.{name}.material = {name}
-    scene.objects.{name}.transformation = 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
-    """
+    # TODO
+    if not materialvalues.has_displacement():
+        # No displacement (plain case)
+        snippet_obj = f"""
+# Object '{name}'
+scene.objects.{name}.shape = {name}_mesh
+scene.objects.{name}.material = {name}
+scene.shapes.{name}_mesh.type = inlinedmesh
+scene.shapes.{name}_mesh.vertices = {points}
+scene.shapes.{name}_mesh.faces = {tris}
+"""
+    else:
+        # Displacement
+        snippet_obj = f"""
+# Object '{name}'
+scene.objects.{name}.shape = {name}_disp
+scene.objects.{name}.material = {name}
+scene.shapes.{name}_mesh.type = inlinedmesh
+scene.shapes.{name}_mesh.vertices = {points}
+scene.shapes.{name}_mesh.faces = {tris}
+scene.shapes.{name}_disp.type = displacement
+scene.shapes.{name}_disp.source = {name}_mesh
+scene.shapes.{name}_disp.scale = 0.001
+scene.shapes.{name}_disp.map = {materialvalues["displacement"]}
+scene.shapes.{name}_disp.map.type = vector
+# Mudbox channel order
+scene.shapes.{name}_disp.map.channels = 0 2 1
+"""
 
     # UV map
     if mesh.has_uvmap():
         uvs = [f"{t.x} {t.y}" for t in mesh.uvmap]
         uvs = " ".join(uvs)
-        snippet_uv = f"""scene.objects.{name}.uvs = {uvs}\n"""
+        snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
     else:
         snippet_uv = ""
 
@@ -88,12 +109,12 @@ def write_mesh(name, mesh, material):
 def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
     snippet = """
-    # Camera '{n}'
-    scene.camera.lookat.orig = {o.x} {o.y} {o.z}
-    scene.camera.lookat.target = {t.x} {t.y} {t.z}
-    scene.camera.up = {u.x} {u.y} {u.z}
-    scene.camera.fieldofview = {f}
-    """
+# Camera '{n}'
+scene.camera.lookat.orig = {o.x} {o.y} {o.z}
+scene.camera.lookat.target = {t.x} {t.y} {t.z}
+scene.camera.up = {u.x} {u.y} {u.z}
+scene.camera.fieldofview = {f}
+"""
     return dedent(snippet).format(n=name, o=pos.Base, t=target, u=updir, f=fov)
 
 
@@ -106,14 +127,14 @@ def write_pointlight(name, pos, color, power):
     gain = 10  # Guesstimated! (don't hesitate to propose more sensible values)
 
     snippet = """
-    # Point light '{n}'
-    scene.lights.{n}.type = point
-    scene.lights.{n}.position = {o.x} {o.y} {o.z}
-    scene.lights.{n}.color = {c[0]} {c[1]} {c[2]}
-    scene.lights.{n}.power = {p}
-    scene.lights.{n}.gain = {g} {g} {g}
-    scene.lights.{n}.efficency = {e}
-    """
+# Point light '{n}'
+scene.lights.{n}.type = point
+scene.lights.{n}.position = {o.x} {o.y} {o.z}
+scene.lights.{n}.color = {c[0]} {c[1]} {c[2]}
+scene.lights.{n}.power = {p}
+scene.lights.{n}.gain = {g} {g} {g}
+scene.lights.{n}.efficency = {e}
+"""
     return dedent(snippet).format(
         n=name, o=pos, c=color, p=power, g=gain, e=efficiency
     )
@@ -131,20 +152,20 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     trans = " ".join([str(a) for a in placement.A])
 
     snippet = """
-    # Area light '{n}'
-    scene.materials.{n}.type = matte
-    scene.materials.{n}.emission = {c[0]} {c[1]} {c[2]}
-    scene.materials.{n}.emission.gain = {g} {g} {g}
-    scene.materials.{n}.emission.power = {p}
-    scene.materials.{n}.emission.efficency = {e}
-    scene.materials.{n}.transparency = {a}
-    scene.materials.{n}.kd = 0.0 0.0 0.0
-    scene.objects.{n}.type = inlinedmesh
-    scene.objects.{n}.vertices = -{u} -{v} 0 {u} -{v} 0 {u} {v} 0 -{u} {v} 0
-    scene.objects.{n}.faces = 0 1 2 0 2 3 0 2 1 0 3 2
-    scene.objects.{n}.material = {n}
-    scene.objects.{n}.transformation = {t}
-    """
+# Area light '{n}'
+scene.materials.{n}.type = matte
+scene.materials.{n}.emission = {c[0]} {c[1]} {c[2]}
+scene.materials.{n}.emission.gain = {g} {g} {g}
+scene.materials.{n}.emission.power = {p}
+scene.materials.{n}.emission.efficency = {e}
+scene.materials.{n}.transparency = {a}
+scene.materials.{n}.kd = 0.0 0.0 0.0
+scene.objects.{n}.type = inlinedmesh
+scene.objects.{n}.vertices = -{u} -{v} 0 {u} -{v} 0 {u} {v} 0 -{u} {v} 0
+scene.objects.{n}.faces = 0 1 2 0 2 3 0 2 1 0 3 2
+scene.objects.{n}.material = {n}
+scene.objects.{n}.transformation = {t}
+"""
     # Note: area light is made double-sided (consistency with other renderers)
 
     return dedent(snippet).format(
@@ -163,26 +184,26 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     snippet = """
-    # Sunsky light '{n}'
-    scene.lights.{n}_sun.type = sun
-    scene.lights.{n}_sun.turbidity = {t}
-    scene.lights.{n}_sun.dir = {d.x} {d.y} {d.z}
-    scene.lights.{n}_sky.type = sky2
-    scene.lights.{n}_sky.turbidity = {t}
-    scene.lights.{n}_sky.dir = {d.x} {d.y} {d.z}
-    scene.lights.{n}_sky.groundalbedo = {g} {g} {g}
-    """
+# Sunsky light '{n}'
+scene.lights.{n}_sun.type = sun
+scene.lights.{n}_sun.turbidity = {t}
+scene.lights.{n}_sun.dir = {d.x} {d.y} {d.z}
+scene.lights.{n}_sky.type = sky2
+scene.lights.{n}_sky.turbidity = {t}
+scene.lights.{n}_sky.dir = {d.x} {d.y} {d.z}
+scene.lights.{n}_sky.groundalbedo = {g} {g} {g}
+"""
     return dedent(snippet).format(n=name, t=turbidity, d=direction, g=albedo)
 
 
 def write_imagelight(name, image):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
-    # Image light '{n}'
-    scene.lights.{n}.type = infinite
-    scene.lights.{n}.transformation = -1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
-    scene.lights.{n}.file = "{f}"
-    """
+# Image light '{n}'
+scene.lights.{n}.type = infinite
+scene.lights.{n}.transformation = -1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+scene.lights.{n}.file = "{f}"
+"""
     return dedent(snippet).format(n=name, f=image)
 
 
@@ -215,43 +236,44 @@ def _write_material(name, material):
 
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    snippet = indent(matval["string"], "    ")
+    # snippet = indent(matval["string"], "    ")
+    snippet = matval["string"]
     return snippet.format(n=name, c=matval.default_color)
 
 
 def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
     return f"""
-    scene.materials.{name}.type = glass
-    scene.materials.{name}.kt = {matval["color"]}
-    scene.materials.{name}.interiorior = {matval["ior"]}
-    """
+scene.materials.{name}.type = glass
+scene.materials.{name}.kt = {matval["color"]}
+scene.materials.{name}.interiorior = {matval["ior"]}
+"""
 
 
 def _write_material_disney(name, matval):
     """Compute a string in the renderer SDL for a Disney material."""
     return f"""
-    scene.materials.{name}.type = disney
-    scene.materials.{name}.basecolor = {matval["basecolor"]}
-    scene.materials.{name}.subsurface = {matval["subsurface"]}
-    scene.materials.{name}.metallic = {matval["metallic"]}
-    scene.materials.{name}.specular = {matval["specular"]}
-    scene.materials.{name}.speculartint = {matval["speculartint"]}
-    scene.materials.{name}.roughness = {matval["roughness"]}
-    scene.materials.{name}.anisotropic = {matval["anisotropic"]}
-    scene.materials.{name}.sheen = {matval["sheen"]}
-    scene.materials.{name}.sheentint = {matval["sheentint"]}
-    scene.materials.{name}.clearcoat = {matval["clearcoat"]}
-    scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
-    """
+scene.materials.{name}.type = disney
+scene.materials.{name}.basecolor = {matval["basecolor"]}
+scene.materials.{name}.subsurface = {matval["subsurface"]}
+scene.materials.{name}.metallic = {matval["metallic"]}
+scene.materials.{name}.specular = {matval["specular"]}
+scene.materials.{name}.speculartint = {matval["speculartint"]}
+scene.materials.{name}.roughness = {matval["roughness"]}
+scene.materials.{name}.anisotropic = {matval["anisotropic"]}
+scene.materials.{name}.sheen = {matval["sheen"]}
+scene.materials.{name}.sheentint = {matval["sheentint"]}
+scene.materials.{name}.clearcoat = {matval["clearcoat"]}
+scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
+"""
 
 
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
     return f"""
-    scene.materials.{name}.type = matte
-    scene.materials.{name}.kd = {matval["color"]}
-    """
+scene.materials.{name}.type = matte
+scene.materials.{name}.kd = {matval["color"]}
+"""
 
 
 def _write_material_mixed(name, matval):
@@ -268,20 +290,20 @@ def _write_material_mixed(name, matval):
 
     # Mix
     snippet_m = f"""
-    scene.materials.{name}.type = mix
-    scene.materials.{name}.material1 = {name}_diffuse
-    scene.materials.{name}.material2 = {name}_glass
-    scene.materials.{name}.amount = {matval["transparency"]}
-    """
+scene.materials.{name}.type = mix
+scene.materials.{name}.material1 = {name}_diffuse
+scene.materials.{name}.material2 = {name}_glass
+scene.materials.{name}.amount = {matval["transparency"]}
+"""
     return snippet_g + snippet_d + snippet_g_tex + snippet_d_tex + snippet_m
 
 
 def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
     return f"""
-    scene.materials.{name}.type = carpaint
-    scene.materials.{name}.kd = {matval["basecolor"]}
-    """
+scene.materials.{name}.type = carpaint
+scene.materials.{name}.kd = {matval["basecolor"]}
+"""
 
 
 def _write_material_fallback(name, material):
@@ -297,9 +319,9 @@ def _write_material_fallback(name, material):
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
     snippet = """
-    scene.materials.{n}.type = matte
-    scene.materials.{n}.kd = {r} {g} {b}
-    """
+scene.materials.{n}.type = matte
+scene.materials.{n}.kd = {r} {g} {b}
+"""
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
@@ -351,37 +373,47 @@ class MaterialValues:
     # Snippet for texture
     # TODO Fix uvscale (inverse scaling?)
     TEXSNIPPET = """
-    scene.textures.{n}.type = imagemap
-    scene.textures.{n}.file = "{f}"
-    scene.textures.{n}.gamma = {g}
-    scene.textures.{n}.mapping.type = uvmapping2d
-    scene.textures.{n}.mapping.rotation = {r}
-    scene.textures.{n}.mapping.uvscale = {su} {sv}
-    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
-    """
+scene.textures.{n}.type = imagemap
+scene.textures.{n}.file = "{f}"
+scene.textures.{n}.gamma = {g}
+scene.textures.{n}.mapping.type = uvmapping2d
+scene.textures.{n}.mapping.rotation = {r}
+scene.textures.{n}.mapping.uvscale = {su} {sv}
+scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+"""
 
     BUMPTEXSNIPPET = """
-    scene.textures.{n}_bump.type = imagemap
-    scene.textures.{n}_bump.file = "{f}"
-    scene.textures.{n}_bump.gamma = {g}
-    scene.textures.{n}_bump.mapping.type = uvmapping2d
-    scene.textures.{n}_bump.mapping.rotation = {r}
-    scene.textures.{n}_bump.mapping.uvscale = {su} {sv}
-    scene.textures.{n}_bump.mapping.uvdelta = {tu} {tv}
-    scene.textures.{n}.type = scale
-    scene.textures.{n}.texture1 = 0.01
-    scene.textures.{n}.texture2 = {n}_bump
-    """
+scene.textures.{n}_bump.type = imagemap
+scene.textures.{n}_bump.file = "{f}"
+scene.textures.{n}_bump.gamma = {g}
+scene.textures.{n}_bump.mapping.type = uvmapping2d
+scene.textures.{n}_bump.mapping.rotation = {r}
+scene.textures.{n}_bump.mapping.uvscale = {su} {sv}
+scene.textures.{n}_bump.mapping.uvdelta = {tu} {tv}
+scene.textures.{n}.type = scale
+scene.textures.{n}.texture1 = 0.01
+scene.textures.{n}.texture2 = {n}_bump
+"""
 
     NORMALTEXSNIPPET = """
-    scene.textures.{n}.type = imagemap
-    scene.textures.{n}.file = "{f}"
-    scene.textures.{n}.gamma = {g}
-    scene.textures.{n}.mapping.type = uvmapping2d
-    scene.textures.{n}.mapping.rotation = {r}
-    scene.textures.{n}.mapping.uvscale = {su} {sv}
-    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
-    """
+scene.textures.{n}.type = imagemap
+scene.textures.{n}.file = "{f}"
+scene.textures.{n}.gamma = {g}
+scene.textures.{n}.mapping.type = uvmapping2d
+scene.textures.{n}.mapping.rotation = {r}
+scene.textures.{n}.mapping.uvscale = {su} {sv}
+scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+"""
+
+    DISPTEXSNIPPET = """
+scene.textures.{n}_disptex.type = imagemap
+scene.textures.{n}_disptex.file = "{f}"
+scene.textures.{n}_disptex.mapping.type = uvmapping2d
+scene.textures.{n}_disptex.gamma = {g}
+scene.textures.{n}_disptex.mapping.rotation = {r}
+scene.textures.{n}_disptex.mapping.uvscale = {su} {sv}
+scene.textures.{n}_disptex.mapping.uvdelta = {tu} {tv}
+"""
 
     # Snippets for values
     VALSNIPPETS = {
@@ -461,7 +493,15 @@ class MaterialValues:
 
     def has_normal(self):
         """Check if material has a normal texture (boolean)."""
-        return ("normal" in self._values) and (self._values["normal"] is not None)
+        return ("normal" in self._values) and (
+            self._values["normal"] is not None
+        )
+
+    def has_displacement(self):
+        """Check if material has a normal texture (boolean)."""
+        return ("displacement" in self._values) and (
+            self._values["displacement"] is not None
+        )
 
     @property
     def default_color(self):

@@ -148,6 +148,12 @@ STD_MATERIALS_PARAMETERS = {
             "",
             translate("Render", "Normal"),
         ),
+        Param(
+            "Displacement",
+            "texonly",
+            "",
+            translate("Render", "Displacement"),
+        ),
     ],
     "Diffuse": [
         Param(
