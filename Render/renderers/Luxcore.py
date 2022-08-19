@@ -374,13 +374,13 @@ class MaterialValues:
     """
 
     NORMALTEXSNIPPET = """
-    scene.textures.{n}_normal.type = normalmap
-    scene.textures.{n}_normal.file = "{f}"
-    scene.textures.{n}_normal.scale = 0.01
-    scene.textures.{n}_normal.mapping.type = uvmapping2d
-    scene.textures.{n}_normal.mapping.rotation = {r}
-    scene.textures.{n}_normal.mapping.uvscale = {su} {sv}
-    scene.textures.{n}_normal.mapping.uvdelta = {tu} {tv}
+    scene.textures.{n}.type = normalmap
+    scene.textures.{n}.file = "{f}"
+    scene.textures.{n}.scale = 0.01
+    scene.textures.{n}.mapping.type = uvmapping2d
+    scene.textures.{n}.mapping.rotation = {r}
+    scene.textures.{n}.mapping.uvscale = {su} {sv}
+    scene.textures.{n}.mapping.uvdelta = {tu} {tv}
     """
 
     # Snippets for values
@@ -417,11 +417,12 @@ class MaterialValues:
                 # Compute gamma
                 gamma = 2.2 if proptype == "RGB" else 1.0
                 # Expand texture into SDL
-                snippet = (
-                    self.TEXSNIPPET
-                    if propkey != "bump"
-                    else self.BUMPTEXSNIPPET
-                )
+                if propkey == "bump":
+                    snippet = self.BUMPTEXSNIPPET
+                elif propkey == "normal":
+                    snippet = self.NORMALTEXSNIPPET
+                else:
+                    snippet = self.TEXSNIPPET
                 texture = snippet.format(
                     n=texname,
                     f=propvalue.file,
