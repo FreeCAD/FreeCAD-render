@@ -374,9 +374,9 @@ class MaterialValues:
     """
 
     NORMALTEXSNIPPET = """
-    scene.textures.{n}.type = normalmap
+    scene.textures.{n}.type = imagemap
     scene.textures.{n}.file = "{f}"
-    scene.textures.{n}.scale = 0.01
+    scene.textures.{n}.gamma = {g}
     scene.textures.{n}.mapping.type = uvmapping2d
     scene.textures.{n}.mapping.rotation = {r}
     scene.textures.{n}.mapping.uvscale = {su} {sv}
