@@ -126,7 +126,7 @@ class Texture(FeatureBase):
                 )
             except NameError:
                 counter += 1
-                propertyname = f"{imagename}{counter:03}"
+                propertyname = f"{imagename}{counter}"
             else:
                 created = True
 
