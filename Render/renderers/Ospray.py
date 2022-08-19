@@ -632,6 +632,11 @@ def render(project, prefix, external, output, width, height):
     project.PageResult = f_path
     os.remove(f_path)
 
+    # Compute output
+    output = (
+        output if output else os.path.splitext(project.PageResult)[0] + ".png"
+    )
+
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = params.GetString("Prefix", "")
@@ -639,6 +644,8 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("OspPath", "")
     args = params.GetString("OspParameters", "")
+    if output:
+        args += "  --image " + output
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
@@ -652,4 +659,5 @@ def render(project, prefix, external, output, width, height):
     # Note: at the moment (02-19-2021), width, height, output, background are
     # not managed by osp
 
-    return cmd, None
+    # return cmd, output # TODO when osp output is operational
+    return cmd, output
