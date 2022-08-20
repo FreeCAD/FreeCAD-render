@@ -42,7 +42,8 @@
 
 import json
 import os
-from tempfile import mkstemp
+import os.path
+import tempfile
 from math import degrees, asin, sqrt, atan2, pi
 
 import FreeCAD as App
@@ -62,7 +63,7 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Write the mesh as an OBJ tempfile
-    f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
+    f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
     os.close(f_handle)
     tmpmesh = mesh.copy()
     # Direct rotation of mesh is preferred to Placement modification
@@ -81,7 +82,7 @@ def write_mesh(name, mesh, material):
     buffer.insert(i, f"o {name}\nusemtl material\n")
 
     # Write material
-    f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="_")
+    f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
     os.close(f_handle)
     mtl = "newmtl material" + _write_material(name, material)
     with open(mtlfile, "w", encoding="utf-8") as f:
@@ -209,7 +210,7 @@ intensity {radiance}
 transparency {transparency}
 """
 
-    f_handle, mtlfile = mkstemp(suffix=".mtl", prefix="light_")
+    f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="light_")
     os.close(f_handle)
     with open(mtlfile, "w", encoding="utf-8") as f:
         f.write(mtl)
@@ -237,7 +238,7 @@ usemtl material
 f 1//1 2//1 3//1 4//1
 """
 
-    f_handle, objfile = mkstemp(suffix=".obj", prefix="light_")
+    f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="light_")
     os.close(f_handle)
     with open(objfile, "w", encoding="utf-8") as f:
         f.write(obj)
@@ -401,7 +402,7 @@ def write_imagelight(name, image):
   }}
 }}
 """
-    f_handle, gltf_file = mkstemp(suffix=".gltf", prefix="light_")
+    f_handle, gltf_file = tempfile.mkstemp(suffix=".gltf", prefix="light_")
     os.close(f_handle)
     # osp requires the hdr file path to be relative from the gltf file path
     # (see GLTFData::createLights insg/importer/glTF.cpp, ),
@@ -622,8 +623,8 @@ def render(project, prefix, external, output, width, height):
     lightsmanager_children = json_load["lightsManager"]["children"]
     lightsmanager_children.extend(lights)
 
-    # Write resulting output to file
-    f_handle, f_path = mkstemp(
+    # Write reformatted input to file
+    f_handle, f_path = tempfile.mkstemp(
         prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
     )
     os.close(f_handle)
@@ -632,10 +633,21 @@ def render(project, prefix, external, output, width, height):
     project.PageResult = f_path
     os.remove(f_path)
 
-    # Compute output
-    output = (
-        output if output else os.path.splitext(project.PageResult)[0] + ".png"
-    )
+    # Prepare osp output file
+    # Osp renames the output file when writing, so we have to ask it to write a
+    # specific file but we'll return the actual file written (we recompute the
+    # name)
+    # Nota: as a consequence, we cannot take user choice for output file into
+    # account
+    outfile_for_osp = os.path.join(tempfile.gettempdir(), "ospray_out")
+    outfile_actual = f"{outfile_for_osp}.0000.png"  # The file that osp'll use
+    # We remove the outfile before writing, otherwise ospray will choose
+    # another file
+    try:
+        os.remove(outfile_actual)
+    except FileNotFoundError:
+        # The file does not already exist: no problem
+        pass
 
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
@@ -645,7 +657,7 @@ def render(project, prefix, external, output, width, height):
     rpath = params.GetString("OspPath", "")
     args = params.GetString("OspParameters", "")
     if output:
-        args += "  --image " + output
+        args += "  --image " + outfile_for_osp
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
@@ -656,8 +668,7 @@ def render(project, prefix, external, output, width, height):
 
     cmd = prefix + rpath + " " + args + " " + f'"{project.PageResult}"'
 
-    # Note: at the moment (02-19-2021), width, height, output, background are
+    # Note: at the moment (08-20-2022), width, height, background are
     # not managed by osp
 
-    # return cmd, output # TODO when osp output is operational
-    return cmd, output
+    return cmd, outfile_actual
