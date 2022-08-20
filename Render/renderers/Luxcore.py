@@ -28,7 +28,7 @@
 
 import os
 from tempfile import mkstemp
-from textwrap import dedent, indent
+from textwrap import dedent
 import configparser
 
 import FreeCAD as App
@@ -424,6 +424,16 @@ scene.textures.{n}.mapping.uvdelta = {tu} {tv}
     return texname, texture
 
 
+VALSNIPPETS = {
+    "RGB": "{val.r} {val.g} {val.b}",
+    "float": "{val}",
+    "node": "",
+    "RGBA": "{val.r} {val.g} {val.b} {val.a}",
+    "texonly": "{val}",
+    "str": "{val}",
+}
+
+
 def _write_value(proptype, propvalue):
     """Compute a string in renderer SDL from a shader property value.
 
@@ -434,14 +444,6 @@ def _write_value(proptype, propvalue):
     The result depends on the type of the value...
     """
     # Snippets for values
-    VALSNIPPETS = {
-        "RGB": "{val.r} {val.g} {val.b}",
-        "float": "{val}",
-        "node": "",
-        "RGBA": "{val.r} {val.g} {val.b} {val.a}",
-        "texonly": "{val}",
-        "str": "{val}",
-    }
 
     snippet = VALSNIPPETS[proptype]
     value = snippet.format(val=propvalue)

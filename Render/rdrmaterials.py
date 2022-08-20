@@ -713,9 +713,10 @@ class RenderMaterial:
 class MaterialValues:
     """Material values wrapper.
 
-    This wrapper customizes a material for a specific object and a specific renderer.
-    Objects of this class are generated only by RenderMaterial. The renderer must call
-    RenderMaterial.get_material_values to get such an object.
+    This wrapper customizes a material for a specific object and a specific
+    renderer. Objects of this class are generated only by RenderMaterial. The
+    renderer must call RenderMaterial.get_material_values to get such an
+    object.
 
     This wrapper implements 2 main methods:
     - a `textures` method which provides a list of the embedded textures
@@ -733,13 +734,16 @@ class MaterialValues:
             material -- The rendering material from which we compute the values
             write_texture_fun  -- The function to call to get a texture in SDL
                 string
-            write_value_fun -- The function to call to get a value in SDL string
+            write_value_fun -- The function to call to get a value in SDL
+                string
         """
         self.material = material
         self.shader = material.shader
         self.objname = str(objname)
         self._values = {}
         self._textures = []
+        self._write_texture = write_texture_fun
+        self._write_value = write_value_fun
 
         # Build values and textures - loop on shader properties
         for propkey, propvalue in material.shaderproperties.items():
@@ -807,7 +811,10 @@ class MaterialValues:
     def getmixedsubmat(self, submat):
         """Get mixed submaterial."""
         return MaterialValues(
-            self.objname, self.material.getmixedsubmat(submat)
+            self.objname,
+            self.material.getmixedsubmat(submat),
+            self._write_texture,
+            self._write_value,
         )
 
 
