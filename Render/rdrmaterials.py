@@ -592,12 +592,16 @@ def is_valid_material(obj):
 
 
 # ===========================================================================
-#                            Locals (helpers)
+#                             Objects for renderers
 # ===========================================================================
 
 
 class RenderMaterial:
-    """An object to represent a material for renderers plugins."""
+    """An object to represent a material for renderers plugins.
+
+    Such an object is passed to renderers plugins by the renderer handler,
+    to provide them data about a material.
+    """
 
     def __init__(self, shadertype):
         """Initialize object."""
@@ -689,6 +693,127 @@ class RenderMaterial:
     def get_param_type(self, param_name):
         """Get parameter type."""
         return self._partypes[param_name]
+
+    def get_material_values(self, objname, write_texture_fun, write_value_fun):
+        """Provide a MaterialValues object.
+
+        This method is intended to be called from inside the _write_mesh
+        function of a renderer plugin, for texture management.
+
+        The MaterialValues is build from this RenderMaterial, the name of the
+        object to render, and the export functions for textures and values from
+        the plugin.
+        """
+        materialvalues = MaterialValues(
+            objname, self, write_texture_fun, write_value_fun
+        )
+        return materialvalues
+
+
+class MaterialValues:
+    """Material values wrapper.
+
+    This wrapper customizes a material for a specific object and a specific renderer.
+    Objects of this class are generated only by RenderMaterial. The renderer must call
+    RenderMaterial.get_material_values to get such an object.
+
+    This wrapper implements 2 main methods:
+    - a `textures` method which provides a list of the embedded textures
+      expanded in SDL.
+    - a `__setitem__` which provides the computed value for a parameter:
+      either a sheer value or a reference to a texture, depending on the actual
+      underlying value.
+    """
+
+    def __init__(self, objname, material, write_texture_fun, write_value_fun):
+        """Initialize material values.
+
+        Args:
+            objname -- Name of the object for which the values are computed
+            material -- The rendering material from which we compute the values
+            write_texture_fun  -- The function to call to get a texture in SDL
+                string
+            write_value_fun -- The function to call to get a value in SDL string
+        """
+        self.material = material
+        self.shader = material.shader
+        self.objname = str(objname)
+        self._values = {}
+        self._textures = []
+
+        # Build values and textures - loop on shader properties
+        for propkey, propvalue in material.shaderproperties.items():
+            # None value: not handled, continue
+            if propvalue is None:
+                continue
+
+            # Get property type
+            proptype = material.get_param_type(propkey)
+
+            # Is it a texture?
+            if hasattr(propvalue, "is_texture"):
+                # Compute texture
+                texname, texture = write_texture_fun(
+                    objname, propkey, proptype, propvalue
+                )
+                # Add texture SDL to internal list of textures
+                self._textures.append(texture)
+                value = texname
+            else:
+                # Not a texture, treat as plain value...
+                value = write_value_fun(proptype, propvalue)
+
+            # Store resulting value
+            self._values[propkey] = value
+
+    def textures(self):
+        """Get a list of material's textures."""
+        return self._textures
+
+    def write_textures(self):
+        """Get an SDL representation of all textures."""
+        return "\n".join(self._textures)
+
+    def __getitem__(self, propname):
+        """Implement self[propname]."""
+        return self._values[propname]
+
+    def has_bump(self):
+        """Check if material has a bump texture (boolean)."""
+        return ("bump" in self._values) and (self._values["bump"] is not None)
+
+    def has_normal(self):
+        """Check if material has a normal texture (boolean)."""
+        return ("normal" in self._values) and (
+            self._values["normal"] is not None
+        )
+
+    def has_displacement(self):
+        """Check if material has a normal texture (boolean)."""
+        return ("displacement" in self._values) and (
+            self._values["displacement"] is not None
+        )
+
+    @property
+    def default_color(self):
+        """Get material default color."""
+        return self.material.default_color
+
+    @property
+    def shadertype(self):
+        """Get material default color."""
+        return self.material.shadertype
+
+    def getmixedsubmat(self, submat):
+        """Get mixed submaterial."""
+        return MaterialValues(
+            self.objname, self.material.getmixedsubmat(submat)
+        )
+
+
+# ===========================================================================
+#                            Local helpers
+# ===========================================================================
 
 
 @functools.lru_cache(maxsize=128)

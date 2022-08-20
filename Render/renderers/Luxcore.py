@@ -42,20 +42,39 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
-    # Material (including textures and bump)
-    materialvalues = MaterialValues(name, material)
-    snippet_tex = materialvalues.write_textures()
-    snippet_bump = _write_bump(name, materialvalues)
-    snippet_normal = _write_normal(name, materialvalues)
+    # Material values
+    materialvalues = material.get_material_values(
+        name, _write_texture, _write_value
+    )
+
+    # Compute material, texture, bump & normal statements
     snippet_mat = _write_material(name, materialvalues)
+    snippet_tex = materialvalues.write_textures()
+    snippet_bump = (
+        f"""scene.materials.{name}.bumptex = {materialvalues["bump"]}\n"""
+        if materialvalues.has_bump()
+        else ""
+    )
+    snippet_normal = (
+        f"""scene.materials.{name}.normaltex = {materialvalues["normal"]}\n"""
+        if materialvalues.has_normal()
+        else ""
+    )
 
-    # Core
+    # Points and vertices
     topology = mesh.Topology  # Compute once
-
     points = [f"{v.x} {v.y} {v.z}" for v in topology[0]]
     points = " ".join(points)
     tris = [f"{t[0]} {t[1]} {t[2]}" for t in topology[1]]
     tris = " ".join(tris)
+
+    # UV map
+    if mesh.has_uvmap():
+        uvs = [f"{t.x} {t.y}" for t in mesh.uvmap]
+        uvs = " ".join(uvs)
+        snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
+    else:
+        snippet_uv = ""
 
     # Displacement (if any)
     if materialvalues.has_displacement():
@@ -82,14 +101,6 @@ scene.shapes.{name}_mesh.type = inlinedmesh
 scene.shapes.{name}_mesh.vertices = {points}
 scene.shapes.{name}_mesh.faces = {tris}
 """
-
-    # UV map
-    if mesh.has_uvmap():
-        uvs = [f"{t.x} {t.y}" for t in mesh.uvmap]
-        uvs = " ".join(uvs)
-        snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
-    else:
-        snippet_uv = ""
 
     # Consolidation
     snippet = (
@@ -323,26 +334,6 @@ scene.materials.{n}.kd = {r} {g} {b}
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
-def _write_bump(name, matval):
-    """Compute a string in the renderer SDL for bump statement."""
-    if matval.has_bump():
-        # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
-        res = f"""scene.materials.{name}.bumptex = {matval["bump"]}\n"""
-    else:
-        res = ""
-    return res
-
-
-def _write_normal(name, matval):
-    """Compute a string in the renderer SDL for normal statement."""
-    if matval.has_normal():
-        # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump.scn
-        res = f"""scene.materials.{name}.normaltex = {matval["normal"]}\n"""
-    else:
-        res = ""
-    return res
-
-
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
     "Glass": _write_material_glass,
@@ -357,30 +348,34 @@ MATERIALS = {
 # ===========================================================================
 
 
-class MaterialValues:
-    """Material values wrapper.
+def _write_texture(objname, propname, proptype, propvalue):
+    """Compute a string in renderer SDL to describe a texture.
 
-    This wrapper implements 2 main methods:
-    - a `textures` method which provides a list of the embedded textures
-      expanded in SDL.
-    - a `__setitem__` which provides the computed value for a parameter:
-      either a sheer value or a reference to a texture, depending on the actual
-      underlying value.
+    The texture is computed from a property of a shader (as the texture is
+    always integrated into a shader). Property's data are expected as
+    arguments.
+
+    Args:
+        objname -- Object name for which the texture is computed
+        propname -- Name of the shader property
+        proptype -- Type of the shader property
+        propvalue -- Value of the shader property
+
+    Returns:
+        the name of the texture
+        the SDL string of the texture
     """
+    # Compute texture name
+    texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
 
-    # Snippet for texture
-    # TODO Fix uvscale (inverse scaling?)
-    TEXSNIPPET = """
-scene.textures.{n}.type = imagemap
-scene.textures.{n}.file = "{f}"
-scene.textures.{n}.gamma = {g}
-scene.textures.{n}.mapping.type = uvmapping2d
-scene.textures.{n}.mapping.rotation = {r}
-scene.textures.{n}.mapping.uvscale = {su} {sv}
-scene.textures.{n}.mapping.uvdelta = {tu} {tv}
-"""
+    # Compute gamma
+    gamma = 2.2 if proptype == "RGB" else 1.0
 
-    BUMPTEXSNIPPET = """
+    # Expand texture into SDL
+    # 3 cases: bump, normal or plain (default)
+    if propname == "bump":
+        # Bump texture
+        snippet = """
 scene.textures.{n}_bump.type = imagemap
 scene.textures.{n}_bump.file = "{f}"
 scene.textures.{n}_bump.gamma = {g}
@@ -392,8 +387,20 @@ scene.textures.{n}.type = scale
 scene.textures.{n}.texture1 = 0.01
 scene.textures.{n}.texture2 = {n}_bump
 """
-
-    NORMALTEXSNIPPET = """
+    elif propname == "normal":
+        # Normal texture
+        snippet = """
+scene.textures.{n}.type = imagemap
+scene.textures.{n}.file = "{f}"
+scene.textures.{n}.gamma = {g}
+scene.textures.{n}.mapping.type = uvmapping2d
+scene.textures.{n}.mapping.rotation = {r}
+scene.textures.{n}.mapping.uvscale = {su} {sv}
+scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+"""
+    else:
+        # Plain texture
+        snippet = """
 scene.textures.{n}.type = imagemap
 scene.textures.{n}.file = "{f}"
 scene.textures.{n}.gamma = {g}
@@ -403,119 +410,42 @@ scene.textures.{n}.mapping.uvscale = {su} {sv}
 scene.textures.{n}.mapping.uvdelta = {tu} {tv}
 """
 
-    DISPTEXSNIPPET = """
-scene.textures.{n}_disptex.type = imagemap
-scene.textures.{n}_disptex.file = "{f}"
-scene.textures.{n}_disptex.mapping.type = uvmapping2d
-scene.textures.{n}_disptex.gamma = {g}
-scene.textures.{n}_disptex.mapping.rotation = {r}
-scene.textures.{n}_disptex.mapping.uvscale = {su} {sv}
-scene.textures.{n}_disptex.mapping.uvdelta = {tu} {tv}
-"""
+    texture = snippet.format(
+        n=texname,
+        f=propvalue.file,
+        r=float(propvalue.rotation),
+        su=float(propvalue.scale_u),
+        sv=float(propvalue.scale_v),
+        tu=float(propvalue.translation_u),
+        tv=float(propvalue.translation_v),
+        g=gamma,
+    )
 
+    return texname, texture
+
+
+def _write_value(proptype, propvalue):
+    """Compute a string in renderer SDL from a shader property value.
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
     # Snippets for values
     VALSNIPPETS = {
         "RGB": "{val.r} {val.g} {val.b}",
         "float": "{val}",
-        "node": None,
+        "node": "",
         "RGBA": "{val.r} {val.g} {val.b} {val.a}",
         "texonly": "{val}",
         "str": "{val}",
     }
 
-    def __init__(self, objname, material):
-        """Initialize object."""
-        self.material = material
-        self.shader = material.shader
-        self.objname = str(objname)
-        self._values = {}
-        self._textures = []
-
-        # Build values and textures
-        for propkey, propvalue in material.shaderproperties.items():
-            # None value: not handled, continue
-            if propvalue is None:
-                continue
-
-            # Get property type
-            proptype = material.get_param_type(propkey)
-
-            # Is it a texture?
-            if hasattr(propvalue, "is_texture"):
-                # Compute texture name
-                texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
-                # Compute gamma
-                gamma = 2.2 if proptype == "RGB" else 1.0
-                # Expand texture into SDL
-                if propkey == "bump":
-                    snippet = self.BUMPTEXSNIPPET
-                elif propkey == "normal":
-                    snippet = self.NORMALTEXSNIPPET
-                else:
-                    snippet = self.TEXSNIPPET
-                texture = snippet.format(
-                    n=texname,
-                    f=propvalue.file,
-                    r=float(propvalue.rotation),
-                    su=float(propvalue.scale_u),
-                    sv=float(propvalue.scale_v),
-                    tu=float(propvalue.translation_u),
-                    tv=float(propvalue.translation_v),
-                    g=gamma,
-                )
-                # Add texture SDL to internal list of textures
-                self._textures.append(texture)
-                value = texname
-            else:  # Not a texture, must be a plain value...
-                snippet = self.VALSNIPPETS[proptype]
-                value = snippet.format(val=propvalue) if snippet else ""
-
-            # Store resulting value
-            self._values[propkey] = value
-
-    def textures(self):
-        """Get a list of material's textures."""
-        return self._textures
-
-    def write_textures(self):
-        """Get an SDL representation of all textures."""
-        return "\n".join(self._textures)
-
-    def __getitem__(self, propname):
-        """Implement self[propname]."""
-        return self._values[propname]
-
-    def has_bump(self):
-        """Check if material has a bump texture (boolean)."""
-        return ("bump" in self._values) and (self._values["bump"] is not None)
-
-    def has_normal(self):
-        """Check if material has a normal texture (boolean)."""
-        return ("normal" in self._values) and (
-            self._values["normal"] is not None
-        )
-
-    def has_displacement(self):
-        """Check if material has a normal texture (boolean)."""
-        return ("displacement" in self._values) and (
-            self._values["displacement"] is not None
-        )
-
-    @property
-    def default_color(self):
-        """Get material default color."""
-        return self.material.default_color
-
-    @property
-    def shadertype(self):
-        """Get material default color."""
-        return self.material.shadertype
-
-    def getmixedsubmat(self, submat):
-        """Get mixed submaterial."""
-        return MaterialValues(
-            self.objname, self.material.getmixedsubmat(submat)
-        )
+    snippet = VALSNIPPETS[proptype]
+    value = snippet.format(val=propvalue)
+    return value
 
 
 # ===========================================================================
