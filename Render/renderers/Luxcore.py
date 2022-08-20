@@ -57,33 +57,30 @@ def write_mesh(name, mesh, material):
     tris = [f"{t[0]} {t[1]} {t[2]}" for t in topology[1]]
     tris = " ".join(tris)
 
-    # TODO
-    if not materialvalues.has_displacement():
-        # No displacement (plain case)
-        snippet_obj = f"""
-# Object '{name}'
-scene.objects.{name}.shape = {name}_mesh
-scene.objects.{name}.material = {name}
-scene.shapes.{name}_mesh.type = inlinedmesh
-scene.shapes.{name}_mesh.vertices = {points}
-scene.shapes.{name}_mesh.faces = {tris}
-"""
-    else:
-        # Displacement
-        snippet_obj = f"""
-# Object '{name}'
-scene.objects.{name}.shape = {name}_disp
-scene.objects.{name}.material = {name}
-scene.shapes.{name}_mesh.type = inlinedmesh
-scene.shapes.{name}_mesh.vertices = {points}
-scene.shapes.{name}_mesh.faces = {tris}
+    # Displacement (if any)
+    if materialvalues.has_displacement():
+        obj_shape = f"{name}_disp"
+        snippet_disp = f"""
 scene.shapes.{name}_disp.type = displacement
 scene.shapes.{name}_disp.source = {name}_mesh
-scene.shapes.{name}_disp.scale = 0.001
+scene.shapes.{name}_disp.scale = 1
 scene.shapes.{name}_disp.map = {materialvalues["displacement"]}
 scene.shapes.{name}_disp.map.type = vector
 # Mudbox channel order
 scene.shapes.{name}_disp.map.channels = 0 2 1
+"""
+    else:
+        obj_shape = f"{name}_mesh"
+        snippet_disp = ""
+
+    # Object & Mesh
+    snippet_obj = f"""
+# Object '{name}'
+scene.objects.{name}.shape = {obj_shape}
+scene.objects.{name}.material = {name}
+scene.shapes.{name}_mesh.type = inlinedmesh
+scene.shapes.{name}_mesh.vertices = {points}
+scene.shapes.{name}_mesh.faces = {tris}
 """
 
     # UV map
@@ -97,6 +94,7 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
     # Consolidation
     snippet = (
         snippet_obj
+        + snippet_disp
         + snippet_uv
         + snippet_mat
         + snippet_bump
