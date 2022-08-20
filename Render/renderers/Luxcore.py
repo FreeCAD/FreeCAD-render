@@ -315,15 +315,15 @@ scene.materials.{name}.kd = {matval["basecolor"]}
 """
 
 
-def _write_material_fallback(name, material):
+def _write_material_fallback(name, matval):
     """Compute a string in the renderer SDL for a fallback material.
 
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(material.default_color.r)
-        grn = float(material.default_color.g)
-        blu = float(material.default_color.b)
+        red = float(matval.default_color.r)
+        grn = float(matval.default_color.g)
+        blu = float(matval.default_color.b)
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
