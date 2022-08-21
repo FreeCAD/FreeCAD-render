@@ -44,7 +44,7 @@ def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Material values
     materialvalues = material.get_material_values(
-        name, _write_texture, _write_value
+        name, _write_texture, _write_value, _write_texref
     )
 
     # Compute material, texture, bump & normal statements
@@ -448,6 +448,11 @@ def _write_value(proptype, propvalue):
     snippet = VALSNIPPETS[proptype]
     value = snippet.format(val=propvalue)
     return value
+
+
+def _write_texref(texname):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    return texname
 
 
 # ===========================================================================

@@ -64,11 +64,16 @@ TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Compute material values
-    matval = material.get_material_values(name, _write_texture, _write_value)
+    matval = material.get_material_values(
+        name, _write_texture, _write_value, _write_texref
+    )
 
     snippet_mat = _write_material(name, matval)
 
-    points = [f"{round(p.x, 8)} {round(p.y, 8)} {round(p.z, 8)}" for p in mesh.Topology[0]]
+    points = [
+        f"{round(p.x, 8)} {round(p.y, 8)} {round(p.z, 8)}"
+        for p in mesh.Topology[0]
+    ]
     points = "  ".join(points)
     verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Topology[1]]
     verts = "  ".join(verts)
@@ -81,7 +86,6 @@ def write_mesh(name, mesh, material):
         uv_statement = f'    UV="{uv}"\n'
     else:
         uv_statement = ""
-
 
     snippet_obj = f"""
 <state shader="{name}">
@@ -485,8 +489,16 @@ def _write_texture(objname, propname, proptype, propvalue):
     # TODO Scale, rotation... etc.
 
     # Compute socket to connect texture to
-    socket_mapping = {"ior": "IOR", "basecolor": "base_color", "speculartint": "specular_tint", "sheentint": "sheen_tint", "transparency": "fac"}
-    socket = socket_mapping.get(propname, propname)  # In general, we take propname...
+    socket_mapping = {
+        "ior": "IOR",
+        "basecolor": "base_color",
+        "speculartint": "specular_tint",
+        "sheentint": "sheen_tint",
+        "transparency": "fac",
+    }
+    socket = socket_mapping.get(
+        propname, propname
+    )  # In general, we take propname...
 
     # Compute texture name
     texname = f"{objname}_{propname}_tex"
@@ -534,6 +546,11 @@ def _write_value(proptype, propvalue):
         raise NotImplemented
 
     return value
+
+
+def _write_texref(texname):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    return ""  # In Cycles, there is no reference to textures in shaders...
 
 
 # ===========================================================================

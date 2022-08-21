@@ -694,7 +694,9 @@ class RenderMaterial:
         """Get parameter type."""
         return self._partypes[param_name]
 
-    def get_material_values(self, objname, write_texture_fun, write_value_fun):
+    def get_material_values(
+        self, objname, write_texture_fun, write_value_fun, write_texref_fun
+    ):
         """Provide a MaterialValues object.
 
         This method is intended to be called from inside the _write_mesh
@@ -705,7 +707,7 @@ class RenderMaterial:
         the plugin.
         """
         materialvalues = MaterialValues(
-            objname, self, write_texture_fun, write_value_fun
+            objname, self, write_texture_fun, write_value_fun, write_texref_fun
         )
         return materialvalues
 
@@ -726,16 +728,25 @@ class MaterialValues:
       underlying value.
     """
 
-    def __init__(self, objname, material, write_texture_fun, write_value_fun):
+    def __init__(
+        self,
+        objname,
+        material,
+        write_texture_fun,
+        write_value_fun,
+        write_texref_fun,
+    ):
         """Initialize material values.
 
         Args:
             objname -- Name of the object for which the values are computed
             material -- The rendering material from which we compute the values
-            write_texture_fun  -- The function to call to get a texture in SDL
+            write_texture_fun  -- The function to call back to get a texture in
+                SDL string
+            write_value_fun -- The function to call back to get a value in SDL
                 string
-            write_value_fun -- The function to call to get a value in SDL
-                string
+            write_texref_fun  -- The function to call back to get a texture
+                reference in SDL
         """
         self.material = material
         self.shader = material.shader
@@ -744,6 +755,7 @@ class MaterialValues:
         self._textures = []
         self._write_texture = write_texture_fun
         self._write_value = write_value_fun
+        self._write_texref = write_texref_fun
 
         # Build values and textures - loop on shader properties
         for propkey, propvalue in material.shaderproperties.items():
@@ -762,7 +774,7 @@ class MaterialValues:
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
-                value = texname
+                value = write_texref_fun(texname)
             else:
                 # Not a texture, treat as plain value...
                 value = write_value_fun(proptype, propvalue)
