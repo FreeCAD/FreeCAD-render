@@ -483,7 +483,7 @@ def _write_texture(objname, propname, proptype, propvalue):
         the SDL string of the texture
     """
     # TODO bump, normal, disp...
-    if propname in ["bump", "normal", "disp", "clearcoat_roughness"]:
+    if propname in ["normal", "disp", "clearcoat_roughness"]:
         return "", ""
 
     # TODO Scale, rotation... etc.
@@ -507,10 +507,34 @@ def _write_texture(objname, propname, proptype, propvalue):
     # as the input file
     filename = pathlib.Path(propvalue.file).name
 
-    texture = f"""
+    scale, rotation = float(propvalue.scale), float(propvalue.rotation)
+    translation_u = float(propvalue.translation_u)
+    translation_v = float(propvalue.translation_v)
+    # TODO move up
+    # https://docs.blender.org/manual/en/2.79/render/blender_render/textures/properties/influence/bump_normal.html
+    # TODO Separate RGB and BW textures for shader parameters
+    if propname == "bump":
+        texture = f"""
 <image_texture
-    name= "{texname}"
-    filename = "{filename}"
+    name="{texname}"
+    filename="{filename}"
+    tex_mapping.scale="{scale} {scale} {scale}"
+    tex_mapping.rotation="{rotation} {rotation} {rotation}"
+    tex_mapping.translation="{translation_u} {translation_v} 0.0"
+/>
+<rgb_to_bw name="{texname}_rgbbw"/>
+<bump name="{texname}_bump" strength="{scale}"/>
+<connect from="{texname} color" to="{texname}_rgbbw color"/>
+<connect from="{texname}_rgbbw val" to="{texname}_bump height"/>
+<connect from="{texname}_bump normal" to="{objname}_bsdf normal"/>"""
+    else:
+        texture = f"""
+<image_texture
+    name="{texname}"
+    filename="{filename}"
+    tex_mapping.scale="{scale} {scale} {scale}"
+    tex_mapping.rotation="{rotation} {rotation} {rotation}"
+    tex_mapping.translation="{translation_u} {translation_v} 0.0"
 />
 <connect from="{texname} color" to="{objname}_bsdf {socket}"/>"""
 
