@@ -381,7 +381,7 @@ scene.textures.{n}_bump.file = "{f}"
 scene.textures.{n}_bump.gamma = {g}
 scene.textures.{n}_bump.mapping.type = uvmapping2d
 scene.textures.{n}_bump.mapping.rotation = {r}
-scene.textures.{n}_bump.mapping.uvscale = {su} {sv}
+scene.textures.{n}_bump.mapping.uvscale = {s} {s}
 scene.textures.{n}_bump.mapping.uvdelta = {tu} {tv}
 scene.textures.{n}.type = scale
 scene.textures.{n}.texture1 = 0.01
@@ -395,7 +395,7 @@ scene.textures.{n}.file = "{f}"
 scene.textures.{n}.gamma = {g}
 scene.textures.{n}.mapping.type = uvmapping2d
 scene.textures.{n}.mapping.rotation = {r}
-scene.textures.{n}.mapping.uvscale = {su} {sv}
+scene.textures.{n}.mapping.uvscale = {s} {s}
 scene.textures.{n}.mapping.uvdelta = {tu} {tv}
 """
     else:
@@ -406,7 +406,7 @@ scene.textures.{n}.file = "{f}"
 scene.textures.{n}.gamma = {g}
 scene.textures.{n}.mapping.type = uvmapping2d
 scene.textures.{n}.mapping.rotation = {r}
-scene.textures.{n}.mapping.uvscale = {su} {sv}
+scene.textures.{n}.mapping.uvscale = {s} {s}
 scene.textures.{n}.mapping.uvdelta = {tu} {tv}
 """
 
@@ -414,8 +414,7 @@ scene.textures.{n}.mapping.uvdelta = {tu} {tv}
         n=texname,
         f=propvalue.file,
         r=float(propvalue.rotation),
-        su=float(propvalue.scale_u),
-        sv=float(propvalue.scale_v),
+        s=float(propvalue.scale),
         tu=float(propvalue.translation_u),
         tv=float(propvalue.translation_v),
         g=gamma,

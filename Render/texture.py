@@ -67,16 +67,10 @@ class Texture(FeatureBase):
             QT_TRANSLATE_NOOP("Render", "UV rotation (in degrees)"),
             0,
         ),
-        "ScaleU": Prop(
+        "Scale": Prop(
             "App::PropertyFloat",
             MAPPING_GROUP,
-            QT_TRANSLATE_NOOP("Render", "UV scale - U component"),
-            1.0,
-        ),
-        "ScaleV": Prop(
-            "App::PropertyFloat",
-            MAPPING_GROUP,
-            QT_TRANSLATE_NOOP("Render", "UV scale - V component"),
+            QT_TRANSLATE_NOOP("Render", "UV scale"),
             1.0,
         ),
         "TranslationU": Prop(

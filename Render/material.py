@@ -378,8 +378,6 @@ def _import_textures(material, input_material_dict, basepath=None):
                 warn(domain, cardname, msg)
                 continue
 
-            print("Tex arg:", texture_argument)  # TODO
-
             # Parse texture argument (into texture reference)
             try:
                 texture_ref = ast.literal_eval(texture_argument)
