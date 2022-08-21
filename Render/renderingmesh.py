@@ -139,6 +139,17 @@ class RenderingMesh:
         """Get mesh uv map."""
         return self.__uvmap
 
+    def uvmap_per_vertex(self):
+        """Get mesh uv map by vertex.
+
+        (used in Cycles)
+        """
+        return [
+            self.__uvmap[vertex_index]
+            for triangle in self.__mesh.Topology[1]
+            for vertex_index in triangle
+        ]
+
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
         projection = "Cubic" if projection is None else projection
