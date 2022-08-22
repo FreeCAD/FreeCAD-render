@@ -527,7 +527,9 @@ def _write_texture(objname, propname, proptype, propvalue):
     tex_mapping.rotation="{rotation} {rotation} {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
 />
-<connect from="{texname} color" to="{objname}_bump height"/>"""
+<value name="{texname}_val" value="0.2"/>
+<connect from="{texname} color" to="{objname}_bump height"/>
+<connect from="{texname}_val value" to="{objname}_bump strength"/>"""
 
     else:
         texture = f"""
