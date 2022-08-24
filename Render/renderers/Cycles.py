@@ -487,7 +487,7 @@ def _write_texture(objname, propname, proptype, propvalue):
         the SDL string of the texture
     """
     # TODO bump, normal, disp...
-    if propname in ["normal", "disp", "clearcoat_roughness"]:
+    if propname in ["disp", "clearcoat_roughness"]:
         return "", ""
 
     # TODO Scale, rotation... etc.
@@ -518,19 +518,35 @@ def _write_texture(objname, propname, proptype, propvalue):
     # https://docs.blender.org/manual/en/2.79/render/blender_render/textures/properties/influence/bump_normal.html
     # https://blender.stackexchange.com/questions/16443/using-a-normal-map-together-with-a-bump-map
     # TODO Separate RGB and BW textures for shader parameters
+
+    # Colorspaces:
+    # https://docs.blender.org/manual/en/latest/render/color_management.html#opencolorio-configuration
     if propname == "bump":
         texture = f"""
 <image_texture
     name="{texname}"
     filename="{filename}"
+    colorspace="__builtin_raw"
     tex_mapping.scale="{scale} {scale} {scale}"
     tex_mapping.rotation="{rotation} {rotation} {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
 />
-<value name="{texname}_val" value="0.2"/>
 <connect from="{texname} color" to="{objname}_bump height"/>
+<value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump strength"/>"""
-
+    elif propname == "normal":
+        texture = f"""
+<image_texture
+    name="{texname}"
+    filename="{filename}"
+    colorspace="__builtin_raw"
+    tex_mapping.scale="{scale} {scale} {scale}"
+    tex_mapping.rotation="{rotation} {rotation} {rotation}"
+    tex_mapping.translation="{translation_u} {translation_v} 0.0"
+/>
+<connect from="{texname} color" to="{objname}_bump normal"/>
+<value name="{texname}_val" value="0.2"/>
+<connect from="{texname}_val value" to="{objname}_bump strength"/>"""
     else:
         texture = f"""
 <image_texture
