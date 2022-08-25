@@ -477,6 +477,7 @@ SOCKET_MAPPING = {
     "transparency": "fac",
 }
 
+
 def _write_texture(objname, propname, proptype, propvalue):
     """Compute a string in renderer SDL to describe a texture.
 
@@ -506,6 +507,7 @@ def _write_texture(objname, propname, proptype, propvalue):
     # Compute texture name
     texname = f"{objname}_{propname}_tex"
 
+    # Compute file name
     # Caveat: Cycles requires the image file to be in the same directory
     # as the input file
     filename = pathlib.Path(propvalue.file).name
@@ -513,14 +515,11 @@ def _write_texture(objname, propname, proptype, propvalue):
     scale, rotation = float(propvalue.scale), float(propvalue.rotation)
     translation_u = float(propvalue.translation_u)
     translation_v = float(propvalue.translation_v)
-    # TODO move up
-    # https://docs.blender.org/manual/en/2.79/render/blender_render/textures/properties/influence/bump_normal.html
-    # https://blender.stackexchange.com/questions/16443/using-a-normal-map-together-with-a-bump-map
-    # TODO Separate RGB and BW textures for shader parameters
 
-    # Colorspaces:
-    # https://docs.blender.org/manual/en/latest/render/color_management.html#opencolorio-configuration
+    # https://blender.stackexchange.com/questions/16443/using-a-normal-map-together-with-a-bump-map
+
     if propname == "bump":
+        # Bump texture
         texture = f"""
 <image_texture
     name="{texname}"
@@ -533,7 +532,9 @@ def _write_texture(objname, propname, proptype, propvalue):
 <connect from="{texname} color" to="{objname}_bump height"/>
 <value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump strength"/>"""
+
     elif propname == "normal":
+        # Normal texture
         texture = f"""
 <image_texture
     name="{texname}"
@@ -548,11 +549,17 @@ def _write_texture(objname, propname, proptype, propvalue):
 <connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>
 <value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump strength"/>"""
+
     else:
+        # Plain texture
+        colorspace = (
+            "__builtin_srgb" if "color" in propname else "__builtin_raw"
+        )
         texture = f"""
 <image_texture
     name="{texname}"
     filename="{filename}"
+    colorspace="{colorspace}"
     tex_mapping.scale="{scale} {scale} {scale}"
     tex_mapping.rotation="{rotation} {rotation} {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
