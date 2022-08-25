@@ -468,6 +468,14 @@ MATERIALS = {
 #                             Textures
 # ===========================================================================
 
+# Mapping between shader fields and sockets to connect texture to
+SOCKET_MAPPING = {
+    "ior": "IOR",
+    "basecolor": "base_color",
+    "speculartint": "specular_tint",
+    "sheentint": "sheen_tint",
+    "transparency": "fac",
+}
 
 def _write_texture(objname, propname, proptype, propvalue):
     """Compute a string in renderer SDL to describe a texture.
@@ -492,17 +500,8 @@ def _write_texture(objname, propname, proptype, propvalue):
 
     # TODO Scale, rotation... etc.
 
-    # Compute socket to connect texture to
-    socket_mapping = {
-        "ior": "IOR",
-        "basecolor": "base_color",
-        "speculartint": "specular_tint",
-        "sheentint": "sheen_tint",
-        "transparency": "fac",
-    }
-    socket = socket_mapping.get(
-        propname, propname
-    )  # In general, we take propname...
+    # Compute socket name (in general, it should yield propname...)
+    socket = SOCKET_MAPPING.get(propname, propname)
 
     # Compute texture name
     texname = f"{objname}_{propname}_tex"
@@ -544,7 +543,9 @@ def _write_texture(objname, propname, proptype, propvalue):
     tex_mapping.rotation="{rotation} {rotation} {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
 />
-<connect from="{texname} color" to="{objname}_bump normal"/>
+<normal_map name="{texname}_normalmap" space="object" attribute="UVMap" strength="0.2"/>
+<connect from="{texname} color" to="{texname}_normalmap color"/>
+<connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>
 <value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump strength"/>"""
     else:
