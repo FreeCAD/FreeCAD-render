@@ -323,12 +323,21 @@ def _write_material(name, matval):
 
     snippet_tex = matval.write_textures()
 
+    # Add bump node (for bump and normal...) to snippet_tex
+    # if necessary...
     if matval.has_bump() or matval.has_normal():
-        # Add bump node (for bump and normal...) to snippet_tex
-        snippet_tex = f"""
+        if matval.has_bump() and matval.has_normal():
+            snippet_tex = f"""
 <bump name="{name}_bump"/>
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>
 <math name="{name}_bump_strength" math_type="minimum"/>
+<connect from="{name}_bump_strength value" to="{name}_bump strength"/>
+{snippet_tex}"""
+        else:
+            snippet_tex = f"""
+<bump name="{name}_bump"/>
+<connect from="{name}_bump normal" to="{name}_bsdf normal"/>
+<math name="{name}_bump_strength" math_type="add" value1="0" value2="0"/>
 <connect from="{name}_bump_strength value" to="{name}_bump strength"/>
 {snippet_tex}"""
 
@@ -503,11 +512,9 @@ def _write_texture(objname, propname, proptype, propvalue):
         the name of the texture
         the SDL string of the texture
     """
-    # TODO bump, normal, disp...
-    if propname in ["disp", "clearcoat_roughness"]:
+    # TODO disp...
+    if propname in ["disp"]:
         return "", ""
-
-    # TODO Scale, rotation... etc.
 
     # Compute socket name (in general, it should yield propname...)
     socket = SOCKET_MAPPING.get(propname, propname)
@@ -552,11 +559,40 @@ def _write_texture(objname, propname, proptype, propvalue):
     tex_mapping.rotation="{rotation} {rotation} {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
 />
-<normal_map name="{texname}_normalmap" space="object" attribute="UVMap" strength="0.2"/>
+<normal_map
+    name="{texname}_normalmap"
+    space="object"
+    strength="0.2"
+/>
 <connect from="{texname} color" to="{texname}_normalmap color"/>
 <connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>
 <value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump_strength value2"/>"""
+
+    elif propname == "clearcoatgloss":
+        # Clear coat roughness
+        texture = f"""
+<image_texture
+    name="{texname}"
+    filename="{filename}"
+    colorspace="__builtin_raw"
+    tex_mapping.scale="{scale} {scale} {scale}"
+    tex_mapping.rotation="{rotation} {rotation} {rotation}"
+    tex_mapping.translation="{translation_u} {translation_v} 0.0"
+/>
+<math
+    name="{texname}_clearcoat_roughness"
+    math_type="subtract"
+    value1="1.0"
+/>
+<connect
+    from="{texname} color"
+    to="{texname}_clearcoat_roughness value2"
+/>
+<connect
+    from="{texname}_clearcoat_roughness value"
+    to="{objname}_bsdf clearcoat_roughness"
+/>"""
 
     else:
         # Plain texture
@@ -609,7 +645,7 @@ def _write_value(proptype, propvalue):
 
 def _write_texref(texname):
     """Compute a string in SDL for a reference to a texture in a shader."""
-    return ""  # In Cycles, there is no reference to textures in shaders...
+    return "0.0"  # In Cycles, there is no reference to textures in shaders...
 
 
 # ===========================================================================
