@@ -530,33 +530,16 @@ def _write_texture(objname, propname, proptype, propvalue):
 
     # https://blender.stackexchange.com/questions/16443/using-a-normal-map-together-with-a-bump-map
 
-    # TODO Factorize image_texture
     if propname == "bump":
-        # Bump texture
-        texture = f"""
-<image_texture
-    name="{texname}"
-    filename="{filename}"
-    colorspace="__builtin_raw"
-    tex_mapping.scale="{scale} {scale} {scale}"
-    tex_mapping.rotation="{rotation} {rotation} {rotation}"
-    tex_mapping.translation="{translation_u} {translation_v} 0.0"
-/>
+        colorspace = "__builtin_raw"
+        connect = f"""
 <connect from="{texname} color" to="{objname}_bump height"/>
 <value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump_strength value1"/>"""
 
     elif propname == "normal":
-        # Normal texture
-        texture = f"""
-<image_texture
-    name="{texname}"
-    filename="{filename}"
-    colorspace="__builtin_raw"
-    tex_mapping.scale="{scale} {scale} {scale}"
-    tex_mapping.rotation="{rotation} {rotation} {rotation}"
-    tex_mapping.translation="{translation_u} {translation_v} 0.0"
-/>
+        colorspace = "__builtin_raw"
+        connect = f"""
 <normal_map
     name="{texname}_normalmap"
     space="object"
@@ -568,15 +551,8 @@ def _write_texture(objname, propname, proptype, propvalue):
 <connect from="{texname}_val value" to="{objname}_bump_strength value2"/>"""
 
     elif propname == "displacement":
-        texture = f"""
-<image_texture
-    name="{texname}"
-    filename="{filename}"
-    colorspace="__builtin_raw"
-    tex_mapping.scale="{scale} {scale} {scale}"
-    tex_mapping.rotation="{rotation} {rotation} {rotation}"
-    tex_mapping.translation="{translation_u} {translation_v} 0.0"
-/>
+        colorspace = "__builtin_raw"
+        connect = f"""
 <normal_map
     name="{texname}_normalmap_disp"
     space="object"
@@ -588,16 +564,8 @@ def _write_texture(objname, propname, proptype, propvalue):
 <connect from="{texname}_disp displacement" to="output displacement"/>"""
 
     elif propname == "clearcoatgloss":
-        # Clear coat roughness
-        texture = f"""
-<image_texture
-    name="{texname}"
-    filename="{filename}"
-    colorspace="__builtin_raw"
-    tex_mapping.scale="{scale} {scale} {scale}"
-    tex_mapping.rotation="{rotation} {rotation} {rotation}"
-    tex_mapping.translation="{translation_u} {translation_v} 0.0"
-/>
+        colorspace = "__builtin_raw"
+        connect = f"""
 <math
     name="{texname}_clearcoat_roughness"
     math_type="subtract"
@@ -617,7 +585,10 @@ def _write_texture(objname, propname, proptype, propvalue):
         colorspace = (
             "__builtin_srgb" if "color" in propname else "__builtin_raw"
         )
-        texture = f"""
+        connect = f"""
+<connect from="{texname} color" to="{objname}_bsdf {socket}"/>"""
+
+    texture_core = f"""
 <image_texture
     name="{texname}"
     filename="{filename}"
@@ -625,10 +596,9 @@ def _write_texture(objname, propname, proptype, propvalue):
     tex_mapping.scale="{scale} {scale} {scale}"
     tex_mapping.rotation="{rotation} {rotation} {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
-/>
-<connect from="{texname} color" to="{objname}_bsdf {socket}"/>"""
+/>"""
 
-    return texname, texture
+    return texname, texture_core + connect
 
 
 def _write_value(proptype, propvalue):
