@@ -512,9 +512,6 @@ def _write_texture(objname, propname, proptype, propvalue):
         the name of the texture
         the SDL string of the texture
     """
-    # TODO disp...
-    if propname in ["disp"]:
-        return "", ""
 
     # Compute socket name (in general, it should yield propname...)
     socket = SOCKET_MAPPING.get(propname, propname)
@@ -533,6 +530,7 @@ def _write_texture(objname, propname, proptype, propvalue):
 
     # https://blender.stackexchange.com/questions/16443/using-a-normal-map-together-with-a-bump-map
 
+    # TODO Factorize image_texture
     if propname == "bump":
         # Bump texture
         texture = f"""
@@ -568,6 +566,26 @@ def _write_texture(objname, propname, proptype, propvalue):
 <connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>
 <value name="{texname}_val" value="0.2"/>
 <connect from="{texname}_val value" to="{objname}_bump_strength value2"/>"""
+
+    elif propname == "displacement":
+        texture = f"""
+<image_texture
+    name="{texname}"
+    filename="{filename}"
+    colorspace="__builtin_raw"
+    tex_mapping.scale="{scale} {scale} {scale}"
+    tex_mapping.rotation="{rotation} {rotation} {rotation}"
+    tex_mapping.translation="{translation_u} {translation_v} 0.0"
+/>
+<normal_map
+    name="{texname}_normalmap_disp"
+    space="object"
+    strength="0.2"
+/>
+<displacement name="{texname}_disp"/>
+<connect from="{texname} color" to="{texname}_normalmap_disp color"/>
+<connect from="{texname}_normalmap_disp normal" to="{texname}_disp normal"/>
+<connect from="{texname}_disp displacement" to="output displacement"/>"""
 
     elif propname == "clearcoatgloss":
         # Clear coat roughness
