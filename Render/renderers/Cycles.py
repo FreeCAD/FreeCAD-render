@@ -286,6 +286,7 @@ def _write_material(name, matval):
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
+    # Bsdf
     try:
         snippet_mat = MATERIALS[matval.shadertype](name, matval)
         shadertype = matval.shadertype
@@ -298,9 +299,10 @@ def _write_material(name, matval):
         snippet_mat = _write_material_fallback(name, matval)
         shadertype = "Fallback"
 
+    # Textures
     snippet_tex = matval.write_textures()
 
-    # Add bump node (for bump and normal...) to snippet_tex
+    # Add bump node (for bump and normal...) to textures
     # if necessary...
     if matval.has_bump() or matval.has_normal():
         if matval.has_bump() and matval.has_normal():
@@ -490,7 +492,7 @@ def _write_texture(objname, propname, proptype, propvalue):
         the SDL string of the texture
     """
 
-    # Compute socket name (in general, it should yield propname...)
+    # Compute socket name (by default, it should yield propname...)
     socket = SOCKET_MAPPING.get(propname, propname)
 
     # Compute texture name
@@ -535,10 +537,7 @@ def _write_texture(objname, propname, proptype, propvalue):
     space="object"
     strength="0.2"
 />
-<displacement name="{texname}_disp"/>
-<connect from="{texname} color" to="{texname}_normalmap_disp color"/>
-<connect from="{texname}_normalmap_disp normal" to="{texname}_disp normal"/>
-<connect from="{texname}_disp displacement" to="output displacement"/>"""
+<connect from="{texname} color" to="output displacement"/>"""
 
     elif propname == "clearcoatgloss":
         colorspace = "__builtin_raw"
