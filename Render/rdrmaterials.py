@@ -766,14 +766,17 @@ class MaterialValues:
             if hasattr(propvalue, "is_texture"):
                 # Compute texture
                 texname, texture = write_texture_fun(
-                    objname, propkey, proptype, propvalue
+                    objname=objname,
+                    propkey=propkey,
+                    proptype=proptype,
+                    propvalue=propvalue,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
-                value = write_texref_fun(texname)
+                value = write_texref_fun(texname=texname)
             else:
                 # Not a texture, treat as plain value...
-                value = write_value_fun(proptype, propvalue)
+                value = write_value_fun(proptype=proptype, propvalue=propvalue)
 
             # Store resulting value
             self._values[propkey] = value

@@ -474,7 +474,7 @@ SOCKET_MAPPING = {
 }
 
 
-def _write_texture(objname, propname, proptype, propvalue):
+def _write_texture(**kwargs):
     """Compute a string in renderer SDL to describe a texture.
 
     The texture is computed from a property of a shader (as the texture is
@@ -484,13 +484,16 @@ def _write_texture(objname, propname, proptype, propvalue):
     Args:
         objname -- Object name for which the texture is computed
         propname -- Name of the shader property
-        proptype -- Type of the shader property
         propvalue -- Value of the shader property
 
     Returns:
         the name of the texture
         the SDL string of the texture
     """
+    # Retrieve parameters
+    objname = kwargs["objname"]
+    propname = kwargs["propname"]
+    propvalue = kwargs["propvalue"]
 
     # Compute socket name (by default, it should yield propname...)
     socket = SOCKET_MAPPING.get(propname, propname)
@@ -577,7 +580,7 @@ def _write_texture(objname, propname, proptype, propvalue):
     return texname, texture_core + connect
 
 
-def _write_value(proptype, propvalue):
+def _write_value(**kwargs):
     """Compute a string in renderer SDL from a shader property value.
 
     Args:
@@ -586,7 +589,9 @@ def _write_value(proptype, propvalue):
 
     The result depends on the type of the value...
     """
-    val = propvalue
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    val = kwargs["propvalue"]
 
     # Snippets for values
     if proptype == "RGB":
@@ -607,7 +612,7 @@ def _write_value(proptype, propvalue):
     return value
 
 
-def _write_texref(texname):
+def _write_texref(**kwargs):  # pylint: disable=unused-argument
     """Compute a string in SDL for a reference to a texture in a shader."""
     return "0.0"  # In Cycles, there is no reference to textures in shaders...
 
