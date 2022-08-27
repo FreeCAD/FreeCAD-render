@@ -117,7 +117,7 @@ def write_camera(name, pos, updir, target, fov):
     scale="1 1 -1" >
     <camera
         type="perspective"
-        fov="{_rnd(radians(fov))}"
+        fov="{_write_float(radians(fov))}"
     />
 </transform>"""
 
@@ -135,7 +135,7 @@ def write_pointlight(name, pos, color, power):
     <emission
         name="{name}_emit"
         color="{_write_color(color)}"
-        strength="{_rnd(power * 100)}"
+        strength="{_write_float(power * 100)}"
     />
     <connect from="{name}_emit emission" to="output surface"/>
 </shader>
@@ -155,6 +155,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     """Compute a string in renderer SDL to represent an area light."""
     strength = power if transparent else power / (size_u * size_v)
     strength /= 100
+    write_strength = _write_float(strength)
 
     if transparent:
         # Transparent area light
@@ -168,7 +169,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     <emission
         name="{name}_emit"
         color="{_write_color(color)}"
-        strength="{_rnd(strength)}"
+        strength="{_write_float(strength)}"
     />
     <connect from="{name}_emit emission" to="output surface"/>
 </shader>
@@ -176,11 +177,11 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     <light
         type="area"
         co="{_write_point(pos.Base)}"
-        strength="{_rnd(strength)} {_rnd(strength)} {_rnd(strength)}"
+        strength="{write_strength} {write_strength} {write_strength}"
         axisu="{_write_vec(axis1)}"
         axisv="{_write_vec(axis2)}"
-        sizeu="{_rnd(size_u)}"
-        sizev="{_rnd(size_v)}"
+        sizeu="{_write_float(size_u)}"
+        sizev="{_write_float(size_v)}"
         size="0.0"
         round="false"
         dir="{_write_vec(direction)}"
@@ -206,7 +207,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     <emission
         name="{name}_emit"
         color="{_write_color(color)}"
-        strength="{_rnd(strength)}"
+        strength="{_write_float(strength)}"
     />
     <connect from="{name}_emit emission" to="output surface"/>
 </shader>
@@ -240,11 +241,11 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     <sky_texture
         name="{name}_tex"
         sky_type="nishita_improved"
-        turbidity="{_rnd(turbidity)}"
-        ground_albedo="{_rnd(albedo)}"
+        turbidity="{_write_float(turbidity)}"
+        ground_albedo="{_write_float(albedo)}"
         sun_disc="true"
-        sun_elevation="{_rnd(theta)}"
-        sun_rotation="{_rnd(phi)}"
+        sun_elevation="{_write_float(theta)}"
+        sun_rotation="{_write_float(phi)}"
     />
     <connect from="{name}_tex color" to="{name}_bg color" />
     <connect from="{name}_bg background" to="output surface" />
@@ -618,6 +619,8 @@ def _write_texref(texname):
 
 
 _rnd = functools.partial(round, ndigits=8)  # Round to 8 digits (helper)
+
+_write_float = _rnd
 
 
 def _write_point(pnt):
