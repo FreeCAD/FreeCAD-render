@@ -466,10 +466,10 @@ IMAGE_MIMETYPES = {
 
 def _imagetype(path):
     mimetype = mimetypes.guess_type(path)
-    return IMAGE_MIMETYPES.get(mimetype, "")
+    return IMAGE_MIMETYPES.get(mimetype[0], "")
 
 
-def _write_texture(objname, propname, proptype, propvalue):
+def _write_texture(**kwargs):
     """Compute a string in renderer SDL to describe a texture.
 
     The texture is computed from a property of a shader (as the texture is
@@ -478,28 +478,21 @@ def _write_texture(objname, propname, proptype, propvalue):
 
     Args:
         objname -- Object name for which the texture is computed
-        propname -- Name of the shader property
-        proptype -- Type of the shader property
         propvalue -- Value of the shader property
 
     Returns:
         the name of the texture
         the SDL string of the texture
     """
-    # Compute gamma
-    gamma = 2.2 if proptype == "RGB" else 1.0
+    # Retrieve parameters
+    objname = kwargs["objname"]
+    propvalue = kwargs["propvalue"]
 
-    texname = ""  # Useless in Povray (no name for textures...)
+    # Compute texture name
+    texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
 
-    # TODO
-    if propname in ["bump", "normal", "displacement"]:
-        return ""
-
-    imagefile = propvalue.file
-
-    texture = f"""image_pattern {{ {_imagetype(imagefile)} "{imagefile}" gamma {gamma} }}"""
-
-    return texname, texture
+    # In Povray, no separate texture declaration...
+    return texname, ""
 
 
 VALSNIPPETS = {
@@ -512,7 +505,7 @@ VALSNIPPETS = {
 }
 
 
-def _write_value(proptype, propvalue):
+def _write_value(**kwargs):
     """Compute a string in renderer SDL from a shader property value.
 
     Args:
@@ -521,17 +514,36 @@ def _write_value(proptype, propvalue):
 
     The result depends on the type of the value...
     """
-    # Snippets for values
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propvalue = kwargs["propvalue"]
 
+    # Snippets for values
     snippet = VALSNIPPETS[proptype]
     value = snippet.format(val=propvalue)
+
     return value
 
 
-def _write_texref(texname):
+def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
-    # No reference to texture in Povray
-    return ""
+    # Retrieve parameters
+    propname = kwargs["propname"]
+    proptype = kwargs["proptype"]
+    propvalue = kwargs["propvalue"]
+
+    # Compute gamma
+    gamma = "srgb" if proptype == "RGB" else 1.0
+
+    # TODO
+    if propname in ["bump", "normal", "displacement"]:
+        return ""
+
+    imagefile = propvalue.file
+
+    texture = f"""image_map {{ {_imagetype(imagefile)} "{imagefile}" gamma {gamma} }}"""
+
+    return texture
 
 
 # ===========================================================================

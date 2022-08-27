@@ -767,13 +767,18 @@ class MaterialValues:
                 # Compute texture
                 texname, texture = write_texture_fun(
                     objname=objname,
-                    propkey=propkey,
+                    propname=propkey,
                     proptype=proptype,
                     propvalue=propvalue,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
-                value = write_texref_fun(texname=texname)
+                value = write_texref_fun(
+                    texname=texname,
+                    propname=propkey,
+                    proptype=proptype,
+                    propvalue=propvalue,
+                )
             else:
                 # Not a texture, treat as plain value...
                 value = write_value_fun(proptype=proptype, propvalue=propvalue)
