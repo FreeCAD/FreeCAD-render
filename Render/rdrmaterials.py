@@ -823,6 +823,7 @@ class MaterialValues:
             self.material.getmixedsubmat(submat),
             self._write_texture,
             self._write_value,
+            self._write_texref,
         )
 
 
