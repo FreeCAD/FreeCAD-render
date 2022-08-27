@@ -34,11 +34,3 @@ sky_sphere {
 //RaytracingCamera
 //RaytracingContent
 
-//default light
-light_source {
-    cam_location
-    color White
-    area_light <100, 0, 0>, <0, 0, 100>, 10, 10
-    adaptive 1
-    jitter
-}
