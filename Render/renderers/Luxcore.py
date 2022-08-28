@@ -223,23 +223,23 @@ scene.lights.{n}.file = "{f}"
 # TODO Fix normals issue (see Gauge test file, with mirror)
 
 
-def _write_material(name, material):
+def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
     try:
-        write_function = MATERIALS[material.shadertype]
+        write_function = MATERIALS[matval.shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
             "material\n"
         )
-        App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.default_color)
+        App.Console.PrintWarning(msg.format(name, matval.shadertype))
+        snippet_mat = _write_material_fallback(name, matval.default_color)
     else:
-        snippet_mat = write_function(name, material)
+        snippet_mat = write_function(name, matval)
     return snippet_mat
 
 
