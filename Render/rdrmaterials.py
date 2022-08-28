@@ -793,11 +793,17 @@ class MaterialValues:
                     proptype=proptype,
                     propvalue=propvalue,
                     shadertype=material.shadertype,
-                    parent_shadertype=self.parent_shadertype
+                    parent_shadertype=self.parent_shadertype,
                 )
             else:
                 # Not a texture, treat as plain value...
-                value = write_value_fun(proptype=proptype, propvalue=propvalue)
+                value = write_value_fun(
+                    propname=propkey,
+                    proptype=proptype,
+                    propvalue=propvalue,
+                    shadertype=material.shadertype,
+                    parent_shadertype=self.parent_shadertype,
+                )
 
             # Store resulting value
             self._values[propkey] = value
@@ -849,7 +855,7 @@ class MaterialValues:
             self._write_texture,
             self._write_value,
             self._write_texref,
-            parent_shadertype = self.shadertype
+            parent_shadertype=self.shadertype,
         )
 
 

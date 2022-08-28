@@ -311,12 +311,9 @@ def _write_material_passthrough(name, matval):
 
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a glass material."""
-    pigment = matval["color"]
-    if not "image_map" in pigment:
-        pigment += " filter 0.7"
     snippet = f"""
     texture {{
-        pigment {{ {pigment} }}
+        {matval["color"]}
         finish {{
             specular 1
             roughness 0.001
@@ -348,7 +345,7 @@ def _write_material_disney(name, matval):  # pylint: disable=unused-argument
 
     snippet = f"""
     texture {{
-        pigment {{ {matval["basecolor"]} }}
+        {matval["basecolor"]}
         finish {{
             diffuse albedo 0.8
             specular {matval["specular"]}
@@ -369,70 +366,45 @@ def _write_material_disney(name, matval):  # pylint: disable=unused-argument
 def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
 
-    snippet = f"""    texture {{
-        pigment {{ {matval["color"]} }}
-        finish {{
-            diffuse albedo 1
-            }}
-        }}"""
+    snippet = f"""texture {{
+        {matval["color"]}
+        finish {{ diffuse albedo 1 }}
+    }}"""
     return snippet
 
 
 def _write_material_mixed(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Mixed material."""
-    snippet = """
-    texture {{
-        pigment {{ rgbf <{k.r}, {k.g}, {k.b}, 0.7> }}
-        finish {{
-            phong 1
-            roughness 0.001
-            ambient 0
-            diffuse 0
-            reflection 0.1
-            }}
-    }}
-    interior {{ior {i} caustics 1}}
-    texture {{
-        pigment {{ rgbt <{c.r}, {c.g}, {c.b}, {t}> }}
-        finish {{ diffuse 1 }}
-    }}"""
     # Glass pigment
     submat_g = matval.getmixedsubmat("glass")
-    pigment_g = submat_g["color"]
-    if not "image_map" in pigment_g:
-        pigment_g += " filter 0.7"
 
     # Diffuse pigment
     submat_d = matval.getmixedsubmat("diffuse")
     pigment_d = submat_d["color"]
-    if not "image_map" in pigment_d:
-        pigment_d += f""" transmit {matval["transparency"]}"""
 
-    snippet = f"""
-    texture {{
-        pigment {{ {pigment_g} }}
+    snippet = f"""texture {{
+        {submat_g["color"]}
         finish {{
             phong 1
             roughness 0.001
             ambient 0
             diffuse 0
             reflection 0.1
-            }}
+        }}
     }}
     interior {{ior {submat_g["ior"]} caustics 1}}
     texture {{
-        pigment {{ {pigment_d} }}
+        {submat_d["color"]}
         finish {{ diffuse 1 }}
     }}"""
-    snippet = snippet.replace("transparency", matval["transparency"])
+    snippet = snippet.replace("transparency", str(matval["transparency"]))
     return snippet
 
 
 def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a carpaint material."""
-    snippet = f"""
-    texture {{
-        pigment {{ {matval["basecolor"]} }}
+    snippet = f""" texture {{
+        {matval["basecolor"]}
         finish {{
             diffuse albedo 0.7
             phong albedo 0
@@ -536,7 +508,6 @@ def _write_texture(**kwargs):
         rotate {propvalue.rotation}
         translate <{propvalue.translation_u},{propvalue.translation_v}>"""
 
-    # In Povray, no separate texture declaration...
     return texname, snippet
 
 
@@ -560,12 +531,28 @@ def _write_value(**kwargs):
     The result depends on the type of the value...
     """
     # Retrieve parameters
+    propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+    shadertype = kwargs["shadertype"]
+    parent_shadertype = kwargs["parent_shadertype"]
 
     # Snippets for values
     snippet = VALSNIPPETS[proptype]
     value = snippet.format(val=propvalue)
+
+    # Special case
+    if shadertype in ["Glass", "glass"] and propname == "color":
+        value += " filter 0.7"
+    elif (
+        shadertype == "diffuse"
+        and parent_shadertype == "Mixed"
+        and propname == "color"
+    ):
+        value += " transmit transparency"
+
+    if proptype == "RGB":
+        value = f"pigment {{ {value} }}"
 
     return value
 
@@ -613,13 +600,13 @@ def _write_texref(**kwargs):
     else:
         imgmap_suffix = f"gamma {gamma}"
 
-    texture = f"""
+    texture = f"""pigment {{
             uv_mapping
             image_map {{ {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix} }}
             scale {propvalue.scale}
             rotate <0.0 0.0 {propvalue.rotation}>
             translate <{propvalue.translation_u} {propvalue.translation_v}>
-    """
+        }}"""
 
     return texture
 
