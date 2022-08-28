@@ -778,6 +778,7 @@ class MaterialValues:
                     propname=propkey,
                     proptype=proptype,
                     propvalue=propvalue,
+                    shadertype=material.shadertype,
                 )
             else:
                 # Not a texture, treat as plain value...
@@ -822,7 +823,7 @@ class MaterialValues:
 
     @property
     def shadertype(self):
-        """Get material default color."""
+        """Get material shader type."""
         return self.material.shadertype
 
     def getmixedsubmat(self, submat):

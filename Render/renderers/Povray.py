@@ -309,11 +309,14 @@ def _write_material_passthrough(name, material):
     return snippet.format(n=name, c=material.default_color)
 
 
-def _write_material_glass(name, material):
+def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
-    snippet = """
+    pigment = matval["color"]
+    if not "image_map" in pigment:
+        pigment += " filter 0.7"
+    snippet = f"""
     texture {{
-        pigment {{color rgbf <{c.r}, {c.g}, {c.b}, 0.7>}}
+        pigment {{ {pigment} }}
         finish {{
             specular 1
             roughness 0.001
@@ -323,9 +326,10 @@ def _write_material_glass(name, material):
             }}
         }}
     interior {{
-        ior {i}
+        ior {matval["ior"]}
         caustics 1
         }}"""
+    return snippet
     return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
@@ -528,7 +532,7 @@ def _write_texture(**kwargs):
 
 
 VALSNIPPETS = {
-    "RGB": "rgb <{val.r}, {val.g}, {val.b}>",
+    "RGB": "color red {val.r}  green {val.g}  blue {val.b}",
     "float": "{val}",
     "node": "",
     "RGBA": "{val.r} {val.g} {val.b} {val.a}",
@@ -563,6 +567,7 @@ def _write_texref(**kwargs):
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+    shadertype = kwargs["shadertype"]
 
     # Compute gamma
     gamma = "srgb" if proptype == "RGB" else 1.0
@@ -573,9 +578,14 @@ def _write_texref(**kwargs):
 
     imagefile = propvalue.file
 
+    if shadertype == "Glass":
+        imgmap_suffix = "filter all 0.7 "
+    else:
+        imgmap_suffix = f"gamma {gamma}"
+
     texture = f"""
             uv_mapping
-            image_map {{ {_imagetype(imagefile)} "{imagefile}" gamma {gamma} }}
+            image_map {{ {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix} }}
             scale {propvalue.scale}
             rotate <0.0 0.0 {propvalue.rotation}>
             translate <{propvalue.translation_u} {propvalue.translation_v}>
