@@ -257,6 +257,7 @@ RendererTexture = namedtuple(
         "scale",
         "translation_u",
         "translation_v",
+        "fallback",
         "is_texture",
     ],
 )
@@ -293,6 +294,10 @@ def _castrgb(*args):
             imageid.texture
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
+        try:
+            fallback = str2rgb(parsed[2])
+        except (IndexError, ValueError):
+            fallback = None
         res = RendererTexture(
             texobject.Label,
             imageid.image,
@@ -301,6 +306,7 @@ def _castrgb(*args):
             float(texobject.Scale),
             texobject.TranslationU.getValueAs("m"),
             texobject.TranslationV.getValueAs("m"),
+            fallback,
         )
         return res
 
@@ -329,6 +335,10 @@ def _castfloat(*args):
             imageid.texture
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
+        try:
+            fallback = float(parsed[2])
+        except (IndexError, ValueError):
+            fallback = None
         res = RendererTexture(
             texobject.Label,
             imageid.image,
@@ -337,6 +347,7 @@ def _castfloat(*args):
             float(texobject.Scale),
             texobject.TranslationU.getValueAs("m"),
             texobject.TranslationV.getValueAs("m"),
+            fallback,
         )
         return res
 
@@ -774,6 +785,7 @@ class MaterialValues:
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
                 value = write_texref_fun(
+                    objname=objname,
                     texname=texname,
                     propname=propkey,
                     proptype=proptype,

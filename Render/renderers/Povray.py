@@ -564,10 +564,26 @@ def _write_value(**kwargs):
 def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     # Retrieve parameters
+    objname = kwargs["objname"]
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
     shadertype = kwargs["shadertype"]
+
+    # Just a few property types are supported by POV-Ray...
+    # For the others, warn and take fallback
+    if proptype not in ["RGB", "RGBA", "texonly"]:
+        fallback = (
+            propvalue.fallback if propvalue.fallback is not None else 0.5
+        )
+        msg = (
+            f"[Render] [Povray] [Object '{objname[:-1]}'] "
+            f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
+            f"Warning: Povray does not support texture for "
+            f"float parameters. Fallback to default value ('{fallback}').\n"
+        )
+        App.Console.PrintWarning(msg)
+        return fallback
 
     # Compute gamma
     gamma = "srgb" if proptype == "RGB" else 1.0
@@ -590,7 +606,6 @@ def _write_texref(**kwargs):
             rotate <0.0 0.0 {propvalue.rotation}>
             translate <{propvalue.translation_u} {propvalue.translation_v}>
     """
-
 
     return texture
 
