@@ -786,6 +786,7 @@ class MaterialValues:
             # Store resulting value
             self._values[propkey] = value
 
+    @property
     def textures(self):
         """Get a list of material's textures."""
         return self._textures
