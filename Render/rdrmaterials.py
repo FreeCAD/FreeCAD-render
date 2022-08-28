@@ -742,6 +742,7 @@ class MaterialValues:
         write_texture_fun,
         write_value_fun,
         write_texref_fun,
+        parent_shadertype=None,
     ):
         """Initialize material values.
 
@@ -758,6 +759,7 @@ class MaterialValues:
         self.material = material
         self.shader = material.shader
         self.objname = str(objname)
+        self.parent_shadertype = parent_shadertype
         self._values = {}
         self._textures = []
         self._write_texture = write_texture_fun
@@ -791,6 +793,7 @@ class MaterialValues:
                     proptype=proptype,
                     propvalue=propvalue,
                     shadertype=material.shadertype,
+                    parent_shadertype=self.parent_shadertype
                 )
             else:
                 # Not a texture, treat as plain value...
@@ -846,6 +849,7 @@ class MaterialValues:
             self._write_texture,
             self._write_value,
             self._write_texref,
+            parent_shadertype = self.shadertype
         )
 
 

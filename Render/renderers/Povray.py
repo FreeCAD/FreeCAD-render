@@ -378,7 +378,7 @@ def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     return snippet
 
 
-def _write_material_mixed(name, material):
+def _write_material_mixed(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Mixed material."""
     snippet = """
     texture {{
@@ -396,13 +396,36 @@ def _write_material_mixed(name, material):
         pigment {{ rgbt <{c.r}, {c.g}, {c.b}, {t}> }}
         finish {{ diffuse 1 }}
     }}"""
-    return snippet.format(
-        n=name,
-        t=material.mixed.transparency,
-        c=material.mixed.diffuse.color,
-        k=material.mixed.glass.color,
-        i=material.mixed.glass.ior,
-    )
+    # Glass pigment
+    submat_g = matval.getmixedsubmat("glass")
+    pigment_g = submat_g["color"]
+    if not "image_map" in pigment_g:
+        pigment_g += " filter 0.7"
+
+    # Diffuse pigment
+    submat_d = matval.getmixedsubmat("diffuse")
+    pigment_d = submat_d["color"]
+    if not "image_map" in pigment_d:
+        pigment_d += f""" transmit {matval["transparency"]}"""
+
+    snippet = f"""
+    texture {{
+        pigment {{ {pigment_g} }}
+        finish {{
+            phong 1
+            roughness 0.001
+            ambient 0
+            diffuse 0
+            reflection 0.1
+            }}
+    }}
+    interior {{ior {submat_g["ior"]} caustics 1}}
+    texture {{
+        pigment {{ {pigment_d} }}
+        finish {{ diffuse 1 }}
+    }}"""
+    snippet = snippet.replace("transparency", matval["transparency"])
+    return snippet
 
 
 def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
@@ -555,6 +578,7 @@ def _write_texref(**kwargs):
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
     shadertype = kwargs["shadertype"]
+    parent_shadertype = kwargs["parent_shadertype"]
 
     # Just a few property types are supported by POV-Ray...
     # For the others, warn and take fallback
@@ -580,8 +604,12 @@ def _write_texref(**kwargs):
 
     imagefile = propvalue.file
 
-    if shadertype == "Glass":
+    if shadertype in ["Glass", "glass"]:
+        # Glass, either standalone ('Glass') or in mixed shader ('glass')
         imgmap_suffix = "filter all 0.7 "
+    elif shadertype == "diffuse" and parent_shadertype == "Mixed":
+        # Diffuse of Mixed shader
+        imgmap_suffix = "transmit all transparency "
     else:
         imgmap_suffix = f"gamma {gamma}"
 
