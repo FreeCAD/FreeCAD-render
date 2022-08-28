@@ -34,7 +34,6 @@
 import os
 import re
 import mimetypes
-from textwrap import indent
 
 import FreeCAD as App
 
@@ -304,11 +303,10 @@ def _write_material(name, matval):
     return snippet_mat
 
 
-def _write_material_passthrough(name, material):
+def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    assert material.passthrough.renderer == "Povray"
-    snippet = indent(material.passthrough.string, "    ")
-    return snippet.format(n=name, c=material.default_color)
+    snippet = matval["string"]
+    return snippet.format(n=name, c=matval.default_color)
 
 
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
@@ -334,7 +332,7 @@ def _write_material_glass(name, matval):  # pylint: disable=unused-argument
     return snippet
 
 
-def _write_material_disney(name, matval):
+def _write_material_disney(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Disney material.
 
     Caveat: this is a very rough implementation, as the Disney shader does not
@@ -407,7 +405,7 @@ def _write_material_mixed(name, material):
     )
 
 
-def _write_material_carpaint(name, matval):
+def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a carpaint material."""
     snippet = f"""
     texture {{
