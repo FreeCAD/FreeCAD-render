@@ -407,11 +407,11 @@ def _write_material_mixed(name, material):
     )
 
 
-def _write_material_carpaint(name, material):
+def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
-    snippet = """
+    snippet = f"""
     texture {{
-        pigment {{ rgb <{c.r}, {c.g}, {c.b}> }}
+        pigment {{ {matval["basecolor"]} }}
         finish {{
             diffuse albedo 0.7
             phong albedo 0
@@ -422,7 +422,7 @@ def _write_material_carpaint(name, material):
             conserve_energy
         }}
     }}"""
-    return snippet.format(n=name, c=material.carpaint.basecolor)
+    return snippet
 
 
 def _write_material_fallback(name, material):
