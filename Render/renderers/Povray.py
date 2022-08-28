@@ -280,21 +280,25 @@ sky_sphere{{
 # ===========================================================================
 
 
-def _write_material(name, material):
+def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
+    shadertype = matval.shadertype
     try:
-        snippet_mat = MATERIALS[material.shadertype](name, material)
+        material_function = MATERIALS[shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
             "material\n"
         )
-        App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.default_color)
+        App.Console.PrintWarning(msg.format(name, shadertype))
+        return _write_material_fallback(name, matval.default_color)
+
+    snippet_mat = material_function(name, matval)
+
     return snippet_mat
 
 
@@ -373,6 +377,7 @@ def _write_material_disney(name, material):
 
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
+
     snippet = f"""    texture {{
         pigment {{ {matval["color"]} }}
         finish {{
@@ -501,6 +506,10 @@ def _write_texture(**kwargs):
         the name of the texture
         the SDL string of the texture
     """
+    # In POV-ray, there is no texture declaration outside of the shader.
+    # However, we use this mechanism to specify scale, translate, rotate
+    # which must appear after pigment and normal to modify them
+
     # Retrieve parameters
     objname = kwargs["objname"]
     propvalue = kwargs["propvalue"]
@@ -508,8 +517,14 @@ def _write_texture(**kwargs):
     # Compute texture name
     texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
 
+    # Compute scale, rotate, translate
+    snippet = f"""
+        scale {propvalue.scale}
+        rotate {propvalue.rotation}
+        translate <{propvalue.translation_u},{propvalue.translation_v}>"""
+
     # In Povray, no separate texture declaration...
-    return texname, ""
+    return texname, snippet
 
 
 VALSNIPPETS = {
@@ -558,7 +573,14 @@ def _write_texref(**kwargs):
 
     imagefile = propvalue.file
 
-    texture = f"""uv_mapping image_map {{ {_imagetype(imagefile)} "{imagefile}" gamma {gamma} }}"""
+    texture = f"""
+            uv_mapping
+            image_map {{ {_imagetype(imagefile)} "{imagefile}" gamma {gamma} }}
+            scale {propvalue.scale}
+            rotate <0.0 0.0 {propvalue.rotation}>
+            translate <{propvalue.translation_u} {propvalue.translation_v}>
+    """
+
 
     return texture
 
