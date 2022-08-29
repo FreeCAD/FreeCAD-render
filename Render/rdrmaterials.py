@@ -397,6 +397,7 @@ def _casttexonly(*args):
             float(texobject.Scale),
             texobject.TranslationU.getValueAs("m"),
             texobject.TranslationV.getValueAs("m"),
+            None,
         )
         return res
 
@@ -492,7 +493,8 @@ def get_rendering_material(material, renderer, default_color):
                 )
                 for p in params
             )
-            return _build_standard(shadertype, values)
+            res = _build_standard(shadertype, values)
+            return res
 
     # Climb up to Father
     debug("No valid material definition - trying father material")
@@ -820,6 +822,10 @@ class MaterialValues:
     def __getitem__(self, propname):
         """Implement self[propname]."""
         return self._values[propname]
+
+    def keys(self):
+        """Get keys."""
+        return self._values.keys()
 
     def has_bump(self):
         """Check if material has a bump texture (boolean)."""
