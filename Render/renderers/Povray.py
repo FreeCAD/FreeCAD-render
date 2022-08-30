@@ -365,10 +365,11 @@ def _write_material_disney(name, matval):  # pylint: disable=unused-argument
 
 def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
-
+    bump = matval["bump"] if matval.has_bump() else ""
     snippet = f"""texture {{
         {matval["color"]}
         finish {{ diffuse albedo 1 }}
+        {bump}
     }}"""
     return snippet
 
@@ -586,7 +587,7 @@ def _write_texref(**kwargs):
     gamma = "srgb" if proptype == "RGB" else 1.0
 
     # TODO
-    if propname in ["bump", "normal", "displacement"]:
+    if propname in ["normal", "displacement"]:
         return ""
 
     imagefile = propvalue.file
@@ -600,7 +601,18 @@ def _write_texref(**kwargs):
     else:
         imgmap_suffix = f"gamma {gamma}"
 
-    texture = f"""pigment {{
+    print(propname)  # TODO
+    if propname == "bump":
+        texture = f"""normal {{
+            uv_mapping
+            bump_map {{ {_imagetype(imagefile)} "{imagefile}" }}
+            bump_size 20
+            scale {propvalue.scale}
+            rotate <0.0 0.0 {propvalue.rotation}>
+            translate <{propvalue.translation_u} {propvalue.translation_v}>
+        }}"""
+    else:
+        texture = f"""pigment {{
             uv_mapping
             image_map {{ {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix} }}
             scale {propvalue.scale}
