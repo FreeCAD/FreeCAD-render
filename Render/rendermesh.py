@@ -20,9 +20,9 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements RenderingMesh class.
+"""This module implements RenderMesh class.
 
-RenderingMesh is an extended version of FreeCAD Mesh.Mesh, designed for
+RenderMesh is an extended version of FreeCAD Mesh.Mesh, designed for
 rendering purpose.
 """
 
@@ -33,14 +33,14 @@ import FreeCAD as App
 import Mesh
 
 
-class RenderingMesh:
+class RenderMesh:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
-    RenderingMesh is based on Mesh.Mesh and most of its API is common with
+    RenderMesh is based on Mesh.Mesh and most of its API is common with
     the latter.
-    In addition, RenderingMesh implements UV map management.
+    In addition, RenderMesh implements UV map management.
 
-    Please note that RenderingMesh does not subclass Mesh.Mesh, as Mesh.Mesh is
+    Please note that RenderMesh does not subclass Mesh.Mesh, as Mesh.Mesh is
     implemented in C, which prevents it to be subclassed in Python. As a
     workaround, the required methods and attributes are explicitly
     reimplemented as calls to the corresponding methods and attributes of
@@ -48,7 +48,7 @@ class RenderingMesh:
     """
 
     def __init__(self, mesh=None, uvmap=None, placement=App.Base.Placement()):
-        """Initialize RenderingMesh.
+        """Initialize RenderMesh.
 
         Args:
             mesh -- a Mesh.Mesh object from which to initialize
@@ -81,7 +81,7 @@ class RenderingMesh:
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return RenderingMesh(self.__mesh.copy(), self.__uvmap)
+        return RenderMesh(self.__mesh.copy(), self.__uvmap)
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""

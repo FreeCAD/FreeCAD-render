@@ -51,7 +51,7 @@ import FreeCAD as App
 import MeshPart
 
 from Render.utils import translate, debug, getproxyattr, clamp
-from Render.renderingmesh import RenderingMesh
+from Render.rendermesh import RenderMesh
 from Render import renderables
 import Render.rdrmaterials as materials
 
@@ -295,7 +295,7 @@ class RendererHandler:
         vertices = [
             App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
         ]  # Clamp to avoid huge dimensions...
-        mesh = RenderingMesh()
+        mesh = RenderMesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
 
@@ -336,9 +336,9 @@ class RendererHandler:
             Args:
               compute_uvmap -- Determine if an uv map must be computed (bool)
               uvmap_projection -- Type of uv map to compute (string, see View
-                object and RenderingMesh)
+                object and RenderMesh)
 
-            Returns a RenderingMesh.
+            Returns a RenderMesh.
             """
             # Generate mesh
             mesh = MeshPart.meshFromShape(
@@ -347,7 +347,7 @@ class RendererHandler:
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
-            mesh = RenderingMesh(mesh, placement=shape.Placement)
+            mesh = RenderMesh(mesh, placement=shape.Placement)
             mesh.harmonizeNormals()
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)

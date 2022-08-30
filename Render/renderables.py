@@ -41,7 +41,7 @@ import math
 
 from Render.utils import translate, debug, warn, getproxyattr, RGBA
 from Render.rdrmaterials import is_multimat, is_valid_material
-from Render.renderingmesh import RenderingMesh
+from Render.rendermesh import RenderMesh
 
 
 # ===========================================================================
@@ -153,7 +153,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         # Make a copy of obj.Mesh, otherwise we may have an immutable object
         # and further treatments will fail
         uvprojection = kwargs.get("uvprojection")
-        mesh = RenderingMesh(obj.Mesh.copy())
+        mesh = RenderMesh(obj.Mesh.copy())
         mesh.compute_uvmap(uvprojection)
         renderables = [Renderable(name, mesh, mat, color)]
 
