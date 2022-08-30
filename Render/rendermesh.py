@@ -118,7 +118,7 @@ class RenderMesh:
         WARNING! Store Points in a local variable as it is generated on the
         fly, each time it is accessed.
         """
-        return self.__mesh.Points
+        return iter(self.__mesh.Points)
 
     @property
     def Topology(self):  # pylint: disable=invalid-name
@@ -164,7 +164,7 @@ class RenderMesh:
 
     # TODO
     # Useful resources:
-    #  https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
+    # https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
@@ -180,11 +180,10 @@ class RenderMesh:
         for facet in self.__originalmesh.Facets:
             if _is_facet_normal_to_vector(facet, z_vector):
                 znormal.append(facet)
+            elif _facet_overlap_seam(facet):
+                seam.append(facet)
             else:
-                if _facet_overlap_seam(facet):
-                    seam.append(facet)
-                else:
-                    regular.append(facet)
+                regular.append(facet)
 
         # Rebuild a complete mesh from submeshes, with uvmap
         mesh = Mesh.Mesh()
@@ -192,7 +191,7 @@ class RenderMesh:
 
         # Non Z-normal facets (regular)
         regular_mesh = Mesh.Mesh(regular)
-        points = regular_mesh.Points
+        points = list(regular_mesh.Points)
         avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
             App.Base.Vector2d(math.atan2(p.x, p.y) * avg_radius, p.z) * 0.001
@@ -203,10 +202,10 @@ class RenderMesh:
 
         # Non Z-normal facets (seam)
         seam_mesh = Mesh.Mesh(seam)
-        points = seam_mesh.Points
+        points = list(seam_mesh.Points)
         avg_radius = (
             sum(math.hypot(p.x, p.y) for p in points) / len(points)
-            if len(points)
+            if points
             else 0
         )
         uvmap += [
@@ -219,7 +218,8 @@ class RenderMesh:
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
         uvmap += [
-            App.Base.Vector2d(p.x / 1000, p.y / 1000) for p in z_mesh.Points
+            App.Base.Vector2d(p.x / 1000, p.y / 1000)
+            for p in list(z_mesh.Points)
         ]
         z_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(z_mesh)
@@ -247,7 +247,7 @@ class RenderMesh:
 
         # Regular facets
         regular_mesh = Mesh.Mesh(regular)
-        vectors = [p.Vector - origin for p in regular_mesh.Points]
+        vectors = [p.Vector - origin for p in list(regular_mesh.Points)]
         uvmap += [
             App.Base.Vector2d(
                 0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
@@ -261,7 +261,7 @@ class RenderMesh:
 
         # Seam facets
         seam_mesh = Mesh.Mesh(seam)
-        vectors = [p.Vector - origin for p in seam_mesh.Points]
+        vectors = [p.Vector - origin for p in list(seam_mesh.Points)]
         uvmap += [
             App.Base.Vector2d(
                 0.5 + _pos_atan2(v.x, v.y) / (2 * math.pi),
@@ -284,7 +284,6 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
-        origin = App.Base.Vector(0, 0, 0)
         # Isolate submeshes by cube face
         face_facets = {f: [] for f in _UnitCubeFaceEnum}
         for facet in self.__originalmesh.Facets:
