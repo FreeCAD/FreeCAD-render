@@ -601,12 +601,12 @@ def _write_texref(**kwargs):
     else:
         imgmap_suffix = f"gamma {gamma}"
 
-    print(propname)  # TODO
     if propname == "bump":
+        # TODO Tweak bump_size
         texture = f"""normal {{
             uv_mapping
-            bump_map {{ {_imagetype(imagefile)} "{imagefile}" }}
-            bump_size 20
+            bump_map {{ {_imagetype(imagefile)} "{imagefile}" gamma 1.0 }}
+            bump_size {1.0 / propvalue.scale if propvalue.scale != 0 else 1.0}
             scale {propvalue.scale}
             rotate <0.0 0.0 {propvalue.rotation}>
             translate <{propvalue.translation_u} {propvalue.translation_v}>
