@@ -104,7 +104,7 @@ def reload(module_name=None):
             "Render.constants",
             "Render.lights",
             "Render.imageviewer",
-            "Render.rdrmaterials",
+            "Render.rendermaterial",
             "Render.rdrhandler",
             "Render.rdrexecutor",
             "Render.renderables",
@@ -140,8 +140,8 @@ def reload(module_name=None):
 
     # Clear materials cache
     print("Clear material cache")
-    rdrmaterials = importlib.import_module("Render.rdrmaterials")
-    rdrmaterials.clear()
+    rendermaterial = importlib.import_module("Render.rendermaterial")
+    rendermaterial.clear_cache()
 
 
 def set_dryrun(state):

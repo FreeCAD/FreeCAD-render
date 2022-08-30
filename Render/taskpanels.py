@@ -70,7 +70,7 @@ from Render.constants import (
     USERMATERIALDIR,
 )
 from Render.utils import str2rgb, translate, parse_csv_str
-from Render.rdrmaterials import (
+from Render.rendermaterial import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
     is_valid_material,
@@ -593,7 +593,7 @@ class MaterialSettingsTaskPanel:
         """Add a field to the task panel.
 
         Args:
-            param -- Parameter description (rdrmaterials.Param)
+            param -- Parameter description (rendermaterial.Param)
             value -- Initial value
             teximages -- List of appliable texture images (texture.ImageInfo)
         """

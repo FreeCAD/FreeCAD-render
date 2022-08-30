@@ -40,7 +40,7 @@ import collections
 import math
 
 from Render.utils import translate, debug, warn, getproxyattr, RGBA
-from Render.rdrmaterials import is_multimat, is_valid_material
+from Render.rendermaterial import is_multimat, is_valid_material
 from Render.rendermesh import RenderMesh
 
 

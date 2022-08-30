@@ -1007,7 +1007,7 @@ def printmat(fcdmat):
     print("\n".join(lines))
 
 
-def clear():
+def clear_cache():
     """Clear functions caches (debug purpose)."""
     _build_fallback.cache_clear()
     _build_passthrough.cache_clear()
@@ -1016,4 +1016,4 @@ def clear():
 
 
 # Clear cache when reload module (debug)
-clear()
+clear_cache()

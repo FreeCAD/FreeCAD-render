@@ -53,7 +53,7 @@ import MeshPart
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render.rendermesh import RenderMesh
 from Render import renderables
-import Render.rdrmaterials as materials
+from Render import rendermaterial
 
 
 # ===========================================================================
@@ -134,7 +134,7 @@ class RendererHandler:
         """Run the external renderer.
 
         This method merely calls external renderer's 'render' method, after
-        having cleared materials' cache.
+        having cleared rendermaterial's cache.
 
         Params:
         - project:  the project to render
@@ -148,7 +148,7 @@ class RendererHandler:
         Return:     path to image file generated, or None if no image has been
                     issued by external renderer
         """
-        materials.clear()  # Clear rdrmaterials' cache
+        rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
             project, prefix, external, output, width, height
         )
@@ -299,7 +299,7 @@ class RendererHandler:
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
 
-        mat = materials.get_rendering_material(None, "", color)
+        mat = rendermaterial.get_rendering_material(None, "", color)
 
         # Rescale to meters
         scalemat = App.Matrix()
@@ -408,7 +408,7 @@ class RendererHandler:
             RendererHandler._call_renderer, self, "write_mesh"
         )
 
-        get_mat = materials.get_rendering_material
+        get_mat = rendermaterial.get_rendering_material
         rdrname = self.renderer_name
 
         res = [
