@@ -174,7 +174,6 @@ class Material(_ArchMaterial):
             )
         )
 
-    # TODO
     def import_textures(self, material, basepath):
         """Import textures declared in the material dictionary.
 
@@ -188,6 +187,8 @@ class Material(_ArchMaterial):
         Returns:
             the material dictionary without textures data
         """
+        # To facilitate debugging, this method is implemented in a separate
+        # function...
         return _import_textures(self, material, basepath)
 
     def _add_group_property(self, fpo):
@@ -201,9 +202,7 @@ class Material(_ArchMaterial):
         fpo.setEditorMode("Group", 2)
 
 
-# TODO Implementation trick
 # TODO Update documentation (markdown)
-# TODO Test complete chain: with shader fields referencing textures...
 
 
 def _import_textures(material, input_material_dict, basepath=None):
@@ -215,10 +214,10 @@ def _import_textures(material, input_material_dict, basepath=None):
     Args:
         material -- The Material object to update
         input_material_dict -- A material dictionary, resulting from the import
-            of a material card, containing the data to update 'material'.
-            WARNING: this is NOT a Material object.
-        basepath -- A string giving the base path to use for relative paths when
-            looking for texture files.
+          of a material card, containing the data to update 'material'.
+          WARNING: this is NOT a Material object.
+        basepath -- A string giving the base path to use for relative paths
+          when looking for texture files.
 
     Returns:
         the 'input_material_dict' after texture data have been removed
@@ -237,7 +236,8 @@ def _import_textures(material, input_material_dict, basepath=None):
             texname, *texparam = key[len(prefix) :].split(".")
 
             if texname not in texdata:
-                # If texture name is unknown at this stage, create an empty dictionary
+                # If texture name is unknown at this stage, create an empty
+                # dictionary
                 texdata[texname] = {}
                 texdata[texname][imgfield] = {}
 
@@ -248,7 +248,8 @@ def _import_textures(material, input_material_dict, basepath=None):
                 except ValueError:
                     msg = translate(
                         "Render",
-                        "Invalid image index ('{}') in texture '{}' -- Skipping",
+                        "Invalid image index ('{}') in texture '{}' "
+                        "-- Skipping",
                     ).format(texparam[1], texname)
                     warn(domain, cardname, msg)
                 else:
@@ -263,10 +264,6 @@ def _import_textures(material, input_material_dict, basepath=None):
             otherdata[key] = input_material_dict[key]
 
     # Process texture data (create textures)
-    errmsg = translate(
-        "Render",
-        "Error importing material card '{}' - Cannot create texture '{}': ",
-    )
     for texname, params in texdata.items():  # Iterate on textures
         # Get images subdictionary
         images = params[imgfield]
@@ -350,7 +347,8 @@ def _import_textures(material, input_material_dict, basepath=None):
         # - the expected syntax is:
         #   Texture;("<texture_name>", "<property_name>"); <fallback_color>
         # - <texture_name> must reference the texture by the internal
-        #   object name, which may be slightly different (name collisions etc.),
+        #   object name, which may be slightly different (name collisions
+        #   etc.),
         # Thus we have to translate...
         # We update otherdata accordingly...
         fcd_texname = texture.fpo.Name  # The internal object name
@@ -361,7 +359,7 @@ def _import_textures(material, input_material_dict, basepath=None):
 
             # Search for texture statement
             parsed = [v.strip() for v in value.split(";")]  # Split and strip
-            texture_statement = re.search("Texture\s*(.*)", parsed[0])
+            texture_statement = re.search(r"Texture\s*(.*)", parsed[0])
             if texture_statement is None:
                 continue  # Not a texture statement
 
@@ -374,7 +372,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "Invalid syntax for texture '{}': "
                     "No valid arguments in statement ('{}')"
                     "-- Skipping",
-                ).format(key, texname, texture_argument)
+                ).format(texname, texture_statement)
                 warn(domain, cardname, msg)
                 continue
 
@@ -396,8 +394,8 @@ def _import_textures(material, input_material_dict, basepath=None):
                 msg = translate(
                     "Render",
                     "Invalid syntax for attribute '{}' in texture '{}': "
-                    "Reference to texture should be a tuple ('<texture>', <index>) "
-                    "-- Skipping",
+                    "Reference to texture should be a tuple "
+                    "('<texture>', <index>) -- Skipping",
                 ).format(key, texname)
                 warn(domain, cardname, msg)
                 continue
@@ -406,7 +404,7 @@ def _import_textures(material, input_material_dict, basepath=None):
             # Internal format is ("<texturename>", "<imagepropertyname>")
             # We have to recompute <imagepropertyname>
             if texture_ref[1] != 0:
-                imgpropname = "Image{}".format(texture_ref[1])
+                imgpropname = f"Image{texture_ref[1]}"
             else:
                 imgpropname = "Image"
 
@@ -414,9 +412,6 @@ def _import_textures(material, input_material_dict, basepath=None):
             internal = ["Texture", str((fcd_texname, imgpropname))]
             internal += parsed[1:]
             otherdata[key] = ";".join(internal)
-
-    # TODO Use cases to test:
-    #   Material has already data
 
     # Finally return material data without texture data
     return otherdata
