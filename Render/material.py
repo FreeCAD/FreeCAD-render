@@ -26,6 +26,7 @@ Please note Render Material object is mainly derived from Arch Material.
 """
 
 import itertools
+import functools
 import os
 import re
 import ast
@@ -202,46 +203,33 @@ class Material(_ArchMaterial):
         fpo.setEditorMode("Group", 2)
 
 
+# ===========================================================================
+#                             Texture import
+# ===========================================================================
+
 # TODO Update documentation (markdown)
 
+_PREFIX = "Render.Textures."
+_IMGFIELD = "Images"
+_WARNDOMAIN = "Material card import"  # For warning messages
 
-def _import_textures(material, input_material_dict, basepath=None):
-    """Import textures data into a Material.
-
-    Nota: This function could be a method of Material class. However, it has
-    been isolated for debugging purpose.
-
-    Args:
-        material -- The Material object to update
-        input_material_dict -- A material dictionary, resulting from the import
-          of a material card, containing the data to update 'material'.
-          WARNING: this is NOT a Material object.
-        basepath -- A string giving the base path to use for relative paths
-          when looking for texture files.
-
-    Returns:
-        the 'input_material_dict' after texture data have been removed
-    """
-    cardname = input_material_dict.get("CardName")
-    domain = "Material card import"  # For warning messages
+def _separate_texture(input_material_dict, texwarn):
 
     # Separate texture data and other material data in input_material_dict
     texdata = {}
     otherdata = {}
-    prefix = "Render.Textures."
-    imgfield = "Images"
     for key in input_material_dict.keys():
-        if key.startswith(prefix):
+        if key.startswith(_PREFIX):
             # Texture data
-            texname, *texparam = key[len(prefix) :].split(".")
+            texname, *texparam = key[len(_PREFIX) :].split(".")
 
             if texname not in texdata:
                 # If texture name is unknown at this stage, create an empty
                 # dictionary
                 texdata[texname] = {}
-                texdata[texname][imgfield] = {}
+                texdata[texname][_IMGFIELD] = {}
 
-            if texparam[0] == imgfield:
+            if texparam[0] == _IMGFIELD:
                 # Image: cast image index to int
                 try:
                     index = int(texparam[1])
@@ -251,11 +239,10 @@ def _import_textures(material, input_material_dict, basepath=None):
                         "Invalid image index ('{}') in texture '{}' "
                         "-- Skipping",
                     ).format(texparam[1], texname)
-                    warn(domain, cardname, msg)
+                    texwarn(msg)
                 else:
-                    texdata[texname][imgfield][index] = input_material_dict[
-                        key
-                    ]
+                    texdata[texname][_IMGFIELD][index] = input_material_dict[key]
+
             else:
                 # Not an image (must be another texture parameter)
                 texdata[texname][".".join(texparam)] = input_material_dict[key]
@@ -263,10 +250,37 @@ def _import_textures(material, input_material_dict, basepath=None):
             # Other material data
             otherdata[key] = input_material_dict[key]
 
+    return texdata, otherdata
+
+# TODO Move up and after ViewProviderMaterial
+def _import_textures(material, input_material_dict, basepath=None):
+    """Import textures data into a Material.
+
+    Nota: This function could be a method of Material class. However, it has
+    been isolated for debugging purpose.
+
+    Args:
+        material -- The Render.Material object to update
+        input_material_dict -- A material dictionary, resulting from the import
+          of a material card, containing the data to update 'material'.
+          WARNING: this is NOT a Render.Material object.
+        basepath -- A string giving the base path to use for relative paths
+          when looking for texture files.
+
+    Returns:
+        the 'input_material_dict' after texture data have been removed
+    """
+    cardname = input_material_dict.get("CardName")
+    texwarn = functools.partial(warn, _WARNDOMAIN, cardname)
+
+    # Separate texture
+    texdata, otherdata = _separate_texture(input_material_dict, texwarn)
+    print(texdata, otherdata)  # TODO
+
     # Process texture data (create textures)
     for texname, params in texdata.items():  # Iterate on textures
         # Get images subdictionary
-        images = params[imgfield]
+        images = params[_IMGFIELD]
 
         # Get primary image path parameter
         try:
@@ -276,7 +290,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                 "Render",
                 "Missing primary image (index 0) in texture '{}' -- Skipping",
             ).format(texname)
-            warn(domain, cardname, msg)
+            texwarn(msg)
             continue
 
         # Format image path to absolute path and check whether the path exists
@@ -287,7 +301,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                 "Render",
                 "Invalid image path ('{}') in texture '{}' -- Skipping",
             ).format(imagepath, texname)
-            warn(domain, cardname, msg)
+            texwarn(msg)
             continue
 
         # Add texture, with primary image
@@ -304,11 +318,11 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "Render",
                     "Invalid image path ('{}') in texture '{}' -- Skipping",
                 ).format(imagepath, texname)
-                warn(domain, cardname, msg)
+                texwarn(msg)
                 continue
             imagename = f"Image{index}"
             texture.add_image(imagename, imagepath)
-        del params[imgfield]  # Remove all textures data
+        del params[_IMGFIELD]  # Remove all textures data
 
         # Add other parameters
         for key, value in params.items():
@@ -320,7 +334,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "Render",
                     "Invalid attribute '{}' in texture '{}' -- Skipping",
                 ).format(key, texname)
-                warn(domain, cardname, msg)
+                texwarn(msg)
                 continue
 
             # Try to cast and assign value to property
@@ -333,7 +347,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "Invalid type for attribute '{}' in texture '{}': "
                     "Cannot convert '{}' to '{}' -- Skipping",
                 ).format(key, texname, value, proptype)
-                warn(domain, cardname, msg)
+                texwarn(msg)
                 continue
             else:
                 setattr(texture.fpo, key, cast_value)
@@ -373,7 +387,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "No valid arguments in statement ('{}')"
                     "-- Skipping",
                 ).format(texname, texture_statement)
-                warn(domain, cardname, msg)
+                texwarn(msg)
                 continue
 
             # Parse texture argument (into texture reference)
@@ -387,7 +401,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "got '{}' instead"
                     "-- Skipping",
                 ).format(key, texname, parsed[0])
-                warn(domain, cardname, msg)
+                texwarn(msg)
                 continue
 
             if not isinstance(texture_ref, tuple) or len(texture_ref) != 2:
@@ -397,7 +411,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                     "Reference to texture should be a tuple "
                     "('<texture>', <index>) -- Skipping",
                 ).format(key, texname)
-                warn(domain, cardname, msg)
+                texwarn(msg)
                 continue
 
             # Substitute texture reference in internal format
