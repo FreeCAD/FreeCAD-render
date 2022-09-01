@@ -209,46 +209,49 @@ class Material(_ArchMaterial):
 
 # TODO Update documentation (markdown)
 
-_PREFIX = "Render.Textures."
-_IMGFIELD = "Images"
-_WARNDOMAIN = "Material card import"  # For warning messages
+_TEXPREFIX = "Render.Textures."
+_TEXIMGFIELD = "Images"
+_TEXWARNDOMAIN = "Material card import"  # For warning messages
 
+# TODO replace input_material_dict by fcdmaterial
 def _separate_texture(input_material_dict, texwarn):
 
     # Separate texture data and other material data in input_material_dict
     texdata = {}
     otherdata = {}
-    for key in input_material_dict.keys():
-        if key.startswith(_PREFIX):
-            # Texture data
-            texname, *texparam = key[len(_PREFIX) :].split(".")
+    for key, value in input_material_dict.items():
 
-            if texname not in texdata:
-                # If texture name is unknown at this stage, create an empty
-                # dictionary
-                texdata[texname] = {}
-                texdata[texname][_IMGFIELD] = {}
+        if not key.startswith(_TEXPREFIX):
+            # Other material data (not texture...)
+            otherdata[key] = value
+            continue
 
-            if texparam[0] == _IMGFIELD:
-                # Image: cast image index to int
-                try:
-                    index = int(texparam[1])
-                except ValueError:
-                    msg = translate(
-                        "Render",
-                        "Invalid image index ('{}') in texture '{}' "
-                        "-- Skipping",
-                    ).format(texparam[1], texname)
-                    texwarn(msg)
-                else:
-                    texdata[texname][_IMGFIELD][index] = input_material_dict[key]
+        # Split key using '.' separator
+        texname, *texsubnames = key[len(_TEXPREFIX) :].split(".")
 
-            else:
-                # Not an image (must be another texture parameter)
-                texdata[texname][".".join(texparam)] = input_material_dict[key]
+        # If texture name is unknown at this stage, create a
+        # dictionary to store its forthcoming data
+        if texname not in texdata:
+            texdata[texname] = {_TEXIMGFIELD: {}}
+
+        # Check whether it is an image field. If not, it must be another
+        # texture parameter: just add value to texdata and continue
+        if texsubnames[0] != _TEXIMGFIELD:
+            texdata[texname][".".join(texsubnames)] = value
+            continue
+
+        # It is an image field: cast its index to int and add value to texdata
+        try:
+            index = int(texsubnames[1])
+        except ValueError:
+            msg = translate(
+                "Render",
+                "Invalid image index ('{}') in texture '{}' -- Skipping",
+            ).format(texsubnames[1], texname)
+            texwarn(msg)
         else:
-            # Other material data
-            otherdata[key] = input_material_dict[key]
+            texdata[texname][_TEXIMGFIELD][index] = value
+
 
     return texdata, otherdata
 
@@ -271,7 +274,7 @@ def _import_textures(material, input_material_dict, basepath=None):
         the 'input_material_dict' after texture data have been removed
     """
     cardname = input_material_dict.get("CardName")
-    texwarn = functools.partial(warn, _WARNDOMAIN, cardname)
+    texwarn = functools.partial(warn, _TEXWARNDOMAIN, cardname)
 
     # Separate texture
     texdata, otherdata = _separate_texture(input_material_dict, texwarn)
@@ -280,7 +283,7 @@ def _import_textures(material, input_material_dict, basepath=None):
     # Process texture data (create textures)
     for texname, params in texdata.items():  # Iterate on textures
         # Get images subdictionary
-        images = params[_IMGFIELD]
+        images = params[_TEXIMGFIELD]
 
         # Get primary image path parameter
         try:
@@ -322,7 +325,7 @@ def _import_textures(material, input_material_dict, basepath=None):
                 continue
             imagename = f"Image{index}"
             texture.add_image(imagename, imagepath)
-        del params[_IMGFIELD]  # Remove all textures data
+        del params[_TEXIMGFIELD]  # Remove all textures data
 
         # Add other parameters
         for key, value in params.items():
