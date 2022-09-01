@@ -252,8 +252,8 @@ def _separate_texture(input_material_dict, texwarn):
         else:
             texdata[texname][_TEXIMGFIELD][index] = value
 
-
     return texdata, otherdata
+
 
 # TODO Move up and after ViewProviderMaterial
 def _import_textures(material, input_material_dict, basepath=None):
@@ -279,23 +279,56 @@ def _import_textures(material, input_material_dict, basepath=None):
     # Separate texture data from other material data
     texdata, otherdata = _separate_texture(input_material_dict, texwarn)
 
-    # Process texture data (create textures)
+    # Process texture data: create textures
     for texname, params in texdata.items():  # Iterate on textures
-        # Get images subdictionary
-        images = params[_TEXIMGFIELD]
 
-        # Get primary image path parameter
-        try:
-            imagepath = images[0]
-        except KeyError:
-            msg = translate(
-                "Render",
-                "Missing primary image (index 0) in texture '{}' -- Skipping",
-            ).format(texname)
-            texwarn(msg)
+        # Add texture
+        texture = _add_texture_to_material(
+            texname, params, material, basepath, texwarn
+        )
+        if texture is None:
             continue
 
-        # Format image path to absolute path and check whether the path exists
+        # Update references to this texture
+        _update_texture_references(otherdata, texture, texname, texwarn)
+
+    # Finally return material data without texture data
+    return otherdata
+
+
+def _add_texture_to_material(texname, params, material, basepath, texwarn):
+    # Get images subdictionary
+    images = params[_TEXIMGFIELD]
+
+    # Get primary image path parameter
+    try:
+        imagepath = images[0]
+    except KeyError:
+        msg = translate(
+            "Render",
+            "Missing primary image (index 0) in texture '{}' -- Skipping",
+        ).format(texname)
+        texwarn(msg)
+        return None
+
+    # Format image path to absolute path and check whether the path exists
+    if not os.path.isabs(imagepath):
+        imagepath = os.path.join(basepath, imagepath)
+    if not os.path.exists(imagepath):
+        msg = translate(
+            "Render",
+            "Invalid image path ('{}') in texture '{}' -- Skipping",
+        ).format(imagepath, texname)
+        texwarn(msg)
+        return None
+
+    # Add texture, with primary image
+    texture, *_ = material.add_texture(imagepath)
+    texture.fpo.Label = texname
+    del images[0]  # Primary image is now processed, so remove it...
+
+    # Add other images
+    for index, imagepath in images.items():
         if not os.path.isabs(imagepath):
             imagepath = os.path.join(basepath, imagepath)
         if not os.path.exists(imagepath):
@@ -305,62 +338,42 @@ def _import_textures(material, input_material_dict, basepath=None):
             ).format(imagepath, texname)
             texwarn(msg)
             continue
+        imagename = f"Image{index}"
+        texture.add_image(imagename, imagepath)
+    del params[_TEXIMGFIELD]  # Remove all textures data
 
-        # Add texture, with primary image
-        texture, *_ = material.add_texture(imagepath)
-        texture.fpo.Label = texname
-        del images[0]  # Primary image is now processed, so remove it...
+    # Add other parameters
+    for key, value in params.items():
+        # Check property existence
+        try:
+            prop = texture.fpo.getPropertyByName(key)
+        except AttributeError:
+            msg = translate(
+                "Render",
+                "Invalid attribute '{}' in texture '{}' -- Skipping",
+            ).format(key, texname)
+            texwarn(msg)
+            continue
 
-        # Add other images
-        for index, imagepath in images.items():
-            if not os.path.isabs(imagepath):
-                imagepath = os.path.join(basepath, imagepath)
-            if not os.path.exists(imagepath):
-                msg = translate(
-                    "Render",
-                    "Invalid image path ('{}') in texture '{}' -- Skipping",
-                ).format(imagepath, texname)
-                texwarn(msg)
-                continue
-            imagename = f"Image{index}"
-            texture.add_image(imagename, imagepath)
-        del params[_TEXIMGFIELD]  # Remove all textures data
+        # Try to cast and assign value to property
+        proptype = type(prop)
+        try:
+            cast_value = proptype(value)
+        except ValueError:
+            msg = translate(
+                "Render",
+                "Invalid type for attribute '{}' in texture '{}': "
+                "Cannot convert '{}' to '{}' -- Skipping",
+            ).format(key, texname, value, proptype)
+            texwarn(msg)
+            continue
+        else:
+            setattr(texture.fpo, key, cast_value)
 
-        # Add other parameters
-        for key, value in params.items():
-            # Check property existence
-            try:
-                prop = texture.fpo.getPropertyByName(key)
-            except AttributeError:
-                msg = translate(
-                    "Render",
-                    "Invalid attribute '{}' in texture '{}' -- Skipping",
-                ).format(key, texname)
-                texwarn(msg)
-                continue
+    return texture
 
-            # Try to cast and assign value to property
-            proptype = type(prop)
-            try:
-                cast_value = proptype(value)
-            except ValueError:
-                msg = translate(
-                    "Render",
-                    "Invalid type for attribute '{}' in texture '{}': "
-                    "Cannot convert '{}' to '{}' -- Skipping",
-                ).format(key, texname, value, proptype)
-                texwarn(msg)
-                continue
-            else:
-                setattr(texture.fpo, key, cast_value)
 
-        fcd_texname = texture.fpo.Name  # The internal object name
-        _update_texture_references(otherdata, fcd_texname, texname, texwarn)
-
-    # Finally return material data without texture data
-    return otherdata
-
-def _update_texture_references(otherdata, fcd_texname, texname, texwarn):
+def _update_texture_references(otherdata, texture, texname, texwarn):
     # Parse and update material fields that reference this texture:
     # In the card:
     # - the expected syntax is:
@@ -374,6 +387,7 @@ def _update_texture_references(otherdata, fcd_texname, texname, texwarn):
     #   etc.),
     # Thus we have to translate...
     # We update otherdata accordingly...
+    fcd_texname = texture.fpo.Name  # The internal object name
     for key, value in otherdata.items():
         # Look for Render parameter only
         if not key.startswith("Render."):
@@ -423,7 +437,9 @@ def _update_texture_references(otherdata, fcd_texname, texname, texwarn):
         # Substitute texture reference in internal format
         # Internal format is ("<texturename>", "<imagepropertyname>")
         # We have to recompute <imagepropertyname>
-        imgpropname = f"Image{texture_ref[1]}" if texture_ref[1] != 0 else "Image"
+        imgpropname = (
+            f"Image{texture_ref[1]}" if texture_ref[1] != 0 else "Image"
+        )
 
         # Translate in internal format and update 'otherdata'
         internal = ["Texture", str((fcd_texname, imgpropname))]
