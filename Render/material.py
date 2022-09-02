@@ -296,9 +296,22 @@ def _import_textures(material, input_material_dict, basepath=None):
     return otherdata
 
 
-def _add_texture_to_material(texname, params, material, basepath, texwarn):
+def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
+    """Add a texture to a material based on material card data.
+
+    Args:
+        texname -- texture name (str)
+        texdata -- texture data, from material card (dict)
+        material -- material to which we add texture (Render.Material)
+        basepath -- base for relative paths of texture's images (str)
+        texwarn -- warning function, for errors (function)
+
+    Returns:
+        The newly created texture (a Render.Texture object).
+        None if something wrong occured.
+    """
     # Get images subdictionary
-    images = params[_TEXIMGFIELD]
+    images = texdata[_TEXIMGFIELD]
 
     # Get primary image path parameter
     try:
@@ -322,7 +335,7 @@ def _add_texture_to_material(texname, params, material, basepath, texwarn):
         texwarn(msg)
         return None
 
-    # Add texture, with primary image
+    # Create texture, with primary image
     texture, *_ = material.add_texture(imagepath)
     texture.fpo.Label = texname
     del images[0]  # Primary image is now processed, so remove it...
@@ -340,10 +353,10 @@ def _add_texture_to_material(texname, params, material, basepath, texwarn):
             continue
         imagename = f"Image{index}"
         texture.add_image(imagename, imagepath)
-    del params[_TEXIMGFIELD]  # Remove all textures data
+    del texdata[_TEXIMGFIELD]  # Remove all textures data
 
     # Add other parameters
-    for key, value in params.items():
+    for key, value in texdata.items():
         # Check property existence
         try:
             prop = texture.fpo.getPropertyByName(key)
