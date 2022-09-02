@@ -213,13 +213,23 @@ _TEXPREFIX = "Render.Textures."
 _TEXIMGFIELD = "Images"
 _TEXWARNDOMAIN = "Material card import"  # For warning messages
 
-# TODO replace input_material_dict by fcdmaterial
-def _separate_texture(input_material_dict, texwarn):
+def _separate_texture(matcard_dict, texwarn):
+    """Split material card dictionary into texture data and non texture data.
 
-    # Separate texture data and other material data in input_material_dict
+    Args:
+        matcard_dict -- material card dictionary (resulting from material card
+            import (dict)
+        texwarn -- warning callback, for issues (function)
+
+    Returns:
+        a dictionary with texture data
+        a dictionary with other data
+    """
+
+    # Separate texture data and other material data in matcard_dict
     texdata = {}
     otherdata = {}
-    for key, value in input_material_dict.items():
+    for key, value in matcard_dict.items():
 
         if not key.startswith(_TEXPREFIX):
             # Other material data (not texture...)
@@ -256,7 +266,7 @@ def _separate_texture(input_material_dict, texwarn):
 
 
 # TODO Move up and after ViewProviderMaterial
-def _import_textures(material, input_material_dict, basepath=None):
+def _import_textures(material, matcard_dict, basepath=None):
     """Import textures data into a Material.
 
     Nota: This function could be a method of Material class. However, it has
@@ -264,20 +274,20 @@ def _import_textures(material, input_material_dict, basepath=None):
 
     Args:
         material -- The Render.Material object to update
-        input_material_dict -- A material dictionary, resulting from the import
+        matcard_dict -- A material card dictionary, resulting from the import
           of a material card, containing the data to update 'material'.
           WARNING: this is NOT a Render.Material object.
         basepath -- A string giving the base path to use for relative paths
           when looking for texture files.
 
     Returns:
-        the 'input_material_dict' after texture data have been removed
+        the 'matcard_dict' after texture data have been removed
     """
-    cardname = input_material_dict.get("CardName")
+    cardname = matcard_dict.get("CardName")
     texwarn = functools.partial(warn, _TEXWARNDOMAIN, cardname)
 
     # Separate texture data from other material data
-    texdata, otherdata = _separate_texture(input_material_dict, texwarn)
+    texdata, otherdata = _separate_texture(matcard_dict, texwarn)
 
     # Process texture data: create textures
     for texname, params in texdata.items():  # Iterate on textures
@@ -304,7 +314,7 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
         texdata -- texture data, from material card (dict)
         material -- material to which we add texture (Render.Material)
         basepath -- base for relative paths of texture's images (str)
-        texwarn -- warning function, for errors (function)
+        texwarn -- warning callback, for issues (function)
 
     Returns:
         The newly created texture (a Render.Texture object).
