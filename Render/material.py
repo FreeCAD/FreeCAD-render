@@ -213,6 +213,7 @@ _TEXPREFIX = "Render.Textures."
 _TEXIMGFIELD = "Images"
 _TEXWARNDOMAIN = "Material card import"  # For warning messages
 
+# TODO Gather helpers into a _TextureImportHelper object
 def _separate_texture(matcard_dict, texwarn):
     """Split material card dictionary into texture data and non texture data.
 
@@ -397,19 +398,27 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
 
 
 def _update_texture_references(otherdata, texture, texname, texwarn):
-    # Parse and update material fields that reference this texture:
-    # In the card:
-    # - the expected syntax is:
-    #   Texture("<texture_name>", <index>); <fallback_color>
-    # - <texture_name> reference the texture by the name given in the card
-    # In FreeCAD:
-    # - the expected syntax is:
-    #   Texture;("<texture_name>", "<property_name>"); <fallback_color>
-    # - <texture_name> must reference the texture by the internal
-    #   object name, which may be slightly different (name collisions
-    #   etc.),
-    # Thus we have to translate...
-    # We update otherdata accordingly...
+    """Update material card fields which reference a texture.
+
+    In the material card:
+    - the expected syntax is:
+      Texture("<texture_name>", <index>); <fallback_color>
+    - <texture_name> references the texture by the name given in the card
+    In FreeCAD:
+    - the expected syntax is:
+      Texture;("<texture_name>", "<property_name>"); <fallback_color>
+    - <texture_name> must reference the texture by the internal
+      object name, which may be slightly different (name collisions
+      etc.)
+    Thus we have to translate...
+
+    Args:
+        otherdata -- The material card data that may reference the texture
+          This object will be modified (dict)
+        texture -- The referenced texture
+        texname -- The texture name
+        texwarn -- warning callback, for issues (function)
+    """
     fcd_texname = texture.fpo.Name  # The internal object name
     for key, value in otherdata.items():
         # Look for Render parameter only
