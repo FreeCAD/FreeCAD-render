@@ -349,10 +349,13 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
     # Create texture, with primary image
     texture, *_ = material.add_texture(imagepath)
     texture.fpo.Label = texname
-    del images[0]  # Primary image is now processed, so remove it...
 
     # Add other images
     for index, imagepath in images.items():
+        if index == 0:
+            continue   # Primary image, already processed...
+
+        # Find image path and add to texture
         if not os.path.isabs(imagepath):
             imagepath = os.path.join(basepath, imagepath)
         if not os.path.exists(imagepath):
@@ -364,10 +367,9 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
             continue
         imagename = f"Image{index}"
         texture.add_image(imagename, imagepath)
-    del texdata[_TEXIMGFIELD]  # Remove all textures data
 
     # Add other parameters
-    for key, value in texdata.items():
+    for key, value in filter(lambda i: i[0] != _TEXIMGFIELD, texdata.items()):
         # Check property existence
         try:
             prop = texture.fpo.getPropertyByName(key)
