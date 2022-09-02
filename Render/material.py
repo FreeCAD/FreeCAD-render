@@ -203,6 +203,83 @@ class Material(_ArchMaterial):
         fpo.setEditorMode("Group", 2)
 
 
+class ViewProviderMaterial(_ViewProviderArchMaterial):
+    """A View Provider for the Material object.
+
+    This class is essentially derived from the Arch WB's equivalent one.
+    The main difference is that the edition is done by Render's Material
+    Task Panel.
+    """
+
+    def __init__(self, vobj):
+        super().__init__(vobj)
+        self.__module__ = "Render"
+        self.taskd = None
+
+    def attach(self, vobj):
+        super().attach(vobj)
+        self.__module__ = "Render"
+
+    def setEdit(self, vobj, mode):
+        self.taskd = MaterialTaskPanel(vobj.Object)
+        Gui.Control.showDialog(self.taskd)
+        self.taskd.form.FieldName.setFocus()
+        self.taskd.form.FieldName.selectAll()
+        return True
+
+    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
+        """Set up the object's context menu in GUI (callback)."""
+        # Edit Render Settings
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
+        )
+        QObject.connect(
+            action,
+            SIGNAL("triggered()"),
+            lambda: Gui.Control.showDialog(MaterialSettingsTaskPanel()),
+        )
+        menu.addAction(action)
+
+        # Edit General Settings
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
+        )
+        QObject.connect(
+            action,
+            SIGNAL("triggered()"),
+            lambda: Gui.activeDocument().setEdit(vobj.Object.Name, 0),
+        )
+        menu.addAction(action)
+
+        # Add a texture to material
+        action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
+        QObject.connect(
+            action, SIGNAL("triggered()"), lambda: _add_texture(vobj)
+        )
+        menu.addAction(action)
+
+    def claimChildren(self):
+        """Deliver the children belonging to this object (callback)."""
+        try:
+            return self.Object.Group
+        except AttributeError:
+            return []
+
+    def onDelete(self, vobj, subelements):  # pylint: disable=no-self-use
+        """Respond to delete event."""
+        # Remove all subelements (textures) belonging to this material...
+        for subobj in vobj.Object.Group:
+            subobj.Document.removeObject(subobj.Name)
+        return True
+
+
+def _add_texture(vobj):
+    """Add texture to a related Material (private)."""
+    App.ActiveDocument.openTransaction("Material_AddTexture")
+    vobj.Object.Proxy.add_texture("")
+    App.ActiveDocument.commitTransaction()
+
+
 # ===========================================================================
 #                             Texture import
 # ===========================================================================
@@ -496,78 +573,3 @@ def _update_texture_references(otherdata, texture, texname, texwarn):
         otherdata[key] = ";".join(internal)
 
 
-class ViewProviderMaterial(_ViewProviderArchMaterial):
-    """A View Provider for the Material object.
-
-    This class is essentially derived from the Arch WB's equivalent one.
-    The main difference is that the edition is done by Render's Material
-    Task Panel.
-    """
-
-    def __init__(self, vobj):
-        super().__init__(vobj)
-        self.__module__ = "Render"
-        self.taskd = None
-
-    def attach(self, vobj):
-        super().attach(vobj)
-        self.__module__ = "Render"
-
-    def setEdit(self, vobj, mode):
-        self.taskd = MaterialTaskPanel(vobj.Object)
-        Gui.Control.showDialog(self.taskd)
-        self.taskd.form.FieldName.setFocus()
-        self.taskd.form.FieldName.selectAll()
-        return True
-
-    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
-        """Set up the object's context menu in GUI (callback)."""
-        # Edit Render Settings
-        action = QAction(
-            QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
-        )
-        QObject.connect(
-            action,
-            SIGNAL("triggered()"),
-            lambda: Gui.Control.showDialog(MaterialSettingsTaskPanel()),
-        )
-        menu.addAction(action)
-
-        # Edit General Settings
-        action = QAction(
-            QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
-        )
-        QObject.connect(
-            action,
-            SIGNAL("triggered()"),
-            lambda: Gui.activeDocument().setEdit(vobj.Object.Name, 0),
-        )
-        menu.addAction(action)
-
-        # Add a texture to material
-        action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
-        QObject.connect(
-            action, SIGNAL("triggered()"), lambda: _add_texture(vobj)
-        )
-        menu.addAction(action)
-
-    def claimChildren(self):
-        """Deliver the children belonging to this object (callback)."""
-        try:
-            return self.Object.Group
-        except AttributeError:
-            return []
-
-    def onDelete(self, vobj, subelements):  # pylint: disable=no-self-use
-        """Respond to delete event."""
-        # Remove all subelements (textures) belonging to this material...
-        for subobj in vobj.Object.Group:
-            subobj.Document.removeObject(subobj.Name)
-        return True
-
-
-def _add_texture(vobj):
-    """Add texture to a related Material (private)."""
-    App.ActiveDocument.openTransaction("Material_AddTexture")
-    vobj.Object.Proxy.add_texture("")
-    App.ActiveDocument.commitTransaction()
