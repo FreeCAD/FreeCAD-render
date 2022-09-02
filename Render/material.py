@@ -306,6 +306,30 @@ def _import_textures(material, matcard_dict, basepath=None):
     # Finally return material data without texture data
     return otherdata
 
+def _get_absolute_imagepath(imagepath, basepath, texwarn):
+    """Get an absolute image path from relative or absolute one.
+
+    The function checks whether the obtained path exists and will return None
+    otherwise.
+
+    Args:
+        imagepath -- The input image path, relative or absolute (str)
+        basepath -- The base path for relative paths (str)
+
+    Returns: absolute image path if exists, None otherwise.
+    """
+    if not os.path.isabs(imagepath):
+        imagepath = os.path.join(basepath, imagepath)
+
+    if not os.path.exists(imagepath):
+        msg = translate(
+            "Render",
+            "Invalid image path ('{}') in texture '{}' -- Skipping",
+        ).format(imagepath, texname)
+        texwarn(msg)
+        return None
+
+    return imagepath
 
 def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
     """Add a texture to a material based on material card data.
@@ -324,7 +348,7 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
     # Get images subdictionary
     images = texdata[_TEXIMGFIELD]
 
-    # Get primary image path parameter
+    # Get primary image path from parameters
     try:
         imagepath = images[0]
     except KeyError:
@@ -335,18 +359,12 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
         texwarn(msg)
         return None
 
-    # Format image path to absolute path and check whether the path exists
-    if not os.path.isabs(imagepath):
-        imagepath = os.path.join(basepath, imagepath)
-    if not os.path.exists(imagepath):
-        msg = translate(
-            "Render",
-            "Invalid image path ('{}') in texture '{}' -- Skipping",
-        ).format(imagepath, texname)
-        texwarn(msg)
+    # Get absolute image path for primary image
+    imagepath = _get_absolute_imagepath(imagepath, basepath, texwarn)
+    if imagepath is None:
         return None
 
-    # Create texture, with primary image
+    # Create texture with primary image
     texture, *_ = material.add_texture(imagepath)
     texture.fpo.Label = texname
 
@@ -356,15 +374,11 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
             continue   # Primary image, already processed...
 
         # Find image path and add to texture
-        if not os.path.isabs(imagepath):
-            imagepath = os.path.join(basepath, imagepath)
-        if not os.path.exists(imagepath):
-            msg = translate(
-                "Render",
-                "Invalid image path ('{}') in texture '{}' -- Skipping",
-            ).format(imagepath, texname)
-            texwarn(msg)
+        imagepath = _get_absolute_imagepath(imagepath, basepath, texwarn)
+        if imagepath is None:
             continue
+
+        # Add image
         imagename = f"Image{index}"
         texture.add_image(imagename, imagepath)
 
@@ -393,8 +407,9 @@ def _add_texture_to_material(texname, texdata, material, basepath, texwarn):
             ).format(key, texname, value, proptype)
             texwarn(msg)
             continue
-        else:
-            setattr(texture.fpo, key, cast_value)
+
+        # Set property
+        setattr(texture.fpo, key, cast_value)
 
     return texture
 
