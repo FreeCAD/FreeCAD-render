@@ -366,10 +366,12 @@ def _write_material_disney(name, matval):  # pylint: disable=unused-argument
 def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
     bump = matval["bump"] if matval.has_bump() else ""
+    normal = matval["normal"] if matval.has_normal() else ""
     snippet = f"""texture {{
         {matval["color"]}
         finish {{ diffuse albedo 1 }}
         {bump}
+        {normal}
     }}"""
     return snippet
 
@@ -588,6 +590,13 @@ def _write_texref(**kwargs):
 
     # TODO
     if propname in ["normal", "displacement"]:
+        msg = (
+            f"[Render] [Povray] [Object '{objname[:-1]}'] "
+            f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
+            f"Warning: Povray does not support 'normal' or 'displacement' "
+            f"feature -- Skipping\n"
+        )
+        App.Console.PrintWarning(msg)
         return ""
 
     imagefile = propvalue.file
@@ -602,11 +611,11 @@ def _write_texref(**kwargs):
         imgmap_suffix = f"gamma {gamma}"
 
     if propname == "bump":
-        # TODO Tweak bump_size
         texture = f"""normal {{
             uv_mapping
             bump_map {{ {_imagetype(imagefile)} "{imagefile}" gamma 1.0 }}
             bump_size {1.0 / propvalue.scale if propvalue.scale != 0 else 1.0}
+            no_bump_scale
             scale {propvalue.scale}
             rotate <0.0 0.0 {propvalue.rotation}>
             translate <{propvalue.translation_u} {propvalue.translation_v}>
