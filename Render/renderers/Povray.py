@@ -492,7 +492,17 @@ def _texname(**kwargs):
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     shadertype = kwargs["shadertype"]
-    return f"{objname}_{propname}_{proptype}_{shadertype}"
+    parent_shadertype = kwargs["parent_shadertype"]
+
+    parent_shadertype = (
+        "" if parent_shadertype is None else parent_shadertype + "_"
+    )
+
+    name = f"{objname}_{parent_shadertype}{shadertype}_{propname}"
+    if len(name) > 40:
+        # Povray limits identifiers to 40 characters...
+        name = f"hash{str(abs(hash(name)))}"
+    return name
 
 
 def _write_texture(**kwargs):
