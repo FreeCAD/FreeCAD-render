@@ -26,7 +26,6 @@ Please note Render Material object is mainly derived from Arch Material.
 """
 
 import itertools
-import functools
 import os
 import re
 import ast
@@ -288,7 +287,6 @@ def _add_texture(vobj):
 
 # TODO Merge into Material
 def _import_textures(material, matcard_dict, basepath=None):
-    # TODO Docstring
     """Import textures data into a Material.
 
     Textures are created under the Material object. A version of
@@ -321,48 +319,53 @@ def _import_textures(material, matcard_dict, basepath=None):
             continue
 
         # Update references to this texture
-        tih.update_texture_references(otherdata, texture, texname)
+        internal_texname = texture.fpo.Name  # The internal object name
+        tih.update_texture_references(
+            otherdata, internal_texname, texname
+        )
 
     # Finally return material data without texture data
     return otherdata
 
-# TODO Tidy class
+
 class _TextureImportHelper:
+    """A helper class for texture import.
+
+    This class gather functions, constants, exceptions etc. needed to import
+    textures in a Material.
+    """
 
     TEXPREFIX = "Render.Textures."
     TEXIMGFIELD = "Images"
     TEXWARNDOMAIN = "Material card import"  # For warning messages
 
-
     def __init__(self, material, matcard_dict, basepath=None):
-        # TODO Docstring
+        """Initialize helper.
+
+        Args:
+            material -- The Render.Material to add textures to.
+              (Render.Material)
+            matcard_dict -- A material card dictionary, resulting from the
+              import of a material card, containing the data to update
+              'material'. (dict)
+            basepath -- A string giving the base path to use for relative
+              paths when looking for texture files. (str)
         """
-            matcard_dict -- A material card dictionary, resulting from the import
-              of a material card, containing the data to update 'material'.
-              WARNING: this is NOT a Render.Material object.
-            basepath -- A string giving the base path to use for relative paths
-              when looking for texture files.
-        """
+        self.material = material
         self.matcard_dict = matcard_dict.copy()
         self.cardname = self.matcard_dict.get("CardName")
         self.basepath = basepath
-        self.material = material
 
     def _warn(self, msg):
         """Emit a warning."""
         warn(self.TEXWARNDOMAIN, self.cardname, msg)
 
     def separate_texture_data(self):
-        """Split material card dictionary into texture data and non texture data.
-
-        Args:
-            matcard_dict -- material card dictionary (resulting from material card
-                import (dict)
-            texwarn -- warning callback, for issues (function)
+        """Split material card dictionary into texture and non texture data.
 
         Returns:
-            a dictionary with texture data
-            a dictionary with other data
+            A dictionary with texture data
+            A dictionary with other data
         """
 
         # Separate texture data and other material data in matcard_dict
@@ -389,7 +392,8 @@ class _TextureImportHelper:
                 texdata[texname][".".join(texsubnames)] = value
                 continue
 
-            # It is an image field: cast its index to int and add value to texdata
+            # It is an image field: cast its index to int and add value to
+            # texdata
             try:
                 index = int(texsubnames[1])
             except ValueError:
@@ -404,10 +408,11 @@ class _TextureImportHelper:
         return texdata, otherdata
 
     def _get_absolute_imagepath(self, imagepath, texname):
+        # TODO Get rid of texname
         """Get an absolute image path from relative or absolute one.
 
-        The function checks whether the obtained path exists and will return None
-        otherwise.
+        The function checks whether the obtained path exists and will return
+        None otherwise.
 
         Args:
             imagepath -- The input image path, relative or absolute (str)
@@ -418,7 +423,6 @@ class _TextureImportHelper:
             imagepath = os.path.join(self.basepath, imagepath)
 
         if not os.path.exists(imagepath):
-            # TODO retrieve texname
             msg = translate(
                 "Render",
                 "Invalid image path ('{}') in texture '{}' -- Skipping",
@@ -434,8 +438,6 @@ class _TextureImportHelper:
         Args:
             texname -- texture name (str)
             texparams -- texture parameters, from material card (dict)
-            material -- material to which we add texture (Render.Material)
-            basepath -- base for relative paths of texture's images (str)
 
         Returns:
             The newly created texture (a Render.Texture object).
@@ -467,7 +469,7 @@ class _TextureImportHelper:
         # Add other images
         for index, imagepath in images.items():
             if index == 0:
-                continue   # Primary image, already processed...
+                continue  # Primary image, already processed...
 
             # Find image path and add to texture
             imagepath = self._get_absolute_imagepath(imagepath, texname)
@@ -479,7 +481,9 @@ class _TextureImportHelper:
             texture.add_image(imagename, imagepath)
 
         # Add other parameters
-        for key, value in filter(lambda i: i[0] != self.TEXIMGFIELD, texparams.items()):
+        for key, value in filter(
+            lambda i: i[0] != self.TEXIMGFIELD, texparams.items()
+        ):
             # Check property existence
             try:
                 prop = texture.fpo.getPropertyByName(key)
@@ -509,9 +513,15 @@ class _TextureImportHelper:
 
         return texture
 
-    # TODO Check docstrings
-    def update_texture_references(self, otherdata, texture, texname):
+    def update_texture_references(
+        self, otherdata, internal_texname, card_texname
+    ):
         """Update material card fields which reference a texture.
+
+        This method translates the texture syntax from the material card to the
+        internal Texture syntax. It also updates references from the material
+        to the texture, as the internal name of the texture may vary from its
+        card name.
 
         In the material card:
         - the expected syntax is:
@@ -523,15 +533,13 @@ class _TextureImportHelper:
         - <texture_name> must reference the texture by the internal
           object name, which may be slightly different (name collisions
           etc.)
-        Thus we have to translate...
 
         Args:
             otherdata -- The material card data that may reference the texture
               This object will be modified (dict)
-            texture -- The referenced texture
-            texname -- The texture name, from the material card
+            internal_texname -- The name of the Texture object in FreeCAD
+            card_texname -- The name of the texture in the material card
         """
-        fcd_texname = texture.fpo.Name  # The internal object name
         for key, value in otherdata.items():
             # Look for Render parameter only
             if not key.startswith("Render."):
@@ -551,7 +559,7 @@ class _TextureImportHelper:
                     "Render",
                     "Invalid syntax for texture '{}': "
                     "No valid arguments in statement ('{}') -- Skipping",
-                ).format(texname, texture_statement)
+                ).format(card_texname, texture_statement)
                 self._warn(msg)
                 continue
 
@@ -564,7 +572,7 @@ class _TextureImportHelper:
                     "Invalid syntax for attribute '{}' in texture '{}': "
                     """Expecting 'Texture("<texname>", <texindex>)', """
                     "got '{}' instead -- Skipping",
-                ).format(key, texname, parsed[0])
+                ).format(key, card_texname, parsed[0])
                 self._warn(msg)
                 continue
 
@@ -574,7 +582,7 @@ class _TextureImportHelper:
                     "Invalid syntax for attribute '{}' in texture '{}': "
                     "Reference to texture should be a tuple "
                     "('<texture>', <index>) -- Skipping",
-                ).format(key, texname)
+                ).format(key, card_texname)
                 self._warn(msg)
                 continue
 
@@ -586,6 +594,7 @@ class _TextureImportHelper:
             )
 
             # Translate in internal format and update 'otherdata'
-            internal = ["Texture", str((fcd_texname, imgpropname))]
+            internal = ["Texture", str((internal_texname, imgpropname))]
+
             internal += parsed[1:]
             otherdata[key] = ";".join(internal)
