@@ -46,11 +46,15 @@ from Render.texture import str2imageid
 
 
 # ===========================================================================
-#                                   Export
+#                            Standard materials
 # ===========================================================================
 
+
 # Material parameter (name is short to make declaration more dense...)
-Par = collections.namedtuple("Par", "name type default desc")
+# pylint: disable=invalid-name
+P = collections.namedtuple("P", "name type default desc")
+
+WHITE = (0.8, 0.8, 0.8)  # A balanced white for default colors
 
 # IMPORTANT: Please note that, by convention, the first parameter of each
 # material will be used as default color in fallback mechanisms.
@@ -58,44 +62,37 @@ Par = collections.namedtuple("Par", "name type default desc")
 # material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
-        Par("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
-        Par("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
-        Par("Bump", "texonly", "", _tr("Render", "Bump")),
-        Par("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
+        P("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
+        P("Bump", "texonly", "", _tr("Render", "Bump")),
+        P("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
     "Disney": [
-        Par("BaseColor", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Base color")),
-        Par("Subsurface", "float", 0.0, _tr("Render", "Subsurface coef.")),
-        Par("Metallic", "float", 0.0, _tr("Render", "Metallic coefficient")),
-        Par("Specular", "float", 0.0, _tr("Render", "Specular coefficient")),
-        Par("SpecularTint", "float", 0.0, _tr("Render", "Specular tint coef")),
-        Par("Roughness", "float", 0.0, _tr("Render", "Roughness coefficient")),
-        Par("Anisotropic", "float", 0.0, _tr("Render", "Anisotropic coef.")),
-        Par("Sheen", "float", 0.0, _tr("Render", "Sheen coefficient")),
-        Par("SheenTint", "float", 0.0, _tr("Render", "Sheen tint coef.")),
-        Par("ClearCoat", "float", 0.0, _tr("Render", "Clear coat coef.")),
-        Par("ClearCoatGloss", "float", 0.0, _tr("Render", "Coat gloss coef")),
-        Par("Bump", "texonly", "", _tr("Render", "Bump")),
-        Par("Normal", "texonly", "", _tr("Render", "Normal")),
-        Par("Displacement", "texonly", "", _tr("Render", "Displacement")),
+        P("BaseColor", "RGB", WHITE, _tr("Render", "Base color")),
+        P("Subsurface", "float", 0.0, _tr("Render", "Subsurface coef.")),
+        P("Metallic", "float", 0.0, _tr("Render", "Metallic coefficient")),
+        P("Specular", "float", 0.0, _tr("Render", "Specular coefficient")),
+        P("SpecularTint", "float", 0.0, _tr("Render", "Specular tint coef")),
+        P("Roughness", "float", 0.0, _tr("Render", "Roughness coefficient")),
+        P("Anisotropic", "float", 0.0, _tr("Render", "Anisotropic coef.")),
+        P("Sheen", "float", 0.0, _tr("Render", "Sheen coefficient")),
+        P("SheenTint", "float", 0.0, _tr("Render", "Sheen tint coef.")),
+        P("ClearCoat", "float", 0.0, _tr("Render", "Clear coat coef.")),
+        P("ClearCoatGloss", "float", 0.0, _tr("Render", "Coat gloss coef")),
+        P("Bump", "texonly", "", _tr("Render", "Bump")),
+        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Diffuse": [
-        Par("Color", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Diffuse color")),
-        Par("Bump", "texonly", "", _tr("Render", "Bump")),
-        Par("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
+        P("Bump", "texonly", "", _tr("Render", "Bump")),
+        P("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
     "Mixed": [
-        Par(
-            "Diffuse.Color",
-            "RGB",
-            (0.8, 0.8, 0.8),
-            _tr("Render", "Diffuse color"),
-        ),
-        Par(
-            "Glass.Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")
-        ),
-        Par("Glass.IOR", "float", 1.5, _tr("Render", "Index of refraction")),
-        Par(
+        P("Diffuse.Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
+        P("Glass.Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
+        P("Glass.IOR", "float", 1.5, _tr("Render", "Index of refraction")),
+        P(
             "Transparency",
             "float",
             0.5,
@@ -106,13 +103,13 @@ STD_MATERIALS_PARAMETERS = {
                 "may lead to undefined behaviour)",
             ),
         ),
-        Par("Bump", "texonly", "", _tr("Render", "Bump")),
-        Par("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Bump", "texonly", "", _tr("Render", "Bump")),
+        P("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
     "Carpaint": [
-        Par("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
-        Par("Bump", "texonly", "", _tr("Render", "Bump")),
-        Par("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
+        P("Bump", "texonly", "", _tr("Render", "Bump")),
+        P("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
 }
 
@@ -123,174 +120,13 @@ STD_MATERIALS_PARAMETERS = {
 STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 
-RenderTexture = namedtuple(
-    "RenderTexture",
-    [
-        "name",
-        "subname",
-        "file",
-        "rotation",
-        "scale",
-        "translation_u",
-        "translation_v",
-        "fallback",
-        "is_texture",
-    ],
-)
-RenderTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
-
-
-def _castrgb(*args):
-    """Cast extended RGB field value to RGB object or RenderTexture object.
-
-    This function can handle "object color" special case:
-    'value' is treated as a semicolon separated value.
-    if 'value' contains "Object", 'objcol' is returned
-
-    Args:
-        value -- the value to parse and cast
-        objcol -- the object color
-
-    Returns:
-        a RGB object containing the targeted color **or** a RenderTexture
-        object if appliable.
-    """
-    value = str(args[0])
-    objcol = args[1]
-
-    parsed = parse_csv_str(value)
-
-    if "Object" in parsed:
-        return objcol
-
-    if "Texture" in parsed:
-        # Build RenderTexture
-        imageid = str2imageid(parsed[1])
-        texobject = App.ActiveDocument.getObject(
-            imageid.texture
-        )  # Texture object
-        file = texobject.getPropertyByName(imageid.image)
-        try:
-            fallback = str2rgb(parsed[2])
-        except (IndexError, ValueError):
-            fallback = None
-        res = RenderTexture(
-            texobject.Label,
-            imageid.image,
-            file,
-            texobject.Rotation.getValueAs("deg"),
-            float(texobject.Scale),
-            texobject.TranslationU.getValueAs("m"),
-            texobject.TranslationV.getValueAs("m"),
-            fallback,
-        )
-        return res
-
-    # Default (and fallback) case, return color
-    return str2rgb(parsed[0])
-
-
-def _castfloat(*args):
-    """Cast extended float field value to float or RenderTexture object.
-
-    Args:
-        value -- the value to parse and cast
-
-    Returns:
-        a float containing the targeted value **or** a RenderTexture object
-        if appliable.
-    """
-    value = str(args[0])
-
-    parsed = parse_csv_str(value)
-
-    if "Texture" in parsed:
-        # Build RenderTexture
-        imageid = str2imageid(parsed[1])
-        texobject = App.ActiveDocument.getObject(
-            imageid.texture
-        )  # Texture object
-        file = texobject.getPropertyByName(imageid.image)
-        try:
-            fallback = float(parsed[2])
-        except (IndexError, ValueError):
-            fallback = None
-        res = RenderTexture(
-            texobject.Label,
-            imageid.image,
-            file,
-            texobject.Rotation.getValueAs("deg"),
-            float(texobject.Scale),
-            texobject.TranslationU.getValueAs("m"),
-            texobject.TranslationV.getValueAs("m"),
-            fallback,
-        )
-        return res
-
-    # Default (and fallback) case, return float
-    value = parsed[0]
-    return float(value) if value else 0.0
-
-
-def _caststr(*args):
-    """Cast to string value.
-
-    Args:
-        value -- the value to cast
-
-    Returns:
-        The cast string value.
-    """
-    value = str(args[0])
-    return value
-
-
-def _casttexonly(*args):
-    """Cast to texonly value.
-
-    Args:
-        value -- the value to cast
-
-    Returns:
-        The cast string value.
-    """
-    value = args[0]
-
-    parsed = parse_csv_str(str(value))
-
-    if "Texture" in parsed:
-        # Build RenderTexture
-        imageid = str2imageid(parsed[1])
-        texobject = App.ActiveDocument.getObject(
-            imageid.texture
-        )  # Texture object
-        file = texobject.getPropertyByName(imageid.image)
-        res = RenderTexture(
-            texobject.Label,
-            imageid.image,
-            file,
-            texobject.Rotation.getValueAs("deg"),
-            float(texobject.Scale),
-            texobject.TranslationU.getValueAs("m"),
-            texobject.TranslationV.getValueAs("m"),
-            None,
-        )
-        return res
-
-    # Default (and fallback), return empty
-    return None
-
-
-CAST_FUNCTIONS = {
-    "float": _castfloat,
-    "RGB": _castrgb,
-    "string": _caststr,
-    "texonly": _casttexonly,
-}
+# ===========================================================================
+#                  RenderMaterial generation (Main entry point)
+# ===========================================================================
 
 
 def get_rendering_material(material, renderer, default_color):
-    """Get render material (Render.Material) from FreeCAD material.
+    """Get render material (Render.RenderMaterial) from FreeCAD material.
 
     This function implements rendering material logic.
     It extracts a data class of rendering parameters from a FreeCAD material
@@ -411,64 +247,6 @@ def get_rendering_material(material, renderer, default_color):
     return RenderMaterial.build_fallback(default_color)
 
 
-@functools.lru_cache(maxsize=128)
-def passthrough_keys(renderer):
-    """Compute material card keys for passthrough rendering material."""
-    return {f"Render.{renderer}.{i:04}" for i in range(1, 9999)}
-
-
-def is_multimat(obj):
-    """Check if a material is a multimaterial."""
-    try:
-        is_app_feature = obj.isDerivedFrom("App::FeaturePython")
-    except AttributeError:
-        return False
-
-    is_type_multimat = getproxyattr(obj, "Type", None) == "MultiMaterial"
-
-    return obj is not None and is_app_feature and is_type_multimat
-
-
-def generate_param_doc():
-    """Generate Markdown documentation from material rendering parameters."""
-    header_fmt = [
-        "#### **{m}** Material",
-        "",
-        "`Render.Type={m}`",
-        "",
-        "Pareter | Type | Default value | Description",
-        "--------- | ---- | ------------- | -----------",
-    ]
-
-    line_fmt = "`Render.{m}.{p.name}` | {p.type} | {p.default} | {p.desc}"
-    footer_fmt = [""]
-    lines = []
-    for mat in STD_MATERIALS:
-        lines += [h.format(m=mat) for h in header_fmt]
-        lines += [
-            line_fmt.format(m=mat, p=param)
-            for param in STD_MATERIALS_PARAMETERS[mat]
-        ]
-        lines += footer_fmt
-
-    return "\n".join(lines)
-
-
-def is_valid_material(obj):
-    """Assert that an object is a valid Material."""
-    try:
-        is_materialobject = obj.isDerivedFrom("App::MaterialObjectPython")
-    except AttributeError:
-        return False
-
-    return (
-        obj is not None
-        and is_materialobject
-        and hasattr(obj, "Material")
-        and isinstance(obj.Material, dict)
-    )
-
-
 # ===========================================================================
 #                             Objects for renderers
 # ===========================================================================
@@ -490,7 +268,7 @@ class RenderMaterial:
         res = RenderMaterial(shadertype)
 
         for nam, val, dft, typ, objcol in values:
-            cast_function = CAST_FUNCTIONS[typ]
+            cast_function = _CAST_FUNCTIONS[typ]
             try:
                 value = cast_function(val, objcol)
             except TypeError:
@@ -816,17 +594,178 @@ class MaterialValues:
         )
 
 
+# A texture object for exchange with renderers
+RenderTexture = namedtuple(
+    "RenderTexture",
+    [
+        "name",
+        "subname",
+        "file",
+        "rotation",
+        "scale",
+        "translation_u",
+        "translation_v",
+        "fallback",
+        "is_texture",
+    ],
+)
+RenderTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
+
+
 # ===========================================================================
-#                            Local helpers
+#                               Conversions
 # ===========================================================================
 
+_CAST_FUNCTIONS = {
+    "float": _castfloat,
+    "RGB": _castrgb,
+    "string": _caststr,
+    "texonly": _casttexonly,
+}
 
-def _get_float(material, param_prefix, param_name, default=0.0):
-    """Get float value in material dictionary."""
-    return material.get(param_prefix + param_name, default)
+
+def _castrgb(*args):
+    """Cast extended RGB field value to RGB object or RenderTexture object.
+
+    This function can handle "object color" special case:
+    'value' is treated as a semicolon separated value.
+    if 'value' contains "Object", 'objcol' is returned
+
+    Args:
+        value -- the value to parse and cast
+        objcol -- the object color
+
+    Returns:
+        a RGB object containing the targeted color **or** a RenderTexture
+        object if appliable.
+    """
+    value = str(args[0])
+    objcol = args[1]
+
+    parsed = parse_csv_str(value)
+
+    if "Object" in parsed:
+        return objcol
+
+    if "Texture" in parsed:
+        # Build RenderTexture
+        imageid = str2imageid(parsed[1])
+        texobject = App.ActiveDocument.getObject(
+            imageid.texture
+        )  # Texture object
+        file = texobject.getPropertyByName(imageid.image)
+        try:
+            fallback = str2rgb(parsed[2])
+        except (IndexError, ValueError):
+            fallback = None
+        res = RenderTexture(
+            texobject.Label,
+            imageid.image,
+            file,
+            texobject.Rotation.getValueAs("deg"),
+            float(texobject.Scale),
+            texobject.TranslationU.getValueAs("m"),
+            texobject.TranslationV.getValueAs("m"),
+            fallback,
+        )
+        return res
+
+    # Default (and fallback) case, return color
+    return str2rgb(parsed[0])
 
 
-PASSTHRU_REPLACED_TOKENS = (
+def _castfloat(*args):
+    """Cast extended float field value to float or RenderTexture object.
+
+    Args:
+        value -- the value to parse and cast
+
+    Returns:
+        a float containing the targeted value **or** a RenderTexture object
+        if appliable.
+    """
+    value = str(args[0])
+
+    parsed = parse_csv_str(value)
+
+    if "Texture" in parsed:
+        # Build RenderTexture
+        imageid = str2imageid(parsed[1])
+        texobject = App.ActiveDocument.getObject(
+            imageid.texture
+        )  # Texture object
+        file = texobject.getPropertyByName(imageid.image)
+        try:
+            fallback = float(parsed[2])
+        except (IndexError, ValueError):
+            fallback = None
+        res = RenderTexture(
+            texobject.Label,
+            imageid.image,
+            file,
+            texobject.Rotation.getValueAs("deg"),
+            float(texobject.Scale),
+            texobject.TranslationU.getValueAs("m"),
+            texobject.TranslationV.getValueAs("m"),
+            fallback,
+        )
+        return res
+
+    # Default (and fallback) case, return float
+    value = parsed[0]
+    return float(value) if value else 0.0
+
+
+def _caststr(*args):
+    """Cast to string value.
+
+    Args:
+        value -- the value to cast
+
+    Returns:
+        The cast string value.
+    """
+    value = str(args[0])
+    return value
+
+
+def _casttexonly(*args):
+    """Cast to texonly value.
+
+    Args:
+        value -- the value to cast
+
+    Returns:
+        The cast string value.
+    """
+    value = args[0]
+
+    parsed = parse_csv_str(str(value))
+
+    if "Texture" in parsed:
+        # Build RenderTexture
+        imageid = str2imageid(parsed[1])
+        texobject = App.ActiveDocument.getObject(
+            imageid.texture
+        )  # Texture object
+        file = texobject.getPropertyByName(imageid.image)
+        res = RenderTexture(
+            texobject.Label,
+            imageid.image,
+            file,
+            texobject.Rotation.getValueAs("deg"),
+            float(texobject.Scale),
+            texobject.TranslationU.getValueAs("m"),
+            texobject.TranslationV.getValueAs("m"),
+            None,
+        )
+        return res
+
+    # Default (and fallback), return empty
+    return None
+
+
+_PASSTHRU_REPLACED_TOKENS = (
     ("{", "{{"),
     ("}", "}}"),
     ("%NAME%", "{n}"),
@@ -842,9 +781,71 @@ def _convert_passthru(passthru):
 
     (FSML stands for Format Specification Mini-Language)
     """
-    for token in PASSTHRU_REPLACED_TOKENS:
+    for token in _PASSTHRU_REPLACED_TOKENS:
         passthru = passthru.replace(*token)
     return passthru
+
+
+# ===========================================================================
+#                                Audit
+# ===========================================================================
+
+
+def is_multimat(obj):
+    """Check if a material is a multimaterial."""
+    try:
+        is_app_feature = obj.isDerivedFrom("App::FeaturePython")
+    except AttributeError:
+        return False
+
+    is_type_multimat = getproxyattr(obj, "Type", None) == "MultiMaterial"
+
+    return obj is not None and is_app_feature and is_type_multimat
+
+
+def is_valid_material(obj):
+    """Assert that an object is a valid Material."""
+    try:
+        is_materialobject = obj.isDerivedFrom("App::MaterialObjectPython")
+    except AttributeError:
+        return False
+
+    return (
+        obj is not None
+        and is_materialobject
+        and hasattr(obj, "Material")
+        and isinstance(obj.Material, dict)
+    )
+
+
+# ===========================================================================
+#                            Print & Export
+# ===========================================================================
+
+
+def generate_param_doc():
+    """Generate Markdown documentation from material rendering parameters."""
+    header_fmt = [
+        "#### **{m}** Material",
+        "",
+        "`Render.Type={m}`",
+        "",
+        "Pareter | Type | Default value | Description",
+        "--------- | ---- | ------------- | -----------",
+    ]
+
+    line_fmt = "`Render.{m}.{p.name}` | {p.type} | {p.default} | {p.desc}"
+    footer_fmt = [""]
+    lines = []
+    for mat in STD_MATERIALS:
+        lines += [h.format(m=mat) for h in header_fmt]
+        lines += [
+            line_fmt.format(m=mat, p=param)
+            for param in STD_MATERIALS_PARAMETERS[mat]
+        ]
+        lines += footer_fmt
+
+    return "\n".join(lines)
 
 
 def printmat(fcdmat):
@@ -880,12 +881,33 @@ def printmat(fcdmat):
     print("\n".join(lines))
 
 
+# ===========================================================================
+#                            Miscellaneous
+# ===========================================================================
+
+
+def _get_float(material, param_prefix, param_name, default=0.0):
+    """Get float value in material dictionary."""
+    return material.get(param_prefix + param_name, default)
+
+
+@functools.lru_cache(maxsize=128)
+def passthrough_keys(renderer):
+    """Compute material card keys for passthrough rendering material."""
+    return {f"Render.{renderer}.{i:04}" for i in range(1, 9999)}
+
+
 def clear_cache():
     """Clear functions caches (debug purpose)."""
     RenderMaterial.build_standard.cache_clear()
     RenderMaterial.build_passthrough.cache_clear()
     RenderMaterial.build_fallback.cache_clear()
     _convert_passthru.cache_clear()
+
+
+# ===========================================================================
+#                            Module initialization
+# ===========================================================================
 
 
 # Clear cache when reload module (debug)
