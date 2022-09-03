@@ -532,15 +532,8 @@ def _write_texture(**kwargs):
     texname = _texname(**kwargs)
 
     # Just a few property types are supported by POV-Ray...
-    # For the others, warn and take fallback
     if proptype not in ["RGB", "RGBA", "texonly"]:
-        msg = (
-            f"[Render] [Povray] [Object '{objname[:-1]}'] "
-            f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
-            f"Warning: Povray does not support texture for "
-            f"float parameters.\n"
-        )
-        App.Console.PrintWarning(msg)
+        # There will be a warning in write_texref
         return texname, ""
 
     # Compute gamma
@@ -661,6 +654,10 @@ def _write_texref(**kwargs):
         )
         App.Console.PrintWarning(msg)
         return fallback
+
+    # Unsupported features...
+    if propname in ["normal", "displacement"]:
+        return ""  # Not supported by Povray
 
     # Compute texture name
     texname = _texname(**kwargs)
