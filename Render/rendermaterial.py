@@ -462,7 +462,7 @@ def get_rendering_material(material, renderer, default_color):
     debug("Starting material computation")
 
     # Try renderer Passthrough
-    common_keys = _passthrough_keys(renderer) & mat.keys()
+    common_keys = passthrough_keys(renderer) & mat.keys()
     if common_keys:
         lines = tuple(mat[k] for k in sorted(common_keys))
         debug("Found valid Passthrough - returning")
@@ -536,7 +536,7 @@ def get_rendering_material(material, renderer, default_color):
 
 
 @functools.lru_cache(maxsize=128)
-def _passthrough_keys(renderer):
+def passthrough_keys(renderer):
     """Compute material card keys for passthrough rendering material."""
     return {f"Render.{renderer}.{i:04}" for i in range(1, 9999)}
 
