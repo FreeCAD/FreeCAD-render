@@ -66,6 +66,7 @@ STD_MATERIALS_PARAMETERS = {
         P("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Disney": [
         P("BaseColor", "RGB", WHITE, _tr("Render", "Base color")),
@@ -87,6 +88,7 @@ STD_MATERIALS_PARAMETERS = {
         P("Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Mixed": [
         P("Diffuse.Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
@@ -105,11 +107,13 @@ STD_MATERIALS_PARAMETERS = {
         ),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Carpaint": [
         P("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
 }
 
