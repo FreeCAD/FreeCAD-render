@@ -72,6 +72,11 @@ def write_mesh(name, mesh, material):
     # Material
     material = _write_material(name, materialvalues)
 
+    # Textures
+    textures = materialvalues.write_textures()
+    if textures:
+        textures = f"// Textures\n{textures}"
+
     # UV map
     if mesh.has_uvmap():
         uv_vectors = [f"<{t.x},{t.y}>" for t in mesh.uvmap]
@@ -99,7 +104,7 @@ def write_mesh(name, mesh, material):
     }}
 }}  // {name}
 
-// Instance to render {name}
+{textures}// Instance to render {name}
 object {{
     {name}
     {material}
@@ -380,10 +385,11 @@ def _write_material_mixed(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Mixed material."""
     # Glass pigment
     submat_g = matval.getmixedsubmat("glass")
+    snippet_g_tex = submat_g.write_textures() + "\n"
 
     # Diffuse pigment
     submat_d = matval.getmixedsubmat("diffuse")
-    pigment_d = submat_d["color"]
+    snippet_d_tex = submat_d.write_textures() + "\n"
 
     snippet = f"""texture {{
         {submat_g["color"]}
@@ -400,6 +406,7 @@ def _write_material_mixed(name, matval):  # pylint: disable=unused-argument
         {submat_d["color"]}
         finish {{ diffuse 1 }}
     }}"""
+    snippet = snippet_g_tex + snippet_d_tex + snippet
     snippet = snippet.replace("transparency", str(matval["transparency"]))
     return snippet
 
@@ -479,6 +486,15 @@ def _imagetype(path):
     return IMAGE_MIMETYPES.get(mimetype[0], "")
 
 
+def _texname(**kwargs):
+    """Compute texture name."""
+    objname = kwargs["objname"]
+    propname = kwargs["propname"]
+    proptype = kwargs["proptype"]
+    shadertype = kwargs["shadertype"]
+    return f"{objname}_{propname}_{proptype}_{shadertype}"
+
+
 def _write_texture(**kwargs):
     """Compute a string in renderer SDL to describe a texture.
 
@@ -494,22 +510,74 @@ def _write_texture(**kwargs):
         the name of the texture
         the SDL string of the texture
     """
-    # In POV-ray, there is no texture declaration outside of the shader.
-    # However, we use this mechanism to specify scale, translate, rotate
-    # which must appear after pigment and normal to modify them
-
     # Retrieve parameters
     objname = kwargs["objname"]
+    propname = kwargs["propname"]
+    proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+    shadertype = kwargs["shadertype"]
+    parent_shadertype = kwargs["parent_shadertype"]
 
     # Compute texture name
-    texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
+    texname = _texname(**kwargs)
 
-    # Compute scale, rotate, translate
-    snippet = f"""
-        scale {propvalue.scale}
-        rotate {propvalue.rotation}
-        translate <{propvalue.translation_u},{propvalue.translation_v}>"""
+    # Just a few property types are supported by POV-Ray...
+    # For the others, warn and take fallback
+    if proptype not in ["RGB", "RGBA", "texonly"]:
+        msg = (
+            f"[Render] [Povray] [Object '{objname[:-1]}'] "
+            f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
+            f"Warning: Povray does not support texture for "
+            f"float parameters.\n"
+        )
+        App.Console.PrintWarning(msg)
+        return texname, ""
+
+    # Compute gamma
+    gamma = "srgb" if proptype == "RGB" else 1.0
+
+    if propname in ["normal", "displacement"]:
+        msg = (
+            f"[Render] [Povray] [Object '{objname[:-1]}'] "
+            f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
+            f"Warning: Povray does not support 'normal' or 'displacement' "
+            f"feature -- Skipping\n"
+        )
+        App.Console.PrintWarning(msg)
+        return texname, ""
+
+    imagefile = propvalue.file
+
+    if shadertype in ["Glass", "glass"]:
+        # Glass, either standalone ('Glass') or in mixed shader ('glass')
+        imgmap_suffix = "filter all 0.7 "
+    elif shadertype == "diffuse" and parent_shadertype == "Mixed":
+        # Diffuse of Mixed shader
+        imgmap_suffix = "transmit all transparency "
+    else:
+        imgmap_suffix = f"gamma {gamma}"
+
+    if propname == "bump":
+        texture = f"""normal {{
+            uv_mapping
+            bump_map {{ {_imagetype(imagefile)} "{imagefile}" gamma 1.0 }}
+            bump_size {1.0 / propvalue.scale if propvalue.scale != 0 else 1.0}
+            no_bump_scale
+            scale {propvalue.scale}
+            rotate <0.0 0.0 {propvalue.rotation}>
+            translate <{propvalue.translation_u} {propvalue.translation_v}>
+        }}"""
+    else:
+        texture = f"""pigment {{
+            uv_mapping
+            image_map {{ {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix} }}
+            scale {propvalue.scale}
+            rotate <0.0 0.0 {propvalue.rotation}>
+            translate <{propvalue.translation_u} {propvalue.translation_v}>
+        }}"""
+
+    # Compute final snippet
+    snippet = f"""#declare {texname} = {texture}"""
 
     return texname, snippet
 
@@ -561,14 +629,13 @@ def _write_value(**kwargs):
 
 
 def _write_texref(**kwargs):
-    """Compute a string in SDL for a reference to a texture in a shader."""
+    """Compute a string in SDL for a reference to a texture in a material."""
     # Retrieve parameters
     objname = kwargs["objname"]
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
     shadertype = kwargs["shadertype"]
-    parent_shadertype = kwargs["parent_shadertype"]
 
     # Just a few property types are supported by POV-Ray...
     # For the others, warn and take fallback
@@ -585,51 +652,13 @@ def _write_texref(**kwargs):
         App.Console.PrintWarning(msg)
         return fallback
 
-    # Compute gamma
-    gamma = "srgb" if proptype == "RGB" else 1.0
+    # Compute texture name
+    texname = _texname(**kwargs)
 
-    # TODO
-    if propname in ["normal", "displacement"]:
-        msg = (
-            f"[Render] [Povray] [Object '{objname[:-1]}'] "
-            f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
-            f"Warning: Povray does not support 'normal' or 'displacement' "
-            f"feature -- Skipping\n"
-        )
-        App.Console.PrintWarning(msg)
-        return ""
+    # Compute statement
+    statement = "normal " if propname == "bump" else "pigment "
 
-    imagefile = propvalue.file
-
-    if shadertype in ["Glass", "glass"]:
-        # Glass, either standalone ('Glass') or in mixed shader ('glass')
-        imgmap_suffix = "filter all 0.7 "
-    elif shadertype == "diffuse" and parent_shadertype == "Mixed":
-        # Diffuse of Mixed shader
-        imgmap_suffix = "transmit all transparency "
-    else:
-        imgmap_suffix = f"gamma {gamma}"
-
-    if propname == "bump":
-        texture = f"""normal {{
-            uv_mapping
-            bump_map {{ {_imagetype(imagefile)} "{imagefile}" gamma 1.0 }}
-            bump_size {1.0 / propvalue.scale if propvalue.scale != 0 else 1.0}
-            no_bump_scale
-            scale {propvalue.scale}
-            rotate <0.0 0.0 {propvalue.rotation}>
-            translate <{propvalue.translation_u} {propvalue.translation_v}>
-        }}"""
-    else:
-        texture = f"""pigment {{
-            uv_mapping
-            image_map {{ {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix} }}
-            scale {propvalue.scale}
-            rotate <0.0 0.0 {propvalue.rotation}>
-            translate <{propvalue.translation_u} {propvalue.translation_v}>
-        }}"""
-
-    return texture
+    return f"""{statement} {{ {texname} }}"""
 
 
 # ===========================================================================

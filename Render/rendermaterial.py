@@ -518,6 +518,8 @@ class MaterialValues:
                     propname=propkey,
                     proptype=proptype,
                     propvalue=propvalue,
+                    shadertype=material.shadertype,
+                    parent_shadertype=self.parent_shadertype,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
