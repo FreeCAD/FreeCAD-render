@@ -40,7 +40,7 @@ from Render.utils import (
     parse_csv_str,
     debug as ru_debug,
     getproxyattr,
-    translate,
+    translate as _tr,
 )
 from Render.texture import str2imageid
 
@@ -49,7 +49,8 @@ from Render.texture import str2imageid
 #                                   Export
 # ===========================================================================
 
-Param = collections.namedtuple("Param", "name type default desc")
+# Material parameter (name is short to make declaration more dense...)
+Par = collections.namedtuple("Par", "name type default desc")
 
 # IMPORTANT: Please note that, by convention, the first parameter of each
 # material will be used as default color in fallback mechanisms.
@@ -57,198 +58,73 @@ Param = collections.namedtuple("Param", "name type default desc")
 # material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
-        Param(
-            "Color", "RGB", (1, 1, 1), translate("Render", "Transmitted color")
-        ),
-        Param("IOR", "float", 1.5, translate("Render", "Index of refraction")),
-        Param(
-            "Bump",
-            "texonly",
-            "",
-            translate("Render", "Bump"),
-        ),
-        Param(
-            "Normal",
-            "texonly",
-            "",
-            translate("Render", "Normal"),
-        ),
+        Par("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
+        Par("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
+        Par("Bump", "texonly", "", _tr("Render", "Bump")),
+        Par("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
     "Disney": [
-        Param(
-            "BaseColor",
-            "RGB",
-            (0.8, 0.8, 0.8),
-            translate("Render", "Base color"),
-        ),
-        Param(
-            "Subsurface",
-            "float",
-            0.0,
-            translate("Render", "Subsurface coefficient"),
-        ),
-        Param(
-            "Metallic",
-            "float",
-            0.0,
-            translate("Render", "Metallic coefficient"),
-        ),
-        Param(
-            "Specular",
-            "float",
-            0.0,
-            translate("Render", "Specular coefficient"),
-        ),
-        Param(
-            "SpecularTint",
-            "float",
-            0.0,
-            translate("Render", "Specular tint coefficient"),
-        ),
-        Param(
-            "Roughness",
-            "float",
-            0.0,
-            translate("Render", "Roughness coefficient"),
-        ),
-        Param(
-            "Anisotropic",
-            "float",
-            0.0,
-            translate("Render", "Anisotropic coefficient"),
-        ),
-        Param("Sheen", "float", 0.0, translate("Render", "Sheen coefficient")),
-        Param(
-            "SheenTint",
-            "float",
-            0.0,
-            translate("Render", "Sheen tint coefficient"),
-        ),
-        Param(
-            "ClearCoat",
-            "float",
-            0.0,
-            translate("Render", "Clear coat coefficient"),
-        ),
-        Param(
-            "ClearCoatGloss",
-            "float",
-            0.0,
-            translate("Render", "Clear coat gloss coefficient"),
-        ),
-        Param(
-            "Bump",
-            "texonly",
-            "",
-            translate("Render", "Bump"),
-        ),
-        Param(
-            "Normal",
-            "texonly",
-            "",
-            translate("Render", "Normal"),
-        ),
-        Param(
-            "Displacement",
-            "texonly",
-            "",
-            translate("Render", "Displacement"),
-        ),
+        Par("BaseColor", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Base color")),
+        Par("Subsurface", "float", 0.0, _tr("Render", "Subsurface coef.")),
+        Par("Metallic", "float", 0.0, _tr("Render", "Metallic coefficient")),
+        Par("Specular", "float", 0.0, _tr("Render", "Specular coefficient")),
+        Par("SpecularTint", "float", 0.0, _tr("Render", "Specular tint coef")),
+        Par("Roughness", "float", 0.0, _tr("Render", "Roughness coefficient")),
+        Par("Anisotropic", "float", 0.0, _tr("Render", "Anisotropic coef.")),
+        Par("Sheen", "float", 0.0, _tr("Render", "Sheen coefficient")),
+        Par("SheenTint", "float", 0.0, _tr("Render", "Sheen tint coef.")),
+        Par("ClearCoat", "float", 0.0, _tr("Render", "Clear coat coef.")),
+        Par("ClearCoatGloss", "float", 0.0, _tr("Render", "Coat gloss coef")),
+        Par("Bump", "texonly", "", _tr("Render", "Bump")),
+        Par("Normal", "texonly", "", _tr("Render", "Normal")),
+        Par("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Diffuse": [
-        Param(
-            "Color",
-            "RGB",
-            (0.8, 0.8, 0.8),
-            translate("Render", "Diffuse color"),
-        ),
-        Param(
-            "Bump",
-            "texonly",
-            "",
-            translate("Render", "Bump"),
-        ),
-        Param(
-            "Normal",
-            "texonly",
-            "",
-            translate("Render", "Normal"),
-        ),
+        Par("Color", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Diffuse color")),
+        Par("Bump", "texonly", "", _tr("Render", "Bump")),
+        Par("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
-    # NB: Above 'Mixed' material could be extended with reflectivity in the
-    # future, with the addition of a Glossy material. See for instance:
-    # https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
     "Mixed": [
-        Param(
+        Par(
             "Diffuse.Color",
             "RGB",
             (0.8, 0.8, 0.8),
-            translate("Render", "Diffuse color"),
+            _tr("Render", "Diffuse color"),
         ),
-        Param(
-            "Glass.Color",
-            "RGB",
-            (1, 1, 1),
-            translate("Render", "Transmitted color"),
+        Par(
+            "Glass.Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")
         ),
-        Param(
-            "Glass.IOR",
-            "float",
-            1.5,
-            translate("Render", "Index of refraction"),
-        ),
-        Param(
+        Par("Glass.IOR", "float", 1.5, _tr("Render", "Index of refraction")),
+        Par(
             "Transparency",
             "float",
             0.5,
-            translate(
+            _tr(
                 "Render",
                 "Mix ratio between Glass and Diffuse "
                 "(should stay in [0,1], other values "
                 "may lead to undefined behaviour)",
             ),
         ),
-        Param(
-            "Bump",
-            "texonly",
-            "",
-            translate("Render", "Bump"),
-        ),
-        Param(
-            "Normal",
-            "texonly",
-            "",
-            translate("Render", "Normal"),
-        ),
+        Par("Bump", "texonly", "", _tr("Render", "Bump")),
+        Par("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
     "Carpaint": [
-        Param(
-            "BaseColor",
-            "RGB",
-            (0.8, 0.2, 0.2),
-            translate("Render", "Base color"),
-        ),
-        Param(
-            "Bump",
-            "texonly",
-            "",
-            translate("Render", "Bump"),
-        ),
-        Param(
-            "Normal",
-            "texonly",
-            "",
-            translate("Render", "Normal"),
-        ),
+        Par("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
+        Par("Bump", "texonly", "", _tr("Render", "Bump")),
+        Par("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
 }
 
+# NB: Above 'Mixed' material could be extended with reflectivity in the
+# future, with the addition of a Glossy material. See for instance:
+# https://download.blender.org/documentation/bc2012/FGastaldo_PhysicallyCorrectshading.pdf
 
 STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 
 
-RendererTexture = namedtuple(
-    "RendererTexture",
+RenderTexture = namedtuple(
+    "RenderTexture",
     [
         "name",
         "subname",
@@ -261,11 +137,11 @@ RendererTexture = namedtuple(
         "is_texture",
     ],
 )
-RendererTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
+RenderTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
 
 
 def _castrgb(*args):
-    """Cast extended RGB field value to RGB object or RendererTexture object.
+    """Cast extended RGB field value to RGB object or RenderTexture object.
 
     This function can handle "object color" special case:
     'value' is treated as a semicolon separated value.
@@ -276,7 +152,7 @@ def _castrgb(*args):
         objcol -- the object color
 
     Returns:
-        a RGB object containing the targeted color **or** a RendererTexture
+        a RGB object containing the targeted color **or** a RenderTexture
         object if appliable.
     """
     value = str(args[0])
@@ -288,7 +164,7 @@ def _castrgb(*args):
         return objcol
 
     if "Texture" in parsed:
-        # Build RendererTexture
+        # Build RenderTexture
         imageid = str2imageid(parsed[1])
         texobject = App.ActiveDocument.getObject(
             imageid.texture
@@ -298,7 +174,7 @@ def _castrgb(*args):
             fallback = str2rgb(parsed[2])
         except (IndexError, ValueError):
             fallback = None
-        res = RendererTexture(
+        res = RenderTexture(
             texobject.Label,
             imageid.image,
             file,
@@ -315,13 +191,13 @@ def _castrgb(*args):
 
 
 def _castfloat(*args):
-    """Cast extended float field value to float or RendererTexture object.
+    """Cast extended float field value to float or RenderTexture object.
 
     Args:
         value -- the value to parse and cast
 
     Returns:
-        a float containing the targeted value **or** a RendererTexture object
+        a float containing the targeted value **or** a RenderTexture object
         if appliable.
     """
     value = str(args[0])
@@ -329,7 +205,7 @@ def _castfloat(*args):
     parsed = parse_csv_str(value)
 
     if "Texture" in parsed:
-        # Build RendererTexture
+        # Build RenderTexture
         imageid = str2imageid(parsed[1])
         texobject = App.ActiveDocument.getObject(
             imageid.texture
@@ -339,7 +215,7 @@ def _castfloat(*args):
             fallback = float(parsed[2])
         except (IndexError, ValueError):
             fallback = None
-        res = RendererTexture(
+        res = RenderTexture(
             texobject.Label,
             imageid.image,
             file,
@@ -383,13 +259,13 @@ def _casttexonly(*args):
     parsed = parse_csv_str(str(value))
 
     if "Texture" in parsed:
-        # Build RendererTexture
+        # Build RenderTexture
         imageid = str2imageid(parsed[1])
         texobject = App.ActiveDocument.getObject(
             imageid.texture
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
-        res = RendererTexture(
+        res = RenderTexture(
             texobject.Label,
             imageid.image,
             file,
@@ -431,7 +307,7 @@ def get_rendering_material(material, renderer, default_color):
       the related parameters . This is a backward compatibility fallback
     - Otherwise, a Diffuse material made with default_color is returned
 
-    Parameters:
+    Pareters:
     material -- a FreeCAD material
     renderer -- the targeted renderer (string, case sensitive)
     default_color -- a RGBA color, to be used as a fallback
@@ -478,10 +354,10 @@ def get_rendering_material(material, renderer, default_color):
         else:
             values = tuple(
                 (
-                    p.name,  # Parameter name
+                    p.name,  # Pareter name
                     mat.get(f"Render.{shadertype}.{p.name}", None),  # Par val
-                    p.default,  # Parameter default value
-                    p.type,  # Parameter type
+                    p.default,  # Pareter default value
+                    p.type,  # Pareter type
                     default_color,  # Object color
                 )
                 for p in params
@@ -560,7 +436,7 @@ def generate_param_doc():
         "",
         "`Render.Type={m}`",
         "",
-        "Parameter | Type | Default value | Description",
+        "Pareter | Type | Default value | Description",
         "--------- | ---- | ------------- | -----------",
     ]
 
