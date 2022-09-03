@@ -285,7 +285,7 @@ def _add_texture(vobj):
 
 # TODO Update documentation (markdown)
 
-# TODO Merge into Material
+
 def _import_textures(material, matcard_dict, basepath=None):
     """Import textures data into a Material.
 
@@ -314,15 +314,15 @@ def _import_textures(material, matcard_dict, basepath=None):
     for texname, params in texdata.items():  # Iterate on textures
 
         # Add texture
-        texture = tih.add_texture_to_material(texname, params)
-        if texture is None:  # TODO prefer exception
+        try:
+            texture = tih.add_texture_to_material(texname, params)
+        except _TextureImportHelper.AddTextureError as err:
+            tih.warn(err.message)
             continue
 
         # Update references to this texture
-        internal_texname = texture.fpo.Name  # The internal object name
-        tih.update_texture_references(
-            otherdata, internal_texname, texname
-        )
+        fcd_texname = texture.fpo.Name  # The internal object name
+        tih.update_texture_references(otherdata, fcd_texname, texname)
 
     # Finally return material data without texture data
     return otherdata
@@ -335,10 +335,35 @@ class _TextureImportHelper:
     textures in a Material.
     """
 
+    # Constants
     TEXPREFIX = "Render.Textures."
     TEXIMGFIELD = "Images"
     TEXWARNDOMAIN = "Material card import"  # For warning messages
 
+    # Exceptions
+    class TextureImportError(Exception):
+        """A base class for Texture import error."""
+
+        def __init__(self, message):
+            """Initialize exception."""
+            super().__init__()
+            self.message = message
+
+    class AddTextureError(TextureImportError):
+        """An exception for error when adding a texture."""
+
+    class AddPropertyError(TextureImportError):
+        """An exception for error when adding a property."""
+
+    class ImagePathError(TextureImportError):
+        """An exception for error with image path."""
+
+        def __init__(self, imagepath):
+            """Initialize exception."""
+            self.imagepath = imagepath
+            super().__init__(message="")
+
+    # Methods
     def __init__(self, material, matcard_dict, basepath=None):
         """Initialize helper.
 
@@ -354,10 +379,10 @@ class _TextureImportHelper:
         self.material = material
         self.matcard_dict = matcard_dict.copy()
         self.cardname = self.matcard_dict.get("CardName")
-        self.basepath = basepath
+        self.basepath = basepath if basepath is not None else ""
 
-    def _warn(self, msg):
-        """Emit a warning."""
+    def warn(self, msg):
+        """Emit a warning about texture import."""
         warn(self.TEXWARNDOMAIN, self.cardname, msg)
 
     def separate_texture_data(self):
@@ -401,39 +426,17 @@ class _TextureImportHelper:
                     "Render",
                     "Invalid image index ('{}') in texture '{}' -- Skipping",
                 ).format(texsubnames[1], texname)
-                self._warn(msg)
+                self.warn(msg)
+                continue
 
             texdata[texname][self.TEXIMGFIELD][index] = value
 
         return texdata, otherdata
 
-    def _get_absolute_imagepath(self, imagepath, texname):
-        # TODO Get rid of texname
-        """Get an absolute image path from relative or absolute one.
-
-        The function checks whether the obtained path exists and will return
-        None otherwise.
-
-        Args:
-            imagepath -- The input image path, relative or absolute (str)
-
-        Returns: absolute image path if exists, None otherwise.
-        """
-        if not os.path.isabs(imagepath):
-            imagepath = os.path.join(self.basepath, imagepath)
-
-        if not os.path.exists(imagepath):
-            msg = translate(
-                "Render",
-                "Invalid image path ('{}') in texture '{}' -- Skipping",
-            ).format(imagepath, texname)
-            self._warn(msg)
-            return None
-
-        return imagepath
-
     def add_texture_to_material(self, texname, texparams):
         """Add a texture to a Material based on material card data.
+
+        This method raise AddTextureError if an error occurs.
 
         Args:
             texname -- texture name (str)
@@ -443,24 +446,61 @@ class _TextureImportHelper:
             The newly created texture (a Render.Texture object).
             None if something wrong occured.
         """
+
+        def get_absolute_imagepath(imagepath):
+            """Get an absolute image path from a relative or absolute one.
+
+            The function checks whether the obtained path exists and will raise
+            ImagePathError otherwise.
+
+            Args:
+                imagepath -- The input image path, relative or absolute (str)
+
+            Returns: absolute image path if exists, None otherwise.
+            """
+            if not os.path.isabs(imagepath):
+                imagepath = os.path.join(self.basepath, imagepath)
+
+            if not os.path.exists(imagepath):
+                raise _TextureImportHelper.ImagePathError(imagepath)
+
+            return imagepath
+
+        def warn_for_imagepath(imagepath, texname):
+            """Warn for image path issue."""
+            msg = translate(
+                "Render",
+                "Invalid image path ('{}') in texture '{}' -- Skipping",
+            ).format(imagepath, texname)
+            self.warn(msg)
+
+        # 'add_texture_to_material' body starts here...
+
         # Get images subdictionary
         images = texparams[self.TEXIMGFIELD]
 
         # Get primary image path from parameters
         try:
             imagepath = images[0]
-        except KeyError:
+        except KeyError as err:
             msg = translate(
                 "Render",
-                "Missing primary image (index 0) in texture '{}' -- Skipping",
+                "Missing primary image (index 0) in texture '{}'"
+                " -- Skipping texture",
             ).format(texname)
-            self._warn(msg)
-            return None
+            raise self.AddTextureError(msg) from err
 
         # Get absolute image path for primary image
-        imagepath = self._get_absolute_imagepath(imagepath, texname)
-        if imagepath is None:
-            return None
+        try:
+            imagepath = get_absolute_imagepath(imagepath)
+        except self.ImagePathError as err:
+            warn_for_imagepath(imagepath, texname)
+            msg = translate(
+                "Render",
+                "No valid primary image (index 0) in texture '{}'"
+                " -- Skipping texture",
+            ).format(texname)
+            raise self.AddTextureError(msg) from err
 
         # Create texture with primary image
         texture, *_ = self.material.add_texture(imagepath)
@@ -468,54 +508,61 @@ class _TextureImportHelper:
 
         # Add other images
         for index, imagepath in images.items():
+            # Skip primary image (already processed)
             if index == 0:
-                continue  # Primary image, already processed...
-
-            # Find image path and add to texture
-            imagepath = self._get_absolute_imagepath(imagepath, texname)
-            if imagepath is None:
                 continue
 
-            # Add image
-            imagename = f"Image{index}"
-            texture.add_image(imagename, imagepath)
+            # Find image path and, if valid, add it to texture
+            try:
+                imagepath = get_absolute_imagepath(imagepath)
+            except self.ImagePathError as err:
+                warn_for_imagepath(imagepath, texname)
+            else:
+                # Add image
+                imagename = f"Image{index}"
+                texture.add_image(imagename, imagepath)
 
         # Add other parameters
-        for key, value in filter(
-            lambda i: i[0] != self.TEXIMGFIELD, texparams.items()
-        ):
-            # Check property existence
+        others = filter(lambda i: i[0] != self.TEXIMGFIELD, texparams.items())
+        for key, value in others:
+            # Check property existence and value type compliance
+            # If ok, assign value to property
             try:
-                prop = texture.fpo.getPropertyByName(key)
-            except AttributeError:
-                msg = translate(
-                    "Render",
-                    "Invalid attribute '{}' in texture '{}' -- Skipping",
-                ).format(key, texname)
-                self._warn(msg)
-                continue
+                # Check property existence
+                try:
+                    prop = texture.fpo.getPropertyByName(key)
+                except AttributeError as err:
+                    msg = translate(
+                        "Render",
+                        "Invalid attribute '{}' in texture '{}'"
+                        " -- Skipping attribute",
+                    ).format(key, texname)
+                    raise self.AddPropertyError(msg) from err
 
-            # Try to cast and assign value to property
-            proptype = type(prop)
-            try:
-                cast_value = proptype(value)
-            except ValueError:
-                msg = translate(
-                    "Render",
-                    "Invalid type for attribute '{}' in texture '{}': "
-                    "Cannot convert '{}' to '{}' -- Skipping",
-                ).format(key, texname, value, proptype)
-                self._warn(msg)
-                continue
+                # Try to cast and assign value to property
+                proptype = type(prop)
+                try:
+                    cast_value = proptype(value)
+                except ValueError as err:
+                    msg = translate(
+                        "Render",
+                        "Invalid type for attribute '{}' in texture '{}': "
+                        "Cannot convert '{}' to '{}'"
+                        " -- Skipping attribute",
+                    ).format(key, texname, value, proptype)
+                    raise self.AddPropertyError(msg) from err
 
-            # Set property
-            setattr(texture.fpo, key, cast_value)
+            except self.AddPropertyError as err:
+                self.warn(err.message)
 
+            else:
+                # Set property
+                setattr(texture.fpo, key, cast_value)
+
+        # Finally, return new texture
         return texture
 
-    def update_texture_references(
-        self, otherdata, internal_texname, card_texname
-    ):
+    def update_texture_references(self, otherdata, fcd_texname, card_texname):
         """Update material card fields which reference a texture.
 
         This method translates the texture syntax from the material card to the
@@ -537,7 +584,7 @@ class _TextureImportHelper:
         Args:
             otherdata -- The material card data that may reference the texture
               This object will be modified (dict)
-            internal_texname -- The name of the Texture object in FreeCAD
+            fcd_texname -- The name of the Texture object in FreeCAD
             card_texname -- The name of the texture in the material card
         """
         for key, value in otherdata.items():
@@ -558,9 +605,10 @@ class _TextureImportHelper:
                 msg = translate(
                     "Render",
                     "Invalid syntax for texture '{}': "
-                    "No valid arguments in statement ('{}') -- Skipping",
+                    "No valid arguments in statement ('{}')"
+                    " -- Skipping value",
                 ).format(card_texname, texture_statement)
-                self._warn(msg)
+                self.warn(msg)
                 continue
 
             # Parse texture argument (into texture reference)
@@ -571,9 +619,9 @@ class _TextureImportHelper:
                     "Render",
                     "Invalid syntax for attribute '{}' in texture '{}': "
                     """Expecting 'Texture("<texname>", <texindex>)', """
-                    "got '{}' instead -- Skipping",
+                    "got '{}' instead -- Skipping value",
                 ).format(key, card_texname, parsed[0])
-                self._warn(msg)
+                self.warn(msg)
                 continue
 
             if not isinstance(texture_ref, tuple) or len(texture_ref) != 2:
@@ -581,9 +629,9 @@ class _TextureImportHelper:
                     "Render",
                     "Invalid syntax for attribute '{}' in texture '{}': "
                     "Reference to texture should be a tuple "
-                    "('<texture>', <index>) -- Skipping",
+                    "('<texture>', <index>) -- Skipping value",
                 ).format(key, card_texname)
-                self._warn(msg)
+                self.warn(msg)
                 continue
 
             # Substitute texture reference in internal format
@@ -594,7 +642,7 @@ class _TextureImportHelper:
             )
 
             # Translate in internal format and update 'otherdata'
-            internal = ["Texture", str((internal_texname, imgpropname))]
+            internal = ["Texture", str((fcd_texname, imgpropname))]
 
             internal += parsed[1:]
             otherdata[key] = ";".join(internal)
