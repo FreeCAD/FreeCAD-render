@@ -414,7 +414,7 @@ CAST_FUNCTIONS = {
 
 
 def get_rendering_material(material, renderer, default_color):
-    """Get rendering material from FreeCAD material.
+    """Get render material (Render.Material) from FreeCAD material.
 
     This function implements rendering material logic.
     It extracts a data class of rendering parameters from a FreeCAD material
@@ -444,13 +444,6 @@ def get_rendering_material(material, renderer, default_color):
     shadertype -- the type of shader for rendering. Can be "Passthrough",
     "Disney", "Glass", "Diffuse"
 
-    Specific properties, depending on 'shadertype':
-    "Passthrough": string, renderer
-    "Disney": basecolor, subsurface, metallic, specular, speculartint,
-    roughness, anisotropic, sheen, sheentint, clearcoat, clearcoatgloss
-    "Glass": ior, color
-    "Diffuse": color
-
     Please note the function is not responsible for syntactic compliance of the
     parameters in the material card (i.e. the parameters are not parsed, just
     collected from the material card)
@@ -458,7 +451,7 @@ def get_rendering_material(material, renderer, default_color):
     # Check valid material
     if not is_valid_material(material):
         ru_debug("Material", "<None>", "Fallback to default material")
-        return _build_fallback(default_color)
+        return RenderMaterial.build_fallback(default_color)
 
     # Initialize
     mat = dict(material.Material)
@@ -469,11 +462,11 @@ def get_rendering_material(material, renderer, default_color):
     debug("Starting material computation")
 
     # Try renderer Passthrough
-    common_keys = passthrough_keys(renderer) & mat.keys()
+    common_keys = _passthrough_keys(renderer) & mat.keys()
     if common_keys:
         lines = tuple(mat[k] for k in sorted(common_keys))
         debug("Found valid Passthrough - returning")
-        return _build_passthrough(lines, renderer, default_color)
+        return RenderMaterial.build_passthrough(lines, renderer, default_color)
 
     # Try standard materials
     shadertype = mat.get("Render.Type", None)
@@ -493,7 +486,7 @@ def get_rendering_material(material, renderer, default_color):
                 )
                 for p in params
             )
-            res = _build_standard(shadertype, values)
+            res = RenderMaterial.build_standard(shadertype, values)
             return res
 
     # Climb up to Father
@@ -535,15 +528,15 @@ def get_rendering_material(material, renderer, default_color):
             diffusecolor.b,
             float(mat.get("Transparency", "0")) / 100,
         )
-        return _build_fallback(color)
+        return RenderMaterial.build_fallback(color)
 
     # Fallback with default_color
     debug("Fallback to default color")
-    return _build_fallback(default_color)
+    return RenderMaterial.build_fallback(default_color)
 
 
 @functools.lru_cache(maxsize=128)
-def passthrough_keys(renderer):
+def _passthrough_keys(renderer):
     """Compute material card keys for passthrough rendering material."""
     return {f"Render.{renderer}.{i:04}" for i in range(1, 9999)}
 
@@ -611,6 +604,88 @@ class RenderMaterial:
     Such an object is passed to renderers plugins by the renderer handler,
     to provide them data about a material.
     """
+
+    # Factory methods (static)
+
+    @staticmethod
+    @functools.lru_cache(maxsize=128)
+    def build_standard(shadertype, values):
+        """Build standard material."""
+        res = RenderMaterial(shadertype)
+
+        for nam, val, dft, typ, objcol in values:
+            cast_function = CAST_FUNCTIONS[typ]
+            try:
+                value = cast_function(val, objcol)
+            except TypeError:
+                value = cast_function(dft, objcol)
+            res.setshaderparam(nam, value, typ)
+
+        # Add a default_color, for fallback mechanisms in renderers. By
+        # convention, the default color must be in the first parameter of the
+        # material.
+        par = STD_MATERIALS_PARAMETERS[shadertype][0]
+        res.default_color = res.getshaderparam(par.name)
+        return res
+
+    @staticmethod
+    @functools.lru_cache(maxsize=128)
+    def build_passthrough(lines, renderer, default_color):
+        """Build passthrough material."""
+        res = RenderMaterial("Passthrough")
+        res.shader.string = _convert_passthru("\n".join(lines))
+        res.shader.renderer = renderer
+        res.default_color = default_color
+        # pylint: disable=protected-access
+        res._partypes["string"] = "str"
+        res._partypes["renderer"] = "str"
+        res._partypes["default_color"] = "RGBA"
+        return res
+
+    @staticmethod
+    @functools.lru_cache(maxsize=128)
+    def build_fallback(color):
+        """Build fallback material (mixed).
+
+        color -- a RGBA tuple color
+        """
+        try:
+            _color = ",".join([str(c) for c in color[:3]])
+            _alpha = str(color[3])
+        except IndexError:
+            _color = "0.8, 0.8, 0.8"
+            _alpha = "0.0"
+
+        _rgbcolor = str2rgb(_color)
+
+        # A simpler approach would have been to rely only on mixed material but
+        # it leads to a lot of materials definitions in output files which
+        # hinders the proper functioning of most of the renderers, so we
+        # implement a more selective operation.
+        if float(_alpha) == 0:
+            # Build diffuse
+            shadertype = "Diffuse"
+            values = (("Color", _color, _color, "RGB", _rgbcolor),)
+        elif float(_alpha) == 1:
+            # Build glass
+            shadertype = "Glass"
+            values = (
+                ("IOR", "1.5", "1.5", "float", _rgbcolor),
+                ("Color", _color, _color, "RGB", _rgbcolor),
+            )
+        else:
+            # Build mixed
+            shadertype = "Mixed"
+            values = (
+                ("Diffuse.Color", _color, _color, "RGB", _rgbcolor),
+                ("Glass.IOR", "1.5", "1.5", "float", _rgbcolor),
+                ("Glass.Color", _color, _color, "RGB", _rgbcolor),
+                ("Transparency", _alpha, _alpha, "float", _rgbcolor),
+            )
+
+        return RenderMaterial.build_standard(shadertype, values)
+
+    # Instance methods
 
     def __init__(self, shadertype):
         """Initialize object."""
@@ -870,84 +945,6 @@ class MaterialValues:
 # ===========================================================================
 
 
-@functools.lru_cache(maxsize=128)
-def _build_standard(shadertype, values):
-    """Build standard material."""
-    res = RenderMaterial(shadertype)
-
-    for nam, val, dft, typ, objcol in values:
-        cast_function = CAST_FUNCTIONS[typ]
-        try:
-            value = cast_function(val, objcol)
-        except TypeError:
-            value = cast_function(dft, objcol)
-        res.setshaderparam(nam, value, typ)
-
-    # Add a default_color, for fallback mechanisms in renderers.
-    # By convention, the default color must be in the first parameter of the
-    # material.
-    par = STD_MATERIALS_PARAMETERS[shadertype][0]
-    res.default_color = res.getshaderparam(par.name)
-    return res
-
-
-@functools.lru_cache(maxsize=128)
-def _build_passthrough(lines, renderer, default_color):
-    """Build passthrough material."""
-    res = RenderMaterial("Passthrough")
-    res.shader.string = _convert_passthru("\n".join(lines))
-    res.shader.renderer = renderer
-    res.default_color = default_color
-    # pylint: disable=protected-access
-    res._partypes["string"] = "str"
-    res._partypes["renderer"] = "str"
-    res._partypes["default_color"] = "RGBA"
-    return res
-
-
-@functools.lru_cache(maxsize=128)
-def _build_fallback(color):
-    """Build fallback material (mixed).
-
-    color -- a RGBA tuple color
-    """
-    try:
-        _color = ",".join([str(c) for c in color[:3]])
-        _alpha = str(color[3])
-    except IndexError:
-        _color = "0.8, 0.8, 0.8"
-        _alpha = "0.0"
-
-    _rgbcolor = str2rgb(_color)
-
-    # A simpler approach would have been to rely only on mixed material but it
-    # leads to a lot of materials definitions in output files which hinders the
-    # proper functioning of most of the renderers, so we implement a more
-    # selective operation.
-    if float(_alpha) == 0:
-        # Build diffuse
-        shadertype = "Diffuse"
-        values = (("Color", _color, _color, "RGB", _rgbcolor),)
-    elif float(_alpha) == 1:
-        # Build glass
-        shadertype = "Glass"
-        values = (
-            ("IOR", "1.5", "1.5", "float", _rgbcolor),
-            ("Color", _color, _color, "RGB", _rgbcolor),
-        )
-    else:
-        # Build mixed
-        shadertype = "Mixed"
-        values = (
-            ("Diffuse.Color", _color, _color, "RGB", _rgbcolor),
-            ("Glass.IOR", "1.5", "1.5", "float", _rgbcolor),
-            ("Glass.Color", _color, _color, "RGB", _rgbcolor),
-            ("Transparency", _alpha, _alpha, "float", _rgbcolor),
-        )
-
-    return _build_standard(shadertype, values)
-
-
 def _get_float(material, param_prefix, param_name, default=0.0):
     """Get float value in material dictionary."""
     return material.get(param_prefix + param_name, default)
@@ -975,7 +972,7 @@ def _convert_passthru(passthru):
 
 
 def printmat(fcdmat):
-    """Print a rendering material to a string, in Material Card format.
+    """Print a FreeCAD material in Material Card format.
 
     This function allows to rebuild a Material Card content from a FreeCAD
     material object, for the Render part.
@@ -1009,9 +1006,9 @@ def printmat(fcdmat):
 
 def clear_cache():
     """Clear functions caches (debug purpose)."""
-    _build_fallback.cache_clear()
-    _build_passthrough.cache_clear()
-    _build_standard.cache_clear()
+    RenderMaterial.build_standard.cache_clear()
+    RenderMaterial.build_passthrough.cache_clear()
+    RenderMaterial.build_fallback.cache_clear()
     _convert_passthru.cache_clear()
 
 
