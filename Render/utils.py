@@ -155,3 +155,17 @@ def set_dryrun(state):
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     state = bool(state)
     params.SetBool("DryRun", state)
+
+
+def last_cmd():
+    """Return last executed renderer command (debug purpose)."""
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    last_cmd = params.GetString("LastCommand")
+    return last_cmd
+
+
+def set_last_cmd(cmd):
+    """Set last executed renderer command."""
+    cmd = str(cmd)
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    params.SetString("LastCommand", cmd)

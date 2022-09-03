@@ -43,7 +43,7 @@ import FreeCADGui as Gui
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
-from Render.utils import translate
+from Render.utils import translate, set_last_cmd
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
@@ -436,6 +436,9 @@ class Project(FeatureBase):
             # Command is empty (perhaps lack of data in parameters)
             msg = translate("Render", "Empty rendering command")
             raise RenderingError(msg)
+
+        # Record this command (debug purpose)
+        set_last_cmd(cmd)
 
         # Dry run?
         dryrun = PARAMS.GetBool("DryRun")
