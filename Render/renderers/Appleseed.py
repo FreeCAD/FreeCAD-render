@@ -155,12 +155,16 @@ def write_mesh(name, mesh, material):
     with open(objfile, "w", encoding="utf-8") as f:
         f.write("".join(buffer))
 
-    # TODO
-    objfile = write(mesh, name, transform=TRANSFORM, normals=False)
-    # objfile = write(mesh, name, normals=False)
+    # TODO Normals
+    # objfile = write(mesh, name, transform=TRANSFORM, normals=False)
+    objfile = write(mesh, name)
 
     # Transformation
-    transform = TRANSFORM  # TODO Take mesh.Placement into account
+    transform = TRANSFORM.copy()
+    transform.multiply(mesh.Placement)
+    transform.inverse()
+    translines = [transform.Matrix.A[i*4:(i+1)*4] for i in range(4)]
+    translines = ["{} {} {} {}".format(*l) for l in translines]
 
     # Format output
     mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
@@ -172,8 +176,15 @@ def write_mesh(name, mesh, material):
             <object name="{shortfilename}" model="mesh_object">
                 <parameter name="filename" value="{filename}" />
             </object>
-            <object_instance name="{shortfilename}.{name}.instance"
-                             object="{shortfilename}.{name}" >
+            <object_instance name="{shortfilename}.{name}.instance" object="{shortfilename}.{name}" >
+                <transform>
+                    <matrix>
+                        {translines[0]}
+                        {translines[1]}
+                        {translines[2]}
+                        {translines[3]}
+                    </matrix>
+                </transform>
                 <assign_material
                     slot="default"
                     side="front"
