@@ -53,120 +53,20 @@ TRANSFORM = App.Placement(
     App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
 )
 
-# TODO Move into Render.Mesh
-def write_objfile(mesh, name, objfile=None, mtlfile=None, mtlname=None, normals=True):
-    """Write an OBJ file from a mesh.
-
-    Args:
-        name -- Name of the mesh (str)
-        objfile -- Name of the OBJ file (str). If None, the OBJ file is written
-          in a temporary file, whose name is returned by the function.
-        mtlfile -- MTL file name to reference in OBJ (optional) (str)
-        mtlname -- Material name to reference in OBJ, must be defined in MTL
-          file (optional) (str)
-        normals -- Flag to control the writing of normals in the OBJ file
-          (bool)
-
-    Returns: the file that the function wrote.
-    """
-
-    # Retrieve and normalize arguments
-    if objfile is None:
-        f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
-        os.close(f_handle)
-    else:
-        objfile = str(objfile)
-
-    normals = bool(normals)
-
-    # Initialize
-    header = ["# Written by FreeCAD-Render"]
-
-    # Mtl
-    mtl = [f"mtllib {mtlfile}", ""] if mtlfile is not None else []
-
-    # Vertices
-    verts = [p.Vector for p in mesh.Points]
-    verts = [f"v {v.x} {v.y} {v.z}" for v in verts]
-    verts.insert(0, "# Vertices")
-    verts.append("")
-
-    # UV
-    if mesh.has_uvmap():
-        uvs = [f"vt {t.x} {t.y}" for t in mesh.uvmap]
-        uvs.insert(0, "# Texture coordinates")
-        uvs.append("")
-    else:
-        uvs = []
-
-    # Vertex normals
-    if normals:
-        norms = [f"vn {n.x} {n.y} {n.z}" for n in mesh.getPointNormals()]
-        norms.insert(0, "# Vertex normals")
-        norms.append("")
-    else:
-        norms = []
-
-    # Object name
-    objname = [f"o {name}"]
-    if mtlname is not None:
-        objname.append(f"usemtl {mtlname}")
-    objname.append("")
-
-    # Faces
-    if normals and mesh.has_uvmap():
-        mask = "{i}/{i}/{i}"
-    elif not normals and mesh.has_uvmap():
-        mask = "{i}/{i}"
-    elif normals and not mesh.has_uvmap():
-        mask = "{i}//{i}"
-    else:
-        mask = "{i}"
-
-    faces = [map(lambda x: mask.format(i=x+1), f) for f in mesh.Topology[1]]
-    faces = [" ".join(f) for f in faces]
-    faces = [f"f {f}" for f in faces]
-    faces.insert(0, "# Faces")
-
-    res = header + mtl + verts + uvs + norms + objname + faces
-    res = "\n".join(res)
-
-    with open(objfile, "w", encoding="utf-8") as f:
-        f.write(res)
-
-    return objfile
-
-
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
-    # Write the mesh as an OBJ tempfile
-    # Known bug: mesh.Placement must be null, otherwise computation is wrong
-    # due to special Appleseed coordinate system (to be fixed)
-    f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
-    os.close(f_handle)
-    tmpmesh = mesh.copy()
-    tmpmesh.rotate(-pi / 2, 0, 0)
-    tmpmesh.write(objfile)
-
-    # Fix missing object name in OBJ file (mandatory in Appleseed)
-    # We want to insert a 'o ...' statement before the first 'f ...'
-    with open(objfile, "r", encoding="utf-8") as f:
-        buffer = f.readlines()
-
-    i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    buffer.insert(i, f"o {name}\n")
-
-    with open(objfile, "w", encoding="utf-8") as f:
-        f.write("".join(buffer))
-
+    # Get OBJ file
+    # Nota: Appleseed does not look happy with FreeCAD normals
+    # so we'll leave Appleseed compute them
     objfile = write_objfile(mesh, name, normals=False)
 
     # Transformation
     transform = TRANSFORM.copy()
     transform.multiply(mesh.Placement)
     transform.inverse()
-    translines = [transform.Matrix.A[i*4:(i+1)*4] for i in range(4)]
-    translines = ["{} {} {} {}".format(*l) for l in translines]
+    transform_lines = [transform.Matrix.A[i*4:(i+1)*4] for i in range(4)]
+    transform_lines = ["{} {} {} {}".format(*l) for l in transform_lines]
+
 
     # Format output
     mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
@@ -181,10 +81,10 @@ def write_mesh(name, mesh, material):
             <object_instance name="{shortfilename}.{name}.instance" object="{shortfilename}.{name}" >
                 <transform>
                     <matrix>
-                        {translines[0]}
-                        {translines[1]}
-                        {translines[2]}
-                        {translines[3]}
+                        {transform_lines[0]}
+                        {transform_lines[1]}
+                        {transform_lines[2]}
+                        {transform_lines[3]}
                     </matrix>
                 </transform>
                 <assign_material
