@@ -54,7 +54,21 @@ TRANSFORM = App.Placement(
 )
 
 # TODO Move into Render.Mesh
-def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None, normals=False):
+def write_objfile(mesh, name, objfile=None, mtlfile=None, mtlname=None, normals=False):
+    """Write an OBJ file from a mesh.
+
+    Args:
+        name -- Name of the mesh (str)
+        objfile -- Name of the OBJ file (str). If None, the OBJ file is written
+          in a temporary file, whose name is returned by the function.
+        mtlfile -- MTL file name to reference in OBJ (optional) (str)
+        mtlname -- Material name to reference in OBJ, must be defined in MTL
+          file (optional) (str)
+        normals -- Flag to control the writing of normals in the OBJ file
+          (bool)
+
+    Returns: the file that the function wrote.
+    """
 
     # Retrieve and normalize arguments
     if objfile is None:
@@ -62,9 +76,6 @@ def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None, 
         os.close(f_handle)
     else:
         objfile = str(objfile)
-
-    if transform is not None:
-        transform = App.Placement(transform)
 
     normals = bool(normals)
 
@@ -75,10 +86,7 @@ def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None, 
     mtl = [f"mtllib {mtlfile}", ""] if mtlfile is not None else []
 
     # Vertices
-    if transform is not None:
-        verts = [transform.multVec(p.Vector) for p in mesh.Points]
-    else:
-        verts = [p.Vector for p in mesh.Points]
+    verts = [p.Vector for p in mesh.Points]
     verts = [f"v {v.x} {v.y} {v.z}" for v in verts]
     verts.insert(0, "# Vertices")
     verts.append("")
@@ -93,10 +101,7 @@ def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None, 
 
     # Vertex normals
     if normals:
-        if transform is not None:
-            norms = [transform.multVec(n) for n in mesh.getPointNormals()]
-        else:
-            norms = [p.Vector() for p in mesh.getPointNormals()]
+        norms = [p.Vector() for p in mesh.getPointNormals()]
         norms = [f"vn {n.x} {n.y} {n.z}" for n in norms]
         norms.insert(0, "# Vertex normals")
         norms.append("")
@@ -157,7 +162,7 @@ def write_mesh(name, mesh, material):
 
     # TODO Normals
     # objfile = write(mesh, name, transform=TRANSFORM, normals=False)
-    objfile = write(mesh, name)
+    objfile = write_objfile(mesh, name)
 
     # Transformation
     transform = TRANSFORM.copy()
