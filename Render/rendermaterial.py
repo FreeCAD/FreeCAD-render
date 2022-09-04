@@ -535,6 +535,7 @@ class MaterialValues:
             else:
                 # Not a texture, treat as plain value...
                 value = write_value_fun(
+                    objname=objname,
                     propname=propkey,
                     proptype=proptype,
                     propvalue=propvalue,
@@ -621,13 +622,6 @@ RenderTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
 # ===========================================================================
 #                               Conversions
 # ===========================================================================
-
-_CAST_FUNCTIONS = {
-    "float": _castfloat,
-    "RGB": _castrgb,
-    "string": _caststr,
-    "texonly": _casttexonly,
-}
 
 
 def _castrgb(*args):
@@ -769,6 +763,14 @@ def _casttexonly(*args):
 
     # Default (and fallback), return empty
     return None
+
+
+_CAST_FUNCTIONS = {
+    "float": _castfloat,
+    "RGB": _castrgb,
+    "string": _caststr,
+    "texonly": _casttexonly,
+}
 
 
 _PASSTHRU_REPLACED_TOKENS = (
