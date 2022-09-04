@@ -54,7 +54,7 @@ TRANSFORM = App.Placement(
 )
 
 # TODO Move into Render.Mesh
-def write_objfile(mesh, name, objfile=None, mtlfile=None, mtlname=None, normals=False):
+def write_objfile(mesh, name, objfile=None, mtlfile=None, mtlname=None, normals=True):
     """Write an OBJ file from a mesh.
 
     Args:
@@ -101,8 +101,7 @@ def write_objfile(mesh, name, objfile=None, mtlfile=None, mtlname=None, normals=
 
     # Vertex normals
     if normals:
-        norms = [p.Vector() for p in mesh.getPointNormals()]
-        norms = [f"vn {n.x} {n.y} {n.z}" for n in norms]
+        norms = [f"vn {n.x} {n.y} {n.z}" for n in mesh.getPointNormals()]
         norms.insert(0, "# Vertex normals")
         norms.append("")
     else:
@@ -160,9 +159,7 @@ def write_mesh(name, mesh, material):
     with open(objfile, "w", encoding="utf-8") as f:
         f.write("".join(buffer))
 
-    # TODO Normals
-    # objfile = write(mesh, name, transform=TRANSFORM, normals=False)
-    objfile = write_objfile(mesh, name)
+    objfile = write_objfile(mesh, name, normals=False)
 
     # Transformation
     transform = TRANSFORM.copy()
