@@ -156,32 +156,38 @@ def write_mesh(name, mesh, material):
         f.write("".join(buffer))
 
     # TODO
-    # objfile = write(mesh, name, transform=TRANSFORM, normals=False)
-    objfile = write(mesh, name, normals=False)
+    objfile = write(mesh, name, transform=TRANSFORM, normals=False)
+    # objfile = write(mesh, name, normals=False)
+
+    # Transformation
+    transform = TRANSFORM  # TODO Take mesh.Placement into account
 
     # Format output
     mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
+    shortfilename = os.path.splitext(os.path.basename(objfile))[0]
+    filename = objfile.encode("unicode_escape").decode("utf-8")
+
     snippet_mat = _write_material(mat_name, material)
-    snippet_obj = """
-            <object name="{o}" model="mesh_object">
-                <parameter name="filename" value="{f}" />
+    snippet_obj = f"""
+            <object name="{shortfilename}" model="mesh_object">
+                <parameter name="filename" value="{filename}" />
             </object>
-            <object_instance name="{o}.{n}.instance" object="{o}.{n}">
-                <assign_material slot="default"
-                                 side="front"
-                                 material="{m}" />
-                <assign_material slot="default"
-                                 side="back"
-                                 material="{m}" />
+            <object_instance name="{shortfilename}.{name}.instance"
+                             object="{shortfilename}.{name}" >
+                <assign_material
+                    slot="default"
+                    side="front"
+                    material="{mat_name}"
+                />
+                <assign_material
+                    slot="default"
+                    side="back"
+                    material="{mat_name}"
+                />
             </object_instance>"""
     snippet = snippet_mat + snippet_obj
 
-    return snippet.format(
-        n=name,
-        m=mat_name,
-        o=os.path.splitext(os.path.basename(objfile))[0],
-        f=objfile.encode("unicode_escape").decode("utf-8"),
-    )
+    return snippet
 
 
 def write_camera(name, pos, updir, target, fov):
