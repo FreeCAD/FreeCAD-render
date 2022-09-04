@@ -54,7 +54,7 @@ TRANSFORM = App.Placement(
 )
 
 # TODO Move into Render.Mesh
-def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None):
+def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None, normals=False):
 
     # Retrieve and normalize arguments
     if objfile is None:
@@ -65,6 +65,8 @@ def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None):
 
     if transform is not None:
         transform = App.Placement(transform)
+
+    normals = bool(normals)
 
     # Initialize
     header = ["# Written by FreeCAD-Render"]
@@ -90,13 +92,16 @@ def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None):
         uvs = []
 
     # Vertex normals
-    if transform is not None:
-        norms = [transform.multVec(n) for n in mesh.getPointNormals()]
+    if normals:
+        if transform is not None:
+            norms = [transform.multVec(n) for n in mesh.getPointNormals()]
+        else:
+            norms = [p.Vector() for p in mesh.getPointNormals()]
+        norms = [f"vn {n.x} {n.y} {n.z}" for n in norms]
+        norms.insert(0, "# Vertex normals")
+        norms.append("")
     else:
-        norms = [p.Vector() for p in mesh.getPointNormals()]
-    norms = [f"vn {n.x} {n.y} {n.z}" for n in norms]
-    norms.insert(0, "# Vertex normals")
-    norms.append("")
+        norms = []
 
     # Object name
     objname = [f"o {name}"]
@@ -105,18 +110,16 @@ def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None):
     objname.append("")
 
     # Faces
-    def fmt_uv(i):
-        """Format face with uv."""
-        i += 1  # Offset +1
-        return f"{i}/{i}/{i}"
+    if normals and mesh.has_uvmap():
+        mask = "{i}/{i}/{i}"
+    elif not normals and mesh.has_uvmap():
+        mask = "{i}/{i}"
+    elif normals and not mesh.has_uvmap():
+        mask = "{i}//{i}"
+    else:
+        mask = "{i}"
 
-    def fmt_no_uv(i):
-        """Format face without uv."""
-        i += 1  # Offset +1
-        return f"{i}//{i}"
-
-    fmt = fmt_uv if mesh.has_uvmap() else fmt_no_uv
-    faces = [map(fmt, f) for f in mesh.Topology[1]]
+    faces = [map(lambda x: mask.format(i=x+1), f) for f in mesh.Topology[1]]
     faces = [" ".join(f) for f in faces]
     faces = [f"f {f}" for f in faces]
     faces.insert(0, "# Faces")
@@ -153,7 +156,8 @@ def write_mesh(name, mesh, material):
         f.write("".join(buffer))
 
     # TODO
-    objfile = write(mesh, name, transform=TRANSFORM)
+    # objfile = write(mesh, name, transform=TRANSFORM, normals=False)
+    objfile = write(mesh, name, normals=False)
 
     # Format output
     mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
