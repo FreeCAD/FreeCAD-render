@@ -26,8 +26,13 @@ RenderMesh is an extended version of FreeCAD Mesh.Mesh, designed for
 rendering purpose.
 """
 
+# Useful resources:
+# https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
+
 import math
 import enum
+import os
+import tempfile
 
 import FreeCAD as App
 import Mesh
@@ -134,6 +139,93 @@ class RenderMesh:
         return self.__mesh.Topology
 
     # Specific methods
+    def write_objfile(
+        self, name, objfile=None, mtlfile=None, mtlname=None, normals=True
+    ):
+        """Write an OBJ file from a mesh.
+
+        Args:
+            name -- Name of the mesh (str)
+            objfile -- Name of the OBJ file (str). If None, the OBJ file is
+              written in a temporary file, whose name is returned by the
+              function.
+            mtlfile -- MTL file name to reference in OBJ (optional) (str)
+            mtlname -- Material name to reference in OBJ, must be defined in
+              MTL file (optional) (str)
+            normals -- Flag to control the writing of normals in the OBJ file
+              (bool)
+
+        Returns: the file that the function wrote.
+        """
+
+        # Retrieve and normalize arguments
+        if objfile is None:
+            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+            os.close(f_handle)
+        else:
+            objfile = str(objfile)
+
+        normals = bool(normals)
+
+        # Initialize
+        header = ["# Written by FreeCAD-Render"]
+
+        # Mtl
+        mtl = [f"mtllib {mtlfile}", ""] if mtlfile is not None else []
+
+        # Vertices
+        verts = [p.Vector for p in self.Points]
+        verts = [f"v {v.x} {v.y} {v.z}" for v in verts]
+        verts.insert(0, "# Vertices")
+        verts.append("")
+
+        # UV
+        if self.has_uvmap():
+            uvs = [f"vt {t.x} {t.y}" for t in self.uvmap]
+            uvs.insert(0, "# Texture coordinates")
+            uvs.append("")
+        else:
+            uvs = []
+
+        # Vertex normals
+        if normals:
+            norms = [f"vn {n.x} {n.y} {n.z}" for n in self.getPointNormals()]
+            norms.insert(0, "# Vertex normals")
+            norms.append("")
+        else:
+            norms = []
+
+        # Object name
+        objname = [f"o {name}"]
+        if mtlname is not None:
+            objname.append(f"usemtl {mtlname}")
+        objname.append("")
+
+        # Faces
+        if normals and self.has_uvmap():
+            mask = "{i}/{i}/{i}"
+        elif not normals and self.has_uvmap():
+            mask = "{i}/{i}"
+        elif normals and not self.has_uvmap():
+            mask = "{i}//{i}"
+        else:
+            mask = "{i}"
+
+        faces = [
+            map(lambda x: mask.format(i=x + 1), f) for f in self.Topology[1]
+        ]
+        faces = [" ".join(f) for f in faces]
+        faces = [f"f {f}" for f in faces]
+        faces.insert(0, "# Faces")
+
+        res = header + mtl + verts + uvs + norms + objname + faces
+        res = "\n".join(res)
+
+        with open(objfile, "w", encoding="utf-8") as f:
+            f.write(res)
+
+        return objfile
+
     @property
     def uvmap(self):
         """Get mesh uv map."""
@@ -161,10 +253,6 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
-
-    # TODO
-    # Useful resources:
-    # https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
