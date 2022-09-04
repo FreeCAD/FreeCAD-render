@@ -26,7 +26,7 @@
 # https://github.com/appleseedhq/appleseed/wiki
 # https://github.com/appleseedhq/appleseed/wiki/Built-in-Entities
 
-# NOTE The coordinate system in Appleseed uses a different coordinate system.
+# NOTE Appleseed uses a different coordinate system than FreeCAD.
 # Y and Z are switched and Z is inverted
 
 import os
@@ -47,6 +47,87 @@ SHADERS_DIR = os.path.join(os.path.dirname(__file__), "as_shaders")
 # ===========================================================================
 #                             Write functions
 # ===========================================================================
+
+# Transformation matrix from fcd coords to appleseed coords
+TRANSFORM = App.Placement(
+    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
+)
+
+# TODO Move into Render.Mesh
+def write(mesh, name, objfile=None, transform=None, mtlfile=None, mtlname=None):
+
+    # Retrieve and normalize arguments
+    if objfile is None:
+        f_handle, objfile = mkstemp(suffix=".obj", prefix="_")
+        os.close(f_handle)
+    else:
+        objfile = str(objfile)
+
+    if transform is not None:
+        transform = App.Placement(transform)
+
+    # Initialize
+    header = ["# Written by FreeCAD-Render"]
+
+    # Mtl
+    mtl = [f"mtllib {mtlfile}", ""] if mtlfile is not None else []
+
+    # Vertices
+    if transform is not None:
+        verts = [transform.multVec(p.Vector) for p in mesh.Points]
+    else:
+        verts = [p.Vector for p in mesh.Points]
+    verts = [f"v {v.x} {v.y} {v.z}" for v in verts]
+    verts.insert(0, "# Vertices")
+    verts.append("")
+
+    # UV
+    if mesh.has_uvmap():
+        uvs = [f"vt {t.x} {t.y}" for t in mesh.uvmap]
+        uvs.insert(0, "# Texture coordinates")
+        uvs.append("")
+    else:
+        uvs = []
+
+    # Vertex normals
+    if transform is not None:
+        norms = [transform.multVec(n) for n in mesh.getPointNormals()]
+    else:
+        norms = [p.Vector() for p in mesh.getPointNormals()]
+    norms = [f"vn {n.x} {n.y} {n.z}" for n in norms]
+    norms.insert(0, "# Vertex normals")
+    norms.append("")
+
+    # Object name
+    objname = [f"o {name}"]
+    if mtlname is not None:
+        objname.append(f"usemtl {mtlname}")
+    objname.append("")
+
+    # Faces
+    def fmt_uv(i):
+        """Format face with uv."""
+        i += 1  # Offset +1
+        return f"{i}/{i}/{i}"
+
+    def fmt_no_uv(i):
+        """Format face without uv."""
+        i += 1  # Offset +1
+        return f"{i}//{i}"
+
+    fmt = fmt_uv if mesh.has_uvmap() else fmt_no_uv
+    faces = [map(fmt, f) for f in mesh.Topology[1]]
+    faces = [" ".join(f) for f in faces]
+    faces = [f"f {f}" for f in faces]
+    faces.insert(0, "# Faces")
+
+    res = header + mtl + verts + uvs + norms + objname + faces
+    res = "\n".join(res)
+
+    with open(objfile, "w", encoding="utf-8") as f:
+        f.write(res)
+
+    return objfile
 
 
 def write_mesh(name, mesh, material):
@@ -70,6 +151,9 @@ def write_mesh(name, mesh, material):
 
     with open(objfile, "w", encoding="utf-8") as f:
         f.write("".join(buffer))
+
+    # TODO
+    objfile = write(mesh, name, transform=TRANSFORM)
 
     # Format output
     mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
