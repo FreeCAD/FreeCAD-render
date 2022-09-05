@@ -140,7 +140,16 @@ class RenderMesh:
 
     # Specific methods
     def write_objfile(
-        self, name, objfile=None, mtlfile=None, mtlname=None, normals=True
+        self,
+        name,
+        objfile=None,
+        mtlfile=None,
+        mtlname=None,
+        normals=True,
+        uv_translate_u=0.0,
+        uv_translate_v=0.0,
+        uv_rotate=0.0,
+        uv_scale=1.0,
     ):
         """Write an OBJ file from a mesh.
 
@@ -181,7 +190,24 @@ class RenderMesh:
 
         # UV
         if self.has_uvmap():
-            uvs = [f"vt {t.x} {t.y}" for t in self.uvmap]
+            # Translate, rotate, scale (optionally)
+            uvbase = self.uvmap
+            if uv_translate_u != 0.0 or uv_translate_v != 0.0:
+                translate = App.Base.Vector2d(uv_translate_u, uv_translate_v)
+                uvbase = [v + translate for v in uvbase]
+            if uv_rotate != 0.0:
+                cosr = math.cos(uv_rotate)
+                sinr = math.sin(uv_rotate)
+                uvbase = [
+                    App.Base.Vector2d(
+                        v.x * cosr - v.y * sinr, v.x * sinr + v.y * cosr
+                    )
+                    for v in uvbase
+                ]
+            if uv_scale != 1.0:
+                uvbase = [v * uv_scale for v in uvbase]
+            # Format
+            uvs = [f"vt {t.x} {t.y}" for t in uvbase]
             uvs.insert(0, "# Texture coordinates")
             uvs.append("")
         else:

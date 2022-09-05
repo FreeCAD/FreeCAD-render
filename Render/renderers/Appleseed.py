@@ -33,7 +33,7 @@ import os
 import re
 import uuid
 from tempfile import mkstemp
-from math import pi, degrees, acos, atan2, sqrt
+from math import pi, degrees, radians, acos, atan2, sqrt
 from textwrap import indent
 import collections
 import functools
@@ -54,25 +54,50 @@ TRANSFORM = App.Placement(
     App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
 )
 
+
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
+
     # Compute material values
     matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
     )
 
     # Get OBJ file
-    # Nota: Appleseed does not look happy with FreeCAD normals
-    # so we'll leave Appleseed compute them
-    objfile = mesh.write_objfile(name, normals=False)
+    #
+    # NOTE 1: As Appleseed does not manage texture placement (translation,
+    # rotation, scale), we have to transform uvmap... This is an approximate
+    # approach, as we have to choose one texture among all the material's
+    # textures (but usually, there is only one). And we have to invert all the
+    # transformation, as it applies to uv, not to texture
+    #
+    # NOTE 2: Appleseed does not look happy with FreeCAD normals
+    # so we'll leave Appleseed compute them on its own (normals=False)
+
+    texobjects = matval.texobjects
+    if texobjects:
+        tex = texobjects[0]  # We take the first texture...
+        scale = 1.0 / float(tex.scale) if float(tex.scale) != 0 else 1.0
+        rotation = -float(radians(tex.rotation))
+        translation_u = -float(tex.translation_u)
+        translation_v = -float(tex.translation_v)
+        objfile = mesh.write_objfile(
+            name,
+            normals=False,
+            uv_translate_u=translation_u,
+            uv_translate_v=translation_v,
+            uv_rotate=rotation,
+            uv_scale=scale,
+        )
+    else:
+        objfile = mesh.write_objfile(name, normals=False)
 
     # Transformation
     transform = TRANSFORM.copy()
     transform.multiply(mesh.Placement)
     transform.inverse()
-    transform_lines = [transform.Matrix.A[i*4:(i+1)*4] for i in range(4)]
-    transform_lines = ["{} {} {} {}".format(*l) for l in transform_lines]
-
+    transfo_lines = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
+    transfo_lines = ["{} {} {} {}".format(*l) for l in transfo_lines]
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials
@@ -88,10 +113,10 @@ def write_mesh(name, mesh, material):
                              object="{shortfilename}.{name}" >
                 <transform>
                     <matrix>
-                        {transform_lines[0]}
-                        {transform_lines[1]}
-                        {transform_lines[2]}
-                        {transform_lines[3]}
+                        {transfo_lines[0]}
+                        {transfo_lines[1]}
+                        {transfo_lines[2]}
+                        {transfo_lines[3]}
                     </matrix>
                 </transform>
                 <assign_material
@@ -240,7 +265,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     # and Z+ points out of the screen, toward the viewer."
     vec = _transform(direction)
     phi = degrees(atan2(vec.z, vec.x))
-    theta = degrees(acos(vec.y / (sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2))))
+    theta = degrees(acos(vec.y / (sqrt(vec.x**2 + vec.y**2 + vec.z**2))))
 
     snippet = """
         <environment_edf name="{n}_env_edf" model="hosek_environment_edf">
@@ -493,12 +518,14 @@ RGB = collections.namedtuple("RGB", "r g b")
 #                             Textures
 # ===========================================================================
 
+
 def _texname(**kwargs):
     """Compute texture name (helper)."""
     propname = kwargs["propname"]
     unique_matname = kwargs["unique_matname"]
     texname = f"{unique_matname}.{propname}.tex"
     return texname
+
 
 def _write_texture(**kwargs):
     """Compute a string in renderer SDL to describe a texture.
@@ -536,6 +563,7 @@ def _write_texture(**kwargs):
 
     return texname, texture
 
+
 def _write_value(**kwargs):
     """Compute a string in renderer SDL from a shader property value.
 
@@ -553,7 +581,10 @@ def _write_value(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        value = (f"{matname}_color", f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)}")
+        value = (
+            f"{matname}_color",
+            f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)}",
+        )
     elif proptype == "float":
         value = f"float {_rnd(val)}"
     elif proptype == "node":
@@ -569,8 +600,10 @@ def _write_value(**kwargs):
 
     return value
 
+
 # TODO
 _rnd = functools.partial(round, ndigits=8)  # Round to 8 digits (helper)
+
 
 def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
@@ -579,6 +612,7 @@ def _write_texref(**kwargs):
     if proptype == "RGB":
         return (texref, "0.8 0.8 0.8")
     return ""
+
 
 # ===========================================================================
 #                              Render function
@@ -641,7 +675,6 @@ def render(project, prefix, external, output, width, height):
     template = move_elements("texture", "scene", template)
     template = move_elements("texture_instance", "scene", template)
     template = move_elements("search_path", "search_paths", template)
-
 
     # Change image size
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
