@@ -1,6 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2022 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -30,6 +31,7 @@
 import collections
 import types
 import functools
+import uuid
 from collections import namedtuple
 
 import FreeCAD as App
@@ -500,6 +502,8 @@ class MaterialValues:
         self._write_texture = write_texture_fun
         self._write_value = write_value_fun
         self._write_texref = write_texref_fun
+        # To avoid duplicate materials (Appleseed)
+        self._unique_matname = f"{objname}.{uuid.uuid1()}"
 
         # Build values and textures - loop on shader properties
         for propkey, propvalue in material.shaderproperties.items():
@@ -520,6 +524,7 @@ class MaterialValues:
                     propvalue=propvalue,
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
+                    unique_matname=self._unique_matname
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
@@ -531,6 +536,7 @@ class MaterialValues:
                     propvalue=propvalue,
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
+                    unique_matname=self._unique_matname
                 )
             else:
                 # Not a texture, treat as plain value...
@@ -541,6 +547,7 @@ class MaterialValues:
                     propvalue=propvalue,
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
+                    unique_matname=self._unique_matname
                 )
 
             # Store resulting value
@@ -588,6 +595,11 @@ class MaterialValues:
     def shadertype(self):
         """Get material shader type."""
         return self.material.shadertype
+
+    @property
+    def unique_matname(self):
+        """Get unique material name."""
+        return self._unique_matname
 
     def getmixedsubmat(self, submat):
         """Get mixed submaterial."""

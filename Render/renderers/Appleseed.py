@@ -36,6 +36,7 @@ from tempfile import mkstemp
 from math import pi, degrees, acos, atan2, sqrt
 from textwrap import indent
 import collections
+import functools
 
 import FreeCAD as App
 
@@ -55,10 +56,15 @@ TRANSFORM = App.Placement(
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
+    # Compute material values
+    matval = material.get_material_values(
+        name, _write_texture, _write_value, _write_texref
+    )
+
     # Get OBJ file
     # Nota: Appleseed does not look happy with FreeCAD normals
     # so we'll leave Appleseed compute them
-    objfile = write_objfile(mesh, name, normals=False)
+    objfile = mesh.write_objfile(name, normals=False)
 
     # Transformation
     transform = TRANSFORM.copy()
@@ -69,16 +75,17 @@ def write_mesh(name, mesh, material):
 
 
     # Format output
-    mat_name = f"{name}.{uuid.uuid1()}"  # Avoid duplicate materials
+    mat_name = matval.unique_matname  # Avoid duplicate materials
     shortfilename = os.path.splitext(os.path.basename(objfile))[0]
     filename = objfile.encode("unicode_escape").decode("utf-8")
 
-    snippet_mat = _write_material(mat_name, material)
+    snippet_mat = _write_material(mat_name, matval)
     snippet_obj = f"""
             <object name="{shortfilename}" model="mesh_object">
                 <parameter name="filename" value="{filename}" />
             </object>
-            <object_instance name="{shortfilename}.{name}.instance" object="{shortfilename}.{name}" >
+            <object_instance name="{shortfilename}.{name}.instance"
+                             object="{shortfilename}.{name}" >
                 <transform>
                     <matrix>
                         {transform_lines[0]}
@@ -98,7 +105,9 @@ def write_mesh(name, mesh, material):
                     material="{mat_name}"
                 />
             </object_instance>"""
-    snippet = snippet_mat + snippet_obj
+    snippet_tex = matval.write_textures()
+
+    snippet = snippet_tex + snippet_mat + snippet_obj
 
     return snippet
 
@@ -284,21 +293,21 @@ def write_imagelight(name, image):
 # ===========================================================================
 
 
-def _write_material(name, material):
+def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
     try:
-        snippet_mat = MATERIALS[material.shadertype](name, material)
+        snippet_mat = MATERIALS[matval.shadertype](name, matval)
     except KeyError:
         msg = (
             f"'{name}' - Material '{material.shadertype}' unknown by renderer,"
             " using fallback material\n"
         )
         App.Console.PrintWarning(msg)
-        snippet_mat = _write_material_fallback(name, material.default_color)
+        snippet_mat = _write_material_fallback(name, matval.default_color)
     return snippet_mat
 
 
@@ -356,14 +365,14 @@ def _write_material_disney(name, material):
     )
 
 
-def _write_material_diffuse(name, material):
+def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    snippet_bsdf = """
-            <bsdf name="{n}_bsdf" model="lambertian_brdf">
-                <parameter name="reflectance" value="{n}_color" />
+    snippet_bsdf = f"""
+            <bsdf name="{name}_bsdf" model="lambertian_brdf">
+                <parameter name="reflectance" value="{matval["color"][0]}" />
             </bsdf>"""
     snippet = SNIPPET_COLOR + snippet_bsdf + SNIPPET_MATERIAL
-    return snippet.format(n=name, c=material.diffuse.color)
+    return snippet.format(n=name, c=matval["color"][1])
 
 
 def _write_material_mixed(name, material):
@@ -465,7 +474,7 @@ SNIPPET_COLOR = """
                 <parameter name="color_space" value="srgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
-                <values> {c.r} {c.g} {c.b} </values>
+                <values> {c} </values>
             </color>"""
 
 SNIPPET_MATERIAL = """
@@ -480,6 +489,96 @@ SNIPPET_MATERIAL = """
 
 RGB = collections.namedtuple("RGB", "r g b")
 
+# ===========================================================================
+#                             Textures
+# ===========================================================================
+
+def _texname(**kwargs):
+    """Compute texture name (helper)."""
+    propname = kwargs["propname"]
+    unique_matname = kwargs["unique_matname"]
+    texname = f"{unique_matname}.{propname}.tex"
+    return texname
+
+def _write_texture(**kwargs):
+    """Compute a string in renderer SDL to describe a texture.
+
+    The texture is computed from a property of a shader (as the texture is
+    always integrated into a shader). Property's data are expected as
+    arguments.
+
+    Args:
+        objname -- Object name for which the texture is computed
+        propname -- Name of the shader property
+        propvalue -- Value of the shader property
+
+    Returns:
+        the name of the texture
+        the SDL string of the texture
+    """
+    # Retrieve parameters
+    objname = kwargs["objname"]
+    propname = kwargs["propname"]
+    propvalue = kwargs["propvalue"]
+    matname = kwargs["unique_matname"]
+
+    # Compute texture name
+    texname = _texname(**kwargs)
+
+    # Texture
+    texture = f"""
+        <texture name="{texname}" model="disk_texture_2d">
+            <parameter name="filename" value="{propvalue.file}"/>
+            <parameter name="color_space" value="srgb"/>
+        </texture>
+        <texture_instance name="{texname}.instance" texture="{texname}">
+        </texture_instance>"""
+
+    return texname, texture
+
+def _write_value(**kwargs):
+    """Compute a string in renderer SDL from a shader property value.
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    val = kwargs["propvalue"]
+    objname = kwargs["objname"]
+    matname = kwargs["unique_matname"]
+
+    # Snippets for values
+    if proptype == "RGB":
+        value = (f"{matname}_color", f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)}")
+    elif proptype == "float":
+        value = f"float {_rnd(val)}"
+    elif proptype == "node":
+        value = ""
+    elif proptype == "RGBA":
+        value = f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)} {_rnd(val.a)}"
+    elif proptype == "texonly":
+        value = f"{val}"
+    elif proptype == "str":
+        value = f"{val}"
+    else:
+        raise NotImplementedError
+
+    return value
+
+# TODO
+_rnd = functools.partial(round, ndigits=8)  # Round to 8 digits (helper)
+
+def _write_texref(**kwargs):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    proptype = kwargs["proptype"]
+    texref = f"{_texname(**kwargs)}.instance"
+    if proptype == "RGB":
+        return (texref, "0.8 0.8 0.8")
+    return ""
 
 # ===========================================================================
 #                              Render function
@@ -542,6 +641,7 @@ def render(project, prefix, external, output, width, height):
     template = move_elements("texture", "scene", template)
     template = move_elements("texture_instance", "scene", template)
     template = move_elements("search_path", "search_paths", template)
+
 
     # Change image size
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
