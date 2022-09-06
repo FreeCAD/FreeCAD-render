@@ -346,17 +346,18 @@ def _write_material_passthrough(name, material):
 
 def _write_material_glass(name, material):
     """Compute a string in the renderer SDL for a glass material."""
-    snippet_bsdf = """
-            <bsdf name="{n}_bsdf" model="glass_bsdf">
-                <parameter name="surface_transmittance" value="{n}_color" />
-                <parameter name="ior" value="{i}" />
+    snippet_bsdf = f"""
+            <bsdf name="{name}_bsdf" model="glass_bsdf">
+                <parameter name="surface_transmittance"
+                           value="{matval["color"][0]}" />
+                <parameter name="ior" value="{matval["ior"]}" />
                 <parameter name="roughness" value="0" />
                 <parameter name="volume_parameterization"
                            value="transmittance" />
             </bsdf>"""
-    snippet = SNIPPET_COLOR + snippet_bsdf + SNIPPET_MATERIAL
-    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
-
+    snippet_color = SNIPPET_COLOR.format(n=name, c=matval["color"][1])
+    snippet = [snippet_color, snippet_bsdf, SNIPPET_MATERIAL]
+    return "".join(snippet)
 
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
