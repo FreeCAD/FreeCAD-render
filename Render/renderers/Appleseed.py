@@ -355,7 +355,8 @@ def _write_material_glass(name, matval):
                            value="transmittance" />
             </bsdf>"""
     snippet_color = SNIPPET_COLOR.format(n=name, c=matval["color"][1])
-    snippet = [snippet_color, snippet_bsdf, SNIPPET_MATERIAL]
+    snippet_material = SNIPPET_MATERIAL.format(n=name)
+    snippet = [snippet_color, snippet_bsdf, snippet_material]
     return "".join(snippet)
 
 def _write_material_disney(name, material):
@@ -398,7 +399,8 @@ def _write_material_diffuse(name, matval):
                 <parameter name="reflectance" value="{matval["color"][0]}" />
             </bsdf>"""
     snippet_color = SNIPPET_COLOR.format(n=name, c=matval["color"][1])
-    snippet = [snippet_color, snippet_bsdf, SNIPPET_MATERIAL]
+    snippet_material = SNIPPET_MATERIAL.format(n=name)
+    snippet = [snippet_color, snippet_bsdf, snippet_material]
     return "".join(snippet)
 
 
