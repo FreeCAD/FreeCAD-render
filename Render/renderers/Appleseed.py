@@ -359,6 +359,7 @@ def _write_material_glass(name, matval):
     snippet = [snippet_color, snippet_bsdf, snippet_material]
     return "".join(snippet)
 
+
 def _write_material_disney(name, material):
     """Compute a string in the renderer SDL for a Disney material."""
     snippet_bsdf = """
@@ -606,10 +607,24 @@ _rnd = functools.partial(round, ndigits=8)  # Round to 8 digits (helper)
 def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+
     texref = f"{_texname(**kwargs)}.instance"
+
+    # IOR special case
+    if propname == "ior":
+        msg = (
+            "[Render] [Appleseed] Warning - Appleseed does not support "
+            "textures for 'ior' parameter. Fallback to value 1.5\n"
+        )
+        App.Console.PrintWarning(msg)
+        return "1.5"
+
+    # RGB special case
     if proptype == "RGB":
         return (texref, "0.8 0.8 0.8")
-    return ""
+
+    return texref
 
 
 # ===========================================================================
