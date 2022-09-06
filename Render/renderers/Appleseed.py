@@ -32,9 +32,8 @@
 
 import os
 import re
-import uuid
 from tempfile import mkstemp
-from math import pi, degrees, radians, acos, atan2, sqrt
+from math import degrees, radians, acos, atan2, sqrt
 from textwrap import indent
 import collections
 import functools
@@ -93,12 +92,12 @@ def write_mesh(name, mesh, material):
     else:
         objfile = mesh.write_objfile(name, normals=False)
 
-    # Transformation
+    # Compute transformation from FCD coordinates to Appleseed ones
     transform = TRANSFORM.copy()
     transform.multiply(mesh.Placement)
     transform.inverse()
-    transfo_lines = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
-    transfo_lines = ["{} {} {} {}".format(*l) for l in transfo_lines]
+    transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
+    transfo_rows = [f"{r[0]} {r[1]} {r[2]} {r[3]}" for r in transfo_rows]
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials
@@ -114,10 +113,10 @@ def write_mesh(name, mesh, material):
                              object="{shortfilename}.{name}" >
                 <transform>
                     <matrix>
-                        {transfo_lines[0]}
-                        {transfo_lines[1]}
-                        {transfo_lines[2]}
-                        {transfo_lines[3]}
+                        {transfo_rows[0]}
+                        {transfo_rows[1]}
+                        {transfo_rows[2]}
+                        {transfo_rows[3]}
                     </matrix>
                 </transform>
                 <assign_material
@@ -329,7 +328,7 @@ def _write_material(name, matval):
         snippet_mat = MATERIALS[matval.shadertype](name, matval)
     except KeyError:
         msg = (
-            f"'{name}' - Material '{material.shadertype}' unknown by renderer,"
+            f"'{name}' - Material '{matval.shadertype}' unknown by renderer,"
             " using fallback material\n"
         )
         App.Console.PrintWarning(msg)
@@ -344,7 +343,7 @@ def _write_material_passthrough(name, material):
     return snippet.format(n=name, c=material.default_color)
 
 
-def _write_material_glass(name, material):
+def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
     snippet_bsdf = f"""
             <bsdf name="{name}_bsdf" model="glass_bsdf">
@@ -398,8 +397,9 @@ def _write_material_diffuse(name, matval):
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{matval["color"][0]}" />
             </bsdf>"""
-    snippet = SNIPPET_COLOR + snippet_bsdf + SNIPPET_MATERIAL
-    return snippet.format(n=name, c=matval["color"][1])
+    snippet_color = SNIPPET_COLOR.format(n=name, c=matval["color"][1])
+    snippet = [snippet_color, snippet_bsdf, SNIPPET_MATERIAL]
+    return "".join(snippet)
 
 
 def _write_material_mixed(name, material):
@@ -546,10 +546,7 @@ def _write_texture(**kwargs):
         the SDL string of the texture
     """
     # Retrieve parameters
-    objname = kwargs["objname"]
-    propname = kwargs["propname"]
     propvalue = kwargs["propvalue"]
-    matname = kwargs["unique_matname"]
 
     # Compute texture name
     texname = _texname(**kwargs)
@@ -578,7 +575,6 @@ def _write_value(**kwargs):
     # Retrieve parameters
     proptype = kwargs["proptype"]
     val = kwargs["propvalue"]
-    objname = kwargs["objname"]
     matname = kwargs["unique_matname"]
 
     # Snippets for values
@@ -588,11 +584,9 @@ def _write_value(**kwargs):
             f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)}",
         )
     elif proptype == "float":
-        value = f"float {_rnd(val)}"
+        value = f"{_rnd(val)}"
     elif proptype == "node":
         value = ""
-    elif proptype == "RGBA":
-        value = f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)} {_rnd(val.a)}"
     elif proptype == "texonly":
         value = f"{val}"
     elif proptype == "str":
