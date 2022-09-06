@@ -67,7 +67,7 @@ def write_mesh(name, mesh, material):
     #
     # NOTE 1: As Appleseed does not manage texture placement (translation,
     # rotation, scale), we have to transform uvmap... This is an approximate
-    # approach, as we have to choose one texture among all the material's
+    # approach. Moreover we have to choose one texture among all the material's
     # textures (but usually, there is only one). And we have to invert all the
     # transformation, as it applies to uv, not to texture
     #
