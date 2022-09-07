@@ -423,14 +423,30 @@ def _write_material_mixed(name, material):
 
 def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
+    # carpaint is an osl texture, so we have to find workarounds...
     path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
     color = matval["basecolor"][1]  # Base
 
-    if matval.textures:  # Material has texture(s)
-        shadertexture = """
-        <!-- Texture placeholder -->"""
+    if matval.texobjects:  # Material has texture(s)
+        texobj = matval.texobjects[0]  # basecolor should be the 1st and unique
+        filename = texobj.file.encode("unicode_escape").decode("utf-8")
+        texshader = f"""
+        <!-- Texture -->
+        <shader layer="BasecolorTex" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>"""
+        texconnect = """
+        <connect_shaders src_layer="BasecolorTex" src_param="out_color"
+                         dst_layer="MasterMix" dst_param="in_color" />
+        <connect_shaders src_layer="BasecolorTex" src_param="out_color"
+                         dst_layer="MasterMix" dst_param="in_specular_color" />
+        <connect_shaders src_layer="BasecolorTex"
+                         src_param="out_color"
+                         dst_layer="MasterMix"
+                         dst_param="in_coating_absorption" />"""
     else:
-        shadertexture = ""
+        texshader, texconnect = "", ""
 
     snippet = f"""
         <search_path>
@@ -445,6 +461,7 @@ def _write_material_carpaint(name, matval):
     <surface_shader name="{name}_ss" model="physical_surface_shader" />
 
     <shader_group name="{name}_group">
+{texshader}
         <shader layer="MasterMix" type="shader" name="as_standard_surface">
             <parameter name="in_color"
                        value="color {color}" />
@@ -472,13 +489,12 @@ def _write_material_carpaint(name, matval):
                        value="float 0.001" />
             <parameter name="in_coating_ior"
                        value="float 1.57" />
-        </shader>{shadertexture}
+        </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
-
+{texconnect}
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
-    </shader_group>
-    """
+    </shader_group>"""
 
     return snippet
 
@@ -505,7 +521,7 @@ def _write_material_fallback(name, material):
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{name}_color" />
             </bsdf>""",
-        SNIPPET_MATERIAL.format(n=name)
+        SNIPPET_MATERIAL.format(n=name),
     )
     return "".join(snippet)
 
@@ -575,10 +591,13 @@ def _write_texture(**kwargs):
     # Compute texture name
     texname = _texname(**kwargs)
 
+    # Compute file name
+    filename = propvalue.file.encode("unicode_escape").decode("utf-8")
+
     # Texture
     texture = f"""
         <texture name="{texname}" model="disk_texture_2d">
-            <parameter name="filename" value="{propvalue.file}"/>
+            <parameter name="filename" value="{filename}"/>
             <parameter name="color_space" value="srgb"/>
         </texture>
         <texture_instance name="{texname}.instance" texture="{texname}">
