@@ -421,10 +421,16 @@ def _write_material_mixed(name, material):
     return snippet.format(n=name, r=material.mixed.transparency)
 
 
-def _write_material_carpaint(name, material):
+def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
     path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
-    color = material.carpaint.basecolor  # Base
+    color = matval["basecolor"][1]  # Base
+
+    if matval.textures:  # Material has texture(s)
+        shadertexture = """
+        <!-- Texture placeholder -->"""
+    else:
+        shadertexture = ""
 
     snippet = f"""
         <search_path>
@@ -441,11 +447,11 @@ def _write_material_carpaint(name, material):
     <shader_group name="{name}_group">
         <shader layer="MasterMix" type="shader" name="as_standard_surface">
             <parameter name="in_color"
-                       value="color {color.r} {color.g} {color.b}" />
+                       value="color {color}" />
             <parameter name="in_diffuse_weight"
                        value="float 0.8" />
             <parameter name="in_specular_color"
-                       value="color {color.r} {color.g} {color.b}" />
+                       value="color {color}" />
             <parameter name="in_specular_roughness"
                        value="float 0.8" />
             <parameter name="in_fresnel_type"
@@ -457,7 +463,7 @@ def _write_material_carpaint(name, material):
             <parameter name="in_edge_tint_weight"
                        value="float 0.1" />
             <parameter name="in_coating_absorption"
-                       value="color {color.r} {color.g} {color.b}" />
+                       value="color {color}" />
             <parameter name="in_coating_reflectivity"
                        value="float 0.8" />
             <parameter name="in_coating_roughness"
@@ -466,7 +472,7 @@ def _write_material_carpaint(name, material):
                        value="float 0.001" />
             <parameter name="in_coating_ior"
                        value="float 1.57" />
-        </shader>
+        </shader>{shadertexture}
         <shader layer="Surface" type="surface" name="as_closure2surface" />
 
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
