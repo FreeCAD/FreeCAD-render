@@ -511,9 +511,6 @@ class MaterialValues:
             else inherited_unique_name
         )
 
-        if parent_shadertype is not None:  # TODO
-            print("Inherited:", inherited_unique_name)
-
         # Build values and textures - loop on shader properties
         for propkey, propvalue in material.shaderproperties.items():
             # None value: not handled, continue
