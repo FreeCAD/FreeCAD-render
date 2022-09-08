@@ -480,6 +480,7 @@ class MaterialValues:
         write_value_fun,
         write_texref_fun,
         parent_shadertype=None,
+        inherited_unique_name=None,
     ):
         """Initialize material values.
 
@@ -504,7 +505,14 @@ class MaterialValues:
         self._write_value = write_value_fun
         self._write_texref = write_texref_fun
         # To avoid duplicate materials (Appleseed)
-        self._unique_matname = f"{objname}.{uuid.uuid1()}"
+        self._unique_matname = (
+            f"{objname}.{uuid.uuid1()}"
+            if inherited_unique_name is None
+            else inherited_unique_name
+        )
+
+        if parent_shadertype is not None:  # TODO
+            print("Inherited:", inherited_unique_name)
 
         # Build values and textures - loop on shader properties
         for propkey, propvalue in material.shaderproperties.items():
@@ -525,7 +533,7 @@ class MaterialValues:
                     propvalue=propvalue,
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
-                    unique_matname=self._unique_matname
+                    unique_matname=self._unique_matname,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
@@ -537,7 +545,7 @@ class MaterialValues:
                     propvalue=propvalue,
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
-                    unique_matname=self._unique_matname
+                    unique_matname=self._unique_matname,
                 )
                 # Add texture object to internal list (for Appleseed)
                 self._texobjects.append(propvalue)
@@ -550,7 +558,7 @@ class MaterialValues:
                     propvalue=propvalue,
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
-                    unique_matname=self._unique_matname
+                    unique_matname=self._unique_matname,
                 )
 
             # Store resulting value
@@ -612,7 +620,7 @@ class MaterialValues:
         """Get unique material name."""
         return self._unique_matname
 
-    def getmixedsubmat(self, submat):
+    def getmixedsubmat(self, submat, p_inherited_unique_name=None):
         """Get mixed submaterial."""
         return MaterialValues(
             self.objname,
@@ -621,6 +629,7 @@ class MaterialValues:
             self._write_value,
             self._write_texref,
             parent_shadertype=self.shadertype,
+            inherited_unique_name=p_inherited_unique_name,
         )
 
 
