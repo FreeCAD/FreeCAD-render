@@ -345,6 +345,21 @@ def _write_material_passthrough(name, matval):
     snippet = indent(matval["string"], "    ")
     return snippet.format(n=name, c=matval.default_color)
 
+def _write_material_diffuse(name, matval, write_material=True):
+    """Compute a string in the renderer SDL for a Diffuse material."""
+    snippet_bsdf = f"""
+            <bsdf name="{name}_bsdf" model="lambertian_brdf">
+                <parameter name="reflectance" value="{matval["color"][0]}" />
+            </bsdf>"""
+    snippet_color = SNIPPET_COLOR.format(
+        n=_color_name(name), c=matval["color"][1]
+    )
+    snippet = [snippet_color, snippet_bsdf]
+    if write_material:
+        snippet_material = _snippet_material(name, matval)
+        snippet.append(snippet_material)
+    return "".join(snippet)
+
 
 def _write_material_glass(name, matval, write_material=True):
     """Compute a string in the renderer SDL for a glass material."""
@@ -403,20 +418,40 @@ def _write_material_disney(name, matval):
     return "".join(snippet)
 
 
-def _write_material_diffuse(name, matval, write_material=True):
-    """Compute a string in the renderer SDL for a Diffuse material."""
-    snippet_bsdf = f"""
-            <bsdf name="{name}_bsdf" model="lambertian_brdf">
-                <parameter name="reflectance" value="{matval["color"][0]}" />
-            </bsdf>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["color"][1]
-    )
-    snippet = [snippet_color, snippet_bsdf]
-    if write_material:
-        snippet_material = SNIPPET_MATERIAL.format(n=name)
-        snippet.append(snippet_material)
-    return "".join(snippet)
+def _snippet_material(name, matval):
+    """Get a string for Appleseed Material entity."""
+    if matval.has_bump() and matval.has_normal():
+        msg = (
+            f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
+            "does not support bump and normal at the same time in a material. "
+            "Falling back to bump only."
+        )
+        App.Console.PrintWarning(msg)
+
+    if matval.has_bump():
+        disp_method = "bump"
+        disp_map = matval["bump"]
+    elif matval.has_normal():
+        disp_method = "normal"
+        disp_map = matval["normal"]
+    else:
+        # No bump, no normal: return simple material
+        return f"""
+            <material name="{name}" model="generic_material">
+                <parameter name="bsdf" value="{name}_bsdf" />
+            </material>"""
+
+    snippet = f"""
+            <material name="{name}" model="generic_material">
+                <parameter name="bsdf" value="{name}_bsdf" />
+                <parameter name="displacement_method" value="{disp_method}" />
+                <parameter name="displacement_map" value="{disp_map}" />
+                <parameter name="normal_map_up" value="z" />
+                <parameter name="bump_amplitude" value="0.001" />
+                <parameter name="default_tangent_mode" value="uv" />
+            </material>"""
+    return snippet
+
 
 
 def _write_material_mixed(name, matval):
@@ -438,13 +473,15 @@ def _write_material_mixed(name, matval):
                 <parameter name="weight"
                            value="{matval["transparency"]}" />
             </bsdf>"""
+
+    snippet_material = _snippet_material(name, matval)
     snippet = [
         snippet_g_tex,
         snippet_d_tex,
         snippet_g,
         snippet_d,
         snippet_mixed,
-        SNIPPET_MATERIAL.format(n=name),
+        snippet_material,
     ]
     return "".join(snippet)
 
@@ -534,7 +571,7 @@ def _write_material_fallback(name, material):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(material.color.r)
+        red = float(material.color.r)  # TODO Matval does not have those attributes
         grn = float(material.color.g)
         blu = float(material.color.b)
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
@@ -552,7 +589,7 @@ def _write_material_fallback(name, material):
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="_color_name(name)" />
             </bsdf>""",
-        SNIPPET_MATERIAL.format(n=name),
+        SNIPPET_MATERIAL.format(n=name),  # TODO No bump...
     )
     return "".join(snippet)
 
@@ -617,6 +654,7 @@ def _write_texture(**kwargs):
     """
     # Retrieve parameters
     propvalue = kwargs["propvalue"]
+    proptype = kwargs["proptype"]
 
     # Compute texture name
     texname = _texname(**kwargs)
@@ -625,10 +663,11 @@ def _write_texture(**kwargs):
     filename = propvalue.file.encode("unicode_escape").decode("utf-8")
 
     # Texture
+    colorspace = "srgb" if proptype=="RGB" else "linear_rgb"
     texture = f"""
         <texture name="{texname}" model="disk_texture_2d">
             <parameter name="filename" value="{filename}"/>
-            <parameter name="color_space" value="srgb"/>
+            <parameter name="color_space" value="{colorspace}"/>
         </texture>
         <texture_instance name="{texname}.instance" texture="{texname}">
         </texture_instance>"""
