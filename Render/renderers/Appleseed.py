@@ -340,12 +340,10 @@ def _write_material(name, matval):
     return snippet_mat
 
 
-# TODO Passthrough/Texture
-def _write_material_passthrough(name, material):
+def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    assert material.passthrough.renderer == "Appleseed"
-    snippet = indent(material.passthrough.string, "    ")
-    return snippet.format(n=name, c=material.default_color)
+    snippet = indent(matval["string"], "    ")
+    return snippet.format(n=name, c=matval.default_color)
 
 
 def _write_material_glass(name, matval, write_material=True):
