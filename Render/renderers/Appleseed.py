@@ -335,15 +335,11 @@ def _write_material(name, matval):
         )
         App.Console.PrintWarning(msg)
         snippet_mat = _write_material_fallback(name, matval.default_color)
+    else:
+        snippet_mat = write_function(name, matval)
 
-    snippet_mat = write_function(name, matval)
     return snippet_mat
 
-
-def _write_material_passthrough(name, matval):
-    """Compute a string in the renderer SDL for a passthrough material."""
-    snippet = indent(matval["string"], "    ")
-    return snippet.format(n=name, c=matval.default_color)
 
 def _write_material_diffuse(name, matval, write_material=True):
     """Compute a string in the renderer SDL for a Diffuse material."""
@@ -416,42 +412,6 @@ def _write_material_disney(name, matval):
     snippet_material = SNIPPET_MATERIAL.format(n=name)
     snippet = [snippet_color, snippet_bsdf, snippet_material]
     return "".join(snippet)
-
-
-def _snippet_material(name, matval):
-    """Get a string for Appleseed Material entity."""
-    if matval.has_bump() and matval.has_normal():
-        msg = (
-            f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
-            "does not support bump and normal at the same time in a material. "
-            "Falling back to bump only."
-        )
-        App.Console.PrintWarning(msg)
-
-    if matval.has_bump():
-        disp_method = "bump"
-        disp_map = matval["bump"]
-    elif matval.has_normal():
-        disp_method = "normal"
-        disp_map = matval["normal"]
-    else:
-        # No bump, no normal: return simple material
-        return f"""
-            <material name="{name}" model="generic_material">
-                <parameter name="bsdf" value="{name}_bsdf" />
-            </material>"""
-
-    snippet = f"""
-            <material name="{name}" model="generic_material">
-                <parameter name="bsdf" value="{name}_bsdf" />
-                <parameter name="displacement_method" value="{disp_method}" />
-                <parameter name="displacement_map" value="{disp_map}" />
-                <parameter name="normal_map_up" value="z" />
-                <parameter name="bump_amplitude" value="0.001" />
-                <parameter name="default_tangent_mode" value="uv" />
-            </material>"""
-    return snippet
-
 
 
 def _write_material_mixed(name, matval):
@@ -565,20 +525,26 @@ def _write_material_carpaint(name, matval):
     return snippet
 
 
-def _write_material_fallback(name, material):
+def _write_material_passthrough(name, matval):
+    """Compute a string in the renderer SDL for a passthrough material."""
+    snippet = indent(matval["string"], "    ")
+    return snippet.format(n=name, c=matval.default_color)
+
+
+def _write_material_fallback(name, matval):
     """Compute a string in the renderer SDL for a fallback material.
 
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(material.color.r)  # TODO Matval does not have those attributes
-        grn = float(material.color.g)
-        blu = float(material.color.b)
+        red = float(matval.material.color.r)
+        grn = float(matval.material.color.g)
+        blu = float(matval.material.color.b)
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
-        red, grn, blu = 1, 1, 1
-    finally:
-        color = RGB(red, grn, blu)
+        red, grn, blu = 1.0, 1.0, 1.0
+
+    color = RGB(red, grn, blu)
 
     snippet = (
         SNIPPET_COLOR.format(
@@ -587,9 +553,11 @@ def _write_material_fallback(name, material):
         f"""
             <!-- Object '{name}' - FALLBACK -->
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
-                <parameter name="reflectance" value="_color_name(name)" />
-            </bsdf>""",
-        SNIPPET_MATERIAL.format(n=name),  # TODO No bump...
+                <parameter name="reflectance" value="{_color_name(name)}" />
+            </bsdf>
+            <material name="{name}" model="generic_material">
+                <parameter name="bsdf" value="{name}_bsdf" />
+            </material>""",
     )
     return "".join(snippet)
 
@@ -622,6 +590,42 @@ SNIPPET_MATERIAL = """
             </material>"""
 
 RGB = collections.namedtuple("RGB", "r g b")
+
+
+def _snippet_material(name, matval):
+    """Get a string for Appleseed Material entity."""
+    if matval.has_bump() and matval.has_normal():
+        msg = (
+            f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
+            "does not support bump and normal at the same time in a material. "
+            "Falling back to bump only."
+        )
+        App.Console.PrintWarning(msg)
+
+    if matval.has_bump():
+        disp_method = "bump"
+        disp_map = matval["bump"]
+    elif matval.has_normal():
+        disp_method = "normal"
+        disp_map = matval["normal"]
+    else:
+        # No bump, no normal: return simple material
+        return f"""
+            <material name="{name}" model="generic_material">
+                <parameter name="bsdf" value="{name}_bsdf" />
+            </material>"""
+
+    snippet = f"""
+            <material name="{name}" model="generic_material">
+                <parameter name="bsdf" value="{name}_bsdf" />
+                <parameter name="displacement_method" value="{disp_method}" />
+                <parameter name="displacement_map" value="{disp_map}" />
+                <parameter name="normal_map_up" value="z" />
+                <parameter name="bump_amplitude" value="0.001" />
+                <parameter name="default_tangent_mode" value="uv" />
+            </material>"""
+    return snippet
+
 
 # ===========================================================================
 #                             Textures
@@ -663,7 +667,7 @@ def _write_texture(**kwargs):
     filename = propvalue.file.encode("unicode_escape").decode("utf-8")
 
     # Texture
-    colorspace = "srgb" if proptype=="RGB" else "linear_rgb"
+    colorspace = "srgb" if proptype == "RGB" else "linear_rgb"
     texture = f"""
         <texture name="{texname}" model="disk_texture_2d">
             <parameter name="filename" value="{filename}"/>
