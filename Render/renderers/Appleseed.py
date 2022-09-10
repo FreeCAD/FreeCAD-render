@@ -455,19 +455,20 @@ def _write_material_carpaint(name, matval):
     # carpaint is an osl shader, so the computation is a bit more complex,
     # and not so 'industrialized' for textures as other shaders...
     path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
-    color = matval["basecolor"][1]  # Base
 
+    # Base color
+    color = matval["basecolor"][1]  # Base
     color_texobj = matval.get_texobject("basecolor")
 
     if color_texobj:  # Material has color texture
         filename = color_texobj.file.encode("unicode_escape").decode("utf-8")
-        texshader = f"""
-        <!-- Texture -->
+        color_texshader = f"""
+        <!-- Color texture -->
         <shader layer="BasecolorTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
         </shader>"""
-        texconnect = """
+        color_texconnect = """
         <connect_shaders src_layer="BasecolorTex" src_param="out_color"
                          dst_layer="MasterMix" dst_param="in_color" />
         <connect_shaders src_layer="BasecolorTex" src_param="out_color"
@@ -477,8 +478,47 @@ def _write_material_carpaint(name, matval):
                          dst_layer="MasterMix"
                          dst_param="in_coating_absorption" />"""
     else:
-        texshader, texconnect = "", ""
+        color_texshader, color_texconnect = "", ""
 
+    # Bump/Normal
+    if matval.has_bump() and matval.has_normal():
+        msg = (
+            f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
+            "does not support bump and normal at the same time in a material. "
+            "Falling back to bump only."
+        )
+        App.Console.PrintWarning(msg)
+
+    if matval.has_bump():
+        bump_texobj = matval.get_texobject("bump")
+        filename = bump_texobj.file.encode("unicode_escape").decode("utf-8")
+        normal_texshader = f"""
+        <!-- Bump -->
+        <shader layer="BumpTex" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>
+        <shader layer="Bump" type="shader" name="as_bump">
+            <parameter name="in_mode" value="string Bump" />
+            <parameter name="in_bump_depth" value="float 1.0" />
+        </shader>"""
+        normal_texconnect = f"""
+        <connect_shaders src_layer="BumpTex" src_param="out_channel"
+                         dst_layer="Bump" dst_param="in_bump_value" />
+        <connect_shaders src_layer="Bump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_substrate" />"""
+    elif matval.has_normal():
+        normal_texshader = ""
+        normal_texconnect = f"""
+        """
+    else:
+        normal_texshader = ""
+        normal_texconnect = f"""
+        """
+
+    # Final consolidation
     snippet = f"""
         <search_path>
             {path}
@@ -492,7 +532,7 @@ def _write_material_carpaint(name, matval):
     <surface_shader name="{name}_ss" model="physical_surface_shader" />
 
     <shader_group name="{name}_group">
-{texshader}
+{color_texshader}{normal_texshader}
         <shader layer="MasterMix" type="shader" name="as_standard_surface">
             <parameter name="in_color"
                        value="color {color}" />
@@ -522,7 +562,7 @@ def _write_material_carpaint(name, matval):
                        value="float 1.57" />
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
-{texconnect}
+{color_texconnect}{normal_texconnect}
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
     </shader_group>"""
