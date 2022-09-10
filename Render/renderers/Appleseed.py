@@ -337,7 +337,7 @@ def _write_material(name, matval):
             f"'{name}' - Material '{matval.shadertype}' unknown by renderer,"
             " using fallback material\n"
         )
-        App.Console.PrintWarning(msg)
+        _warn(msg)
         snippet_mat = _write_material_fallback(name, matval.default_color)
     else:
         snippet_mat = write_function(name, matval)
@@ -482,11 +482,11 @@ def _write_material_carpaint(name, matval):
     # Bump/Normal
     if matval.has_bump() and matval.has_normal():
         msg = (
-            f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
+            f"[Material '{name}'] Warning - Appleseed "
             "does not support bump and normal at the same time in a material. "
             "Falling back to bump only.\n"
         )
-        App.Console.PrintWarning(msg)
+        _warn(msg)
 
     if matval.has_bump():
         bump_texobj = matval.get_texobject("bump")
@@ -660,11 +660,11 @@ def _snippet_material(name, matval):
     """Get a string for Appleseed Material entity."""
     if matval.has_bump() and matval.has_normal():
         msg = (
-            f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
+            f"[Material '{name}'] Warning - Appleseed "
             "does not support bump and normal at the same time in a material. "
             "Falling back to bump only.\n"
         )
-        App.Console.PrintWarning(msg)
+        _warn(msg)
 
     if matval.has_bump():
         disp_method = "bump"
@@ -787,10 +787,10 @@ def _write_texref(**kwargs):
     # IOR special case
     if propname == "ior":
         msg = (
-            "[Render] [Appleseed] Warning - Appleseed does not support "
+            "Warning - Appleseed does not support "
             "textures for 'ior' parameter. Fallback to value 1.5\n"
         )
-        App.Console.PrintWarning(msg)
+        _warn(msg)
         return "1.5"
 
     # RGB special case
@@ -955,3 +955,9 @@ def _transform(vec):
         The transformed vector, in Appleseed coordinates
     """
     return App.Vector(vec.x, vec.z, -vec.y)
+
+def _warn(msg):
+    """Warn user with a message."""
+    fullmsg = f"[Render] [Appleseed] {msg}"
+    App.Console.PrintWarning(fullmsg)
+
