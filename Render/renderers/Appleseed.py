@@ -375,10 +375,9 @@ def _write_material_glass(name, matval, write_material=True):
     snippet_color = SNIPPET_COLOR.format(
         n=_color_name(name), c=matval["color"][1]
     )
-    snippet_material = SNIPPET_MATERIAL.format(n=name)
     snippet = [snippet_color, snippet_bsdf]
     if write_material:
-        snippet_material = SNIPPET_MATERIAL.format(n=name)
+        snippet_material = _snippet_material(name, matval)
         snippet.append(snippet_material)
     return "".join(snippet)
 
@@ -653,16 +652,6 @@ SNIPPET_COLOR = """
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> {c} </values>
             </color>"""
-
-SNIPPET_MATERIAL = """
-            <material name="{n}" model="generic_material">
-                <parameter name="bsdf" value="{n}_bsdf" />
-                <parameter name="bump_amplitude" value="1.0" />
-                <parameter name="bump_offset" value="2.0" />
-                <parameter name="displacement_method" value="bump" />
-                <parameter name="normal_map_up" value="z" />
-                <parameter name="shade_alpha_cutouts" value="false" />
-            </material>"""
 
 RGB = collections.namedtuple("RGB", "r g b")
 
