@@ -62,45 +62,29 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
-    # Write the mesh as an OBJ tempfile
-    f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-    os.close(f_handle)
-    tmpmesh = mesh.copy()
-    # Direct rotation of mesh is preferred to Placement modification
-    # because the latter is buggy (normals are not updated...)
-    # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
-    tmpmesh.rotate(-pi / 2, 0, 0)  # OK
-    tmpmesh.write(objfile)
-
-    # Fix missing object name in OBJ file (mandatory)
-    # We want to insert a 'o ...' statement before the first 'f ...'
-    # We add also a 'usemtl' statement
-    with open(objfile, "r", encoding="utf-8") as f:
-        buffer = f.readlines()
-
-    i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    buffer.insert(i, f"o {name}\nusemtl material\n")
-
     # Write material
     f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
     os.close(f_handle)
-    mtl = "newmtl material" + _write_material(name, material)
+    mtl = ["newmtl material", _write_material(name, material)]
     with open(mtlfile, "w", encoding="utf-8") as f:
-        f.write(mtl)
+        f.write("".join(mtl))
+    mtlfilename = os.path.basename(mtlfile)
 
-    buffer.insert(0, f"mtllib {os.path.basename(mtlfile)}\n")
+    # Write the mesh as an OBJ tempfile
+    # Direct rotation of mesh is preferred to Placement modification
+    # because the latter is buggy (normals are not updated...)
+    # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
+    mesh.rotate(-pi / 2, 0, 0)  # OK
+    objfile = mesh.write_objfile(name, mtlfile=mtlfilename, mtlname="material")
 
-    with open(objfile, "w", encoding="utf-8") as f:
-        f.write("".join(buffer))
-
-    snippet_obj = """
-      {{
-        "name": {n},
-        "type": "IMPORTER",
-        "filename": {f}
-      }},"""
     filename = objfile.encode("unicode_escape").decode("utf-8")
-    return snippet_obj.format(n=json.dumps(name), f=json.dumps(filename))
+    snippet_obj = f"""
+      {{
+        "name": {json.dumps(name)},
+        "type": "IMPORTER",
+        "filename": {json.dumps(filename)}
+      }},"""
+    return snippet_obj
 
 
 def write_camera(name, pos, updir, target, fov):

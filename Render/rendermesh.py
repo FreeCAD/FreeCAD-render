@@ -252,6 +252,15 @@ class RenderMesh:
 
         return objfile
 
+    @staticmethod
+    def write_mtl(name, mtlcontent, mtlfile=None):
+        f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
+        os.close(f_handle)
+        mtl = [f"newmtl {name}", mtl_content]  # _write_material(name, material)
+        with open(mtlfile, "w", encoding="utf-8") as f:
+            f.write(mtl)
+        return mtlfile
+
     @property
     def uvmap(self):
         """Get mesh uv map."""
