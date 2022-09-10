@@ -516,21 +516,30 @@ def _write_material_carpaint(name, matval):
             <parameter name="in_filename"
                        value="string {filename}" />
         </shader>
-        <shader layer="Bump" type="shader" name="as_bump">
+        <shader layer="SubstrateBump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Normal Map" />
-            <parameter name="in_normal_map_weight" value="float 0.2" />
+            <parameter name="in_normal_map_weight" value="float 0.4" />
+            <parameter name="in_normal_map_swap_rg" value="int 0" />
+            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+            <parameter name="in_normal_map_mode" value="string Unsigned" />
+        </shader>
+        <shader layer="CoatingBump" type="shader" name="as_bump">
+            <parameter name="in_mode" value="string Normal Map" />
+            <parameter name="in_normal_map_weight" value="float 0.4" />
             <parameter name="in_normal_map_swap_rg" value="int 0" />
             <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
             <parameter name="in_normal_map_mode" value="string Unsigned" />
         </shader>"""
         normal_texconnect = f"""
         <connect_shaders src_layer="NormalTex" src_param="out_color"
-                         dst_layer="Bump" dst_param="in_normal_map" />
-        <connect_shaders src_layer="Bump"
+                         dst_layer="SubstrateBump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="NormalTex" src_param="out_color"
+                         dst_layer="CoatingBump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="SubstrateBump"
                          src_param="out_normal"
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_substrate" />
-        <connect_shaders src_layer="Bump"
+        <connect_shaders src_layer="CoatingBump"
                          src_param="out_normal"
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_coating" />"""
