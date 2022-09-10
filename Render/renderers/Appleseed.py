@@ -685,13 +685,22 @@ def _snippet_material(name, matval):
                 <parameter name="bsdf" value="{name}_bsdf" />
             </material>"""
 
+    # Compute texture scale
+    texobjects = matval.texobjects
+    if texobjects:
+        tex = next(iter(texobjects.values()))  # We take the 1st texture...
+        scale = float(tex.scale) if float(tex.scale) != 0 else 1.0
+    else:
+        scale = 1.0
+    bump_amplitude = scale
+
     snippet = f"""
             <material name="{name}" model="generic_material">
                 <parameter name="bsdf" value="{name}_bsdf" />
                 <parameter name="displacement_method" value="{disp_method}" />
                 <parameter name="displacement_map" value="{disp_map}" />
                 <parameter name="normal_map_up" value="z" />
-                <parameter name="bump_amplitude" value="0.001" />
+                <parameter name="bump_amplitude" value="{bump_amplitude}" />
                 <parameter name="default_tangent_mode" value="uv" />
             </material>"""
     return snippet
