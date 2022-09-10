@@ -485,7 +485,7 @@ def _write_material_carpaint(name, matval):
         msg = (
             f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
             "does not support bump and normal at the same time in a material. "
-            "Falling back to bump only."
+            "Falling back to bump only.\n"
         )
         App.Console.PrintWarning(msg)
 
@@ -510,9 +510,30 @@ def _write_material_carpaint(name, matval):
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_substrate" />"""
     elif matval.has_normal():
-        normal_texshader = ""
+        normal_texshader = f"""
+        <!-- Normal -->
+        <shader layer="NormalTex" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>
+        <shader layer="Bump" type="shader" name="as_bump">
+            <parameter name="in_mode" value="string Normal Map" />
+            <parameter name="in_normal_map_weight" value="float 0.2" />
+            <parameter name="in_normal_map_swap_rg" value="int 0" />
+            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+            <parameter name="in_normal_map_mode" value="string Unsigned" />
+        </shader>"""
         normal_texconnect = f"""
-        """
+        <connect_shaders src_layer="NormalTex" src_param="out_color"
+                         dst_layer="Bump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="Bump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_substrate" />
+        <connect_shaders src_layer="Bump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_coating" />"""
     else:
         normal_texshader = ""
         normal_texconnect = f"""
@@ -643,7 +664,7 @@ def _snippet_material(name, matval):
         msg = (
             f"[Render] [Appleseed] [Material '{name}'] Warning - Appleseed "
             "does not support bump and normal at the same time in a material. "
-            "Falling back to bump only."
+            "Falling back to bump only.\n"
         )
         App.Console.PrintWarning(msg)
 
