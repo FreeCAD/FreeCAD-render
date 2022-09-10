@@ -413,7 +413,7 @@ def _write_material_disney(name, matval):
     snippet_color = SNIPPET_COLOR.format(
         n=_color_name(name), c=matval["basecolor"][1]
     )
-    snippet_material = SNIPPET_MATERIAL.format(n=name)
+    snippet_material = _snippet_material(name, matval)
     snippet = [snippet_color, snippet_bsdf, snippet_material]
     return "".join(snippet)
 
