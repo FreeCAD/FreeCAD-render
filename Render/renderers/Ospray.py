@@ -63,12 +63,8 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Write material
-    f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
-    os.close(f_handle)
-    mtl = ["newmtl material", _write_material(name, material)]
-    with open(mtlfile, "w", encoding="utf-8") as f:
-        f.write("".join(mtl))
-    mtlfilename = os.path.basename(mtlfile)
+    mtlfilename = type(mesh).write_mtl("material", _write_material(name, material))
+    mtlfilename = os.path.basename(mtlfilename)
 
     # Write the mesh as an OBJ tempfile
     # Direct rotation of mesh is preferred to Placement modification

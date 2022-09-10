@@ -254,11 +254,26 @@ class RenderMesh:
 
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
+        """Write a MTL file.
+
+        MTL file is the companion of OBJ file, thus we keep this method in
+        RenderMesh, although there is no need of the mesh to write the MTL.
+
+        Args:
+        name -- The material name, to be referenced in OBJ (str)
+        mtlcontent -- The material content (str)
+        mtlfile -- The mtl file name to write to. If None, a temp file is
+          created. (str)
+
+        Returns:
+        The MTL file name
+        """
         f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
         os.close(f_handle)
-        mtl = [f"newmtl {name}", mtl_content]  # _write_material(name, material)
+        # _write_material(name, material)
         with open(mtlfile, "w", encoding="utf-8") as f:
-            f.write(mtl)
+            f.write(f"newmtl {name}")
+            f.write(mtlcontent)
         return mtlfile
 
     @property
