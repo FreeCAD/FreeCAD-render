@@ -72,10 +72,14 @@ def write_mesh(name, mesh, material):
     #
     # NOTE 2: Appleseed does not look happy with FreeCAD normals
     # so we'll leave Appleseed compute them on its own (normals=False)
+    #
+    # NOTE 3: We should generate a special matval object for osl shader (with
+    # specific _write_value, _write_texture and _write_texref functions).
+    # This can be an enhancement in the future...
 
     texobjects = matval.texobjects
     if texobjects:
-        tex = texobjects[0]  # We take the first texture...
+        tex = next(iter(texobjects.values()))  # We take the 1st texture...
         scale = 1.0 / float(tex.scale) if float(tex.scale) != 0 else 1.0
         rotation = -float(radians(tex.rotation))
         translation_u = -float(tex.translation_u)
@@ -453,9 +457,10 @@ def _write_material_carpaint(name, matval):
     path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
     color = matval["basecolor"][1]  # Base
 
-    if matval.texobjects:  # Material has texture(s)
-        texobj = matval.texobjects[0]  # basecolor should be the 1st and unique
-        filename = texobj.file.encode("unicode_escape").decode("utf-8")
+    color_texobj = matval.get_texobject("basecolor")
+
+    if color_texobj:  # Material has color texture
+        filename = color_texobj.file.encode("unicode_escape").decode("utf-8")
         texshader = f"""
         <!-- Texture -->
         <shader layer="BasecolorTex" type="shader" name="as_texture">

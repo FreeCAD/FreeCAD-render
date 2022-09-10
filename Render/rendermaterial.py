@@ -500,7 +500,7 @@ class MaterialValues:
         self.parent_shadertype = parent_shadertype
         self._values = {}
         self._textures = []
-        self._texobjects = []
+        self._texobjects = {}
         self._write_texture = write_texture_fun
         self._write_value = write_value_fun
         self._write_texref = write_texref_fun
@@ -545,7 +545,7 @@ class MaterialValues:
                     unique_matname=self._unique_matname,
                 )
                 # Add texture object to internal list (for Appleseed)
-                self._texobjects.append(propvalue)
+                self._texobjects[propkey] = propvalue
             else:
                 # Not a texture, treat as plain value...
                 value = write_value_fun(
@@ -573,6 +573,14 @@ class MaterialValues:
         (mainly for Appleseed)
         """
         return self._texobjects
+
+    def get_texobject(self, name):
+        """Get a texture object by name.
+
+        (mainly for Appleseed)
+        """
+        return self._texobjects.get(name, None)
+
 
     def write_textures(self):
         """Get an SDL representation of all textures."""
