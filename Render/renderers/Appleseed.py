@@ -335,7 +335,7 @@ def _write_material(name, matval):
     except KeyError:
         msg = (
             f"'{name}' - Material '{matval.shadertype}' unknown by renderer,"
-            " using fallback material\n"
+            " using fallback material"
         )
         _warn(msg)
         snippet_mat = _write_material_fallback(name, matval.default_color)
@@ -484,7 +484,7 @@ def _write_material_carpaint(name, matval):
         msg = (
             f"[Material '{name}'] Warning - Appleseed "
             "does not support bump and normal at the same time in a material. "
-            "Falling back to bump only.\n"
+            "Falling back to bump only."
         )
         _warn(msg)
 
@@ -501,7 +501,7 @@ def _write_material_carpaint(name, matval):
             <parameter name="in_mode" value="string Bump" />
             <parameter name="in_bump_depth" value="float 1.0" />
         </shader>"""
-        normal_texconnect = f"""
+        normal_texconnect = """
         <connect_shaders src_layer="BumpTex" src_param="out_channel"
                          dst_layer="Bump" dst_param="in_bump_value" />
         <connect_shaders src_layer="Bump"
@@ -529,7 +529,7 @@ def _write_material_carpaint(name, matval):
             <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
             <parameter name="in_normal_map_mode" value="string Unsigned" />
         </shader>"""
-        normal_texconnect = f"""
+        normal_texconnect = """
         <connect_shaders src_layer="NormalTex" src_param="out_color"
                          dst_layer="SubstrateBump" dst_param="in_normal_map" />
         <connect_shaders src_layer="NormalTex" src_param="out_color"
@@ -544,8 +544,7 @@ def _write_material_carpaint(name, matval):
                          dst_param="in_bump_normal_coating" />"""
     else:
         normal_texshader = ""
-        normal_texconnect = f"""
-        """
+        normal_texconnect = ""
 
     # Final consolidation
     snippet = f"""
@@ -658,11 +657,18 @@ RGB = collections.namedtuple("RGB", "r g b")
 
 def _snippet_material(name, matval):
     """Get a string for Appleseed Material entity."""
+    if matval.has_displacement():
+        msg = (
+            f"[Material '{name}'] Warning - Appleseed "
+            "does not support displacement."
+        )
+        _warn(msg)
+
     if matval.has_bump() and matval.has_normal():
         msg = (
             f"[Material '{name}'] Warning - Appleseed "
             "does not support bump and normal at the same time in a material. "
-            "Falling back to bump only.\n"
+            "Falling back to bump only."
         )
         _warn(msg)
 
@@ -788,7 +794,7 @@ def _write_texref(**kwargs):
     if propname == "ior":
         msg = (
             "Warning - Appleseed does not support "
-            "textures for 'ior' parameter. Fallback to value 1.5\n"
+            "textures for 'ior' parameter. Fallback to value 1.5"
         )
         _warn(msg)
         return "1.5"
@@ -956,8 +962,8 @@ def _transform(vec):
     """
     return App.Vector(vec.x, vec.z, -vec.y)
 
+
 def _warn(msg):
     """Warn user with a message."""
-    fullmsg = f"[Render] [Appleseed] {msg}"
+    fullmsg = f"[Render] [Appleseed] {msg}\n"
     App.Console.PrintWarning(fullmsg)
-
