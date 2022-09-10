@@ -145,6 +145,7 @@ class RenderMesh:
         objfile=None,
         mtlfile=None,
         mtlname=None,
+        mtlcontent=None,
         normals=True,
         uv_translate_u=0.0,
         uv_translate_v=0.0,
@@ -161,6 +162,7 @@ class RenderMesh:
             mtlfile -- MTL file name to reference in OBJ (optional) (str)
             mtlname -- Material name to reference in OBJ, must be defined in
               MTL file (optional) (str)
+            mtlcontent -- MTL file content (optional) (str)
             normals -- Flag to control the writing of normals in the OBJ file
               (bool)
 
@@ -180,7 +182,13 @@ class RenderMesh:
         header = ["# Written by FreeCAD-Render"]
 
         # Mtl
-        mtl = [f"mtllib {mtlfile}", ""] if mtlfile is not None else []
+        if mtlcontent is not None:
+            # Write mtl file
+            mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
+            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
+                raise ValueError("OBJ and MTL files shoud be in the same dir")
+            mtlfilename = os.path.basename(mtlfilename)
+        mtl = [f"mtllib {mtlfilename}", ""] if mtlfilename is not None else []
 
         # Vertices
         verts = [p.Vector for p in self.Points]
