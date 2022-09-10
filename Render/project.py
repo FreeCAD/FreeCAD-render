@@ -43,7 +43,7 @@ import FreeCADGui as Gui
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
-from Render.utils import translate, set_last_cmd
+from Render.utils import translate, set_last_cmd, clear_report_view
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
@@ -381,6 +381,11 @@ class Project(FeatureBase):
             Output file path
         """
         wait_for_completion = bool(wait_for_completion)
+
+        # Clear report view (if required)
+        clear_report = PARAMS.GetBool("ClearReport")
+        if clear_report:
+            clear_report_view()
 
         # Get a handle to renderer module
         try:
