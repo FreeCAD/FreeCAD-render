@@ -445,11 +445,10 @@ def _write_material(name, material):
     return snippet_mat
 
 
-def _write_material_passthrough(name, material):
+def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    assert material.passthrough.renderer == "Ospray"
-    snippet = "\n" + material.passthrough.string
-    return snippet.format(n=name, c=material.default_color)
+    snippet = "\n" + matval["string"]
+    return snippet.format(n=name, c=matval.default_color)
 
 
 def _write_material_glass(name, matval):
@@ -643,6 +642,8 @@ _FIELD_MAPPING = {
     ("glass", "color"): "transmissionColor",
     ("glass", "ior"): "ior",
     ("diffuse", "color"): "baseColor",
+    ("Passthrough", "string"): "",
+    ("Passthrough", "renderer"): "",
 }
 
 
