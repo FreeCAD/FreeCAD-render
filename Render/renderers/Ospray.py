@@ -70,11 +70,20 @@ def write_mesh(name, mesh, material):
     # because the latter is buggy (normals are not updated...)
     # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
     mesh.rotate(-pi / 2, 0, 0)  # OK
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_")
     objfile = mesh.write_objfile(
-        name, mtlname="material", mtlcontent=_write_material(name, matval), normals=False
+        name,
+        objfile=basefilename + ".obj",
+        mtlfile=basefilename + ".mtl",
+        mtlname="material",
+        mtlcontent=_write_material(name, matval),
+        normals=False,
     )
 
-    filename = objfile.encode("unicode_escape").decode("utf-8")
+    # OBJ is supposed to be in the same directory as final sg file
+    filename = os.path.basename(objfile)
+    filename = filename.encode("unicode_escape").decode("utf-8")
+
     snippet_obj = f"""
       {{
         "name": {json.dumps(name)},
@@ -425,7 +434,12 @@ def _write_material(name, material):
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.default_color)
     else:
-        snippet_mat = material_function(name, material)
+        snippet_mat = [
+            material_function(name, material),
+            material.write_textures()
+        ]
+        snippet_mat = "".join(snippet_mat)
+
     return snippet_mat
 
 
@@ -587,8 +601,35 @@ def _write_texture(**kwargs):
         the name of the texture
         the SDL string of the texture
     """
+    proptype = kwargs["proptype"]
     propname = kwargs["propname"]
-    return propname,""
+    shadertype = kwargs["shadertype"]
+    propvalue = kwargs["propvalue"]
+
+    # Get texture parameters
+    filename = os.path.basename(propvalue.file)
+    scale, rotation = float(propvalue.scale), float(propvalue.rotation)
+    translation_u = float(propvalue.translation_u)
+    translation_v = float(propvalue.translation_v)
+
+    field = _FIELD_MAPPING[shadertype, propname]
+
+    # Snippets for texref
+    if proptype in ["RGB", "float", "texonly"]:
+        tex = [
+            f"# Texture {field}",
+            f"map_{field} {filename}",
+            f"map_{field}.rotation {rotation}",
+            f"map_{field}.scale {scale} {scale}",
+            f"map_{field}.translation {translation_u} {translation_v}",
+        ]
+        tex = "\n".join(tex)
+    elif proptype == "node":
+        tex = ""
+    else:
+        raise NotImplementedError
+
+    return propname, tex
 
 
 # TODO Move
@@ -606,7 +647,6 @@ _FIELD_MAPPING = {
     ("Disney", "sheentint"): "sheenTint",
     ("Disney", "clearcoat"): "coat",
     ("Disney", "clearcoatgloss"): "coatRoughness",
-
 }
 
 
@@ -647,13 +687,38 @@ def _write_value(**kwargs):
     else:
         raise NotImplementedError
 
-
     return value
 
 
 def _write_texref(**kwargs):  # pylint: disable=unused-argument
     """Compute a string in SDL for a reference to a texture in a shader."""
-    return "0.0"  # In Cycles, there is no reference to textures in shaders...
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    val = kwargs["propvalue"]
+
+    field = _FIELD_MAPPING[shadertype, propname]
+
+    # Special cases
+    if propname == "clearcoatgloss":
+        raise NotImplementedError
+
+    # Snippets for values
+    if proptype == "RGB":
+        value = f"{field} 1.0 1.0 1.0"
+    elif proptype == "float":
+        value = f"{field} 1.0"
+    elif proptype == "node":
+        value = ""
+    elif proptype == "RGBA":
+        value = f"{field} 1.0 1.0 1.0 1.0"
+    elif proptype == "texonly":
+        value = f"map_{field} 1.0"
+    else:
+        raise NotImplementedError
+
+    return value
 
 
 # ===========================================================================
