@@ -420,25 +420,25 @@ def write_imagelight(name, image):
 
 # TODO Rename material
 # TODO Clean fallback
-def _write_material(name, material):
+def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
     try:
-        material_function = MATERIALS[material.shadertype]
+        material_function = MATERIALS[matval.shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
             "material\n"
         )
-        App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.default_color)
+        App.Console.PrintWarning(msg.format(name, matval.shadertype))
+        snippet_mat = _write_material_fallback(name, matval.default_color)
     else:
         snippet_mat = [
-            material_function(name, material),
-            material.write_textures()
+            material_function(name, matval),
+            matval.write_textures()
         ]
         snippet_mat = "".join(snippet_mat)
 
