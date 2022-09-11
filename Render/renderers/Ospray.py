@@ -71,7 +71,7 @@ def write_mesh(name, mesh, material):
     # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
     mesh.rotate(-pi / 2, 0, 0)  # OK
     objfile = mesh.write_objfile(
-        name, mtlname="material", mtlcontent=_write_material(name, matval)
+        name, mtlname="material", mtlcontent=_write_material(name, matval), normals=False
     )
 
     filename = objfile.encode("unicode_escape").decode("utf-8")
@@ -407,6 +407,8 @@ def write_imagelight(name, image):
 # ===========================================================================
 
 
+# TODO Rename material
+# TODO Clean fallback
 def _write_material(name, material):
     """Compute a string in the renderer SDL, to represent a material.
 
@@ -414,7 +416,7 @@ def _write_material(name, material):
     a fallback material is provided.
     """
     try:
-        snippet_mat = MATERIALS[material.shadertype](name, material)
+        material_function = MATERIALS[material.shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
@@ -422,6 +424,8 @@ def _write_material(name, material):
         )
         App.Console.PrintWarning(msg.format(name, material.shadertype))
         snippet_mat = _write_material_fallback(name, material.default_color)
+    else:
+        snippet_mat = material_function(name, material)
     return snippet_mat
 
 
@@ -442,11 +446,27 @@ attenuationColor {c.r} {c.g} {c.b}
     return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
 
 
-def _write_material_disney(name, material):
+def _write_material_disney(name, matval):
     """Compute a string in the renderer SDL for a Disney material."""
     # Nota1: OSP Principled material does not handle SSS, nor specular tint
     # Nota2: if metallic is set, specular should be 1.0. See here:
     # https://github.com/ospray/ospray_studio/issues/5
+    snippet = f"""
+type principled
+{matval["basecolor"]}
+# No subsurface scattering (Ospray limitation)
+{matval["metallic"]}
+{matval["specular"]}
+# No specular tint (Ospray limitation)
+{matval["roughness"]}
+{matval["anisotropic"]}
+{matval["sheen"]}
+{matval["sheentint"]}
+{matval["clearcoat"]}
+{matval["clearcoatgloss"]}
+"""
+    return snippet
+    # TODO Remove
     snippet = """
 type principled
 baseColor {1.r} {1.g} {1.b}
@@ -567,10 +587,28 @@ def _write_texture(**kwargs):
         the name of the texture
         the SDL string of the texture
     """
-    return ""
+    propname = kwargs["propname"]
+    return propname,""
+
 
 # TODO Move
-_FIELD_MAPPING = { ("Diffuse", "color"): "kd", }
+# Field mapping from internal materials to OBJ ones
+_FIELD_MAPPING = {
+    ("Diffuse", "color"): "kd",
+    ("Disney", "basecolor"): "baseColor",
+    ("Disney", "subsurface"): "",
+    ("Disney", "metallic"): "metallic",
+    ("Disney", "specular"): "specular",
+    ("Disney", "speculartint"): "",
+    ("Disney", "roughness"): "roughness",
+    ("Disney", "anisotropic"): "anisotropy",
+    ("Disney", "sheen"): "sheen",
+    ("Disney", "sheentint"): "sheenTint",
+    ("Disney", "clearcoat"): "coat",
+    ("Disney", "clearcoatgloss"): "coatRoughness",
+
+}
+
 
 def _write_value(**kwargs):
     """Compute a string in renderer SDL from a shader property value.
@@ -589,23 +627,26 @@ def _write_value(**kwargs):
 
     field = _FIELD_MAPPING[shadertype, propname]
 
-
+    # Special cases
+    if propname == "clearcoatgloss":
+        val = 1 - val
 
     # Snippets for values
     if proptype == "RGB":
         value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8}"
     elif proptype == "float":
-        value = f"{val:.8}"
+        value = f"{field} {val:.8}"
     elif proptype == "node":
         value = ""
     elif proptype == "RGBA":
-        value = f"{val.r:.8} {val.g:.8} {val.b:.8} {val.a:.8}"
+        value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8} {val.a:.8}"
     elif proptype == "texonly":
-        value = f"{val}"
+        value = f"map_{field} {val}"
     elif proptype == "str":
-        value = f"{val}"
+        value = f"{field} {val}"
     else:
         raise NotImplementedError
+
 
     return value
 
