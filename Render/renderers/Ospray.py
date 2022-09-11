@@ -200,8 +200,9 @@ intensity {radiance}
 transparency {transparency}
 """
 
-    f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="light_")
-    os.close(f_handle)
+    filebase = App.ActiveDocument.getTempFileName(name)
+
+    mtlfile = f"{filebase}.mtl"
     with open(mtlfile, "w", encoding="utf-8") as f:
         f.write(mtl)
 
@@ -228,21 +229,21 @@ usemtl material
 f 1//1 2//1 3//1 4//1
 """
 
-    f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="light_")
-    os.close(f_handle)
+    objfile = f"{filebase}.obj"
     with open(objfile, "w", encoding="utf-8") as f:
         f.write(obj)
 
     # Return SDL
-    filename = objfile.encode("unicode_escape").decode("utf-8")
-    snippet = """
+    filename = os.path.basename(objfile)
+    filename = filename.encode("unicode_escape").decode("utf-8")
+    snippet = f"""
       {{
-        "name": {n},
+        "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {f}
+        "filename": {json.dumps(filename)}
       }},"""
 
-    return snippet.format(n=json.dumps(name), f=json.dumps(filename))
+    return snippet
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
