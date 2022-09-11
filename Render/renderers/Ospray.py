@@ -418,8 +418,6 @@ def write_imagelight(name, image):
 # ===========================================================================
 
 
-# TODO Rename material
-# TODO Clean fallback
 def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
@@ -438,7 +436,7 @@ def _write_material(name, matval):
     else:
         snippet_mat = [
             material_function(name, matval),
-            matval.write_textures()
+            matval.write_textures(),
         ]
         snippet_mat = "".join(snippet_mat)
 
@@ -451,7 +449,7 @@ def _write_material_passthrough(name, matval):
     return snippet.format(n=name, c=matval.default_color)
 
 
-def _write_material_glass(name, matval):
+def _write_material_glass(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a glass material."""
     mtltype = "glass" if "color" not in matval.texobjects else "thinGlass"
 
@@ -463,7 +461,7 @@ type {mtltype}
     return snippet
 
 
-def _write_material_disney(name, matval):
+def _write_material_disney(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Disney material."""
     # Nota1: OSP Principled material does not handle SSS, nor specular tint
     # Nota2: if metallic is set, specular should be 1.0. See here:
@@ -485,7 +483,7 @@ type principled
     return snippet
 
 
-def _write_material_diffuse(name, matval):
+def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
     snippet = f"""
 type obj
@@ -521,7 +519,7 @@ specular 0.5
     return "".join(snippet)
 
 
-def _write_material_carpaint(name, matval):
+def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a carpaint material."""
     snippet = f"""
 type carPaint
@@ -563,6 +561,34 @@ MATERIALS = {
 # ===========================================================================
 #                              Textures
 # ===========================================================================
+
+# Field mapping from internal materials to OBJ ones
+_FIELD_MAPPING = {
+    ("Diffuse", "color"): "kd",
+    ("Disney", "basecolor"): "baseColor",
+    ("Disney", "subsurface"): "",
+    ("Disney", "metallic"): "metallic",
+    ("Disney", "specular"): "specular",
+    ("Disney", "speculartint"): "",
+    ("Disney", "roughness"): "roughness",
+    ("Disney", "anisotropic"): "anisotropy",
+    ("Disney", "sheen"): "sheen",
+    ("Disney", "sheentint"): "sheenTint",
+    ("Disney", "clearcoat"): "coat",
+    ("Disney", "clearcoatgloss"): "coatRoughness",
+    ("Glass", "color"): "attenuationColor",
+    ("Glass", "ior"): "eta",
+    ("Carpaint", "basecolor"): "baseColor",
+    ("Mixed", "transparency"): "transmission",
+    ("Mixed", "diffuse"): "",
+    ("Mixed", "shader"): "",
+    ("Mixed", "glass"): "",
+    ("glass", "color"): "transmissionColor",
+    ("glass", "ior"): "ior",
+    ("diffuse", "color"): "baseColor",
+    ("Passthrough", "string"): "",
+    ("Passthrough", "renderer"): "",
+}
 
 
 def _write_texture(**kwargs):
@@ -617,36 +643,6 @@ def _write_texture(**kwargs):
     return propname, tex
 
 
-# TODO Move
-# Field mapping from internal materials to OBJ ones
-_FIELD_MAPPING = {
-    ("Diffuse", "color"): "kd",
-    ("Disney", "basecolor"): "baseColor",
-    ("Disney", "subsurface"): "",
-    ("Disney", "metallic"): "metallic",
-    ("Disney", "specular"): "specular",
-    ("Disney", "speculartint"): "",
-    ("Disney", "roughness"): "roughness",
-    ("Disney", "anisotropic"): "anisotropy",
-    ("Disney", "sheen"): "sheen",
-    ("Disney", "sheentint"): "sheenTint",
-    ("Disney", "clearcoat"): "coat",
-    ("Disney", "clearcoatgloss"): "coatRoughness",
-    ("Glass", "color"): "attenuationColor",
-    ("Glass", "ior"): "eta",
-    ("Carpaint", "basecolor"): "baseColor",
-    ("Mixed", "transparency"): "transmission",
-    ("Mixed", "diffuse"): "",
-    ("Mixed", "shader"): "",
-    ("Mixed", "glass"): "",
-    ("glass", "color"): "transmissionColor",
-    ("glass", "ior"): "ior",
-    ("diffuse", "color"): "baseColor",
-    ("Passthrough", "string"): "",
-    ("Passthrough", "renderer"): "",
-}
-
-
 def _write_value(**kwargs):
     """Compute a string in renderer SDL from a shader property value.
 
@@ -687,14 +683,13 @@ def _write_value(**kwargs):
     return value
 
 
-def _write_texref(**kwargs):  # pylint: disable=unused-argument
+def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     # Retrieve parameters
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
     objname = kwargs["objname"]
-    val = kwargs["propvalue"]
 
     field = _FIELD_MAPPING[shadertype, propname]
 
