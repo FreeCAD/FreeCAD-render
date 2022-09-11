@@ -62,13 +62,16 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
+    matval = material.get_material_values(
+        name, _write_texture, _write_value, _write_texref
+    )
     # Write the mesh as an OBJ tempfile
     # Direct rotation of mesh is preferred to Placement modification
     # because the latter is buggy (normals are not updated...)
     # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
     mesh.rotate(-pi / 2, 0, 0)  # OK
     objfile = mesh.write_objfile(
-        name, mtlname="material", mtlcontent=_write_material(name, material)
+        name, mtlname="material", mtlcontent=_write_material(name, matval)
     )
 
     filename = objfile.encode("unicode_escape").decode("utf-8")
@@ -474,14 +477,14 @@ coatRoughness {11}
     )
 
 
-def _write_material_diffuse(name, material):
+def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    snippet = """
+    snippet = f"""
 type obj
-kd {c.r} {c.g} {c.b}
+{matval["color"]}
 ns 2
 """
-    return snippet.format(n=name, c=material.diffuse.color)
+    return snippet
 
 
 def _write_material_mixed(name, material):
@@ -541,6 +544,75 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
 }
+
+
+# ===========================================================================
+#                              Textures
+# ===========================================================================
+
+
+def _write_texture(**kwargs):
+    """Compute a string in renderer SDL to describe a texture.
+
+    The texture is computed from a property of a shader (as the texture is
+    always integrated into a shader). Property's data are expected as
+    arguments.
+
+    Args:
+        objname -- Object name for which the texture is computed
+        propname -- Name of the shader property
+        propvalue -- Value of the shader property
+
+    Returns:
+        the name of the texture
+        the SDL string of the texture
+    """
+    return ""
+
+# TODO Move
+_FIELD_MAPPING = { ("Diffuse", "color"): "kd", }
+
+def _write_value(**kwargs):
+    """Compute a string in renderer SDL from a shader property value.
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    val = kwargs["propvalue"]
+
+    field = _FIELD_MAPPING[shadertype, propname]
+
+
+
+    # Snippets for values
+    if proptype == "RGB":
+        value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8}"
+    elif proptype == "float":
+        value = f"{val:.8}"
+    elif proptype == "node":
+        value = ""
+    elif proptype == "RGBA":
+        value = f"{val.r:.8} {val.g:.8} {val.b:.8} {val.a:.8}"
+    elif proptype == "texonly":
+        value = f"{val}"
+    elif proptype == "str":
+        value = f"{val}"
+    else:
+        raise NotImplementedError
+
+    return value
+
+
+def _write_texref(**kwargs):  # pylint: disable=unused-argument
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    return "0.0"  # In Cycles, there is no reference to textures in shaders...
 
 
 # ===========================================================================
