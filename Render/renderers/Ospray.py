@@ -545,13 +545,13 @@ opacity {o}
     )
 
 
-def _write_material_carpaint(name, material):
+def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
-    snippet = """
+    snippet = f"""
 type carPaint
-baseColor {c.r} {c.g} {c.b}
+{matval["basecolor"]}
 """
-    return snippet.format(n=name, c=material.carpaint.basecolor)
+    return snippet
 
 
 def _write_material_fallback(name, matval):
@@ -657,7 +657,8 @@ _FIELD_MAPPING = {
     ("Disney", "clearcoat"): "coat",
     ("Disney", "clearcoatgloss"): "coatRoughness",
     ("Glass", "color"): "attenuationColor",
-    ("Glass", "ior"): "eta"
+    ("Glass", "ior"): "eta",
+    ("Carpaint", "basecolor"): "baseColor",
 }
 
 
