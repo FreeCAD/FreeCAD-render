@@ -450,14 +450,16 @@ def _write_material_passthrough(name, material):
     return snippet.format(n=name, c=material.default_color)
 
 
-def _write_material_glass(name, material):
+def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
-    snippet = """
-type glass
-eta {i}
-attenuationColor {c.r} {c.g} {c.b}
+    mtltype = "glass" if "color" not in matval.texobjects else "thinGlass"
+
+    snippet = f"""
+type {mtltype}
+{matval["ior"]}
+{matval["color"]}
 """
-    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
+    return snippet
 
 
 def _write_material_disney(name, matval):
@@ -601,6 +603,7 @@ def _write_texture(**kwargs):
         the name of the texture
         the SDL string of the texture
     """
+    # Retrieve material parameters
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
@@ -613,6 +616,10 @@ def _write_texture(**kwargs):
     translation_v = float(propvalue.translation_v)
 
     field = _FIELD_MAPPING[shadertype, propname]
+
+    # Exclusions
+    if propname in ["clearcoatgloss", "ior", "subsurface", "speculartint"]:
+        return propname, ""
 
     # Snippets for texref
     if proptype in ["RGB", "float", "texonly"]:
@@ -647,6 +654,8 @@ _FIELD_MAPPING = {
     ("Disney", "sheentint"): "sheenTint",
     ("Disney", "clearcoat"): "coat",
     ("Disney", "clearcoatgloss"): "coatRoughness",
+    ("Glass", "color"): "attenuationColor",
+    ("Glass", "ior"): "eta"
 }
 
 
@@ -696,13 +705,20 @@ def _write_texref(**kwargs):  # pylint: disable=unused-argument
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
+    objname = kwargs["objname"]
     val = kwargs["propvalue"]
 
     field = _FIELD_MAPPING[shadertype, propname]
 
-    # Special cases
-    if propname == "clearcoatgloss":
-        raise NotImplementedError
+    # Exclusions
+    if propname in ["clearcoatgloss", "ior"]:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: texture for "
+            f"'{shadertype}::{propname}' "
+            f"is not supported by Ospray. Falling back to default value.\n"
+        )
+        App.Console.PrintWarning(msg)
+        return f"{field} 1.5" if propname == "ior" else f"{field} 1.0"
 
     # Snippets for values
     if proptype == "RGB":
