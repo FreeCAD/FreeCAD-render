@@ -393,8 +393,8 @@ def write_imagelight(name, image):
   }}
 }}
 """
-    f_handle, gltf_file = tempfile.mkstemp(suffix=".gltf", prefix="light_")
-    os.close(f_handle)
+    gltf_file = App.ActiveDocument.getTempFileName(name + "_") + ".gltf"
+
     # osp requires the hdr file path to be relative from the gltf file path
     # (see GLTFData::createLights insg/importer/glTF.cpp, ),
     # so we have to manipulate paths a bit...
@@ -403,13 +403,14 @@ def write_imagelight(name, image):
     with open(gltf_file, "w", encoding="utf-8") as f:
         f.write(gltf_snippet.format(f=image_relpath))
 
-    snippet = """
+    gltf_file = os.path.basename(gltf_file)
+    snippet = f"""
       {{
-        "name": {n},
+        "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {f}
+        "filename": {json.dumps(gltf_file)}
       }},"""
-    return snippet.format(n=json.dumps(name), f=json.dumps(gltf_file))
+    return snippet
 
 
 # ===========================================================================
