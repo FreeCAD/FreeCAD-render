@@ -186,7 +186,11 @@ class RenderMesh:
             # Write mtl file
             mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                raise ValueError("OBJ and MTL files shoud be in the same dir")
+                msg = (
+                    "OBJ and MTL files shoud be in the same dir\n"
+                    f"('{objfile}' versus '{mtlfilename}')"
+                )
+                raise ValueError(msg)
             mtlfilename = os.path.basename(mtlfilename)
         mtl = [f"mtllib {mtlfilename}", ""] if mtlfilename is not None else []
 
@@ -265,7 +269,7 @@ class RenderMesh:
         """Write a MTL file.
 
         MTL file is the companion of OBJ file, thus we keep this method in
-        RenderMesh, although there is no need of the mesh to write the MTL.
+        RenderMesh, although there is no need of 'self' to write the MTL...
 
         Args:
         name -- The material name, to be referenced in OBJ (str)
@@ -276,8 +280,10 @@ class RenderMesh:
         Returns:
         The MTL file name
         """
-        f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
-        os.close(f_handle)
+        if mtlfile is None:
+            f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
+            os.close(f_handle)
+
         # _write_material(name, material)
         with open(mtlfile, "w", encoding="utf-8") as f:
             f.write(f"newmtl {name}")
