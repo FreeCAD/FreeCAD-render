@@ -484,35 +484,6 @@ type principled
 {matval["clearcoatgloss"]}
 """
     return snippet
-    # TODO Remove
-    snippet = """
-type principled
-baseColor {1.r} {1.g} {1.b}
-# No subsurface scattering ({2})
-metallic {3}
-specular {4}
-# No specular tint ({3})
-roughness {6}
-anisotropy {7}
-sheen {8}
-sheenTint {9}
-coat {10}
-coatRoughness {11}
-"""
-    return snippet.format(
-        name,
-        material.disney.basecolor,
-        material.disney.subsurface,
-        material.disney.metallic,
-        material.disney.specular if not material.disney.metallic else 1.0,
-        material.disney.speculartint,
-        material.disney.roughness,
-        material.disney.anisotropic,
-        material.disney.sheen,
-        material.disney.sheentint,
-        material.disney.clearcoat,
-        1 - float(material.disney.clearcoatgloss),
-    )
 
 
 def _write_material_diffuse(name, matval):
@@ -525,24 +496,30 @@ ns 2
     return snippet
 
 
-def _write_material_mixed(name, material):
+def _write_material_mixed(name, matval):
     """Compute a string in the renderer SDL for a Mixed material."""
-    snippet = """
+    # Glass
+    submat_g = matval.getmixedsubmat("glass", name + "_glass")
+    snippet_g_tex = submat_g.write_textures()
+
+    # Diffuse
+    submat_d = matval.getmixedsubmat("diffuse", name + "_diffuse")
+    snippet_d_tex = submat_d.write_textures()
+
+    transparency = matval.material.mixed.transparency
+    assert isinstance(transparency, float)
+
+    snippet_mix = f"""
 type principled
-baseColor {k.r} {k.g} {k.b}
-ior {i}
-transmission {t}
-transmissionColor {c.r} {c.g} {c.b}
-opacity {o}
+{submat_d["color"]}
+{submat_g["ior"]}
+transmission {transparency}
+{submat_g["color"]}
+opacity {1 - transparency}
+specular 0.5
 """
-    return snippet.format(
-        n=name,
-        c=material.mixed.glass.color,
-        i=material.mixed.glass.ior,
-        k=material.mixed.diffuse.color,
-        t=material.mixed.transparency,
-        o=1.0 - material.mixed.transparency,
-    )
+    snippet = [snippet_mix, snippet_d_tex, snippet_g_tex]
+    return "".join(snippet)
 
 
 def _write_material_carpaint(name, matval):
@@ -659,6 +636,13 @@ _FIELD_MAPPING = {
     ("Glass", "color"): "attenuationColor",
     ("Glass", "ior"): "eta",
     ("Carpaint", "basecolor"): "baseColor",
+    ("Mixed", "transparency"): "transmission",
+    ("Mixed", "diffuse"): "",
+    ("Mixed", "shader"): "",
+    ("Mixed", "glass"): "",
+    ("glass", "color"): "transmissionColor",
+    ("glass", "ior"): "ior",
+    ("diffuse", "color"): "baseColor",
 }
 
 
