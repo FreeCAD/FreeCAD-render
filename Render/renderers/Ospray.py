@@ -200,7 +200,7 @@ intensity {radiance}
 transparency {transparency}
 """
 
-    filebase = App.ActiveDocument.getTempFileName(name)
+    filebase = App.ActiveDocument.getTempFileName(name + "_")
 
     mtlfile = f"{filebase}.mtl"
     with open(mtlfile, "w", encoding="utf-8") as f:
