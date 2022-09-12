@@ -479,6 +479,7 @@ type principled
 {matval["sheentint"]}
 {matval["clearcoat"]}
 {matval["clearcoatgloss"]}
+{matval["normal"]}
 """
     return snippet
 
@@ -562,17 +563,17 @@ MATERIALS = {
 #                              Textures
 # ===========================================================================
 
-# Field mapping from internal materials to OBJ ones
+# Field mapping from internal materials to OBJ ones (only for non trivial)
+# None will exclude
 _FIELD_MAPPING = {
     ("Diffuse", "color"): "kd",
+    ("Diffuse", "bump"): None,
+    ("Diffuse", "normal"): None,
+    ("Diffuse", "displacement"): None,
     ("Disney", "basecolor"): "baseColor",
     ("Disney", "subsurface"): "",
-    ("Disney", "metallic"): "metallic",
-    ("Disney", "specular"): "specular",
     ("Disney", "speculartint"): "",
-    ("Disney", "roughness"): "roughness",
     ("Disney", "anisotropic"): "anisotropy",
-    ("Disney", "sheen"): "sheen",
     ("Disney", "sheentint"): "sheenTint",
     ("Disney", "clearcoat"): "coat",
     ("Disney", "clearcoatgloss"): "coatRoughness",
@@ -584,7 +585,6 @@ _FIELD_MAPPING = {
     ("Mixed", "shader"): "",
     ("Mixed", "glass"): "",
     ("glass", "color"): "transmissionColor",
-    ("glass", "ior"): "ior",
     ("diffuse", "color"): "baseColor",
     ("Passthrough", "string"): "",
     ("Passthrough", "renderer"): "",
@@ -612,6 +612,7 @@ def _write_texture(**kwargs):
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
     propvalue = kwargs["propvalue"]
+    objname = kwargs["objname"]
 
     # Get texture parameters
     filename = os.path.basename(propvalue.file)
@@ -619,10 +620,23 @@ def _write_texture(**kwargs):
     translation_u = float(propvalue.translation_u)
     translation_v = float(propvalue.translation_v)
 
-    field = _FIELD_MAPPING[shadertype, propname]
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
-    # Exclusions
-    if propname in ["clearcoatgloss", "ior", "subsurface", "speculartint"]:
+    # Exclusions (not supported)
+    if propname in [
+        "clearcoatgloss",
+        "ior",
+        "subsurface",
+        "speculartint",
+        "bump",
+        "displacement",
+    ]:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: texture for "
+            f"'{shadertype}::{propname}' "
+            f"is not supported by Ospray. Falling back to default value.\n"
+        )
+        App.Console.PrintWarning(msg)
         return propname, ""
 
     # Snippets for texref
@@ -658,7 +672,7 @@ def _write_value(**kwargs):
     shadertype = kwargs["shadertype"]
     val = kwargs["propvalue"]
 
-    field = _FIELD_MAPPING[shadertype, propname]
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
     # Special cases
     if propname == "clearcoatgloss":
@@ -673,8 +687,6 @@ def _write_value(**kwargs):
         value = ""
     elif proptype == "RGBA":
         value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8} {val.a:.8}"
-    elif proptype == "texonly":
-        value = f"map_{field} {val}"
     elif proptype == "str":
         value = f"{field} {val}"
     else:
@@ -689,18 +701,11 @@ def _write_texref(**kwargs):
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
-    objname = kwargs["objname"]
 
-    field = _FIELD_MAPPING[shadertype, propname]
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
     # Exclusions
     if propname in ["clearcoatgloss", "ior"]:
-        msg = (
-            f"[Render] [Ospray] [{objname}] Warning: texture for "
-            f"'{shadertype}::{propname}' "
-            f"is not supported by Ospray. Falling back to default value.\n"
-        )
-        App.Console.PrintWarning(msg)
         return f"{field} 1.5" if propname == "ior" else f"{field} 1.0"
 
     # Snippets for values
@@ -709,11 +714,11 @@ def _write_texref(**kwargs):
     elif proptype == "float":
         value = f"{field} 1.0"
     elif proptype == "node":
-        value = ""
+        value = f"{field} 1.0"
     elif proptype == "RGBA":
         value = f"{field} 1.0 1.0 1.0 1.0"
     elif proptype == "texonly":
-        value = f"map_{field} 1.0"
+        value = f"{field} 4.0" if propname == "normal" else f"{field} 1.0"
     else:
         raise NotImplementedError
 
