@@ -487,9 +487,11 @@ type principled
 def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
     snippet = f"""
-type obj
+type principled
 {matval["color"]}
-ns 2
+metallic 0
+specular 0
+diffuse 1
 """
     return snippet
 
@@ -566,9 +568,8 @@ MATERIALS = {
 # Field mapping from internal materials to OBJ ones (only for non trivial)
 # None will exclude
 _FIELD_MAPPING = {
-    ("Diffuse", "color"): "kd",
+    ("Diffuse", "color"): "baseColor",
     ("Diffuse", "bump"): None,
-    ("Diffuse", "normal"): None,
     ("Diffuse", "displacement"): None,
     ("Disney", "basecolor"): "baseColor",
     ("Disney", "subsurface"): "",
