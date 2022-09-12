@@ -451,12 +451,15 @@ def _write_material_passthrough(name, matval):
 
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a glass material."""
-    mtltype = "glass" if "color" not in matval.texobjects else "thinGlass"
-
     snippet = f"""
-type {mtltype}
+type principled
 {matval["ior"]}
 {matval["color"]}
+transmission 1
+specular 1
+metallic 0
+diffuse 0
+opacity 1
 """
     return snippet
 
@@ -580,8 +583,10 @@ _FIELD_MAPPING = {
     ("Disney", "clearcoatgloss"): "coatRoughness",
     ("Disney", "bump"): None,
     ("Disney", "displacement"): None,
-    ("Glass", "color"): "attenuationColor",
-    ("Glass", "ior"): "eta",
+    ("Glass", "color"): "transmissionColor",
+    ("Glass", "ior"): "ior",
+    ("Glass", "bump"): None,
+    ("Glass", "displacement"): None,
     ("Carpaint", "basecolor"): "baseColor",
     ("Mixed", "transparency"): "transmission",
     ("Mixed", "diffuse"): "",
