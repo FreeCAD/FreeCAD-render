@@ -577,6 +577,8 @@ _FIELD_MAPPING = {
     ("Disney", "sheentint"): "sheenTint",
     ("Disney", "clearcoat"): "coat",
     ("Disney", "clearcoatgloss"): "coatRoughness",
+    ("Disney", "bump"): None,
+    ("Disney", "displacement"): None,
     ("Glass", "color"): "attenuationColor",
     ("Glass", "ior"): "eta",
     ("Carpaint", "basecolor"): "baseColor",
@@ -584,6 +586,8 @@ _FIELD_MAPPING = {
     ("Mixed", "diffuse"): "",
     ("Mixed", "shader"): "",
     ("Mixed", "glass"): "",
+    ("Mixed", "bump"): None,
+    ("Mixed", "displacement"): None,
     ("glass", "color"): "transmissionColor",
     ("diffuse", "color"): "baseColor",
     ("Passthrough", "string"): "",
@@ -623,6 +627,8 @@ def _write_texture(**kwargs):
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
     # Exclusions (not supported)
+    if field is None:
+        return propname, ""
     if propname in [
         "clearcoatgloss",
         "ior",
@@ -671,8 +677,19 @@ def _write_value(**kwargs):
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
     val = kwargs["propvalue"]
+    objname = kwargs["objname"]
 
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Exclusions
+    if field is None:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: "
+            f"'{shadertype}::{propname}' is not supported by Ospray. "
+            f"Skipping...\n"
+        )
+        App.Console.PrintWarning(msg)
+        return ""
 
     # Special cases
     if propname == "clearcoatgloss":
@@ -701,10 +718,19 @@ def _write_texref(**kwargs):
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
+    objname = kwargs["objname"]
 
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
     # Exclusions
+    if field is None:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: "
+            f"'{shadertype}::{propname}' is not supported by Ospray. "
+            f"Skipping...\n"
+        )
+        App.Console.PrintWarning(msg)
+        return ""
     if propname in ["clearcoatgloss", "ior"]:
         return f"{field} 1.5" if propname == "ior" else f"{field} 1.0"
 
