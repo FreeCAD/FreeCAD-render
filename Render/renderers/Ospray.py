@@ -452,6 +452,7 @@ def _write_material_passthrough(name, matval):
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a glass material."""
     snippet = f"""
+# Glass
 type principled
 {matval["ior"]}
 {matval["color"]}
@@ -471,6 +472,7 @@ def _write_material_disney(name, matval):  # pylint: disable=unused-argument
     # Nota2: if metallic is set, specular should be 1.0. See here:
     # https://github.com/ospray/ospray_studio/issues/5
     snippet = f"""
+# Disney
 type principled
 {matval["basecolor"]}
 # No subsurface scattering (Ospray limitation)
@@ -491,6 +493,7 @@ type principled
 def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
     snippet = f"""
+# Diffuse
 type principled
 {matval["color"]}
 metallic 0
@@ -515,6 +518,7 @@ def _write_material_mixed(name, matval):
     assert isinstance(transparency, float)
 
     snippet_mix = f"""
+# Mixed
 type principled
 {submat_d["color"]}
 {submat_g["ior"]}
@@ -528,9 +532,11 @@ specular 0.5
     return "".join(snippet)
 
 
+# TODO Test carpaint
 def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a carpaint material."""
     snippet = f"""
+# Carpaint
 type carPaint
 {matval["basecolor"]}
 {matval["normal"] if matval.has_normal() else ""}
@@ -551,6 +557,7 @@ def _write_material_fallback(name, matval):
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
     snippet = """
+# Fallback
 type obj
 kd {r} {g} {b}
 ns 2
