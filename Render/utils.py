@@ -163,8 +163,8 @@ def set_dryrun(state):
 def last_cmd():
     """Return last executed renderer command (debug purpose)."""
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    last_cmd = params.GetString("LastCommand")
-    return last_cmd
+    last_cmd_cache = params.GetString("LastCommand")
+    return last_cmd_cache
 
 
 def set_last_cmd(cmd):
