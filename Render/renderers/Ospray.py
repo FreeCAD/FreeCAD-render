@@ -460,6 +460,7 @@ specular 1
 metallic 0
 diffuse 0
 opacity 1
+{matval["normal"] if matval.has_normal() else ""}
 """
     return snippet
 
@@ -482,7 +483,7 @@ type principled
 {matval["sheentint"]}
 {matval["clearcoat"]}
 {matval["clearcoatgloss"]}
-{matval["normal"]}
+{matval["normal"] if matval.has_normal() else ""}
 """
     return snippet
 
@@ -495,6 +496,7 @@ type principled
 metallic 0
 specular 0
 diffuse 1
+{matval["normal"] if matval.has_normal() else ""}
 """
     return snippet
 
@@ -520,6 +522,7 @@ transmission {transparency}
 {submat_g["color"]}
 opacity {1 - transparency}
 specular 0.5
+{matval["normal"] if matval.has_normal() else ""}
 """
     snippet = [snippet_mix, snippet_d_tex, snippet_g_tex]
     return "".join(snippet)
@@ -530,6 +533,7 @@ def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     snippet = f"""
 type carPaint
 {matval["basecolor"]}
+{matval["normal"] if matval.has_normal() else ""}
 """
     return snippet
 
