@@ -87,8 +87,7 @@ def write_mesh(name, mesh, material):
         objfile = mesh.write_objfile(
             name,
             normals=False,
-            uv_translate_u=translation_u,
-            uv_translate_v=translation_v,
+            uv_translate=App.Base.Vector2d(translation_u, translation_v),
             uv_rotate=rotation,
             uv_scale=scale,
         )
@@ -509,6 +508,8 @@ def _write_material_carpaint(name, matval):
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_substrate" />"""
     elif matval.has_normal():
+        normal_texobj = matval.get_texobject("normal")
+        filename = normal_texobj.file.encode("unicode_escape").decode("utf-8")
         normal_texshader = f"""
         <!-- Normal -->
         <shader layer="NormalTex" type="shader" name="as_texture">
