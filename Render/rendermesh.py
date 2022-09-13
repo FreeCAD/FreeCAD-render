@@ -147,8 +147,7 @@ class RenderMesh:
         mtlname=None,
         mtlcontent=None,
         normals=True,
-        uv_translate_u=0.0,
-        uv_translate_v=0.0,
+        uv_translate=App.Base.Vector2d(0.0, 0.0),
         uv_rotate=0.0,
         uv_scale=1.0,
     ):
@@ -168,15 +167,15 @@ class RenderMesh:
 
         Returns: the file that the function wrote.
         """
-
         # Retrieve and normalize arguments
+        normals = bool(normals)
+
+        # Get obj file name
         if objfile is None:
             f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
             os.close(f_handle)
         else:
             objfile = str(objfile)
-
-        normals = bool(normals)
 
         # Initialize
         header = ["# Written by FreeCAD-Render"]
@@ -186,13 +185,14 @@ class RenderMesh:
             # Write mtl file
             mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                msg = (
+                raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
                     f"('{objfile}' versus '{mtlfilename}')"
                 )
-                raise ValueError(msg)
             mtlfilename = os.path.basename(mtlfilename)
-        mtl = [f"mtllib {mtlfilename}", ""] if mtlfilename is not None else []
+            mtl = [f"mtllib {mtlfilename}", ""]
+        else:
+            mtl = []
 
         # Vertices
         verts = [p.Vector for p in self.Points]
@@ -204,9 +204,8 @@ class RenderMesh:
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvbase = self.uvmap
-            if uv_translate_u != 0.0 or uv_translate_v != 0.0:
-                translate = App.Base.Vector2d(uv_translate_u, uv_translate_v)
-                uvbase = [v + translate for v in uvbase]
+            if uv_translate.x != 0.0 or uv_translate.y != 0.0:
+                uvbase = [v + uv_translate for v in uvbase]
             if uv_rotate != 0.0:
                 cosr = math.cos(uv_rotate)
                 sinr = math.sin(uv_rotate)
