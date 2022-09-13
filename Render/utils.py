@@ -173,20 +173,29 @@ def set_last_cmd(cmd):
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     params.SetString("LastCommand", cmd)
 
+
 def clear_report_view():
     """Clear report view in FreeCAD Gui."""
     if not App.GuiUp:
         return
     main_window = Gui.getMainWindow()
 
-    report_view = main_window.findChild(PySide2.QtWidgets.QDockWidget, "Report view")
+    report_view = main_window.findChild(
+        PySide2.QtWidgets.QDockWidget, "Report view"
+    )
     if report_view is None:
-        App.Console.PrintWarning("Unable to clear report view: QDockWidget not found\n")
+        App.Console.PrintWarning(
+            "Unable to clear report view: QDockWidget not found\n"
+        )
         return
 
-    text_widget = report_view.findChild(PySide2.QtWidgets.QTextEdit, "Report view")
+    text_widget = report_view.findChild(
+        PySide2.QtWidgets.QTextEdit, "Report view"
+    )
     if text_widget is None:
-        App.Console.PrintWarning("Unable to clear report view: QTextEdit not found\n")
+        App.Console.PrintWarning(
+            "Unable to clear report view: QTextEdit not found\n"
+        )
         return
 
     text_widget.clear()

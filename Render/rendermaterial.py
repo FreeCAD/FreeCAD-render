@@ -581,7 +581,6 @@ class MaterialValues:
         """
         return self._texobjects.get(name, None)
 
-
     def write_textures(self):
         """Get an SDL representation of all textures."""
         return "\n".join(self._textures)

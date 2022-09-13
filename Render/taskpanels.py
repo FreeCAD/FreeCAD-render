@@ -148,7 +148,9 @@ class TexturePicker(QComboBox):
             texture = App.ActiveDocument.getObject(imageid.texture)
             full_filename = texture.getPropertyByName(imageid.image)
             filename = (
-                f'"{os.path.basename(full_filename)}"' if full_filename else "<No file>"
+                f'"{os.path.basename(full_filename)}"'
+                if full_filename
+                else "<No file>"
             )
             texturelabel = texture.Label
             text = f"{texturelabel} - {imageid.image} ({filename})"
@@ -193,7 +195,9 @@ class ColorPickerExt(QGroupBox):
         self.layout().setColumnStretch(1, 10)
 
         # Object color option
-        self.button_objectcolor = QRadioButton(translate("Render", "Use object color"))
+        self.button_objectcolor = QRadioButton(
+            translate("Render", "Use object color")
+        )
         self.layout().addWidget(self.button_objectcolor, 0, 0)
 
         # Constant color option
@@ -416,7 +420,9 @@ class TexonlyPicker(QGroupBox):
 class MaterialSettingsTaskPanel:
     """Task panel to edit Material render settings."""
 
-    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("MaterialSettingsTaskPanel", "<None>")
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP(
+        "MaterialSettingsTaskPanel", "<None>"
+    )
 
     def __init__(self, obj=None):
         """Initialize task panel."""
@@ -424,7 +430,9 @@ class MaterialSettingsTaskPanel:
         self.tabs = self.form.RenderTabs
         self.tabs.setCurrentIndex(0)
         self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
-        self.material_type_combo = self.form.findChild(QComboBox, "MaterialType")
+        self.material_type_combo = self.form.findChild(
+            QComboBox, "MaterialType"
+        )
 
         # Initialize material name combo
         self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
@@ -434,14 +442,18 @@ class MaterialSettingsTaskPanel:
             if is_valid_material(obj)
         }
         self.material_combo.addItems(list(self.existing_materials.keys()))
-        self.material_combo.currentTextChanged.connect(self.on_material_name_changed)
+        self.material_combo.currentTextChanged.connect(
+            self.on_material_name_changed
+        )
 
         # Initialize material type combo
         # Note: itemAt(0) is label, itemAt(1) is combo
-        self.material_type_combo = self.form.findChild(QComboBox, "MaterialType")
-        material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] + list(
-            STD_MATERIALS
+        self.material_type_combo = self.form.findChild(
+            QComboBox, "MaterialType"
         )
+        material_type_set = [
+            MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
+        ] + list(STD_MATERIALS)
         self.material_type_combo.addItems(material_type_set)
         self.material_type_combo.currentTextChanged.connect(
             self.on_material_type_changed
@@ -465,7 +477,9 @@ class MaterialSettingsTaskPanel:
         rdrwidget.setMaximumWidth(96)
         rdrwidget.setSpacing(6)
         rdrwidget.setMovement(QListView.Static)
-        rdrwidget.currentTextChanged.connect(self.on_passthrough_renderer_changed)
+        rdrwidget.currentTextChanged.connect(
+            self.on_passthrough_renderer_changed
+        )
         self.passthru_rdr = rdrwidget
         self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
         self.passthru.textChanged.connect(self.on_passthrough_text_changed)
