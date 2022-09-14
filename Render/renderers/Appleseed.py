@@ -469,8 +469,20 @@ def _write_material_carpaint(name, matval):
     if matval.has_bump():
         bump_texobj = matval.get_texobject("bump")
         filename = bump_texobj.file.encode("unicode_escape").decode("utf-8")
+        scale = bump_texobj.scale
+        translate_u = bump_texobj.translation_u
+        translate_v = bump_texobj.translation_v
+        rotate = bump_texobj.rotation
         normal_texshader = f"""
         <!-- Bump -->
+        <shader layer="Manifold2d" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
         <shader layer="BumpTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
@@ -478,8 +490,12 @@ def _write_material_carpaint(name, matval):
         <shader layer="Bump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Bump" />
             <parameter name="in_bump_depth" value="float 1.0" />
+            <parameter name="in_normal_map_coordsys" value="string World Space" />
+            <parameter name="in_normal_map_mode" value="string Unsigned" />
         </shader>"""
         normal_texconnect = """
+        <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
+                         dst_layer="BumpTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="BumpTex" src_param="out_channel"
                          dst_layer="Bump" dst_param="in_bump_value" />
         <connect_shaders src_layer="Bump"
