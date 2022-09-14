@@ -64,35 +64,14 @@ def write_mesh(name, mesh, material):
 
     # Get OBJ file
     #
-    # NOTE 1: As Appleseed does not manage texture placement (translation,
-    # rotation, scale), we have to transform uvmap... This is an approximate
-    # approach. Moreover we have to choose one texture among all the material's
-    # textures (but usually, there is only one). And we have to invert all the
-    # transformation, as it applies to uv, not to texture
-    #
-    # NOTE 2: Appleseed does not look happy with FreeCAD normals
+    # NOTE 1: Appleseed does not look happy with FreeCAD normals
     # so we'll leave Appleseed compute them on its own (normals=False)
     #
-    # NOTE 3: We should generate a special matval object for osl shader (with
+    # NOTE 2: We should generate a special matval object for osl shader (with
     # specific _write_value, _write_texture and _write_texref functions).
     # This can be an enhancement in the future...
 
-    texobjects = matval.texobjects
-    if texobjects:
-        tex = next(iter(texobjects.values()))  # We take the 1st texture...
-        scale = 1.0 / float(tex.scale) if float(tex.scale) != 0 else 1.0
-        rotation = -float(radians(tex.rotation))
-        translation_u = -float(tex.translation_u)
-        translation_v = -float(tex.translation_v)
-        objfile = mesh.write_objfile(
-            name,
-            normals=False,
-            uv_translate=App.Base.Vector2d(translation_u, translation_v),
-            uv_rotate=rotation,
-            uv_scale=scale,
-        )
-    else:
-        objfile = mesh.write_objfile(name, normals=False)
+    objfile = mesh.write_objfile(name, normals=False)
 
     # Compute transformation from FCD coordinates to Appleseed ones
     transform = TRANSFORM.copy()
@@ -747,13 +726,26 @@ def _write_texture(**kwargs):
     filename = propvalue.file.encode("unicode_escape").decode("utf-8")
 
     # Texture
+    # TODO Tune multiplier
+    # Add transform
+    # See in tests/test scenes
     colorspace = "srgb" if proptype == "RGB" else "linear_rgb"
+    rotate = propvalue.rotation
+    scale = propvalue.scale
+    translate_u = propvalue.translation_u
+    translate_v = propvalue.translation_v
     texture = f"""
         <texture name="{texname}" model="disk_texture_2d">
             <parameter name="filename" value="{filename}"/>
             <parameter name="color_space" value="{colorspace}"/>
         </texture>
         <texture_instance name="{texname}.instance" texture="{texname}">
+            <parameter name="filtering_mode" value="bilinear" />
+            <transform>
+                <rotation axis="0.0 0.0 1.0" angle="{rotate}"/>
+                <scaling value="{scale} {scale} {scale} "/>
+                <translation value="{translate_u} {translate_v} 0.0"/>
+            </transform>
         </texture_instance>"""
 
     return texname, texture
