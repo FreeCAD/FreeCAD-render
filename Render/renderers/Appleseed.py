@@ -489,8 +489,20 @@ def _write_material_carpaint(name, matval):
     elif matval.has_normal():
         normal_texobj = matval.get_texobject("normal")
         filename = normal_texobj.file.encode("unicode_escape").decode("utf-8")
+        scale = normal_texobj.scale
+        translate_u = normal_texobj.translation_u
+        translate_v = normal_texobj.translation_v
+        rotate = normal_texobj.rotation
         normal_texshader = f"""
         <!-- Normal -->
+        <shader layer="Manifold2d" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
         <shader layer="NormalTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
@@ -499,17 +511,19 @@ def _write_material_carpaint(name, matval):
             <parameter name="in_mode" value="string Normal Map" />
             <parameter name="in_normal_map_weight" value="float 0.4" />
             <parameter name="in_normal_map_swap_rg" value="int 0" />
-            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+            <parameter name="in_normal_map_coordsys" value="string World Space" />
             <parameter name="in_normal_map_mode" value="string Unsigned" />
         </shader>
         <shader layer="CoatingBump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Normal Map" />
             <parameter name="in_normal_map_weight" value="float 0.4" />
             <parameter name="in_normal_map_swap_rg" value="int 0" />
-            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+            <parameter name="in_normal_map_coordsys" value="string World Space" />
             <parameter name="in_normal_map_mode" value="string Unsigned" />
         </shader>"""
         normal_texconnect = """
+        <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
+                         dst_layer="NormalTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="NormalTex" src_param="out_color"
                          dst_layer="SubstrateBump" dst_param="in_normal_map" />
         <connect_shaders src_layer="NormalTex" src_param="out_color"
