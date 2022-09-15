@@ -47,21 +47,22 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
-    snippet = """# Object '{n}'
-AttributeBegin
-{m}
-  Shape "trianglemesh"
-    "point3 P" [ {p} ]
-    "integer indices" [ {i} ]
-AttributeEnd
-# ~Object '{n}'
-"""
     material = _write_material(name, material)
     pnts = [f"{p.x} {p.y} {p.z}" for p in mesh.Topology[0]]
     inds = [f"{i[0]} {i[1]} {i[2]}" for i in mesh.Topology[1]]
     pnts = "  ".join(pnts)
     inds = "  ".join(inds)
-    return snippet.format(n=name, m=material, p=pnts, i=inds)
+
+    snippet = f"""# Object '{name}'
+AttributeBegin
+{material}
+  Shape "trianglemesh"
+    "point3 P" [ {pnts} ]
+    "integer indices" [ {inds} ]
+AttributeEnd
+# ~Object '{name}'
+"""
+    return snippet
 
 
 def write_camera(name, pos, updir, target, fov):
