@@ -532,7 +532,6 @@ specular 0.5
     return "".join(snippet)
 
 
-# TODO Test carpaint
 def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a carpaint material."""
     snippet = f"""
@@ -789,42 +788,17 @@ def render(project, prefix, external, output, width, height):
         The command to run renderer (string)
         A path to output image file (string)
     """
-    # Move cameras up to root node
-    cameras = ["\n"]
-    result = []
+    # Read result file (in a list)
     with open(project.PageResult, "r", encoding="utf8") as f:
-        for line in f:
-            if '"camera"' in line:
-                cameras += line
-                nbr = line.count("{") - line.count("}")
-                for line2 in f:
-                    cameras += line2
-                    nbr += line2.count("{") - line2.count("}")
-                    if not nbr:
-                        break
-            else:
-                result += line
-        result[2:2] = cameras
-        result = "".join(result)
+        in_file_list = f.readlines()
+
+    # Move cameras up to root node
+    result = _render_movecamerasup(in_file_list)
+    result = "".join(result)
 
     # Merge light groups
     json_load = json.loads(result)
-    world_children = json_load["world"]["children"]
-    world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
-    lights = []
-
-    def remaining_lightgroups():
-        try:
-            child = world_children[-1]
-        except IndexError:
-            return False
-        return child["type"] == "LIGHTS"
-
-    while remaining_lightgroups():
-        light = world_children.pop()
-        lights += light["children"]
-    lightsmanager_children = json_load["lightsManager"]["children"]
-    lightsmanager_children.extend(lights)
+    _render_mergelightgroups(json_load)
 
     # Write reformatted input to file
     f_handle, f_path = tempfile.mkstemp(
@@ -875,3 +849,55 @@ def render(project, prefix, external, output, width, height):
     # not managed by osp
 
     return cmd, outfile_actual
+
+
+def _render_mergelightgroups(json_result):
+    """Merge light groups in render result (helper).
+
+    Args:
+        json_result -- result file in json format - in/out argument, will be
+            modified by this function
+    """
+    world_children = json_result["world"]["children"]
+    world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
+    lights = []
+
+    def remaining_lightgroups():
+        try:
+            child = world_children[-1]
+        except IndexError:
+            return False
+        return child["type"] == "LIGHTS"
+
+    while remaining_lightgroups():
+        light = world_children.pop()
+        lights += light["children"]
+    lightsmanager_children = json_result["lightsManager"]["children"]
+    lightsmanager_children.extend(lights)
+
+
+def _render_movecamerasup(in_file_list):
+    """Move cameras up in result file (helper).
+
+    Args:
+        in_file_list -- the input file (from merging of template and objects),
+            as a list
+
+    Returns:
+        The input file with cameras at the right place (list)
+    """
+    cameras = ["\n"]
+    result = []
+    camflag = False
+    brace_nbr = 0
+    for line in in_file_list:
+        if '"camera"' in line or camflag:
+            cameras += line
+            camflag = True
+            brace_nbr += line.count("{") - line.count("}")
+            if not brace_nbr and not '"camera"' in line:
+                camflag = False
+        else:
+            result += line
+    result[2:2] = cameras
+    return result
