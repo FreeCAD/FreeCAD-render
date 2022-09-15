@@ -490,7 +490,6 @@ def _texname(**kwargs):
     """Compute texture name."""
     objname = kwargs["objname"]
     propname = kwargs["propname"]
-    proptype = kwargs["proptype"]
     shadertype = kwargs["shadertype"]
     parent_shadertype = kwargs["parent_shadertype"]
 

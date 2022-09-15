@@ -33,7 +33,7 @@
 import os
 import re
 from tempfile import mkstemp
-from math import degrees, radians, acos, atan2, sqrt
+from math import degrees, acos, atan2, sqrt
 from textwrap import indent
 import collections
 
@@ -756,9 +756,6 @@ def _write_texture(**kwargs):
     filename = propvalue.file.encode("unicode_escape").decode("utf-8")
 
     # Texture
-    # TODO Tune multiplier
-    # Add transform
-    # See in tests/test scenes
     colorspace = "srgb" if proptype == "RGB" else "linear_rgb"
     rotate = propvalue.rotation
     scale = propvalue.scale

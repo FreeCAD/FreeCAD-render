@@ -322,7 +322,7 @@ def _write_material(name, matval):
 <connect from="{name}_bump_strength value" to="{name}_bump strength"/>
 {snippet_tex}"""
         else:
-                snippet_tex = f"""
+            snippet_tex = f"""
 <bump name="{name}_bump"/>
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>
 <math name="{name}_bump_strength" math_type="add" value1="0" value2="0"/>
