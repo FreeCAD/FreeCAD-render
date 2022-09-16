@@ -240,15 +240,14 @@ def _write_material_mixed(name, material):
     )
 
 
-def _write_material_carpaint(name, material):
+def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
-    snippet = """  # Material '{n}'
+    snippet = f"""  # Material '{name}'
   Material "coateddiffuse"
-    "rgb reflectance" [{c.r} {c.g} {c.b}]
+{matval["basecolor"]}
     "float roughness" [ 0.0 ]
-    "float eta" [ 1.54 ]
-"""
-    return snippet.format(n=name, c=material.carpaint.basecolor)
+    "float eta" [ 1.54 ]"""
+    return snippet
 
 
 def _write_material_fallback(name, material):
@@ -309,7 +308,9 @@ def _write_texture(**kwargs):
     # Compute texture parameters
     texname = _texname(objname, propvalue)
     scale = 1 / propvalue.scale if propvalue.scale != 0.0 else 1.0
-    textype, encoding = ("spectrum", "sRGB") if proptype=="RGB" else ("float", "linear")
+    textype, encoding = (
+        ("spectrum", "sRGB") if proptype == "RGB" else ("float", "linear")
+    )
     filebasename = os.path.basename(propvalue.file)
 
     # Compute snippet
@@ -339,6 +340,7 @@ _VALSNIPPETS = {
 _FIELD_MAPPING = {
     ("Diffuse", "color"): "reflectance",
     ("Glass", "ior"): "eta",
+    ("Carpaint", "basecolor"): "reflectance",
 }
 
 
@@ -375,7 +377,6 @@ def _write_texref(**kwargs):
     objname = kwargs["objname"]
     propvalue = kwargs["propvalue"]
 
-
     # Field name
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
@@ -395,6 +396,7 @@ def _write_texref(**kwargs):
     snippet = f"""    "texture {field}" "{texname}"\n"""
 
     return snippet
+
 
 # ===========================================================================
 #                              Render function
