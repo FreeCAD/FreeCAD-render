@@ -55,6 +55,12 @@ def write_mesh(name, mesh, material):
     inds = [f"{i[0]} {i[1]} {i[2]}" for i in mesh.Topology[1]]
     pnts = "  ".join(pnts)
     inds = "  ".join(inds)
+    if mesh.has_uvmap():
+        uvs = [f"{t.x} {t.y}" for t in mesh.uvmap]
+        uvs = "  ".join(uvs)
+        uvs = f"""    "point2 uv" [ {uvs} ]\n"""
+    else:
+        uvs = ""
 
     snippet = f"""# Object '{name}'
 AttributeBegin
@@ -63,6 +69,7 @@ AttributeBegin
   Shape "trianglemesh"
     "point3 P" [ {pnts} ]
     "integer indices" [ {inds} ]
+{uvs}
 AttributeEnd
 # ~Object '{name}'
 """
@@ -209,8 +216,7 @@ def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
     snippet = f"""  # Material '{name}'
   Material "diffuse"
-{matval["color"]}
-"""
+{matval["color"]}"""
     return snippet
 
 
@@ -302,16 +308,19 @@ def _write_texture(**kwargs):
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
 
-    # Compute texture name
+    # Compute texture parameters
     texname = _texname(objname, propvalue)
+    scale = 1 / propvalue.scale if propvalue.scale != 0.0 else 1.0
+    textype = "spectrum" if proptype=="RGB" else "float"
+    filebasename = os.path.basename(propvalue.file)
 
     # Compute snippet
     snippet = f"""
-  Texture "{texname}" "float" "imagemap"
-    "string filename" "{propvalue.file}"
+  Texture "{texname}" "{textype}" "imagemap"
+    "string filename" "{filebasename}"
     "string mapping" "uv"
-    "float uscale" {propvalue.scale}
-    "float vscale" {propvalue.scale}
+    "float uscale" {scale}
+    "float vscale" {scale}
     "float udelta" {propvalue.translation_u}
     "float vdelta" {propvalue.translation_v}
 """
