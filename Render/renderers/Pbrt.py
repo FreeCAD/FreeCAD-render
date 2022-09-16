@@ -169,30 +169,29 @@ AttributeEnd
 # ===========================================================================
 
 
-def _write_material(name, material):
+def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
     try:
-        write_function = MATERIALS[material.shadertype]
+        write_function = MATERIALS[matval.shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
             "material\n"
         )
-        App.Console.PrintWarning(msg.format(name, material.shadertype))
+        App.Console.PrintWarning(msg.format(name, matval.shadertype))
         write_function = _write_material_fallback
-    snippet_mat = write_function(name, material)
+    snippet_mat = write_function(name, matval)
     return snippet_mat
 
 
-def _write_material_passthrough(name, material):
+def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    assert material.passthrough.renderer == "Pbrt"
-    snippet = material.passthrough.string
-    return snippet.format(n=name, c=material.default_color)
+    snippet = "# Passthrough\n" + matval["string"] + "\n"
+    return snippet.format(n=name, c=matval.default_color)
 
 
 def _write_material_glass(name, matval):
