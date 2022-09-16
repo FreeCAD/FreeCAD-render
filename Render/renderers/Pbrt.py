@@ -47,7 +47,10 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 
 def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
-    material = _write_material(name, material)
+    matval = material.get_material_values(
+        name, _write_texture, _write_value, _write_texref
+    )
+    material = _write_material(name, matval)
     pnts = [f"{p.x} {p.y} {p.z}" for p in mesh.Topology[0]]
     inds = [f"{i[0]} {i[1]} {i[2]}" for i in mesh.Topology[1]]
     pnts = "  ".join(pnts)
@@ -55,6 +58,7 @@ def write_mesh(name, mesh, material):
 
     snippet = f"""# Object '{name}'
 AttributeBegin
+{matval.write_textures()}
 {material}
   Shape "trianglemesh"
     "point3 P" [ {pnts} ]
@@ -201,13 +205,13 @@ def _write_material_disney(name, material):
     return ""
 
 
-def _write_material_diffuse(name, material):
+def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    snippet = """  # Material '{n}'
+    snippet = f"""  # Material '{name}'
   Material "diffuse"
-    "rgb reflectance" [{c.r} {c.g} {c.b}]
+{matval["color"]}
 """
-    return snippet.format(n=name, c=material.diffuse.color)
+    return snippet
 
 
 def _write_material_mixed(name, material):
@@ -271,6 +275,107 @@ MATERIALS = {
     "Carpaint": _write_material_carpaint,
 }
 
+
+# ===========================================================================
+#                            Texture management
+# ===========================================================================
+
+
+def _texname(objname, propvalue):
+    """Compute texture name (helper).
+
+    For a texture name common to _write_texture and _write_texref.
+    """
+    return f"{objname}_{propvalue.name}_{propvalue.subname}"
+
+
+def _write_texture(**kwargs):
+    """Compute a string in renderer SDL to describe a texture.
+
+    Returns:
+        the name of the texture
+        the SDL string of the texture
+    """
+    # Retrieve parameters
+    objname = kwargs["objname"]
+    propname = kwargs["propname"]
+    proptype = kwargs["proptype"]
+    propvalue = kwargs["propvalue"]
+
+    # Compute texture name
+    texname = _texname(objname, propvalue)
+
+    # Compute snippet
+    snippet = f"""
+  Texture "{texname}" "float" "imagemap"
+    "string filename" "{propvalue.file}"
+    "string mapping" "uv"
+    "float uscale" {propvalue.scale}
+    "float vscale" {propvalue.scale}
+    "float udelta" {propvalue.translation_u}
+    "float vdelta" {propvalue.translation_v}
+"""
+
+    return texname, snippet
+
+
+_VALSNIPPETS = {
+    "RGB": '    "rgb {field}" [{val.r} {val.g} {val.b}]\n',
+    "float": '    "float {field}" {val}\n',
+    "node": "",
+    "texonly": "{val}",
+    "str": "{val}",
+}
+
+# TODO
+_FIELD_MAPPING = {
+    ("Diffuse", "color"): "reflectance",
+}
+
+
+def _write_value(**kwargs):
+    """Compute a string in renderer SDL from a shader property value.
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propvalue = kwargs["propvalue"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+
+    # Field name
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Snippet for values
+    snippet = _VALSNIPPETS[proptype]
+    value = snippet.format(field=field, val=propvalue)
+    return value
+
+
+def _write_texref(**kwargs):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    objname = kwargs["objname"]
+    propvalue = kwargs["propvalue"]
+
+    # Field name
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Texture name
+    texname = _texname(objname, propvalue)
+
+    # Snippet for texref
+    snippet = f"""    "texture {field}" "{texname}"\n"""
+
+    return snippet
 
 # ===========================================================================
 #                              Render function
