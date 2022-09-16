@@ -195,13 +195,12 @@ def _write_material_passthrough(name, material):
     return snippet.format(n=name, c=material.default_color)
 
 
-def _write_material_glass(name, material):
+def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
-    snippet = """  # Material '{n}'
+    snippet = f"""  # Material '{name}'
   Material "dielectric"
-    "float eta" {i}
-"""
-    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
+{matval["ior"]}"""
+    return snippet
 
 
 def _write_material_disney(name, material):
@@ -311,7 +310,7 @@ def _write_texture(**kwargs):
     # Compute texture parameters
     texname = _texname(objname, propvalue)
     scale = 1 / propvalue.scale if propvalue.scale != 0.0 else 1.0
-    textype = "spectrum" if proptype=="RGB" else "float"
+    textype, encoding = ("spectrum", "sRGB") if proptype=="RGB" else ("float", "linear")
     filebasename = os.path.basename(propvalue.file)
 
     # Compute snippet
@@ -319,6 +318,7 @@ def _write_texture(**kwargs):
   Texture "{texname}" "{textype}" "imagemap"
     "string filename" "{filebasename}"
     "string mapping" "uv"
+    "string encoding" "{encoding}"
     "float uscale" {scale}
     "float vscale" {scale}
     "float udelta" {propvalue.translation_u}
@@ -339,6 +339,7 @@ _VALSNIPPETS = {
 # TODO
 _FIELD_MAPPING = {
     ("Diffuse", "color"): "reflectance",
+    ("Glass", "ior"): "eta",
 }
 
 
@@ -375,8 +376,18 @@ def _write_texref(**kwargs):
     objname = kwargs["objname"]
     propvalue = kwargs["propvalue"]
 
+
     # Field name
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Exclusions
+    if propname == "ior":
+        msg = (
+            "[Render] [Pbrt] WARNING - pbrt does not support texture for "
+            "ior. Falling back to default constant value (1.5)\n"
+        )
+        App.Console.PrintWarning(msg)
+        return ""
 
     # Texture name
     texname = _texname(objname, propvalue)
