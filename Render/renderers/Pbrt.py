@@ -202,7 +202,7 @@ def _write_material_glass(name, matval):
     return snippet
 
 
-def _write_material_disney(name, material):
+def _write_material_disney(name, matval):
     """Compute a string in the renderer SDL for a Disney material."""
     # Disney is no more supported in pbrt v4 (in contrast to pbrt v3), so this
     # function will not compute anything...
