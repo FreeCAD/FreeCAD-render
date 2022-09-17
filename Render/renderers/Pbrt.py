@@ -214,14 +214,18 @@ def _write_material_disney(name, matval):
 
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
-    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
-    normal_snippet = f"""{matval["normal"]}""" if matval.has_normal() else ""
-    snippet = f"""  # Material '{name}'
-  Material "diffuse"
-{matval["color"]}
-{bump_snippet}
-{normal_snippet}"""
-    return snippet
+    snippet = [
+        f"""  # Material '{name}'""",
+        f'''  Material "diffuse"''',
+        f"""{matval["color"]}""",
+    ]
+    if matval.has_bump():
+        snippet.append(f"""{matval["bump"]}""")
+    if matval.has_normal():
+        snippet.append(f"""{matval["normal"]}""")
+    snippet.append("")
+
+    return "\n".join(snippet)
 
 
 def _write_material_mixed(name, matval):
@@ -354,8 +358,8 @@ def _write_texture(**kwargs):
 
 
 _VALSNIPPETS = {
-    "RGB": '    "rgb {field}" [{val.r} {val.g} {val.b}]\n',
-    "float": '    "float {field}" {val}\n',
+    "RGB": '    "rgb {field}" [{val.r} {val.g} {val.b}]',
+    "float": '    "float {field}" {val}',
     "node": "",
     "texonly": "{val}",
     "str": "{val}",
