@@ -196,9 +196,11 @@ def _write_material_passthrough(name, matval):
 
 def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
+    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
     snippet = f"""  # Material '{name}'
   Material "dielectric"
-{matval["ior"]}"""
+{matval["ior"]}
+{bump_snippet}"""
     return snippet
 
 
