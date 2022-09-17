@@ -65,7 +65,21 @@ def write_mesh(name, mesh, material):
     ]
     inds = _format_list(inds, 5)
     if mesh.has_uvmap():
-        uvs = [f"{t.x:+18.8f} {t.y:+18.8f}" for t in mesh.uvmap]
+        if matval.has_textures():
+            # Here we transform uv according to texture transformation
+            # This is necessary as pbrt texture transformation features are
+            # incomplete. They lack rotation in general, and full
+            # transformation for normal map.
+            tex = next(iter(matval.texobjects.values()))  # Take 1st texture
+            translate = -App.Base.Vector2d(
+                tex.translation_u, tex.translation_v
+            )
+            rotate = -tex.rotation
+            scale = 1.0 / tex.scale if tex.scale != 0.0 else 1.0
+            uvbase = mesh.transformed_uvmap(translate, rotate, scale)
+        else:
+            uvbase = mesh.uvmap
+        uvs = [f"{t.x:+18.8f} {t.y:+18.8f}" for t in uvbase]
         uvs = _format_list(uvs, 3)
         uvs = f"""    "point2 uv" [\n{uvs}\n    ]\n"""
     else:
@@ -347,32 +361,27 @@ def _write_texture(**kwargs):
         the SDL string of the texture
     """
     # Retrieve parameters
-    objname = kwargs["objname"]
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+
+    texname = _texname(**kwargs)
 
     # Exclusion
     if propname == "normalmap":
         return texname, ""
 
     # Compute texture parameters
-    texname = _texname(**kwargs)
-    scale = 1 / propvalue.scale if propvalue.scale != 0.0 else 1.0
     textype, encoding = (
         ("spectrum", "sRGB") if proptype == "RGB" else ("float", "linear")
     )
     filebasename = os.path.basename(propvalue.file)
 
-    # Compute snippet
+    # Compute snippet (transformation is in uv...)
     snippet = f"""  Texture "{texname}" "{textype}" "imagemap"
     "string filename" "{filebasename}"
     "string mapping" "uv"
     "string encoding" "{encoding}"
-    "float uscale" {scale}
-    "float vscale" {scale}
-    "float udelta" {propvalue.translation_u}
-    "float vdelta" {propvalue.translation_v}
 """
 
     return texname, snippet
@@ -427,10 +436,8 @@ def _write_value(**kwargs):
 def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     # Retrieve parameters
-    proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
-    objname = kwargs["objname"]
     propvalue = kwargs["propvalue"]
 
     # Field name

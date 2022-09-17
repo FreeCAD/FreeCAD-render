@@ -294,6 +294,8 @@ class RenderMesh:
 
         Returns: a transformed uvmap
         """
+        rotate = float(rotate)
+        scale = float(scale)
         rotate = math.radians(rotate)
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)

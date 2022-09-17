@@ -574,6 +574,10 @@ class MaterialValues:
         """
         return self._texobjects
 
+    def has_textures(self):
+        """Check if material has textures."""
+        return bool(self._texobjects)
+
     def get_texobject(self, name):
         """Get a texture object by name.
 
