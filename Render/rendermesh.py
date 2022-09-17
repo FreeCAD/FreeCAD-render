@@ -164,8 +164,11 @@ class RenderMesh:
             mtlcontent -- MTL file content (optional) (str)
             normals -- Flag to control the writing of normals in the OBJ file
               (bool)
+            uv_translate -- UV translation vector (App.Base.Vector2d)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
 
-        Returns: the file that the function wrote.
+        Returns: the name of file that the function wrote.
         """
         # Retrieve and normalize arguments
         normals = bool(normals)
@@ -203,22 +206,9 @@ class RenderMesh:
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvbase = self.uvmap
-            if uv_translate.x != 0.0 or uv_translate.y != 0.0:
-                uvbase = [v + uv_translate for v in uvbase]
-            if uv_rotate != 0.0:
-                cosr = math.cos(uv_rotate)
-                sinr = math.sin(uv_rotate)
-                uvbase = [
-                    App.Base.Vector2d(
-                        v.x * cosr - v.y * sinr, v.x * sinr + v.y * cosr
-                    )
-                    for v in uvbase
-                ]
-            if uv_scale != 1.0:
-                uvbase = [v * uv_scale for v in uvbase]
+            uvs = self.transformed_uvmap(uv_translate, uv_rotate, uv_scale)
             # Format
-            uvs = [f"vt {t.x} {t.y}" for t in uvbase]
+            uvs = [f"vt {t.x} {t.y}" for t in uvs]
             uvs.insert(0, "# Texture coordinates")
             uvs.append("")
         else:
@@ -293,6 +283,37 @@ class RenderMesh:
     def uvmap(self):
         """Get mesh uv map."""
         return self.__uvmap
+
+    def transformed_uvmap(self, translate, rotate, scale):
+        """Returns a transformed uvmap.
+
+        Args:
+            translate -- Translation vector (App.Base.Vector2d)
+            rotate -- Rotation angle in degrees (float)
+            scale -- Scale factor (float)
+
+        Returns: a transformed uvmap
+        """
+        rotate = math.radians(rotate)
+        if self.has_uvmap():
+            # Translate, rotate, scale (optionally)
+            uvbase = self.uvmap
+            if translate.x != 0.0 or translate.y != 0.0:
+                uvbase = [v + translate for v in uvbase]
+            if rotate != 0.0:
+                cosr = math.cos(rotate)
+                sinr = math.sin(rotate)
+                uvbase = [
+                    App.Base.Vector2d(
+                        v.x * cosr - v.y * sinr, v.x * sinr + v.y * cosr
+                    )
+                    for v in uvbase
+                ]
+            if scale != 1.0:
+                uvbase = [v * scale for v in uvbase]
+        else:
+            uvbase = []
+        return uvbase
 
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
