@@ -222,6 +222,9 @@ def _write_material_diffuse(name, matval):
 
 def _write_material_mixed(name, matval):
     """Compute a string in the renderer SDL for a Mixed material."""
+    # Bump
+    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
+
     # Glass
     submat_g = matval.getmixedsubmat("glass", name + "_glass")
     snippet_g_tex = submat_g.write_textures()
@@ -235,10 +238,12 @@ def _write_material_mixed(name, matval):
   MakeNamedMaterial "{name}_diffuse"
     "string type" "diffuse"
 {submat_d["color"]}
+{bump_snippet}
 {snippet_g_tex}
   MakeNamedMaterial "{name}_glass"
     "string type" "dielectric"
 {submat_g["ior"]}
+{bump_snippet}
   Material "mix"
     "string materials" ["{name}_diffuse" "{name}_glass"]
 {matval["transparency"]}"""
@@ -352,6 +357,7 @@ _FIELD_MAPPING = {
     ("diffuse", "color"): "reflectance",
     ("glass", "ior"): "eta",
     ("Mixed", "transparency"): "amount",
+    ("Mixed", "bump"): "displacement",
 }
 
 
