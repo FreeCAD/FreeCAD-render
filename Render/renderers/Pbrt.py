@@ -29,6 +29,9 @@
 
 import os
 import re
+import math
+import itertools
+import textwrap
 from tempfile import mkstemp
 
 import FreeCAD as App
@@ -51,24 +54,35 @@ def write_mesh(name, mesh, material):
         name, _write_texture, _write_value, _write_texref
     )
     material = _write_material(name, matval)
-    pnts = [f"{p.x} {p.y} {p.z}" for p in mesh.Topology[0]]
-    inds = [f"{i[0]} {i[1]} {i[2]}" for i in mesh.Topology[1]]
-    pnts = "  ".join(pnts)
-    inds = "  ".join(inds)
+    pnts = [
+        f"{p.x:+18.8f} {p.y:+18.8f} {p.z:+18.8f}" for p in mesh.Topology[0]
+    ]
+    ind_precision = math.ceil(math.log10(len(pnts)))
+    pnts = _format_list(pnts, 2)
+    inds = [
+        f"{i[0]:{ind_precision}} {i[1]:{ind_precision}} {i[2]:{ind_precision}}"
+        for i in mesh.Topology[1]
+    ]
+    inds = _format_list(inds, 5)
     if mesh.has_uvmap():
-        uvs = [f"{t.x} {t.y}" for t in mesh.uvmap]
-        uvs = "  ".join(uvs)
-        uvs = f"""    "point2 uv" [ {uvs} ]\n"""
+        uvs = [f"{t.x:+18.8f} {t.y:+18.8f}" for t in mesh.uvmap]
+        uvs = _format_list(uvs, 3)
+        uvs = f"""    "point2 uv" [\n{uvs}\n    ]\n"""
     else:
         uvs = ""
 
     snippet = f"""# Object '{name}'
 AttributeBegin
+
 {matval.write_textures()}
 {material}
   Shape "trianglemesh"
-    "point3 P" [ {pnts} ]
-    "integer indices" [ {inds} ]
+    "point3 P" [
+{pnts}
+    ]
+    "integer indices" [
+{inds}
+    ]
 {uvs}
 AttributeEnd
 # ~Object '{name}'
@@ -80,12 +94,11 @@ def write_camera(name, pos, updir, target, fov):
     """Compute a string in renderer SDL to represent a camera."""
     snippet = """# Camera '{n}'
 Scale -1 1 1
-LookAt {p.x} {p.y} {p.z}
-       {t.x} {t.y} {t.z}
-       {u.x} {u.y} {u.z}
-Camera "perspective" "float fov" {f}
-# ~Camera '{n}'
-"""  # NB: do not modify enclosing comments in snippet
+LookAt {p.x:+18.8f} {p.y:+18.8f} {p.z:+18.8f}
+       {t.x:+18.8f} {t.y:+18.8f} {t.z:+18.8f}
+       {u.x:+18.8f} {u.y:+18.8f} {u.z:+18.8f}
+Camera "perspective" "float fov" {f:+.5f}
+# ~Camera '{n}'"""  # NB: do not modify enclosing comments in snippet
     return snippet.format(n=name, p=pos.Base, t=target, u=updir, f=fov)
 
 
@@ -112,8 +125,8 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
         (-size_u / 2, +size_v / 2, 0),
     ]
     points = [pos.multVec(App.Vector(*p)) for p in points]
-    points = [f"{p.x} {p.y} {p.z}" for p in points]
-    points = "  ".join(points)
+    points = [f"{p.x:+18.6} {p.y:+18.6} {p.z:+18.6}" for p in points]
+    points = _format_list(points, 2)
 
     power *= 100
 
@@ -125,7 +138,9 @@ AttributeBegin
     "float scale" [{s}]
   Shape "trianglemesh"
     "integer indices" [0 1 2  0 2 3]
-    "point3 P" [{p}]
+    "point3 P" [
+{p}
+    ]
 AttributeEnd
 # ~Arealight '{n}'
 """
@@ -201,11 +216,7 @@ def _write_material_glass(name, matval):
         f'''  Material "dielectric"''',
         f"""    {matval["ior"]}""",
     ]
-    if matval.has_bump():
-        snippet.append(f"""{matval["bump"]}""")
-    if matval.has_normal():
-        snippet.append(f"""{matval["normal"]}""")
-    snippet.append("")
+    _write_bump_and_normal(snippet, matval)
 
     return "\n".join(snippet)
 
@@ -225,13 +236,18 @@ def _write_material_diffuse(name, matval):
         f'''  Material "diffuse"''',
         f"""    {matval["color"]}""",
     ]
-    if matval.has_bump():
-        snippet.append(f"""{matval["bump"]}""")
-    if matval.has_normal():
-        snippet.append(f"""{matval["normal"]}""")
-    snippet.append("")
+    _write_bump_and_normal(snippet, matval)
 
     return "\n".join(snippet)
+
+
+def _write_bump_and_normal(snippet, matval):
+    """Write bump and normal sub-snippets to snippet (helper)."""
+    if matval.has_bump():
+        snippet.append(f"""    {matval["bump"]}""")
+    if matval.has_normal():
+        snippet.append(f"""    {matval["normal"]}""")
+    snippet.append("")
 
 
 def _write_material_mixed(name, matval):
@@ -349,8 +365,7 @@ def _write_texture(**kwargs):
     filebasename = os.path.basename(propvalue.file)
 
     # Compute snippet
-    snippet = f"""
-  Texture "{texname}" "{textype}" "imagemap"
+    snippet = f"""  Texture "{texname}" "{textype}" "imagemap"
     "string filename" "{filebasename}"
     "string mapping" "uv"
     "string encoding" "{encoding}"
@@ -364,8 +379,8 @@ def _write_texture(**kwargs):
 
 
 _VALSNIPPETS = {
-    "RGB": '"rgb {field}" [{val.r} {val.g} {val.b}]',
-    "float": '"float {field}" {val}',
+    "RGB": '"rgb {field}" [{val.r:.8} {val.g:.8} {val.b:.8}]',
+    "float": '"float {field}" {val:.8}',
     "node": "",
     "texonly": "{val}",
     "str": "{val}",
@@ -431,8 +446,12 @@ def _write_texref(**kwargs):
         return ""
     if propname == "normal":
         basefilename = os.path.basename(propvalue.file)
-        snippet = f'''     "string normalmap" "{basefilename}"'''
-        if propvalue.scale != 1.0 or propvalue.translation_u != 0.0 or propvalue.translation_v != 0.0:
+        snippet = f'''"string normalmap" "{basefilename}"'''
+        if (
+            propvalue.scale != 1.0
+            or propvalue.translation_u != 0.0
+            or propvalue.translation_v != 0.0
+        ):
             msg = (
                 "[Render][Pbrt] WARNING - pbrt does not support scaling or "
                 "translation for normal map.\n"
@@ -444,9 +463,31 @@ def _write_texref(**kwargs):
     texname = _texname(**kwargs)
 
     # Snippet for texref
-    snippet = f'''    "texture {field}" "{texname}"'''
+    snippet = f'''"texture {field}" "{texname}"'''
 
     return snippet
+
+
+# ===========================================================================
+#                              Helpers
+# ===========================================================================
+
+
+def _format_list(inlist, elements_per_line, indentation=6):
+    """Format list of numbers, to improve readability."""
+    elements_per_line = int(elements_per_line)
+    pad = " " * int(indentation)
+
+    # Group by 'elements_per_line'
+    res = itertools.groupby(
+        enumerate(inlist), lambda x: int(x[0]) // int(elements_per_line)
+    )
+    res = [pad.join([i for _, i in sublist]) for _, sublist in res]
+
+    # Indent
+    res = [textwrap.indent(i, pad) for i in res]
+    res = "\n".join(res)
+    return res
 
 
 # ===========================================================================
