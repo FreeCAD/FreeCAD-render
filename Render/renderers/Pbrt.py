@@ -215,10 +215,12 @@ def _write_material_disney(name, matval):
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
     bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
+    normal_snippet = f"""{matval["normal"]}""" if matval.has_normal() else ""
     snippet = f"""  # Material '{name}'
   Material "diffuse"
 {matval["color"]}
-{bump_snippet}"""
+{bump_snippet}
+{normal_snippet}"""
     return snippet
 
 
@@ -323,6 +325,10 @@ def _write_texture(**kwargs):
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+
+    # Exclusion
+    if propname == "normalmap":
+        return texname, ""
 
     # Compute texture parameters
     texname = _texname(**kwargs)
