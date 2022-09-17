@@ -218,26 +218,29 @@ def _write_material_diffuse(name, matval):
     return snippet
 
 
-def _write_material_mixed(name, material):
+def _write_material_mixed(name, matval):
     """Compute a string in the renderer SDL for a Mixed material."""
-    snippet = """  # Material '{n}'
-  MakeNamedMaterial "{n}_1"
+    # Glass
+    submat_g = matval.getmixedsubmat("glass", name + "_glass")
+    snippet_g_tex = submat_g.write_textures()
+
+    # Diffuse
+    submat_d = matval.getmixedsubmat("diffuse", name + "_diffuse")
+    snippet_d_tex = submat_d.write_textures()
+
+    snippet = f"""  # Material '{name}'
+{snippet_d_tex}
+  MakeNamedMaterial "{name}_diffuse"
     "string type" "diffuse"
-    "rgb reflectance" [{c.r} {c.g} {c.b}]
-  MakeNamedMaterial "{n}_2"
+{submat_d["color"]}
+{snippet_g_tex}
+  MakeNamedMaterial "{name}_glass"
     "string type" "dielectric"
-    "float eta" {i}
+{submat_g["ior"]}
   Material "mix"
-    "string materials" ["{n}_1" "{n}_2"]
-    "float amount" {r}
-"""
-    return snippet.format(
-        n=name,
-        c=material.mixed.glass.color,
-        i=material.mixed.glass.ior,
-        k=material.mixed.diffuse.color,
-        r=material.mixed.transparency,
-    )
+    "string materials" ["{name}_diffuse" "{name}_glass"]
+{matval["transparency"]}"""
+    return snippet
 
 
 def _write_material_carpaint(name, matval):
@@ -284,12 +287,15 @@ MATERIALS = {
 # ===========================================================================
 
 
-def _texname(objname, propvalue):
+def _texname(**kwargs):
     """Compute texture name (helper).
 
     For a texture name common to _write_texture and _write_texref.
     """
-    return f"{objname}_{propvalue.name}_{propvalue.subname}"
+    objname = kwargs["objname"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    return f"{objname}_{propname}_{shadertype}_tex"
 
 
 def _write_texture(**kwargs):
@@ -306,7 +312,7 @@ def _write_texture(**kwargs):
     propvalue = kwargs["propvalue"]
 
     # Compute texture parameters
-    texname = _texname(objname, propvalue)
+    texname = _texname(**kwargs)
     scale = 1 / propvalue.scale if propvalue.scale != 0.0 else 1.0
     textype, encoding = (
         ("spectrum", "sRGB") if proptype == "RGB" else ("float", "linear")
@@ -336,11 +342,13 @@ _VALSNIPPETS = {
     "str": "{val}",
 }
 
-# TODO
 _FIELD_MAPPING = {
     ("Diffuse", "color"): "reflectance",
     ("Glass", "ior"): "eta",
     ("Carpaint", "basecolor"): "reflectance",
+    ("diffuse", "color"): "reflectance",
+    ("glass", "ior"): "eta",
+    ("Mixed", "transparency"): "amount",
 }
 
 
@@ -390,7 +398,7 @@ def _write_texref(**kwargs):
         return ""
 
     # Texture name
-    texname = _texname(objname, propvalue)
+    texname = _texname(**kwargs)
 
     # Snippet for texref
     snippet = f"""    "texture {field}" "{texname}"\n"""

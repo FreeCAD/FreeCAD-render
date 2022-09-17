@@ -516,6 +516,7 @@ def _write_material_mixed(name, matval):
 
     transparency = matval.material.mixed.transparency
     assert isinstance(transparency, float)
+    # TODO Could be texture?
 
     snippet_mix = f"""
 # Mixed
