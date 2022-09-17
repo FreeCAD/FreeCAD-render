@@ -212,9 +212,11 @@ def _write_material_disney(name, matval):
 
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
+    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
     snippet = f"""  # Material '{name}'
   Material "diffuse"
-{matval["color"]}"""
+{matval["color"]}
+{bump_snippet}"""
     return snippet
 
 
@@ -344,6 +346,7 @@ _VALSNIPPETS = {
 
 _FIELD_MAPPING = {
     ("Diffuse", "color"): "reflectance",
+    ("Diffuse", "bump"): "displacement",
     ("Glass", "ior"): "eta",
     ("Carpaint", "basecolor"): "reflectance",
     ("diffuse", "color"): "reflectance",
