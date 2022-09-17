@@ -368,7 +368,9 @@ def _write_texture(**kwargs):
     texname = _texname(**kwargs)
 
     # Exclusion
-    if propname == "normalmap":
+    if propname == "normal":
+        return texname, ""
+    if propname == "displacement":
         return texname, ""
 
     # Compute texture parameters
@@ -448,6 +450,12 @@ def _write_texref(**kwargs):
         msg = (
             "[Render][Pbrt] WARNING - pbrt does not support texture for "
             "ior. Falling back to default constant value (1.5)\n"
+        )
+        App.Console.PrintWarning(msg)
+        return ""
+    if propname == "displacement":
+        msg = (
+            "[Render][Pbrt] WARNING - pbrt does not support displacement.\n"
         )
         App.Console.PrintWarning(msg)
         return ""
