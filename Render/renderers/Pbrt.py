@@ -196,12 +196,18 @@ def _write_material_passthrough(name, matval):
 
 def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
-    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
-    snippet = f"""  # Material '{name}'
-  Material "dielectric"
-{matval["ior"]}
-{bump_snippet}"""
-    return snippet
+    snippet = [
+        f"""  # Material '{name}'""",
+        f'''  Material "dielectric"''',
+        f"""    {matval["ior"]}""",
+    ]
+    if matval.has_bump():
+        snippet.append(f"""{matval["bump"]}""")
+    if matval.has_normal():
+        snippet.append(f"""{matval["normal"]}""")
+    snippet.append("")
+
+    return "\n".join(snippet)
 
 
 def _write_material_disney(name, matval):
@@ -217,7 +223,7 @@ def _write_material_diffuse(name, matval):
     snippet = [
         f"""  # Material '{name}'""",
         f'''  Material "diffuse"''',
-        f"""{matval["color"]}""",
+        f"""    {matval["color"]}""",
     ]
     if matval.has_bump():
         snippet.append(f"""{matval["bump"]}""")
@@ -358,8 +364,8 @@ def _write_texture(**kwargs):
 
 
 _VALSNIPPETS = {
-    "RGB": '    "rgb {field}" [{val.r} {val.g} {val.b}]',
-    "float": '    "float {field}" {val}',
+    "RGB": '"rgb {field}" [{val.r} {val.g} {val.b}]',
+    "float": '"float {field}" {val}',
     "node": "",
     "texonly": "{val}",
     "str": "{val}",
