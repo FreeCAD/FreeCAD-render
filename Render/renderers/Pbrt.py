@@ -359,6 +359,7 @@ _FIELD_MAPPING = {
     ("Diffuse", "color"): "reflectance",
     ("Diffuse", "bump"): "displacement",
     ("Glass", "ior"): "eta",
+    ("Glass", "bump"): "displacement",
     ("Carpaint", "basecolor"): "reflectance",
     ("Carpaint", "bump"): "displacement",
     ("diffuse", "color"): "reflectance",
