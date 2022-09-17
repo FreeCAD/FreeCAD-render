@@ -252,11 +252,15 @@ def _write_material_mixed(name, matval):
 
 def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
+    # Bump
+    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
+
     snippet = f"""  # Material '{name}'
   Material "coateddiffuse"
 {matval["basecolor"]}
     "float roughness" [ 0.0 ]
-    "float eta" [ 1.54 ]"""
+    "float eta" [ 1.54 ]
+{bump_snippet}"""
     return snippet
 
 
@@ -354,6 +358,7 @@ _FIELD_MAPPING = {
     ("Diffuse", "bump"): "displacement",
     ("Glass", "ior"): "eta",
     ("Carpaint", "basecolor"): "reflectance",
+    ("Carpaint", "bump"): "displacement",
     ("diffuse", "color"): "reflectance",
     ("glass", "ior"): "eta",
     ("Mixed", "transparency"): "amount",
