@@ -308,7 +308,7 @@ def _texname(**kwargs):
     objname = kwargs["objname"]
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
-    return f"{objname}_{propname}_{shadertype}_tex"
+    return f"{objname}_{shadertype}_{propname}_tex"
 
 
 def _write_texture(**kwargs):
@@ -405,20 +405,30 @@ def _write_texref(**kwargs):
     # Field name
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
-    # Exclusions
+    # Exclusions / special cases
     if propname == "ior":
         msg = (
-            "[Render] [Pbrt] WARNING - pbrt does not support texture for "
+            "[Render][Pbrt] WARNING - pbrt does not support texture for "
             "ior. Falling back to default constant value (1.5)\n"
         )
         App.Console.PrintWarning(msg)
         return ""
+    if propname == "normal":
+        basefilename = os.path.basename(propvalue.file)
+        snippet = f'''     "string normalmap" "{basefilename}"'''
+        if propvalue.scale != 1.0 or propvalue.translation_u != 0.0 or propvalue.translation_v != 0.0:
+            msg = (
+                "[Render][Pbrt] WARNING - pbrt does not support scaling or "
+                "translation for normal map.\n"
+            )
+            App.Console.PrintWarning(msg)
+        return snippet
 
     # Texture name
     texname = _texname(**kwargs)
 
     # Snippet for texref
-    snippet = f"""    "texture {field}" "{texname}"\n"""
+    snippet = f'''    "texture {field}" "{texname}"'''
 
     return snippet
 
