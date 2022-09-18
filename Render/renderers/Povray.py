@@ -381,6 +381,25 @@ def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     return snippet
 
 
+def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
+    """Compute a string in the renderer SDL for a Diffuse material."""
+    bump = matval["bump"] if matval.has_bump() else ""
+    normal = matval["normal"] if matval.has_normal() else ""
+    snippet = f"""texture {{
+        {matval["basecolor"]}
+        finish {{
+          diffuse albedo 1
+          phong albedo 0
+          specular albedo 0.5
+          roughness 0.05
+          conserve_energy
+        }}
+        {bump}
+        {normal}
+    }}"""
+    return snippet
+
+
 def _write_material_mixed(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Mixed material."""
     # Glass pigment
@@ -456,6 +475,7 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
 
 
