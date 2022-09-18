@@ -114,9 +114,8 @@ def write_mesh(name, mesh, material):
                     material="{mat_name}"
                 />
             </object_instance>"""
-    snippet_tex = matval.write_textures()
 
-    snippet = snippet_tex + snippet_mat + snippet_obj
+    snippet = snippet_mat + snippet_obj
 
     return snippet
 
@@ -335,7 +334,8 @@ def _write_material_diffuse(name, matval, write_material=True):
     snippet = [snippet_color, snippet_bsdf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
-        snippet.append(snippet_material)
+        snippet_tex = matval.write_textures()
+        snippet += [snippet_tex, snippet_material]
     return "".join(snippet)
 
 
@@ -356,7 +356,8 @@ def _write_material_glass(name, matval, write_material=True):
     snippet = [snippet_color, snippet_bsdf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
-        snippet.append(snippet_material)
+        snippet_tex = matval.write_textures()
+        snippet += [snippet_tex, snippet_material]
     return "".join(snippet)
 
 
@@ -391,7 +392,8 @@ def _write_material_disney(name, matval):
         n=_color_name(name), c=matval["basecolor"][1]
     )
     snippet_material = _snippet_material(name, matval)
-    snippet = [snippet_color, snippet_bsdf, snippet_material]
+    snippet_tex = matval.write_textures()
+    snippet = [snippet_tex, snippet_color, snippet_bsdf, snippet_material]
     return "".join(snippet)
 
 
@@ -416,18 +418,133 @@ def _write_material_mixed(name, matval):
             </bsdf>"""
 
     snippet_material = _snippet_material(name, matval)
+    snippet_tex = matval.write_textures()
     snippet = [
         snippet_g_tex,
         snippet_d_tex,
         snippet_g,
         snippet_d,
         snippet_mixed,
+        snippet_tex,
         snippet_material,
     ]
     return "".join(snippet)
 
-
 def _write_material_carpaint(name, matval):
+    """Compute a string in the renderer SDL for a carpaint material."""
+    # carpaint is an osl shader, so the computation is a bit more complex,
+    # and not so 'industrialized' for textures as other shaders...
+    path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
+
+    # Base color
+    color = matval["basecolor"][1]  # Base
+    color_texobj = matval.get_texobject("basecolor")
+
+    if color_texobj:  # Material has color texture
+        color_texconnect = """
+        <connect_shaders src_layer="BasecolorTex" src_param="out_color"
+                         dst_layer="MasterMix" dst_param="in_color" />
+        <connect_shaders src_layer="BasecolorTex" src_param="out_color"
+                         dst_layer="MasterMix" dst_param="in_specular_color" />
+        <connect_shaders src_layer="BasecolorTex"
+                         src_param="out_color"
+                         dst_layer="MasterMix"
+                         dst_param="in_coating_absorption" />"""
+    else:
+        color_texconnect = ""
+
+    # Bump/Normal
+    if matval.has_bump() and matval.has_normal():
+        msg = (
+            f"[Material '{name}'] Warning - Appleseed "
+            "does not support bump and normal at the same time in a material. "
+            "Falling back to bump only."
+        )
+        _warn(msg)
+
+    if matval.has_bump():
+        normal_texconnect = """
+        <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
+                         dst_layer="BumpTex" dst_param="in_texture_coords" />
+        <connect_shaders src_layer="BumpTex" src_param="out_channel"
+                         dst_layer="Bump" dst_param="in_bump_value" />
+        <connect_shaders src_layer="Bump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_substrate" />"""
+    elif matval.has_normal():
+        normal_texconnect = """
+        <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
+                         dst_layer="NormalTex" dst_param="in_texture_coords" />
+        <connect_shaders src_layer="NormalTex" src_param="out_color"
+                         dst_layer="SubstrateBump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="NormalTex" src_param="out_color"
+                         dst_layer="CoatingBump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="SubstrateBump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_substrate" />
+        <connect_shaders src_layer="CoatingBump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_coating" />"""
+    else:
+        normal_texconnect = ""
+
+    # Final consolidation
+    snippet_tex = matval.write_textures()
+    snippet = f"""
+        <search_path>
+            {path}
+        </search_path>
+    <!-- Carpaint Shader -->
+    <material name="{name}" model="osl_material">
+        <parameter name="surface_shader" value="{name}_ss" />
+        <parameter name="osl_surface" value="{name}_group" />
+    </material>
+
+    <surface_shader name="{name}_ss" model="physical_surface_shader" />
+
+    <shader_group name="{name}_group">
+{snippet_tex}
+        <shader layer="MasterMix" type="shader" name="as_standard_surface">
+            <parameter name="in_color"
+                       value="color {color}" />
+            <parameter name="in_diffuse_weight"
+                       value="float 0.8" />
+            <parameter name="in_specular_color"
+                       value="color {color}" />
+            <parameter name="in_specular_roughness"
+                       value="float 0.8" />
+            <parameter name="in_fresnel_type"
+                       value="int 1" />
+            <parameter name="in_face_tint"
+                       value="color 231 233 235" />
+            <parameter name="in_edge_tint"
+                       value="color 212 219 227" />
+            <parameter name="in_edge_tint_weight"
+                       value="float 0.1" />
+            <parameter name="in_coating_absorption"
+                       value="color {color}" />
+            <parameter name="in_coating_reflectivity"
+                       value="float 0.8" />
+            <parameter name="in_coating_roughness"
+                       value="float 0.1" />
+            <parameter name="in_coating_depth"
+                       value="float 0.001" />
+            <parameter name="in_coating_ior"
+                       value="float 1.57" />
+        </shader>
+        <shader layer="Surface" type="surface" name="as_closure2surface" />
+{color_texconnect}{normal_texconnect}
+        <connect_shaders src_layer="MasterMix" src_param="out_outColor"
+                         dst_layer="Surface" dst_param="in_input" />
+    </shader_group>"""
+
+    return snippet
+
+# TODO
+def _write_material_carpaint_old(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
     # carpaint is an osl shader, so the computation is a bit more complex,
     # and not so 'industrialized' for textures as other shaders...
@@ -607,6 +724,8 @@ def _write_material_carpaint(name, matval):
 
     return snippet
 
+def _write_material_pbr(name, matval):
+    pass
 
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
@@ -653,6 +772,8 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
 }
+
+OSL_SHADERS = ("Carpaint")
 
 SNIPPET_COLOR = """
             <color name="{n}">
@@ -736,10 +857,117 @@ def _write_texture(**kwargs):
     always integrated into a shader). Property's data are expected as
     arguments.
 
-    Args:
-        objname -- Object name for which the texture is computed
-        propname -- Name of the shader property
-        propvalue -- Value of the shader property
+    Returns:
+        the name of the texture
+        the SDL string of the texture
+    """
+    shadertype = kwargs["shadertype"]
+    write_function = _write_texture_osl if shadertype in OSL_SHADERS else _write_texture_internal
+    return write_function(**kwargs)
+
+def _write_texture_osl(**kwargs):
+    """Compute a string in renderer SDL to describe a texture in OSL format.
+
+    The texture is computed from a property of a shader (as the texture is
+    always integrated into a shader). Property's data are expected as
+    arguments.
+
+    Returns:
+        the name of the texture
+        the SDL string of the texture
+    """
+    # Retrieve parameters
+    propvalue = kwargs["propvalue"]
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+
+    # Compute texture name
+    texname = _texname(**kwargs)
+
+    # Retrieve texture parameters
+    filename = propvalue.file.encode("unicode_escape").decode("utf-8")
+    scale = propvalue.scale
+    translate_u = propvalue.translation_u
+    translate_v = propvalue.translation_v
+    rotate = propvalue.rotation
+
+    # Bump
+    if propname == "bump":
+        snippet = f"""
+        <!-- Bump -->
+        <shader layer="Manifold2d" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
+        <shader layer="BumpTex" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>
+        <shader layer="Bump" type="shader" name="as_bump">
+            <parameter name="in_mode" value="string Bump" />
+            <parameter name="in_bump_depth" value="float 1.0" />
+            <parameter name="in_normal_map_coordsys" value="string World Space" />
+            <parameter name="in_normal_map_mode" value="string Unsigned" />
+        </shader>"""
+        return texname, snippet
+
+    # Normal
+    if propname == "bump":
+        snippet = f"""
+        <!-- Normal -->
+        <shader layer="Manifold2d" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
+        <shader layer="NormalTex" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>
+        <shader layer="SubstrateBump" type="shader" name="as_bump">
+            <parameter name="in_mode" value="string Normal Map" />
+            <parameter name="in_normal_map_weight" value="float 0.4" />
+            <parameter name="in_normal_map_swap_rg" value="int 0" />
+            <parameter name="in_normal_map_coordsys" value="string World Space" />
+            <parameter name="in_normal_map_mode" value="string Unsigned" />
+        </shader>
+        <shader layer="CoatingBump" type="shader" name="as_bump">
+            <parameter name="in_mode" value="string Normal Map" />
+            <parameter name="in_normal_map_weight" value="float 0.4" />
+            <parameter name="in_normal_map_swap_rg" value="int 0" />
+            <parameter name="in_normal_map_coordsys" value="string World Space" />
+            <parameter name="in_normal_map_mode" value="string Unsigned" />
+        </shader>"""
+        return texname, snippet
+
+    # RGB
+    if proptype == "RGB":
+        snippet = f"""
+        <!-- Color texture -->
+        <shader layer="BasecolorTex" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>"""
+        return texname, snippet
+
+    # TODO float
+
+    return texname, ""
+
+
+def _write_texture_internal(**kwargs):
+    """Compute a string in renderer SDL to describe a texture in internal format.
+
+    The texture is computed from a property of a shader (as the texture is
+    always integrated into a shader). Property's data are expected as
+    arguments.
 
     Returns:
         the name of the texture
