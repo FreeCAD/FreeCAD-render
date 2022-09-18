@@ -432,8 +432,7 @@ def _write_material_mixed(name, matval):
 
 def _write_material_carpaint(name, matval):
     """Compute a string in the renderer SDL for a carpaint material."""
-    # carpaint is an osl shader, so the computation is a bit more complex,
-    # and not so 'industrialized' for textures as other shaders...
+    # carpaint is an osl shader
     path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
 
     # Base color
@@ -441,22 +440,14 @@ def _write_material_carpaint(name, matval):
     color_texobj = matval.get_texobject("basecolor")
 
     # Bump/Normal
-    if matval.has_bump() and matval.has_normal():
-        msg = (
-            f"[Material '{name}'] Warning - Appleseed "
-            "does not support bump and normal at the same time in a material. "
-            "Falling back to bump only."
-        )
-        _warn(msg)
-
     if matval.has_bump():
-        normal_texconnect, _ = matval["bump"]
-    elif matval.has_normal():
+        bump_texconnect, _ = matval["bump"]
+    else:
+        bump_texconnect = ""
+    if matval.has_normal():
         normal_texconnect, _ = matval["normal"]
     else:
         normal_texconnect = ""
-
-    # TODO Blend normals
 
     # Final consolidation
     snippet_tex = matval.write_textures()
@@ -503,7 +494,8 @@ def _write_material_carpaint(name, matval):
                        value="float 1.57" />
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
-{color_texconnect}{normal_texconnect}
+{color_texconnect}{bump_texconnect}{normal_texconnect}
+        <!-- Connect internals -->
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
     </shader_group>"""
@@ -1060,15 +1052,16 @@ def _write_texref_osl(**kwargs):
 
     # RGB special case
     if proptype == "RGB":
+        texconnect = [f"        <!-- Connect '{propname}' -->"]
         # Compute connection statement
         snippet_connect = """
         <connect_shaders src_layer="{p}" src_param="out_color"
                          dst_layer="MasterMix" dst_param="{i}" />"""
-        texconnect = [snippet_connect.format(p=propname, i=i) for i in inputs]
+        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
         # Internal connections
-        texconnect.append(f"""
+        texconnect += [f"""
         <connect_shaders src_layer="{propname}Manifold" src_param="out_uvcoord"
-                         dst_layer="{propname}" dst_param="in_texture_coords" />""")
+                         dst_layer="{propname}" dst_param="in_texture_coords" />"""]
         # Return connection statement and default value
         texconnect = "".join(texconnect)
         return (texconnect, "0.8 0.8 0.8")
@@ -1076,31 +1069,25 @@ def _write_texref_osl(**kwargs):
     # Bump
     if propname == "bump":
         texconnect = """
+        <!-- Connect 'bump' -->
         <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
                          dst_layer="bumpTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="bumpTex" src_param="out_channel"
                          dst_layer="bump" dst_param="in_bump_value" />
-        <connect_shaders src_layer="bump"
-                         src_param="out_normal"
-                         dst_layer="MasterMix"
-                         dst_param="in_bump_normal_substrate" />"""
+        <connect_shaders src_layer="bump" src_param="out_normal"
+                         dst_layer="MasterMix" dst_param="in_bump_normal_substrate" />"""
         return (texconnect, "")
 
     # Normal
     if propname == "normal":
         texconnect = """
+        <!-- Connect 'normal' -->
         <connect_shaders src_layer="normalManifold2d" src_param="out_uvcoord"
                          dst_layer="normalTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="normalTex" src_param="out_color"
                          dst_layer="normal" dst_param="in_normal_map" />
-        <connect_shaders src_layer="normal"
-                         src_param="out_normal"
-                         dst_layer="MasterMix"
-                         dst_param="in_bump_normal_substrate" />
-        <connect_shaders src_layer="normal"
-                         src_param="out_normal"
-                         dst_layer="MasterMix"
-                         dst_param="in_bump_normal_coating" />"""
+        <connect_shaders src_layer="normal" src_param="out_normal"
+                         dst_layer="MasterMix" dst_param="in_bump_normal_coating" />"""
         return (texconnect, "")
 
 
