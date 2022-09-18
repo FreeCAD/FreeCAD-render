@@ -437,13 +437,8 @@ def _write_material_carpaint(name, matval):
     path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
 
     # Base color
-    color = matval["basecolor"][1]  # Base
+    color_texconnect, color = matval["basecolor"]
     color_texobj = matval.get_texobject("basecolor")
-
-    if color_texobj:  # Material has color texture
-        color_texconnect = matval["basecolor"][0]
-    else:
-        color_texconnect = ""
 
     # Bump/Normal
     if matval.has_bump() and matval.has_normal():
@@ -1008,9 +1003,39 @@ def _write_texture_internal(**kwargs):
 
     return texname, texture
 
-
 def _write_value(**kwargs):
     """Compute a string in renderer SDL from a shader property value.
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
+    shadertype = kwargs["shadertype"]
+    write_function = _write_value_osl if shadertype in OSL_SHADERS else _write_value_internal
+    return write_function(**kwargs)
+
+def _write_value_osl(**kwargs):
+    """Compute a string in renderer SDL from a shader property value (osl).
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    val = kwargs["propvalue"]
+
+    # Snippets for values
+    if proptype == "RGB":
+        return ("", f"{val.r:.8} {val.g:.8} {val.b:.8}")
+    # TODO Float
+
+def _write_value_internal(**kwargs):
+    """Compute a string in renderer SDL from a shader property value (internal).
 
     Args:
         proptype -- Shader property's type
