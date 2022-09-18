@@ -226,9 +226,9 @@ def _write_material_passthrough(name, matval):
 def _write_material_glass(name, matval):
     """Compute a string in the renderer SDL for a glass material."""
     snippet = [
-        f"""  # Material '{name}'""",
-        f'''  Material "dielectric"''',
-        f"""    {matval["ior"]}""",
+        f"  # Material '{name}'",
+        r'  Material "dielectric"',
+        f'    {matval["ior"]}',
     ]
     _write_bump_and_normal(snippet, matval)
 
@@ -246,9 +246,9 @@ def _write_material_disney(name, matval):
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
     snippet = [
-        f"""  # Material '{name}'""",
-        f'''  Material "diffuse"''',
-        f"""    {matval["color"]}""",
+        f"  # Material '{name}'",
+        r'  Material "diffuse"',
+        f'    {matval["color"]}',
     ]
     _write_bump_and_normal(snippet, matval)
 
