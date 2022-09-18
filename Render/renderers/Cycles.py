@@ -379,6 +379,19 @@ def _write_material_disney(name, matval, connect_to="output surface"):
 <connect from="{name}_bsdf bsdf" to="{connect_to}"/>"""
 
 
+def _write_material_pbr(name, matval, connect_to="output surface"):
+    """Compute a string in the renderer SDL for a Disney material."""
+    return f"""
+<principled_bsdf
+    name="{name}_bsdf"
+    base_color = "{matval["basecolor"]}"
+    roughness = "{matval["roughness"]}"
+    metallic = "{matval["metallic"]}"
+    specular = "0.5"
+/>
+<connect from="{name}_bsdf bsdf" to="{connect_to}"/>"""
+
+
 def _write_material_diffuse(name, matval, connect_to="output surface"):
     """Compute a string in the renderer SDL for a Diffuse material."""
     return f"""
@@ -467,6 +480,7 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
 
 # ===========================================================================
