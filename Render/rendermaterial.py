@@ -117,6 +117,13 @@ STD_MATERIALS_PARAMETERS = {
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
+    "Substance_PBR": [
+        P("BaseColor", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Base color")),
+        P("Roughness", "float", 0.0, _tr("Render", "Roughness")),
+        P("Metallic", "float", 0.0, _tr("Render", "Metallic")),
+        P("Bump", "texonly", "", _tr("Render", "Bump")),
+        P("Normal", "texonly", "", _tr("Render", "Normal")),
+    ],
 }
 
 # NB: Above 'Mixed' material could be extended with reflectivity in the
