@@ -905,18 +905,16 @@ def _write_texref_osl(**kwargs):
 
     # RGB special case
     if proptype == "RGB":
-        texconnect = [f"        <!-- Connect '{propname}' -->"]
+        # Internal connections
+        texconnect = [f"""
+        <!-- Connect '{propname}' -->
+        <connect_shaders src_layer="{propname}Manifold" src_param="out_uvcoord"
+                         dst_layer="{propname}" dst_param="in_texture_coords" />"""]
         # Compute connection statement
         snippet_connect = """
         <connect_shaders src_layer="{p}" src_param="out_color"
                          dst_layer="MasterMix" dst_param="{i}" />"""
         texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
-        # Internal connections
-        texconnect += [
-            f"""
-        <connect_shaders src_layer="{propname}Manifold" src_param="out_uvcoord"
-                         dst_layer="{propname}" dst_param="in_texture_coords" />"""
-        ]
         # Return connection statement and default value
         texconnect = "".join(texconnect)
         return (texconnect, "0.8 0.8 0.8")
