@@ -879,11 +879,17 @@ def _write_texref(**kwargs):
 
 
 OSL_CONNECTIONS = {
-    ("Carpaint", "basecolor"): (
+    ("Carpaint", "basecolor"): [
         "in_color",
         "in_specular_color",
         "in_coating_absorption",
-    )
+    ],
+    ("Carpaint", "bump"): [
+        "in_bump_normal_substrate",
+    ],
+    ("Carpaint", "normal"): [
+        "in_bump_normal_coating",
+    ],
 }
 
 
@@ -894,6 +900,8 @@ def _write_texref_osl(**kwargs):
     propname = kwargs["propname"]
 
     inputs = OSL_CONNECTIONS.get((shadertype, propname), ("in_color"))
+
+    # TODO Factorize between RGB/bump/normal
 
     # RGB special case
     if proptype == "RGB":
@@ -915,26 +923,38 @@ def _write_texref_osl(**kwargs):
 
     # Bump
     if propname == "bump":
-        texconnect = """
+        # Internal connections
+        texconnect = ["""
         <!-- Connect 'bump' -->
         <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
                          dst_layer="bumpTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="bumpTex" src_param="out_channel"
-                         dst_layer="bump" dst_param="in_bump_value" />
-        <connect_shaders src_layer="bump" src_param="out_normal"
-                         dst_layer="MasterMix" dst_param="in_bump_normal_substrate" />"""
+                         dst_layer="bump" dst_param="in_bump_value" />"""]
+        # Compute connection statement
+        snippet_connect = """
+        <connect_shaders src_layer="{p}" src_param="out_normal"
+                         dst_layer="MasterMix" dst_param="{i}" />"""
+        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
+        # Return connection statement and default value
+        texconnect = "".join(texconnect)
         return (texconnect, "")
 
     # Normal
     if propname == "normal":
-        texconnect = """
+        # Internal connections
+        texconnect = ["""
         <!-- Connect 'normal' -->
         <connect_shaders src_layer="normalManifold2d" src_param="out_uvcoord"
                          dst_layer="normalTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="normalTex" src_param="out_color"
-                         dst_layer="normal" dst_param="in_normal_map" />
-        <connect_shaders src_layer="normal" src_param="out_normal"
-                         dst_layer="MasterMix" dst_param="in_bump_normal_coating" />"""
+                         dst_layer="normal" dst_param="in_normal_map" />"""]
+        # Compute connection statement
+        snippet_connect = """
+        <connect_shaders src_layer="{p}" src_param="out_normal"
+                         dst_layer="MasterMix" dst_param="{i}" />"""
+        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
+        # Return connection statement and default value
+        texconnect = "".join(texconnect)
         return (texconnect, "")
 
 
