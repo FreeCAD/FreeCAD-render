@@ -899,14 +899,7 @@ def _write_texture_osl(**kwargs):
             <parameter name="in_filename"
                        value="string {filename}" />
         </shader>
-        <shader layer="SubstrateBump" type="shader" name="as_bump">
-            <parameter name="in_mode" value="string Normal Map" />
-            <parameter name="in_normal_map_weight" value="float 0.4" />
-            <parameter name="in_normal_map_swap_rg" value="int 0" />
-            <parameter name="in_normal_map_coordsys" value="string World Space" />
-            <parameter name="in_normal_map_mode" value="string Unsigned" />
-        </shader>
-        <shader layer="CoatingBump" type="shader" name="as_bump">
+        <shader layer="normal" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Normal Map" />
             <parameter name="in_normal_map_weight" value="float 0.4" />
             <parameter name="in_normal_map_swap_rg" value="int 0" />
@@ -1099,14 +1092,12 @@ def _write_texref_osl(**kwargs):
         <connect_shaders src_layer="normalManifold2d" src_param="out_uvcoord"
                          dst_layer="normalTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="normalTex" src_param="out_color"
-                         dst_layer="SubstrateBump" dst_param="in_normal_map" />
-        <connect_shaders src_layer="normalTex" src_param="out_color"
-                         dst_layer="CoatingBump" dst_param="in_normal_map" />
-        <connect_shaders src_layer="SubstrateBump"
+                         dst_layer="normal" dst_param="in_normal_map" />
+        <connect_shaders src_layer="normal"
                          src_param="out_normal"
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_substrate" />
-        <connect_shaders src_layer="CoatingBump"
+        <connect_shaders src_layer="normal"
                          src_param="out_normal"
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_coating" />"""
