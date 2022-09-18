@@ -450,15 +450,7 @@ def _write_material_carpaint(name, matval):
         _warn(msg)
 
     if matval.has_bump():
-        normal_texconnect = """
-        <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
-                         dst_layer="BumpTex" dst_param="in_texture_coords" />
-        <connect_shaders src_layer="BumpTex" src_param="out_channel"
-                         dst_layer="Bump" dst_param="in_bump_value" />
-        <connect_shaders src_layer="Bump"
-                         src_param="out_normal"
-                         dst_layer="MasterMix"
-                         dst_param="in_bump_normal_substrate" />"""
+        normal_texconnect, _ = matval["bump"]
     elif matval.has_normal():
         normal_texconnect = """
         <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
@@ -882,7 +874,7 @@ def _write_texture_osl(**kwargs):
     if propname == "bump":
         snippet = f"""
         <!-- Bump -->
-        <shader layer="Manifold2d" type="shader" name="as_manifold2d">
+        <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
             <parameter name="in_scale_frame"
                        value="float[] {scale} {scale}" />
             <parameter name="in_translate_frame"
@@ -890,11 +882,11 @@ def _write_texture_osl(**kwargs):
             <parameter name="in_rotate_frame"
                        value="float {rotate / 360}" />
         </shader>
-        <shader layer="BumpTex" type="shader" name="as_texture">
+        <shader layer="bumpTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
         </shader>
-        <shader layer="Bump" type="shader" name="as_bump">
+        <shader layer="bump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Bump" />
             <parameter name="in_bump_depth" value="float 1.0" />
             <parameter name="in_normal_map_coordsys" value="string World Space" />
@@ -1099,6 +1091,20 @@ def _write_texref_osl(**kwargs):
         # Return connection statement and default value
         texconnect = "".join(texconnect)
         return (texconnect, "0.8 0.8 0.8")
+
+    # Bump
+    if propname == "bump":
+        texconnect = """
+        <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
+                         dst_layer="bumpTex" dst_param="in_texture_coords" />
+        <connect_shaders src_layer="bumpTex" src_param="out_channel"
+                         dst_layer="bump" dst_param="in_bump_value" />
+        <connect_shaders src_layer="bump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_substrate" />"""
+        return (texconnect, "")
+
 
 def _write_texref_internal(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
