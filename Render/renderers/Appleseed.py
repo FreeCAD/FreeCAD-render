@@ -452,23 +452,11 @@ def _write_material_carpaint(name, matval):
     if matval.has_bump():
         normal_texconnect, _ = matval["bump"]
     elif matval.has_normal():
-        normal_texconnect = """
-        <connect_shaders src_layer="Manifold2d" src_param="out_uvcoord"
-                         dst_layer="NormalTex" dst_param="in_texture_coords" />
-        <connect_shaders src_layer="NormalTex" src_param="out_color"
-                         dst_layer="SubstrateBump" dst_param="in_normal_map" />
-        <connect_shaders src_layer="NormalTex" src_param="out_color"
-                         dst_layer="CoatingBump" dst_param="in_normal_map" />
-        <connect_shaders src_layer="SubstrateBump"
-                         src_param="out_normal"
-                         dst_layer="MasterMix"
-                         dst_param="in_bump_normal_substrate" />
-        <connect_shaders src_layer="CoatingBump"
-                         src_param="out_normal"
-                         dst_layer="MasterMix"
-                         dst_param="in_bump_normal_coating" />"""
+        normal_texconnect, _ = matval["normal"]
     else:
         normal_texconnect = ""
+
+    # TODO Blend normals
 
     # Final consolidation
     snippet_tex = matval.write_textures()
@@ -899,7 +887,7 @@ def _write_texture_osl(**kwargs):
     if propname == "normal":
         snippet = f"""
         <!-- Normal -->
-        <shader layer="Manifold2d" type="shader" name="as_manifold2d">
+        <shader layer="normalManifold2d" type="shader" name="as_manifold2d">
             <parameter name="in_scale_frame"
                        value="float[] {scale} {scale}" />
             <parameter name="in_translate_frame"
@@ -907,7 +895,7 @@ def _write_texture_osl(**kwargs):
             <parameter name="in_rotate_frame"
                        value="float {rotate / 360}" />
         </shader>
-        <shader layer="NormalTex" type="shader" name="as_texture">
+        <shader layer="normalTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
         </shader>
@@ -1103,6 +1091,25 @@ def _write_texref_osl(**kwargs):
                          src_param="out_normal"
                          dst_layer="MasterMix"
                          dst_param="in_bump_normal_substrate" />"""
+        return (texconnect, "")
+
+    # Normal
+    if propname == "normal":
+        texconnect = """
+        <connect_shaders src_layer="normalManifold2d" src_param="out_uvcoord"
+                         dst_layer="normalTex" dst_param="in_texture_coords" />
+        <connect_shaders src_layer="normalTex" src_param="out_color"
+                         dst_layer="SubstrateBump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="normalTex" src_param="out_color"
+                         dst_layer="CoatingBump" dst_param="in_normal_map" />
+        <connect_shaders src_layer="SubstrateBump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_substrate" />
+        <connect_shaders src_layer="CoatingBump"
+                         src_param="out_normal"
+                         dst_layer="MasterMix"
+                         dst_param="in_bump_normal_coating" />"""
         return (texconnect, "")
 
 
