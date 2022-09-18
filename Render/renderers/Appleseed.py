@@ -441,15 +441,7 @@ def _write_material_carpaint(name, matval):
     color_texobj = matval.get_texobject("basecolor")
 
     if color_texobj:  # Material has color texture
-        color_texconnect = """
-        <connect_shaders src_layer="BasecolorTex" src_param="out_color"
-                         dst_layer="MasterMix" dst_param="in_color" />
-        <connect_shaders src_layer="BasecolorTex" src_param="out_color"
-                         dst_layer="MasterMix" dst_param="in_specular_color" />
-        <connect_shaders src_layer="BasecolorTex"
-                         src_param="out_color"
-                         dst_layer="MasterMix"
-                         dst_param="in_coating_absorption" />"""
+        color_texconnect = matval["basecolor"][0]
     else:
         color_texconnect = ""
 
@@ -912,11 +904,12 @@ def _write_texture_osl(**kwargs):
             <parameter name="in_bump_depth" value="float 1.0" />
             <parameter name="in_normal_map_coordsys" value="string World Space" />
             <parameter name="in_normal_map_mode" value="string Unsigned" />
-        </shader>"""
+        </shader>
+        <!-- ~Bump -->"""
         return texname, snippet
 
     # Normal
-    if propname == "bump":
+    if propname == "normal":
         snippet = f"""
         <!-- Normal -->
         <shader layer="Manifold2d" type="shader" name="as_manifold2d">
@@ -944,17 +937,27 @@ def _write_texture_osl(**kwargs):
             <parameter name="in_normal_map_swap_rg" value="int 0" />
             <parameter name="in_normal_map_coordsys" value="string World Space" />
             <parameter name="in_normal_map_mode" value="string Unsigned" />
-        </shader>"""
+        </shader>
+        <!-- ~Normal -->"""
         return texname, snippet
 
     # RGB
     if proptype == "RGB":
         snippet = f"""
-        <!-- Color texture -->
-        <shader layer="BasecolorTex" type="shader" name="as_texture">
+        <!-- Color texture '{propname}' -->
+        <shader layer="{propname}Manifold" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
+        <shader layer="{propname}" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
-        </shader>"""
+        </shader>
+        <!-- ~Color texture '{propname}' -->"""
         return texname, snippet
 
     # TODO float
@@ -1039,8 +1042,40 @@ def _write_value(**kwargs):
 
     return value
 
-
 def _write_texref(**kwargs):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    shadertype = kwargs["shadertype"]
+    write_function = _write_texref_osl if shadertype in OSL_SHADERS else _write_texref_internal
+    return write_function(**kwargs)
+
+OSL_CONNECTIONS = {
+    ("Carpaint", "basecolor"): ("in_color", "in_specular_color", "in_coating_absorption")
+}
+
+def _write_texref_osl(**kwargs):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    shadertype = kwargs["shadertype"]
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+
+    inputs = OSL_CONNECTIONS.get((shadertype, propname), ("in_color"))
+
+    # RGB special case
+    if proptype == "RGB":
+        # Compute connection statement
+        snippet_connect = """
+        <connect_shaders src_layer="{p}" src_param="out_color"
+                         dst_layer="MasterMix" dst_param="{i}" />"""
+        texconnect = [snippet_connect.format(p=propname, i=i) for i in inputs]
+        # Internal connections
+        texconnect.append(f"""
+        <connect_shaders src_layer="{propname}Manifold" src_param="out_uvcoord"
+                         dst_layer="{propname}" dst_param="in_texture_coords" />""")
+        # Return connection statement and default value
+        texconnect = "".join(texconnect)
+        return (texconnect, "0.8 0.8 0.8")
+
+def _write_texref_internal(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
