@@ -277,6 +277,17 @@ scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
 """
 
 
+def _write_material_pbr(name, matval):
+    """Compute a string in the renderer SDL for a Substance PBR material."""
+    return f"""
+scene.materials.{name}.type = disney
+scene.materials.{name}.basecolor = {matval["basecolor"]}
+scene.materials.{name}.roughness = {matval["roughness"]}
+scene.materials.{name}.metallic = {matval["metallic"]}
+scene.materials.{name}.specular = 0.5
+"""
+
+
 def _write_material_diffuse(name, matval):
     """Compute a string in the renderer SDL for a Diffuse material."""
     return f"""
@@ -341,6 +352,7 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
 
 # ===========================================================================
