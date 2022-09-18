@@ -373,6 +373,11 @@ def _write_texture(**kwargs):
     if propname == "displacement":
         return texname, ""
 
+    # Special cases
+    if propname == "bump":
+        texname2 = texname
+        texname = texname + "_unscaled"
+
     # Compute texture parameters
     textype, encoding = (
         ("spectrum", "sRGB") if proptype == "RGB" else ("float", "linear")
@@ -384,6 +389,13 @@ def _write_texture(**kwargs):
     "string filename" "{filebasename}"
     "string mapping" "uv"
     "string encoding" "{encoding}"
+"""
+
+    # Bump scale
+    if propname == "bump":
+        snippet += f"""  Texture "{texname2}" "float" "scale"
+    "texture tex" "{texname}"
+    "float scale" 2.0
 """
 
     return texname, snippet
