@@ -495,7 +495,7 @@ def _write_material_carpaint(name, matval):
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
 {color_texconnect}{bump_texconnect}{normal_texconnect}
-        <!-- Connect internals -->
+        <!-- Connect to surface -->
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
     </shader_group>"""
@@ -504,7 +504,59 @@ def _write_material_carpaint(name, matval):
 
 
 def _write_material_pbr(name, matval):
-    pass
+    """Compute a string in the renderer SDL for a Substance PBR material."""
+    # pbr is an osl shader
+    path = SHADERS_DIR.encode("unicode_escape").decode("utf-8")
+
+    # Retrieve parameters
+    basecolor_texconnect, basecolor = matval["basecolor"]
+    roughness_texconnect, roughness = matval["basecolor"]  # TODO
+    metallic_texconnect, metallic = matval["basecolor"]  # TODO
+
+    # Bump/Normal
+    if matval.has_bump():
+        bump_texconnect, _ = matval["bump"]
+    else:
+        bump_texconnect = ""
+    if matval.has_normal():
+        normal_texconnect, _ = matval["normal"]
+    else:
+        normal_texconnect = ""
+
+    # Textures and connections
+    snippet_tex = matval.write_textures()
+    snippet_connect = [basecolor_texconnect, roughness_texconnect, metallic_texconnect, bump_texconnect, normal_texconnect]
+    snippet_connect = "".join(snippet_connect)
+
+    # Final consolidation
+    snippet = f"""
+        <search_path>
+            {path}
+        </search_path>
+    <!-- Substance_PBR Shader -->
+    <material name="{name}" model="osl_material">
+        <parameter name="surface_shader" value="{name}_ss" />
+        <parameter name="osl_surface" value="{name}_group" />
+    </material>
+
+    <surface_shader name="{name}_ss" model="physical_surface_shader" />
+
+    <shader_group name="{name}_group">
+{snippet_tex}
+
+        <!-- Main shader -->
+        <shader layer="MasterMix" type="shader" name="as_sbs_pbrmaterial">
+            <parameter name="in_baseColor" value="color {basecolor}" />
+        </shader>
+        <shader layer="Surface" type="surface" name="as_closure2surface" />
+        <!-- ~Main shader -->
+{snippet_connect}
+        <!-- Connect to surface -->
+        <connect_shaders src_layer="MasterMix" src_param="out_outColor"
+                         dst_layer="Surface" dst_param="in_input" />
+    </shader_group>"""
+
+    return snippet
 
 
 def _write_material_passthrough(name, matval):
@@ -551,9 +603,10 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
 
-OSL_SHADERS = "Carpaint"
+OSL_SHADERS = ["Carpaint", "Substance_PBR"]
 
 SNIPPET_COLOR = """
             <color name="{n}">
@@ -665,6 +718,7 @@ def _write_texture_osl(**kwargs):
     propvalue = kwargs["propvalue"]
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
 
     # Compute texture name
     texname = _texname(**kwargs)
@@ -677,7 +731,26 @@ def _write_texture_osl(**kwargs):
     rotate = propvalue.rotation
 
     # Bump
-    if propname == "bump":
+    if propname == "bump" and shadertype == "Substance_PBR":
+        snippet = f"""
+        <!-- Bump -->
+        <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
+        <shader layer="bump" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+        </shader>"""
+        return texname, snippet
+
+
+    # Bump (converted to normal)
+    if propname == "bump" and shadertype == "Carpaint":
         snippet = f"""
         <!-- Bump -->
         <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
@@ -891,11 +964,30 @@ OSL_CONNECTIONS = {
     ("Carpaint", "normal"): [
         "in_bump_normal_coating",
     ],
+    ("Substance_PBR", "basecolor"): [
+        "in_baseColor",
+    ],
+    ("Substance_PBR", "roughness"): [
+        "in_roughness",
+    ],
+    ("Substance_PBR", "metallic"): [
+        "in_metallic",
+    ],
+    ("Substance_PBR", "bump"): [
+        "in_height",
+    ],
+    ("Substance_PBR", "normal"): [
+        "in_normal",
+    ],
 }
 
 
 def _write_texref_osl(**kwargs):
-    """Compute a string in SDL for a reference to a texture in a shader."""
+    """Compute a string in SDL for a reference to a texture in a shader.
+
+    Nota: this function assumes that main shader layer is named 'MasterMix'.
+    In other cases, connections may not work properly.
+    """
     shadertype = kwargs["shadertype"]
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
@@ -922,7 +1014,23 @@ def _write_texref_osl(**kwargs):
         return (texconnect, "0.8 0.8 0.8")
 
     # Bump
-    if propname == "bump":
+    if propname == "bump" and shadertype == "Substance_PBR":
+        # Internal connections
+        texconnect = [ """
+        <!-- Connect 'bump' -->
+        <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
+                         dst_layer="bump" dst_param="in_texture_coords" />""" ]
+        # Compute connection statement
+        snippet_connect = """
+        <connect_shaders src_layer="{p}" src_param="out_channel"
+                         dst_layer="MasterMix" dst_param="{i}" />"""
+        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
+        # Return connection statement and default value
+        texconnect = "".join(texconnect)
+        return (texconnect, "")
+
+    # Bump (converted to normal)
+    if propname == "bump" and shadertype == "Carpaint":
         # Internal connections
         texconnect = [
             """
