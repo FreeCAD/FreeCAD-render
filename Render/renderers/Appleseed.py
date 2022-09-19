@@ -438,7 +438,6 @@ def _write_material_carpaint(name, matval):
 
     # Base color
     color_texconnect, color = matval["basecolor"]
-    color_texobj = matval.get_texobject("basecolor")
 
     # Bump/Normal
     if matval.has_bump():
@@ -753,7 +752,7 @@ def _write_texture_osl(**kwargs):
 
 
 def _write_texture_internal(**kwargs):
-    """Compute a string in renderer SDL to describe a texture in internal format.
+    """Compute a string in renderer SDL to describe a texture (internal).
 
     The texture is computed from a property of a shader (as the texture is
     always integrated into a shader). Property's data are expected as
@@ -832,9 +831,11 @@ def _write_value_osl(**kwargs):
         return ("", f"{val.r:.8} {val.g:.8} {val.b:.8}")
     # TODO Float
 
+    return "", ""
+
 
 def _write_value_internal(**kwargs):
-    """Compute a string in renderer SDL from a shader property value (internal).
+    """Compute a string in renderer SDL from a property value (internal).
 
     Args:
         proptype -- Shader property's type
@@ -898,18 +899,19 @@ def _write_texref_osl(**kwargs):
     shadertype = kwargs["shadertype"]
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
+    pname = propname
 
-    inputs = OSL_CONNECTIONS.get((shadertype, propname), ("in_color"))
-
-    # TODO Factorize between RGB/bump/normal
+    inputs = OSL_CONNECTIONS[shadertype, propname]
 
     # RGB special case
     if proptype == "RGB":
         # Internal connections
-        texconnect = [f"""
+        texconnect = [
+            f"""
         <!-- Connect '{propname}' -->
-        <connect_shaders src_layer="{propname}Manifold" src_param="out_uvcoord"
-                         dst_layer="{propname}" dst_param="in_texture_coords" />"""]
+        <connect_shaders src_layer="{pname}Manifold" src_param="out_uvcoord"
+                         dst_layer="{pname}" dst_param="in_texture_coords"/>"""
+        ]
         # Compute connection statement
         snippet_connect = """
         <connect_shaders src_layer="{p}" src_param="out_color"
@@ -922,12 +924,14 @@ def _write_texref_osl(**kwargs):
     # Bump
     if propname == "bump":
         # Internal connections
-        texconnect = ["""
+        texconnect = [
+            """
         <!-- Connect 'bump' -->
         <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
                          dst_layer="bumpTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="bumpTex" src_param="out_channel"
-                         dst_layer="bump" dst_param="in_bump_value" />"""]
+                         dst_layer="bump" dst_param="in_bump_value" />"""
+        ]
         # Compute connection statement
         snippet_connect = """
         <connect_shaders src_layer="{p}" src_param="out_normal"
@@ -940,12 +944,14 @@ def _write_texref_osl(**kwargs):
     # Normal
     if propname == "normal":
         # Internal connections
-        texconnect = ["""
+        texconnect = [
+            """
         <!-- Connect 'normal' -->
         <connect_shaders src_layer="normalManifold2d" src_param="out_uvcoord"
                          dst_layer="normalTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="normalTex" src_param="out_color"
-                         dst_layer="normal" dst_param="in_normal_map" />"""]
+                         dst_layer="normal" dst_param="in_normal_map" />"""
+        ]
         # Compute connection statement
         snippet_connect = """
         <connect_shaders src_layer="{p}" src_param="out_normal"
@@ -954,6 +960,8 @@ def _write_texref_osl(**kwargs):
         # Return connection statement and default value
         texconnect = "".join(texconnect)
         return (texconnect, "")
+
+    return "", ""
 
 
 def _write_texref_internal(**kwargs):
