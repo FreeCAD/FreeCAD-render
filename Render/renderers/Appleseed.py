@@ -510,8 +510,8 @@ def _write_material_pbr(name, matval):
 
     # Retrieve parameters
     basecolor_texconnect, basecolor = matval["basecolor"]
-    roughness_texconnect, roughness = matval["basecolor"]  # TODO
-    metallic_texconnect, metallic = matval["basecolor"]  # TODO
+    roughness_texconnect, roughness = matval["roughness"]
+    metallic_texconnect, metallic = matval["metallic"]
 
     # Bump/Normal
     if matval.has_bump():
@@ -525,7 +525,13 @@ def _write_material_pbr(name, matval):
 
     # Textures and connections
     snippet_tex = matval.write_textures()
-    snippet_connect = [basecolor_texconnect, roughness_texconnect, metallic_texconnect, bump_texconnect, normal_texconnect]
+    snippet_connect = [
+        basecolor_texconnect,
+        roughness_texconnect,
+        metallic_texconnect,
+        bump_texconnect,
+        normal_texconnect,
+    ]
     snippet_connect = "".join(snippet_connect)
 
     # Final consolidation
@@ -554,7 +560,8 @@ def _write_material_pbr(name, matval):
         <!-- Connect to surface -->
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
-    </shader_group>"""
+    </shader_group>
+    <!-- ~Substance_PBR Shader -->"""
 
     return snippet
 
@@ -724,7 +731,8 @@ def _write_texture_osl(**kwargs):
     texname = _texname(**kwargs)
 
     # Retrieve texture parameters
-    filename = propvalue.file.encode("unicode_escape").decode("utf-8")
+    filename = os.path.basename(propvalue.file)
+    filename = filename.encode("unicode_escape").decode("utf-8")
     scale = propvalue.scale
     translate_u = propvalue.translation_u
     translate_v = propvalue.translation_v
@@ -745,9 +753,9 @@ def _write_texture_osl(**kwargs):
         <shader layer="bump" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
-        </shader>"""
+        </shader>
+        <!-- ~Bump -->"""
         return texname, snippet
-
 
     # Bump (converted to normal)
     if propname == "bump" and shadertype == "Carpaint":
@@ -819,7 +827,26 @@ def _write_texture_osl(**kwargs):
         <!-- ~Color texture '{propname}' -->"""
         return texname, snippet
 
-    # TODO float
+    # Float
+    if proptype == "float":
+        snippet = f"""
+        <!-- Float texture '{propname}' -->
+        <shader layer="{propname}Manifold" type="shader" name="as_manifold2d">
+            <parameter name="in_scale_frame"
+                       value="float[] {scale} {scale}" />
+            <parameter name="in_translate_frame"
+                       value="float[] {translate_u} {translate_v}" />
+            <parameter name="in_rotate_frame"
+                       value="float {rotate / 360}" />
+        </shader>
+        <shader layer="{propname}" type="shader" name="as_texture">
+            <parameter name="in_filename"
+                       value="string {filename}" />
+            <parameter name="in_rgb_primaries"
+                       value="string Raw" />
+        </shader>
+        <!-- ~Float texture '{propname}' -->"""
+        return texname, snippet
 
     return texname, ""
 
@@ -995,31 +1022,15 @@ def _write_texref_osl(**kwargs):
 
     inputs = OSL_CONNECTIONS[shadertype, propname]
 
-    # RGB special case
-    if proptype == "RGB":
-        # Internal connections
-        texconnect = [
-            f"""
-        <!-- Connect '{propname}' -->
-        <connect_shaders src_layer="{pname}Manifold" src_param="out_uvcoord"
-                         dst_layer="{pname}" dst_param="in_texture_coords"/>"""
-        ]
-        # Compute connection statement
-        snippet_connect = """
-        <connect_shaders src_layer="{p}" src_param="out_color"
-                         dst_layer="MasterMix" dst_param="{i}" />"""
-        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
-        # Return connection statement and default value
-        texconnect = "".join(texconnect)
-        return (texconnect, "0.8 0.8 0.8")
-
     # Bump
     if propname == "bump" and shadertype == "Substance_PBR":
         # Internal connections
-        texconnect = [ """
+        texconnect = [
+            """
         <!-- Connect 'bump' -->
         <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
-                         dst_layer="bump" dst_param="in_texture_coords" />""" ]
+                         dst_layer="bump" dst_param="in_texture_coords" />"""
+        ]
         # Compute connection statement
         snippet_connect = """
         <connect_shaders src_layer="{p}" src_param="out_channel"
@@ -1068,6 +1079,42 @@ def _write_texref_osl(**kwargs):
         # Return connection statement and default value
         texconnect = "".join(texconnect)
         return (texconnect, "")
+
+    # RGB special case
+    if proptype == "RGB":
+        # Internal connections
+        texconnect = [
+            f"""
+        <!-- Connect '{propname}' -->
+        <connect_shaders src_layer="{pname}Manifold" src_param="out_uvcoord"
+                         dst_layer="{pname}" dst_param="in_texture_coords"/>"""
+        ]
+        # Compute connection statement
+        snippet_connect = """
+        <connect_shaders src_layer="{p}" src_param="out_color"
+                         dst_layer="MasterMix" dst_param="{i}" />"""
+        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
+        # Return connection statement and default value
+        texconnect = "".join(texconnect)
+        return (texconnect, "0.8 0.8 0.8")
+
+    # Float
+    if proptype == "float":
+        # Internal connections
+        texconnect = [
+            f"""
+        <!-- Connect '{propname}' -->
+        <connect_shaders src_layer="{pname}Manifold" src_param="out_uvcoord"
+                         dst_layer="{pname}" dst_param="in_texture_coords"/>"""
+        ]
+        # Compute connection statement
+        snippet_connect = """
+        <connect_shaders src_layer="{p}" src_param="out_channel"
+                         dst_layer="MasterMix" dst_param="{i}" />"""
+        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
+        # Return connection statement and default value
+        texconnect = "".join(texconnect)
+        return (texconnect, "0.0")
 
     return "", ""
 
