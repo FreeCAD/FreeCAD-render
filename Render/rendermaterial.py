@@ -731,9 +731,14 @@ def _castfloat(*args):
         a float containing the targeted value **or** a RenderTexture object
         if appliable.
     """
-    value = str(args[0])
+    value = args[0]
 
-    parsed = parse_csv_str(value)
+    # Empty field...
+    if not value:
+        return 0.0
+
+    # Parse value
+    parsed = parse_csv_str(str(value))
 
     if "Texture" in parsed:
         # Build RenderTexture
