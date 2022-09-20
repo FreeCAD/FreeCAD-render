@@ -284,7 +284,7 @@ class RenderMaterial:
             cast_function = _CAST_FUNCTIONS[typ]
             try:
                 value = cast_function(val, objcol)
-            except TypeError:
+            except (TypeError, ValueError):
                 value = cast_function(dft, objcol)
             res.setshaderparam(nam, value, typ)
 
@@ -732,10 +732,6 @@ def _castfloat(*args):
         if appliable.
     """
     value = args[0]
-
-    # Empty field...
-    if not value:
-        return 0.0
 
     # Parse value
     parsed = parse_csv_str(str(value))

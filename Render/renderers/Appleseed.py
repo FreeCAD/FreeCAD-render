@@ -553,6 +553,7 @@ def _write_material_pbr(name, matval):
         <!-- Main shader -->
         <shader layer="MasterMix" type="shader" name="as_sbs_pbrmaterial">
             <parameter name="in_baseColor" value="color {basecolor}" />
+            <parameter name="in_heightScale" value="float 1.0" />
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
         <!-- ~Main shader -->
@@ -753,6 +754,8 @@ def _write_texture_osl(**kwargs):
         <shader layer="bump" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
+            <parameter name="in_rgb_primaries"
+                       value="string Raw" />
         </shader>
         <!-- ~Bump -->"""
         return texname, snippet
@@ -772,6 +775,8 @@ def _write_texture_osl(**kwargs):
         <shader layer="bumpTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
+            <parameter name="in_rgb_primaries"
+                       value="string Raw" />
         </shader>
         <shader layer="bump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Bump" />
@@ -797,6 +802,8 @@ def _write_texture_osl(**kwargs):
         <shader layer="normalTex" type="shader" name="as_texture">
             <parameter name="in_filename"
                        value="string {filename}" />
+            <parameter name="in_rgb_primaries"
+                       value="string Raw" />
         </shader>
         <shader layer="normal" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Normal Map" />
