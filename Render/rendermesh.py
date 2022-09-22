@@ -33,6 +33,7 @@ import math
 import enum
 import os
 import tempfile
+import itertools as it
 
 import FreeCAD as App
 import Mesh
@@ -71,8 +72,10 @@ class RenderMesh:
             # primary placement which is useful This is not a very clean way to
             # do, so one day we'll have to manage placements in renderers
             # (TODO).
+            self.__normals = list(self.__mesh.getPointNormals())
         else:
             self.__mesh = Mesh.Mesh()
+            self.__normals = []
         self.__uvmap = uvmap
 
     # Reexposed Mesh.Mesh methods and attributes
@@ -216,7 +219,7 @@ class RenderMesh:
 
         # Vertex normals
         if normals:
-            norms = [f"vn {n.x} {n.y} {n.z}" for n in self.getPointNormals()]
+            norms = [f"vn {n.x} {n.y} {n.z}" for n in self.__normals]
             norms.insert(0, "# Vertex normals")
             norms.append("")
         else:
@@ -339,6 +342,25 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
+        self._recompute_normals()
+
+    def _recompute_normals(self):
+        """Recompute point normals.
+
+        Refresh self._normals."""
+        mesh = self.__mesh
+
+        # Get a list of facet normals for each point
+        norms = [(i, f.Normal) for f in mesh.Facets for i in f.PointIndices]
+        norms = sorted(norms, key=lambda x: x[0])
+        norms = [list(group) for _, group in it.groupby(norms, lambda x: x[0])]
+        norms = [[i for _, i in j] for j in norms]
+        # Sum normals and normalize
+        norms = [sum(v, App.Base.Vector()) for v in norms]
+        norms = [n / n.Length if n.Length != 0.0 else n for n in norms]
+
+        self.__normals = norms
+
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
