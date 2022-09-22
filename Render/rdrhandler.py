@@ -298,6 +298,7 @@ class RendererHandler:
         mesh = RenderMesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
+        mesh.compute_normals()
 
         mat = rendermaterial.get_rendering_material(None, "", color)
 

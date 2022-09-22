@@ -77,7 +77,7 @@ def write_mesh(name, mesh, material):
         mtlfile=basefilename + ".mtl",
         mtlname="material",
         mtlcontent=_write_material(name, matval),
-        normals=False,
+        normals=True,
     )
 
     # OBJ is supposed to be in the same directory as final sg file

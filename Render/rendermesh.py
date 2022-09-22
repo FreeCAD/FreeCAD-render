@@ -342,10 +342,10 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
-        self._recompute_normals()
+        self.compute_normals()
 
-    def _recompute_normals(self):
-        """Recompute point normals.
+    def compute_normals(self):
+        """Compute point normals.
 
         Refresh self._normals."""
         mesh = self.__mesh
