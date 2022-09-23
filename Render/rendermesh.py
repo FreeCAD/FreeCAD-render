@@ -53,7 +53,7 @@ class RenderMesh:
     Mesh.Mesh.
     """
 
-    def __init__(self, mesh=None, uvmap=None, placement=App.Base.Placement()):
+    def __init__(self, mesh=None, uvmap=None, normals=None, placement=App.Base.Placement()):
         """Initialize RenderMesh.
 
         Args:
@@ -72,7 +72,10 @@ class RenderMesh:
             # primary placement which is useful This is not a very clean way to
             # do, so one day we'll have to manage placements in renderers
             # (TODO).
-            self.__normals = list(self.__mesh.getPointNormals())
+            if normals is not None:
+                self.__normals = normals
+            else:
+                self.__normals = list(self.__mesh.getPointNormals())
         else:
             self.__mesh = Mesh.Mesh()
             self.__normals = []
@@ -89,11 +92,11 @@ class RenderMesh:
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return RenderMesh(self.__mesh.copy(), self.__uvmap)
+        return RenderMesh(mesh=self.__mesh.copy(), uvmap=self.__uvmap.copy(), normals=self.__normals.copy())
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
-        return self.__mesh.getPointNormals()
+        return self.__normals
 
     def harmonizeNormals(self):  # pylint: disable=invalid-name
         """Adjust wrong oriented facets."""
@@ -102,10 +105,14 @@ class RenderMesh:
     def rotate(self, angle_x, angle_y, angle_z):
         """Apply a rotation to the mesh."""
         self.__mesh.rotate(angle_x, angle_y, angle_z)
+        rotation = App.Base.Rotation(roll=angle_x, pitch=angle_y, yaw=angle_z)
+        print(rotation)  # TODO
+        self.__normals = [rotation.multVec(v) for v in self.__normals]
 
     def transform(self, matrix):
         """Apply a transformation to the mesh."""
         self.__mesh.transform(matrix)
+        self.__normals = [matrix.multVec(v) for v in self.__normals]
 
     def write(self, filename):
         """Write the mesh object into a file."""
