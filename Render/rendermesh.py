@@ -129,6 +129,9 @@ class RenderMesh:
         """Apply a transformation to the mesh."""
         self.__mesh.transform(matrix)
         self.__normals = [matrix.multVec(v) for v in self.__normals]
+        self.__normals = [
+            v / v.Length for v in self.__normals if v.Length != 0.0
+        ]
 
     def write(self, filename):
         """Write the mesh object into a file."""
@@ -370,7 +373,8 @@ class RenderMesh:
     def compute_normals(self):
         """Compute point normals.
 
-        Refresh self._normals."""
+        Refresh self._normals.
+        """
         mesh = self.__mesh
 
         # Get a list of facet normals for each point
