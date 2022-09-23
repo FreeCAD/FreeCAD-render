@@ -53,7 +53,13 @@ class RenderMesh:
     Mesh.Mesh.
     """
 
-    def __init__(self, mesh=None, uvmap=None, normals=None, placement=App.Base.Placement()):
+    def __init__(
+        self,
+        mesh=None,
+        uvmap=None,
+        normals=None,
+        placement=App.Base.Placement(),
+    ):
         """Initialize RenderMesh.
 
         Args:
@@ -72,10 +78,11 @@ class RenderMesh:
             # primary placement which is useful This is not a very clean way to
             # do, so one day we'll have to manage placements in renderers
             # (TODO).
-            if normals is not None:
-                self.__normals = normals
-            else:
-                self.__normals = list(self.__mesh.getPointNormals())
+            self.__normals = (
+                normals
+                if normals is not None
+                else list(self.__mesh.getPointNormals())
+            )
         else:
             self.__mesh = Mesh.Mesh()
             self.__normals = []
@@ -92,7 +99,11 @@ class RenderMesh:
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return RenderMesh(mesh=self.__mesh.copy(), uvmap=self.__uvmap.copy(), normals=self.__normals.copy())
+        return RenderMesh(
+            mesh=self.__mesh.copy(),
+            uvmap=self.__uvmap.copy(),
+            normals=self.__normals.copy(),
+        )
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
@@ -103,10 +114,15 @@ class RenderMesh:
         self.__mesh.harmonizeNormals()
 
     def rotate(self, angle_x, angle_y, angle_z):
-        """Apply a rotation to the mesh."""
+        """Apply a rotation to the mesh.
+
+        Args:
+            angle_x, angle_y, angle_z -- angles in radians
+        """
         self.__mesh.rotate(angle_x, angle_y, angle_z)
-        rotation = App.Base.Rotation(roll=angle_x, pitch=angle_y, yaw=angle_z)
-        print(rotation)  # TODO
+        rotation = App.Base.Rotation(
+            math.degrees(angle_z), math.degrees(angle_y), math.degrees(angle_x)
+        )
         self.__normals = [rotation.multVec(v) for v in self.__normals]
 
     def transform(self, matrix):
@@ -367,7 +383,6 @@ class RenderMesh:
         norms = [n / n.Length if n.Length != 0.0 else n for n in norms]
 
         self.__normals = norms
-
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
