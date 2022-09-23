@@ -71,7 +71,7 @@ def write_mesh(name, mesh, material):
     # specific _write_value, _write_texture and _write_texref functions).
     # This can be an enhancement in the future...
 
-    objfile = mesh.write_objfile(name, normals=False)
+    objfile = mesh.write_objfile(name)
 
     # Compute transformation from FCD coordinates to Appleseed ones
     transform = TRANSFORM.copy()
