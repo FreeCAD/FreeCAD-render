@@ -64,6 +64,10 @@ def write_mesh(name, mesh, material):
         for i in mesh.Topology[1]
     ]
     inds = _format_list(inds, 5)
+    nrms = [
+        f"{v.x:+18.8f} {v.y:+18.8f} {v.z:+18.8f}" for v in mesh.getPointNormals()
+    ]
+    nrms = _format_list(nrms, 2)
     if mesh.has_uvmap():
         if matval.has_textures():
             # Here we transform uv according to texture transformation
@@ -96,6 +100,9 @@ AttributeBegin
     ]
     "integer indices" [
 {inds}
+    ]
+    "normal N" [
+{nrms}
     ]
 {uvs}
 AttributeEnd
