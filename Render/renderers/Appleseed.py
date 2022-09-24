@@ -555,6 +555,11 @@ def _write_material_pbr(name, matval):
 {snippet_tex}
 
         <!-- Main shader -->
+        <shader layer="NormalMix" type="shader" name="as_blend_normal" >
+            <parameter name="in_base_normal_mode" value="string Signed" />
+            <parameter name="in_detail_normal_mode" value="string Signed" />
+            <parameter name="in_detail_normal_weight" value="float 1.0" />
+        </shader>
         <shader layer="MasterMix" type="shader" name="as_sbs_pbrmaterial">
             <parameter name="in_baseColor" value="color {basecolor}" />
             <parameter name="in_heightScale" value="float 1.0" />
@@ -562,6 +567,11 @@ def _write_material_pbr(name, matval):
         <shader layer="Surface" type="surface" name="as_closure2surface" />
         <!-- ~Main shader -->
 {snippet_connect}
+        <!-- Connect normal mix to master -->
+        <connect_shaders
+            src_layer="NormalMix" src_param="out_normal"
+            dst_layer="MasterMix" dst_param="in_normal"
+        />
         <!-- Connect to surface -->
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
@@ -744,28 +754,7 @@ def _write_texture_osl(**kwargs):
     rotate = propvalue.rotation
 
     # Bump
-    if propname == "bump" and shadertype == "Substance_PBR":
-        snippet = f"""
-        <!-- Bump -->
-        <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
-            <parameter name="in_scale_frame"
-                       value="float[] {scale} {scale}" />
-            <parameter name="in_translate_frame"
-                       value="float[] {translate_u} {translate_v}" />
-            <parameter name="in_rotate_frame"
-                       value="float {rotate / 360}" />
-        </shader>
-        <shader layer="bump" type="shader" name="as_texture">
-            <parameter name="in_filename"
-                       value="string {filename}" />
-            <parameter name="in_rgb_primaries"
-                       value="string Raw" />
-        </shader>
-        <!-- ~Bump -->"""
-        return texname, snippet
-
-    # Bump (converted to normal)
-    if propname == "bump" and shadertype == "Carpaint":
+    if propname == "bump":
         snippet = f"""
         <!-- Bump -->
         <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
@@ -1004,12 +993,6 @@ OSL_CONNECTIONS = {
     ("Substance_PBR", "metallic"): [
         "in_metallic",
     ],
-    ("Substance_PBR", "bump"): [
-        "in_detail_normal",
-    ],
-    ("Substance_PBR", "normal"): [
-        "in_normal",
-    ],
 }
 
 
@@ -1025,24 +1008,6 @@ def _write_texref_osl(**kwargs):
     pname = propname
 
     # Bump
-    if propname == "bump" and shadertype == "Substance_PBR":
-        # Internal connections
-        texconnect = [
-            """
-        <!-- Connect 'bump' -->
-        <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
-                         dst_layer="bump" dst_param="in_texture_coords" />"""
-        ]
-        # Compute connection statement
-        snippet_connect = """
-        <connect_shaders src_layer="{p}" src_param="out_channel"
-                         dst_layer="MasterMix" dst_param="{i}" />"""
-        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
-        # Return connection statement and default value
-        texconnect = "".join(texconnect)
-        return (texconnect, "")
-
-    # Bump (converted to normal)
     if propname == "bump":
         # Internal connections
         texconnect = """
