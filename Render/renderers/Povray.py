@@ -63,11 +63,14 @@ def write_mesh(name, mesh, material):
     # Triangles
     vrts = [f"<{v.x},{v.z},{v.y}>" for v in mesh.Topology[0]]
     inds = [f"<{i[0]},{i[1]},{i[2]}>" for i in mesh.Topology[1]]
+    nrms = [f"<{n[0]},{n[1]},{n[2]}>" for n in mesh.getPointNormals()]
 
     vertices = "\n        ".join(vrts)
     len_vertices = len(vrts)
     indices = "\n        ".join(inds)
     len_indices = len(inds)
+    normals = "\n        ".join(nrms)
+    len_normals = len(nrms)
 
     # Material
     material = _write_material(name, materialvalues)
@@ -96,6 +99,10 @@ def write_mesh(name, mesh, material):
     vertex_vectors {{
         {len_vertices},
         {vertices}
+    }}
+    normal_vectors {{
+        {len_normals},
+        {normals}
     }}
     {snippet_uv_vects}
     face_indices {{
