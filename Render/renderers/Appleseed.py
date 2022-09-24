@@ -270,12 +270,12 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
 def write_imagelight(name, image):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
-        <texture name="{n}_tex" model="disk_texture_2d">
+        <scene_texture name="{n}_tex" model="disk_texture_2d">
             <parameter name="filename" value="{f}" />
             <parameter name="color_space" value="srgb" />
-        </texture>
-        <texture_instance name="{n}_tex_ins" texture="{n}_tex">
-        </texture_instance>
+        </scene_texture>
+        <scene_texture_instance name="{n}_tex_ins" texture="{n}_tex">
+        </scene_texture_instance>
         <environment_edf name="{n}_envedf" model="latlong_map_environment_edf">
             <parameter name="radiance" value="{n}_tex_ins" />
         </environment_edf>
@@ -1176,10 +1176,13 @@ def render(project, prefix, external, output, width, height):
         A path to output image file (string)
     """
 
-    def move_elements(element_tag, destination, template, keep_one=False):
+    def move_elements(
+        element_tag, destination, template, keep_one=False, replace=None
+    ):
         """Move elements into another (root) element.
 
         If keep_one is set, only last element is kept.
+        Replace tag by 'replace' if specified.
         """
         pattern = r"(?m)^ *<{e}(?:\s.*|)>[\s\S]*?<\/{e}>\n".format(
             e=element_tag
@@ -1190,6 +1193,9 @@ def render(project, prefix, external, output, width, height):
             if keep_one
             else "\n".join(regex_obj.findall(template))
         )
+        # Replace tag if required
+        if replace is not None:
+            contents = contents.replace(element_tag, replace)
         template = regex_obj.sub("", template)
         pos = re.search(rf"<{destination}>\n", template).end()
         template = template[:pos] + contents + "\n" + template[pos:]
@@ -1213,8 +1219,12 @@ def render(project, prefix, external, output, width, height):
     template = move_elements("environment_edf", "scene", template)
     template = move_elements("environment_shader", "scene", template)
     template = move_elements("environment", "scene", template, True)
-    template = move_elements("texture", "scene", template)
-    template = move_elements("texture_instance", "scene", template)
+    template = move_elements(
+        "scene_texture", "scene", template, replace="texture"
+    )
+    template = move_elements(
+        "scene_texture_instance", "scene", template, replace="texture_instance"
+    )
     template = move_elements("search_path", "search_paths", template)
 
     # Change image size
