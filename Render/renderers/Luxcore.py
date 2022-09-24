@@ -61,12 +61,14 @@ def write_mesh(name, mesh, material):
         else ""
     )
 
-    # Points and vertices
+    # Points, vertices and normals
     topology = mesh.Topology  # Compute once
     points = [f"{v.x} {v.y} {v.z}" for v in topology[0]]
     points = " ".join(points)
     tris = [f"{t[0]} {t[1]} {t[2]}" for t in topology[1]]
     tris = " ".join(tris)
+    nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
+    nrms = " ".join(nrms)
 
     # UV map
     if mesh.has_uvmap():
@@ -100,6 +102,7 @@ scene.objects.{name}.material = {name}
 scene.shapes.{name}_mesh.type = inlinedmesh
 scene.shapes.{name}_mesh.vertices = {points}
 scene.shapes.{name}_mesh.faces = {tris}
+scene.shapes.{name}_mesh.normals = {nrms}
 """
 
     # Consolidation
