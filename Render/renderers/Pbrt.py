@@ -65,7 +65,8 @@ def write_mesh(name, mesh, material):
     ]
     inds = _format_list(inds, 5)
     nrms = [
-        f"{v.x:+18.8f} {v.y:+18.8f} {v.z:+18.8f}" for v in mesh.getPointNormals()
+        f"{v.x:+18.8f} {v.y:+18.8f} {v.z:+18.8f}"
+        for v in mesh.getPointNormals()
     ]
     nrms = _format_list(nrms, 2)
     if mesh.has_uvmap():
@@ -473,9 +474,7 @@ def _write_texref(**kwargs):
         App.Console.PrintWarning(msg)
         return ""
     if propname == "displacement":
-        msg = (
-            "[Render][Pbrt] WARNING - pbrt does not support displacement.\n"
-        )
+        msg = "[Render][Pbrt] WARNING - pbrt does not support displacement.\n"
         App.Console.PrintWarning(msg)
         return ""
     if propname == "normal":
