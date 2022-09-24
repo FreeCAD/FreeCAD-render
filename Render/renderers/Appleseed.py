@@ -63,15 +63,8 @@ def write_mesh(name, mesh, material):
     )
 
     # Get OBJ file
-    #
-    # NOTE 1: Appleseed does not look happy with FreeCAD normals
-    # so we'll leave Appleseed compute them on its own (normals=False)
-    #
-    # NOTE 2: We should generate a special matval object for osl shader (with
-    # specific _write_value, _write_texture and _write_texref functions).
-    # This can be an enhancement in the future...
-
-    objfile = mesh.write_objfile(name)
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".obj"
+    objfile = mesh.write_objfile(name, objfile=basefilename)
 
     # Compute transformation from FCD coordinates to Appleseed ones
     transform = TRANSFORM.copy()
@@ -85,8 +78,9 @@ def write_mesh(name, mesh, material):
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials
-    shortfilename = os.path.splitext(os.path.basename(objfile))[0]
-    filename = objfile.encode("unicode_escape").decode("utf-8")
+    basefilename = os.path.basename(objfile)
+    shortfilename = os.path.splitext(basefilename)[0]
+    filename = basefilename.encode("unicode_escape").decode("utf-8")
 
     snippet_mat = _write_material(mat_name, matval)
     snippet_obj = f"""
