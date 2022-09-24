@@ -459,6 +459,11 @@ def _write_material_carpaint(name, matval):
 
     <shader_group name="{name}_group">
 {snippet_tex}
+        <shader layer="NormalMix" type="shader" name="as_blend_normal" >
+            <parameter name="in_base_normal_mode" value="string Signed" />
+            <parameter name="in_detail_normal_mode" value="string Signed" />
+            <parameter name="in_detail_normal_weight" value="float 1.0" />
+        </shader>
         <shader layer="MasterMix" type="shader" name="as_standard_surface">
             <parameter name="in_color"
                        value="color {color}" />
@@ -489,6 +494,11 @@ def _write_material_carpaint(name, matval):
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
 {color_texconnect}{bump_texconnect}{normal_texconnect}
+        <!-- Connect normal mix to master -->
+        <connect_shaders
+            src_layer="NormalMix" src_param="out_normal"
+            dst_layer="MasterMix" dst_param="in_bump_normal_substrate"
+        />
         <!-- Connect to surface -->
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
@@ -775,8 +785,8 @@ def _write_texture_osl(**kwargs):
         <shader layer="bump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Bump" />
             <parameter name="in_bump_depth" value="float 1.0" />
-            <parameter name="in_normal_map_coordsys" value="string World Space" />
-            <parameter name="in_normal_map_mode" value="string Unsigned" />
+            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+            <parameter name="in_normal_map_mode" value="string Signed" />
         </shader>
         <!-- ~Bump -->"""
         return texname, snippet
@@ -801,10 +811,9 @@ def _write_texture_osl(**kwargs):
         </shader>
         <shader layer="normal" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Normal Map" />
-            <parameter name="in_normal_map_weight" value="float 0.4" />
-            <parameter name="in_normal_map_swap_rg" value="int 0" />
-            <parameter name="in_normal_map_coordsys" value="string World Space" />
-            <parameter name="in_normal_map_mode" value="string Unsigned" />
+            <parameter name="in_normal_map_weight" value="float 1.0" />
+            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+            <parameter name="in_normal_map_mode" value="string Signed" />
         </shader>
         <!-- ~Normal -->"""
         return texname, snippet
@@ -986,12 +995,6 @@ OSL_CONNECTIONS = {
         "in_specular_color",
         "in_coating_absorption",
     ],
-    ("Carpaint", "bump"): [
-        "in_bump_normal_substrate",
-    ],
-    ("Carpaint", "normal"): [
-        "in_bump_normal_coating",
-    ],
     ("Substance_PBR", "basecolor"): [
         "in_baseColor",
     ],
@@ -1002,7 +1005,7 @@ OSL_CONNECTIONS = {
         "in_metallic",
     ],
     ("Substance_PBR", "bump"): [
-        "in_height",
+        "in_detail_normal",
     ],
     ("Substance_PBR", "normal"): [
         "in_normal",
@@ -1020,8 +1023,6 @@ def _write_texref_osl(**kwargs):
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
     pname = propname
-
-    inputs = OSL_CONNECTIONS[shadertype, propname]
 
     # Bump
     if propname == "bump" and shadertype == "Substance_PBR":
@@ -1042,46 +1043,34 @@ def _write_texref_osl(**kwargs):
         return (texconnect, "")
 
     # Bump (converted to normal)
-    if propname == "bump" and shadertype == "Carpaint":
+    if propname == "bump":
         # Internal connections
-        texconnect = [
-            """
+        texconnect = """
         <!-- Connect 'bump' -->
         <connect_shaders src_layer="bumpManifold2d" src_param="out_uvcoord"
                          dst_layer="bumpTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="bumpTex" src_param="out_channel"
-                         dst_layer="bump" dst_param="in_bump_value" />"""
-        ]
-        # Compute connection statement
-        snippet_connect = """
-        <connect_shaders src_layer="{p}" src_param="out_normal"
-                         dst_layer="MasterMix" dst_param="{i}" />"""
-        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
-        # Return connection statement and default value
-        texconnect = "".join(texconnect)
+                         dst_layer="bump" dst_param="in_bump_value" />
+        <connect_shaders src_layer="bump" src_param="out_normal"
+                         dst_layer="NormalMix" dst_param="in_detail_normal" />"""
         return (texconnect, "")
 
     # Normal
     if propname == "normal":
         # Internal connections
-        texconnect = [
-            """
+        texconnect = """
         <!-- Connect 'normal' -->
         <connect_shaders src_layer="normalManifold2d" src_param="out_uvcoord"
                          dst_layer="normalTex" dst_param="in_texture_coords" />
         <connect_shaders src_layer="normalTex" src_param="out_color"
-                         dst_layer="normal" dst_param="in_normal_map" />"""
-        ]
-        # Compute connection statement
-        snippet_connect = """
-        <connect_shaders src_layer="{p}" src_param="out_normal"
-                         dst_layer="MasterMix" dst_param="{i}" />"""
-        texconnect += [snippet_connect.format(p=propname, i=i) for i in inputs]
-        # Return connection statement and default value
-        texconnect = "".join(texconnect)
+                         dst_layer="normal" dst_param="in_normal_map" />
+        <connect_shaders src_layer="normal" src_param="out_normal"
+                         dst_layer="NormalMix" dst_param="in_base_normal" />"""
         return (texconnect, "")
 
-    # RGB special case
+    inputs = OSL_CONNECTIONS[shadertype, propname]
+
+    # RGB
     if proptype == "RGB":
         # Internal connections
         texconnect = [
