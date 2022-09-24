@@ -29,6 +29,15 @@
 
 # NOTE Appleseed uses a different coordinate system than FreeCAD.
 # Y and Z are switched and Z is inverted
+#
+# FreeCAD (z is up):         Appleseed (y is up):
+#
+#
+#  z  y                         y
+#  | /                          |
+#  .--x                         .--x
+#                              /
+#                             z
 
 import os
 import re
