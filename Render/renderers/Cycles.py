@@ -321,16 +321,10 @@ def _write_material(name, matval):
 <bump
     name="{name}_bump"
     use_object_space = "false"
-    distance = "15"
+    distance = "0.1"
 />
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>"""
 
-        bump_snippet = f"""
-<bump
-    name="{name}_bump"
-    use_object_space = "false"
-    distance = "10"
-/>"""
         if matval.has_bump() and matval.has_normal():
             snippet_tex = f"""{bump_snippet}
 <math name="{name}_bump_strength" math_type="minimum"/>
@@ -551,22 +545,32 @@ def _write_texture(**kwargs):
     if propname == "bump":
         colorspace = "__builtin_raw"
         connect = f"""
+<value name="{texname}_strength" value="0.1"/>
 <connect from="{texname} color" to="{objname}_bump height"/>
-<value name="{texname}_val" value="0.2"/>
-<connect from="{texname}_val value" to="{objname}_bump_strength value1"/>"""
+<connect from="{texname}_strength value" to="{objname}_bump_strength value1"/>"""
 
     elif propname == "normal":
         colorspace = "__builtin_raw"
+        # We use blender space, but we have to flip z
+        # "strange blender convention"
+        # https://github.com/blender/cycles/blob/master/src/kernel/svm/tex_coord.h#L324
+        # TODO Use tangent?
         connect = f"""
+<rgb_curves
+    name="{texname}_curve"
+    curves="0.0 0.0 1.0  1.0 1.0 0.0"
+    fac = "1.0"
+/>
 <normal_map
     name="{texname}_normalmap"
-    space="object"
-    strength="0.2"
+    space="blender_object"
+    strength="2.0"
 />
-<connect from="{texname} color" to="{texname}_normalmap color"/>
+<value name="{texname}_strength" value="1.0"/>
+<connect from="{texname} color" to="{texname}_curve value"/>
+<connect from="{texname}_curve value" to="{texname}_normalmap color"/>
 <connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>
-<value name="{texname}_val" value="0.2"/>
-<connect from="{texname}_val value" to="{objname}_bump_strength value2"/>"""
+<connect from="{texname}_strength value" to="{objname}_bump_strength value2"/>"""
 
     elif propname == "displacement":
         colorspace = "__builtin_raw"
