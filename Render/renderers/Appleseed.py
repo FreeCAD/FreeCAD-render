@@ -564,10 +564,8 @@ def _write_material_pbr(name, matval):
 {snippet_tex}
 
         <!-- Main shader -->
-        <shader layer="NormalMix" type="shader" name="as_blend_normal" >
-            <parameter name="in_base_normal_mode" value="string Signed" />
-            <parameter name="in_detail_normal_mode" value="string Signed" />
-            <parameter name="in_detail_normal_weight" value="float 1.0" />
+        <shader layer="NormalMix" type="shader" name="fc_add_normal" >
+            <parameter name="in_factor" value="float 0.8" />
         </shader>
         <shader layer="MasterMix" type="shader" name="as_sbs_pbrmaterial">
             <parameter name="in_baseColor" value="color {basecolor}" />
@@ -576,6 +574,11 @@ def _write_material_pbr(name, matval):
         <shader layer="Surface" type="surface" name="as_closure2surface" />
         <!-- ~Main shader -->
 {snippet_connect}
+        <!-- Connect normal mix to master -->
+        <connect_shaders
+            src_layer="NormalMix" src_param="out_normal"
+            dst_layer="MasterMix" dst_param="in_normal"
+        />
         <!-- Connect to surface -->
         <connect_shaders src_layer="MasterMix" src_param="out_outColor"
                          dst_layer="Surface" dst_param="in_input" />
@@ -778,8 +781,6 @@ def _write_texture_osl(**kwargs):
         <shader layer="bump" type="shader" name="as_bump">
             <parameter name="in_mode" value="string Bump" />
             <parameter name="in_bump_depth" value="float 1.0" />
-            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
-            <parameter name="in_normal_map_mode" value="string Signed" />
         </shader>
         <!-- ~Bump -->"""
         return texname, snippet
@@ -1024,7 +1025,7 @@ def _write_texref_osl(**kwargs):
         <connect_shaders src_layer="bumpTex" src_param="out_channel"
                          dst_layer="bump" dst_param="in_bump_value" />
         <connect_shaders src_layer="bump" src_param="out_normal"
-                         dst_layer="NormalMix" dst_param="in_detail_normal" />"""
+                         dst_layer="NormalMix" dst_param="in_normal2" />"""
         return (texconnect, "")
 
     # Normal
@@ -1037,7 +1038,7 @@ def _write_texref_osl(**kwargs):
         <connect_shaders src_layer="normalTex" src_param="out_color"
                          dst_layer="normal" dst_param="in_normal_map" />
         <connect_shaders src_layer="normal" src_param="out_normal"
-                         dst_layer="MasterMix" dst_param="in_normal" />"""
+                         dst_layer="NormalMix" dst_param="in_normal1" />"""
         return (texconnect, "")
 
     inputs = OSL_CONNECTIONS[shadertype, propname]
