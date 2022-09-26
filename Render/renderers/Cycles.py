@@ -321,19 +321,18 @@ def _write_material(name, matval):
 <bump
     name="{name}_bump"
     use_object_space = "false"
-    distance = "0.1"
+    distance = "1.0"
+    strength = "1.0"
 />
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>"""
 
         if matval.has_bump() and matval.has_normal():
-            snippet_tex = f"""{bump_snippet}
-<math name="{name}_bump_strength" math_type="minimum"/>
-<connect from="{name}_bump_strength value" to="{name}_bump strength"/>
+            snippet_tex = f"""\
+{bump_snippet}
 {snippet_tex}"""
         else:
-            snippet_tex = f"""{bump_snippet}
-<math name="{name}_bump_strength" math_type="add" value1="0" value2="0"/>
-<connect from="{name}_bump_strength value" to="{name}_bump strength"/>
+            snippet_tex = f"""\
+{bump_snippet}
 {snippet_tex}"""
 
     # Final result
@@ -545,32 +544,27 @@ def _write_texture(**kwargs):
     if propname == "bump":
         colorspace = "__builtin_raw"
         connect = f"""
-<value name="{texname}_strength" value="0.1"/>
-<connect from="{texname} color" to="{objname}_bump height"/>
-<connect from="{texname}_strength value" to="{objname}_bump_strength value1"/>"""
+<connect from="{texname} color" to="{objname}_bump height"/>"""
 
     elif propname == "normal":
         colorspace = "__builtin_raw"
         # We use blender space, but we have to flip z
         # "strange blender convention"
         # https://github.com/blender/cycles/blob/master/src/kernel/svm/tex_coord.h#L324
-        # TODO Use tangent?
         connect = f"""
 <rgb_curves
     name="{texname}_curve"
-    curves="0.0 0.0 1.0  1.0 1.0 0.0"
+    curves="0.0 0.0 1.0  1.0 1.0 0.5"
     fac = "1.0"
 />
 <normal_map
     name="{texname}_normalmap"
     space="blender_object"
-    strength="2.0"
+    strength="1.0"
 />
-<value name="{texname}_strength" value="1.0"/>
 <connect from="{texname} color" to="{texname}_curve value"/>
 <connect from="{texname}_curve value" to="{texname}_normalmap color"/>
-<connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>
-<connect from="{texname}_strength value" to="{objname}_bump_strength value2"/>"""
+<connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>"""
 
     elif propname == "displacement":
         colorspace = "__builtin_raw"
