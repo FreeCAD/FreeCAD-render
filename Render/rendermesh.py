@@ -83,10 +83,11 @@ class RenderMesh:
                 if normals is not None
                 else list(self.__mesh.getPointNormals())
             )
+            self.compute_normals()  # TODO
         else:
             self.__mesh = Mesh.Mesh()
             self.__normals = []
-        self.__uvmap = uvmap
+        self.__uvmap = uvmap if bool(uvmap) else []
 
     # Reexposed Mesh.Mesh methods and attributes
     def __repr__(self):
@@ -378,7 +379,7 @@ class RenderMesh:
         mesh = self.__mesh
 
         # Get a list of facet normals for each point
-        norms = [(i, f.Normal) for f in mesh.Facets for i in f.PointIndices]
+        norms = [(i, f.Normal * f.Area) for f in mesh.Facets for i in f.PointIndices]
         norms = sorted(norms, key=lambda x: x[0])
         norms = [list(group) for _, group in it.groupby(norms, lambda x: x[0])]
         norms = [[i for _, i in j] for j in norms]
@@ -536,7 +537,7 @@ class RenderMesh:
 
     def has_uvmap(self):
         """Check if object has a uv map."""
-        return self.__uvmap is not None
+        return bool(self.__uvmap)
 
 
 # ===========================================================================
