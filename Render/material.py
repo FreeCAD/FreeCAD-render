@@ -146,8 +146,13 @@ class Material(_ArchMaterial):
                 return
         except KeyError:
             pass
-
-        super().execute(obj)
+        try:
+            super().execute(obj)
+        except AttributeError as err:
+            if str(err) == "'Gui.ViewProviderDocumentObject' object has no attribute 'ShapeColor'":
+                pass
+            else:
+                raise
 
     def add_texture(self, img_path):
         """Add a texture to the material.
