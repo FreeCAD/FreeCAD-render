@@ -95,6 +95,15 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
         snippet_disp = ""
 
     # Object & Mesh
+    # snippet_obj = f"""
+# # Object '{name}'
+# scene.objects.{name}.shape = {obj_shape}
+# scene.objects.{name}.material = {name}
+# scene.shapes.{name}_mesh.type = inlinedmesh
+# scene.shapes.{name}_mesh.vertices = {points}
+# scene.shapes.{name}_mesh.faces = {tris}
+# scene.shapes.{name}_mesh.normals = {nrms}
+# """
     snippet_obj = f"""
 # Object '{name}'
 scene.objects.{name}.shape = {obj_shape}
@@ -102,7 +111,6 @@ scene.objects.{name}.material = {name}
 scene.shapes.{name}_mesh.type = inlinedmesh
 scene.shapes.{name}_mesh.vertices = {points}
 scene.shapes.{name}_mesh.faces = {tris}
-scene.shapes.{name}_mesh.normals = {nrms}
 """
 
     # Consolidation
