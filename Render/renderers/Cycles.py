@@ -320,14 +320,18 @@ def _write_material(name, matval):
         bump_snippet = f"""
 <bump
     name="{name}_bump"
-    use_object_space = "true"
-    invert = "false"
+    use_object_space = "false"
     distance = "1.0"
     strength = "1.0"
 />
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>"""
 
-        snippet_tex = f"""\
+        if matval.has_bump() and matval.has_normal():
+            snippet_tex = f"""\
+{bump_snippet}
+{snippet_tex}"""
+        else:
+            snippet_tex = f"""\
 {bump_snippet}
 {snippet_tex}"""
 
@@ -556,7 +560,7 @@ def _write_texture(**kwargs):
 <normal_map
     name="{texname}_normalmap"
     space="blender_object"
-    strength="0.2"
+    strength="1.0"
 />
 <connect from="{texname} color" to="{texname}_curve value"/>
 <connect from="{texname}_curve value" to="{texname}_normalmap color"/>
