@@ -60,7 +60,7 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, vertex_normals=False):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
@@ -77,7 +77,7 @@ def write_mesh(name, mesh, material):
         mtlfile=basefilename + ".mtl",
         mtlname="material",
         mtlcontent=_write_material(name, matval),
-        normals=True,
+        normals=vertex_normals,
     )
 
     # OBJ is supposed to be in the same directory as final sg file
