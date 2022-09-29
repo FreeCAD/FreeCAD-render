@@ -48,7 +48,7 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, vertex_normals=False):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
@@ -64,11 +64,6 @@ def write_mesh(name, mesh, material):
         for i in mesh.Topology[1]
     ]
     inds = _format_list(inds, 5)
-    nrms = [
-        f"{v.x:+18.8f} {v.y:+18.8f} {v.z:+18.8f}"
-        for v in mesh.getPointNormals()
-    ]
-    nrms = _format_list(nrms, 2)
     if mesh.has_uvmap():
         if matval.has_textures():
             # Here we transform uv according to texture transformation
@@ -90,6 +85,21 @@ def write_mesh(name, mesh, material):
     else:
         uvs = ""
 
+    if vertex_normals:
+        nrms = [
+            f"{v.x:+18.8f} {v.y:+18.8f} {v.z:+18.8f}"
+            for v in mesh.getPointNormals()
+        ]
+        nrms = _format_list(nrms, 2)
+        normals = f"""\
+    "normal N" [
+{nrms}
+    ]
+"""
+    else:
+        normals = ""
+
+
     snippet = f"""# Object '{name}'
 AttributeBegin
 
@@ -102,9 +112,7 @@ AttributeBegin
     "integer indices" [
 {inds}
     ]
-    "normal N" [
-{nrms}
-    ]
+{normals}
 {uvs}
 AttributeEnd
 # ~Object '{name}'
