@@ -305,7 +305,7 @@ class RenderMesh:
 
         # _write_material(name, material)
         with open(mtlfile, "w", encoding="utf-8") as f:
-            f.write(f"newmtl {name}")
+            f.write(f"newmtl {name}\n")
             f.write(mtlcontent)
         return mtlfile
 
