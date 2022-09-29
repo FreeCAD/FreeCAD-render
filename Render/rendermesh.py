@@ -83,7 +83,7 @@ class RenderMesh:
                 if normals is not None
                 else list(self.__mesh.getPointNormals())
             )
-            self.compute_normals()  # TODO
+            self.compute_normals()
         else:
             self.__mesh = Mesh.Mesh()
             self.__normals = []
