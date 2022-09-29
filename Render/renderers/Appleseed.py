@@ -63,7 +63,7 @@ TRANSFORM = App.Placement(
 )
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, vertex_normals=False):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
 
     # Compute material values
@@ -73,7 +73,9 @@ def write_mesh(name, mesh, material):
 
     # Get OBJ file
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".obj"
-    objfile = mesh.write_objfile(name, objfile=basefilename)
+    objfile = mesh.write_objfile(
+        name, objfile=basefilename, normals=vertex_normals
+    )
 
     # Compute transformation from FCD coordinates to Appleseed ones
     transform = TRANSFORM.copy()
