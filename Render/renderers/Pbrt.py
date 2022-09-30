@@ -270,6 +270,25 @@ def _write_material_diffuse(name, matval):
 
     return "\n".join(snippet)
 
+def _write_material_pbr(name, matval):
+    """Compute a string in the renderer SDL for a PBR material."""
+    # TODO
+    snippet = f"""\
+    # Material '{name}'
+{snippet_d_tex}
+  MakeNamedMaterial "{name}_diffuse"
+    "string type" "diffuse"
+{submat_d["color"]}
+{bump_snippet}
+{snippet_g_tex}
+  MakeNamedMaterial "{name}_glass"
+    "string type" "dielectric"
+{submat_g["ior"]}
+{bump_snippet}
+  Material "mix"
+    "string materials" ["{name}_diffuse" "{name}_glass"]
+{matval["transparency"]}"""
+
 
 def _write_bump_and_normal(snippet, matval):
     """Write bump and normal sub-snippets to snippet (helper)."""
@@ -350,6 +369,7 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
 
 
