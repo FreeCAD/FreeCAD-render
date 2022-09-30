@@ -289,6 +289,33 @@ def _write_material_pbr(name, matval):
     "string materials" ["{name}_diffuse" "{name}_glass"]
 {matval["transparency"]}"""
 
+    snippet_tex = matval.write_textures()
+    bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
+    normal_snippet = f"""{matval["normal"]}""" if matval.has_normal() else ""
+
+    snippet = f"""\
+  # Material '{name}'
+{snippet_tex}
+
+  MakeNamedMaterial "{name}_diffuse"
+    "string type" "coateddiffuse"
+{matval["basecolor"]}
+{matval["roughness"]}
+{bump_snippet}
+{normal_snippet}
+
+  MakeNamedMaterial "{name}_metallic"
+    "string type" "coatedconductor"
+{matval["basecolor"]}
+{matval["roughness"]}
+{bump_snippet}
+{normal_snippet}
+
+  Material "mix"
+    "string materials" ["{name}_diffuse" "{name}_glass"]
+{matval["metallic"]}
+  # ~Material '{name}'"""
+
 
 def _write_bump_and_normal(snippet, matval):
     """Write bump and normal sub-snippets to snippet (helper)."""
