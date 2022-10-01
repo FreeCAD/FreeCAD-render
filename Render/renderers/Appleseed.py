@@ -42,8 +42,8 @@
 import os
 import re
 from tempfile import mkstemp
-from math import degrees, acos, atan2, sqrt
 from textwrap import indent
+from math import degrees, acos, atan2, sqrt
 import collections
 
 import FreeCAD as App
@@ -764,97 +764,97 @@ def _write_texture_osl(**kwargs):
     # Bump
     if propname == "bump":
         snippet = f"""
-        <!-- Bump -->
-        <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
-            <parameter name="in_scale_frame"
-                       value="float[] {scale} {scale}" />
-            <parameter name="in_translate_frame"
-                       value="float[] {translate_u} {translate_v}" />
-            <parameter name="in_rotate_frame"
-                       value="float {rotate / 360}" />
-        </shader>
-        <shader layer="bumpTex" type="shader" name="as_texture">
-            <parameter name="in_filename"
-                       value="string {filename}" />
-            <parameter name="in_rgb_primaries"
-                       value="string Raw" />
-        </shader>
-        <shader layer="bump" type="shader" name="as_bump">
-            <parameter name="in_mode" value="string Bump" />
-            <parameter name="in_bump_depth" value="float 1.0" />
-        </shader>
-        <!-- ~Bump -->"""
-        return texname, snippet
+<!-- Bump -->
+<shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
+    <parameter name="in_scale_frame"
+               value="float[] {scale} {scale}" />
+    <parameter name="in_translate_frame"
+               value="float[] {translate_u} {translate_v}" />
+    <parameter name="in_rotate_frame"
+               value="float {rotate / 360}" />
+</shader>
+<shader layer="bumpTex" type="shader" name="as_texture">
+    <parameter name="in_filename"
+               value="string {filename}" />
+    <parameter name="in_rgb_primaries"
+               value="string Raw" />
+</shader>
+<shader layer="bump" type="shader" name="as_bump">
+    <parameter name="in_mode" value="string Bump" />
+    <parameter name="in_bump_depth" value="float 1.0" />
+</shader>
+<!-- ~Bump -->"""
+        return texname, indent(snippet, " " * 8)
 
     # Normal
     if propname == "normal":
         snippet = f"""
-        <!-- Normal -->
-        <shader layer="normalManifold2d" type="shader" name="as_manifold2d">
-            <parameter name="in_scale_frame"
-                       value="float[] {scale} {scale}" />
-            <parameter name="in_translate_frame"
-                       value="float[] {translate_u} {translate_v}" />
-            <parameter name="in_rotate_frame"
-                       value="float {rotate / 360}" />
-        </shader>
-        <shader layer="normalTex" type="shader" name="as_texture">
-            <parameter name="in_filename"
-                       value="string {filename}" />
-            <parameter name="in_rgb_primaries"
-                       value="string Raw" />
-        </shader>
-        <shader layer="normal" type="shader" name="as_bump">
-            <parameter name="in_mode" value="string Normal Map" />
-            <parameter name="in_normal_map_weight" value="float 1.0" />
-            <parameter name="in_normal_map_flip_r" value="int 1" />
-            <parameter name="in_normal_map_flip_g" value="int 1" />
-            <parameter name="in_normal_map_swap_rg" value="int 1" />
-            <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
-            <parameter name="in_normal_map_mode" value="string Unsigned" />
-        </shader>
-        <!-- ~Normal -->"""
-        return texname, snippet
+<!-- Normal -->
+<shader layer="normalManifold2d" type="shader" name="as_manifold2d">
+    <parameter name="in_scale_frame"
+               value="float[] {scale} {scale}" />
+    <parameter name="in_translate_frame"
+               value="float[] {translate_u} {translate_v}" />
+    <parameter name="in_rotate_frame"
+               value="float {rotate / 360}" />
+</shader>
+<shader layer="normalTex" type="shader" name="as_texture">
+    <parameter name="in_filename"
+               value="string {filename}" />
+    <parameter name="in_rgb_primaries"
+               value="string Raw" />
+</shader>
+<shader layer="normal" type="shader" name="as_bump">
+    <parameter name="in_mode" value="string Normal Map" />
+    <parameter name="in_normal_map_weight" value="float 1.0" />
+    <parameter name="in_normal_map_flip_r" value="int 1" />
+    <parameter name="in_normal_map_flip_g" value="int 1" />
+    <parameter name="in_normal_map_swap_rg" value="int 1" />
+    <parameter name="in_normal_map_coordsys" value="string Tangent Space" />
+    <parameter name="in_normal_map_mode" value="string Unsigned" />
+</shader>
+<!-- ~Normal -->"""
+        return texname, indent(snippet, " " * 8)
 
     # RGB
     if proptype == "RGB":
         snippet = f"""
-        <!-- Color texture '{propname}' -->
-        <shader layer="{propname}Manifold" type="shader" name="as_manifold2d">
-            <parameter name="in_scale_frame"
-                       value="float[] {scale} {scale}" />
-            <parameter name="in_translate_frame"
-                       value="float[] {translate_u} {translate_v}" />
-            <parameter name="in_rotate_frame"
-                       value="float {rotate / 360}" />
-        </shader>
-        <shader layer="{propname}" type="shader" name="as_texture">
-            <parameter name="in_filename"
-                       value="string {filename}" />
-        </shader>
-        <!-- ~Color texture '{propname}' -->"""
-        return texname, snippet
+<!-- Color texture '{propname}' -->
+<shader layer="{propname}Manifold" type="shader" name="as_manifold2d">
+    <parameter name="in_scale_frame"
+               value="float[] {scale} {scale}" />
+    <parameter name="in_translate_frame"
+               value="float[] {translate_u} {translate_v}" />
+    <parameter name="in_rotate_frame"
+               value="float {rotate / 360}" />
+</shader>
+<shader layer="{propname}" type="shader" name="as_texture">
+    <parameter name="in_filename"
+               value="string {filename}" />
+</shader>
+<!-- ~Color texture '{propname}' -->"""
+        return texname, indent(snippet, " " * 8)
 
     # Float
     if proptype == "float":
         snippet = f"""
-        <!-- Float texture '{propname}' -->
-        <shader layer="{propname}Manifold" type="shader" name="as_manifold2d">
-            <parameter name="in_scale_frame"
-                       value="float[] {scale} {scale}" />
-            <parameter name="in_translate_frame"
-                       value="float[] {translate_u} {translate_v}" />
-            <parameter name="in_rotate_frame"
-                       value="float {rotate / 360}" />
-        </shader>
-        <shader layer="{propname}" type="shader" name="as_texture">
-            <parameter name="in_filename"
-                       value="string {filename}" />
-            <parameter name="in_rgb_primaries"
-                       value="string Raw" />
-        </shader>
-        <!-- ~Float texture '{propname}' -->"""
-        return texname, snippet
+<!-- Float texture '{propname}' -->
+<shader layer="{propname}Manifold" type="shader" name="as_manifold2d">
+    <parameter name="in_scale_frame"
+               value="float[] {scale} {scale}" />
+    <parameter name="in_translate_frame"
+               value="float[] {translate_u} {translate_v}" />
+    <parameter name="in_rotate_frame"
+               value="float {rotate / 360}" />
+</shader>
+<shader layer="{propname}" type="shader" name="as_texture">
+    <parameter name="in_filename"
+               value="string {filename}" />
+    <parameter name="in_rgb_primaries"
+               value="string Raw" />
+</shader>
+<!-- ~Float texture '{propname}' -->"""
+        return texname, indent(snippet, " " * 8)
 
     return texname, ""
 

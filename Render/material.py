@@ -412,7 +412,7 @@ class _TextureImportHelper:
                 continue
 
             # Split key using '.' separator
-            texname, *texsubnames = key[len(self.TEXPREFIX) :].split(".")
+            texname, *texsubnames = key[len(self.TEXPREFIX):].split(".")
 
             # If texture name is unknown at this stage, create a
             # dictionary to store its forthcoming data
@@ -523,7 +523,7 @@ class _TextureImportHelper:
             # Find image path and, if valid, add it to texture
             try:
                 imagepath = get_absolute_imagepath(imagepath)
-            except self.ImagePathError as err:
+            except self.ImagePathError:
                 warn_for_imagepath(imagepath, texname)
             else:
                 # Add image

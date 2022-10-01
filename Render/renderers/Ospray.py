@@ -917,7 +917,7 @@ def _render_movecamerasup(in_file_list):
             cameras += line
             camflag = True
             brace_nbr += line.count("{") - line.count("}")
-            if not brace_nbr and not '"camera"' in line:
+            if not brace_nbr and '"camera"' not in line:
                 camflag = False
         else:
             result += line

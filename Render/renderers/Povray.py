@@ -595,7 +595,8 @@ def _write_texture(**kwargs):
         imgmap_suffix = f"gamma {gamma}"
 
     if propname == "bump":
-        texture = f"""normal {{
+        texture = f"""\
+normal {{
             uv_mapping
             bump_map {{ {_imagetype(imagefile)} "{imagefile}" gamma 1.0 }}
             bump_size {1.0 / propvalue.scale if propvalue.scale != 0 else 1.0}
@@ -605,9 +606,12 @@ def _write_texture(**kwargs):
             translate <{propvalue.translation_u} {propvalue.translation_v}>
         }}"""
     else:
-        texture = f"""pigment {{
+        texture = f"""\
+pigment {{
             uv_mapping
-            image_map {{ {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix} }}
+            image_map {{
+              {_imagetype(imagefile)} "{imagefile}" {imgmap_suffix}
+            }}
             scale {propvalue.scale}
             rotate <0.0 0.0 {propvalue.rotation}>
             translate <{propvalue.translation_u} {propvalue.translation_v}>
