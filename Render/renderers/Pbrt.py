@@ -272,49 +272,33 @@ def _write_material_diffuse(name, matval):
 
 def _write_material_pbr(name, matval):
     """Compute a string in the renderer SDL for a PBR material."""
-    # TODO
-    snippet = f"""\
-    # Material '{name}'
-{snippet_d_tex}
-  MakeNamedMaterial "{name}_diffuse"
-    "string type" "diffuse"
-{submat_d["color"]}
-{bump_snippet}
-{snippet_g_tex}
-  MakeNamedMaterial "{name}_glass"
-    "string type" "dielectric"
-{submat_g["ior"]}
-{bump_snippet}
-  Material "mix"
-    "string materials" ["{name}_diffuse" "{name}_glass"]
-{matval["transparency"]}"""
-
-    snippet_tex = matval.write_textures()
     bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
     normal_snippet = f"""{matval["normal"]}""" if matval.has_normal() else ""
+    roughness = matval["roughness"]
+    conductor_roughness = roughness.replace(" roughness", " conductor.roughness")
+    interface_roughness = roughness.replace(" roughness", " interface.roughness")
 
     snippet = f"""\
   # Material '{name}'
-{snippet_tex}
-
   MakeNamedMaterial "{name}_diffuse"
-    "string type" "coateddiffuse"
-{matval["basecolor"]}
-{matval["roughness"]}
-{bump_snippet}
-{normal_snippet}
-
+    "string type" "diffuse"
+    {matval["basecolor"]}
+    # {roughness}
+    {bump_snippet}
+    {normal_snippet}
   MakeNamedMaterial "{name}_metallic"
-    "string type" "coatedconductor"
-{matval["basecolor"]}
-{matval["roughness"]}
-{bump_snippet}
-{normal_snippet}
-
+    "string type" "conductor"
+    {matval["basecolor"]}
+    {roughness}
+    {bump_snippet}
+    {normal_snippet}
   Material "mix"
-    "string materials" ["{name}_diffuse" "{name}_glass"]
-{matval["metallic"]}
-  # ~Material '{name}'"""
+    "string materials" ["{name}_diffuse" "{name}_metallic"]
+    {matval["metallic"]}
+  # ~Material '{name}'
+"""
+
+    return snippet
 
 
 def _write_bump_and_normal(snippet, matval):
@@ -483,6 +467,9 @@ _FIELD_MAPPING = {
     ("glass", "ior"): "eta",
     ("Mixed", "transparency"): "amount",
     ("Mixed", "bump"): "displacement",
+    ("Substance_PBR", "basecolor"): "reflectance",
+    ("Substance_PBR", "metallic"): "amount",
+    ("Substance_PBR", "bump"): "displacement",
 }
 
 
