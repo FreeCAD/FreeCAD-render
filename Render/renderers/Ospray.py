@@ -490,6 +490,24 @@ type principled
     return snippet
 
 
+def _write_material_pbr(name, matval):
+    """Compute a string in the renderer SDL for a Disney material."""
+    # Nota1: OSP Principled material does not handle SSS, nor specular tint
+    # Nota2: if metallic is set, specular should be 1.0. See here:
+    # https://github.com/ospray/ospray_studio/issues/5
+    snippet = f"""
+# Pbr ('{name}')
+type principled
+{matval["basecolor"]}
+# No subsurface scattering (Ospray limitation)
+{matval["metallic"]}
+specular 1.0
+{matval["roughness"]}
+{matval["normal"] if matval.has_normal() else ""}
+"""
+    return snippet
+
+
 def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
     snippet = f"""
@@ -572,6 +590,7 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
 
 
@@ -585,6 +604,8 @@ _FIELD_MAPPING = {
     ("Diffuse", "color"): "baseColor",
     ("Diffuse", "bump"): None,
     ("Diffuse", "displacement"): None,
+    ("Substance_PBR", "basecolor"): "baseColor",
+    ("Substance_PBR", "bump"): None,
     ("Disney", "basecolor"): "baseColor",
     ("Disney", "subsurface"): "",
     ("Disney", "speculartint"): "",
