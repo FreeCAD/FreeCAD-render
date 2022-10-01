@@ -379,7 +379,9 @@ class RenderMesh:
         mesh = self.__mesh
 
         # Get a list of facet normals for each point
-        norms = [(i, f.Normal * f.Area) for f in mesh.Facets for i in f.PointIndices]
+        norms = [
+            (i, f.Normal * f.Area) for f in mesh.Facets for i in f.PointIndices
+        ]
         norms = sorted(norms, key=lambda x: x[0])
         norms = [list(group) for _, group in it.groupby(norms, lambda x: x[0])]
         norms = [[i for _, i in j] for j in norms]

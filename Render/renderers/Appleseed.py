@@ -525,8 +525,8 @@ def _write_material_pbr(name, matval):
 
     # Retrieve parameters
     basecolor_texconnect, basecolor = matval["basecolor"]
-    roughness_texconnect, roughness = matval["roughness"]
-    metallic_texconnect, metallic = matval["metallic"]
+    roughness_texconnect, _ = matval["roughness"]
+    metallic_texconnect, _ = matval["metallic"]
 
     # Bump/Normal
     if matval.has_bump():
@@ -749,7 +749,6 @@ def _write_texture_osl(**kwargs):
     propvalue = kwargs["propvalue"]
     proptype = kwargs["proptype"]
     propname = kwargs["propname"]
-    shadertype = kwargs["shadertype"]
 
     # Compute texture name
     texname = _texname(**kwargs)

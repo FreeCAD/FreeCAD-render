@@ -99,7 +99,6 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     else:
         normals = ""
 
-
     snippet = f"""# Object '{name}'
 AttributeBegin
 
@@ -270,13 +269,12 @@ def _write_material_diffuse(name, matval):
 
     return "\n".join(snippet)
 
+
 def _write_material_pbr(name, matval):
     """Compute a string in the renderer SDL for a PBR material."""
     bump_snippet = f"""{matval["bump"]}""" if matval.has_bump() else ""
     normal_snippet = f"""{matval["normal"]}""" if matval.has_normal() else ""
     roughness = matval["roughness"]
-    conductor_roughness = roughness.replace(" roughness", " conductor.roughness")
-    interface_roughness = roughness.replace(" roughness", " interface.roughness")
 
     snippet = f"""\
   # Material '{name}'

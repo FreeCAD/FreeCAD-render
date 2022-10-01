@@ -88,7 +88,8 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     else:
         uv_statement = ""
 
-    snippet_obj = f"""
+    snippet_obj = (
+        f"""
 <state shader="{name}">
 <mesh
     P="{points}"
@@ -97,7 +98,9 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     nverts="{nverts}"
 {uv_statement}/>
 </state>
-""" if vertex_normals else f"""
+"""
+        if vertex_normals
+        else f"""
 <state shader="{name}">
 <mesh
     P="{points}"
@@ -106,6 +109,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 {uv_statement}/>
 </state>
 """
+    )
 
     snippet = snippet_mat + snippet_obj
 
