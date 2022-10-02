@@ -38,7 +38,7 @@ Let's detail those three steps:
 ### Step #1: Create a Material in your document
 
 Open the Material Creator: 
-<img src=../icons/Arch_Material_Group.svg alt="editor" title="Creator Command"
+<img src=../Render/resources/icons/Arch_Material_Group.svg alt="editor" title="Creator Command"
 height=32>
 
 Choose a preset (ie a Material Card) and give a name to your new material. Click
@@ -54,7 +54,7 @@ Remark: You can find more information in FreeCAD documentation:
 
 Select your new Material and open the rendering settings editor by the command
 available in Render Workbench toolbar:
-<img src=../icons/MaterialSettings.svg alt="editor" title="Editor Command"
+<img src=../Render/resources/icons/MaterialSettings.svg alt="editor" title="Editor Command"
 height=32>
 
 Choose the material type and tweak the rendering settings of your Material.
@@ -71,7 +71,7 @@ renderer documentation, or in general CG documentation.
 
 ### Step #3: Assign your FreeCAD Material to your object
 Select your object and open Material Applier:
-<img src=../icons/ApplyMaterial.svg alt="applier" title="Applier Command"
+<img src=../Render/resources/icons/ApplyMaterial.svg alt="applier" title="Applier Command"
 height=32>
 
 Select the Material to apply, and click OK. You're done.

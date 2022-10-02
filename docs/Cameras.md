@@ -29,11 +29,13 @@ only one camera visible at a time, to get each of the renderings.
 # How to create a camera
 
 The general method to add a camera to your rendering project is the following: 
-1. Create the camera object: press <img src=../icons/Camera-photo.svg height=32>
-2. If necessary, tweak the camera's position and orientation in your scene
-3. **Add a view of the camera in your project**. This is a mandatory step to
-   have the camera eventually exported! Use <img src=../icons/RenderView.svg
-   height=32> button, like for objects...
+1. Create the camera object: press <img
+   src=../Render/resources/icons/Camera-photo.svg height=32>
+3. If necessary, tweak the camera's position and orientation in your scene
+4. **Add a view of the camera in your project**. This is a mandatory step to
+   have the camera eventually exported to the renderer! Use <img
+   src=../Render/resources/icons/RenderView.svg height=32> button, like for
+   objects...
 
 Please note that the camera will be created using the current point of view in
 FreeCAD viewport (i.e. the current internal Coin camera). Thus painful
