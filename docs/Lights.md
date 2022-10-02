@@ -6,13 +6,14 @@ but you can add some more lights to enhance your rendering.
 
 ## How to add a light to your rendering
 
-The general method to add a light to your rendering project is the following: 
+The general method to add a light to your rendering project is the following:
 1. Create the light object
 2. Place the light in your scene (and orient it if applicable)
 3. Tweak the light power and color
 4. **Add a view of the light in your project**. This is a mandatory step to
-   have the light eventually rendered! Use <img src=../icons/RenderView.svg
-   height=32> button, like for objects...
+   have the light eventually rendered! Use <img
+   src=../Render/resources/icons/RenderView.svg height=32> button, like for
+   objects...
 
 ## Light types
 
@@ -30,7 +31,7 @@ flame.
 #### Creation
 
 To create a point light, press the corresponding button in toolbar: <img
-src=../icons/PointLight.svg height=32>
+src=../Render/resources/icons/PointLight.svg height=32>
 
 Do not forget to add a view of your light to your rendering project.
 
@@ -61,7 +62,7 @@ direction of its normals.
 #### Creation
 
 To create an area light, press the corresponding button in toolbar: <img
-src=../icons/AreaLight.svg height=32>
+src=../Render/resources/icons/AreaLight.svg height=32>
 
 Do not forget to add a view of your light to your rendering project.
 
@@ -106,7 +107,7 @@ in architectural rendering.
 #### Creation
 
 To create a sunsky light, press the corresponding button in toolbar: <img
-src=../icons/SunskyLight.svg height=32>
+src=../Render/resources/icons/SunskyLight.svg height=32>
 
 Do not forget to add a view of your light to your rendering project.
 
@@ -150,7 +151,7 @@ omnidirectional picture of an environment onto a dome surrounding the scene.
 #### Creation
 
 To create a image-based light, press the corresponding button in toolbar: <img
-src=../icons/ImageLight.svg height=32>
+src=../Render/resources/icons/ImageLight.svg height=32>
 
 Do not forget to add a view of your light to your rendering project.
 
