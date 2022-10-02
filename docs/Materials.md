@@ -178,6 +178,8 @@ parameter, and setting some other parameters specific to this type.
 
 #### **Diffuse** Material
 
+A simple matte material, usually based on ideal Lambertian reflection.
+
 `Render.Type=Diffuse`
 
 Parameter | Type | Default value | Description
@@ -186,6 +188,10 @@ Parameter | Type | Default value | Description
 
 
 #### **Disney** Material
+
+A versatile material, based on the Disney principled model also known as the
+"PBR" shader, capable of producing a wide variety of materials (e.g., plastic,
+metal...) by combining multiple different layers and lobes.
 
 `Render.Type=Disney`
 
@@ -205,6 +211,9 @@ Parameter | Type | Default value | Description
 
 #### **Glass** Material
 
+A glass-like shader mixing refraction and reflection at grazing angles,
+suitable for transparent materials (glass, water, transparent plastics...).
+
 `Render.Type=Glass`
 
 Parameter | Type | Default value | Description
@@ -213,6 +222,9 @@ Parameter | Type | Default value | Description
 `Render.Glass.Color` | RGB | (1, 1, 1) | Transmitted color
 
 #### **Mixed** Material
+
+A material mixing a Diffuse and a Glass submaterials. This material is
+specifically designed to render FreeCAD transparent objects.
 
 `Render.Type=Mixed`
 
@@ -223,7 +235,11 @@ Parameter | Type | Default value | Description
 `Render.Mixed.Diffuse.Color` | RGB | (0.8, 0.8, 0.8) | Diffuse color
 `Render.Mixed.Transparency` | float | 0.5 | Mix ratio between Glass and Diffuse (should stay in [0,1], other values may lead to undefined behaviour)
 
-### Passthrough material
+#### **Passthrough** material
+
+A material which allows to pass direct statements to the renderer. Warning:
+the result is renderer-specific.
+
 #### General syntax
 Passthrough materials are defined using `Render.<renderer>.<line>` entries,
 where:
