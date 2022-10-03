@@ -176,6 +176,25 @@ must fit in one line.
 Standard materials are declared by specifying a type with a `Render.Type`
 parameter, and setting some other parameters specific to this type.
 
+#### Common parameters
+
+All materials will accept the following input parameters:
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.<material>.Bump` | texonly |  | Bump texture
+`Render.<material>.Normal` | texonly |  | Normal texture
+
+Those parameters create bump/normal effects and are "texture only".
+
+Nearly all materials, except `Substance_PBR`, will also accept the following,
+for displacement effect:
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.<material>.Displacement` | texonly |  | Displacement texture
+
+
 #### **Diffuse** Material
 
 A simple matte material, usually based on ideal Lambertian reflection.
@@ -248,7 +267,8 @@ Parameter | Type | Default value | Description
 `Render.Mixed.Diffuse.Color` | RGB | (0.8, 0.8, 0.8) | Diffuse color
 `Render.Mixed.Transparency` | float | 0.5 | Mix ratio between Glass and Diffuse (should stay in [0,1], other values may lead to undefined behaviour)
 
-#### **Passthrough** material
+
+### **Passthrough** material
 
 A material which allows to pass direct statements to the renderer. Warning:
 the result is renderer-specific.
