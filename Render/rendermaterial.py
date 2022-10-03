@@ -886,7 +886,7 @@ def generate_param_doc():
         "",
         "`Render.Type={m}`",
         "",
-        "Pareter | Type | Default value | Description",
+        "Parameter | Type | Default value | Description",
         "--------- | ---- | ------------- | -----------",
     ]
 

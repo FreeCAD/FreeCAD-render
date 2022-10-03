@@ -221,6 +221,19 @@ Parameter | Type | Default value | Description
 `Render.Glass.IOR` | float | 1.5 | Index of refraction
 `Render.Glass.Color` | RGB | (1, 1, 1) | Transmitted color
 
+#### **Substance_PBR** Material
+
+A shader created to give a good visual match with PBR materials (roughness
+based workflow), specially intended to textured materials.
+
+`Render.Type=Substance_PBR`
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.Substance_PBR.BaseColor` | RGB | (0.8, 0.8, 0.8) | Base color
+`Render.Substance_PBR.Roughness` | float | 0.0 | Roughness
+`Render.Substance_PBR.Metallic` | float | 0.0 | Metallic
+
 #### **Mixed** Material
 
 A material mixing a Diffuse and a Glass submaterials. This material is
