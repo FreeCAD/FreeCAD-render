@@ -64,6 +64,8 @@ At the moment, the following material types are available:
 - Disney
 - Glass
 - Mixed (a mix between Diffuse and Glass)
+- Carpaint
+- Substance_PBR
 You may find more information about those materials and their settings in your
 renderer documentation, or in general CG documentation.
 
@@ -90,7 +92,6 @@ Please note the following remarks:
 
 **At this stage, you should have some usable rendering information attached to your object.**
 **If this is your main goal, you may skip the rest of this page.**
-
 
 ## How Render Workbench uses Material rendering settings
 
@@ -129,6 +130,41 @@ be standard material, as it is the most generic way to do so.
 Indeed, passthrough is a highly renderer-specific way to define a material, and
 should be used only when standard material is not sufficient.
 
+
+## Textures
+
+You can add textures to your material, to be used as inputs to material's parameters.
+To do so, right-click on the material and select 'Add Texture'.
+The new texture appears under the material:
+
+<img src=./material_texture.png alt="MaterialTexture">
+
+
+For the new texture to be usable, you must upload at least one image: set the
+'Image' parameter.
+You can then add as many other images as you want. Textures can indeed be
+composed of different images for different purposes (color, bump map, normal
+map...). Use 'Add image entry' in texture's right-click menu.
+
+
+<img src=./manyimages_texture.png alt="ManyimagesTexture">
+
+Optionally, you can set the mapping parameters (rotation, scale, translation).
+
+Once you have a workable texture, you can use it in rendering parameters:
+right-click on your material, select 'Edit Render Settings' to open your
+material's settings; set the parameter to 'Use texture' and select the texture
+you want in the combo box. You should get something like that:
+
+<img src=./textures.png alt="TextureSettings">
+
+Caveats:
+- Textures cannot be used standalone: they are necessarily linked to a
+  material.
+- A material can only access its own textures (not the textures of another
+  material).
+- Textures images are stored inside the .fcstd file. Intensive use of textures
+  may affect file size!
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
@@ -266,6 +302,11 @@ Parameter | Type | Default value | Description
 `Render.Mixed.Glass.Color` | RGB | (1, 1, 1) | Transmitted color
 `Render.Mixed.Diffuse.Color` | RGB | (0.8, 0.8, 0.8) | Diffuse color
 `Render.Mixed.Transparency` | float | 0.5 | Mix ratio between Glass and Diffuse (should stay in [0,1], other values may lead to undefined behaviour)
+
+
+#### Textures
+
+Text  
 
 
 ### **Passthrough** material
