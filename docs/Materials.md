@@ -163,8 +163,8 @@ Caveats:
   material.
 - A material can only access its own textures (not the textures of another
   material).
-- Textures images are stored inside the .fcstd file. Intensive use of textures
-  may affect file size!
+- The image files will be stored inside the .fcstd file. Large use of
+  textures may affect file size!
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
@@ -306,8 +306,31 @@ Parameter | Type | Default value | Description
 
 #### Textures
 
-Text  
+Textures can be added in material card in order to be used by the material.
 
+##### Texture Declaration
+A texture can be declared using the following parameters:
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.Textures.<name>.Images.<index>` | string | | Path to image
+`Render.Textures.<name>.Scale` | float | | Scale to be applied to texture
+`Render.Textures.<name>.Rotation` | float | | Rotation to be applied to texture
+`Render.Textures.<name>.TranslationU` | float | | Translation to be applied to texture (U axis)
+`Render.Textures.<name>.TranslationV` | float | | Translation to be applied to texture (V axis)
+
+where:
+- `<name>` is the name you give to the texture
+- `<index>` is the index (unsigned integer) of the image, given that you can
+  add as many images as you want. An important rule however: you must declare
+  at least one image per texture and this image must have index = 0.
+
+The path to image can (should) be relative. In this case, the base directory is
+the one where the material card file is located.
+
+
+##### Texture Reference
+ <TODO>
 
 ### **Passthrough** material
 
