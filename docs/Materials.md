@@ -165,6 +165,7 @@ Caveats:
   material).
 - The image files will be stored inside the .fcstd file. Large use of
   textures may affect file size!
+- Normal maps are expected to be in OpenGL convention (not DirectX)
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
@@ -308,8 +309,8 @@ Parameter | Type | Default value | Description
 
 Textures can be added in material card in order to be used by the material.
 
-##### Texture Declaration
-A texture can be declared using the following parameters:
+##### Texture Definition
+A texture can be defined using the following parameters:
 
 Parameter | Type | Default value | Description
 --------- | ---- | ------------- | -----------
@@ -330,7 +331,25 @@ the one where the material card file is located.
 
 
 ##### Texture Reference
- <TODO>
+
+Once a texture has been defined, the syntax to reference it in a parameter is:
+
+`<parameter> = Texture(<name>, <index>)`
+
+where:
+- `<parameter>` is the material parameter
+- `<name>` is the texture name (as a string, double-quote enclosed)
+- `<index>` is the index of the image to use (unsigned integer)
+
+For instance:
+
+`Render.Disney.BaseColor = Texture("Wood", 0)`
+
+A default value can be added in case the renderer can't handle the texture.
+This default value can be specified after a semi-colon. Example:
+
+`Render.Disney.BaseColor = Texture("Wood", 0) ; (0.8, 0.8, 0.8)`
+
 
 ### **Passthrough** material
 
@@ -438,3 +457,29 @@ Render.Appleseed.0016 =     <parameter name="normal_map_up" value="z" />
 Render.Appleseed.0017 =     <parameter name="shade_alpha_cutouts" value="false" />
 Render.Appleseed.0018 = </material>
 ```
+
+#### Example #5: Textured Material
+```INI
+[Rendering]
+Render.Type = Disney
+Render.Disney.BaseColor = Texture("Wood", 0) ; (0.8,0.8,0.8)
+Render.Disney.Subsurface = 0
+Render.Disney.Metallic = 0
+Render.Disney.Specular = 0.5
+Render.Disney.SpecularTint = 0
+Render.Disney.Roughness = Texture("Wood", 1);1
+Render.Disney.Anisotropic = 0
+Render.Disney.Sheen = 0
+Render.Disney.SheenTint = 0
+Render.Disney.ClearCoat = 0
+Render.Disney.ClearCoatGloss = 0
+Render.Disney.ClearCoatGloss = 0
+Render.Disney.Normal = Texture("Wood", 2)
+Render.Disney.Bump = Texture("Wood", 3)
+Render.Textures.Wood.Images.0 = TexturedWood/Wood068_2K_Color.jpg
+Render.Textures.Wood.Images.1 = TexturedWood/Wood068_2K_Roughness.jpg
+Render.Textures.Wood.Images.2 = TexturedWood/Wood068_2K_NormalGL.jpg
+Render.Textures.Wood.Images.3 = TexturedWood/Wood068_2K_Displacement.jpg
+Render.Textures.Wood.Scale = 0.33
+```
+(provided that the sub-folder 'TexturedWood' contains the required image files)
