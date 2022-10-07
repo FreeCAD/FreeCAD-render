@@ -165,7 +165,19 @@ Caveats:
   material).
 - The image files will be stored inside the .fcstd file. Large use of
   textures may affect file size!
-- Normal maps are expected to be in OpenGL convention (not DirectX)
+- Normal maps are expected to follow OpenGL convention (not DirectX)
+
+
+## UV mapping
+To correctly position the texture on the object, Render WB generates a UV
+mapping. Three modes are available:
+- Cubic
+- Spherical
+- Cylindrical
+Those modes are accessible in the View of the object, in the parameter
+`UV Projection` under the section `Material & Textures`.
+
+<img src=./UVProjection.png alt="UV Projection">
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
