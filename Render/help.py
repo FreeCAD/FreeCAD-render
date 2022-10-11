@@ -1,4 +1,4 @@
-from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineScript
+from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineScript, QWebEngineScriptCollection
 from PySide2.QtCore import QUrl, QObject, Signal, Slot
 import FreeCADGui as Gui
 import markdown
@@ -65,6 +65,32 @@ INDEX_HTML = f"""\
 </body>
 </html>
 """
+SCRIPT_LOAD=""" import("https://code.jquery.com/jquery-1.12.0.min.js") """
+SCRIPT_LOAD=f""" import {{ $ }} from '{WBDIR}/docs/3rdparty/jQuery.js' """
+SCRIPT = f"""\
+  (async () => {{
+  await import('{WBDIR}/docs/3rdparty/jQuery.js');
+  }})();
+"""
+SCRIPT = f"""\
+  (async () => {{
+  await import('{WBDIR}/docs/3rdparty/jQuery.js'); }}
+  $.when( $.ready).then(function() {{
+    alert('ready');
+    var now_body = $( "#body" ).text();
+    $( "#body" ).html( marked.parse() );
+    }});
+"""
+with open(f"{WBDIR}/docs/3rdparty/jQuery.js") as f:
+    SCRIPT_JQUERY = f.read()
+with open(f"{WBDIR}/docs/3rdparty/marked/marked.min.js") as f:
+    SCRIPT_MARKED = f.read()
+SCRIPT_RUN = f"""\
+  $.when( $.ready).then(function() {{
+    var now_body = $( "body" ).text();
+    $( "body" ).html( marked.parse(now_body) );
+    }});
+"""
 
 class HelpViewer(QWebEngineView):
     def __init__(self, parent=None):
@@ -74,9 +100,30 @@ class HelpViewer(QWebEngineView):
         self.content.new_content.connect(self.convert_markdown)
         self.convert = True
 
+        scripts = self.page().scripts()
+
+        script_jquery = QWebEngineScript()
+        script_jquery.setSourceCode(SCRIPT_JQUERY)
+        script_jquery.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        scripts.insert(script_jquery)
+
+        script_marked = QWebEngineScript()
+        script_marked.setSourceCode(SCRIPT_MARKED)
+        script_marked.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        scripts.insert(script_marked)
+
+        script_run = QWebEngineScript()
+        script_run.setSourceCode(SCRIPT_RUN)
+        script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
+        scripts.insert(script_run)
+
+
     @Slot(bool)
     def after_load(self, success):
         print("after_load")
+        self.page().toHtml(self.content)  # Asynchronous!
+        # self.page().runJavaScript(SCRIPT_LOAD)
+        # self.page().runJavaScript(SCRIPT)
         # print("after_load")
         # if not self.convert:
             # # Protect with mutex?
@@ -91,6 +138,7 @@ class HelpViewer(QWebEngineView):
 
     @Slot()
     def convert_markdown(self):
+        print(self.content.text())
         return  # TODO
         self.convert = False
         print(self.content.text())
@@ -111,6 +159,5 @@ def open_help():
     subw.setVisible(True)
     # print(url)
     # viewer.setUrl(url)
-    print("\n", INDEX_HTML)
-    viewer.setHtml(INDEX_HTML, base_url)
+    viewer.setUrl(url)
     viewer.show()

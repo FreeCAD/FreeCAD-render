@@ -1,3 +1,3 @@
 [submodule "Render/3rdparty/marked"]
-	path = Render/3rdparty/marked
+	path = docs/3rdparty/marked
 	url = https://github.com/markedjs/marked.git
