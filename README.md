@@ -7,7 +7,7 @@ rendered images from your FreeCAD document, using open-source external
 rendering engines.
 
 <img src=./docs/freecad-june-09.jpg alt="ShowCase" title="Examples of rendering
-made with Render Workbench">
+made with Render Workbench" width="800">
 
 ## Introduction
 
