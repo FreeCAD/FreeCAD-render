@@ -28,11 +28,11 @@ Raytracing:
 
 At the moment, the following rendering engines are supported:
 
-* [Pov-Ray](https://povray.org/)  
+* [Pov-Ray](https://www.povray.org/)
 * [LuxCoreRender](https://luxcorerender.org/)
-* [Appleseed](https://appleseedhq.net) 
+* [Appleseed](https://appleseedhq.net)
 * [Blender Cycles](https://www.cycles-renderer.org/)
-* [Intel Ospray Studio](https://github.com/ospray/ospray_studio) (experimental)
+* [Intel Ospray Studio](http://www.ospray.org/ospray_studio) (experimental)
 * [Pbrt v4](https://github.com/mmp/pbrt-v4) (experimental)
 * LuxRender (deprecated in favor of LuxCoreRender)
 
