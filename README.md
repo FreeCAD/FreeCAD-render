@@ -92,29 +92,6 @@ Optionally, you may tweak some particulars of your scene:
 
 These adjustments should take place between steps 2 and 3.
 
-## Alternative - Importing in Blender
-
-The Render Workbench's philosophy is to export a FreeCAD model to a file in the
-format of a rendering engine and run the rendering engine on that file.
-
-Instead of that, you can also *import* your FreeCAD model into Blender and run a
-rendering engine from inside Blender.  Blender is able to import FreeCAD files
-with materials correctly placed and ready for Cycles too, by using the FreeCAD
-importer Blender addon (available for
-[2.80](https://gist.github.com/yorikvanhavre/680156f59e2b42df8f5f5391cae2660b)
-and
-[2.79](https://gist.github.com/yorikvanhavre/e873d51c8f0e307e333fe595c429ba87)).
-
-Importing your FreeCAD file in Blender before rendering provides you with many
-options, such as placing textures, using other renderers than those supported
-by the Render Workbench, or more generally using all the powerful features of
-Blender.
-
-As a counterpart, all additions made in Blender after importing may be lost if
-you need to reimport your FreeCAD file later (for instance, in the event that
-your FreeCAD model has been modified...). That is why we would recommend to use
-the Render Workbench if the provided features are sufficient for your needs.
-
 ## Contributing
 
 Any contributions are welcome! Please read our
