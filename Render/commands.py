@@ -41,6 +41,7 @@ from Render.taskpanels import MaterialSettingsTaskPanel
 from Render.project import Project, user_select_template
 from Render.camera import Camera
 from Render.lights import PointLight, AreaLight, SunskyLight, ImageLight
+from Render.help import open_help
 
 
 class RenderProjectCommand:
@@ -469,6 +470,29 @@ class MaterialApplierCommand:
         App.ActiveDocument.commitTransaction()
 
 
+class HelpCommand:
+    """GUI command to open help."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "Help.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("HelpCommand", "Help"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "HelpCommand",
+                "Open Render help",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new camera into the active document.
+        """
+        open_help()
+
+
 # ===========================================================================
 #                            Commands initialization
 # ===========================================================================
@@ -549,6 +573,8 @@ def _init_gui_commands():
         ("Materials", materials_group),
         separator,
         ("Render", RenderCommand()),
+        separator,
+        ("Help", HelpCommand()),
     ]
 
     result = []
