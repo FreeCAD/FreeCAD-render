@@ -116,18 +116,23 @@ def open_help():
 # Init module
 SCRIPT_JQUERY, SCRIPT_MARKED = None, None
 
+SCRIPT_GREASEBLOCK = """\
+// ==UserScript==
+// @match file://*/*.md
+// ==/UserScript==
+"""
+
 with open(f"{WBDIR}/docs/3rdparty/jQuery.js", encoding="utf-8") as f:
-    SCRIPT_JQUERY = f.read()
+    SCRIPT_JQUERY = SCRIPT_GREASEBLOCK + f.read()
 
 with open(f"{WBDIR}/docs/3rdparty/marked.min.js", encoding="utf-8") as f:
-    SCRIPT_MARKED = f.read()
+    SCRIPT_MARKED = SCRIPT_GREASEBLOCK + f.read()
 
-SCRIPT_RUN = f"""\
-  // @match file://*/*.md
-  $.when( $.ready).then(function() {{
-    var now_body = $("body").text();
-    $("body").html( marked.parse(now_body) );
-    $("head").append(
-    '<link rel="stylesheet" href="{WBDIR}/docs/3rdparty/waterlight.css">');
-    }});
+SCRIPT_RUN = SCRIPT_GREASEBLOCK + f"""\
+$.when( $.ready).then(function() {{
+  var now_body = $("body").text();
+  $("body").html( marked.parse(now_body) );
+  $("head").append(
+  '<link rel="stylesheet" href="{WBDIR}/docs/3rdparty/waterlight.css">');
+  }});
 """  # Stylesheet credit: https://github.com/kognise/water.css
