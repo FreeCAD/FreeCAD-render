@@ -122,10 +122,12 @@ with open(f"{WBDIR}/docs/3rdparty/jQuery.js", encoding="utf-8") as f:
 with open(f"{WBDIR}/docs/3rdparty/marked.min.js", encoding="utf-8") as f:
     SCRIPT_MARKED = f.read()
 
-SCRIPT_RUN = """\
+SCRIPT_RUN = f"""\
   // @match file://*/*.md
-  $.when( $.ready).then(function() {
+  $.when( $.ready).then(function() {{
     var now_body = $("body").text();
     $("body").html( marked.parse(now_body) );
-    });
-"""
+    $("head").append(
+    '<link rel="stylesheet" href="{WBDIR}/docs/3rdparty/waterlight.css">');
+    }});
+"""  # Stylesheet credit: https://github.com/kognise/water.css
