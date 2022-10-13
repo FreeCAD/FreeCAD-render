@@ -33,7 +33,7 @@ At the moment, the following rendering engines are supported:
 * [Appleseed](https://appleseedhq.net)
 * [Blender Cycles](https://www.cycles-renderer.org/)
 * [Intel Ospray Studio](http://www.ospray.org/ospray_studio) (experimental)
-* [Pbrt v4](https://github.com/mmp/pbrt-v4) (experimental)
+* [Pbrt v4](https://www.pbrt.org) (experimental)
 * LuxRender (deprecated in favor of LuxCoreRender)
 
 ## Installation
@@ -59,20 +59,30 @@ FreeCAD model is just a 4-steps process:
    corresponding to your renderer <img src=./Render/resources/icons/Appleseed.svg height=32>
    <img src=./Render/resources/icons/Cycles.svg height=32> <img src=./Render/resources/icons/Luxcore.svg
    height=32> <img src=./Render/resources/icons/Povray.svg height=32> and select a template
-   suitable for your renderer \ (you may start with a 'standard' flavour, like
+   suitable for your renderer \
+   (you may start with a 'standard' flavour, like
    appleseed_standard.appleseed, cycles_standard.xml, luxcore_standard.cfg or
-   povray_standard.pov) 
+   povray_standard.pov)
+
+
 2. **Add views of your objects to your rendering project:** Select both the
    objects and the project, and press the 'Add view' button <img
    src=./Render/resources/icons/RenderView.svg height=32>
+
+
 3. **Set your point of view:** [Navigate in FreeCAD 3D View](https://wiki.freecadweb.org/Manual:Navigating_in_the_3D_view)
    to the desired position and switch to _Perspective_ mode.
+
+
 4. **Render:** Select your project and press the 'Render' button <img
    src=./Render/resources/icons/Render.svg height=32> in toolbar (also available in project's
    context menu).
 
-<br /> **...and you should get a first rendering of your model.** <br /> 
 
+<br /> **...and you should get a first rendering of your model.** <br />
+
+
+## More features
 
 Optionally, you may tweak some particulars of your scene:
 * Modify some [options of your rendering project](./docs/Projects.md)
