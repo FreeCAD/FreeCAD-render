@@ -22,6 +22,8 @@
 
 """This module implements a help viewer for Render workbench."""
 
+import os.path
+
 from PySide2.QtWebEngineWidgets import (
     QWebEngineView,
     QWebEngineScript,
@@ -108,8 +110,10 @@ def open_help():
     subw = mdiarea.addSubWindow(viewer)
     subw.setWindowTitle("Render help")
     subw.setVisible(True)
-
-    viewer.setUrl(QUrl(f"file://{WBDIR}/README.md"))
+    
+    path = os.path.join(WBDIR,"README.md")
+    url = QUrl.fromLocalFile(path)
+    viewer.setUrl(url)
     viewer.show()
 
 
@@ -122,17 +126,20 @@ SCRIPT_GREASEBLOCK = """\
 // ==/UserScript==
 """
 
-with open(f"{WBDIR}/docs/3rdparty/jQuery.js", encoding="utf-8") as f:
+JQUERY_PATH = os.path.join(WBDIR, "docs", "3rdparty", "jQuery.js")
+with open(JQUERY_PATH, encoding="utf-8") as f:
     SCRIPT_JQUERY = SCRIPT_GREASEBLOCK + f.read()
 
-with open(f"{WBDIR}/docs/3rdparty/marked.min.js", encoding="utf-8") as f:
+MARKED_PATH = os.path.join(WBDIR, "docs", "3rdparty", "marked.min.js")
+with open(MARKED_PATH, encoding="utf-8") as f:
     SCRIPT_MARKED = SCRIPT_GREASEBLOCK + f.read()
 
+CSS_PATH = os.path.join(WBDIR, "docs", "3rdparty", "waterlight.css")
+CSS_URL = QUrl.fromLocalFile(CSS_PATH).url()
 SCRIPT_RUN = SCRIPT_GREASEBLOCK + f"""\
 $.when( $.ready).then(function() {{
   var now_body = $("body").text();
   $("body").html( marked.parse(now_body) );
-  $("head").append(
-  '<link rel="stylesheet" href="{WBDIR}/docs/3rdparty/waterlight.css">');
-  }});
+  $("head").append('<link rel="stylesheet" href="{CSS_URL}">');
+}});
 """  # Stylesheet credit: https://github.com/kognise/water.css
