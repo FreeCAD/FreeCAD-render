@@ -32,7 +32,6 @@ import sys
 import os
 import re
 from operator import attrgetter
-from tempfile import mkstemp
 from collections import namedtuple
 
 from PySide.QtGui import QFileDialog, QMessageBox
@@ -83,15 +82,6 @@ class Project(FeatureBase):
             ),
             "",
             1,
-        ),
-        "PageResult": Prop(
-            "App::PropertyFileIncluded",
-            "Render",
-            QT_TRANSLATE_NOOP(
-                "App::Property", "The result file to be sent to the renderer"
-            ),
-            "",
-            2,
         ),
         "RenderWidth": Prop(
             "App::PropertyInteger",
@@ -196,7 +186,6 @@ class Project(FeatureBase):
 
     ON_CHANGED = {
         "DelayedBuild": "_on_changed_delayed_build",
-        "Renderer": "_on_changed_renderer",
     }
 
     def on_set_properties_cb(self, fpo):
@@ -215,10 +204,6 @@ class Project(FeatureBase):
             return
         for view in self.all_views():
             view.touch()
-
-    def _on_changed_renderer(self, fpo):  # pylint: disable=no-self-use
-        """Respond to Renderer property change event."""
-        fpo.PageResult = ""
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete the operation of 'create' (callback)."""
@@ -420,8 +405,6 @@ class Project(FeatureBase):
 
         # Write instantiated template into a temporary file
         fpath = self._write_instantiated_template_to_file(instantiated)
-        self.fpo.PageResult = fpath
-        os.remove(fpath)  # Ask for removing, but file is hold by PageResult
 
         # Fetch the rendering parameters
         params = self._get_rendering_params()
@@ -432,6 +415,7 @@ class Project(FeatureBase):
             self.fpo,
             params.prefix,
             external,
+            fpath,
             params.output,
             params.width,
             params.height,
@@ -525,13 +509,12 @@ class Project(FeatureBase):
 
         Returns path to temp file.
         """
-        fhandle, fpath = mkstemp(
-            prefix=self.fpo.Name,
-            suffix=os.path.splitext(self.fpo.Template)[-1],
+        suffix = os.path.splitext(self.fpo.Template)[-1]
+        fpath = os.path.join(
+            self.fpo.Document.TransientDir, self.fpo.Name + suffix
         )
         with open(fpath, "w", encoding="utf8") as fobj:
             fobj.write(template)
-        os.close(fhandle)
         return fpath
 
     def _get_rendering_params(self):
@@ -549,7 +532,7 @@ class Project(FeatureBase):
             output = self.fpo.OutputImage
             assert output
         except (AttributeError, AssertionError):
-            output = os.path.splitext(self.fpo.PageResult)[0] + ".png"
+            output = os.path.join(self.fpo.Document.TransientDir, "output.png")
 
         try:
             width = int(self.fpo.RenderWidth)

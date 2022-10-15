@@ -41,7 +41,6 @@
 
 import os
 import re
-from tempfile import mkstemp
 from textwrap import indent
 from math import degrees, acos, atan2, sqrt
 import collections
@@ -1123,14 +1122,17 @@ def _color_name(matname):
 # ===========================================================================
 
 
-def render(project, prefix, external, output, width, height):
+def render(project, prefix, external, input_file, output_file, width, height):
     """Generate renderer command.
+
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
         external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderder
+            (false) version of renderer
+        input_file -- path to input file
+        output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
 
@@ -1173,7 +1175,7 @@ def render(project, prefix, external, output, width, height):
     # declarations and specify default camera
 
     # Before all, open result file
-    with open(project.PageResult, "r", encoding="utf-8") as f:
+    with open(input_file, "r", encoding="utf-8") as f:
         template = f.read()
 
     # Gather cameras, environment_edf, environment_shader, environment elements
@@ -1212,14 +1214,8 @@ def render(project, prefix, external, output, width, height):
         )
 
     # Write resulting output to file
-    f_handle, f_path = mkstemp(
-        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
-    )
-    os.close(f_handle)
-    with open(f_path, "w", encoding="utf-8") as f:
+    with open(input_file, "w", encoding="utf-8") as f:
         f.write(template)
-    project.PageResult = f_path
-    os.remove(f_path)
 
     # Prepare parameters
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
@@ -1231,7 +1227,7 @@ def render(project, prefix, external, output, width, height):
         args = params.GetString("AppleseedParameters", "")
         if args:
             args += " "
-        args += "--output " + output
+        args += f"""--output "{output_file}" """
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
@@ -1242,7 +1238,7 @@ def render(project, prefix, external, output, width, height):
     if args:
         args += " "
 
-    filepath = f'"{project.PageResult}"'
+    filepath = f'"{input_file}"'
 
     # Build Appleseed command
     cmd = prefix + rpath + " " + args + " " + filepath + "\n"

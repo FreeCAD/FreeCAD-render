@@ -32,7 +32,6 @@ import re
 import math
 import itertools
 import textwrap
-from tempfile import mkstemp
 
 import FreeCAD as App
 
@@ -568,7 +567,7 @@ def _format_list(inlist, elements_per_line, indentation=6):
 # ===========================================================================
 
 
-def render(project, prefix, external, output, width, height):
+def render(project, prefix, external, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
@@ -576,7 +575,9 @@ def render(project, prefix, external, output, width, height):
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
         external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderder
+            (false) version of renderer
+        input_file -- path to input file
+        output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
 
@@ -586,7 +587,7 @@ def render(project, prefix, external, output, width, height):
     """
     # Make various adjustments on file:
     # Reorder camera declarations and set width/height
-    with open(project.PageResult, "r", encoding="utf-8") as f:
+    with open(input_file, "r", encoding="utf-8") as f:
         template = f.read()
 
     # Cameras
@@ -600,14 +601,8 @@ def render(project, prefix, external, output, width, height):
     template = template.replace("@@HEIGHT@@", str(height))
 
     # Write resulting output to file
-    f_handle, f_path = mkstemp(
-        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
-    )
-    os.close(f_handle)
-    with open(f_path, "w", encoding="utf-8") as f:
+    with open(input_file, "w", encoding="utf-8") as f:
         f.write(template)
-    project.PageResult = f_path
-    os.remove(f_path)
 
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
@@ -616,7 +611,7 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("PbrtPath", "")
     args = params.GetString("PbrtParameters", "")
-    args += f' --outfile "{output}" '
+    args += f' --outfile "{output_file}" '
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
@@ -625,8 +620,8 @@ def render(project, prefix, external, output, width, height):
         )
         return None, None
 
-    filepath = f'"{project.PageResult}"'
+    filepath = f'"{input_file}"'
 
     cmd = prefix + rpath + " " + args + " " + filepath
 
-    return cmd, output
+    return cmd, output_file

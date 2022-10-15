@@ -794,7 +794,7 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, external, output, width, height):
+def render(project, prefix, external, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
@@ -802,7 +802,9 @@ def render(project, prefix, external, output, width, height):
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
         external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderder
+            (false) version of renderer
+        input_file -- path to input file
+        output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
 
@@ -811,7 +813,7 @@ def render(project, prefix, external, output, width, height):
         A path to output image file (string)
     """
     # Read result file (in a list)
-    with open(project.PageResult, "r", encoding="utf8") as f:
+    with open(input_file, "r", encoding="utf8") as f:
         in_file_list = f.readlines()
 
     # Move cameras up to root node
@@ -823,14 +825,8 @@ def render(project, prefix, external, output, width, height):
     _render_mergelightgroups(json_load)
 
     # Write reformatted input to file
-    f_handle, f_path = tempfile.mkstemp(
-        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
-    )
-    os.close(f_handle)
-    with open(f_path, "w", encoding="utf-8") as f:
+    with open(input_file, "w", encoding="utf-8") as f:
         f.write(json.dumps(json_load, indent=2))
-    project.PageResult = f_path
-    os.remove(f_path)
 
     # Prepare osp output file
     # Osp renames the output file when writing, so we have to ask it to write a
@@ -855,7 +851,7 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("OspPath", "")
     args = params.GetString("OspParameters", "")
-    if output:
+    if output_file:
         args += "  --image " + outfile_for_osp
     if not rpath:
         App.Console.PrintError(
@@ -865,7 +861,7 @@ def render(project, prefix, external, output, width, height):
         )
         return None, None
 
-    cmd = prefix + rpath + " " + args + " " + f'"{project.PageResult}"'
+    cmd = prefix + rpath + " " + args + " " + f'"{input_file}"'
 
     # Note: at the moment (08-20-2022), width, height, background are
     # not managed by osp

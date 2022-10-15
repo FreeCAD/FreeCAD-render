@@ -692,7 +692,7 @@ def _write_color(col):
 # ===========================================================================
 
 
-def render(project, prefix, external, output, width, height):
+def render(project, prefix, external, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
@@ -700,7 +700,9 @@ def render(project, prefix, external, output, width, height):
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
         external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderder
+            (false) version of renderer
+        input_file -- path to input file
+        output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
 
@@ -717,7 +719,7 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("CyclesPath", "")
     args = params.GetString("CyclesParameters", "")
-    args += f""" --output "{output}" """
+    args += f""" --output "{output_file}" """
     if not external:
         args += " --background"
     if not rpath:
@@ -729,7 +731,7 @@ def render(project, prefix, external, output, width, height):
         return None, None
     args += " --width " + str(width)
     args += " --height " + str(height)
-    filepath = f'"{project.PageResult}"'
+    filepath = f'"{input_file}"'
     cmd = prefix + rpath + " " + args + " " + filepath
 
-    return cmd, output
+    return cmd, output_file

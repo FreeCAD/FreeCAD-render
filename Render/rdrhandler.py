@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2020-2022 Howetuft <howetuft@gmail.com>                 *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -130,27 +130,31 @@ class RendererHandler:
             RenderingTypes.IMAGELIGHT: RendererHandler._render_imagelight,
         }
 
-    def render(self, project, prefix, external, output, width, height):
+    def render(
+        self, project, prefix, external, input_file, output_file, width, height
+    ):
         """Run the external renderer.
 
         This method merely calls external renderer's 'render' method, after
         having cleared rendermaterial's cache.
 
         Params:
-        - project:  the project to render
-        - prefix:   a prefix string for call (will be inserted before path to
-                    renderer)
-        - external: a boolean indicating whether to call UI (true) or console
-                    (false) version of renderer
-        - width:    rendered image width, in pixels
-        - height:   rendered image height, in pixels
+        - project:     the project to render
+        - prefix:      a prefix string for call (will be inserted before path
+                       to renderer)
+        - external:    a boolean indicating whether to call UI (true) or
+                       console (false) version of renderer
+        - input_file:  path to input file
+        - output_file: path to output file
+        - width:       rendered image width, in pixels
+        - height:      rendered image height, in pixels
 
         Return:     path to image file generated, or None if no image has been
                     issued by external renderer
         """
         rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, external, output, width, height
+            project, prefix, external, input_file, output_file, width, height
         )
 
     @staticmethod

@@ -412,7 +412,7 @@ class _TextureImportHelper:
                 continue
 
             # Split key using '.' separator
-            texname, *texsubnames = key[len(self.TEXPREFIX):].split(".")
+            texname, *texsubnames = key[len(self.TEXPREFIX) :].split(".")
 
             # If texture name is unknown at this stage, create a
             # dictionary to store its forthcoming data

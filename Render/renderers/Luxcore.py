@@ -27,7 +27,6 @@
 # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/displacement/displacement.scn
 
 import os
-from tempfile import mkstemp
 from textwrap import dedent
 import configparser
 
@@ -485,7 +484,7 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, external, output, width, height):
+def render(project, prefix, external, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
@@ -493,7 +492,9 @@ def render(project, prefix, external, output, width, height):
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
         external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderder
+            (false) version of renderer
+        input_file -- path to input file
+        output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
 
@@ -504,8 +505,7 @@ def render(project, prefix, external, output, width, height):
 
     def export_section(section, prefix, suffix):
         """Export a section to a temporary file."""
-        f_handle, f_path = mkstemp(prefix=prefix, suffix="." + suffix)
-        os.close(f_handle)
+        f_path = os.path.join(export_dir, f"{prefix}.{suffix}")
         result = [f"{k} = {v}" for k, v in dict(section).items()]
         with open(f_path, "w", encoding="utf-8") as output:
             output.write("\n".join(result))
@@ -516,14 +516,19 @@ def render(project, prefix, external, output, width, height):
     # - a scene file, with the scene objects (camera, lights, meshes...)
     # So we have to generate both...
 
+    # Get export directory
+    export_dir = os.path.dirname(input_file)
+
     # Get page result content (ie what the calling module baked for us)
     pageresult = configparser.ConfigParser(strict=False)  # Allow dupl. keys
     pageresult.optionxform = lambda option: option  # Case sensitive keys
-    pageresult.read(project.PageResult)
+    pageresult.read(input_file)
 
     # Compute output
     output = (
-        output if output else os.path.splitext(project.PageResult)[0] + ".png"
+        output_file
+        if output_file
+        else os.path.splitext(input_file)[0] + ".png"
     )
 
     # Export configuration

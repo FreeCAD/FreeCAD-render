@@ -110,8 +110,8 @@ def open_help():
     subw = mdiarea.addSubWindow(viewer)
     subw.setWindowTitle("Render help")
     subw.setVisible(True)
-    
-    path = os.path.join(WBDIR,"README.md")
+
+    path = os.path.join(WBDIR, "README.md")
     url = QUrl.fromLocalFile(path)
     viewer.setUrl(url)
     viewer.show()
@@ -136,10 +136,13 @@ with open(MARKED_PATH, encoding="utf-8") as f:
 
 CSS_PATH = os.path.join(WBDIR, "docs", "3rdparty", "waterlight.css")
 CSS_URL = QUrl.fromLocalFile(CSS_PATH).url()
-SCRIPT_RUN = SCRIPT_GREASEBLOCK + f"""\
+SCRIPT_RUN = (
+    SCRIPT_GREASEBLOCK
+    + f"""\
 $.when( $.ready).then(function() {{
   var now_body = $("body").text();
   $("body").html( marked.parse(now_body) );
   $("head").append('<link rel="stylesheet" href="{CSS_URL}">');
 }});
-"""  # Stylesheet credit: https://github.com/kognise/water.css
+"""
+)  # Stylesheet credit: https://github.com/kognise/water.css
