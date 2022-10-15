@@ -532,7 +532,8 @@ class Project(FeatureBase):
             output = self.fpo.OutputImage
             assert output
         except (AttributeError, AssertionError):
-            output = os.path.join(self.fpo.Document.TransientDir, "output.png")
+            fname = f"{self.fpo.Name}_output.png"
+            output = os.path.join(self.fpo.Document.TransientDir, fname)
 
         try:
             width = int(self.fpo.RenderWidth)
