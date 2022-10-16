@@ -725,12 +725,15 @@ def user_select_template(renderer):
 def toto(get_rdr_string, views):
     import concurrent.futures
     import time
-
-    print("concurrent")
-    t1 = time.time()
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        objstrings = [s for s in executor.map(get_rdr_string, views)]
-    t2 = time.time()
-    print("Time:", t2 - t1)
-    print(objstrings)
+    concurrent = False
+    if concurrent:
+        print("concurrent")
+        t1 = time.time()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            objstrings = [s for s in executor.map(get_rdr_string, views)]
+        t2 = time.time()
+        print("Time:", t2 - t1)
+        print(objstrings)
+    else:
+        objstrings = [get_rdr_string(v) for v in views]
     return objstrings
