@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2020-2022 Howetuft <howetuft@gmail.com>                 *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -38,6 +38,7 @@ Renderables
 import itertools
 import collections
 import math
+import concurrent.futures
 
 from Render.utils import translate, debug, warn, getproxyattr, RGBA
 from Render.rendermaterial import is_multimat, is_valid_material
@@ -80,7 +81,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
             spherical...). See View object and rdrhandler for valid values.
 
     Returns:
-        A list of renderables
+        A list of futures resulting in renderables
     """
     obj_is_applink = obj.isDerivedFrom("App::Link")
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
@@ -149,13 +150,9 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
-        color = _get_shapecolor(obj, transparency_boost)
-        # Make a copy of obj.Mesh, otherwise we may have an immutable object
-        # and further treatments will fail
-        uvprojection = kwargs.get("uvprojection")
-        mesh = RenderMesh(obj.Mesh.copy())
-        mesh.compute_uvmap(uvprojection)
-        renderables = [Renderable(name, mesh, mat, color)]
+        renderables = _get_rends_from_meshfeature(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Unhandled
     else:
@@ -517,6 +514,26 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
 
     return renderables
 
+def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
+    """Get renderables from a Part::Feature object.
+
+    Parameters:
+        obj -- the Part::Feature object
+        name -- the name assigned to the object for rendering
+        material -- the material for the object
+        mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+        A list of renderables for the Part object
+    """
+    transparency_boost = int(kwargs.get("transparency_boost", 0))
+    color = _get_shapecolor(obj, transparency_boost)
+    # Make a copy of obj.Mesh, otherwise we may have an immutable object
+    # and further treatments will fail
+    uvprojection = kwargs.get("uvprojection")
+    mesh = RenderMesh(obj.Mesh.copy())
+    mesh.compute_uvmap(uvprojection)
+    return [Renderable(name, mesh, mat, color)]
 
 def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""
