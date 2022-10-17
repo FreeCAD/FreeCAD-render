@@ -482,31 +482,23 @@ class Project(FeatureBase):
         Besides standard FCD objects (parts, shapes...), objects encompass
         lights and cameras.
         """
-        # Gather the views to render
-        # If App.Gui is up, we take View's Visibility property into account
-        views = (
-            [v for v in self.all_views() if v.Source.ViewObject.Visibility]
-            if App.Gui
-            else self.all_views()
+        # Default mode is to compute strings, but if DelayedBuild is False
+        # we rely on views' ViewResult precomputed values.
+        get_rdr_string = (
+            renderer.get_rendering_string
+            if self.fpo.DelayedBuild
+            else attrgetter("ViewResult")
         )
 
-        # If DelayedBuild is false, we rely on views' ViewResult precomputed
-        # values.
-        if not self.fpo.DelayedBuild:
-            return [v.ViewResult for v in views]
-
-        # Otherwise, we have to compute strings
-        get_rdr_string = renderer.get_rendering_string
-
-        # TODO Old sequential
-        # import time
-        # print("sequential")
-        # t1 = time.time()
-        # objstrings = [get_rdr_string(v) for v in views]
-        # t2 = time.time()
-        # print("Time:", t2 - t1)
-
-        objstrings = toto(get_rdr_string, views)
+        if App.GuiUp:
+            # App.Gui is up, we take View's Visibility property into account
+            objstrings = [
+                get_rdr_string(v)
+                for v in self.all_views()
+                if v.Source.ViewObject.Visibility
+            ]
+        else:
+            objstrings = [get_rdr_string(v) for v in self.all_views()]
 
         return objstrings
 
@@ -719,18 +711,3 @@ def user_select_template(renderer):
     if not template_path:
         return None
     return os.path.relpath(template_path, TEMPLATEDIR)
-
-
-# TODO
-def toto(get_rdr_string, views):
-    import concurrent.futures
-    import time
-
-    print("concurrent")
-    t1 = time.time()
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        objstrings = [s for s in executor.map(get_rdr_string, views)]
-    t2 = time.time()
-    print("Time:", t2 - t1)
-    print(objstrings)
-    return objstrings
