@@ -44,8 +44,6 @@ import sys
 import functools
 import traceback
 import enum
-import time
-import concurrent.futures
 from importlib import import_module
 from types import SimpleNamespace
 
@@ -238,12 +236,11 @@ class RendererHandler:
         This method selects the specialized rendering method adapted for
         'view', according to its source object type, and calls it.
 
-        Args:
+        Parameters:
         view -- the view of the object to render
 
-        Returns:
-        a list of futures resulting in rendering strings in the format of the
-        external renderer for the supplied 'view'
+        Returns: a rendering string in the format of the external renderer
+        for the supplied 'view'
         """
         source = view.Source
         name = str(source.Name)
@@ -361,7 +358,6 @@ class RendererHandler:
                 mesh.compute_uvmap(uvmap_projection)
             return mesh
 
-        time0 = time.time()
         source = view.Source
         label = getattr(source, "Label", name)
         uvproj = getattr(view, "UvProjection", None)
@@ -371,18 +367,15 @@ class RendererHandler:
         material = view.Material
         tpboost = self.transparency_boost
         try:
-            # TODO
-            executor = concurrent.futures.ThreadPoolExecutor()
             rends = renderables.get_renderables(
                 source,
                 name,
                 material,
                 mesher,
-                executor,
                 transparency_boost=tpboost,
                 uvprojection=uvproj,
             )
-            # renderables.check_renderables(rends)  TODO
+            renderables.check_renderables(rends)
         except (TypeError, ValueError) as err:
             # 'get_renderables' will raise TypeError if unable to render
             # or ValueError if the result is malformed
@@ -408,6 +401,13 @@ class RendererHandler:
             )
             return ""
 
+        # Rescale to meters
+        scalemat = App.Matrix()
+        scalemat.scale(SCALE, SCALE, SCALE)
+        for rend in rends:
+            rend.mesh.transform(scalemat)
+            rend.mesh.Placement.Base.multiply(SCALE)
+
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(
             RendererHandler._call_renderer, self, "write_mesh"
@@ -416,19 +416,12 @@ class RendererHandler:
         get_mat = rendermaterial.get_rendering_material
         rdrname = self.renderer_name
 
-        # Rescale to meters and call plugin write_mesh
-        scalemat = App.Matrix()
-        scalemat.scale(SCALE, SCALE, SCALE)
-        res = []
-        for rend in concurrent.futures.as_completed(rends):
-            rend = rend.result()
-            delta = time.time() - time0
-            App.Console.PrintMessage(f"Exporting {delta:f}: {rend.name}\n")
-            rend.mesh.transform(scalemat)
-            rend.mesh.Placement.Base.multiply(SCALE)
-            mat = get_mat(rend.material, rdrname, rend.defcolor)
-            res.append(write_mesh(rend.name, rend.mesh, mat))
-
+        res = [
+            write_mesh(
+                r.name, r.mesh, get_mat(r.material, rdrname, r.defcolor)
+            )
+            for r in rends
+        ]
         return "".join(res)
 
     def _render_camera(self, name, view):

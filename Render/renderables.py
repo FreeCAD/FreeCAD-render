@@ -55,7 +55,7 @@ Renderable = collections.namedtuple(
 )
 
 
-def get_renderables(obj, name, upper_material, mesher, executor, **kwargs):
+def get_renderables(obj, name, upper_material, mesher, **kwargs):
     """Get the renderables from a FreeCAD object.
 
     A renderable is a tuple (name, mesh, material). There can be
@@ -71,7 +71,6 @@ def get_renderables(obj, name, upper_material, mesher, executor, **kwargs):
         upper_material -- the FreeCAD material inherited from the upper
             level
         mesher -- a callable which can convert a shape into a mesh
-        executor -- a ThreadPoolExecutor to generate futures
 
     Keywords arguments:
         ignore_unknown -- a flag to prevent exception raising if 'obj' is
@@ -100,19 +99,20 @@ def get_renderables(obj, name, upper_material, mesher, executor, **kwargs):
 
     label = getattr(obj, "Label", name)
     ignore_unknown = bool(kwargs.get("ignore_unknown", False))
+    transparency_boost = int(kwargs.get("transparency_boost", 0))
 
     # Link (plain)
     if obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
         renderables = _get_rends_from_plainapplink(
-            obj, name, mat, mesher, executor, **kwargs
+            obj, name, mat, mesher, **kwargs
         )
 
     # Link (array)
     elif obj_is_applink and obj.ElementCount:
         debug("Object", label, "'Link (array)' detected")
         renderables = _get_rends_from_elementlist(
-            obj, name, mat, mesher, executor, **kwargs
+            obj, name, mat, mesher, **kwargs
         )
 
     # Array, PathArray
@@ -120,46 +120,38 @@ def get_renderables(obj, name, upper_material, mesher, executor, **kwargs):
         debug("Object", label, f"'{obj_type}' detected")
         expand_array = getattr(obj, "ExpandArray", False)
         renderables = (
-            _get_rends_from_array(obj, name, mat, mesher, executor, **kwargs)
+            _get_rends_from_array(obj, name, mat, mesher, **kwargs)
             if not expand_array
-            else _get_rends_from_elementlist(
-                obj, name, mat, mesher, executor, **kwargs
-            )
+            else _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
         )
 
     # Window
     elif obj_is_partfeature and obj_type == "Window":
         debug("Object", label, "'Window' detected")
-        renderables = _get_rends_from_window(
-            obj, name, mat, mesher, executor, **kwargs
-        )
+        renderables = _get_rends_from_window(obj, name, mat, mesher, **kwargs)
 
     # Wall
     elif obj_is_partfeature and obj_type == "Wall":
         debug("Object", label, "'Wall' detected")
-        renderables = _get_rends_from_wall(
-            obj, name, mat, mesher, executor, **kwargs
-        )
+        renderables = _get_rends_from_wall(obj, name, mat, mesher, **kwargs)
 
     # App part
     elif obj_is_app_part:
         debug("Object", label, "'App::Part' detected")
-        renderables = _get_rends_from_part(
-            obj, name, mat, mesher, executor, **kwargs
-        )
+        renderables = _get_rends_from_part(obj, name, mat, mesher, **kwargs)
 
     # Plain part feature (including PartDesign::Body)
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
         renderables = _get_rends_from_partfeature(
-            obj, name, mat, mesher, executor, **kwargs
+            obj, name, mat, mesher, **kwargs
         )
 
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
         renderables = _get_rends_from_meshfeature(
-            obj, name, mat, executor, **kwargs  # no mesher!
+            obj, name, mat, mesher, **kwargs
         )
 
     # Unhandled
@@ -198,9 +190,7 @@ def check_renderables(renderables):
 # ===========================================================================
 
 
-def _get_rends_from_elementlist(
-    obj, name, material, mesher, executor, **kwargs
-):
+def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     """Get renderables from an object containing a list of elements.
 
     The list of elements must be in the ElementList property of the
@@ -212,10 +202,9 @@ def _get_rends_from_elementlist(
     name -- the name assigned to the container object for rendering
     material -- the material for the container object
     mesher -- a callable object which converts a shape into a mesh
-    executor -- ThreadPoolExecutor to generate futures
 
     Returns:
-    A list of futures of renderables for the array object
+    A list of renderables for the array object
     """
     renderables = []
     base_plc_matrix = obj.Placement.toMatrix()
@@ -225,19 +214,13 @@ def _get_rends_from_elementlist(
         assert element.isDerivedFrom("App::LinkElement")
         elem_name = f"{name}_{element.Name}"
         base_rends = get_renderables(
-            element.LinkedObject,
-            elem_name,
-            material,
-            mesher,
-            executor,
-            **kwargs,
+            element.LinkedObject, elem_name, material, mesher, **kwargs
         )
-
-        def new_rend(base_rend, element):
-            element_plc_matrix = element.LinkPlacement.toMatrix()
-            linkedobject_plc_inverse_matrix = (
-                element.LinkedObject.Placement.inverse().toMatrix()
-            )
+        element_plc_matrix = element.LinkPlacement.toMatrix()
+        linkedobject_plc_inverse_matrix = (
+            element.LinkedObject.Placement.inverse().toMatrix()
+        )
+        for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not obj.LinkTransform:
                 new_mesh.transform(linkedobject_plc_inverse_matrix)
@@ -246,18 +229,13 @@ def _get_rends_from_elementlist(
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
-            return Renderable(new_name, new_mesh, new_mat, new_color)
-
-        for base_rend in concurrent.futures.as_completed(base_rends):
-            base_rend = base_rend.result()
-            renderables.append(executor.submit(new_rend, base_rend, element))
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
+            renderables.append(new_rend)
 
     return renderables
 
 
-def _get_rends_from_plainapplink(
-    obj, name, material, mesher, executor, **kwargs
-):
+def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
     """Get renderables from an App::Link where Count==0.
 
     Parameters:
@@ -284,13 +262,10 @@ def _get_rends_from_plainapplink(
         new_mesh.transform(link_plc_matrix)
         return Renderable(new_name, new_mesh, new_mat, new_color)
 
-    return [
-        executor.submit(new_rend, r.result())
-        for r in concurrent.futures.as_completed(base_rends)
-    ]
+    return [new_rend(r) for r in base_rends]
 
 
-def _get_rends_from_array(obj, name, material, mesher, executor, **kwargs):
+def _get_rends_from_array(obj, name, material, mesher, **kwargs):
     """Get renderables from an array.
 
     The array should not be expanded into an element list (ExpandArray flag),
@@ -318,19 +293,16 @@ def _get_rends_from_array(obj, name, material, mesher, executor, **kwargs):
         material = material if material else getattr(base, "Material", None)
         color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
         uvprojection = kwargs.get("uvprojection")
-        result = executor.submit(
-            lambda: Renderable(
+        return [
+            Renderable(
                 name,
                 mesher(obj.Shape, _needs_uvmap(material), uvprojection),
                 material,
                 color,
             )
-        )
-        return [result]
+        ]
 
-    base_rends = get_renderables(
-        base, base.Name, material, mesher, executor, **kwargs
-    )
+    base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
     obj_plc_matrix = obj.Placement.toMatrix()
     base_inv_plc_matrix = base.Placement.inverse().toMatrix()
     placements = (
@@ -351,15 +323,12 @@ def _get_rends_from_array(obj, name, material, mesher, executor, **kwargs):
         new_color = base_rend.defcolor
         return Renderable(subname, new_mesh, new_mat, new_color)
 
-    # TODO Remove wait...
-    rends = itertools.product(
-        enumerate(placements), concurrent.futures.wait(base_rends)
-    )
+    rends = itertools.product(enumerate(placements), base_rends)
 
-    return [executor.submit(new_rend, *r) for r in rends]
+    return [new_rend(*r) for r in rends]
 
 
-def _get_rends_from_window(obj, name, material, mesher, executor, **kwargs):
+def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     """Get renderables from an Window object (from Arch workbench).
 
     Parameters:
@@ -409,38 +378,32 @@ def _get_rends_from_window(obj, name, material, mesher, executor, **kwargs):
 
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
-    # TODO
-    # meshes = [
-    # mesher(s, n, uvprojection)
-    # for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
-    # ]
-
-    def new_rend(name, child_shape, uvmap_flag, material, color):
-        mesh = mesher(child_shape, uvmap_flag, uvprojection)
-        return Renderable(name, mesh, material, color)
+    meshes = [
+        mesher(s, n, uvprojection)
+        for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
+    ]
 
     # Build renderables
-    components = zip(names, obj.Shape.childShapes(), needs_uvmap, mats, colors)
-    return [executor.submit(new_rend, *c) for c in components]
+    return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
 
 
-def _get_rends_from_wall(obj, name, material, mesher, executor, **kwargs):
-    """Get renderables from an Wall object (from Arch workbench).
+def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
+    """Get renderables from an Window object (from Arch workbench).
 
     Parameters:
-        obj -- the Wall object
-        name -- the name assigned to the Wall object for rendering
-        material -- the material for the Wall object (should be a
+        obj -- the Window object
+        name -- the name assigned to the Window object for rendering
+        material -- the material for the Window object (should be a
                     multimaterial)
         mesher -- a callable object which converts a shape into a mesh
 
     Returns:
-        A list of renderables for the Wall object
+        A list of renderables for the Window object
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
         return _get_rends_from_partfeature(
-            obj, name, material, mesher, executor, **kwargs
+            obj, name, material, mesher, **kwargs
         )
 
     shapes = obj.Shape.childShapes()
@@ -452,6 +415,10 @@ def _get_rends_from_wall(obj, name, material, mesher, executor, **kwargs):
     materials = material.Materials
     needs_uvmap = [_needs_uvmap(m) for m in materials]
 
+    # Subobjects meshes
+    uvprojection = kwargs.get("uvprojection")
+    meshes = [mesher(s, n, uvprojection) for s, n in zip(shapes, needs_uvmap)]
+
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
     colors = [
@@ -459,19 +426,11 @@ def _get_rends_from_wall(obj, name, material, mesher, executor, **kwargs):
         for m in materials
     ]
 
-    # Subobjects meshes
-    uvprojection = kwargs.get("uvprojection")
-
-    def new_rend(name, shape, uvmap_flag, material, color):
-        mesh = mesher(shape, uvmap_flag, uvprojection)
-        return Renderable(name, mesh, material, color)
-
     # Build renderables
-    components = zip(names, shapes, needs_uvmap, materials, colors)
-    return [executor.submit(new_rend, *c) for c in components]
+    return [Renderable(*r) for r in zip(names, meshes, materials, colors)]
 
 
-def _get_rends_from_part(obj, name, material, mesher, executor, **kwargs):
+def _get_rends_from_part(obj, name, material, mesher, **kwargs):
     """Get renderables from a Part object.
 
     Parameters:
@@ -504,18 +463,12 @@ def _get_rends_from_part(obj, name, material, mesher, executor, **kwargs):
                 subobj, subname, material, mesher, **kwargs
             )
 
-    rends = [
-        executor.submit(_adjust, r.result(), origin, material)
-        for r in concurrent.futures.as_completed(rends)
-        if r.result().mesh.Topology[0]
-    ]
+    rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
 
     return rends
 
 
-def _get_rends_from_partfeature(
-    obj, name, material, mesher, executor, **kwargs
-):
+def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
     """Get renderables from a Part::Feature object.
 
     Parameters:
@@ -539,57 +492,48 @@ def _get_rends_from_partfeature(
         transparency_boost = int(kwargs.get("transparency_boost", 0))
         color = _get_shapecolor(obj, transparency_boost)
         renderables = [
-            executor.submit(
-                lambda: Renderable(
-                    name,
-                    mesher(obj.Shape, _needs_uvmap(material), uvprojection),
-                    material,
-                    color,
-                )
+            Renderable(
+                name,
+                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
+                material,
+                color,
             )
         ]
     else:
         # Multicolor: Process face by face
-        def new_rend(i, face):
-            rend_name = f"{name}_face{i}"
-            mesh = mesher(face, _needs_uvmap(material), uvprojection)
-            color = colors[i]
-            return Renderable(rend_name, mesh, material, color)
-
+        faces = obj.Shape.Faces
+        nfaces = len(faces)
+        names = [f"{name}_face{i}" for i in range(nfaces)]
+        meshes = [
+            mesher(f, _needs_uvmap(material), uvprojection) for f in faces
+        ]
+        materials = [material] * nfaces
         renderables = [
-            executor.submit(new_rend, i, face) for i, face in enumerate(obj.Shape.Faces)
+            Renderable(*i) for i in zip(names, meshes, materials, colors)
         ]
 
     return renderables
 
-
-def _get_rends_from_meshfeature(
-    obj, name, material, executor, **kwargs
-):
+def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
     """Get renderables from a Part::Feature object.
 
     Parameters:
-        obj -- the Mesh::Feature object
+        obj -- the Part::Feature object
         name -- the name assigned to the object for rendering
         material -- the material for the object
         mesher -- a callable object which converts a shape into a mesh
 
     Returns:
-        A list of renderables for the MeshFeature object
+        A list of renderables for the Part object
     """
     transparency_boost = int(kwargs.get("transparency_boost", 0))
     color = _get_shapecolor(obj, transparency_boost)
     # Make a copy of obj.Mesh, otherwise we may have an immutable object
     # and further treatments will fail
     uvprojection = kwargs.get("uvprojection")
-
-    def new_rend():
-        mesh = RenderMesh(obj.Mesh.copy())
-        mesh.compute_uvmap(uvprojection)
-        return Renderable(name, mesh, material, color)
-
-    return [executor.submit(new_rend)]
-
+    mesh = RenderMesh(obj.Mesh.copy())
+    mesh.compute_uvmap(uvprojection)
+    return [Renderable(name, mesh, mat, color)]
 
 def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""
