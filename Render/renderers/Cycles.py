@@ -244,7 +244,16 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    return _write_sunskylight_nishita(name, direction, distance, turbidity, albedo)
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    sky_nishita = params.GetBool("CyclesNishita")
+    sky_hosek = params.GetBool("CyclesHosek")
+    if sky_nishita:
+        sky_sub = _write_sunskylight_nishita
+    elif sky_hosek:
+        sky_sub = _write_sunskylight_hosekwilkie
+    else:
+        raise ValueError()
+    return sky_sub(name, direction, distance, turbidity, albedo)
 
 
 def _write_sunskylight_hosekwilkie(name, direction, distance, turbidity, albedo):

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>452</width>
-    <height>1020</height>
+    <height>1041</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,36 +23,10 @@
       <string>Cycles</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_10">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_24">
         <property name="text">
-         <string>Cycles executable path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_12">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Render parameters</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_4">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>CyclesPath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
+         <string>Sky model</string>
         </property>
        </widget>
       </item>
@@ -70,6 +44,96 @@
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
         </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_4">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>CyclesPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_12">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_10">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Cycles executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QGroupBox" name="groupBox_10">
+        <property name="title">
+         <string/>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignJustify|Qt::AlignVCenter</set>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <widget class="Gui::PrefRadioButton" name="radioButton">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>10</y>
+           <width>99</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Nishita</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+         <property name="prefEntry" stdset="0">
+          <cstring>CyclesNishita</cstring>
+         </property>
+         <property name="prefPath" stdset="0">
+          <cstring>Mod/Render</cstring>
+         </property>
+        </widget>
+        <widget class="Gui::PrefRadioButton" name="radioButton_2">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>10</y>
+           <width>99</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Hosek-Wilkie</string>
+         </property>
+         <property name="prefEntry" stdset="0">
+          <cstring>CyclesHosek</cstring>
+         </property>
+         <property name="prefPath" stdset="0">
+          <cstring>Mod/Render</cstring>
+         </property>
+        </widget>
        </widget>
       </item>
      </layout>
@@ -768,6 +832,11 @@
   <customwidget>
    <class>Gui::PrefSpinBox</class>
    <extends>QSpinBox</extends>
+   <header>Gui/PrefWidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>Gui::PrefRadioButton</class>
+   <extends>QRadioButton</extends>
    <header>Gui/PrefWidgets.h</header>
   </customwidget>
   <customwidget>
