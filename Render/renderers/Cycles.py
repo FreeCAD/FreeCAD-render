@@ -271,7 +271,7 @@ def _write_sunskylight_hosekwilkie(
     rgb = sun.xyz.to_srgb_with_fixed_luminance(1.0)
 
     # Strength for sun. Should be 1.0, but everything is burnt
-    strength = 0.5
+    strength = 0.01
     # Sun angle as seen from earth: 0.5°
     angle = radians(0.5)
 
