@@ -193,7 +193,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
 </shader>
 <state shader="{name}_shader">
 <light
-    type="area"
+    light_type="area"
     co="{_write_point(pos.Base)}"
     strength="{write_strength} {write_strength} {write_strength}"
     axisu="{_write_vec(axis1)}"
@@ -256,7 +256,9 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     return sky_sub(name, direction, distance, turbidity, albedo)
 
 
-def _write_sunskylight_hosekwilkie(name, direction, distance, turbidity, albedo):
+def _write_sunskylight_hosekwilkie(
+    name, direction, distance, turbidity, albedo
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
 
@@ -266,7 +268,7 @@ def _write_sunskylight_hosekwilkie(name, direction, distance, turbidity, albedo)
     _dir.normalize()
     theta = acos(_dir.z / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
     sun = sunlight(theta, turbidity)
-    rgb = sun.xyz.to_srgb_with_fixed_luminance(1.)
+    rgb = sun.xyz.to_srgb_with_fixed_luminance(1.0)
 
     # Strength for sun. Should be 1.0, but everything is burnt
     strength = 0.5
@@ -299,8 +301,8 @@ def _write_sunskylight_hosekwilkie(name, direction, distance, turbidity, albedo)
 </shader>
 <state shader="{name}_shader">
     <light
-        type="distant"
-        co="1 1 1"
+        light_type="distant"
+        use_mis="true"
         strength="{strength} {strength} {strength}"
         dir="{-_dir.x} {-_dir.y} {-_dir.z}"
         angle="{angle}"
