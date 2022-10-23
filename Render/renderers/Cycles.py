@@ -548,7 +548,7 @@ def _write_material_carpaint(name, matval, connect_to="output surface"):
     ramp="1.0 1.0 1.0 0.0 0.0 0.0"
     ramp_alpha="0.0 0.4"
 />
-<connect from="{name}_noiseramp color" to="{name}_main metallic"/>
+<connect from="{name}_noiseramp color" to="{name}_bsdf metallic"/>
 
 <!-- Noise -->
 <noise_texture
