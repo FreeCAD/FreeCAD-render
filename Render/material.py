@@ -100,12 +100,24 @@ class Material(_ArchMaterial):
         self.fpo = vobj
         self._add_group_property(vobj)
         self.__module__ = "Render"
+        self._hide_aspect_properties()
 
     def onDocumentRestored(self, obj):
         super().onDocumentRestored(obj)
         self.fpo = obj
         self._add_group_property(obj)
         self.__module__ = "Render"
+        self._hide_aspect_properties()
+
+    def _hide_aspect_properties(self):
+        """Hide aspect-related properties, to avoid confusion."""
+        set_editor_mode = self.fpo.setEditorMode
+
+        for prop in ["Color", "SectionColor", "Transparency"]:
+            try:
+                set_editor_mode(prop, 2)
+            except AttributeError:
+                pass
 
     @property
     def fpo(self):

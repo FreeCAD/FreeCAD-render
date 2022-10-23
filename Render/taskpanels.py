@@ -45,6 +45,7 @@ from PySide.QtGui import (
     QGridLayout,
     QRadioButton,
     QGroupBox,
+    QLabel,
 )
 from PySide.QtCore import (
     QT_TRANSLATE_NOOP,
@@ -779,6 +780,20 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         # Disable copy from existant (buggy with textures...)
         self.form.comboBox_FromExisting.hide()
 
+        # Disable color buttons (error-prone) and replace with message
+        self.form.ButtonColor.hide()
+        self.form.label.hide()
+        self.form.ButtonSectionColor.hide()
+        self.form.label_8.hide()
+        self.form.SpinBox_Transparency.hide()
+        self.form.label_6.hide()
+        msg = """\
+*Nota: If you want to set color or other aspect parameters of the material, \
+please edit 'Render settings' from material context menu.*"""
+        label = QLabel(msg)
+        label.setTextFormat(Qt.TextFormat.MarkdownText)
+        self.form.layout().addWidget(label)
+
     def fillMaterialCombo(self):
         """Fill Material combo box.
 
@@ -823,3 +838,8 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
 
         # Update material (relying on base class)
         super().accept()
+        return True
+
+    def reject(self):  # pylint: disable=no-self-use
+        """Respond to user rejection."""
+        return True
