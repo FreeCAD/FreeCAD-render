@@ -303,8 +303,6 @@ def _add_texture(vobj):
 #                             Texture import
 # ===========================================================================
 
-# TODO Update documentation (markdown)
-
 
 def _import_textures(material, matcard_dict, basepath=None):
     """Import textures data into a Material.
