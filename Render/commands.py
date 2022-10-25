@@ -41,6 +41,7 @@ from Render.taskpanels import MaterialSettingsTaskPanel
 from Render.project import Project, user_select_template
 from Render.camera import Camera
 from Render.lights import PointLight, AreaLight, SunskyLight, ImageLight
+from Render.rendermaterial import is_multimat
 from Render.help import open_help
 
 
@@ -403,6 +404,7 @@ class MaterialApplierCommand:
             o
             for o in App.ActiveDocument.Objects
             if o.isDerivedFrom("App::MaterialObjectPython")
+            or is_multimat(o)
         ]
         if not mats:
             title = translate("Render", "No Material")
