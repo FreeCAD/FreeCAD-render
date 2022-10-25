@@ -468,7 +468,7 @@ class RenderMesh:
         # Rebuild a complete mesh from submeshes, with uvmap
         mesh = Mesh.Mesh()
         uvmap = []
-        origin = _compute_barycenter(self.__originalmesh.Points)
+        origin = self.__originalmesh.CenterOfGravity
 
         # Regular facets
         regular_mesh = Mesh.Mesh(regular)
@@ -520,11 +520,12 @@ class RenderMesh:
         # Rebuid a complete mesh from face submeshes, with uvmap
         uvmap = []
         mesh = Mesh.Mesh()
+        cog = self.__originalmesh.CenterOfGravity
         for cubeface, facets in face_facets.items():
             facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
             facemesh_uvmap = [
-                _compute_uv_from_unitcube(p.Vector / 1000, cubeface)
+                _compute_uv_from_unitcube((p.Vector - cog) / 1000, cubeface)
                 # pylint: disable=not-an-iterable
                 for p in facemesh.Points
             ]
@@ -636,16 +637,6 @@ def _compute_uv_from_unitcube(point, face):
 # ===========================================================================
 #                           Other uvmap helpers
 # ===========================================================================
-
-
-def _compute_barycenter(points):
-    """Compute the barycenter of a list of points."""
-    length = len(points)
-    origin = App.Vector(0, 0, 0)
-    if length == 0:
-        return origin
-    res = sum([p.Vector for p in points], origin) / length
-    return res
 
 
 def _is_facet_normal_to_vector(facet, vector):
