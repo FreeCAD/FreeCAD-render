@@ -961,7 +961,7 @@ def _write_value_internal(**kwargs):
             _color_name(matname),
             f"{val.r:.8} {val.g:.8} {val.b:.8}",
         )
-    elif proptype == "float":
+    elif proptype in ["float", "plain_float"]:
         value = f"{val:.8}"
     elif proptype == "node":
         value = ""
