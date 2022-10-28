@@ -25,7 +25,6 @@
 
 
 import os
-import re
 from enum import Enum, auto
 
 from PySide.QtGui import (
@@ -262,10 +261,8 @@ class FloatOption(Enum):
 class FloatBox(QGroupBox):
     """A float value input box widget.
 
-    This widget provides a field to enter a float, and also a checkbox that
-    allows to specify a texture in lieu of the float. It also supports a 'plain
-    float' mode, where entry is restricted to float value only (no texture
-    allowed).
+    This widget provides a field to enter a float, and also a
+    checkbox that allows to specify a texture in lieu of the float.
     """
 
     def __init__(
@@ -621,10 +618,7 @@ class MaterialSettingsTaskPanel:
             item.widget().setVisible(flag)
 
     def _add_field(self, param, value, teximages=None):
-        """Add a field to the task panel for a given parameter.
-
-        A field is made of a label and a widget. The widget depends on the
-        parameter type and is initialized with value data.
+        """Add a field to the task panel.
 
         Args:
             param -- Parameter description (rendermaterial.Param)
@@ -635,8 +629,6 @@ class MaterialSettingsTaskPanel:
         if teximages is None:
             teximages = []
 
-        # Prepare widget, according to parameter type, and initialize it with
-        # given value
         if param.type == "float":
             if value:
                 # Parse value and initialize a FloatBox accordingly
@@ -663,14 +655,6 @@ class MaterialSettingsTaskPanel:
             else:
                 # value is empty, default initialization
                 widget = FloatBox(image_list=teximages)
-            self.fields.append((name, widget.get_value))
-        elif param.type == "plain_float":
-            if value:
-                parsedvalue = parse_csv_str(value)
-                default = parsedvalue[0]
-            else:
-                default = 1.0
-            widget = FloatBox(default=default, plain_float=True)
             self.fields.append((name, widget.get_value))
         elif param.type == "RGB":
             if value:
@@ -726,21 +710,13 @@ class MaterialSettingsTaskPanel:
             # Fallback to string input
             widget = QLineEdit()
             self.fields.append((name, widget.text))
-
-        # Set widget tooltip
         widget.setToolTip(param.desc)
-
-        # Prepare label
-        text = [a for a in re.split(r'([A-Z][a-z]*\d*)', param.name) if a]
-        text = " ".join(text)
+        layout = self.form.findChild(QLayout, "FieldsLayout")
         label = QLabel()
-        label.setText(text + ":")
+        label.setText(f"{param.name}:")
         size_policy = QSizePolicy()
         size_policy.setVerticalPolicy(QSizePolicy.Expanding)
         label.setSizePolicy(size_policy)
-
-        # Add label and widget
-        layout = self.form.findChild(QLayout, "FieldsLayout")
         layout.addRow(label, widget)
 
     def _delete_fields(self):
