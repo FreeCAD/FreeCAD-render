@@ -67,7 +67,6 @@ STD_MATERIALS_PARAMETERS = {
         P("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
         P("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
-        P("BumpStrength", "plain_float", 1.0, _tr("Render", "Bump strength")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
@@ -84,14 +83,12 @@ STD_MATERIALS_PARAMETERS = {
         P("ClearCoat", "float", 0.0, _tr("Render", "Clear coat coef.")),
         P("ClearCoatGloss", "float", 0.0, _tr("Render", "Coat gloss coef")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
-        P("BumpStrength", "plain_float", 1.0, _tr("Render", "Bump strength")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Diffuse": [
         P("Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
-        P("BumpStrength", "plain_float", 1.0, _tr("Render", "Bump strength")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
@@ -111,14 +108,12 @@ STD_MATERIALS_PARAMETERS = {
             ),
         ),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
-        P("BumpStrength", "plain_float", 1.0, _tr("Render", "Bump strength")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Carpaint": [
         P("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
-        P("BumpStrength", "plain_float", 1.0, _tr("Render", "Bump strength")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
@@ -127,7 +122,6 @@ STD_MATERIALS_PARAMETERS = {
         P("Roughness", "float", 0.0, _tr("Render", "Roughness")),
         P("Metallic", "float", 0.0, _tr("Render", "Metallic")),
         P("Bump", "texonly", "", _tr("Render", "Bump")),
-        P("BumpStrength", "plain_float", 1.0, _tr("Render", "Bump strength")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
 }
@@ -821,7 +815,6 @@ def _casttexonly(*args):
 
 _CAST_FUNCTIONS = {
     "float": _castfloat,
-    "plain_float": lambda value, _: float(value),
     "RGB": _castrgb,
     "string": _caststr,
     "texonly": _casttexonly,
