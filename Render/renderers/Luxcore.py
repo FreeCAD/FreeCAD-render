@@ -447,7 +447,6 @@ scene.textures.{n}.mapping.uvdelta = {tu} {tv}
 VALSNIPPETS = {
     "RGB": "{val.r} {val.g} {val.b}",
     "float": "{val}",
-    "plain_float": "{val}",
     "node": "",
     "RGBA": "{val.r} {val.g} {val.b} {val.a}",
     "texonly": "{val}",

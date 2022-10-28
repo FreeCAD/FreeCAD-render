@@ -729,7 +729,7 @@ def _write_value(**kwargs):
     # Snippets for values
     if proptype == "RGB":
         value = f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)}"
-    elif proptype in ["float", "plain_float"]:
+    elif proptype == "float":
         value = f"{_rnd(val)}"
     elif proptype == "node":
         value = ""

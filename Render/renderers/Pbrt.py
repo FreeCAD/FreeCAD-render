@@ -448,7 +448,6 @@ def _write_texture(**kwargs):
 _VALSNIPPETS = {
     "RGB": '"rgb {field}" [{val.r:.8} {val.g:.8} {val.b:.8}]',
     "float": '"float {field}" {val:.8}',
-    "plain_float": '"float {field}" {val:.8}',
     "node": "",
     "texonly": "{val}",
     "str": "{val}",
