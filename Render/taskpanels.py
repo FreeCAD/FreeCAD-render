@@ -699,13 +699,21 @@ class MaterialSettingsTaskPanel:
             # Fallback to string input
             widget = QLineEdit()
             self.fields.append((name, widget.text))
+
+        # Set widget tooltip
         widget.setToolTip(param.desc)
-        layout = self.form.findChild(QLayout, "FieldsLayout")
+
+        # Prepare label
+        text = [a for a in re.split(r"([A-Z][a-z]*\d*)", param.name) if a]
+        text = " ".join(text)
         label = QLabel()
-        label.setText(f"{param.name}:")
+        label.setText(text + ":")
         size_policy = QSizePolicy()
         size_policy.setVerticalPolicy(QSizePolicy.Expanding)
         label.setSizePolicy(size_policy)
+
+        # Add label and widget
+        layout = self.form.findChild(QLayout, "FieldsLayout")
         layout.addRow(label, widget)
 
     def _delete_fields(self):
