@@ -271,7 +271,6 @@ class FloatBox(QGroupBox):
         default=0.0,
         image_list=None,
         current_image=None,
-        plain_float=False,
     ):
         """Initialize widget.
 
@@ -280,8 +279,6 @@ class FloatBox(QGroupBox):
           default -- default value
           image_list -- list of selectable image for texture
           current_image -- selected image index at initialization
-          plain_float -- a flag to remove texture selection, for plain float
-            selection
         """
         super().__init__()
 
@@ -326,14 +323,6 @@ class FloatBox(QGroupBox):
             SIGNAL("toggled(bool)"),
             self.texturepicker.setEnabled,
         )
-
-        # Plain float
-        if plain_float:
-            self.button_texture.hide()
-            self.texturepicker.hide()
-            self.button_constantvalue.hide()
-            self.floatbox.setEnabled(True)
-            option == FloatOption.CONSTANT
 
         # Initialize (select button)
         if option == FloatOption.CONSTANT:
