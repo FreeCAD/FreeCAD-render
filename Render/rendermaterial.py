@@ -44,7 +44,7 @@ from Render.utils import (
     getproxyattr,
     translate as _tr,
 )
-from Render.texture import str2imageid
+from Render.texture import str2imageid, str2imageid_ext
 
 
 # ===========================================================================
@@ -661,9 +661,10 @@ RenderTexture = namedtuple(
         "translation_v",
         "fallback",
         "is_texture",
+        "strength",
     ],
 )
-RenderTexture.__new__.__defaults__ = (None,) * 1  # Python 3.6 style
+RenderTexture.__new__.__defaults__ = (None,) * 2  # Python 3.6 style
 
 
 # ===========================================================================
@@ -777,6 +778,24 @@ def _caststr(*args):
     return value
 
 
+def _make_rendertexture(imageid, strength=None):
+    """Make a RenderTexture from an ImageId (helper to cast)."""
+    texobject = App.ActiveDocument.getObject(imageid.texture)  # Texture object
+    file = texobject.getPropertyByName(imageid.image)
+    res = RenderTexture(
+        name=texobject.Label,
+        subname=imageid.image,
+        file=file,
+        rotation=texobject.Rotation.getValueAs("deg"),
+        scale=float(texobject.Scale),
+        translation_u=texobject.TranslationU.getValueAs("m"),
+        translation_v=texobject.TranslationV.getValueAs("m"),
+        fallback=None,
+        strength=strength,
+    )
+    return res
+
+
 def _casttexonly(*args):
     """Cast to texonly value.
 
@@ -787,27 +806,35 @@ def _casttexonly(*args):
         The cast string value.
     """
     value = args[0]
+    value = str(value)
+    parsed = parse_csv_str(value)
 
-    parsed = parse_csv_str(str(value))
-
-    if "Texture" in parsed:
+    if parsed and parsed[0] == "Texture":
         # Build RenderTexture
         imageid = str2imageid(parsed[1])
-        texobject = App.ActiveDocument.getObject(
-            imageid.texture
-        )  # Texture object
-        file = texobject.getPropertyByName(imageid.image)
-        res = RenderTexture(
-            texobject.Label,
-            imageid.image,
-            file,
-            texobject.Rotation.getValueAs("deg"),
-            float(texobject.Scale),
-            texobject.TranslationU.getValueAs("m"),
-            texobject.TranslationV.getValueAs("m"),
-            None,
-        )
-        return res
+        return _make_rendertexture(imageid)
+
+    # Default (and fallback), return empty
+    return None
+
+
+def _casttexstrength(*args):
+    """Cast to texture and strength.
+
+    Args:
+        value -- the value to cast
+
+    Returns:
+        The cast string value.
+    """
+    value = args[0]
+    value = str(value)
+    parsed = parse_csv_str(value)
+
+    if parsed and parsed[0] == "Texture":
+        # Build RenderTexture
+        imageid, strength = str2imageid_ext(parsed[1])
+        return _make_rendertexture(imageid, strength)
 
     # Default (and fallback), return empty
     return None
@@ -818,6 +845,7 @@ _CAST_FUNCTIONS = {
     "RGB": _castrgb,
     "string": _caststr,
     "texonly": _casttexonly,
+    "texstrength": _casttexstrength,
 }
 
 
