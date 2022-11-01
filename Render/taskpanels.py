@@ -177,6 +177,13 @@ class TexturePicker(QComboBox):
 
 
 class TexturePickerExt(QWidget):
+    """A texture picker widget, with a 'strength' entry field.
+
+    This widget provides a combo box, allowing to select a texture, and an
+    float entry field to specify a strength for the texture.
+    It is mostly intended for bump texture.
+    """
+
     def __init__(self, image_list, current_image, init_strength):
         """Initialize texture picker.
 
@@ -428,13 +435,14 @@ class TexonlyPicker(QGroupBox):
         with_strength=False,
         strength_init=1.0,
     ):
-        # TODO Update docstring
         """Initialize widget.
 
         Args:
-            color -- RGB color used to initialize the color picker
-            use_object_color -- boolean used to initialize the 'use object
-                color' checkbox
+          option -- selected option (no use/texture) at initialization
+          image_list -- list of selectable image for texture
+          current_image -- selected image index at initialization
+          with_strength -- flag to add a 'strength' entry field
+          strength_init -- value to initialize 'strength' field
         """
         super().__init__()
 
@@ -777,7 +785,11 @@ class MaterialSettingsTaskPanel:
                     option = TexonlyOption.NO_VALUE
                     texture = None
                 widget = TexonlyPicker(
-                    option, teximages, texture, with_strength=True, strength_init=strength
+                    option,
+                    teximages,
+                    texture,
+                    with_strength=True,
+                    strength_init=strength,
                 )
             else:
                 # value is empty, default initialization

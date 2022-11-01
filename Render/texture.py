@@ -48,18 +48,31 @@ def str2imageid(string):
     return ImageId._make(parsed)
 
 
+class ImageIdError(Exception):
+    """Exception for ImageId parsing."""
+
+
 def str2imageid_ext(string):
-    """Convert a ({texture}, {image}, {strength})-like string to an ImageId."""
-    if not string:
-        return ImageId("", ""), 1.0
-    parsed = list(map(str, ast.literal_eval(string)))
-    texture, image, strength = parsed
+    """Convert a ({tex}, {img}, {strgth})-like string to ImageId + strength."""
+    texture, image, strength = "", "", 1.0  # Default values
+
     try:
-        strength = float(strength)
-    except ValueError:
-        msg = "Bad value for texture strength, falling back to 1.f"
-        App.Console.PrintWarning(msg)
-        strength = 1.0
+        if not string:
+            raise ImageIdError("Null string")
+        parsed = list(map(str, ast.literal_eval(string)))
+        texture, image, *others = parsed
+        if not others:
+            raise ImageIdError("Missing strength, defaulting to 1.")
+        strength, *_ = others
+        try:
+            strength = float(strength)
+        except ValueError as exc:
+            raise ImageIdError(
+                "Incompatible strength value, defaulting to 1."
+            ) from exc
+    except ImageIdError as err:
+        App.Console.PrintWarning(err)
+
     return ImageId(texture, image), strength
 
 
