@@ -82,7 +82,7 @@ from Render.rendermaterial import (
     is_valid_material,
     passthrough_keys,
 )
-from Render.texture import str2imageid
+from Render.texture import str2imageid, str2imageid_ext
 
 
 class ColorPicker(QPushButton):
@@ -168,7 +168,11 @@ class TexturePicker(QComboBox):
     def get_texture_text(self):
         """Get user selected value in text format."""
         imageid = self.currentData()
-        res = f"('{imageid.texture}','{imageid.image}')"
+        res = (
+            f"('{imageid.texture}','{imageid.image}')"
+            if imageid
+            else "('','')"
+        )
         return res
 
 
@@ -215,9 +219,12 @@ class TexturePickerExt(QWidget):
         """Get user selected value in text format."""
         imageid = self.texturepicker.currentData()
         strength, _ = QLocale().toDouble(self.strengthbox.text())
-        res = f"('{imageid.texture}','{imageid.image}',{strength})"
+        res = (
+            f"('{imageid.texture}','{imageid.image}','{strength}')"
+            if imageid
+            else f"('','','{strength}')"
+        )
         return res
-
 
 
 class ColorPickerExt(QGroupBox):
@@ -449,7 +456,9 @@ class TexonlyPicker(QGroupBox):
         if not with_strength:
             self.texturepicker = TexturePicker(image_list, current_image)
         else:
-            self.texturepicker = TexturePickerExt(image_list, current_image, strength_init)
+            self.texturepicker = TexturePickerExt(
+                image_list, current_image, strength_init
+            )
         self.layout().addWidget(self.button_texture, 1, 0)
         self.layout().addWidget(self.texturepicker, 1, 1)
         self.texturepicker.setEnabled(False)
@@ -762,15 +771,19 @@ class MaterialSettingsTaskPanel:
                 if "Texture" in parsedvalue:
                     # Texture
                     option = TexonlyOption.TEXTURE
-                    texture = str2imageid(parsedvalue[1])
+                    texture, strength = str2imageid_ext(parsedvalue[1])
                 else:
                     # No value (fallback)
                     option = TexonlyOption.NO_VALUE
                     texture = None
-                widget = TexonlyPicker(option, teximages, texture, with_strength=True)
+                widget = TexonlyPicker(
+                    option, teximages, texture, with_strength=True, strength_init=strength
+                )
             else:
                 # value is empty, default initialization
-                widget = TexonlyPicker(image_list=teximages, with_strength=True)
+                widget = TexonlyPicker(
+                    image_list=teximages, with_strength=True
+                )
             self.fields.append((name, widget.get_value))
         else:
             # Fallback to string input

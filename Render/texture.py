@@ -42,8 +42,25 @@ ImageId = namedtuple("ImageId", "texture image")
 
 def str2imageid(string):
     """Convert a ({texture}, {image})-like string to an ImageId."""
+    if not string:
+        return ImageId("", "")
     parsed = map(str, ast.literal_eval(string))
     return ImageId._make(parsed)
+
+
+def str2imageid_ext(string):
+    """Convert a ({texture}, {image}, {strength})-like string to an ImageId."""
+    if not string:
+        return ImageId("", ""), 1.0
+    parsed = list(map(str, ast.literal_eval(string)))
+    texture, image, strength = parsed
+    try:
+        strength = float(strength)
+    except ValueError:
+        msg = "Bad value for texture strength, falling back to 1.f"
+        App.Console.PrintWarning(msg)
+        strength = 1.0
+    return ImageId(texture, image), strength
 
 
 class Texture(FeatureBase):
