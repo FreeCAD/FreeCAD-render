@@ -66,7 +66,7 @@ STD_MATERIALS_PARAMETERS = {
     "Glass": [
         P("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
         P("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
-        P("Bump", "texstrength", "", _tr("Render", "Bump")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
@@ -82,13 +82,13 @@ STD_MATERIALS_PARAMETERS = {
         P("SheenTint", "float", 0.0, _tr("Render", "Sheen tint coef.")),
         P("ClearCoat", "float", 0.0, _tr("Render", "Clear coat coef.")),
         P("ClearCoatGloss", "float", 0.0, _tr("Render", "Coat gloss coef")),
-        P("Bump", "texstrength", "", _tr("Render", "Bump")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Diffuse": [
         P("Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
-        P("Bump", "texstrength", "", _tr("Render", "Bump")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
@@ -107,13 +107,13 @@ STD_MATERIALS_PARAMETERS = {
                 "may lead to undefined behaviour)",
             ),
         ),
-        P("Bump", "texstrength", "", _tr("Render", "Bump")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Carpaint": [
         P("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
-        P("Bump", "texstrength", "", _tr("Render", "Bump")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
@@ -121,7 +121,7 @@ STD_MATERIALS_PARAMETERS = {
         P("BaseColor", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Base color")),
         P("Roughness", "float", 0.0, _tr("Render", "Roughness")),
         P("Metallic", "float", 0.0, _tr("Render", "Metallic")),
-        P("Bump", "texstrength", "", _tr("Render", "Bump")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texonly", "", _tr("Render", "Normal")),
     ],
 }
@@ -608,10 +608,10 @@ class MaterialValues:
         """Check if material has a bump texture (boolean)."""
         return ("bump" in self._values) and (self._values["bump"] is not None)
 
-    def get_bump_strength(self):
-        """Get bump strength, default to 1.0 if non-existing."""
+    def get_bump_factor(self):
+        """Get bump factor, default to 1.0 if non-existing."""
         rendertex_bump = self.material.shaderproperties["bump"]
-        return rendertex_bump.strength if rendertex_bump.strength is not None else 1.0
+        return rendertex_bump.scalar if rendertex_bump.scalar is not None else 1.0
 
     def has_normal(self):
         """Check if material has a normal texture (boolean)."""
@@ -666,7 +666,7 @@ RenderTexture = namedtuple(
         "translation_v",
         "fallback",
         "is_texture",
-        "strength",
+        "scalar",
     ],
 )
 RenderTexture.__new__.__defaults__ = (None,) * 2  # Python 3.6 style
@@ -783,7 +783,7 @@ def _caststr(*args):
     return value
 
 
-def _make_rendertexture(imageid, strength=None):
+def _make_rendertexture(imageid, scalar=None):
     """Make a RenderTexture from an ImageId (helper to cast)."""
     texobject = App.ActiveDocument.getObject(imageid.texture)  # Texture object
     file = texobject.getPropertyByName(imageid.image)
@@ -796,7 +796,7 @@ def _make_rendertexture(imageid, strength=None):
         translation_u=texobject.TranslationU.getValueAs("m"),
         translation_v=texobject.TranslationV.getValueAs("m"),
         fallback=None,
-        strength=strength,
+        scalar=scalar,
     )
     return res
 
@@ -823,8 +823,8 @@ def _casttexonly(*args):
     return None
 
 
-def _casttexstrength(*args):
-    """Cast to texture and strength.
+def _casttexscalar(*args):
+    """Cast to texture and scalar.
 
     Args:
         value -- the value to cast
@@ -838,8 +838,8 @@ def _casttexstrength(*args):
 
     if parsed and parsed[0] == "Texture":
         # Build RenderTexture
-        imageid, strength = str2imageid_ext(parsed[1])
-        return _make_rendertexture(imageid, strength)
+        imageid, scalar = str2imageid_ext(parsed[1])
+        return _make_rendertexture(imageid, scalar)
 
     # Default (and fallback), return empty
     return None
@@ -850,7 +850,7 @@ _CAST_FUNCTIONS = {
     "RGB": _castrgb,
     "string": _caststr,
     "texonly": _casttexonly,
-    "texstrength": _casttexstrength,
+    "texscalar": _casttexscalar,
 }
 
 
