@@ -177,59 +177,60 @@ class TexturePicker(QComboBox):
 
 
 class TexturePickerExt(QWidget):
-    """A texture picker widget, with a 'strength' entry field.
+    """A texture picker widget, with a scalar entry field.
 
     This widget provides a combo box, allowing to select a texture, and an
-    float entry field to specify a strength for the texture.
+    float entry field to specify a scalar for the texture (can be factor,
+    strength, distance...)
     It is mostly intended for bump texture.
     """
 
-    def __init__(self, image_list, current_image, init_strength):
+    def __init__(self, image_list, current_image, init_scalar):
         """Initialize texture picker.
 
         Args:
             image_list -- list of texture images (list of Texture.ImageId)
             current_image -- current texture image in list (Texture.ImageId)
-            init_strength -- initialization value for strength (float)
+            init_scalar -- initialization value for scalar (float)
         """
         super().__init__()
 
         # Initialize layout
         self.setLayout(QVBoxLayout())
 
-        # Normalize strength
+        # Normalize scalar
         try:
-            init_strength = QLocale().toString(float(init_strength))
+            init_scalar = QLocale().toString(float(init_scalar))
         except (ValueError, TypeError):
-            init_strength = None
+            init_scalar = None
 
         # Texture picker
         self.texturepicker = TexturePicker(image_list, current_image)
         self.layout().addWidget(self.texturepicker)
 
-        # Strength box
-        strength_layout = QHBoxLayout()
-        self.layout().addLayout(strength_layout)
+        # Scalar box
+        scalar_layout = QHBoxLayout()
+        self.layout().addLayout(scalar_layout)
 
-        self.strengthlabel = QLabel()
-        self.strengthlabel.setText(translate("Render", "Strength:"))
-        strength_layout.addWidget(self.strengthlabel)
+        self.scalarlabel = QLabel()
+        self.scalarlabel.setText(translate("Render", "Strength:"))
+        scalar_layout.addWidget(self.scalarlabel)
 
-        self.strengthbox = QLineEdit()
-        self.strengthbox.setAlignment(Qt.AlignRight)
-        self.strengthbox.setValidator(QDoubleValidator())
-        self.strengthbox.setText(init_strength)
-        strength_layout.addWidget(self.strengthbox)
-        # self.strengthbox.setEnabled(False)
+        self.scalarbox = QLineEdit()
+        self.scalarbox.setAlignment(Qt.AlignRight)
+        self.scalarbox.setValidator(QDoubleValidator())
+        self.scalarbox.setText(init_scalar)
+        scalar_layout.addWidget(self.scalarbox)
+        # self.scalarbox.setEnabled(False)
 
     def get_texture_text(self):
         """Get user selected value in text format."""
         imageid = self.texturepicker.currentData()
-        strength, _ = QLocale().toDouble(self.strengthbox.text())
+        scalar, _ = QLocale().toDouble(self.scalarbox.text())
         res = (
-            f"('{imageid.texture}','{imageid.image}','{strength}')"
+            f"('{imageid.texture}','{imageid.image}','{scalar}')"
             if imageid
-            else f"('','','{strength}')"
+            else f"('','','{scalar}')"
         )
         return res
 
@@ -432,8 +433,8 @@ class TexonlyPicker(QGroupBox):
         option=TexonlyOption.NO_VALUE,
         image_list=None,
         current_image=None,
-        with_strength=False,
-        strength_init=1.0,
+        with_scalar=False,
+        scalar_init=1.0,
     ):
         """Initialize widget.
 
@@ -441,8 +442,8 @@ class TexonlyPicker(QGroupBox):
           option -- selected option (no use/texture) at initialization
           image_list -- list of selectable image for texture
           current_image -- selected image index at initialization
-          with_strength -- flag to add a 'strength' entry field
-          strength_init -- value to initialize 'strength' field
+          with_scalar -- flag to add a 'scalar' entry field
+          scalar_init -- value to initialize 'scalar' field
         """
         super().__init__()
 
@@ -461,11 +462,11 @@ class TexonlyPicker(QGroupBox):
 
         # Texture option
         self.button_texture = QRadioButton(translate("Render", "Use texture"))
-        if not with_strength:
+        if not with_scalar:
             self.texturepicker = TexturePicker(image_list, current_image)
         else:
             self.texturepicker = TexturePickerExt(
-                image_list, current_image, strength_init
+                image_list, current_image, scalar_init
             )
         self.layout().addWidget(self.button_texture, 1, 0)
         self.layout().addWidget(self.texturepicker, 1, 1)
@@ -484,7 +485,7 @@ class TexonlyPicker(QGroupBox):
 
     def get_value(self):
         """Get widget output value."""
-        # TODO Manage strength
+        # TODO Manage scalar
         if self.button_novalue.isChecked():
             res = []
         elif self.button_texture.isChecked():
@@ -771,15 +772,15 @@ class MaterialSettingsTaskPanel:
                 # value is empty, default initialization
                 widget = TexonlyPicker(image_list=teximages)
             self.fields.append((name, widget.get_value))
-        elif param.type == "texstrength":
+        elif param.type == "texscalar":
             if value:
-                # Parse value and initialize a TexonlyPicker "with strength"
+                # Parse value and initialize a TexonlyPicker "with scalar"
                 parsedvalue = parse_csv_str(value)
                 texture = None  # Default value
                 if "Texture" in parsedvalue:
                     # Texture
                     option = TexonlyOption.TEXTURE
-                    texture, strength = str2imageid_ext(parsedvalue[1])
+                    texture, scalar = str2imageid_ext(parsedvalue[1])
                 else:
                     # No value (fallback)
                     option = TexonlyOption.NO_VALUE
@@ -788,13 +789,13 @@ class MaterialSettingsTaskPanel:
                     option,
                     teximages,
                     texture,
-                    with_strength=True,
-                    strength_init=strength,
+                    with_scalar=True,
+                    scalar_init=scalar,
                 )
             else:
                 # value is empty, default initialization
                 widget = TexonlyPicker(
-                    image_list=teximages, with_strength=True
+                    image_list=teximages, with_scalar=True
                 )
             self.fields.append((name, widget.get_value))
         else:
