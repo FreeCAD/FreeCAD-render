@@ -185,13 +185,16 @@ class TexturePickerExt(QWidget):
     It is mostly intended for bump texture.
     """
 
-    def __init__(self, image_list, current_image, init_scalar):
+    def __init__(
+        self, image_list, current_image, init_scalar, scalar_label=None
+    ):
         """Initialize texture picker.
 
         Args:
             image_list -- list of texture images (list of Texture.ImageId)
             current_image -- current texture image in list (Texture.ImageId)
             init_scalar -- initialization value for scalar (float)
+            scalar_label -- label for scalar (string)
         """
         super().__init__()
 
@@ -212,9 +215,10 @@ class TexturePickerExt(QWidget):
         scalar_layout = QHBoxLayout()
         self.layout().addLayout(scalar_layout)
 
-        self.scalarlabel = QLabel()
-        self.scalarlabel.setText(translate("Render", "Strength:"))
-        scalar_layout.addWidget(self.scalarlabel)
+        if scalar_label is not None:
+            self.scalarlabel = QLabel()
+            self.scalarlabel.setText(scalar_label)
+            scalar_layout.addWidget(self.scalarlabel)
 
         self.scalarbox = QLineEdit()
         self.scalarbox.setAlignment(Qt.AlignRight)
@@ -435,6 +439,7 @@ class TexonlyPicker(QGroupBox):
         current_image=None,
         with_scalar=False,
         scalar_init=1.0,
+        scalar_label=None,
     ):
         """Initialize widget.
 
@@ -444,6 +449,7 @@ class TexonlyPicker(QGroupBox):
           current_image -- selected image index at initialization
           with_scalar -- flag to add a 'scalar' entry field
           scalar_init -- value to initialize 'scalar' field
+          scalar_label -- label for scalar entry field
         """
         super().__init__()
 
@@ -466,7 +472,7 @@ class TexonlyPicker(QGroupBox):
             self.texturepicker = TexturePicker(image_list, current_image)
         else:
             self.texturepicker = TexturePickerExt(
-                image_list, current_image, scalar_init
+                image_list, current_image, scalar_init, scalar_label
             )
         self.layout().addWidget(self.button_texture, 1, 0)
         self.layout().addWidget(self.texturepicker, 1, 1)
@@ -485,7 +491,6 @@ class TexonlyPicker(QGroupBox):
 
     def get_value(self):
         """Get widget output value."""
-        # TODO Manage scalar
         if self.button_novalue.isChecked():
             res = []
         elif self.button_texture.isChecked():
@@ -773,6 +778,7 @@ class MaterialSettingsTaskPanel:
                 widget = TexonlyPicker(image_list=teximages)
             self.fields.append((name, widget.get_value))
         elif param.type == "texscalar":
+            label = translate("Render", "Factor:")
             if value:
                 # Parse value and initialize a TexonlyPicker "with scalar"
                 parsedvalue = parse_csv_str(value)
@@ -791,11 +797,12 @@ class MaterialSettingsTaskPanel:
                     texture,
                     with_scalar=True,
                     scalar_init=scalar,
+                    scalar_label=label,
                 )
             else:
                 # value is empty, default initialization
                 widget = TexonlyPicker(
-                    image_list=teximages, with_scalar=True
+                    image_list=teximages, with_scalar=True, scalar_label=label
                 )
             self.fields.append((name, widget.get_value))
         else:
