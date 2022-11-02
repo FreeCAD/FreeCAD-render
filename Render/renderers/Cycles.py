@@ -400,12 +400,14 @@ def _write_material(name, matval):
     # Add bump node (for bump and normal...) to textures
     # if necessary...
     if matval.has_bump() or matval.has_normal():
+        bump_strength = matval.get_bump_strength()
+        print(bump_strength)  # TODO
         bump_snippet = f"""
 <bump
     name="{name}_bump"
     use_object_space = "true"
     invert = "false"
-    distance = "1.0"
+    distance = "{bump_strength}"
     strength = "1.0"
 />
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>"""

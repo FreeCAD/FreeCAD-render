@@ -608,6 +608,11 @@ class MaterialValues:
         """Check if material has a bump texture (boolean)."""
         return ("bump" in self._values) and (self._values["bump"] is not None)
 
+    def get_bump_strength(self):
+        """Get bump strength, default to 1.0 if non-existing."""
+        rendertex_bump = self.material.shaderproperties["bump"]
+        return rendertex_bump.strength if rendertex_bump.strength is not None else 1.0
+
     def has_normal(self):
         """Check if material has a normal texture (boolean)."""
         return ("normal" in self._values) and (
