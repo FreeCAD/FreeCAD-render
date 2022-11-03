@@ -386,62 +386,55 @@ def _write_texture(**kwargs):
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
 
-    # Compute texture name
+    # Compute texture parameters
     texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
-
-    # Compute gamma
     gamma = 2.2 if proptype == "RGB" else 1.0
+    filename = propvalue.file
+    rotation = float(propvalue.rotation)
+    scale = 1 / float(propvalue.scale)
+    trans_u = float(propvalue.translation_u)
+    trans_v = float(propvalue.translation_v)
 
     # Expand texture into SDL
     # 3 cases: bump, normal or plain (default)
     if propname == "bump":
         # Bump texture
-        snippet = """
-scene.textures.{n}_bump.type = imagemap
-scene.textures.{n}_bump.file = "{f}"
-scene.textures.{n}_bump.gamma = {g}
-scene.textures.{n}_bump.mapping.type = uvmapping2d
-scene.textures.{n}_bump.mapping.rotation = {r}
-scene.textures.{n}_bump.mapping.uvscale = {s} {s}
-scene.textures.{n}_bump.mapping.uvdelta = {tu} {tv}
-scene.textures.{n}.type = scale
-scene.textures.{n}.texture1 = 0.01
-scene.textures.{n}.texture2 = {n}_bump
+        snippet = f"""
+scene.textures.{texname}_bump.type = imagemap
+scene.textures.{texname}_bump.file = "{filename}"
+scene.textures.{texname}_bump.gamma = {gamma}
+scene.textures.{texname}_bump.mapping.type = uvmapping2d
+scene.textures.{texname}_bump.mapping.rotation = {rotation}
+scene.textures.{texname}_bump.mapping.uvscale = {scale} {scale}
+scene.textures.{texname}_bump.mapping.uvdelta = {trans_u} {trans_v}
+scene.textures.{texname}.type = scale
+scene.textures.{texname}.texture1 = 0.01
+scene.textures.{texname}.texture2 = {texname}_bump
 """
     elif propname == "normal":
         # Normal texture
-        snippet = """
-scene.textures.{n}.type = imagemap
-scene.textures.{n}.file = "{f}"
-scene.textures.{n}.gamma = {g}
-scene.textures.{n}.mapping.type = uvmapping2d
-scene.textures.{n}.mapping.rotation = {r}
-scene.textures.{n}.mapping.uvscale = {s} {s}
-scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+        snippet = f"""
+scene.textures.{texname}.type = imagemap
+scene.textures.{texname}.file = "{filename}"
+scene.textures.{texname}.gamma = {gamma}
+scene.textures.{texname}.mapping.type = uvmapping2d
+scene.textures.{texname}.mapping.rotation = {rotation}
+scene.textures.{texname}.mapping.uvscale = {scale} {scale}
+scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
 """
     else:
         # Plain texture
-        snippet = """
-scene.textures.{n}.type = imagemap
-scene.textures.{n}.file = "{f}"
-scene.textures.{n}.gamma = {g}
-scene.textures.{n}.mapping.type = uvmapping2d
-scene.textures.{n}.mapping.rotation = {r}
-scene.textures.{n}.mapping.uvscale = {s} {s}
-scene.textures.{n}.mapping.uvdelta = {tu} {tv}
+        snippet = f"""
+scene.textures.{texname}.type = imagemap
+scene.textures.{texname}.file = "{filename}"
+scene.textures.{texname}.gamma = {gamma}
+scene.textures.{texname}.mapping.type = uvmapping2d
+scene.textures.{texname}.mapping.rotation = {rotation}
+scene.textures.{texname}.mapping.uvscale = {scale} {scale}
+scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
 """
 
-    texture = snippet.format(
-        n=texname,
-        f=propvalue.file,
-        r=float(propvalue.rotation),
-        s=1 / float(propvalue.scale),
-        tu=float(propvalue.translation_u),
-        tv=float(propvalue.translation_v),
-        g=gamma,
-    )
-
-    return texname, texture
+    return texname, snippet
 
 
 VALSNIPPETS = {
