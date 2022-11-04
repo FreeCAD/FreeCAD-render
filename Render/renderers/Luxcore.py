@@ -401,17 +401,14 @@ def _write_texture(**kwargs):
         # Bump texture
         factor = propvalue.scalar if propvalue.scalar is not None else 1.0
         snippet = f"""
-scene.textures.{texname}_bump.type = imagemap
-scene.textures.{texname}_bump.file = "{filename}"
-scene.textures.{texname}_bump.gamma = {gamma}
-scene.textures.{texname}_bump.mapping.type = uvmapping2d
-scene.textures.{texname}_bump.mapping.rotation = {rotation}
-scene.textures.{texname}_bump.mapping.uvscale = {scale} {scale}
-scene.textures.{texname}_bump.mapping.uvdelta = {trans_u} {trans_v}
-scene.textures.{texname}_bump.gain = {factor}
-scene.textures.{texname}.type = scale
-scene.textures.{texname}.texture1 = 0.01
-scene.textures.{texname}.texture2 = {texname}_bump
+scene.textures.{texname}.type = imagemap
+scene.textures.{texname}.file = "{filename}"
+scene.textures.{texname}.gamma = {gamma}
+scene.textures.{texname}.mapping.type = uvmapping2d
+scene.textures.{texname}.mapping.rotation = {rotation}
+scene.textures.{texname}.mapping.uvscale = {scale} {scale}
+scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
+scene.textures.{texname}.gain = {factor}
 """
     elif propname == "normal":
         # Normal texture
