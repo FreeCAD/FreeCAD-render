@@ -195,17 +195,20 @@ scene.objects.{n}.transformation = {t}
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    snippet = """
-# Sunsky light '{n}'
-scene.lights.{n}_sun.type = sun
-scene.lights.{n}_sun.turbidity = {t}
-scene.lights.{n}_sun.dir = {d.x} {d.y} {d.z}
-scene.lights.{n}_sky.type = sky2
-scene.lights.{n}_sky.turbidity = {t}
-scene.lights.{n}_sky.dir = {d.x} {d.y} {d.z}
-scene.lights.{n}_sky.groundalbedo = {g} {g} {g}
+    sun_gain = sky_gain = 1  # If no tonemapping, better choose 1e-4
+    snippet = f"""
+# Sunsky light '{name}'
+scene.lights.{name}_sun.type = sun
+scene.lights.{name}_sun.turbidity = {turbidity}
+scene.lights.{name}_sun.dir = {direction.x} {direction.y} {direction.z}
+scene.lights.{name}_sky.type = sky2
+scene.lights.{name}_sky.turbidity = {turbidity}
+scene.lights.{name}_sky.dir = {direction.x} {direction.y} {direction.z}
+scene.lights.{name}_sky.groundalbedo = {albedo} {albedo} {albedo}
+scene.lights.{name}_sun.gain = {sun_gain} {sun_gain} {sun_gain}
+scene.lights.{name}_sky.gain = {sky_gain} {sky_gain} {sky_gain}
 """
-    return dedent(snippet).format(n=name, t=turbidity, d=direction, g=albedo)
+    return snippet
 
 
 def write_imagelight(name, image):
