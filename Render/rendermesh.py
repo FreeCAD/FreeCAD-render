@@ -34,6 +34,7 @@ import enum
 import os
 import tempfile
 import itertools as it
+import operator
 
 import FreeCAD as App
 import Mesh
@@ -358,6 +359,21 @@ class RenderMesh:
             for vertex_index in triangle
         ]
 
+    def center_of_gravity(self):
+        """Get mesh's center of gravity.
+
+        Mesh CoG is the barycenter of the facets CoG, weighted by facets
+        areas
+        """
+        mesh = self.__originalmesh
+        vec0 = App.Vector(0, 0, 0)
+
+        facets = ([App.Vector(p) for p in f.Points] for f in mesh.Facets)
+        facetbars = [sum(f, vec0) / len(f) for f in facets]
+        areas = [f.Area for f in mesh.Facets]
+        cog = sum(map(operator.mul, facetbars, areas), vec0) / sum(areas)
+        return cog
+
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
         projection = "Cubic" if projection is None else projection
@@ -468,7 +484,10 @@ class RenderMesh:
         # Rebuild a complete mesh from submeshes, with uvmap
         mesh = Mesh.Mesh()
         uvmap = []
-        origin = self.__originalmesh.CenterOfGravity
+        try:
+            origin = self.__originalmesh.CenterOfGravity
+        except AttributeError:
+            origin = self.center_of_gravity()
 
         # Regular facets
         regular_mesh = Mesh.Mesh(regular)
@@ -520,7 +539,10 @@ class RenderMesh:
         # Rebuid a complete mesh from face submeshes, with uvmap
         uvmap = []
         mesh = Mesh.Mesh()
-        cog = self.__originalmesh.CenterOfGravity
+        try:
+            cog = self.__originalmesh.CenterOfGravity
+        except AttributeError:
+            cog = self.center_of_gravity()
         for cubeface, facets in face_facets.items():
             facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
