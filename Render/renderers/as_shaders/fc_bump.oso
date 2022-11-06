@@ -1,0 +1,74 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.12.6.2
+# options: 
+shader fc_bump
+param	float	in_bump_value	0		%read{9,10} %write{2147483647,-1} %derivs
+param	float	in_bump_factor	1		%read{18,18} %write{2147483647,-1}
+oparam	normal	out_normal	0 0 0		%read{2147483647,-1} %write{0,20} %initexpr
+global	point	P	%read{1,2} %write{2147483647,-1} %derivs
+global	normal	N	%read{0,17} %write{2147483647,-1}
+local	vector	dPdx	%read{3,8} %write{1,1}
+local	vector	dPdy	%read{4,6} %write{2,2}
+local	vector	Rx	%read{8,12} %write{6,6}
+local	vector	Ry	%read{13,13} %write{7,7}
+local	float	det	%read{11,16} %write{8,8}
+local	float	dBx	%read{12,12} %write{9,9}
+local	float	dBy	%read{13,13} %write{10,10}
+local	vector	surfgrad	%read{18,18} %write{15,15}
+const	string	$const1	"dPdx.N: %f, dPdx.dPdy: %f"		%read{5,5} %write{2147483647,-1}
+temp	float	$tmp1	%read{5,5} %write{3,3}
+temp	float	$tmp2	%read{5,5} %write{4,4}
+temp	float	$tmp3	%read{15,15} %write{11,11}
+temp	vector	$tmp4	%read{14,14} %write{12,12}
+temp	vector	$tmp5	%read{14,14} %write{13,13}
+temp	vector	$tmp6	%read{15,15} %write{14,14}
+temp	float	$tmp7	%read{17,17} %write{16,16}
+temp	normal	$tmp8	%read{19,19} %write{17,17}
+temp	vector	$tmp9	%read{19,19} %write{18,18}
+temp	normal	$tmp10	%read{20,20} %write{19,19}
+code out_normal
+# fc_bump.osl:30
+#   output normal out_normal = N
+	assign		out_normal N 	%filename{"fc_bump.osl"} %line{30} %argrw{"wr"}
+code ___main___
+# fc_bump.osl:34
+#   vector dPdx = Dx(P);
+	Dx		dPdx P 	%filename{"fc_bump.osl"} %line{34} %argrw{"wr"} %argderivs{1}
+# fc_bump.osl:35
+#   vector dPdy = Dy(P);
+	Dy		dPdy P 	%line{35} %argrw{"wr"} %argderivs{1}
+# fc_bump.osl:36
+#   printf("dPdx.N: %f, dPdx.dPdy: %f", dot(dPdx, N), dot(dPdx, dPdy));
+	dot		$tmp1 dPdx N 	%line{36} %argrw{"wrr"}
+	dot		$tmp2 dPdx dPdy 	%argrw{"wrr"}
+	printf		$const1 $tmp1 $tmp2 	%argrw{"rrr"}
+# fc_bump.osl:37
+#   vector Rx = cross(dPdy, N);
+	cross		Rx dPdy N 	%line{37} %argrw{"wrr"}
+# fc_bump.osl:38
+#   vector Ry = cross(N, dPdx);
+	cross		Ry N dPdx 	%line{38} %argrw{"wrr"}
+# fc_bump.osl:41
+#   float det = dot(dPdx, Rx);
+	dot		det dPdx Rx 	%line{41} %argrw{"wrr"}
+# fc_bump.osl:44
+#   float dBx = Dx(in_bump_value);
+	Dx		dBx in_bump_value 	%line{44} %argrw{"wr"} %argderivs{1}
+# fc_bump.osl:45
+#   float dBy = Dy(in_bump_value);
+	Dy		dBy in_bump_value 	%line{45} %argrw{"wr"} %argderivs{1}
+# fc_bump.osl:46
+#   vector surfgrad = sign(det) * (dBx * Rx + dBy * Ry);
+	sign		$tmp3 det 	%line{46} %argrw{"wr"}
+	mul		$tmp4 dBx Rx 	%argrw{"wrr"}
+	mul		$tmp5 dBy Ry 	%argrw{"wrr"}
+	add		$tmp6 $tmp4 $tmp5 	%argrw{"wrr"}
+	mul		surfgrad $tmp3 $tmp6 	%argrw{"wrr"}
+# fc_bump.osl:48
+#   out_normal = normalize(abs(det) * N - in_bump_factor * surfgrad);
+	abs		$tmp7 det 	%line{48} %argrw{"wr"}
+	mul		$tmp8 $tmp7 N 	%argrw{"wrr"}
+	mul		$tmp9 in_bump_factor surfgrad 	%argrw{"wrr"}
+	sub		$tmp10 $tmp8 $tmp9 	%argrw{"wrr"}
+	normalize	out_normal $tmp10 	%argrw{"wr"}
+	end

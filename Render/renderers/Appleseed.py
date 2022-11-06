@@ -764,6 +764,7 @@ def _write_texture_osl(**kwargs):
 
     # Bump
     if propname == "bump":
+        factor = propvalue.scalar
         snippet = f"""
 <!-- Bump -->
 <shader layer="bumpManifold2d" type="shader" name="as_manifold2d">
@@ -780,9 +781,8 @@ def _write_texture_osl(**kwargs):
     <parameter name="in_rgb_primaries"
                value="string Raw" />
 </shader>
-<shader layer="bump" type="shader" name="as_bump">
-    <parameter name="in_mode" value="string Bump" />
-    <parameter name="in_bump_depth" value="float 1.0" />
+<shader layer="bump" type="shader" name="fc_bump">
+    <parameter name="in_bump_factor" value="float {factor}" />
 </shader>
 <!-- ~Bump -->"""
         return texname, indent(snippet, " " * 8)
