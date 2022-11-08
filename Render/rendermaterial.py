@@ -67,7 +67,7 @@ STD_MATERIALS_PARAMETERS = {
         P("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
         P("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
-        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Disney": [
@@ -83,13 +83,13 @@ STD_MATERIALS_PARAMETERS = {
         P("ClearCoat", "float", 0.0, _tr("Render", "Clear coat coef.")),
         P("ClearCoatGloss", "float", 0.0, _tr("Render", "Coat gloss coef")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
-        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Diffuse": [
         P("Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
-        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Mixed": [
@@ -108,13 +108,13 @@ STD_MATERIALS_PARAMETERS = {
             ),
         ),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
-        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Carpaint": [
         P("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
-        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Substance_PBR": [
@@ -122,7 +122,7 @@ STD_MATERIALS_PARAMETERS = {
         P("Roughness", "float", 0.0, _tr("Render", "Roughness")),
         P("Metallic", "float", 0.0, _tr("Render", "Metallic")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
-        P("Normal", "texonly", "", _tr("Render", "Normal")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
     ],
 }
 
