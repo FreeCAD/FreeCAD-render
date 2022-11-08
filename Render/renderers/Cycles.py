@@ -631,6 +631,7 @@ def _write_texture(**kwargs):
         # We use blender space, but we have to flip z
         # "strange blender convention"
         # https://github.com/blender/cycles/blob/master/src/kernel/svm/tex_coord.h#L324
+        normal_strength = propvalue.scalar
         connect = f"""
 <rgb_curves
     name="{texname}_curve"
@@ -640,7 +641,7 @@ def _write_texture(**kwargs):
 <normal_map
     name="{texname}_normalmap"
     space="blender_object"
-    strength="0.2"
+    strength="{normal_strength}"
 />
 <connect from="{texname} color" to="{texname}_curve value"/>
 <connect from="{texname}_curve value" to="{texname}_normalmap color"/>
