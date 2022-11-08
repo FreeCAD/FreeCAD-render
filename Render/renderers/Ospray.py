@@ -716,6 +716,7 @@ def _write_value(**kwargs):
     shadertype = kwargs["shadertype"]
     val = kwargs["propvalue"]
     objname = kwargs["objname"]
+    matval = kwargs["matval"]
 
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
@@ -732,6 +733,18 @@ def _write_value(**kwargs):
     # Special cases
     if propname == "clearcoatgloss":
         val = 1 - val
+    if propname == "specular":
+        # We have to test "metallic" in order to set specular...
+        try:
+            metallic = matval.material.shaderproperties["metallic"]
+        except KeyError:
+            # No metallic parameter
+            pass
+        else:
+            if hasattr(metallic, "is_texture") or float(metallic):
+                # metallic is a texture or a non-zero value:
+                # specular must be set to 1.0
+                val = 1.0
 
     # Snippets for values
     if proptype == "RGB":
