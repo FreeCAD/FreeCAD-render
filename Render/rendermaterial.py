@@ -563,6 +563,7 @@ class MaterialValues:
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
                     unique_matname=self._unique_matname,
+                    matval=self,
                 )
 
             # Store resulting value
@@ -624,6 +625,9 @@ class MaterialValues:
         return ("displacement" in self._values) and (
             self._values["displacement"] is not None
         )
+
+
+
 
     @property
     def default_color(self):

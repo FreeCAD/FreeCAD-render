@@ -402,6 +402,8 @@ def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
     normal = matval["normal"] if matval.has_normal() else ""
     snippet = f"""texture {{
         {matval["basecolor"]}
+        {bump}
+        {normal}
         finish {{
           diffuse albedo 1
           phong albedo 0
@@ -409,8 +411,6 @@ def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
           roughness 0.05
           conserve_energy
         }}
-        {bump}
-        {normal}
     }}"""
     return snippet
 
@@ -566,7 +566,7 @@ def _write_texture(**kwargs):
     texname = _texname(**kwargs)
 
     # Just a few property types are supported by POV-Ray...
-    if proptype not in ["RGB", "RGBA", "texonly"]:
+    if proptype not in ["RGB", "RGBA", "texonly", "texscalar"]:
         # There will be a warning in write_texref
         return texname, ""
 
@@ -595,11 +595,15 @@ def _write_texture(**kwargs):
         imgmap_suffix = f"gamma {gamma}"
 
     if propname == "bump":
+        bump_size = propvalue.scalar
         texture = f"""\
 normal {{
             uv_mapping
-            bump_map {{ {_imagetype(imagefile)} "{imagefile}" gamma 1.0 }}
-            bump_size {1.0 / propvalue.scale if propvalue.scale != 0 else 1.0}
+            bump_map {{
+              {_imagetype(imagefile)} "{imagefile}" gamma 1.0
+              bump_size {bump_size}
+              use_color
+            }}
             no_bump_scale
             scale {propvalue.scale}
             rotate <0.0 0.0 {propvalue.rotation}>
@@ -680,7 +684,7 @@ def _write_texref(**kwargs):
 
     # Just a few property types are supported by POV-Ray...
     # For the others, warn and take fallback
-    if proptype not in ["RGB", "RGBA", "texonly"]:
+    if proptype not in ["RGB", "RGBA", "texonly", "texscalar"]:
         fallback = (
             propvalue.fallback if propvalue.fallback is not None else 0.5
         )
