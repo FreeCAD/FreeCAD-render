@@ -42,26 +42,37 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 def write_mesh(name, mesh, material, vertex_normals=False):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Material values
-    materialvalues = material.get_material_values(
+    matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
     )
 
-    # Compute material, texture, bump & normal statements
-    snippet_mat = _write_material(name, materialvalues)
-    snippet_tex = materialvalues.write_textures()
-    snippet_bump = (
-        f"""scene.materials.{name}.bumptex = {materialvalues["bump"]}\n"""
-        if materialvalues.has_bump()
-        else ""
-    )
-    snippet_normal = (
-        f"""\
-scene.materials.{name}.normaltex = {materialvalues["normal"]}
-scene.materials.{name}.normaltex.scale = {materialvalues.get_normal_factor()}
+    # Compute bump & normal statements
+    #
+    # Nota: Luxcore does not support both bump and normal at the same time
+    # (bumptex excludes normaltex...)
+    # Hence we have to combine them before and connect the result to bumptex
+    # only, like in
+    # https://github.com/LuxCoreRender/LuxCore/blob/master/scenes/bump/bump-add.scn
+    snippet_mat = _write_material(name, matval)
+    snippet_tex = matval.write_textures()
+    if matval.has_bump() and matval.has_normal():
+        snippet_bump = f"""\
+scene.textures.{name}_bump.type = mix
+scene.textures.{name}_bump.amount = 0.5
+scene.textures.{name}_bump.texture1 = {matval["bump"]}
+scene.textures.{name}_bump.texture2 = {matval["normal"]}
+scene.materials.{name}.bumptex = {name}_bump
 """
-        if materialvalues.has_normal()
-        else ""
-    )
+    elif matval.has_bump():  # and not matval.has_normal()...
+        snippet_bump = f"""\
+scene.materials.{name}.bumptex = {matval["bump"]}
+"""
+    elif matval.has_normal():  # and not matval.has_bump()...
+        snippet_bump = f"""\
+scene.materials.{name}.bumptex = {matval["normal"]}
+"""
+    else:
+        snippet_bump = ""
 
     # Points, vertices and normals
     topology = mesh.Topology  # Compute once
@@ -81,13 +92,13 @@ scene.materials.{name}.normaltex.scale = {materialvalues.get_normal_factor()}
         snippet_uv = ""
 
     # Displacement (if any)
-    if materialvalues.has_displacement():
+    if matval.has_displacement():
         obj_shape = f"{name}_disp"
         snippet_disp = f"""
 scene.shapes.{name}_disp.type = displacement
 scene.shapes.{name}_disp.source = {name}_mesh
 scene.shapes.{name}_disp.scale = 1
-scene.shapes.{name}_disp.map = {materialvalues["displacement"]}
+scene.shapes.{name}_disp.map = {matval["displacement"]}
 scene.shapes.{name}_disp.map.type = vector
 # Mudbox channel order
 scene.shapes.{name}_disp.map.channels = 0 2 1
@@ -109,16 +120,18 @@ scene.shapes.{name}_mesh.faces = {tris}
         snippet_obj += f"""scene.shapes.{name}_mesh.normals = {nrms}\n"""
 
     # Consolidation
-    snippet = (
-        snippet_obj
-        + snippet_disp
-        + snippet_uv
-        + snippet_mat
-        + snippet_bump
-        + snippet_normal
-        + snippet_tex
-    )
-    return dedent(snippet)
+    snippet = [
+        snippet_obj,
+        snippet_disp,
+        snippet_uv,
+        snippet_mat,
+        snippet_tex,
+        snippet_bump,
+    ]
+    snippet = [s for s in snippet if s]
+    snippet = "\n".join(snippet)
+
+    return snippet
 
 
 def write_camera(name, pos, updir, target, fov):
@@ -407,27 +420,31 @@ def _write_texture(**kwargs):
         # Bump texture
         factor = propvalue.scalar if propvalue.scalar is not None else 1.0
         snippet = f"""
-scene.textures.{texname}_bump.type = imagemap
-scene.textures.{texname}_bump.file = "{filename}"
-scene.textures.{texname}_bump.gamma = {gamma}
-scene.textures.{texname}_bump.mapping.type = uvmapping2d
-scene.textures.{texname}_bump.mapping.rotation = {rotation}
-scene.textures.{texname}_bump.mapping.uvscale = {scale} {scale}
-scene.textures.{texname}_bump.mapping.uvdelta = {trans_u} {trans_v}
+scene.textures.{texname}_img.type = imagemap
+scene.textures.{texname}_img.file = "{filename}"
+scene.textures.{texname}_img.gamma = {gamma}
+scene.textures.{texname}_img.mapping.type = uvmapping2d
+scene.textures.{texname}_img.mapping.rotation = {rotation}
+scene.textures.{texname}_img.mapping.uvscale = {scale} {scale}
+scene.textures.{texname}_img.mapping.uvdelta = {trans_u} {trans_v}
 scene.textures.{texname}.type = scale
 scene.textures.{texname}.texture1 = {factor}
-scene.textures.{texname}.texture2 = {texname}_bump
+scene.textures.{texname}.texture2 = {texname}_img
 """
     elif propname == "normal":
         # Normal texture
+        factor = propvalue.scalar if propvalue.scalar is not None else 1.0
         snippet = f"""
-scene.textures.{texname}.type = imagemap
-scene.textures.{texname}.file = "{filename}"
-scene.textures.{texname}.gamma = {gamma}
-scene.textures.{texname}.mapping.type = uvmapping2d
-scene.textures.{texname}.mapping.rotation = {rotation}
-scene.textures.{texname}.mapping.uvscale = {scale} {scale}
-scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
+scene.textures.{texname}_img.type = imagemap
+scene.textures.{texname}_img.file = "{filename}"
+scene.textures.{texname}_img.gamma = {gamma}
+scene.textures.{texname}_img.mapping.type = uvmapping2d
+scene.textures.{texname}_img.mapping.rotation = {rotation}
+scene.textures.{texname}_img.mapping.uvscale = {scale} {scale}
+scene.textures.{texname}_img.mapping.uvdelta = {trans_u} {trans_v}
+scene.textures.{texname}.type = normalmap
+scene.textures.{texname}.texture = {texname}_img
+scene.textures.{texname}.scale = {factor}
 """
     else:
         # Plain texture
