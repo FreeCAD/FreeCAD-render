@@ -774,10 +774,10 @@ def _write_texture_osl(**kwargs):
                value="float {rotate / 360}" />
 </shader>
 <shader layer="bumpTex" type="shader" name="as_texture">
-    <parameter name="in_filename"
-               value="string {filename}" />
-    <parameter name="in_rgb_primaries"
-               value="string Raw" />
+    <parameter name="in_filename" value="string {filename}" />
+    <parameter name="in_rgb_primaries" value="string Raw" />
+    <parameter name="in_s_wrap" value="int 2" />
+    <parameter name="in_t_wrap" value="int 2" />
 </shader>
 <shader layer="bump" type="shader" name="as_bump">
     <parameter name="in_mode" value="string Bump" />
@@ -803,6 +803,8 @@ def _write_texture_osl(**kwargs):
                value="string {filename}" />
     <parameter name="in_rgb_primaries"
                value="string Raw" />
+    <parameter name="in_s_wrap" value="int 2" />
+    <parameter name="in_t_wrap" value="int 2" />
 </shader>
 <shader layer="normal" type="shader" name="as_bump">
     <parameter name="in_mode" value="string Normal Map" />
@@ -829,11 +831,11 @@ def _write_texture_osl(**kwargs):
                value="float {rotate / 360}" />
 </shader>
 <shader layer="{propname}" type="shader" name="as_texture">
-    <parameter name="in_filename"
-               value="string {filename}" />
+    <parameter name="in_filename" value="string {filename}" />
     <parameter name="in_enable_cms" value="int 1" />
-    <parameter name="in_rgb_primaries"
-               value="string sRGB/Rec.709" />
+    <parameter name="in_rgb_primaries" value="string sRGB/Rec.709" />
+    <parameter name="in_s_wrap" value="int 2" />
+    <parameter name="in_t_wrap" value="int 2" />
 </shader>
 <!-- ~Color texture '{propname}' -->"""
         return texname, indent(snippet, " " * 8)
@@ -855,6 +857,8 @@ def _write_texture_osl(**kwargs):
                value="string {filename}" />
     <parameter name="in_rgb_primaries"
                value="string Raw" />
+    <parameter name="in_s_wrap" value="int 2" />
+    <parameter name="in_t_wrap" value="int 2" />
 </shader>
 <!-- ~Float texture '{propname}' -->"""
         return texname, indent(snippet, " " * 8)
