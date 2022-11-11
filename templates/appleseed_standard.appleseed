@@ -43,7 +43,7 @@
         <frame name="beauty">
             <parameter name="camera" value="camera" />
             <parameter name="resolution" value="960 540" />
-            <parameter name="color_space" value="linear_rgb" />
+            <parameter name="color_space" value="srgb" />
         </frame>
     </output>
     <configurations>

@@ -831,6 +831,9 @@ def _write_texture_osl(**kwargs):
 <shader layer="{propname}" type="shader" name="as_texture">
     <parameter name="in_filename"
                value="string {filename}" />
+    <parameter name="in_enable_cms" value="int 1" />
+    <parameter name="in_rgb_primaries"
+               value="string sRGB/Rec.709" />
 </shader>
 <!-- ~Color texture '{propname}' -->"""
         return texname, indent(snippet, " " * 8)
