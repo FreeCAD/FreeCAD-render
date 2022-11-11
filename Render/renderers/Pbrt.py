@@ -184,8 +184,8 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     snippet = """# Sun-sky light '{n}'
 AttributeBegin
   LightSource "infinite"
-    "rgb L" [0.53 0.81 0.92]
-    "float scale" 0.5
+    "rgb L" [0.18 0.28 0.75]
+    "float scale" 1.5
   LightSource "distant"
     "blackbody L" [6500]
     "float scale" 4
