@@ -25,8 +25,8 @@
 // Input normals must be unsigned
 
 shader fc_add_normal(
-  normal in_normal1 = normal(0),
-  normal in_normal2 = normal(0),
+  normal in_normal1 = N,
+  normal in_normal2 = N,
   float in_factor = 0.5,
   output normal out_normal = N
 )
