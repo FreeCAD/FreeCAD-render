@@ -550,6 +550,7 @@ class MaterialValues:
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
                     unique_matname=self._unique_matname,
+                    matval=self,
                 )
                 # Add texture object to internal list (for Appleseed)
                 self._texobjects[propkey] = propvalue

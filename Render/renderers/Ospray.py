@@ -684,7 +684,7 @@ def _write_texture(**kwargs):
         return propname, ""
 
     # Snippets for texref
-    if proptype in ["RGB", "float", "texonly"]:
+    if proptype in ["RGB", "float", "texonly", "texscalar"]:
         tex = [
             f"# Texture {field}",
             f"map_{field} {filename}",
@@ -696,7 +696,7 @@ def _write_texture(**kwargs):
     elif proptype == "node":
         tex = ""
     else:
-        raise NotImplementedError
+        raise NotImplementedError(proptype)
 
     return propname, tex
 
@@ -770,6 +770,7 @@ def _write_texref(**kwargs):
     propname = kwargs["propname"]
     shadertype = kwargs["shadertype"]
     objname = kwargs["objname"]
+    matval = kwargs["matval"]
 
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
@@ -796,8 +797,12 @@ def _write_texref(**kwargs):
         value = f"{field} 1.0 1.0 1.0 1.0"
     elif proptype == "texonly":
         value = f"{field} 4.0" if propname == "normal" else f"{field} 1.0"
+    elif proptype == "texscalar":
+        normal_factor = matval.get_normal_factor()
+        bump_factor = matval.get_bump_factor()
+        value = f"{field} {normal_factor}" if propname == "normal" else f"{field} {bump_factor}"
     else:
-        raise NotImplementedError
+        raise NotImplementedError(proptype)
 
     return value
 
