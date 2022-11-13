@@ -1205,7 +1205,7 @@ def render(project, prefix, external, input_file, output_file, width, height):
     template = move_elements(
         "scene_texture_instance", "scene", template, replace="texture_instance"
     )
-    template = move_elements("search_path", "search_paths", template)
+    template = move_elements("search_path", "search_paths", template, True)
 
     # Change image size
     res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
