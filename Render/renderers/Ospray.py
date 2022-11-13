@@ -743,7 +743,7 @@ def _write_value(**kwargs):
             if hasattr(metallic, "is_texture") or float(metallic):
                 # metallic is a texture or a non-zero value:
                 # specular must be set to something <> 0
-                val = metallic / 10 if val <= 0.0 else val
+                val = metallic if val <= 0.0 else val
 
     # Snippets for values
     if proptype == "RGB":
