@@ -71,7 +71,7 @@ def str2imageid_ext(string):
                 "Incompatible strength value, defaulting to 1."
             ) from exc
     except ImageIdError as err:
-        App.Console.PrintWarning(err)
+        App.Console.PrintWarning(str(err) + "\n")
 
     return ImageId(texture, image), strength
 
