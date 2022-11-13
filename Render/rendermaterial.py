@@ -121,6 +121,7 @@ STD_MATERIALS_PARAMETERS = {
         P("BaseColor", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Base color")),
         P("Roughness", "float", 0.0, _tr("Render", "Roughness")),
         P("Metallic", "float", 0.0, _tr("Render", "Metallic")),
+        P("Specular", "float", 0.0, _tr("Render", "Specular")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texscalar", "", _tr("Render", "Normal")),
     ],
@@ -632,8 +633,10 @@ class MaterialValues:
             self._values["displacement"] is not None
         )
 
-
-
+    def is_texture(self, prop):
+        """Check if property returns a texture (boolean)."""
+        propvalue = self.material.shaderproperties[prop]
+        return hasattr(propvalue, "is_texture")
 
     @property
     def default_color(self):

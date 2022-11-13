@@ -524,8 +524,9 @@ def _write_material_pbr(name, matval):
 
     # Retrieve parameters
     basecolor_texconnect, basecolor = matval["basecolor"]
-    roughness_texconnect, _ = matval["roughness"]
-    metallic_texconnect, _ = matval["metallic"]
+    roughness_texconnect, roughness = matval["roughness"]
+    metallic_texconnect, metallic = matval["metallic"]
+    specular_texconnect, specular = matval["specular"]
 
     # Bump/Normal
     if matval.has_bump():
@@ -543,9 +544,11 @@ def _write_material_pbr(name, matval):
         basecolor_texconnect,
         roughness_texconnect,
         metallic_texconnect,
+        specular_texconnect,
         bump_texconnect,
         normal_texconnect,
     ]
+    snippet_connect = [s for s in snippet_connect if s]
     snippet_connect = "".join(snippet_connect)
 
     # Final consolidation
@@ -571,6 +574,9 @@ def _write_material_pbr(name, matval):
         <shader layer="MasterMix" type="shader" name="as_sbs_pbrmaterial">
             <parameter name="in_baseColor" value="color {basecolor}" />
             <parameter name="in_heightScale" value="float 1.0" />
+            <parameter name="in_roughness" value="float {roughness}" />
+            <parameter name="in_metallic" value="float {metallic}" />
+            <parameter name="in_specularLevel" value="float {specular}" />
         </shader>
         <shader layer="Surface" type="surface" name="as_closure2surface" />
         <!-- ~Main shader -->
@@ -944,9 +950,10 @@ def _write_value_osl(**kwargs):
     # Snippets for values
     if proptype == "RGB":
         return ("", f"{val.r:.8} {val.g:.8} {val.b:.8}")
-    # TODO Float
+    if proptype == "float":
+        return ("", f"{val:.8}")
 
-    return "", ""
+    raise NotImplementedError(proptype)
 
 
 def _write_value_internal(**kwargs):
@@ -978,7 +985,7 @@ def _write_value_internal(**kwargs):
     elif proptype == "str":
         value = f"{val}"
     else:
-        raise NotImplementedError
+        raise NotImplementedError(proptype)
 
     return value
 

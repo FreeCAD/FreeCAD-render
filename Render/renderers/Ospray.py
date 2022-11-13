@@ -492,8 +492,7 @@ type principled
 
 def _write_material_pbr(name, matval):
     """Compute a string in the renderer SDL for a Disney material."""
-    # Nota1: OSP Principled material does not handle SSS, nor specular tint
-    # Nota2: if metallic is set, specular should be 1.0. See here:
+    # Nota: if metallic is set, specular should be 1.0. See here:
     # https://github.com/ospray/ospray_studio/issues/5
     snippet = f"""
 # Pbr ('{name}')
@@ -501,7 +500,7 @@ type principled
 {matval["basecolor"]}
 # No subsurface scattering (Ospray limitation)
 {matval["metallic"]}
-specular 1.0
+{matval["specular"]}
 {matval["roughness"]}
 {matval["normal"] if matval.has_normal() else ""}
 """
@@ -743,8 +742,8 @@ def _write_value(**kwargs):
         else:
             if hasattr(metallic, "is_texture") or float(metallic):
                 # metallic is a texture or a non-zero value:
-                # specular must be set to 1.0
-                val = 1.0
+                # specular must be set to something <> 0
+                val = metallic / 10 if val <= 0.0 else val
 
     # Snippets for values
     if proptype == "RGB":

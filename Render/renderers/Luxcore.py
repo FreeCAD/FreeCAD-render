@@ -58,7 +58,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     if matval.has_bump() and matval.has_normal():
         snippet_bump = f"""\
 scene.textures.{name}_bump.type = mix
-scene.textures.{name}_bump.amount = 0.5
+scene.textures.{name}_bump.amount = 0.9
 scene.textures.{name}_bump.texture1 = {matval["bump"]}
 scene.textures.{name}_bump.texture2 = {matval["normal"]}
 scene.materials.{name}.bumptex = {name}_bump
@@ -306,7 +306,7 @@ scene.materials.{name}.type = disney
 scene.materials.{name}.basecolor = {matval["basecolor"]}
 scene.materials.{name}.roughness = {matval["roughness"]}
 scene.materials.{name}.metallic = {matval["metallic"]}
-scene.materials.{name}.specular = 0.5
+scene.materials.{name}.specular = {matval["specular"]}
 """
 
 
@@ -438,6 +438,7 @@ scene.textures.{texname}.texture2 = {texname}_img
 scene.textures.{texname}_img.type = imagemap
 scene.textures.{texname}_img.file = "{filename}"
 scene.textures.{texname}_img.gamma = {gamma}
+scene.textures.{texname}_img.channel = "rgb"
 scene.textures.{texname}_img.mapping.type = uvmapping2d
 scene.textures.{texname}_img.mapping.rotation = {rotation}
 scene.textures.{texname}_img.mapping.uvscale = {scale} {scale}

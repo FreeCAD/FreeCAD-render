@@ -473,7 +473,7 @@ def _write_material_pbr(name, matval, connect_to="output surface"):
     base_color = "{matval["basecolor"]}"
     roughness = "{matval["roughness"]}"
     metallic = "{matval["metallic"]}"
-    specular = "0.5"
+    specular = "{matval["metallic"]}"
 />
 <connect from="{name}_bsdf bsdf" to="{connect_to}"/>"""
 

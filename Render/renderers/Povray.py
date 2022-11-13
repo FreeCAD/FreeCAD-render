@@ -34,6 +34,7 @@
 import os
 import re
 import mimetypes
+import math
 
 import FreeCAD as App
 
@@ -400,14 +401,24 @@ def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
     bump = matval["bump"] if matval.has_bump() else ""
     normal = matval["normal"] if matval.has_normal() else ""
+
+    specular = float(matval["specular"]) if not matval.is_texture("specular") else 0.05
+    metallic = float(matval["metallic"]) if not matval.is_texture("metallic") else 0.05
+
+    print("HERE", metallic, specular, metallic != 0.0, specular == 0.0)
+    if not math.isclose(metallic, 0.0) and math.isclose(specular, 0.0):
+        specular = 0.2  # Non-null is required to get metallic work...
+        print("HERE2", specular)
+
     snippet = f"""texture {{
         {matval["basecolor"]}
         {bump}
         {normal}
         finish {{
-          diffuse albedo 1
-          phong albedo 0
-          specular albedo 0.5
+          diffuse 0.9
+          reflection {{0.07}}
+          specular {specular}
+          metallic {metallic}
           roughness 0.05
           conserve_energy
         }}
