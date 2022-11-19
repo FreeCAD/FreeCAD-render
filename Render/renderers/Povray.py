@@ -402,8 +402,16 @@ def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
     bump = matval["bump"] if matval.has_bump() else ""
     normal = matval["normal"] if matval.has_normal() else ""
 
-    specular = float(matval["specular"]) if not matval.is_texture("specular") else 0.05
-    metallic = float(matval["metallic"]) if not matval.is_texture("metallic") else 0.05
+    specular = (
+        float(matval["specular"])
+        if not matval.is_texture("specular")
+        else 0.05
+    )
+    metallic = (
+        float(matval["metallic"])
+        if not matval.is_texture("metallic")
+        else 0.05
+    )
 
     print("HERE", metallic, specular, metallic != 0.0, specular == 0.0)
     if not math.isclose(metallic, 0.0) and math.isclose(specular, 0.0):

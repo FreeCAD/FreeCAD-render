@@ -309,7 +309,6 @@ class ColorPickerExt(QGroupBox):
 
     def get_value(self):
         """Get widget output value."""
-        # TODO (add "Constant" if constant...)
         if self.button_objectcolor.isChecked():
             res = ["Object"]
         elif self.button_constantcolor.isChecked():
@@ -403,7 +402,6 @@ class FloatBox(QGroupBox):
 
     def get_value(self):
         """Get widget output value."""
-        # TODO (add "Constant" if constant...)
         if self.button_constantvalue.isChecked():
             res = []
         elif self.button_texture.isChecked():
@@ -697,73 +695,68 @@ class MaterialSettingsTaskPanel:
             teximages -- List of appliable texture images (texture.ImageInfo)
         """
         name = param.name
-        if teximages is None:
-            teximages = []
+        teximages = [] if teximages is None else teximages
+        parsedvalue = parse_csv_str(value) if value else None
 
         if param.type == "float":
-            if value:
-                # Parse value and initialize a FloatBox accordingly
-                texture = None  # Default value
-                parsedvalue = parse_csv_str(value)
+            if parsedvalue:
                 if "Constant" in parsedvalue:
                     # Constant
                     option = FloatOption.CONSTANT
+                    texture = None
                     default = parsedvalue[1]
                 elif "Texture" in parsedvalue:
                     # Texture
                     option = FloatOption.TEXTURE
                     texture = str2imageid(parsedvalue[1])
-                    if len(parsedvalue) > 2:
-                        # Ability to specify fallback color
-                        default = parsedvalue[2]
-                    else:
-                        default = None
+                    default = parsedvalue[2] if len(parsedvalue) > 2 else None
                 else:
                     # Constant (fallback)
                     option = FloatOption.CONSTANT
+                    texture = None
                     default = parsedvalue[0]
                 widget = FloatBox(option, default, teximages, texture)
             else:
                 # value is empty, default initialization
                 widget = FloatBox(image_list=teximages)
-            self.fields.append((name, widget.get_value))
         elif param.type == "RGB":
-            if value:
-                # Parse value and initialize a ColorPickerExt accordingly
-                parsedvalue = parse_csv_str(value)
-                color = (0.8, 0.8, 0.8)  # Default value
-                texture = None  # Default value
+            default_color = (0.8, 0.8, 0.8)  # Default value
+            if parsedvalue:
                 if "Object" in parsedvalue:
                     # Object color
                     option = ColorOption.OBJECT
-                    if len(parsedvalue) > 1:
-                        color = str2rgb(parsedvalue[1])
+                    texture = None
+                    color = (
+                        str2rgb(parsedvalue[1])
+                        if len(parsedvalue) > 1
+                        else default_color
+                    )
                 elif "Constant" in parsedvalue:
                     # Constant
                     option = ColorOption.CONSTANT
+                    texture = None
                     color = str2rgb(parsedvalue[1])
                 elif "Texture" in parsedvalue:
                     # Texture
                     option = ColorOption.TEXTURE
                     texture = str2imageid(parsedvalue[1])
-                    if len(parsedvalue) > 2:
-                        # Ability to specify fallback color
-                        color = str2rgb(parsedvalue[2])
+                    color = (
+                        str2rgb(parsedvalue[2])
+                        if len(parsedvalue) > 2
+                        else default_color
+                    )
                 else:
                     # Constant (fallback)
                     option = ColorOption.CONSTANT
+                    texture = None
                     color = str2rgb(parsedvalue[0])
                 qcolor = QColor.fromRgbF(*color)
                 widget = ColorPickerExt(option, qcolor, teximages, texture)
             else:
                 # value is empty, default initialization
                 widget = ColorPickerExt(image_list=teximages)
-            self.fields.append((name, widget.get_value))
         elif param.type == "texonly":
-            if value:
-                # Parse value and initialize a TexonlyPicker accordingly
-                parsedvalue = parse_csv_str(value)
-                texture = None  # Default value
+            if parsedvalue:
                 if "Texture" in parsedvalue:
                     # Texture
                     option = TexonlyOption.TEXTURE
@@ -776,13 +769,9 @@ class MaterialSettingsTaskPanel:
             else:
                 # value is empty, default initialization
                 widget = TexonlyPicker(image_list=teximages)
-            self.fields.append((name, widget.get_value))
         elif param.type == "texscalar":
             label = translate("Render", "Factor:")
-            if value:
-                # Parse value and initialize a TexonlyPicker "with scalar"
-                parsedvalue = parse_csv_str(value)
-                texture = None  # Default value
+            if parsedvalue:
                 if "Texture" in parsedvalue:
                     # Texture
                     option = TexonlyOption.TEXTURE
@@ -804,13 +793,11 @@ class MaterialSettingsTaskPanel:
                 widget = TexonlyPicker(
                     image_list=teximages, with_scalar=True, scalar_label=label
                 )
-            self.fields.append((name, widget.get_value))
         else:
-            # Fallback to string input
-            widget = QLineEdit()
-            self.fields.append((name, widget.text))
+            raise NotImplementedError(param.type)
 
-        # Set widget tooltip
+        # Append widget to fields and set widget tooltip
+        self.fields.append((name, widget.get_value))
         widget.setToolTip(param.desc)
 
         # Prepare label

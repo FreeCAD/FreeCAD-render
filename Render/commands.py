@@ -403,8 +403,7 @@ class MaterialApplierCommand:
         mats = [
             o
             for o in App.ActiveDocument.Objects
-            if o.isDerivedFrom("App::MaterialObjectPython")
-            or is_multimat(o)
+            if o.isDerivedFrom("App::MaterialObjectPython") or is_multimat(o)
         ]
         if not mats:
             title = translate("Render", "No Material")

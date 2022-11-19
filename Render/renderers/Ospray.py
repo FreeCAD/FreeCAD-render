@@ -799,7 +799,11 @@ def _write_texref(**kwargs):
     elif proptype == "texscalar":
         normal_factor = matval.get_normal_factor()
         bump_factor = matval.get_bump_factor()
-        value = f"{field} {normal_factor}" if propname == "normal" else f"{field} {bump_factor}"
+        value = (
+            f"{field} {normal_factor}"
+            if propname == "normal"
+            else f"{field} {bump_factor}"
+        )
     else:
         raise NotImplementedError(proptype)
 

@@ -642,7 +642,10 @@ class _TextureImportHelper:
                 self.warn(msg)
                 continue
 
-            if not isinstance(texture_ref, tuple) or len(texture_ref) not in [2, 3]:
+            if not isinstance(texture_ref, tuple) or len(texture_ref) not in [
+                2,
+                3,
+            ]:
                 msg = translate(
                     "Render",
                     "Invalid syntax for attribute '{}' in texture '{}': "
@@ -670,12 +673,11 @@ class _TextureImportHelper:
                     msg = translate(
                         "Render",
                         "Invalid syntax for attribute '{}' in texture '{}': "
-                        "Scalar should be a float -- Skipping value"
+                        "Scalar should be a float -- Skipping value",
                     ).format(key, card_texname)
                     self.warn(msg)
                     continue
                 internal = ["Texture", str((fcd_texname, imgpropname, scalar))]
-
 
             internal += parsed[1:]
             otherdata[key] = ";".join(internal)
