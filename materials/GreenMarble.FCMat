@@ -1,0 +1,20 @@
+[General]
+Name = RenderGreenMarble
+Description = Green Marble
+ProductURL = https://ambientcg.com/view?id=Marble009
+UseObjectColor = False
+
+[Rendering]
+Render.Type = Substance_PBR
+Render.Substance_PBR.BaseColor = Texture('GreenMarble', 0);(0.5,0.5,0.5)
+Render.Substance_PBR.Bump = Texture('GreenMarble', 3, 0.001)
+Render.Substance_PBR.Metallic = 0.2
+Render.Substance_PBR.Normal = Texture('GreenMarble', 2, 0.001)
+Render.Substance_PBR.Roughness = Texture('GreenMarble',1);0.5
+Render.Substance_PBR.Specular = 0.0
+Render.Textures.GreenMarble.Images.0 = GreenMarble/Marble009_1K_Color_Light.jpg
+Render.Textures.GreenMarble.Images.1 = GreenMarble/Marble009_1K_Roughness.jpg
+Render.Textures.GreenMarble.Images.2 = GreenMarble/Marble009_1K_NormalGL.jpg
+Render.Textures.GreenMarble.Images.3 = GreenMarble/Marble009_1K_Displacement.jpg
+Render.Textures.GreenMarble.Scale = 1.0
+; vi: ft=dosini
