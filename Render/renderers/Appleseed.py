@@ -1168,11 +1168,8 @@ def render(project, prefix, external, input_file, output_file, width, height):
             e=element_tag
         )
         regex_obj = re.compile(pattern)
-        contents = (
-            str(regex_obj.findall(template)[-1])
-            if keep_one
-            else "\n".join(regex_obj.findall(template))
-        )
+        contents = regex_obj.findall(template)
+        contents = (str(contents[-1]) if contents and keep_one else "\n".join(contents))
         # Replace tag if required
         if replace is not None:
             contents = contents.replace(element_tag, replace)
