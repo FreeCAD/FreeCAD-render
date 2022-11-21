@@ -298,6 +298,16 @@ class SunskyLight(FeatureBase):
             ),
             (0.3, 0.0, 1.0, 0.01),
         ),
+        "Model": Prop(
+            "App::PropertyEnumeration",
+            chr(127) + "Cycles",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The model to use for sun & sky",
+            ),
+            ("Nishita", "Hosek-Wilkie"),
+            0,
+        ),
     }
 
     RENDERING_TYPE = RenderingTypes.SUNSKYLIGHT

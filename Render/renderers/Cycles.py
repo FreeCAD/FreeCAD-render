@@ -65,7 +65,7 @@ TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Compute material values
     matval = material.get_material_values(
@@ -118,7 +118,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     return snippet
 
 
-def write_camera(name, pos, updir, target, fov):
+def write_camera(name, pos, updir, target, fov, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
@@ -141,7 +141,7 @@ def write_camera(name, pos, updir, target, fov):
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # This is where you write the renderer-specific code
     # to export a point light in the renderer format
@@ -169,7 +169,7 @@ def write_pointlight(name, pos, color, power):
     return snippet
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
     """Compute a string in renderer SDL to represent an area light."""
     strength = power / 100
 
@@ -222,17 +222,22 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
+    # TODO
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     sky_nishita = params.GetBool("CyclesNishita")
     sky_hosek = params.GetBool("CyclesHosek")
-    if sky_nishita:
+
+    print(kwargs)  # TODO
+
+    model = kwargs.get("Model", "Hosek-Wilkie")
+    if model == "Nishita":
         sky_sub = _write_sunskylight_nishita
-    elif sky_hosek:
+    elif model == "Hosek-Wilkie":
         sky_sub = _write_sunskylight_hosekwilkie
     else:
-        raise ValueError()
+        raise NotImplementedError(model)
     return sky_sub(name, direction, distance, turbidity, albedo)
 
 
@@ -341,7 +346,7 @@ def _write_sunskylight_nishita(name, direction, distance, turbidity, albedo):
     return "".join([snippet_shader, snippet_sun, snippet_sky])
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: Cycles requires the image file to be in the same directory
     # as the input file

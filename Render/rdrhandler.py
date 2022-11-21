@@ -230,6 +230,15 @@ class RendererHandler:
         """
         return str(getattr(self.renderer_module, "TEMPLATE_FILTER", ""))
 
+    def _get_renderer_specifics(self, view):
+        """Get specific parameters of the renderer for a given view."""
+        try:
+            proxy = view.Proxy
+        except AttributeError:
+            return {}
+        else:
+            return proxy.group_params(chr(127) + self.renderer_name)
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
 
@@ -361,6 +370,7 @@ class RendererHandler:
         source = view.Source
         label = getattr(source, "Label", name)
         uvproj = getattr(view, "UvProjection", None)
+        specifics = self._get_renderer_specifics(view)
         debug("Object", label, "Processing")
 
         # Build a list of renderables from the object
@@ -410,7 +420,10 @@ class RendererHandler:
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(
-            RendererHandler._call_renderer, self, "write_mesh"
+            RendererHandler._call_renderer,
+            self,
+            "write_mesh",
+            **specifics,
         )
 
         get_mat = rendermaterial.get_rendering_material
@@ -444,13 +457,21 @@ class RendererHandler:
         )
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         field_of_view = float(getattr(source, "HeightAngle", 60))
+        specifics = self._get_renderer_specifics(view)
+
         # Rescale
         pos.Base.multiply(SCALE)
         target.multiply(SCALE)
         updir.multiply(SCALE)
 
         return self._call_renderer(
-            "write_camera", name, pos, updir, target, field_of_view
+            "write_camera",
+            name,
+            pos,
+            updir,
+            target,
+            field_of_view,
+            **specifics,
         )
 
     def _render_pointlight(self, name, view):
@@ -468,6 +489,7 @@ class RendererHandler:
         debug("PointLight", name, "Processing")
 
         source = view.Source
+        specifics = self._get_renderer_specifics(view)
 
         # Get location, color
         location = App.Base.Vector(source.Location)
@@ -481,7 +503,12 @@ class RendererHandler:
 
         # Send everything to renderer module
         return self._call_renderer(
-            "write_pointlight", name, location, color, power
+            "write_pointlight",
+            name,
+            location,
+            color,
+            power,
+            **specifics,
         )
 
     def _render_arealight(self, name, view):
@@ -507,6 +534,7 @@ class RendererHandler:
         size_u = float(source.SizeU) * SCALE
         size_v = float(source.SizeV) * SCALE
         transparent = bool(source.Transparent)
+        specifics = self._get_renderer_specifics(view)
 
         # Send everything to renderer module
         return self._call_renderer(
@@ -518,6 +546,7 @@ class RendererHandler:
             color,
             power,
             transparent,
+            **specifics,
         )
 
     def _render_sunskylight(self, name, view):
@@ -537,6 +566,7 @@ class RendererHandler:
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
         albedo = float(src.GroundAlbedo)
+        specifics = self._get_renderer_specifics(view)
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
@@ -547,7 +577,13 @@ class RendererHandler:
         assert direction.Length, "Sun direction is null"
 
         return self._call_renderer(
-            "write_sunskylight", name, direction, distance, turbidity, albedo
+            "write_sunskylight",
+            name,
+            direction,
+            distance,
+            turbidity,
+            albedo,
+            **specifics,
         )
 
     def _render_imagelight(self, name, view):
@@ -565,10 +601,13 @@ class RendererHandler:
         debug("ImageLight", name, "Processing")
         src = view.Source
         image = src.ImageFile
+        specifics = self._get_renderer_specifics(view)
 
-        return self._call_renderer("write_imagelight", name, image)
+        return self._call_renderer(
+            "write_imagelight", name, image, **specifics
+        )
 
-    def _call_renderer(self, method, *args):
+    def _call_renderer(self, method, *args, **kwargs):
         """Call a render method of the renderer module.
 
         Parameters:
@@ -579,7 +618,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         renderer_method = getattr(self.renderer_module, method)
-        return renderer_method(*args)
+        return renderer_method(*args, **kwargs)
 
 
 # ===========================================================================
