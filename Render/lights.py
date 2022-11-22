@@ -298,14 +298,29 @@ class SunskyLight(FeatureBase):
             ),
             (0.3, 0.0, 1.0, 0.01),
         ),
+        # Cycles
         "Model": Prop(
             "App::PropertyEnumeration",
             chr(127) + "Cycles",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "The model to use for sun & sky",
+                "The model to use for sun & sky (Cycles only)",
             ),
             ("Nishita", "Hosek-Wilkie"),
+            0,
+        ),
+        # Luxcore
+        "GainPreset": Prop(
+            "App::PropertyEnumeration",
+            chr(127) + "Luxcore",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The gain to use for sun & sky (Luxcore only):\n"
+                "'Physical' yields accurate real power, needing tone mapping\n"
+                "'Mitigated' allows to render without tone mapping\n"
+                "'Custom' gives full control on gain value",
+            ),
+            ("Physical", "Mitigated", "Custom"),
             0,
         ),
     }

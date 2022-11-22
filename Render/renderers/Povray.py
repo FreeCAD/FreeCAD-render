@@ -413,10 +413,8 @@ def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
         else 0.05
     )
 
-    print("HERE", metallic, specular, metallic != 0.0, specular == 0.0)
     if not math.isclose(metallic, 0.0) and math.isclose(specular, 0.0):
         specular = 0.2  # Non-null is required to get metallic work...
-        print("HERE2", specular)
 
     snippet = f"""texture {{
         {matval["basecolor"]}
