@@ -160,25 +160,6 @@ class View(FeatureBase):
         res = fmt.format(o=obj_label, p=proj_label)
         return res
 
-    def group_params(self, group):
-        """Retrieve source parameters belonging to a specific group.
-
-        This method is especially intended for renderer's specific parameters.
-
-        Args:
-            group -- the name of the group (str)
-
-        Returns:
-            a dictionary (name, value)
-        """
-        src = self.fpo.Source
-        res = {
-            p: src.getPropertyByName(p)
-            for p in src.PropertiesList
-            if src.getGroupOfProperty(p) == group
-        }
-        return res
-
 
 class ViewProviderView(ViewProviderBase):
     """ViewProvider of rendering view object."""

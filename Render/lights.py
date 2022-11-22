@@ -299,9 +299,9 @@ class SunskyLight(FeatureBase):
             (0.3, 0.0, 1.0, 0.01),
         ),
         # Cycles
-        "Model": Prop(
+        "CyclesModel": Prop(
             "App::PropertyEnumeration",
-            chr(127) + "Cycles",
+            chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The model to use for sun & sky (Cycles only)",
@@ -310,9 +310,9 @@ class SunskyLight(FeatureBase):
             0,
         ),
         # Luxcore
-        "GainPreset": Prop(
+        "LuxcoreGainPreset": Prop(
             "App::PropertyEnumeration",
-            chr(127) + "Luxcore",
+            chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "App::Property",
                 "The gain to use for sun & sky (Luxcore only):\n"

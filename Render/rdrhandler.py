@@ -232,12 +232,19 @@ class RendererHandler:
 
     def _get_renderer_specifics(self, view):
         """Get specific parameters of the renderer for a given view."""
+        src = view.Source
         try:
-            proxy = view.Proxy
+            properties = src.PropertiesList
         except AttributeError:
             return {}
         else:
-            return proxy.group_params(chr(127) + self.renderer_name)
+            rdrname = self.renderer_name
+            res = {
+                p[len(rdrname):]: src.getPropertyByName(p)
+                for p in properties
+                if p.startswith(rdrname)
+            }
+            return res
 
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
