@@ -209,9 +209,17 @@ scene.objects.{n}.transformation = {t}
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **specifics):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    sun_gain = sky_gain = 1  # If no tonemapping, better choose 1e-4
+    gain_preset = specifics.get("GainPreset", "Mitigated")
+    if gain_preset == "Physical":
+        gain = 1.0
+    elif gain_preset == "Mitigated":
+        gain = 0.00003
+    elif gain_preset == "Custom":
+        gain == specifics.get("CustomGain")
+    else:
+        raise NotImplementedError(gain_preset)
     snippet = f"""
 # Sunsky light '{name}'
 scene.lights.{name}_sun.type = sun
@@ -221,8 +229,8 @@ scene.lights.{name}_sky.type = sky2
 scene.lights.{name}_sky.turbidity = {turbidity}
 scene.lights.{name}_sky.dir = {direction.x} {direction.y} {direction.z}
 scene.lights.{name}_sky.groundalbedo = {albedo} {albedo} {albedo}
-scene.lights.{name}_sun.gain = {sun_gain} {sun_gain} {sun_gain}
-scene.lights.{name}_sky.gain = {sky_gain} {sky_gain} {sky_gain}
+scene.lights.{name}_sun.gain = {gain} {gain} {gain}
+scene.lights.{name}_sky.gain = {gain} {gain} {gain}
 """
     return snippet
 

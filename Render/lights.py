@@ -315,13 +315,24 @@ class SunskyLight(FeatureBase):
             chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "The gain to use for sun & sky (Luxcore only):\n"
-                "'Physical' yields accurate real power, needing tone mapping\n"
-                "'Mitigated' allows to render without tone mapping\n"
-                "'Custom' gives full control on gain value",
+                "The gain preset to use for sun & sky (Luxcore only):\n"
+                "* 'Physical' yields accurate real light power, needing tone "
+                "mapping\n"
+                "* 'Mitigated' allows to render without tone mapping\n"
+                "* 'Custom' gives full control on gain value",
             ),
             ("Physical", "Mitigated", "Custom"),
-            0,
+            "Mitigated",
+        ),
+        "LuxcoreCustomGain": Prop(
+            "App::PropertyFloat",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The gain to use for sun & sky when preset gain "
+                "is set to 'Custom' (Luxcore only)",
+            ),
+            1.0,
         ),
     }
 
