@@ -998,17 +998,17 @@ def sunlight(theta, turbidity):
 
     # Solid angle for a 1 m2 area on Earth, normal to sun rays,
     # being seen from the Sun
-    solid_angle_1m2 = 1.0 * SUN_MEAN_DISTANCE ** -2  # sr.m-2
+    solid_angle_1m2 = 1.0 * SUN_MEAN_DISTANCE**-2  # sr.m-2
 
     # Radiometric quantities
     radiance = sum([attenuated_srd[w] for w in range(380, 760)])  # W.sr-1.m-2
-    radiant_intensity = PI * SUN_RADIUS ** 2 * radiance  # W.sr-1
+    radiant_intensity = PI * SUN_RADIUS**2 * radiance  # W.sr-1
     irradiance = radiant_intensity * solid_angle_1m2  # W.m-2
 
     # Photometric quantities
     xyz = ColorXYZ.from_srd(attenuated_srd)
     luminance = xyz.Y  # cd.m-2
-    luminous_intensity = PI * SUN_RADIUS ** 2 * luminance  # cd
+    luminous_intensity = PI * SUN_RADIUS**2 * luminance  # cd
     illuminance = luminous_intensity * solid_angle_1m2  # lux (cd.sr.m-2)
 
     res = namedtuple("Sunlight", ["irradiance", "illuminance", "xyz"])(

@@ -240,7 +240,7 @@ class RendererHandler:
         else:
             rdrname = self.renderer_name
             res = {
-                p[len(rdrname):]: src.getPropertyByName(p)
+                p[len(rdrname) :]: src.getPropertyByName(p)
                 for p in properties
                 if p.startswith(rdrname)
             }

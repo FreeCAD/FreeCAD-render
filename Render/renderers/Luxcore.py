@@ -209,7 +209,9 @@ scene.objects.{n}.transformation = {t}
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, **specifics):
+def write_sunskylight(
+    name, direction, distance, turbidity, albedo, **specifics
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     gain_preset = specifics.get("GainPreset", "Mitigated")
     if gain_preset == "Physical":
@@ -217,7 +219,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **specifics)
     elif gain_preset == "Mitigated":
         gain = 0.00003
     elif gain_preset == "Custom":
-        gain == specifics.get("CustomGain")
+        gain = specifics.get("CustomGain")
     else:
         raise NotImplementedError(gain_preset)
     snippet = f"""

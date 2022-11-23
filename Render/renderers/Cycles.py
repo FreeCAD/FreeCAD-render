@@ -169,7 +169,9 @@ def write_pointlight(name, pos, color, power, **kwargs):
     return snippet
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     strength = power / 100
 
@@ -224,13 +226,6 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwar
 
 def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    # TODO
-    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    sky_nishita = params.GetBool("CyclesNishita")
-    sky_hosek = params.GetBool("CyclesHosek")
-
-    print(kwargs)  # TODO
-
     model = kwargs.get("Model", "Hosek-Wilkie")
     if model == "Nishita":
         sky_sub = _write_sunskylight_nishita
@@ -238,11 +233,11 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
         sky_sub = _write_sunskylight_hosekwilkie
     else:
         raise NotImplementedError(model)
-    return sky_sub(name, direction, distance, turbidity, albedo)
+    return sky_sub(name, direction, turbidity, albedo)
 
 
 def _write_sunskylight_hosekwilkie(
-    name, direction, distance, turbidity, albedo
+    name, direction, turbidity, albedo
 ):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
@@ -297,7 +292,7 @@ def _write_sunskylight_hosekwilkie(
     return "".join([snippet_sky, snippet_sun])
 
 
-def _write_sunskylight_nishita(name, direction, distance, turbidity, albedo):
+def _write_sunskylight_nishita(name, direction, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We use the new improved nishita model (2020)
 
@@ -346,7 +341,7 @@ def _write_sunskylight_nishita(name, direction, distance, turbidity, albedo):
     return "".join([snippet_shader, snippet_sun, snippet_sky])
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: Cycles requires the image file to be in the same directory
     # as the input file
