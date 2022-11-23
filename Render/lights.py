@@ -321,8 +321,8 @@ class SunskyLight(FeatureBase):
                 "* 'Mitigated' allows to render without tone mapping\n"
                 "* 'Custom' gives full control on gain value",
             ),
-            ("Physical", "Mitigated", "Custom"),
-            "Mitigated",
+            ("Mitigated", "Physical", "Custom"),
+            0,
         ),
         "LuxcoreCustomGain": Prop(
             "App::PropertyFloat",
