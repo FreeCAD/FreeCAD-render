@@ -7,7 +7,7 @@ rendered images from your FreeCAD document, using open-source external
 rendering engines.
 
 <img src=./docs/freecad-june-09.jpg alt="ShowCase" title="Examples of rendering
-made with Render Workbench">
+made with Render Workbench" width="800">
 
 ## Introduction
 
@@ -28,12 +28,12 @@ Raytracing:
 
 At the moment, the following rendering engines are supported:
 
-* [Pov-Ray](https://povray.org/)  
+* [Pov-Ray](https://www.povray.org/)
 * [LuxCoreRender](https://luxcorerender.org/)
-* [Appleseed](https://appleseedhq.net) 
+* [Appleseed](https://appleseedhq.net)
 * [Blender Cycles](https://www.cycles-renderer.org/)
-* [Intel Ospray Studio](https://github.com/ospray/ospray_studio) (experimental)
-* [Pbrt v4](https://github.com/mmp/pbrt-v4) (experimental)
+* [Intel Ospray Studio](http://www.ospray.org/ospray_studio) (experimental)
+* [Pbrt v4](https://www.pbrt.org) (experimental)
 * LuxRender (deprecated in favor of LuxCoreRender)
 
 ## Installation
@@ -59,20 +59,30 @@ FreeCAD model is just a 4-steps process:
    corresponding to your renderer <img src=./Render/resources/icons/Appleseed.svg height=32>
    <img src=./Render/resources/icons/Cycles.svg height=32> <img src=./Render/resources/icons/Luxcore.svg
    height=32> <img src=./Render/resources/icons/Povray.svg height=32> and select a template
-   suitable for your renderer \ (you may start with a 'standard' flavour, like
+   suitable for your renderer \
+   (you may start with a 'standard' flavour, like
    appleseed_standard.appleseed, cycles_standard.xml, luxcore_standard.cfg or
-   povray_standard.pov) 
+   povray_standard.pov)
+
+
 2. **Add views of your objects to your rendering project:** Select both the
    objects and the project, and press the 'Add view' button <img
    src=./Render/resources/icons/RenderView.svg height=32>
+
+
 3. **Set your point of view:** [Navigate in FreeCAD 3D View](https://wiki.freecadweb.org/Manual:Navigating_in_the_3D_view)
    to the desired position and switch to _Perspective_ mode.
+
+
 4. **Render:** Select your project and press the 'Render' button <img
    src=./Render/resources/icons/Render.svg height=32> in toolbar (also available in project's
    context menu).
 
-<br /> **...and you should get a first rendering of your model.** <br /> 
 
+<br /> **...and you should get a first rendering of your model.** <br />
+
+
+## More features
 
 Optionally, you may tweak some particulars of your scene:
 * Modify some [options of your rendering project](./docs/Projects.md)
@@ -81,29 +91,6 @@ Optionally, you may tweak some particulars of your scene:
 * Add [materials](./docs/Materials.md) to your objects
 
 These adjustments should take place between steps 2 and 3.
-
-## Alternative - Importing in Blender
-
-The Render Workbench's philosophy is to export a FreeCAD model to a file in the
-format of a rendering engine and run the rendering engine on that file.
-
-Instead of that, you can also *import* your FreeCAD model into Blender and run a
-rendering engine from inside Blender.  Blender is able to import FreeCAD files
-with materials correctly placed and ready for Cycles too, by using the FreeCAD
-importer Blender addon (available for
-[2.80](https://gist.github.com/yorikvanhavre/680156f59e2b42df8f5f5391cae2660b)
-and
-[2.79](https://gist.github.com/yorikvanhavre/e873d51c8f0e307e333fe595c429ba87)).
-
-Importing your FreeCAD file in Blender before rendering provides you with many
-options, such as placing textures, using other renderers than those supported
-by the Render Workbench, or more generally using all the powerful features of
-Blender.
-
-As a counterpart, all additions made in Blender after importing may be lost if
-you need to reimport your FreeCAD file later (for instance, in the event that
-your FreeCAD model has been modified...). That is why we would recommend to use
-the Render Workbench if the provided features are sufficient for your needs.
 
 ## Contributing
 

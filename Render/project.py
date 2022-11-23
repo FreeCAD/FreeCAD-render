@@ -32,7 +32,7 @@ import sys
 import os
 import re
 from operator import attrgetter
-from tempfile import mkstemp
+from collections import namedtuple
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
@@ -42,7 +42,7 @@ import FreeCADGui as Gui
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
-from Render.utils import translate
+from Render.utils import translate, set_last_cmd, clear_report_view
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
@@ -82,15 +82,6 @@ class Project(FeatureBase):
             ),
             "",
             1,
-        ),
-        "PageResult": Prop(
-            "App::PropertyFileIncluded",
-            "Render",
-            QT_TRANSLATE_NOOP(
-                "App::Property", "The result file to be sent to the renderer"
-            ),
-            "",
-            2,
         ),
         "RenderWidth": Prop(
             "App::PropertyInteger",
@@ -195,7 +186,6 @@ class Project(FeatureBase):
 
     ON_CHANGED = {
         "DelayedBuild": "_on_changed_delayed_build",
-        "Renderer": "_on_changed_renderer",
     }
 
     def on_set_properties_cb(self, fpo):
@@ -214,10 +204,6 @@ class Project(FeatureBase):
             return
         for view in self.all_views():
             view.touch()
-
-    def _on_changed_renderer(self, fpo):  # pylint: disable=no-self-use
-        """Respond to Renderer property change event."""
-        fpo.PageResult = ""
 
     def on_create_cb(self, fpo, viewp, **kwargs):
         """Complete the operation of 'create' (callback)."""
@@ -379,130 +365,77 @@ class Project(FeatureBase):
         Returns:
             Output file path
         """
-        obj = self.fpo
         wait_for_completion = bool(wait_for_completion)
+
+        # Clear report view (if required)
+        clear_report = PARAMS.GetBool("ClearReport")
+        if clear_report:
+            clear_report_view()
 
         # Get a handle to renderer module
         try:
             renderer = RendererHandler(
-                rdrname=obj.Renderer,
-                linear_deflection=obj.LinearDeflection,
-                angular_deflection=obj.AngularDeflection,
-                transparency_boost=obj.TransparencySensitivity,
+                rdrname=self.fpo.Renderer,
+                linear_deflection=self.fpo.LinearDeflection,
+                angular_deflection=self.fpo.AngularDeflection,
+                transparency_boost=self.fpo.TransparencySensitivity,
             )
-        except ModuleNotFoundError:
-            msg = (
-                translate(
-                    "Render",
-                    "[Render] Cannot render project: Renderer '%s' not "
-                    "found",
-                )
-                + "\n"
-            )
-            App.Console.PrintError(msg % obj.Renderer)
-            return ""
+        except RendererNotFoundError as err:
+            msg = translate("Render", "Renderer not found ('{}') ")
+            msg = msg.format(self.fpo.Renderer)
+            raise RenderingError(msg) from err
 
         # Get the rendering template
-        if obj.getTypeIdOfProperty("Template") == "App::PropertyFile":
-            # Legacy template path (absolute path)
-            template_path = obj.Template
-        else:
-            # Current template path (relative path)
-            template_path = os.path.join(TEMPLATEDIR, obj.Template)
-
-        if not os.path.isfile(template_path):
-            msg = translate(
-                "Render", "Cannot render project: Template not found ('%s')"
-            )
-            msg = "[Render] " + (msg % template_path) + "\n"
-            App.Console.PrintError(msg)
-            return ""
-
-        with open(template_path, "r", encoding="utf8") as template_file:
-            template = template_file.read()
+        template = self._get_rendering_template()
 
         # Build a default camera, to be used if no camera is present in the
         # scene
-        camstr = (
-            Gui.ActiveDocument.ActiveView.getCamera()
-            if App.GuiUp
-            else DEFAULT_CAMERA_STRING
-        )
-        cam = renderer.get_camsource_string(get_cam_from_coin_string(camstr))
+        defaultcam = _get_default_cam(renderer)
 
         # Get objects rendering strings (including lights, cameras...)
-        # views = self.all_views()
-        get_rdr_string = (
-            renderer.get_rendering_string
-            if obj.DelayedBuild
-            else attrgetter("ViewResult")
-        )
-        if App.GuiUp:
-            objstrings = [
-                get_rdr_string(v)
-                for v in self.all_views()
-                if v.Source.ViewObject.Visibility
-            ]
-        else:
-            objstrings = [get_rdr_string(v) for v in self.all_views()]
+        objstrings = self._get_objstrings(renderer)
 
         # Add a ground plane if required
-        if getattr(obj, "GroundPlane", False):
+        if getattr(self.fpo, "GroundPlane", False):
             objstrings.append(self.write_groundplane(renderer))
 
-        # Merge all strings (cam, objects, ground plane...) into rendering
-        # template
-        renderobjs = "\n".join(objstrings)
-        if "RaytracingCamera" in template:
-            template = re.sub("(.*RaytracingCamera.*)", cam, template)
-            template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
-        else:
-            template = re.sub(
-                "(.*RaytracingContent.*)", cam + "\n" + renderobjs, template
-            )
-        version_major = sys.version_info.major
-        template = template.encode("utf8") if version_major < 3 else template
+        # Instantiate template: merge all strings (cam, objects, ground
+        # plane...) into rendering template
+        instantiated = _instantiate_template(template, objstrings, defaultcam)
 
         # Write instantiated template into a temporary file
-        fhandle, fpath = mkstemp(
-            prefix=obj.Name, suffix=os.path.splitext(obj.Template)[-1]
-        )
-        with open(fpath, "w", encoding="utf8") as fobj:
-            fobj.write(template)
-        os.close(fhandle)
-        obj.PageResult = fpath
-        os.remove(fpath)
-        assert obj.PageResult, "Rendering error: No page result"
+        fpath = self._write_instantiated_template_to_file(instantiated)
 
         # Fetch the rendering parameters
-        prefix = PARAMS.GetString("Prefix", "")
-        if prefix:
-            prefix += " "
-
-        try:
-            output = obj.OutputImage
-            assert output
-        except (AttributeError, AssertionError):
-            output = os.path.splitext(obj.PageResult)[0] + ".png"
-
-        try:
-            width = int(obj.RenderWidth)
-        except (AttributeError, ValueError, TypeError):
-            width = 800
-
-        try:
-            height = int(obj.RenderHeight)
-        except (AttributeError, ValueError, TypeError):
-            height = 600
+        params = self._get_rendering_params()
 
         # Get the renderer command on the generated temp file, with rendering
         # params
         cmd, img = renderer.render(
-            obj, prefix, external, output, width, height
+            self.fpo,
+            params.prefix,
+            external,
+            fpath,
+            params.output,
+            params.width,
+            params.height,
         )
-        img = img if obj.OpenAfterRender else None
+        img = img if self.fpo.OpenAfterRender else None
         if not cmd:
             # Command is empty (perhaps lack of data in parameters)
+            msg = translate("Render", "Empty rendering command")
+            raise RenderingError(msg)
+
+        # Record this command (debug purpose)
+        set_last_cmd(cmd)
+
+        # Dry run?
+        dryrun = PARAMS.GetBool("DryRun")
+        if dryrun:
+            # "Dry run": Print command and return without running renderer
+            # Debug purpose only
+            App.Console.PrintWarning("*** DRY RUN ***\n")
+            App.Console.PrintMessage(cmd)
             return None
 
         # Execute renderer
@@ -514,6 +447,152 @@ class Project(FeatureBase):
 
         # And eventually return result path
         return img
+
+    def _get_rendering_template(self):
+        """Get the rendering template for the project.
+
+        This method is a (private) subroutine of `render` method.
+        RenderingError is raised if template file is not found.
+        """
+        # Compute template_path from project's Template parameter.
+        # This parameter gives a relative path to template.
+        # However, a legacy behaviour (absolute path) is also handled.
+        if self.fpo.getTypeIdOfProperty("Template") == "App::PropertyFile":
+            # Legacy template path (absolute path)
+            template_path = self.fpo.Template
+        else:
+            # Current template path (relative path)
+            template_path = os.path.join(TEMPLATEDIR, self.fpo.Template)
+
+        # Open file and get content
+        try:
+            with open(template_path, "r", encoding="utf8") as template_file:
+                template = template_file.read()
+        except FileNotFoundError as err:
+            msg = translate("Render", "Template not found ('{}')")
+            msg = msg.format(template_path)
+            raise RenderingError(msg) from err
+
+        return template
+
+    def _get_objstrings(self, renderer):
+        """Get rendering strings for all objects in project.
+
+        This method is a (private) subroutine of `render` method.
+        Besides standard FCD objects (parts, shapes...), objects encompass
+        lights and cameras.
+        """
+        # Default mode is to compute strings, but if DelayedBuild is False
+        # we rely on views' ViewResult precomputed values.
+        get_rdr_string = (
+            renderer.get_rendering_string
+            if self.fpo.DelayedBuild
+            else attrgetter("ViewResult")
+        )
+
+        if App.GuiUp:
+            # App.Gui is up, we take View's Visibility property into account
+            objstrings = [
+                get_rdr_string(v)
+                for v in self.all_views()
+                if v.Source.ViewObject.Visibility
+            ]
+        else:
+            objstrings = [get_rdr_string(v) for v in self.all_views()]
+
+        return objstrings
+
+    def _write_instantiated_template_to_file(self, template):
+        """Write an instantiated template to a temporary file.
+
+        This method is a (private) subroutine of `render` method.
+
+        Returns path to temp file.
+        """
+        suffix = os.path.splitext(self.fpo.Template)[-1]
+        fpath = os.path.join(
+            self.fpo.Document.TransientDir, self.fpo.Name + suffix
+        )
+        with open(fpath, "w", encoding="utf8") as fobj:
+            fobj.write(template)
+        return fpath
+
+    def _get_rendering_params(self):
+        """Fetch the rendering parameters.
+
+        This method is a (private) subroutine of `render` method.
+        """
+        Params = namedtuple("Params", "prefix output width height")
+
+        prefix = PARAMS.GetString("Prefix", "")
+        if prefix:
+            prefix += " "
+
+        try:
+            output = self.fpo.OutputImage
+            assert output
+        except (AttributeError, AssertionError):
+            fname = f"{self.fpo.Name}_output.png"
+            output = os.path.join(self.fpo.Document.TransientDir, fname)
+
+        try:
+            width = int(self.fpo.RenderWidth)
+        except (AttributeError, ValueError, TypeError):
+            width = 800
+
+        try:
+            height = int(self.fpo.RenderHeight)
+        except (AttributeError, ValueError, TypeError):
+            height = 600
+
+        return Params(prefix, output, width, height)
+
+
+def _get_default_cam(renderer):
+    """Build a default camera for rendering.
+
+    This function is a (private) subroutine of `render` method.
+    If GUI is up, the default camera is built from the ActiveView camera, ie
+    the camera from which objects are seen in FreeCAD viewport. Otherwise
+    (console mode), the camera is built from a hardcoded value, hosted in
+    DEFAULT_CAMERA_STRING constant.
+    """
+    camstr = (
+        Gui.ActiveDocument.ActiveView.getCamera()
+        if App.GuiUp
+        else DEFAULT_CAMERA_STRING
+    )
+    return renderer.get_camsource_string(get_cam_from_coin_string(camstr))
+
+
+def _instantiate_template(template, objstrings, defaultcam):
+    """Instantiate template (merge all objects into template).
+
+    This function is a (private) subroutine of `render` method.
+    """
+    renderobjs = "\n".join(objstrings)
+
+    if "RaytracingCamera" in template:
+        template = re.sub("(.*RaytracingCamera.*)", defaultcam, template)
+        template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
+    else:
+        content = defaultcam + "\n" + renderobjs
+        template = re.sub("(.*RaytracingContent.*)", content, template)
+
+    version_major = sys.version_info.major
+
+    return template.encode("utf8") if version_major < 3 else template
+
+
+class RenderingError(Exception):
+    """Exception to be raised when a blocking error occurs during rendering."""
+
+    def __init__(self, message):
+        """Initialize exception."""
+        super().__init__()
+        prefix1 = "[Render] "
+        prefix2 = translate("Render", "Cannot render project:")
+        self.message = prefix1 + prefix2 + " " + message
 
 
 class ViewProviderProject(ViewProviderBase):
@@ -532,6 +611,14 @@ class ViewProviderProject(ViewProviderBase):
             "change_template",
         ),
     ]
+
+    def __init__(self, vobj):
+        super().__init__(vobj)
+        # This is a workaround to avoid a subtle bug in _ArchMaterial.execute
+        # if a material is erroneously set on the project (it can happen...)
+        vobj.addProperty(
+            "App::PropertyBool", "UseMaterialColor"
+        ).UseMaterialColor = False
 
     def on_delete_cb(self, feature, subelements):
         """Respond to delete object event (callback)."""
@@ -568,10 +655,16 @@ class ViewProviderProject(ViewProviderBase):
         This method calls proxy's 'render' method.
         """
         try:
-            self.fpo.Proxy.render()
+            render_method = self.fpo.Proxy.render
         except AttributeError as err:
             msg = translate("Render", "[Render] Cannot render: {e}") + "\n"
             App.Console.PrintError(msg.format(e=err))
+            return
+
+        try:
+            render_method()
+        except RenderingError as err:
+            App.Console.PrintError(err.message + "\n")
 
     def change_template(self):
         """Change the template of the project."""

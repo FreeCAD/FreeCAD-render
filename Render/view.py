@@ -1,7 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
-# *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2022 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -49,7 +49,7 @@ class View(FeatureBase):
     PROPERTIES = {
         "Source": Prop(
             "App::PropertyLink",
-            "Render",
+            "Base",
             QT_TRANSLATE_NOOP(
                 "App::Property", "The source object of this view"
             ),
@@ -58,18 +58,32 @@ class View(FeatureBase):
         ),
         "Material": Prop(
             "App::PropertyLink",
-            "Render",
-            QT_TRANSLATE_NOOP("App::Property", "The material of this view"),
+            "Material & Textures",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The material of this view (optional, should preferably be "
+                "set in the source object)",
+            ),
             None,
             0,
         ),
         "ViewResult": Prop(
             "App::PropertyString",
-            "Render",
+            "Base",
             QT_TRANSLATE_NOOP(
-                "App::Property", "The rendering output of this view"
+                "App::Property", "The rendering output of this view (computed)"
             ),
             "",
+            1,
+        ),
+        "UvProjection": Prop(
+            "App::PropertyEnumeration",
+            "Material & Textures",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "The type of UV projection to use for textures",
+            ),
+            ("Cubic", "Spherical", "Cylindric"),
             0,
         ),
     }

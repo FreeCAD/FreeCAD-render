@@ -41,6 +41,8 @@ from Render.taskpanels import MaterialSettingsTaskPanel
 from Render.project import Project, user_select_template
 from Render.camera import Camera
 from Render.lights import PointLight, AreaLight, SunskyLight, ImageLight
+from Render.rendermaterial import is_multimat
+from Render.help import open_help
 
 
 class RenderProjectCommand:
@@ -195,7 +197,7 @@ class CameraCommand:
             "MenuText": QT_TRANSLATE_NOOP("CameraCommand", "Camera"),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "CameraCommand",
-                "Create a Camera object from " "the current camera position",
+                "Create a Camera object from the current camera position",
             ),
         }
 
@@ -346,7 +348,7 @@ class MaterialRenderSettingsCommand:
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialRenderSettingsCommand",
-                "Edit rendering parameters of " "the selected Material",
+                "Edit rendering parameters of the selected Material",
             ),
         }
 
@@ -392,7 +394,7 @@ class MaterialApplierCommand:
             title = translate("Render", "Empty Selection")
             msg = translate(
                 "Render",
-                "Please select object(s) before applying " "material.",
+                "Please select object(s) before applying material.",
             )
             QMessageBox.warning(None, title, msg)
             return
@@ -401,7 +403,7 @@ class MaterialApplierCommand:
         mats = [
             o
             for o in App.ActiveDocument.Objects
-            if o.isDerivedFrom("App::MaterialObjectPython")
+            if o.isDerivedFrom("App::MaterialObjectPython") or is_multimat(o)
         ]
         if not mats:
             title = translate("Render", "No Material")
@@ -467,6 +469,29 @@ class MaterialApplierCommand:
                 )
                 App.Console.PrintError(msg % obj.Label)
         App.ActiveDocument.commitTransaction()
+
+
+class HelpCommand:
+    """GUI command to open help."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "Help.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("HelpCommand", "Help"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "HelpCommand",
+                "Open Render help",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It creates a new camera into the active document.
+        """
+        open_help()
 
 
 # ===========================================================================
@@ -549,6 +574,8 @@ def _init_gui_commands():
         ("Materials", materials_group),
         separator,
         ("Render", RenderCommand()),
+        separator,
+        ("Help", HelpCommand()),
     ]
 
     result = []

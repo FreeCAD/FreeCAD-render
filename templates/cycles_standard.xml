@@ -1,19 +1,23 @@
 <cycles>
 
-    <!-- Camera -->
-    <camera width="800" height="500" />
+<!-- Integrator -->
+<integrator
+    max_volume_bounce="0"
+    method="branched_path"
+    sample_all_lights_direct="true"
+    sample_all_lights_indirect="true"
+/>
 
-    <!--RaytracingCamera-->
+<!-- Camera -->
+<camera width="800" height="500" />
+<!--RaytracingCamera-->
 
-    <!-- Integrator -->
-    <integrator max_volume_bounce="0" method="branched_path" sample_all_lights_direct="true" sample_all_lights_indirect="true"/>
+<!-- Background Shader -->
+<background>
+    <background name="bg" strength="2.0" color="0.2, 0.2, 0.2" />
+    <connect from="bg background" to="output surface" />
+</background>
 
-    <!-- Background Shader -->
-    <background>
-        <background name="bg" strength="2.0" color="0.2, 0.2, 0.2" />
-        <connect from="bg background" to="output surface" />
-    </background>
-
-    <!--RaytracingContent-->
+<!--RaytracingContent-->
 
 </cycles>

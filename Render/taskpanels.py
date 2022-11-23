@@ -25,10 +25,11 @@
 
 
 import os
+import re
+from enum import Enum, auto
 
 from PySide.QtGui import (
     QPushButton,
-    QCheckBox,
     QColor,
     QColorDialog,
     QPixmap,
@@ -39,11 +40,17 @@ from PySide.QtGui import (
     QListWidgetItem,
     QPlainTextEdit,
     QLayout,
-    QHBoxLayout,
-    QWidget,
     QListView,
     QLineEdit,
     QDoubleValidator,
+    QGridLayout,
+    QRadioButton,
+    QGroupBox,
+    QLabel,
+    QSizePolicy,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
 )
 from PySide.QtCore import (
     QT_TRANSLATE_NOOP,
@@ -53,6 +60,7 @@ from PySide.QtCore import (
     QLocale,
     QSize,
 )
+
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -68,12 +76,13 @@ from Render.constants import (
     USERMATERIALDIR,
 )
 from Render.utils import str2rgb, translate, parse_csv_str
-from Render.rdrmaterials import (
+from Render.rendermaterial import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
     is_valid_material,
     passthrough_keys,
 )
+from Render.texture import str2imageid, str2imageid_ext
 
 
 class ColorPicker(QPushButton):
@@ -118,14 +127,132 @@ class ColorPicker(QPushButton):
         return f"({color.redF()},{color.greenF()},{color.blueF()})"
 
 
-class ColorPickerExt(QWidget):
+class ColorOption(Enum):
+    """Options for Colors in Material."""
+
+    OBJECT = auto()
+    CONSTANT = auto()
+    TEXTURE = auto()
+
+
+class TexturePicker(QComboBox):
+    """A texture picker widget.
+
+    This widget provides a combo box, allowing to select a texture.
+    """
+
+    def __init__(self, image_list, current_image):
+        """Initialize texture picker.
+
+        Args:
+            image_list -- list of texture images (list of Texture.ImageId)
+            current_image -- current texture image in list (Texture.ImageId)
+        """
+        super().__init__()
+        current_item = -1
+        for imageid in image_list:
+            texture = App.ActiveDocument.getObject(imageid.texture)
+            full_filename = texture.getPropertyByName(imageid.image)
+            filename = (
+                f'"{os.path.basename(full_filename)}"'
+                if full_filename
+                else "<No file>"
+            )
+            texturelabel = texture.Label
+            text = f"{texturelabel} - {imageid.image} ({filename})"
+            self.addItem(text, imageid)
+            if imageid == current_image:
+                current_item = self.count() - 1
+        self.setCurrentIndex(current_item)
+
+    def get_texture_text(self):
+        """Get user selected value in text format."""
+        imageid = self.currentData()
+        res = (
+            f"('{imageid.texture}','{imageid.image}')"
+            if imageid
+            else "('','')"
+        )
+        return res
+
+
+class TexturePickerExt(QWidget):
+    """A texture picker widget, with a scalar entry field.
+
+    This widget provides a combo box, allowing to select a texture, and an
+    float entry field to specify a scalar for the texture (can be factor,
+    strength, distance...)
+    It is mostly intended for bump texture.
+    """
+
+    def __init__(
+        self, image_list, current_image, init_scalar, scalar_label=None
+    ):
+        """Initialize texture picker.
+
+        Args:
+            image_list -- list of texture images (list of Texture.ImageId)
+            current_image -- current texture image in list (Texture.ImageId)
+            init_scalar -- initialization value for scalar (float)
+            scalar_label -- label for scalar (string)
+        """
+        super().__init__()
+
+        # Initialize layout
+        self.setLayout(QVBoxLayout())
+
+        # Normalize scalar
+        try:
+            init_scalar = QLocale().toString(float(init_scalar))
+        except (ValueError, TypeError):
+            init_scalar = None
+
+        # Texture picker
+        self.texturepicker = TexturePicker(image_list, current_image)
+        self.layout().addWidget(self.texturepicker)
+
+        # Scalar box
+        scalar_layout = QHBoxLayout()
+        self.layout().addLayout(scalar_layout)
+
+        if scalar_label is not None:
+            self.scalarlabel = QLabel()
+            self.scalarlabel.setText(scalar_label)
+            scalar_layout.addWidget(self.scalarlabel)
+
+        self.scalarbox = QLineEdit()
+        self.scalarbox.setAlignment(Qt.AlignRight)
+        self.scalarbox.setValidator(QDoubleValidator())
+        self.scalarbox.setText(init_scalar)
+        scalar_layout.addWidget(self.scalarbox)
+        # self.scalarbox.setEnabled(False)
+
+    def get_texture_text(self):
+        """Get user selected value in text format."""
+        imageid = self.texturepicker.currentData()
+        scalar, _ = QLocale().toDouble(self.scalarbox.text())
+        res = (
+            f"('{imageid.texture}','{imageid.image}','{scalar}')"
+            if imageid
+            else f"('','','{scalar}')"
+        )
+        return res
+
+
+class ColorPickerExt(QGroupBox):
     """An extended color picker widget.
 
     This widget provides a color picker, and also a checkbox that allows to
     specify to use object color in lieu of color selected in the picker.
     """
 
-    def __init__(self, color=QColor(127, 127, 127), use_object_color=False):
+    def __init__(
+        self,
+        option=ColorOption.OBJECT,
+        color=QColor(127, 127, 127),
+        image_list=None,
+        current_image=None,
+    ):
         """Initialize widget.
 
         Args:
@@ -134,42 +261,243 @@ class ColorPickerExt(QWidget):
                 color' checkbox
         """
         super().__init__()
-        self.use_object_color = use_object_color
-        self.colorpicker = ColorPicker(color)
-        self.checkbox = QCheckBox()
-        self.checkbox.setText(translate("Render", "Use object color"))
-        self.setLayout(QHBoxLayout())
-        self.layout().addWidget(self.colorpicker)
-        self.layout().addWidget(self.checkbox)
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        QObject.connect(
-            self.checkbox,
-            SIGNAL("stateChanged(int)"),
-            self.on_object_color_change,
+        if image_list is None:
+            image_list = []
+        self.setLayout(QGridLayout())
+        self.layout().setColumnStretch(0, 0)
+        self.layout().setColumnStretch(1, 10)
+
+        # Object color option
+        self.button_objectcolor = QRadioButton(
+            translate("Render", "Use object color")
         )
-        self.checkbox.setChecked(use_object_color)
+        self.layout().addWidget(self.button_objectcolor, 0, 0)
 
-    def get_color_text(self):
-        """Get color picker value, in text format."""
-        return self.colorpicker.get_color_text()
+        # Constant color option
+        self.button_constantcolor = QRadioButton(
+            translate("Render", "Use constant color")
+        )
+        self.colorpicker = ColorPicker(color)
+        self.layout().addWidget(self.button_constantcolor, 1, 0)
+        self.layout().addWidget(self.colorpicker, 1, 1)
+        self.colorpicker.setEnabled(False)
+        QObject.connect(
+            self.button_constantcolor,
+            SIGNAL("toggled(bool)"),
+            self.colorpicker.setEnabled,
+        )
 
-    def get_use_object_color(self):
-        """Get 'use object color' checkbox value."""
-        return self.checkbox.isChecked()
+        # Texture option
+        self.button_texture = QRadioButton(translate("Render", "Use texture"))
+        self.texturepicker = TexturePicker(image_list, current_image)
+        self.layout().addWidget(self.button_texture, 2, 0)
+        self.layout().addWidget(self.texturepicker, 2, 1)
+        self.texturepicker.setEnabled(False)
+        QObject.connect(
+            self.button_texture,
+            SIGNAL("toggled(bool)"),
+            self.texturepicker.setEnabled,
+        )
+
+        # Initialize (select button)
+        if option == ColorOption.OBJECT:
+            self.button_objectcolor.setChecked(True)
+        elif option == ColorOption.CONSTANT:
+            self.button_constantcolor.setChecked(True)
+        elif option == ColorOption.TEXTURE:
+            self.button_texture.setChecked(True)
 
     def get_value(self):
         """Get widget output value."""
-        res = ["Object"] if self.get_use_object_color() else []
-        res += [self.get_color_text()]
+        if self.button_objectcolor.isChecked():
+            res = ["Object"]
+        elif self.button_constantcolor.isChecked():
+            res = []
+        elif self.button_texture.isChecked():
+            res = ["Texture"]
+            res += [self.texturepicker.get_texture_text()]
+
+        res += [self.colorpicker.get_color_text()]
         return ";".join(res)
 
-    def setToolTip(self, desc):
-        """Set widget tooltip."""
-        self.colorpicker.setToolTip(desc)
 
-    def on_object_color_change(self, state):
-        """Respond to checkbox change event."""
-        self.colorpicker.setEnabled(not state)
+class FloatOption(Enum):
+    """Options for Float in Material."""
+
+    CONSTANT = auto()
+    TEXTURE = auto()
+
+
+class FloatBox(QGroupBox):
+    """A float value input box widget.
+
+    This widget provides a field to enter a float, and also a
+    checkbox that allows to specify a texture in lieu of the float.
+    """
+
+    def __init__(
+        self,
+        option=FloatOption.CONSTANT,
+        default=0.0,
+        image_list=None,
+        current_image=None,
+    ):
+        """Initialize widget.
+
+        Args:
+          option -- selected option (constant/texture) at initialization
+          default -- default value
+          image_list -- list of selectable image for texture
+          current_image -- selected image index at initialization
+        """
+        super().__init__()
+
+        # Normalize arguments
+        if image_list is None:
+            image_list = []
+        try:
+            default = QLocale().toString(float(default))
+        except (ValueError, TypeError):
+            default = None
+
+        # Initialize layout
+        self.setLayout(QGridLayout())
+        self.layout().setColumnStretch(0, 0)
+        self.layout().setColumnStretch(1, 10)
+
+        # Constant value option
+        self.button_constantvalue = QRadioButton(
+            translate("Render", "Use constant value")
+        )
+        self.floatbox = QLineEdit()
+        self.floatbox.setAlignment(Qt.AlignRight)
+        self.floatbox.setValidator(QDoubleValidator())
+        self.floatbox.setText(default)
+        self.layout().addWidget(self.button_constantvalue, 1, 0)
+        self.layout().addWidget(self.floatbox, 1, 1)
+        self.floatbox.setEnabled(False)
+        QObject.connect(
+            self.button_constantvalue,
+            SIGNAL("toggled(bool)"),
+            self.floatbox.setEnabled,
+        )
+
+        # Texture option
+        self.button_texture = QRadioButton(translate("Render", "Use texture"))
+        self.texturepicker = TexturePicker(image_list, current_image)
+        self.layout().addWidget(self.button_texture, 2, 0)
+        self.layout().addWidget(self.texturepicker, 2, 1)
+        self.texturepicker.setEnabled(False)
+        QObject.connect(
+            self.button_texture,
+            SIGNAL("toggled(bool)"),
+            self.texturepicker.setEnabled,
+        )
+
+        # Initialize (select button)
+        if option == FloatOption.CONSTANT:
+            self.button_constantvalue.setChecked(True)
+        elif option == FloatOption.TEXTURE:
+            self.button_texture.setChecked(True)
+
+    def get_value(self):
+        """Get widget output value."""
+        if self.button_constantvalue.isChecked():
+            res = []
+        elif self.button_texture.isChecked():
+            res = ["Texture"]
+            res += [self.texturepicker.get_texture_text()]
+        else:
+            res = []
+
+        floatval, _ = QLocale().toDouble(self.floatbox.text())
+        res += [str(floatval)]
+
+        return ";".join(res)
+
+
+class TexonlyOption(Enum):
+    """Options for normals in Material."""
+
+    NO_VALUE = auto()
+    TEXTURE = auto()
+
+
+class TexonlyPicker(QGroupBox):
+    """A texture only input widget.
+
+    This widget provides a way to enter a texture only, or nothing,
+    like a bump texture in a material.
+    """
+
+    def __init__(
+        self,
+        option=TexonlyOption.NO_VALUE,
+        image_list=None,
+        current_image=None,
+        with_scalar=False,
+        scalar_init=1.0,
+        scalar_label=None,
+    ):
+        """Initialize widget.
+
+        Args:
+          option -- selected option (no use/texture) at initialization
+          image_list -- list of selectable image for texture
+          current_image -- selected image index at initialization
+          with_scalar -- flag to add a 'scalar' entry field
+          scalar_init -- value to initialize 'scalar' field
+          scalar_label -- label for scalar entry field
+        """
+        super().__init__()
+
+        # Normalize arguments
+        if image_list is None:
+            image_list = []
+
+        # Initialize layout
+        self.setLayout(QGridLayout())
+        self.layout().setColumnStretch(0, 0)
+        self.layout().setColumnStretch(1, 10)
+
+        # No value option
+        self.button_novalue = QRadioButton(translate("Render", "Don't use"))
+        self.layout().addWidget(self.button_novalue, 0, 0)
+
+        # Texture option
+        self.button_texture = QRadioButton(translate("Render", "Use texture"))
+        if not with_scalar:
+            self.texturepicker = TexturePicker(image_list, current_image)
+        else:
+            self.texturepicker = TexturePickerExt(
+                image_list, current_image, scalar_init, scalar_label
+            )
+        self.layout().addWidget(self.button_texture, 1, 0)
+        self.layout().addWidget(self.texturepicker, 1, 1)
+        self.texturepicker.setEnabled(False)
+        QObject.connect(
+            self.button_texture,
+            SIGNAL("toggled(bool)"),
+            self.texturepicker.setEnabled,
+        )
+
+        # Initialize (select button)
+        if option == TexonlyOption.NO_VALUE:
+            self.button_novalue.setChecked(True)
+        elif option == TexonlyOption.TEXTURE:
+            self.button_texture.setChecked(True)
+
+    def get_value(self):
+        """Get widget output value."""
+        if self.button_novalue.isChecked():
+            res = []
+        elif self.button_texture.isChecked():
+            res = ["Texture"]
+            res += [self.texturepicker.get_texture_text()]
+        else:
+            res = []
+
+        return ";".join(res)
 
 
 class MaterialSettingsTaskPanel:
@@ -292,8 +620,7 @@ class MaterialSettingsTaskPanel:
             father = material.Material["Father"]
         except KeyError:
             father = ""
-        finally:
-            self.father_field.setText(father)
+        self.father_field.setText(father)
 
     def on_material_type_changed(self, material_type):
         """Respond to material type changed event."""
@@ -305,11 +632,14 @@ class MaterialSettingsTaskPanel:
         else:
             self._delete_fields()
             mat_name = self.material_combo.currentText()
+            material = self.existing_materials[mat_name]
+            # Get available texture images
+            images = material.Proxy.get_texture_images()
             for param in params:
                 value = self.existing_materials[mat_name].Material.get(
                     f"Render.{material_type}.{param.name}"
                 )
-                self._add_field(param, value)
+                self._add_field(param, value, images)
 
     def on_passthrough_renderer_changed(self, renderer):
         """Respond to passthrough renderer changed event."""
@@ -356,44 +686,132 @@ class MaterialSettingsTaskPanel:
             item = layout.itemAt(index)
             item.widget().setVisible(flag)
 
-    def _add_field(self, param, value):
-        """Add a field to the task panel."""
+    def _add_field(self, param, value, teximages=None):
+        """Add a field to the task panel.
+
+        Args:
+            param -- Parameter description (rendermaterial.Param)
+            value -- Initial value
+            teximages -- List of appliable texture images (texture.ImageInfo)
+        """
         name = param.name
+        teximages = [] if teximages is None else teximages
+        parsedvalue = parse_csv_str(value) if value else None
+
         if param.type == "float":
-            widget = QLineEdit()
-            widget.setAlignment(Qt.AlignRight)
-            widget.setValidator(QDoubleValidator())
-            try:
-                value = QLocale().toString(float(value))
-            except (ValueError, TypeError):
-                value = None
-            widget.setText(value)
-            self.fields.append(
-                (name, lambda: QLocale().toDouble(widget.text())[0])
-            )
-        elif param.type == "RGB":
-            if value:
-                parsedvalue = parse_csv_str(value)
-                if "Object" not in parsedvalue:
-                    color = str2rgb(parsedvalue[0])
-                    use_object_color = False
+            if parsedvalue:
+                if "Constant" in parsedvalue:
+                    # Constant
+                    option = FloatOption.CONSTANT
+                    texture = None
+                    default = parsedvalue[1]
+                elif "Texture" in parsedvalue:
+                    # Texture
+                    option = FloatOption.TEXTURE
+                    texture = str2imageid(parsedvalue[1])
+                    default = parsedvalue[2] if len(parsedvalue) > 2 else None
                 else:
-                    use_object_color = True
-                    if len(parsedvalue) > 1:
-                        color = str2rgb(parsedvalue[1])
-                    else:
-                        color = (0.8, 0.8, 0.8)
-                qcolor = QColor.fromRgbF(*color)
-                widget = ColorPickerExt(qcolor, use_object_color)
+                    # Constant (fallback)
+                    option = FloatOption.CONSTANT
+                    texture = None
+                    default = parsedvalue[0]
+                widget = FloatBox(option, default, teximages, texture)
             else:
-                widget = ColorPickerExt()
-            self.fields.append((name, widget.get_value))
+                # value is empty, default initialization
+                widget = FloatBox(image_list=teximages)
+        elif param.type == "RGB":
+            default_color = (0.8, 0.8, 0.8)  # Default value
+            if parsedvalue:
+                if "Object" in parsedvalue:
+                    # Object color
+                    option = ColorOption.OBJECT
+                    texture = None
+                    color = (
+                        str2rgb(parsedvalue[1])
+                        if len(parsedvalue) > 1
+                        else default_color
+                    )
+                elif "Constant" in parsedvalue:
+                    # Constant
+                    option = ColorOption.CONSTANT
+                    texture = None
+                    color = str2rgb(parsedvalue[1])
+                elif "Texture" in parsedvalue:
+                    # Texture
+                    option = ColorOption.TEXTURE
+                    texture = str2imageid(parsedvalue[1])
+                    color = (
+                        str2rgb(parsedvalue[2])
+                        if len(parsedvalue) > 2
+                        else default_color
+                    )
+                else:
+                    # Constant (fallback)
+                    option = ColorOption.CONSTANT
+                    texture = None
+                    color = str2rgb(parsedvalue[0])
+                qcolor = QColor.fromRgbF(*color)
+                widget = ColorPickerExt(option, qcolor, teximages, texture)
+            else:
+                # value is empty, default initialization
+                widget = ColorPickerExt(image_list=teximages)
+        elif param.type == "texonly":
+            if parsedvalue:
+                if "Texture" in parsedvalue:
+                    # Texture
+                    option = TexonlyOption.TEXTURE
+                    texture = str2imageid(parsedvalue[1])
+                else:
+                    # No value (fallback)
+                    option = TexonlyOption.NO_VALUE
+                    texture = None
+                widget = TexonlyPicker(option, teximages, texture)
+            else:
+                # value is empty, default initialization
+                widget = TexonlyPicker(image_list=teximages)
+        elif param.type == "texscalar":
+            label = translate("Render", "Factor:")
+            if parsedvalue:
+                if "Texture" in parsedvalue:
+                    # Texture
+                    option = TexonlyOption.TEXTURE
+                    texture, scalar = str2imageid_ext(parsedvalue[1])
+                else:
+                    # No value (fallback)
+                    option = TexonlyOption.NO_VALUE
+                    texture = None
+                widget = TexonlyPicker(
+                    option,
+                    teximages,
+                    texture,
+                    with_scalar=True,
+                    scalar_init=scalar,
+                    scalar_label=label,
+                )
+            else:
+                # value is empty, default initialization
+                widget = TexonlyPicker(
+                    image_list=teximages, with_scalar=True, scalar_label=label
+                )
         else:
-            widget = QLineEdit()
-            self.fields.append((name, widget.text))
+            raise NotImplementedError(param.type)
+
+        # Append widget to fields and set widget tooltip
+        self.fields.append((name, widget.get_value))
         widget.setToolTip(param.desc)
+
+        # Prepare label
+        text = [a for a in re.split(r"([A-Z][a-z]*\d*)", param.name) if a]
+        text = " ".join(text)
+        label = QLabel()
+        label.setText(text + ":")
+        size_policy = QSizePolicy()
+        size_policy.setVerticalPolicy(QSizePolicy.Expanding)
+        label.setSizePolicy(size_policy)
+
+        # Add label and widget
         layout = self.form.findChild(QLayout, "FieldsLayout")
-        layout.addRow(f"{param.name}:", widget)
+        layout.addRow(label, widget)
 
     def _delete_fields(self):
         """Delete all fields, except the first one (MaterialType selector)."""
@@ -471,6 +889,22 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
     def __init__(self, obj=None):
         super().__init__(obj)
         self.form.setWindowTitle("Render Material")
+        # Disable copy from existant (buggy with textures...)
+        self.form.comboBox_FromExisting.hide()
+
+        # Disable color buttons (error-prone) and replace with message
+        self.form.ButtonColor.hide()
+        self.form.label.hide()
+        self.form.ButtonSectionColor.hide()
+        self.form.label_8.hide()
+        self.form.SpinBox_Transparency.hide()
+        self.form.label_6.hide()
+        msg = """\
+*Nota: If you want to set color or other aspect parameters of the material, \
+please edit 'Render settings' from material context menu.*"""
+        label = QLabel(msg)
+        label.setTextFormat(Qt.TextFormat.MarkdownText)
+        self.form.layout().addWidget(label)
 
     def fillMaterialCombo(self):
         """Fill Material combo box.
@@ -495,3 +929,29 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         }
         for k in sorted(self.cards.keys()):
             self.form.comboBox_MaterialsInDir.addItem(k)
+
+    def accept(self):
+        """Respond to user acceptation.
+
+        Import the selected card into the underlying material, including
+        textures.
+        """
+        # Get card file path (directory)
+        card = self.form.comboBox_MaterialsInDir.currentText()
+        try:
+            path = self.cards[card]
+        except KeyError:
+            path = None
+        else:
+            path = os.path.dirname(path)
+
+        # Import textures (and remove texture data from self.material)
+        self.material = self.obj.Proxy.import_textures(self.material, path)
+
+        # Update material (relying on base class)
+        super().accept()
+        return True
+
+    def reject(self):  # pylint: disable=no-self-use
+        """Respond to user rejection."""
+        return True

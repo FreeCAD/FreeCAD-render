@@ -31,11 +31,14 @@ class RenderWorkbench(Gui.Workbench):
         """Initialize object."""
         # pylint: disable=import-outside-toplevel
         from PySide.QtCore import QT_TRANSLATE_NOOP
+
         self.__class__.MenuText = "Render"
-        self.__class__.ToolTip = QT_TRANSLATE_NOOP("Render",
-                                                   "The Render workbench is a "
-                                                   "modern replacement for "
-                                                   "the Raytracing workbench")
+        self.__class__.ToolTip = QT_TRANSLATE_NOOP(
+            "Render",
+            "The Render workbench is a "
+            "modern replacement for "
+            "the Raytracing workbench",
+        )
         self.__class__.Icon = """
 /* XPM */
 static char * Render_xpm[] = {
@@ -97,21 +100,24 @@ static char * Render_xpm[] = {
         This method is called by FreeCAD framework when the workbench is first
         loaded.
         """
-        # pylint: disable=no-self-use, import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from FreeCAD import Console
         from FreeCADGui import addIconPath, addPreferencePage, addLanguagePath
         from Render import RENDER_COMMANDS, TRANSDIR, ICONDIR, PREFPAGE
 
         addLanguagePath(TRANSDIR)
-        self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"),
-                           RENDER_COMMANDS)
-        self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"),
-                        RENDER_COMMANDS)
+        self.appendToolbar(
+            QT_TRANSLATE_NOOP("Workbench", "Render"), RENDER_COMMANDS
+        )
+        self.appendMenu(
+            QT_TRANSLATE_NOOP("Workbench", "&Render"), RENDER_COMMANDS
+        )
         addIconPath(ICONDIR)
         addPreferencePage(PREFPAGE, "Render")
-        msg = QT_TRANSLATE_NOOP("Render",
-                                "Loading Render module... done") + "\n"
+        msg = (
+            QT_TRANSLATE_NOOP("Render", "Loading Render module... done") + "\n"
+        )
         Console.PrintLog(msg)
 
     def GetClassName(self):  # pylint: disable=no-self-use

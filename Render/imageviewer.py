@@ -76,7 +76,6 @@ class ImageViewer(QWidget):
         self._img_path = ""
 
         self.setContextMenuPolicy(Qt.CustomContextMenu)
-        # pylint: disable=no-member
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.menu = QMenu()
         self.add_actions_to_menu(self.menu)

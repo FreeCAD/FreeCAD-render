@@ -1,0 +1,49 @@
+/***************************************************************************
+ *                                                                         *
+ *   Copyright (c) 2022 Howetuft <howetuft-at-gmail.com>                   *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU Lesser General Public License (LGPL)    *
+ *   as published by the Free Software Foundation; either version 2 of     *
+ *   the License, or (at your option) any later version.                   *
+ *   for detail see the LICENCE text file.                                 *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU Library General Public License for more details.                  *
+ *                                                                         *
+ *   You should have received a copy of the GNU Library General Public     *
+ *   License along with this program; if not, write to the Free Software   *
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
+ *   USA                                                                   *
+ *                                                                         *
+ ***************************************************************************/
+
+/* "Bump Mapping Unparameterized Surfaces on the GPU"
+ * Morten S. Mikkelsen, 2010 */
+
+shader fc_bump(
+  float in_bump_value = 0.0,
+  float in_bump_factor = 1.0,
+
+  output normal out_normal = N
+)
+{
+  // Surface tangents
+  vector dPdx = Dx(P);
+  vector dPdy = Dy(P);
+  vector Rx = cross(dPdy, N);
+  vector Ry = cross(N, dPdx);
+
+  // Surface determinant
+  float det = dot(dPdx, Rx);
+
+  // Surface gradient
+  float dBx = Dx(in_bump_value);
+  float dBy = Dy(in_bump_value);
+  vector surfgrad = sign(det) * (dBx * Rx + dBy * Ry);
+
+  out_normal = normalize(abs(det) * N - in_bump_factor * surfgrad);
+
+}

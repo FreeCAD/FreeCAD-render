@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2020-2022 Howetuft <howetuft@gmail.com>                 *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -49,11 +49,11 @@ from types import SimpleNamespace
 
 import FreeCAD as App
 import MeshPart
-import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
+from Render.rendermesh import RenderMesh
 from Render import renderables
-import Render.rdrmaterials as materials
+from Render import rendermaterial
 
 
 # ===========================================================================
@@ -130,25 +130,31 @@ class RendererHandler:
             RenderingTypes.IMAGELIGHT: RendererHandler._render_imagelight,
         }
 
-    def render(self, project, prefix, external, output, width, height):
+    def render(
+        self, project, prefix, external, input_file, output_file, width, height
+    ):
         """Run the external renderer.
 
-        This method merely calls external renderer's 'render' method.
+        This method merely calls external renderer's 'render' method, after
+        having cleared rendermaterial's cache.
 
         Params:
-        - project:  the project to render
-        - prefix:   a prefix string for call (will be inserted before path to
-                    renderer)
-        - external: a boolean indicating whether to call UI (true) or console
-                    (false) version of renderer
-        - width:    rendered image width, in pixels
-        - height:   rendered image height, in pixels
+        - project:     the project to render
+        - prefix:      a prefix string for call (will be inserted before path
+                       to renderer)
+        - external:    a boolean indicating whether to call UI (true) or
+                       console (false) version of renderer
+        - input_file:  path to input file
+        - output_file: path to output file
+        - width:       rendered image width, in pixels
+        - height:      rendered image height, in pixels
 
         Return:     path to image file generated, or None if no image has been
                     issued by external renderer
         """
+        rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, external, output, width, height
+            project, prefix, external, input_file, output_file, width, height
         )
 
     @staticmethod
@@ -224,6 +230,22 @@ class RendererHandler:
         """
         return str(getattr(self.renderer_module, "TEMPLATE_FILTER", ""))
 
+    def _get_renderer_specifics(self, view):
+        """Get specific parameters of the renderer for a given view."""
+        src = view.Source
+        try:
+            properties = src.PropertiesList
+        except AttributeError:
+            return {}
+        else:
+            rdrname = self.renderer_name
+            res = {
+                p[len(rdrname) :]: src.getPropertyByName(p)
+                for p in properties
+                if p.startswith(rdrname)
+            }
+            return res
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
 
@@ -293,17 +315,18 @@ class RendererHandler:
         vertices = [
             App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
         ]  # Clamp to avoid huge dimensions...
-        mesh = Mesh.Mesh()
+        mesh = RenderMesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
+        mesh.compute_normals()
 
-        mat = materials.get_rendering_material(None, "", color)
+        mat = rendermaterial.get_rendering_material(None, "", color)
 
         # Rescale to meters
         scalemat = App.Matrix()
         scalemat.scale(SCALE, SCALE, SCALE)
         mesh.transform(scalemat)
-        mesh.Placement.Base.multiply(SCALE)  # pylint: disable=no-member
+        mesh.Placement.Base.multiply(SCALE)
 
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
@@ -328,8 +351,16 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
 
-        def mesher(shape):
-            """Mesh a shape."""
+        def mesher(shape, compute_uvmap=True, uvmap_projection=None):
+            """Mesh a shape.
+
+            Args:
+              compute_uvmap -- Determine if an uv map must be computed (bool)
+              uvmap_projection -- Type of uv map to compute (string, see View
+                object and RenderMesh)
+
+            Returns a RenderMesh.
+            """
             # Generate mesh
             mesh = MeshPart.meshFromShape(
                 Shape=shape,
@@ -337,12 +368,16 @@ class RendererHandler:
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
-            # Harmonize normals
+            mesh = RenderMesh(mesh, placement=shape.Placement)
             mesh.harmonizeNormals()
+            if compute_uvmap:
+                mesh.compute_uvmap(uvmap_projection)
             return mesh
 
         source = view.Source
         label = getattr(source, "Label", name)
+        uvproj = getattr(view, "UvProjection", None)
+        specifics = self._get_renderer_specifics(view)
         debug("Object", label, "Processing")
 
         # Build a list of renderables from the object
@@ -350,7 +385,12 @@ class RendererHandler:
         tpboost = self.transparency_boost
         try:
             rends = renderables.get_renderables(
-                source, name, material, mesher, transparency_boost=tpboost
+                source,
+                name,
+                material,
+                mesher,
+                transparency_boost=tpboost,
+                uvprojection=uvproj,
             )
             renderables.check_renderables(rends)
         except (TypeError, ValueError) as err:
@@ -387,10 +427,13 @@ class RendererHandler:
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(
-            RendererHandler._call_renderer, self, "write_mesh"
+            RendererHandler._call_renderer,
+            self,
+            "write_mesh",
+            **specifics,
         )
 
-        get_mat = materials.get_rendering_material
+        get_mat = rendermaterial.get_rendering_material
         rdrname = self.renderer_name
 
         res = [
@@ -421,13 +464,21 @@ class RendererHandler:
         )
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         field_of_view = float(getattr(source, "HeightAngle", 60))
+        specifics = self._get_renderer_specifics(view)
+
         # Rescale
         pos.Base.multiply(SCALE)
         target.multiply(SCALE)
         updir.multiply(SCALE)
 
         return self._call_renderer(
-            "write_camera", name, pos, updir, target, field_of_view
+            "write_camera",
+            name,
+            pos,
+            updir,
+            target,
+            field_of_view,
+            **specifics,
         )
 
     def _render_pointlight(self, name, view):
@@ -445,6 +496,7 @@ class RendererHandler:
         debug("PointLight", name, "Processing")
 
         source = view.Source
+        specifics = self._get_renderer_specifics(view)
 
         # Get location, color
         location = App.Base.Vector(source.Location)
@@ -458,7 +510,12 @@ class RendererHandler:
 
         # Send everything to renderer module
         return self._call_renderer(
-            "write_pointlight", name, location, color, power
+            "write_pointlight",
+            name,
+            location,
+            color,
+            power,
+            **specifics,
         )
 
     def _render_arealight(self, name, view):
@@ -484,6 +541,7 @@ class RendererHandler:
         size_u = float(source.SizeU) * SCALE
         size_v = float(source.SizeV) * SCALE
         transparent = bool(source.Transparent)
+        specifics = self._get_renderer_specifics(view)
 
         # Send everything to renderer module
         return self._call_renderer(
@@ -495,6 +553,7 @@ class RendererHandler:
             color,
             power,
             transparent,
+            **specifics,
         )
 
     def _render_sunskylight(self, name, view):
@@ -514,6 +573,7 @@ class RendererHandler:
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
         albedo = float(src.GroundAlbedo)
+        specifics = self._get_renderer_specifics(view)
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
@@ -524,7 +584,13 @@ class RendererHandler:
         assert direction.Length, "Sun direction is null"
 
         return self._call_renderer(
-            "write_sunskylight", name, direction, distance, turbidity, albedo
+            "write_sunskylight",
+            name,
+            direction,
+            distance,
+            turbidity,
+            albedo,
+            **specifics,
         )
 
     def _render_imagelight(self, name, view):
@@ -542,10 +608,13 @@ class RendererHandler:
         debug("ImageLight", name, "Processing")
         src = view.Source
         image = src.ImageFile
+        specifics = self._get_renderer_specifics(view)
 
-        return self._call_renderer("write_imagelight", name, image)
+        return self._call_renderer(
+            "write_imagelight", name, image, **specifics
+        )
 
-    def _call_renderer(self, method, *args):
+    def _call_renderer(self, method, *args, **kwargs):
         """Call a render method of the renderer module.
 
         Parameters:
@@ -556,7 +625,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         renderer_method = getattr(self.renderer_module, method)
-        return renderer_method(*args)
+        return renderer_method(*args, **kwargs)
 
 
 # ===========================================================================

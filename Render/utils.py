@@ -34,7 +34,10 @@ try:
 except ImportError:
     from Draft import translate as _translate  # 0.18
 
+import PySide2
+
 import FreeCAD as App
+import FreeCADGui as Gui
 
 
 translate = _translate
@@ -104,15 +107,18 @@ def reload(module_name=None):
             "Render.constants",
             "Render.lights",
             "Render.imageviewer",
-            "Render.rdrmaterials",
+            "Render.rendermaterial",
             "Render.rdrhandler",
             "Render.rdrexecutor",
             "Render.renderables",
-            "Render.taskpanels",
+            "Render.rendermesh",
             "Render.utils",
             "Render.view",
+            "Render.texture",
             "Render.material",
             "Render.project",
+            "Render.taskpanels",
+            "Render.help",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",
@@ -135,3 +141,62 @@ def reload(module_name=None):
             print(f"Reload '{mod}'")
             importlib.import_module(mod)
             importlib.reload(module)
+
+    # Clear materials cache
+    print("Clear material cache")
+    rendermaterial = importlib.import_module("Render.rendermaterial")
+    rendermaterial.clear_cache()
+
+
+def set_dryrun(state):
+    """Set dry run parameter on/off.
+
+    Warning: debug purpose only. /!\\
+
+    Args:
+        state -- state to set dry run (boolean)
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    state = bool(state)
+    params.SetBool("DryRun", state)
+
+
+def last_cmd():
+    """Return last executed renderer command (debug purpose)."""
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    last_cmd_cache = params.GetString("LastCommand")
+    return last_cmd_cache
+
+
+def set_last_cmd(cmd):
+    """Set last executed renderer command."""
+    cmd = str(cmd)
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    params.SetString("LastCommand", cmd)
+
+
+def clear_report_view():
+    """Clear report view in FreeCAD Gui."""
+    if not App.GuiUp:
+        return
+    main_window = Gui.getMainWindow()
+
+    report_view = main_window.findChild(
+        PySide2.QtWidgets.QDockWidget, "Report view"
+    )
+    if report_view is None:
+        App.Console.PrintWarning(
+            "Unable to clear report view: QDockWidget not found\n"
+        )
+        return
+
+    text_widget = report_view.findChild(
+        PySide2.QtWidgets.QTextEdit, "Report view"
+    )
+    if text_widget is None:
+        App.Console.PrintWarning(
+            "Unable to clear report view: QTextEdit not found\n"
+        )
+        return
+
+    text_widget.clear()

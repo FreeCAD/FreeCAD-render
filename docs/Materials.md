@@ -64,6 +64,8 @@ At the moment, the following material types are available:
 - Disney
 - Glass
 - Mixed (a mix between Diffuse and Glass)
+- Carpaint
+- Substance_PBR
 You may find more information about those materials and their settings in your
 renderer documentation, or in general CG documentation.
 
@@ -90,7 +92,6 @@ Please note the following remarks:
 
 **At this stage, you should have some usable rendering information attached to your object.**
 **If this is your main goal, you may skip the rest of this page.**
-
 
 ## How Render Workbench uses Material rendering settings
 
@@ -129,6 +130,54 @@ be standard material, as it is the most generic way to do so.
 Indeed, passthrough is a highly renderer-specific way to define a material, and
 should be used only when standard material is not sufficient.
 
+
+## Textures
+
+You can add textures to your material, to be used as inputs to material's parameters.
+To do so, right-click on the material and select 'Add Texture'.
+The new texture appears under the material:
+
+<img src=./material_texture.png alt="MaterialTexture">
+
+
+For the new texture to be usable, you must upload at least one image: set the
+'Image' parameter.
+You can then add as many other images as you want. Textures can indeed be
+composed of different images for different purposes (color, bump map, normal
+map...). Use 'Add image entry' in texture's right-click menu.
+
+
+<img src=./manyimages_texture.png alt="ManyimagesTexture">
+
+Optionally, you can set the mapping parameters (rotation, scale, translation).
+
+Once you have a workable texture, you can use it in rendering parameters:
+right-click on your material, select 'Edit Render Settings' to open your
+material's settings; set the parameter to 'Use texture' and select the texture
+you want in the combo box. You should get something like that:
+
+<img src=./textures.png alt="TextureSettings">
+
+Caveats:
+- Textures cannot be used standalone: they are necessarily linked to a
+  material.
+- A material can only access its own textures (not the textures of another
+  material).
+- The image files will be stored inside the .fcstd file. Large use of
+  textures may affect file size!
+- Normal maps are expected to follow OpenGL convention (not DirectX)
+
+
+## UV mapping
+To correctly position the texture on the object, Render WB generates a UV
+mapping. Three modes are available:
+- Cubic
+- Spherical
+- Cylindrical
+Those modes are accessible in the View of the object, in the parameter
+`UV Projection` under the section `Material & Textures`.
+
+<img src=./UVProjection.png alt="UV Projection">
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
@@ -176,7 +225,28 @@ must fit in one line.
 Standard materials are declared by specifying a type with a `Render.Type`
 parameter, and setting some other parameters specific to this type.
 
+#### Common parameters
+
+All materials will accept the following input parameters:
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.<material>.Bump` | texonly |  | Bump texture
+`Render.<material>.Normal` | texonly |  | Normal texture
+
+Those parameters create bump/normal effects and are "texture only".
+
+Nearly all materials, except `Substance_PBR`, will also accept the following,
+for displacement effect:
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.<material>.Displacement` | texonly |  | Displacement texture
+
+
 #### **Diffuse** Material
+
+A simple matte material, usually based on ideal Lambertian reflection.
 
 `Render.Type=Diffuse`
 
@@ -186,6 +256,10 @@ Parameter | Type | Default value | Description
 
 
 #### **Disney** Material
+
+A versatile material, based on the Disney principled model also known as the
+"PBR" shader, capable of producing a wide variety of materials (e.g., plastic,
+metal...) by combining multiple different layers and lobes.
 
 `Render.Type=Disney`
 
@@ -205,6 +279,9 @@ Parameter | Type | Default value | Description
 
 #### **Glass** Material
 
+A glass-like shader mixing refraction and reflection at grazing angles,
+suitable for transparent materials (glass, water, transparent plastics...).
+
 `Render.Type=Glass`
 
 Parameter | Type | Default value | Description
@@ -212,7 +289,23 @@ Parameter | Type | Default value | Description
 `Render.Glass.IOR` | float | 1.5 | Index of refraction
 `Render.Glass.Color` | RGB | (1, 1, 1) | Transmitted color
 
+#### **Substance_PBR** Material
+
+A shader created to give a good visual match with PBR materials (roughness
+based workflow), specially intended to textured materials.
+
+`Render.Type=Substance_PBR`
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.Substance_PBR.BaseColor` | RGB | (0.8, 0.8, 0.8) | Base color
+`Render.Substance_PBR.Roughness` | float | 0.0 | Roughness
+`Render.Substance_PBR.Metallic` | float | 0.0 | Metallic
+
 #### **Mixed** Material
+
+A material mixing a Diffuse and a Glass submaterials. This material is
+specifically designed to render FreeCAD transparent objects.
 
 `Render.Type=Mixed`
 
@@ -223,7 +316,58 @@ Parameter | Type | Default value | Description
 `Render.Mixed.Diffuse.Color` | RGB | (0.8, 0.8, 0.8) | Diffuse color
 `Render.Mixed.Transparency` | float | 0.5 | Mix ratio between Glass and Diffuse (should stay in [0,1], other values may lead to undefined behaviour)
 
-### Passthrough material
+
+#### Textures
+
+Textures can be added in material card in order to be used by the material.
+
+##### Texture Definition
+A texture can be defined using the following parameters:
+
+Parameter | Type | Default value | Description
+--------- | ---- | ------------- | -----------
+`Render.Textures.<name>.Images.<index>` | string | | Path to image
+`Render.Textures.<name>.Scale` | float | | Scale to be applied to texture
+`Render.Textures.<name>.Rotation` | float | | Rotation to be applied to texture
+`Render.Textures.<name>.TranslationU` | float | | Translation to be applied to texture (U axis)
+`Render.Textures.<name>.TranslationV` | float | | Translation to be applied to texture (V axis)
+
+where:
+- `<name>` is the name you give to the texture
+- `<index>` is the index (unsigned integer) of the image, given that you can
+  add as many images as you want. An important rule however: you must declare
+  at least one image per texture and this image must have index = 0.
+
+The path to image can (should) be relative. In this case, the base directory is
+the one where the material card file is located.
+
+
+##### Texture Reference
+
+Once a texture has been defined, the syntax to reference it in a parameter is:
+
+`<parameter> = Texture(<name>, <index>)`
+
+where:
+- `<parameter>` is the material parameter
+- `<name>` is the texture name (as a string, double-quote enclosed)
+- `<index>` is the index of the image to use (unsigned integer)
+
+For instance:
+
+`Render.Disney.BaseColor = Texture("Wood", 0)`
+
+A default value can be added in case the renderer can't handle the texture.
+This default value can be specified after a semi-colon. Example:
+
+`Render.Disney.BaseColor = Texture("Wood", 0) ; (0.8, 0.8, 0.8)`
+
+
+### **Passthrough** material
+
+A material which allows to pass direct statements to the renderer. Warning:
+the result is renderer-specific.
+
 #### General syntax
 Passthrough materials are defined using `Render.<renderer>.<line>` entries,
 where:
@@ -325,3 +469,29 @@ Render.Appleseed.0016 =     <parameter name="normal_map_up" value="z" />
 Render.Appleseed.0017 =     <parameter name="shade_alpha_cutouts" value="false" />
 Render.Appleseed.0018 = </material>
 ```
+
+#### Example #5: Textured Material
+```INI
+[Rendering]
+Render.Type = Disney
+Render.Disney.BaseColor = Texture("Wood", 0) ; (0.8,0.8,0.8)
+Render.Disney.Subsurface = 0
+Render.Disney.Metallic = 0
+Render.Disney.Specular = 0.5
+Render.Disney.SpecularTint = 0
+Render.Disney.Roughness = Texture("Wood", 1);1
+Render.Disney.Anisotropic = 0
+Render.Disney.Sheen = 0
+Render.Disney.SheenTint = 0
+Render.Disney.ClearCoat = 0
+Render.Disney.ClearCoatGloss = 0
+Render.Disney.ClearCoatGloss = 0
+Render.Disney.Normal = Texture("Wood", 2)
+Render.Disney.Bump = Texture("Wood", 3)
+Render.Textures.Wood.Images.0 = TexturedWood/Wood068_2K_Color.jpg
+Render.Textures.Wood.Images.1 = TexturedWood/Wood068_2K_Roughness.jpg
+Render.Textures.Wood.Images.2 = TexturedWood/Wood068_2K_NormalGL.jpg
+Render.Textures.Wood.Images.3 = TexturedWood/Wood068_2K_Displacement.jpg
+Render.Textures.Wood.Scale = 0.33
+```
+(provided that the sub-folder 'TexturedWood' contains the required image files)

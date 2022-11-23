@@ -60,47 +60,37 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, vertex_normals=False):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
+    matval = material.get_material_values(
+        name, _write_texture, _write_value, _write_texref
+    )
     # Write the mesh as an OBJ tempfile
-    f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-    os.close(f_handle)
-    tmpmesh = mesh.copy()
     # Direct rotation of mesh is preferred to Placement modification
     # because the latter is buggy (normals are not updated...)
     # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
-    tmpmesh.rotate(-pi / 2, 0, 0)  # OK
-    tmpmesh.write(objfile)
+    mesh.rotate(-pi / 2, 0, 0)  # OK
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_")
+    objfile = mesh.write_objfile(
+        name,
+        objfile=basefilename + ".obj",
+        mtlfile=basefilename + ".mtl",
+        mtlname="material",
+        mtlcontent=_write_material(name, matval),
+        normals=vertex_normals,
+    )
 
-    # Fix missing object name in OBJ file (mandatory)
-    # We want to insert a 'o ...' statement before the first 'f ...'
-    # We add also a 'usemtl' statement
-    with open(objfile, "r", encoding="utf-8") as f:
-        buffer = f.readlines()
+    # OBJ is supposed to be in the same directory as final sg file
+    filename = os.path.basename(objfile)
+    filename = filename.encode("unicode_escape").decode("utf-8")
 
-    i = next(i for i, l in enumerate(buffer) if l.startswith("f "))
-    buffer.insert(i, f"o {name}\nusemtl material\n")
-
-    # Write material
-    f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
-    os.close(f_handle)
-    mtl = "newmtl material" + _write_material(name, material)
-    with open(mtlfile, "w", encoding="utf-8") as f:
-        f.write(mtl)
-
-    buffer.insert(0, f"mtllib {os.path.basename(mtlfile)}\n")
-
-    with open(objfile, "w", encoding="utf-8") as f:
-        f.write("".join(buffer))
-
-    snippet_obj = """
+    snippet_obj = f"""
       {{
-        "name": {n},
+        "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {f}
+        "filename": {json.dumps(filename)}
       }},"""
-    filename = objfile.encode("unicode_escape").decode("utf-8")
-    return snippet_obj.format(n=json.dumps(name), f=json.dumps(filename))
+    return snippet_obj
 
 
 def write_camera(name, pos, updir, target, fov):
@@ -210,8 +200,9 @@ intensity {radiance}
 transparency {transparency}
 """
 
-    f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="light_")
-    os.close(f_handle)
+    filebase = App.ActiveDocument.getTempFileName(name + "_")
+
+    mtlfile = f"{filebase}.mtl"
     with open(mtlfile, "w", encoding="utf-8") as f:
         f.write(mtl)
 
@@ -238,21 +229,21 @@ usemtl material
 f 1//1 2//1 3//1 4//1
 """
 
-    f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="light_")
-    os.close(f_handle)
+    objfile = f"{filebase}.obj"
     with open(objfile, "w", encoding="utf-8") as f:
         f.write(obj)
 
     # Return SDL
-    filename = objfile.encode("unicode_escape").decode("utf-8")
-    snippet = """
+    filename = os.path.basename(objfile)
+    filename = filename.encode("unicode_escape").decode("utf-8")
+    snippet = f"""
       {{
-        "name": {n},
+        "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {f}
+        "filename": {json.dumps(filename)}
       }},"""
 
-    return snippet.format(n=json.dumps(name), f=json.dumps(filename))
+    return snippet
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo):
@@ -402,8 +393,8 @@ def write_imagelight(name, image):
   }}
 }}
 """
-    f_handle, gltf_file = tempfile.mkstemp(suffix=".gltf", prefix="light_")
-    os.close(f_handle)
+    gltf_file = App.ActiveDocument.getTempFileName(name + "_") + ".gltf"
+
     # osp requires the hdr file path to be relative from the gltf file path
     # (see GLTFData::createLights insg/importer/glTF.cpp, ),
     # so we have to manipulate paths a bit...
@@ -412,13 +403,14 @@ def write_imagelight(name, image):
     with open(gltf_file, "w", encoding="utf-8") as f:
         f.write(gltf_snippet.format(f=image_relpath))
 
-    snippet = """
+    gltf_file = os.path.basename(gltf_file)
+    snippet = f"""
       {{
-        "name": {n},
+        "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {f}
+        "filename": {json.dumps(gltf_file)}
       }},"""
-    return snippet.format(n=json.dumps(name), f=json.dumps(gltf_file))
+    return snippet
 
 
 # ===========================================================================
@@ -426,128 +418,163 @@ def write_imagelight(name, image):
 # ===========================================================================
 
 
-def _write_material(name, material):
+def _write_material(name, matval):
     """Compute a string in the renderer SDL, to represent a material.
 
     This function should never fail: if the material is not recognized,
     a fallback material is provided.
     """
     try:
-        snippet_mat = MATERIALS[material.shadertype](name, material)
+        material_function = MATERIALS[matval.shadertype]
     except KeyError:
         msg = (
             "'{}' - Material '{}' unknown by renderer, using fallback "
             "material\n"
         )
-        App.Console.PrintWarning(msg.format(name, material.shadertype))
-        snippet_mat = _write_material_fallback(name, material.default_color)
+        App.Console.PrintWarning(msg.format(name, matval.shadertype))
+        snippet_mat = _write_material_fallback(name, matval.default_color)
+    else:
+        snippet_mat = [
+            material_function(name, matval),
+            matval.write_textures(),
+        ]
+        snippet_mat = "".join(snippet_mat)
+
     return snippet_mat
 
 
-def _write_material_passthrough(name, material):
+def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    assert material.passthrough.renderer == "Ospray"
-    snippet = "\n" + material.passthrough.string
-    return snippet.format(n=name, c=material.default_color)
+    snippet = "\n# Passthrough\n" + matval["string"]
+    return snippet.format(n=name, c=matval.default_color)
 
 
-def _write_material_glass(name, material):
+def _write_material_glass(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a glass material."""
-    snippet = """
-type glass
-eta {i}
-attenuationColor {c.r} {c.g} {c.b}
+    snippet = f"""
+# Glass
+type principled
+{matval["ior"]}
+{matval["color"]}
+transmission 1
+specular 1
+metallic 0
+diffuse 0
+opacity 1
+{matval["normal"] if matval.has_normal() else ""}
 """
-    return snippet.format(n=name, c=material.glass.color, i=material.glass.ior)
+    return snippet
 
 
-def _write_material_disney(name, material):
+def _write_material_disney(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Disney material."""
     # Nota1: OSP Principled material does not handle SSS, nor specular tint
     # Nota2: if metallic is set, specular should be 1.0. See here:
     # https://github.com/ospray/ospray_studio/issues/5
-    snippet = """
+    snippet = f"""
+# Disney
 type principled
-baseColor {1.r} {1.g} {1.b}
-# No subsurface scattering ({2})
-metallic {3}
-specular {4}
-# No specular tint ({3})
-roughness {6}
-anisotropy {7}
-sheen {8}
-sheenTint {9}
-coat {10}
-coatRoughness {11}
+{matval["basecolor"]}
+# No subsurface scattering (Ospray limitation)
+{matval["metallic"]}
+{matval["specular"]}
+# No specular tint (Ospray limitation)
+{matval["roughness"]}
+{matval["anisotropic"]}
+{matval["sheen"]}
+{matval["sheentint"]}
+{matval["clearcoat"]}
+{matval["clearcoatgloss"]}
+{matval["normal"] if matval.has_normal() else ""}
 """
-    return snippet.format(
-        name,
-        material.disney.basecolor,
-        material.disney.subsurface,
-        material.disney.metallic,
-        material.disney.specular if not material.disney.metallic else 1.0,
-        material.disney.speculartint,
-        material.disney.roughness,
-        material.disney.anisotropic,
-        material.disney.sheen,
-        material.disney.sheentint,
-        material.disney.clearcoat,
-        1 - float(material.disney.clearcoatgloss),
-    )
+    return snippet
 
 
-def _write_material_diffuse(name, material):
+def _write_material_pbr(name, matval):
+    """Compute a string in the renderer SDL for a Disney material."""
+    # Nota: if metallic is set, specular should be 1.0. See here:
+    # https://github.com/ospray/ospray_studio/issues/5
+    snippet = f"""
+# Pbr ('{name}')
+type principled
+{matval["basecolor"]}
+# No subsurface scattering (Ospray limitation)
+{matval["metallic"]}
+{matval["specular"]}
+{matval["roughness"]}
+{matval["normal"] if matval.has_normal() else ""}
+"""
+    return snippet
+
+
+def _write_material_diffuse(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a Diffuse material."""
-    snippet = """
-type obj
-kd {c.r} {c.g} {c.b}
-ns 2
-"""
-    return snippet.format(n=name, c=material.diffuse.color)
-
-
-def _write_material_mixed(name, material):
-    """Compute a string in the renderer SDL for a Mixed material."""
-    snippet = """
+    snippet = f"""
+# Diffuse
 type principled
-baseColor {k.r} {k.g} {k.b}
-ior {i}
-transmission {t}
-transmissionColor {c.r} {c.g} {c.b}
-opacity {o}
+{matval["color"]}
+metallic 0
+specular 0
+diffuse 1
+{matval["normal"] if matval.has_normal() else ""}
 """
-    return snippet.format(
-        n=name,
-        c=material.mixed.glass.color,
-        i=material.mixed.glass.ior,
-        k=material.mixed.diffuse.color,
-        t=material.mixed.transparency,
-        o=1.0 - material.mixed.transparency,
-    )
+    return snippet
 
 
-def _write_material_carpaint(name, material):
+def _write_material_mixed(name, matval):
+    """Compute a string in the renderer SDL for a Mixed material."""
+    # Glass
+    submat_g = matval.getmixedsubmat("glass", name + "_glass")
+    snippet_g_tex = submat_g.write_textures()
+
+    # Diffuse
+    submat_d = matval.getmixedsubmat("diffuse", name + "_diffuse")
+    snippet_d_tex = submat_d.write_textures()
+
+    transparency = matval.material.mixed.transparency
+    assert isinstance(transparency, float)
+    # TODO Could be texture?
+
+    snippet_mix = f"""
+# Mixed
+type principled
+{submat_d["color"]}
+{submat_g["ior"]}
+transmission {transparency}
+{submat_g["color"]}
+opacity {1 - transparency}
+specular 0.5
+{matval["normal"] if matval.has_normal() else ""}
+"""
+    snippet = [snippet_mix, snippet_d_tex, snippet_g_tex]
+    return "".join(snippet)
+
+
+def _write_material_carpaint(name, matval):  # pylint: disable=unused-argument
     """Compute a string in the renderer SDL for a carpaint material."""
-    snippet = """
+    snippet = f"""
+# Carpaint
 type carPaint
-baseColor {c.r} {c.g} {c.b}
+{matval["basecolor"]}
+{matval["normal"] if matval.has_normal() else ""}
 """
-    return snippet.format(n=name, c=material.carpaint.basecolor)
+    return snippet
 
 
-def _write_material_fallback(name, material):
+def _write_material_fallback(name, matval):
     """Compute a string in the renderer SDL for a fallback material.
 
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(material.default_color.r)
-        grn = float(material.default_color.g)
-        blu = float(material.default_color.b)
+        red = float(matval.material.color.r)
+        grn = float(matval.material.color.g)
+        blu = float(matval.material.color.b)
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
     snippet = """
+# Fallback
 type obj
 kd {r} {g} {b}
 ns 2
@@ -562,7 +589,225 @@ MATERIALS = {
     "Diffuse": _write_material_diffuse,
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
+    "Substance_PBR": _write_material_pbr,
 }
+
+
+# ===========================================================================
+#                              Textures
+# ===========================================================================
+
+# Field mapping from internal materials to OBJ ones (only for non trivial)
+# None will exclude
+_FIELD_MAPPING = {
+    ("Diffuse", "color"): "baseColor",
+    ("Diffuse", "bump"): None,
+    ("Diffuse", "displacement"): None,
+    ("Substance_PBR", "basecolor"): "baseColor",
+    ("Substance_PBR", "bump"): None,
+    ("Disney", "basecolor"): "baseColor",
+    ("Disney", "subsurface"): "",
+    ("Disney", "speculartint"): "",
+    ("Disney", "anisotropic"): "anisotropy",
+    ("Disney", "sheentint"): "sheenTint",
+    ("Disney", "clearcoat"): "coat",
+    ("Disney", "clearcoatgloss"): "coatRoughness",
+    ("Disney", "bump"): None,
+    ("Disney", "displacement"): None,
+    ("Glass", "color"): "transmissionColor",
+    ("Glass", "ior"): "ior",
+    ("Glass", "bump"): None,
+    ("Glass", "displacement"): None,
+    ("Carpaint", "basecolor"): "baseColor",
+    ("Mixed", "transparency"): "transmission",
+    ("Mixed", "diffuse"): "",
+    ("Mixed", "shader"): "",
+    ("Mixed", "glass"): "",
+    ("Mixed", "bump"): None,
+    ("Mixed", "displacement"): None,
+    ("glass", "color"): "transmissionColor",
+    ("diffuse", "color"): "baseColor",
+    ("Passthrough", "string"): "",
+    ("Passthrough", "renderer"): "",
+}
+
+
+def _write_texture(**kwargs):
+    """Compute a string in renderer SDL to describe a texture.
+
+    The texture is computed from a property of a shader (as the texture is
+    always integrated into a shader). Property's data are expected as
+    arguments.
+
+    Args:
+        objname -- Object name for which the texture is computed
+        propname -- Name of the shader property
+        propvalue -- Value of the shader property
+
+    Returns:
+        the name of the texture
+        the SDL string of the texture
+    """
+    # Retrieve material parameters
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    propvalue = kwargs["propvalue"]
+    objname = kwargs["objname"]
+
+    # Get texture parameters
+    filename = os.path.basename(propvalue.file)
+    scale, rotation = float(propvalue.scale), float(propvalue.rotation)
+    translation_u = float(propvalue.translation_u)
+    translation_v = float(propvalue.translation_v)
+
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Exclusions (not supported)
+    if field is None:
+        return propname, ""
+    if propname in [
+        "clearcoatgloss",
+        "ior",
+        "subsurface",
+        "speculartint",
+        "bump",
+        "displacement",
+    ]:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: texture for "
+            f"'{shadertype}::{propname}' "
+            f"is not supported by Ospray. Falling back to default value.\n"
+        )
+        App.Console.PrintWarning(msg)
+        return propname, ""
+
+    # Snippets for texref
+    if proptype in ["RGB", "float", "texonly", "texscalar"]:
+        tex = [
+            f"# Texture {field}",
+            f"map_{field} {filename}",
+            f"map_{field}.rotation {rotation}",
+            f"map_{field}.scale {scale} {scale}",
+            f"map_{field}.translation {translation_u} {translation_v}",
+        ]
+        tex = "\n".join(tex)
+    elif proptype == "node":
+        tex = ""
+    else:
+        raise NotImplementedError(proptype)
+
+    return propname, tex
+
+
+def _write_value(**kwargs):
+    """Compute a string in renderer SDL from a shader property value.
+
+    Args:
+        proptype -- Shader property's type
+        propvalue -- Shader property's value
+
+    The result depends on the type of the value...
+    """
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    val = kwargs["propvalue"]
+    objname = kwargs["objname"]
+    matval = kwargs["matval"]
+
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Exclusions
+    if field is None:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: "
+            f"'{shadertype}::{propname}' is not supported by Ospray. "
+            f"Skipping...\n"
+        )
+        App.Console.PrintWarning(msg)
+        return ""
+
+    # Special cases
+    if propname == "clearcoatgloss":
+        val = 1 - val
+    if propname == "specular":
+        # We have to test "metallic" in order to set specular...
+        try:
+            metallic = matval.material.shaderproperties["metallic"]
+        except KeyError:
+            # No metallic parameter
+            pass
+        else:
+            if hasattr(metallic, "is_texture") or float(metallic):
+                # metallic is a texture or a non-zero value:
+                # specular must be set to something <> 0
+                val = metallic if val <= 0.0 else val
+
+    # Snippets for values
+    if proptype == "RGB":
+        value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8}"
+    elif proptype == "float":
+        value = f"{field} {val:.8}"
+    elif proptype == "node":
+        value = ""
+    elif proptype == "RGBA":
+        value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8} {val.a:.8}"
+    elif proptype == "str":
+        value = f"{field} {val}"
+    else:
+        raise NotImplementedError
+
+    return value
+
+
+def _write_texref(**kwargs):
+    """Compute a string in SDL for a reference to a texture in a shader."""
+    # Retrieve parameters
+    proptype = kwargs["proptype"]
+    propname = kwargs["propname"]
+    shadertype = kwargs["shadertype"]
+    objname = kwargs["objname"]
+    matval = kwargs["matval"]
+
+    field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Exclusions
+    if field is None:
+        msg = (
+            f"[Render] [Ospray] [{objname}] Warning: "
+            f"'{shadertype}::{propname}' is not supported by Ospray. "
+            f"Skipping...\n"
+        )
+        App.Console.PrintWarning(msg)
+        return ""
+    if propname in ["clearcoatgloss", "ior"]:
+        return f"{field} 1.5" if propname == "ior" else f"{field} 1.0"
+
+    # Snippets for values
+    if proptype == "RGB":
+        value = f"{field} 1.0 1.0 1.0"
+    elif proptype == "float":
+        value = f"{field} 1.0"
+    elif proptype == "node":
+        value = f"{field} 1.0"
+    elif proptype == "RGBA":
+        value = f"{field} 1.0 1.0 1.0 1.0"
+    elif proptype == "texonly":
+        value = f"{field} 4.0" if propname == "normal" else f"{field} 1.0"
+    elif proptype == "texscalar":
+        normal_factor = matval.get_normal_factor()
+        bump_factor = matval.get_bump_factor()
+        value = (
+            f"{field} {normal_factor}"
+            if propname == "normal"
+            else f"{field} {bump_factor}"
+        )
+    else:
+        raise NotImplementedError(proptype)
+
+    return value
 
 
 # ===========================================================================
@@ -570,7 +815,7 @@ MATERIALS = {
 # ===========================================================================
 
 
-def render(project, prefix, external, output, width, height):
+def render(project, prefix, external, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
@@ -578,7 +823,9 @@ def render(project, prefix, external, output, width, height):
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
         external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderder
+            (false) version of renderer
+        input_file -- path to input file
+        output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
 
@@ -586,52 +833,21 @@ def render(project, prefix, external, output, width, height):
         The command to run renderer (string)
         A path to output image file (string)
     """
+    # Read result file (in a list)
+    with open(input_file, "r", encoding="utf8") as f:
+        in_file_list = f.readlines()
+
     # Move cameras up to root node
-    cameras = ["\n"]
-    result = []
-    with open(project.PageResult, "r", encoding="utf8") as f:
-        for line in f:
-            if '"camera"' in line:
-                cameras += line
-                nbr = line.count("{") - line.count("}")
-                for line2 in f:
-                    cameras += line2
-                    nbr += line2.count("{") - line2.count("}")
-                    if not nbr:
-                        break
-            else:
-                result += line
-        result[2:2] = cameras
-        result = "".join(result)
+    result = _render_movecamerasup(in_file_list)
+    result = "".join(result)
 
     # Merge light groups
     json_load = json.loads(result)
-    world_children = json_load["world"]["children"]
-    world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
-    lights = []
-
-    def remaining_lightgroups():
-        try:
-            child = world_children[-1]
-        except IndexError:
-            return False
-        return child["type"] == "LIGHTS"
-
-    while remaining_lightgroups():
-        light = world_children.pop()
-        lights += light["children"]
-    lightsmanager_children = json_load["lightsManager"]["children"]
-    lightsmanager_children.extend(lights)
+    _render_mergelightgroups(json_load)
 
     # Write reformatted input to file
-    f_handle, f_path = tempfile.mkstemp(
-        prefix=project.Name, suffix=os.path.splitext(project.Template)[-1]
-    )
-    os.close(f_handle)
-    with open(f_path, "w", encoding="utf-8") as f:
+    with open(input_file, "w", encoding="utf-8") as f:
         f.write(json.dumps(json_load, indent=2))
-    project.PageResult = f_path
-    os.remove(f_path)
 
     # Prepare osp output file
     # Osp renames the output file when writing, so we have to ask it to write a
@@ -656,7 +872,7 @@ def render(project, prefix, external, output, width, height):
         prefix += " "
     rpath = params.GetString("OspPath", "")
     args = params.GetString("OspParameters", "")
-    if output:
+    if output_file:
         args += "  --image " + outfile_for_osp
     if not rpath:
         App.Console.PrintError(
@@ -666,9 +882,61 @@ def render(project, prefix, external, output, width, height):
         )
         return None, None
 
-    cmd = prefix + rpath + " " + args + " " + f'"{project.PageResult}"'
+    cmd = prefix + rpath + " " + args + " " + f'"{input_file}"'
 
     # Note: at the moment (08-20-2022), width, height, background are
     # not managed by osp
 
     return cmd, outfile_actual
+
+
+def _render_mergelightgroups(json_result):
+    """Merge light groups in render result (helper).
+
+    Args:
+        json_result -- result file in json format - in/out argument, will be
+            modified by this function
+    """
+    world_children = json_result["world"]["children"]
+    world_children.sort(key=lambda x: x["type"] == "LIGHTS")  # Lights last
+    lights = []
+
+    def remaining_lightgroups():
+        try:
+            child = world_children[-1]
+        except IndexError:
+            return False
+        return child["type"] == "LIGHTS"
+
+    while remaining_lightgroups():
+        light = world_children.pop()
+        lights += light["children"]
+    lightsmanager_children = json_result["lightsManager"]["children"]
+    lightsmanager_children.extend(lights)
+
+
+def _render_movecamerasup(in_file_list):
+    """Move cameras up in result file (helper).
+
+    Args:
+        in_file_list -- the input file (from merging of template and objects),
+            as a list
+
+    Returns:
+        The input file with cameras at the right place (list)
+    """
+    cameras = ["\n"]
+    result = []
+    camflag = False
+    brace_nbr = 0
+    for line in in_file_list:
+        if '"camera"' in line or camflag:
+            cameras += line
+            camflag = True
+            brace_nbr += line.count("{") - line.count("}")
+            if not brace_nbr and '"camera"' not in line:
+                camflag = False
+        else:
+            result += line
+    result[2:2] = cameras
+    return result

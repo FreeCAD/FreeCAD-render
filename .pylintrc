@@ -7,7 +7,7 @@
 # pygtk.require().
 #
 # Nota: you can add here your own path to FreeCAD if missing...
-init-hook='import sys; sys.path.append("/usr/lib/freecad/lib"); sys.path.append("/usr/lib/freecad/Mod"); sys.path.append("/usr/lib/freecad/Ext"); sys.path.append("C:\\Program Files\\FreeCAD 0.18\\bin"); sys.path.append("C:\\Program Files\\FreeCAD 0.18\\Mod")'
+init-hook='import sys; sys.path.append("/usr/lib/freecad/lib"); sys.path.append("/usr/lib/freecad/Mod"); sys.path.append("/usr/lib/freecad/Mod/Arch"); sys.path.append("/usr/lib/freecad/Ext"); sys.path.append("C:\\Program Files\\FreeCAD 0.18\\bin"); sys.path.append("C:\\Program Files\\FreeCAD 0.18\\Mod")'
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.

@@ -1,0 +1,40 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.12.6.2
+# options: 
+shader fc_add_normal
+param	normal	in_normal1	0 0 0		%read{4,4} %write{0,0} %initexpr
+param	normal	in_normal2	0 0 0		%read{7,7} %write{1,1} %initexpr
+param	float	in_factor	0.5		%read{3,5} %write{2147483647,-1}
+oparam	normal	out_normal	0 0 0		%read{9,9} %write{2,9} %initexpr
+global	normal	N	%read{0,2} %write{2147483647,-1}
+temp	normal	$tmp1	%read{4,4} %write{3,3}
+temp	normal	$tmp2	%read{8,8} %write{4,4}
+temp	normal	$tmp3	%read{7,7} %write{6,6}
+const	float	$const1	1		%read{5,5} %write{2147483647,-1}
+temp	float	$tmp4	%read{6,6} %write{5,5}
+temp	normal	$tmp5	%read{8,8} %write{7,7}
+code in_normal1
+# fc_add_normal.osl:28
+#   normal in_normal1 = N,
+	assign		in_normal1 N 	%filename{"fc_add_normal.osl"} %line{28} %argrw{"wr"}
+code in_normal2
+# fc_add_normal.osl:29
+#   normal in_normal2 = N,
+	assign		in_normal2 N 	%filename{"fc_add_normal.osl"} %line{29} %argrw{"wr"}
+code out_normal
+# fc_add_normal.osl:31
+#   output normal out_normal = N
+	assign		out_normal N 	%filename{"fc_add_normal.osl"} %line{31} %argrw{"wr"}
+code ___main___
+# fc_add_normal.osl:34
+#   out_normal = normal(in_factor) * in_normal1 + normal(1.0 - in_factor) * in_normal2;
+	assign		$tmp1 in_factor 	%filename{"fc_add_normal.osl"} %line{34} %argrw{"wr"}
+	mul		$tmp2 $tmp1 in_normal1 	%argrw{"wrr"}
+	sub		$tmp4 $const1 in_factor 	%argrw{"wrr"}
+	assign		$tmp3 $tmp4 	%argrw{"wr"}
+	mul		$tmp5 $tmp3 in_normal2 	%argrw{"wrr"}
+	add		out_normal $tmp2 $tmp5 	%argrw{"wrr"}
+# fc_add_normal.osl:35
+#   out_normal = normalize(out_normal);
+	normalize	out_normal out_normal 	%line{35} %argrw{"wr"}
+	end
