@@ -32,7 +32,6 @@ import collections
 import types
 import functools
 import uuid
-from collections import namedtuple
 
 import FreeCAD as App
 
@@ -673,7 +672,7 @@ class MaterialValues:
 
 
 # A texture object for exchange with renderers
-RenderTexture = namedtuple(
+RenderTexture = collections.namedtuple(
     "RenderTexture",
     [
         "name",
