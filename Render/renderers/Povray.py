@@ -93,7 +93,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # Normals
     if vertex_normals:
-        nrms = [f"<{n[0]},{n[1]},{n[2]}>" for n in mesh.getPointNormals()]
+        nrms = [f"<{n[0]},{n[2]},{n[1]}>" for n in mesh.getPointNormals()]
         normals = "\n        ".join(nrms)
         len_normals = len(nrms)
         snippet_normals = f"""\
