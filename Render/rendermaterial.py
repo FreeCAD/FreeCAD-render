@@ -462,6 +462,10 @@ class RenderMaterial:
         )
         return materialvalues
 
+    def has_textures(self):
+        """Check if this material has textures."""
+        return any(hasattr(p, "is_texture") for p in self.shaderproperties.values())
+
 
 class MaterialValues:
     """Material values wrapper.
