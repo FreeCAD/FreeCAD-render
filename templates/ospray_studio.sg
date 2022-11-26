@@ -1,0 +1,171 @@
+{
+  %RaytracingCamera%
+  "world": {
+    "type": "WORLD",
+    "children": [
+      %RaytracingContent%
+      {"type": 9999, "name": "End-of-world"}
+    ]
+  },
+  "lightsManager": {
+    "name": "lights",
+    "type": "LIGHTS",
+    "subType": "lights",
+    "children": [
+      {
+        "name": "template_ambient",
+        "description": "Ambient light",
+        "type": 15,
+        "subType": "ambient",
+        "children": [
+          {
+            "description": "whether the light can be seen directly",
+            "name": "visible",
+            "sgOnly": false,
+            "subType": "bool",
+            "type": 1,
+            "value": true
+          },
+          {
+            "description": "intensity of the light (a factor)",
+            "name": "intensity",
+            "sgOnly": false,
+            "subType": "float",
+            "type": 1,
+            "value": 1.0
+          },
+          {
+            "description": "color of the light",
+            "name": "color",
+            "sgOnly": false,
+            "subType": "rgb",
+            "type": 1,
+            "value": [0.3, 0.3, 0.3]
+          },
+          {
+            "description": "OSPRay light type",
+            "name": "type",
+            "sgOnly": true,
+            "subType": "string",
+            "type": 1,
+            "value": "ambient"
+          }
+        ]
+      },
+      {
+        "name": "KEY",
+        "description": "Key light",
+        "type": 15,
+        "subType": "distant",
+        "children": [
+          {
+            "name": "color",
+            "subType": "rgb",
+            "type": "PARAMETER",
+            "value": [1.0, 1.0, 1.0]
+          },
+          {
+            "name": "direction",
+            "subType": "vec3f",
+            "type": "PARAMETER",
+            "value": [-1.0, -1.5, -1.0]
+          },
+          {
+            "name": "intensity",
+            "subType": "float",
+            "type": "PARAMETER",
+            "value": 3.0
+          },
+          {
+            "name": "angularDiameter",
+            "subType": "float",
+            "type": "PARAMETER",
+            "value": 5.0
+          },
+          {
+            "name": "visible",
+            "subType": "bool",
+            "type": "PARAMETER",
+            "value": false
+          }
+        ]
+      },
+      {
+        "name": "FILL",
+        "description": "Fill light",
+        "type": 15,
+        "subType": "distant",
+        "children": [
+          {
+            "name": "color",
+            "subType": "rgb",
+            "type": "PARAMETER",
+            "value": [1.0, 1.0, 1.0]
+          },
+          {
+            "name": "direction",
+            "subType": "vec3f",
+            "type": "PARAMETER",
+            "value": [1.0, -0.5, 1.0]
+          },
+          {
+            "name": "intensity",
+            "subType": "float",
+            "type": "PARAMETER",
+            "value": 1.0
+          },
+          {
+            "name": "angularDiameter",
+            "subType": "float",
+            "type": "PARAMETER",
+            "value": 20.0
+          },
+          {
+            "name": "visible",
+            "subType": "bool",
+            "type": "PARAMETER",
+            "value": false
+          }
+        ]
+      },
+      {
+        "name": "RIM",
+        "description": "Rim light",
+        "type": 15,
+        "subType": "distant",
+        "children": [
+          {
+            "name": "color",
+            "subType": "rgb",
+            "type": "PARAMETER",
+            "value": [1.0, 1.0, 1.0]
+          },
+          {
+            "name": "direction",
+            "subType": "vec3f",
+            "type": "PARAMETER",
+            "value": [0.0, 0.0, 1.0]
+          },
+          {
+            "name": "intensity",
+            "subType": "float",
+            "type": "PARAMETER",
+            "value": 0.3
+          },
+          {
+            "name": "angularDiameter",
+            "subType": "float",
+            "type": "PARAMETER",
+            "value": 20.0
+          },
+          {
+            "name": "visible",
+            "subType": "bool",
+            "type": "PARAMETER",
+            "value": false
+          }
+        ]
+      }
+    ]
+  }
+}
