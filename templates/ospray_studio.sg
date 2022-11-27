@@ -106,7 +106,7 @@
             "name": "direction",
             "subType": "vec3f",
             "type": "PARAMETER",
-            "value": [1.0, -0.5, 1.0]
+            "value": [1.0, -0.5, -1.0]
           },
           {
             "name": "intensity",
@@ -118,7 +118,7 @@
             "name": "angularDiameter",
             "subType": "float",
             "type": "PARAMETER",
-            "value": 20.0
+            "value": 90.0
           },
           {
             "name": "visible",
