@@ -48,11 +48,11 @@
                 </transform>
             </light>
             <light name="__FILL__" model="directional_light">
-                <parameter name="irradiance" value="grey30" />
+                <parameter name="irradiance" value="white" />
                 <parameter name="irradiance_multiplier" value="0.2" />
                 <parameter name="cast_shadows" value="false" />
                 <transform>
-                  <look_at origin="0 0 0" target="1 -0.5 1" up="0 1 0"/>
+                  <look_at origin="0 0 0" target="1 -0.5 -1" up="0 1 0"/>
                 </transform>
             </light>
             <light name="__RIM__" model="directional_light">
