@@ -35,7 +35,7 @@ light_source {
     adaptive 1
 }
 light_source {
-    <-1e9,+0.5e9,+1e9>
+    <-1e9,+0.5e9,-1e9>
     color rgb <0.1,0.1,0.1> shadowless
     parallel
     point_at <0,0,0>
