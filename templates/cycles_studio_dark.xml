@@ -14,7 +14,7 @@
 
 <!-- Studio Lighting -->
 <background>
-    <background name="bg" strength="1.0" color="0.2, 0.2, 0.2" />
+    <background name="bg" strength="1.0" color="0.01, 0.01, 0.01" />
     <connect from="bg background" to="output surface" />
 </background>
 <shader name="studio_white">
@@ -47,7 +47,7 @@
         light_type="distant"
         strength="0.1"
         dir="1 1 -0.5"
-        angle="0.5"
+        angle="2"
         use_mis="true"
         use_camera="false"
     />
