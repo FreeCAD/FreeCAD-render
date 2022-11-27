@@ -32,7 +32,6 @@ import collections
 import types
 import functools
 import uuid
-from collections import namedtuple
 
 import FreeCAD as App
 
@@ -463,6 +462,10 @@ class RenderMaterial:
         )
         return materialvalues
 
+    def has_textures(self):
+        """Check if this material has textures."""
+        return any(hasattr(p, "is_texture") for p in self.shaderproperties.values())
+
 
 class MaterialValues:
     """Material values wrapper.
@@ -673,7 +676,7 @@ class MaterialValues:
 
 
 # A texture object for exchange with renderers
-RenderTexture = namedtuple(
+RenderTexture = collections.namedtuple(
     "RenderTexture",
     [
         "name",

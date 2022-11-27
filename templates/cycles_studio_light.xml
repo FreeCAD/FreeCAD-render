@@ -1,0 +1,68 @@
+<cycles>
+
+<!-- Integrator -->
+<integrator
+    max_volume_bounce="0"
+    method="branched_path"
+    sample_all_lights_direct="true"
+    sample_all_lights_indirect="true"
+/>
+
+<!-- Camera -->
+<camera width="800" height="500" />
+<!--RaytracingCamera-->
+
+<!-- Studio Lighting -->
+<background>
+    <background name="bg" strength="1.0" color="0.2, 0.2, 0.2" />
+    <connect from="bg background" to="output surface" />
+</background>
+<shader name="studio_white">
+    <emission
+        name="studio_emit"
+        color="1.0 1.0 1.0"
+        strength="1"
+    />
+    <connect from="studio_emit emission" to="output surface"/>
+</shader>
+<shader name="studio_gray">
+    <emission
+        name="studio_emit"
+        color="0.3 0.3 0.3"
+        strength="0.2"
+    />
+    <connect from="studio_emit emission" to="output surface"/>
+</shader>
+<state name="KEY" shader="studio_white">
+    <light
+        light_type="distant"
+        strength="1.5 1.5 1.5"
+        dir="-1 1 -1.5"
+        angle="0.3"
+        use_mis="true"
+    />
+</state>
+<state name="FILL" shader="studio_white">
+    <light
+        light_type="distant"
+        strength="0.1"
+        dir="1 1 -0.5"
+        angle="2"
+        use_mis="true"
+        use_camera="false"
+    />
+</state>
+<state name="RIM" shader="studio_white">
+    <light
+        light_type="distant"
+        strength="20"
+        dir="0 -1 0"
+        angle="1.57"
+        use_mis="true"
+        use_camera="false"
+    />
+</state>
+
+<!--RaytracingContent-->
+
+</cycles>

@@ -84,7 +84,6 @@ class RenderMesh:
                 if normals is not None
                 else list(self.__mesh.getPointNormals())
             )
-            self.compute_normals()
         else:
             self.__mesh = Mesh.Mesh()
             self.__normals = []
@@ -394,17 +393,13 @@ class RenderMesh:
         """
         mesh = self.__mesh
 
-        # Get a list of facet normals for each point
-        norms = [
-            (i, f.Normal * f.Area) for f in mesh.Facets for i in f.PointIndices
-        ]
-        norms = sorted(norms, key=lambda x: x[0])
-        norms = [list(group) for _, group in it.groupby(norms, lambda x: x[0])]
-        norms = [[i for _, i in j] for j in norms]
-        # Sum normals and normalize
-        norms = [sum(v, App.Base.Vector()) for v in norms]
-        norms = [n / n.Length if n.Length != 0.0 else n for n in norms]
-
+        norms = [App.Base.Vector()] * mesh.CountPoints
+        for facet in mesh.Facets:
+            weighted_norm = facet.Normal * facet.Area
+            for index in facet.PointIndices:
+                norms[index] += weighted_norm
+        for norm in norms:
+            norm.normalize()
         self.__normals = norms
 
     def _compute_uvmap_cylinder(self):

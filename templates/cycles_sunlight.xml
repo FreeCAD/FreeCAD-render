@@ -35,7 +35,7 @@
 </shader>
 <state shader="SunskyLight_shader_template">
     <light
-        type="distant"
+        light_type="distant"
         co="1 1 1"
         strength="1 1 1"
         dir="-84958977.19280016, 32758678.665038515, -119200843.81611572"
