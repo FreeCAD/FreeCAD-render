@@ -33,8 +33,11 @@ import math
 import enum
 import os
 import tempfile
-import itertools as it
 import operator
+import itertools as it
+import functools
+import concurrent.futures as cf
+import time  # TODO
 
 import FreeCAD as App
 import Mesh
@@ -156,12 +159,21 @@ class RenderMesh:
         return iter(self.__mesh.Points)
 
     @property
+    def Facets(self):  # pylint: disable=invalid-name
+        """Get a collection of the mesh points.
+
+        WARNING! Store Facets in a local variable as it is generated on the
+        fly, each time it is accessed.
+        """
+        return iter(self.__mesh.Facets)
+
+    @property
     def Topology(self):  # pylint: disable=invalid-name
         """Get the points and faces indices as tuples.
 
         Topology[0] is a list of all vertices. Each being a tuple of 3
         coordinates. Topology[1] is a list of all polygons. Each being a list
-        of vertex indice into Topology[0]
+        of vertex indices into Topology[0]
 
         WARNING! Store Topology in a local variable as it is generated on the
         fly, each time it is accessed.
@@ -200,8 +212,12 @@ class RenderMesh:
 
         Returns: the name of file that the function wrote.
         """
+        t = time.time() # TODO
         # Retrieve and normalize arguments
         normals = bool(normals)
+
+        # Initialize
+        vertices, indices = self.Topology
 
         # Get obj file name
         if objfile is None:
@@ -210,8 +226,8 @@ class RenderMesh:
         else:
             objfile = str(objfile)
 
-        # Initialize
-        header = ["# Written by FreeCAD-Render"]
+        # Header
+        header = ["# Written by FreeCAD-Render\n"]
 
         # Mtl
         if mtlcontent is not None:
@@ -223,64 +239,160 @@ class RenderMesh:
                     f"('{objfile}' versus '{mtlfilename}')"
                 )
             mtlfilename = os.path.basename(mtlfilename)
-            mtl = [f"mtllib {mtlfilename}", ""]
+            mtl = [f"mtllib {mtlfilename}\n\n"]
         else:
             mtl = []
 
         # Vertices
-        verts = [p.Vector for p in self.Points]
-        verts = [f"v {v.x} {v.y} {v.z}" for v in verts]
-        verts.insert(0, "# Vertices")
-        verts.append("")
+        verts = (f"v {v.x} {v.y} {v.z}\n" for v in vertices)
+        verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = self.transformed_uvmap(uv_translate, uv_rotate, uv_scale)
             # Format
-            uvs = [f"vt {t.x} {t.y}" for t in uvs]
-            uvs.insert(0, "# Texture coordinates")
-            uvs.append("")
+            uvs = (f"vt {t.x} {t.y}\n" for t in uvs)
+            uvs = it.chain(["# Texture coordinates\n"], uvs, "\n")
         else:
             uvs = []
 
         # Vertex normals
         if normals:
-            norms = [f"vn {n.x} {n.y} {n.z}" for n in self.__normals]
-            norms.insert(0, "# Vertex normals")
-            norms.append("")
+            norms = (f"vn {n.x} {n.y} {n.z}\n" for n in self.__normals)
+            norms = it.chain(["# Vertex normals\n"], norms, "\n")
         else:
             norms = []
 
         # Object name
-        objname = [f"o {name}"]
+        objname = [f"o {name}\n"]
         if mtlname is not None:
-            objname.append(f"usemtl {mtlname}")
-        objname.append("")
+            objname.append(f"usemtl {mtlname}\n")
+        objname.append("\n")
 
         # Faces
         if normals and self.has_uvmap():
-            mask = "{i}/{i}/{i}"
+            mask = "{0}/{0}/{0}"
         elif not normals and self.has_uvmap():
-            mask = "{i}/{i}"
+            mask = "{0}/{0}"
         elif normals and not self.has_uvmap():
-            mask = "{i}//{i}"
+            mask = "{0}//{0}"
         else:
-            mask = "{i}"
+            mask = "{0}"
 
-        faces = [
-            map(lambda x: mask.format(i=x + 1), f) for f in self.Topology[1]
-        ]
-        faces = [" ".join(f) for f in faces]
-        faces = [f"f {f}" for f in faces]
-        faces.insert(0, "# Faces")
+        faces = (" ".join(mask.format(x + 1) for x in f) for f in indices)
+        faces = (f"f {f}\n" for f in faces)
+        faces = it.chain(["# Faces\n"], faces)
 
-        res = header + mtl + verts + uvs + norms + objname + faces
-        res = "\n".join(res)
+        res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
+
+        print("write_objfile (compute)", time.time() - t)  # TODO
 
         with open(objfile, "w", encoding="utf-8") as f:
-            f.write(res)
+            f.writelines(res)
 
+        print("write_objfile (write)", time.time() - t)  # TODO
+
+        return objfile
+
+    def write_objfile2(
+        self,
+        name,
+        objfile=None,
+        mtlfile=None,
+        mtlname=None,
+        mtlcontent=None,
+        normals=True,
+        uv_translate=App.Base.Vector2d(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Docstring to complete."""  # TODO
+        t = time.time() # TODO
+
+        # Get obj file name
+        if objfile is None:
+            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+            os.close(f_handle)
+        else:
+            objfile = str(objfile)
+
+        # Write everything
+        with open(
+            objfile, "w", encoding="utf-8"
+        ) as f, cf.ThreadPoolExecutor() as executor:
+
+            def format_and_write(values, fmt):
+                def aux(value):
+                    output = fmt.format(v=value)
+                    f.write(output)
+
+                # format_and_write starts here
+                futs = [executor.submit(aux, p) for p in values]
+                cf.wait(futs)
+
+            # Initialize
+            topology = self.Topology
+
+            # Header
+            f.write("# Written by FreeCAD-Render\n")
+
+            # Mtl
+            if mtlcontent is not None:
+                # Write mtl file
+                mtlfilename = RenderMesh.write_mtl(
+                    mtlname, mtlcontent, mtlfile
+                )
+                if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
+                    raise ValueError(
+                        "OBJ and MTL files shoud be in the same dir\n"
+                        f"('{objfile}' versus '{mtlfilename}')"
+                    )
+                mtlfilename = os.path.basename(mtlfilename)
+                f.write(f"mtllib {mtlfilename}\n")
+
+            # Vertices
+            f.write("# Vertices\n")
+            format_and_write(topology[0], "v {v[0]} {v[1]} {v[2]}\n")
+            f.write("\n")
+
+            # UV
+            if self.has_uvmap():
+                # Translate, rotate, scale (optionally)
+                uvs = self.transformed_uvmap(uv_translate, uv_rotate, uv_scale)
+                # Format
+                f.write("# Texture coordinates\n")
+                format_and_write(uvs, "vt {v.x} {v.y}\n")
+                f.write("\n")
+
+            # Vertex normals
+            if normals:
+                f.write("# Vertex normals\n")
+                format_and_write(self.__normals, "vn {v.x} {v.y} {v.z}\n")
+                f.write("\n")
+
+            # Object name
+            f.write(f"o {name}")
+            if mtlname is not None:
+                f.write(f"usemtl {mtlname}")
+            f.write("\n")
+
+            # Faces
+            if normals and self.has_uvmap():
+                fmt = "{0}/{0}/{0}"
+            elif not normals and self.has_uvmap():
+                fmt = "{0}/{0}"
+            elif normals and not self.has_uvmap():
+                fmt = "{0}//{0}"
+            else:
+                fmt = "{0}"
+            f.write("# Faces")
+            fmt_add1 = lambda x: fmt.format(x + 1)
+            faces = (" ".join(map(fmt_add1, p)) for p in topology[1])
+            format_and_write(faces, "f {v}\n")
+            f.write("\n")
+
+        print("write_objfile2", t - time.time())  # TODO
         return objfile
 
     @staticmethod
