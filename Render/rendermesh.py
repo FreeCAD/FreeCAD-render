@@ -280,119 +280,16 @@ class RenderMesh:
         else:
             mask = "{0}"
 
-        faces = (" ".join(mask.format(x + 1) for x in f) for f in indices)
-        faces = (f"f {f}\n" for f in faces)
+        faces = ("f {}\n".format(" ".join(mask.format(x + 1) for x in f)) for f in indices)
         faces = it.chain(["# Faces\n"], faces)
 
         res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
 
-        print("write_objfile (compute)", time.time() - t)  # TODO
-
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
 
-        print("write_objfile (write)", time.time() - t)  # TODO
+        print("write_objfile", time.time() - t)  # TODO
 
-        return objfile
-
-    def write_objfile2(
-        self,
-        name,
-        objfile=None,
-        mtlfile=None,
-        mtlname=None,
-        mtlcontent=None,
-        normals=True,
-        uv_translate=App.Base.Vector2d(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
-    ):
-        """Docstring to complete."""  # TODO
-        t = time.time() # TODO
-
-        # Get obj file name
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-        else:
-            objfile = str(objfile)
-
-        # Write everything
-        with open(
-            objfile, "w", encoding="utf-8"
-        ) as f, cf.ThreadPoolExecutor() as executor:
-
-            def format_and_write(values, fmt):
-                def aux(value):
-                    output = fmt.format(v=value)
-                    f.write(output)
-
-                # format_and_write starts here
-                futs = [executor.submit(aux, p) for p in values]
-                cf.wait(futs)
-
-            # Initialize
-            topology = self.Topology
-
-            # Header
-            f.write("# Written by FreeCAD-Render\n")
-
-            # Mtl
-            if mtlcontent is not None:
-                # Write mtl file
-                mtlfilename = RenderMesh.write_mtl(
-                    mtlname, mtlcontent, mtlfile
-                )
-                if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                    raise ValueError(
-                        "OBJ and MTL files shoud be in the same dir\n"
-                        f"('{objfile}' versus '{mtlfilename}')"
-                    )
-                mtlfilename = os.path.basename(mtlfilename)
-                f.write(f"mtllib {mtlfilename}\n")
-
-            # Vertices
-            f.write("# Vertices\n")
-            format_and_write(topology[0], "v {v[0]} {v[1]} {v[2]}\n")
-            f.write("\n")
-
-            # UV
-            if self.has_uvmap():
-                # Translate, rotate, scale (optionally)
-                uvs = self.transformed_uvmap(uv_translate, uv_rotate, uv_scale)
-                # Format
-                f.write("# Texture coordinates\n")
-                format_and_write(uvs, "vt {v.x} {v.y}\n")
-                f.write("\n")
-
-            # Vertex normals
-            if normals:
-                f.write("# Vertex normals\n")
-                format_and_write(self.__normals, "vn {v.x} {v.y} {v.z}\n")
-                f.write("\n")
-
-            # Object name
-            f.write(f"o {name}")
-            if mtlname is not None:
-                f.write(f"usemtl {mtlname}")
-            f.write("\n")
-
-            # Faces
-            if normals and self.has_uvmap():
-                fmt = "{0}/{0}/{0}"
-            elif not normals and self.has_uvmap():
-                fmt = "{0}/{0}"
-            elif normals and not self.has_uvmap():
-                fmt = "{0}//{0}"
-            else:
-                fmt = "{0}"
-            f.write("# Faces")
-            fmt_add1 = lambda x: fmt.format(x + 1)
-            faces = (" ".join(map(fmt_add1, p)) for p in topology[1])
-            format_and_write(faces, "f {v}\n")
-            f.write("\n")
-
-        print("write_objfile2", t - time.time())  # TODO
         return objfile
 
     @staticmethod
