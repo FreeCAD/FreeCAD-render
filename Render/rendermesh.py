@@ -696,7 +696,7 @@ def _pos_atan2(p_x, p_y):
     return atan2 if atan2 >= 0 else atan2 + 2 * math.pi
 
 
-def uvtransform(self, uvmap, translate, rotate, scale):
+def uvtransform(uvmap, translate, rotate, scale):
     """Compute a uv transformation (iterator).
 
     Args:
@@ -747,7 +747,6 @@ def uvtransform(self, uvmap, translate, rotate, scale):
     def _r0t():
         """Rotate, translate."""
         vector2d = App.Base.Vector2d
-        uvmap = self.uvmap
         cosr = math.cos(rotate)
         sinr = math.sin(rotate)
         transx = translate.x
@@ -792,8 +791,8 @@ def uvtransform(self, uvmap, translate, rotate, scale):
     index = (
         rotate != 0.0,
         scale != 1.0,
-        translate.x != 0.0 or translate.y != 0.0,
+        trans_x != 0.0 or trans_y != 0.0,
     )
     index = sum(it.compress((4, 2, 1), index))
     functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
-    return functions[index]
+    return functions[index]()
