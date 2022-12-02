@@ -29,7 +29,6 @@ rendering purpose.
 # Useful resources:
 # https://www.pixyz-software.com/documentations/html/2021.1/studio/UVProjectionTool.html
 
-import math
 import enum
 import os
 import tempfile
@@ -37,9 +36,13 @@ import operator
 import itertools as it
 import functools
 import time  # TODO
+from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
+from collections import namedtuple
 
 import FreeCAD as App
 import Mesh
+
+Vector2d = namedtuple("Vector2d", "x y")
 
 
 class RenderMesh:
@@ -124,7 +127,7 @@ class RenderMesh:
         """
         self.__mesh.rotate(angle_x, angle_y, angle_z)
         rotation = App.Base.Rotation(
-            math.degrees(angle_z), math.degrees(angle_y), math.degrees(angle_x)
+            degrees(angle_z), degrees(angle_y), degrees(angle_x)
         )
         self.__normals = [rotation.multVec(v) for v in self.__normals]
 
@@ -188,7 +191,7 @@ class RenderMesh:
         mtlname=None,
         mtlcontent=None,
         normals=True,
-        uv_translate=App.Base.Vector2d(0.0, 0.0),
+        uv_translate=Vector2d(0.0, 0.0),
         uv_rotate=0.0,
         uv_scale=1.0,
     ):
@@ -205,12 +208,13 @@ class RenderMesh:
             mtlcontent -- MTL file content (optional) (str)
             normals -- Flag to control the writing of normals in the OBJ file
               (bool)
-            uv_translate -- UV translation vector (App.Base.Vector2d)
+            uv_translate -- UV translation vector (Vector2d)
             uv_rotate -- UV rotation angle in degrees (float)
             uv_scale -- UV scale factor (float)
 
         Returns: the name of file that the function wrote.
         """
+        t = time.time()
         # Retrieve and normalize arguments
         normals = bool(normals)
 
@@ -250,7 +254,8 @@ class RenderMesh:
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
-            uvs = (f"vt {t.x} {t.y}\n" for t in uvs)
+            fmtuv = functools.partial(str.format, "vt {} {}\n")
+            uvs = (fmtuv(*t) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, "\n")
         else:
             uvs = []
@@ -293,6 +298,7 @@ class RenderMesh:
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
 
+        print("write_objfile", time.time() - t)
         return objfile
 
     @staticmethod
@@ -330,7 +336,7 @@ class RenderMesh:
         """Returns a transformed uvmap.
 
         Args:
-            translate -- Translation vector (App.Base.Vector2d)
+            translate -- Translation vector (Vector2d)
             rotate -- Rotation angle in degrees (float)
             scale -- Scale factor (float)
 
@@ -338,23 +344,23 @@ class RenderMesh:
         """
         rotate = float(rotate)
         scale = float(scale)
-        rotate = math.radians(rotate)
+        rotate = radians(rotate)
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvbase = self.uvmap
             if translate.x != 0.0 or translate.y != 0.0:
-                uvbase = [v + translate for v in uvbase]
-            if rotate != 0.0:
-                cosr = math.cos(rotate)
-                sinr = math.sin(rotate)
                 uvbase = [
-                    App.Base.Vector2d(
-                        v.x * cosr - v.y * sinr, v.x * sinr + v.y * cosr
-                    )
+                    (v.x + translate.x, v.y + translate.y) for v in uvbase
+                ]
+            if rotate != 0.0:
+                cosr = cos(rotate)
+                sinr = sin(rotate)
+                uvbase = [
+                    Vector2d(v.x * cosr - v.y * sinr, v.x * sinr + v.y * cosr)
                     for v in uvbase
                 ]
             if scale != 1.0:
-                uvbase = [v * scale for v in uvbase]
+                uvbase = [(v.x * scale, v.y * scale) for v in uvbase]
         else:
             uvbase = []
         return uvbase
@@ -440,9 +446,9 @@ class RenderMesh:
         # Non Z-normal facets (regular)
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
-        avg_radius = sum(math.hypot(p.x, p.y) for p in points) / len(points)
+        avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
-            App.Base.Vector2d(math.atan2(p.x, p.y) * avg_radius, p.z) * 0.001
+            Vector2d(atan2(p.x, p.y) * avg_radius, p.z) * 0.001
             for p in points
         ]
         regular_mesh.transform(self.__originalplacement.Matrix)
@@ -452,12 +458,12 @@ class RenderMesh:
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
         avg_radius = (
-            sum(math.hypot(p.x, p.y) for p in points) / len(points)
+            sum(hypot(p.x, p.y) for p in points) / len(points)
             if points
             else 0
         )
         uvmap += [
-            App.Base.Vector2d(_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001
+            Vector2d(_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001
             for p in points
         ]
         seam_mesh.transform(self.__originalplacement.Matrix)
@@ -466,8 +472,7 @@ class RenderMesh:
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
         uvmap += [
-            App.Base.Vector2d(p.x / 1000, p.y / 1000)
-            for p in list(z_mesh.Points)
+            Vector2d(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)
         ]
         z_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(z_mesh)
@@ -500,11 +505,10 @@ class RenderMesh:
         regular_mesh = Mesh.Mesh(regular)
         vectors = [p.Vector - origin for p in list(regular_mesh.Points)]
         uvmap += [
-            App.Base.Vector2d(
-                0.5 + math.atan2(v.x, v.y) / (2 * math.pi),
-                0.5 + math.asin(v.z / v.Length) / math.pi,
+            Vector2d(
+                (0.5 + atan2(v.x, v.y) / (2 * pi)) * (v.Length / 1000.0 * pi),
+                (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
             )
-            * (v.Length / 1000.0 * math.pi)
             for v in vectors
         ]
         regular_mesh.transform(self.__originalplacement.Matrix)
@@ -514,11 +518,11 @@ class RenderMesh:
         seam_mesh = Mesh.Mesh(seam)
         vectors = [p.Vector - origin for p in list(seam_mesh.Points)]
         uvmap += [
-            App.Base.Vector2d(
-                0.5 + _pos_atan2(v.x, v.y) / (2 * math.pi),
-                0.5 + math.asin(v.z / v.Length) / math.pi,
+            Vector2d(
+                (0.5 + _pos_atan2(v.x, v.y) / (2 * pi))
+                * (v.Length / 1000.0 * pi),
+                (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
             )
-            * (v.Length / 1000.0 * math.pi)
             for v in vectors
         ]
         seam_mesh.transform(self.__originalplacement.Matrix)
@@ -649,17 +653,17 @@ def _compute_uv_from_unitcube(point, face):
 
     """
     if face == _UnitCubeFaceEnum.XPLUS:
-        res = App.Base.Vector2d(point[1], point[2])
+        res = Vector2d(point[1], point[2])
     elif face == _UnitCubeFaceEnum.YPLUS:
-        res = App.Base.Vector2d(-point[0], point[2])
+        res = Vector2d(-point[0], point[2])
     elif face == _UnitCubeFaceEnum.XMINUS:
-        res = App.Base.Vector2d(-point[1], point[2])
+        res = Vector2d(-point[1], point[2])
     elif face == _UnitCubeFaceEnum.YMINUS:
-        res = App.Base.Vector2d(point[0], point[2])
+        res = Vector2d(point[0], point[2])
     elif face == _UnitCubeFaceEnum.ZPLUS:
-        res = App.Base.Vector2d(point[0], point[1])
+        res = Vector2d(point[0], point[1])
     elif face == _UnitCubeFaceEnum.ZMINUS:
-        res = App.Base.Vector2d(point[0], -point[1])
+        res = Vector2d(point[0], -point[1])
     return res
 
 
@@ -678,22 +682,22 @@ def _is_facet_normal_to_vector(facet, vector):
     vec2 = (App.Base.Vector(*pt3) - App.Base.Vector(*pt1)).normalize()
     vector = vector.normalize()
     tolerance = 1e-5
-    res = math.isclose(
-        vec1.dot(vector), 0.0, abs_tol=tolerance
-    ) and math.isclose(vec2.dot(vector), 0.0, abs_tol=tolerance)
+    res = isclose(vec1.dot(vector), 0.0, abs_tol=tolerance) and isclose(
+        vec2.dot(vector), 0.0, abs_tol=tolerance
+    )
     return res
 
 
 def _facet_overlap_seam(facet):
     """Test whether facet overlaps the seam."""
-    phis = [math.atan2(x, y) for x, y, _ in facet.Points]
+    phis = [atan2(x, y) for x, y, _ in facet.Points]
     return max(phis) * min(phis) < 0
 
 
 def _pos_atan2(p_x, p_y):
     """Wrap atan2 to get only positive values (seam treatment)."""
-    atan2 = math.atan2(p_x, p_y)
-    return atan2 if atan2 >= 0 else atan2 + 2 * math.pi
+    atan2_xy = atan2(p_x, p_y)
+    return atan2_xy if atan2_xy >= 0 else atan2_xy + 2 * pi
 
 
 def uvtransform(uvmap, translate, rotate, scale):
@@ -701,15 +705,15 @@ def uvtransform(uvmap, translate, rotate, scale):
 
     Args:
         uvmap -- the uv map to transform
-        translate -- Translation vector (App.Base.Vector2d)
+        translate -- Translation vector (Vector2d)
         rotate -- Rotation angle in degrees (float)
         scale -- Scale factor (float)
     """
-    translate = App.Base.Vector2d(translate.x, translate.y)
+    trans_x, trans_y = translate
 
     scale = float(scale)
 
-    rotate = math.radians(float(rotate))
+    rotate = radians(float(rotate))
 
     def _000():
         """Nop."""
@@ -717,27 +721,25 @@ def uvtransform(uvmap, translate, rotate, scale):
 
     def _00t():
         """Translate."""
-        add = App.Base.Vector2d.__add__
-        return (add(vec, translate) for vec in uvmap)
+        return (Vector2d(vec.x + trans_x, vec.y + trans_y) for vec in uvmap)
 
     def _0s0():
         """Scale."""
-        mul = App.Base.Vector2d.__mul__
-        return (mul(vec, scale) for vec in uvmap)
+        return (Vector2d(vec.x * scale, vec.y * scale) for vec in uvmap)
 
     def _0st():
         """Scale, translate."""
-        add = App.Base.Vector2d.__add__
-        mul = App.Base.Vector2d.__mul__
-        return (add(mul(vec, scale), translate) for vec in uvmap)
+        return (
+            Vector2d(vec.x * scale + trans_x, vec.y * scale + trans_y)
+            for vec in uvmap
+        )
 
     def _r00():
         """Rotate."""
-        vector2d = App.Base.Vector2d
-        cosr = math.cos(rotate)
-        sinr = math.sin(rotate)
+        cosr = cos(rotate)
+        sinr = sin(rotate)
         return (
-            vector2d(
+            Vector2d(
                 vec.x * cosr - vec.y * sinr,
                 vec.x * sinr + vec.y * cosr,
             )
@@ -746,26 +748,22 @@ def uvtransform(uvmap, translate, rotate, scale):
 
     def _r0t():
         """Rotate, translate."""
-        vector2d = App.Base.Vector2d
-        cosr = math.cos(rotate)
-        sinr = math.sin(rotate)
-        transx = translate.x
-        transy = translate.y
+        cosr = cos(rotate)
+        sinr = sin(rotate)
         return (
-            vector2d(
-                vec.x * cosr - vec.y * sinr + transx,
-                vec.x * sinr + vec.y * cosr + transy,
+            Vector2d(
+                vec.x * cosr - vec.y * sinr + trans_x,
+                vec.x * sinr + vec.y * cosr + trans_y,
             )
             for vec in uvmap
         )
 
     def _rs0():
         """Rotate, scale."""
-        vector2d = App.Base.Vector2d
-        cosrs = math.cos(rotate) * scale
-        sinrs = math.sin(rotate) * scale
+        cosrs = cos(rotate) * scale
+        sinrs = sin(rotate) * scale
         return (
-            vector2d(
+            Vector2d(
                 vec.x * cosrs - vec.y * sinrs,
                 vec.x * sinrs + vec.y * cosrs,
             )
@@ -774,15 +772,12 @@ def uvtransform(uvmap, translate, rotate, scale):
 
     def _rst():
         """Rotate, scale, translate."""
-        vector2d = App.Base.Vector2d
-        cosrs = math.cos(rotate) * scale
-        sinrs = math.sin(rotate) * scale
-        transx = translate.x
-        transy = translate.y
+        cosrs = cos(rotate) * scale
+        sinrs = sin(rotate) * scale
         return (
-            vector2d(
-                vec.x * cosrs - vec.y * sinrs + transx,
-                vec.x * sinrs + vec.y * cosrs + transy,
+            Vector2d(
+                vec.x * cosrs - vec.y * sinrs + trans_x,
+                vec.x * sinrs + vec.y * cosrs + trans_y,
             )
             for vec in uvmap
         )
