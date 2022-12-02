@@ -249,9 +249,7 @@ class RenderMesh:
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = UvTransformIter(
-                self.uvmap, uv_translate, uv_rotate, uv_scale
-            )
+            uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
             uvs = (f"vt {t.x} {t.y}\n" for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, "\n")
         else:
@@ -698,81 +696,46 @@ def _pos_atan2(p_x, p_y):
     return atan2 if atan2 >= 0 else atan2 + 2 * math.pi
 
 
-class UvTransformIter:
-    """A iterator class to transform uv vector efficiently."""
+def uvtransform(self, uvmap, translate, rotate, scale):
+    """Compute a uv transformation (iterator).
 
-    def __init__(self, uvmap, translate, rotate, scale):
-        """Initialize class.
+    Args:
+        uvmap -- the uv map to transform
+        translate -- Translation vector (App.Base.Vector2d)
+        rotate -- Rotation angle in degrees (float)
+        scale -- Scale factor (float)
+    """
+    translate = App.Base.Vector2d(translate.x, translate.y)
 
-        Args:
-            uvmap -- the uv map to transform
-            translate -- Translation vector (App.Base.Vector2d)
-            rotate -- Rotation angle in degrees (float)
-            scale -- Scale factor (float)
-        """
-        self.uvmap = uvmap
+    scale = float(scale)
 
-        self.translate = App.Base.Vector2d(translate.x, translate.y)
+    rotate = math.radians(float(rotate))
 
-        self.scale = float(scale)
-
-        self.rotate = math.radians(float(rotate))
-
-        index = (
-            self.rotate != 0.0,
-            self.scale != 1.0,
-            self.translate.x != 0.0 or self.translate.y != 0.0,
-        )
-        index = sum(it.compress((4, 2, 1), index))
-        functions = [
-            self._000,
-            self._00t,
-            self._0s0,
-            self._0st,
-            self._r00,
-            self._r0t,
-            self._rs0,
-            self._rst,
-        ]
-        self.transform = functions[index]
-
-    def __iter__(self):
-        """Make iterator."""
-        return self.transform()
-
-    def _000(self):
+    def _000():
         """Nop."""
-        return iter(self.uvmap)
+        return iter(uvmap)
 
-    def _00t(self):
+    def _00t():
         """Translate."""
-        uvmap = self.uvmap
-        translate = self.translate
         add = App.Base.Vector2d.__add__
         return (add(vec, translate) for vec in uvmap)
 
-    def _0s0(self):
+    def _0s0():
         """Scale."""
-        uvmap = self.uvmap
-        scale = self.scale
         mul = App.Base.Vector2d.__mul__
         return (mul(vec, scale) for vec in uvmap)
 
-    def _0st(self):
+    def _0st():
         """Scale, translate."""
-        uvmap = self.uvmap
-        translate = self.scale
-        scale = self.scale
         add = App.Base.Vector2d.__add__
         mul = App.Base.Vector2d.__mul__
         return (add(mul(vec, scale), translate) for vec in uvmap)
 
-    def _r00(self):
+    def _r00():
         """Rotate."""
         vector2d = App.Base.Vector2d
-        uvmap = self.uvmap
-        cosr = math.cos(self.rotate)
-        sinr = math.sin(self.rotate)
+        cosr = math.cos(rotate)
+        sinr = math.sin(rotate)
         return (
             vector2d(
                 vec.x * cosr - vec.y * sinr,
@@ -781,14 +744,14 @@ class UvTransformIter:
             for vec in uvmap
         )
 
-    def _r0t(self):
+    def _r0t():
         """Rotate, translate."""
         vector2d = App.Base.Vector2d
         uvmap = self.uvmap
-        cosr = math.cos(self.rotate)
-        sinr = math.sin(self.rotate)
-        transx = self.translate.x
-        transy = self.translate.y
+        cosr = math.cos(rotate)
+        sinr = math.sin(rotate)
+        transx = translate.x
+        transy = translate.y
         return (
             vector2d(
                 vec.x * cosr - vec.y * sinr + transx,
@@ -797,12 +760,11 @@ class UvTransformIter:
             for vec in uvmap
         )
 
-    def _rs0(self):
+    def _rs0():
         """Rotate, scale."""
         vector2d = App.Base.Vector2d
-        uvmap = self.uvmap
-        cosrs = math.cos(self.rotate) * self.scale
-        sinrs = math.sin(self.rotate) * self.scale
+        cosrs = math.cos(rotate) * scale
+        sinrs = math.sin(rotate) * scale
         return (
             vector2d(
                 vec.x * cosrs - vec.y * sinrs,
@@ -811,14 +773,13 @@ class UvTransformIter:
             for vec in uvmap
         )
 
-    def _rst(self):
+    def _rst():
         """Rotate, scale, translate."""
         vector2d = App.Base.Vector2d
-        uvmap = self.uvmap
-        cosrs = math.cos(self.rotate) * self.scale
-        sinrs = math.sin(self.rotate) * self.scale
-        transx = self.translate.x
-        transy = self.translate.y
+        cosrs = math.cos(rotate) * scale
+        sinrs = math.sin(rotate) * scale
+        transx = translate.x
+        transy = translate.y
         return (
             vector2d(
                 vec.x * cosrs - vec.y * sinrs + transx,
@@ -826,3 +787,13 @@ class UvTransformIter:
             )
             for vec in uvmap
         )
+
+    # Select and return the right function
+    index = (
+        rotate != 0.0,
+        scale != 1.0,
+        translate.x != 0.0 or translate.y != 0.0,
+    )
+    index = sum(it.compress((4, 2, 1), index))
+    functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
+    return functions[index]
