@@ -219,7 +219,7 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices, indices = self.Topology
+        vertices, indices = self.Topology  # Time consuming...
 
         # Get obj file name
         if objfile is None:
