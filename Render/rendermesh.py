@@ -540,9 +540,8 @@ class RenderMesh:
         instance)
         """
         # Isolate submeshes by cube face
-        face_facets = {f: [] for f in _UnitCubeFaceEnum}
+        face_facets = ([], [], [], [], [], [])
         for facet in self.__originalmesh.Facets:
-            # Determine which cubeface the facet belongs to
             cubeface = _intersect_unitcube_face(facet.Normal)
             # Add facet to corresponding submesh
             face_facets[cubeface].append(facet)
@@ -554,7 +553,8 @@ class RenderMesh:
             cog = self.__originalmesh.CenterOfGravity
         except AttributeError:
             cog = self.center_of_gravity()
-        for cubeface, facets in face_facets.items():
+        transmat = self.__originalplacement.Matrix
+        for cubeface, facets in enumerate(face_facets):
             facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
             facemesh_uvmap = [
@@ -563,7 +563,7 @@ class RenderMesh:
                 for p in facemesh.Points
             ]
             # Add submesh and uvmap
-            facemesh.transform(self.__originalplacement.Matrix)
+            facemesh.transform(transmat)
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
 
@@ -581,7 +581,7 @@ class RenderMesh:
 # ===========================================================================
 
 
-class _UnitCubeFaceEnum(enum.Enum):
+class _UnitCubeFaceEnum(enum.IntEnum):
     """A class to describe a face of a unit cube.
 
     A unit cube is cube centered on the origin, each face perpendicular to one
@@ -590,12 +590,12 @@ class _UnitCubeFaceEnum(enum.Enum):
     This cube is useful for projections for uv map...
     """
 
-    XPLUS = enum.auto()
-    XMINUS = enum.auto()
-    YPLUS = enum.auto()
-    YMINUS = enum.auto()
-    ZPLUS = enum.auto()
-    ZMINUS = enum.auto()
+    XPLUS = 0
+    XMINUS = 1
+    YPLUS = 2
+    YMINUS = 3
+    ZPLUS = 4
+    ZMINUS = 5
 
 
 # Normals of the faces of the unit cube
@@ -619,26 +619,27 @@ def _intersect_unitcube_face(direction):
     Returns:
         A face from the unit cube (_UnitCubeFaceEnum)
     """
-    dabs = (abs(direction[0]), abs(direction[1]), abs(direction[2]))
+    dirx, diry, dirz = direction
+    dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
 
-    if dabs[0] >= dabs[1] and dabs[0] >= dabs[2]:
+    if dabsx >= dabsy and dabsx >= dabsz:
         return (
-            _UnitCubeFaceEnum.XPLUS
-            if direction[0] >= 0
-            else _UnitCubeFaceEnum.XMINUS
+            0  # _UnitCubeFaceEnum.XPLUS
+            if dirx >= 0
+            else 1  # _UnitCubeFaceEnum.XMINUS
         )
 
-    if dabs[1] >= dabs[0] and dabs[1] >= dabs[2]:
+    if dabsy >= dabsx and dabsy >= dabsz:
         return (
-            _UnitCubeFaceEnum.YPLUS
-            if direction[1] >= 0
-            else _UnitCubeFaceEnum.YMINUS
+            2  # _UnitCubeFaceEnum.YPLUS
+            if diry >= 0
+            else 3  # _UnitCubeFaceEnum.YMINUS
         )
 
     return (
-        _UnitCubeFaceEnum.ZPLUS
-        if direction[2] >= 0
-        else _UnitCubeFaceEnum.ZMINUS
+        4  # _UnitCubeFaceEnum.ZPLUS
+        if dirz >= 0
+        else 5  # _UnitCubeFaceEnum.ZMINUS
     )
 
 
@@ -652,18 +653,19 @@ def _compute_uv_from_unitcube(point, face):
           -Z
 
     """
-    if face == _UnitCubeFaceEnum.XPLUS:
-        res = Vector2d(point[1], point[2])
-    elif face == _UnitCubeFaceEnum.YPLUS:
-        res = Vector2d(-point[0], point[2])
-    elif face == _UnitCubeFaceEnum.XMINUS:
-        res = Vector2d(-point[1], point[2])
-    elif face == _UnitCubeFaceEnum.YMINUS:
-        res = Vector2d(point[0], point[2])
-    elif face == _UnitCubeFaceEnum.ZPLUS:
-        res = Vector2d(point[0], point[1])
-    elif face == _UnitCubeFaceEnum.ZMINUS:
-        res = Vector2d(point[0], -point[1])
+    pt0, pt1, pt2 = point
+    if face == 0:  # _UnitCubeFaceEnum.XPLUS
+        res = Vector2d(pt1, pt2)
+    elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+        res = Vector2d(-pt1, pt2)
+    elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+        res = Vector2d(-pt0, pt2)
+    elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+        res = Vector2d(pt0, pt2)
+    elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+        res = Vector2d(pt0, pt1)
+    elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+        res = Vector2d(pt0, -pt1)
     return res
 
 
