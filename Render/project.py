@@ -33,6 +33,8 @@ import os
 import re
 from operator import attrgetter
 from collections import namedtuple
+import concurrent.futures
+import time
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
@@ -497,16 +499,7 @@ class Project(FeatureBase):
 
         # Otherwise, we have to compute strings
         get_rdr_string = renderer.get_rendering_string
-
-        # TODO Old sequential
-        # import time
-        # print("sequential")
-        # t1 = time.time()
-        # objstrings = [get_rdr_string(v) for v in views]
-        # t2 = time.time()
-        # print("Time:", t2 - t1)
-
-        objstrings = toto(get_rdr_string, views)
+        objstrings = _get_objstrings_helper(get_rdr_string, views)
 
         return objstrings
 
@@ -721,16 +714,21 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-# TODO
-def toto(get_rdr_string, views):
-    import concurrent.futures
-    import time
+def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
+    """Get strings from renderer (helper).
 
-    print("concurrent")
-    t1 = time.time()
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        objstrings = [s for s in executor.map(get_rdr_string, views)]
-    t2 = time.time()
-    print("Time:", t2 - t1)
-    print(objstrings)
+    This helper is convenient for debugging purpose (easier to reload).
+    """
+    if run_concurrent:
+        App.Console.PrintLog("[Render][Objstrings] STARTING - CONCURRENT MODE\n")
+        time0 = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(get_rdr_string, view) for view in views]
+            objstrings = [f.result() for f in concurrent.futures.as_completed(futures)]
+    else:
+        App.Console.PrintLog("[Render][Objstrings] STARTING - SEQUENTIAL MODE\n")
+        time0 = time.time()
+        objstrings = [get_rdr_string(v) for v in views]
+        App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
+    App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
     return objstrings
