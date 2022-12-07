@@ -221,6 +221,21 @@ class RenderMesh:
         # Initialize
         vertices, indices = self.Topology  # Time consuming...
 
+        # Test TODO
+        verts2 = [tuple(v) for v in vertices]
+        import runpy
+        from Render.constants import PKGDIR
+        path = os.path.join(PKGDIR, "testmulti.py")
+        print(path)
+        print("NAME", __name__)
+        # runpy.run_path(path, init_globals={"vertices": verts2}, run_name="__main__")
+        with open(path) as f:
+            code = compile(f.read(), "testmulti.py", 'exec')
+            # global_vars = {"vertices": verts2, "__name__": "__main__", "__file__": path}
+            global_vars = {"vertices": verts2 }
+            local_vars = {"f2":None}
+            exec(code, global_vars, local_vars)
+
         # Get obj file name
         if objfile is None:
             f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
