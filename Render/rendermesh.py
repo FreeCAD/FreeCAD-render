@@ -38,9 +38,12 @@ import functools
 import time  # TODO
 from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
 from collections import namedtuple
+import runpy
 
 import FreeCAD as App
 import Mesh
+
+from Render.constants import PKGDIR
 
 Vector2d = namedtuple("Vector2d", "x y")
 
@@ -220,13 +223,9 @@ class RenderMesh:
 
         # Initialize
         vertices, indices = self.Topology  # Time consuming...
+        nverts = len(vertices)
+        ninds = len(indices)
 
-        # Test TODO
-        verts2 = [tuple(v) for v in vertices]
-        import runpy
-        from Render.constants import PKGDIR
-        path = os.path.join(PKGDIR, "testmulti.py")
-        runpy.run_path(path, init_globals={"vertices": verts2}, run_name="__main__")
 
         # Get obj file name
         if objfile is None:
@@ -253,16 +252,34 @@ class RenderMesh:
             mtl = []
 
         # Vertices
-        fmtv = functools.partial(str.format, "v {} {} {}\n")
-        verts = (fmtv(*v) for v in vertices)
+        if nverts < 1000:
+            fmtv = functools.partial(str.format, "v {} {} {}\n")
+            verts = (fmtv(*v) for v in vertices)
+        else:
+            verts_tuples = [tuple(v) for v in vertices]
+            path = os.path.join(PKGDIR, "testmulti.py")
+            res = runpy.run_path(
+                path,
+                init_globals={"values": verts_tuples, "fmt": "v", "length": nverts},
+                run_name="__main__",
+            )
+            verts = res["result"]
         verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
-            fmtuv = functools.partial(str.format, "vt {} {}\n")
-            uvs = (fmtuv(*t) for t in uvs)
+            if nverts < 1000:
+                fmtuv = functools.partial(str.format, "vt {} {}\n")
+                uvs = (fmtuv(*t) for t in uvs)
+            else:
+                res = runpy.run_path(
+                    path,
+                    init_globals={"values": list(uvs), "fmt": "vt", "length": ninds},
+                    run_name="__main__",
+                )
+                uvs = res["result"]
             uvs = it.chain(["# Texture coordinates\n"], uvs, "\n")
         else:
             uvs = []
