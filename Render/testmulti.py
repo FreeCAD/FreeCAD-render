@@ -1,18 +1,37 @@
 import multiprocessing as mp
+import functools
 
+# Vertices
 
-def fmt_v(v):
-    print(globals())
-    return "v {} {} {}\n".format(*v)
+def init_v(args):
+    global fmt_v
+    fmt_v = functools.partial(str.format, "v {} {} {}\n")
 
+def func_v(v):
+    return fmt_v(*v)
 
-def fmt_vt(v):
-    print(globals())
-    return "vt {} {}\n".format(*v)
+# UV map
 
-def init(args):
-    global fmt_func
-    fmt_func = args[0]
+def init_vt(args):
+    global fmt_vt
+    fmt_vt = functools.partial(str.format, "vt {} {}\n")
+
+def func_vt(v):
+    return fmt_vt(*v)
+
+# Faces
+
+def init_f(*args):
+    global fmt_f, join_f, mask_f
+    mask_f = args[0]
+    print("mask_f", mask_f)
+    fmt_f = functools.partial(str.format, mask_f)
+    join_f = functools.partial(str.join, "")
+
+def func_f(v):
+    return join_f(["f"] + [fmt_f(x + 1) for x in v] + ["\n"])
+
+# Main
 
 if __name__ == '__main__':
     import sys
@@ -42,28 +61,37 @@ if __name__ == '__main__':
         values
     except NameError:
         values = [(1,2,3),(4,5,6)]
+
     try:
         fmt
     except NameError:
         fmt = "v"
+
     try:
         length
     except NameError:
         length = 2
 
+    try:
+        mask
+    except NameError:
+        mask = ""
+
+    # Parse format
     if fmt == "v":
-        func = fmt_v
+        func, init = func_v, init_v
     elif fmt == "vt":
-        func = fmt_vt
+        func, init = func_vt, init_vt
+    elif fmt == "f":
+        func, init = func_f, init_f
     else:
         raise NotImplementedError(fmt)
-    print(fmt)
 
     # Run
     result = []
     try:
-        with mp.Pool(processes=4, initializer=init, initargs=(fmt,)) as pool:
-            result = pool.imap(func, values, length // 4 + 1)
+        with mp.Pool(processes=4, initializer=init, initargs=(mask,)) as pool:
+            result = pool.imap(func, values, 200)
             result = list(result)
     finally:
         os.chdir(save_dir)

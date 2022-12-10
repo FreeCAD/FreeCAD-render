@@ -309,12 +309,21 @@ class RenderMesh:
         else:
             mask = " {}"
 
-        fmtf = functools.partial(str.format, mask)
-        joinf = functools.partial(str.join, "")
+        if nverts < 1000:
+            fmtf = functools.partial(str.format, mask)
+            joinf = functools.partial(str.join, "")
 
-        faces = (
-            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in indices
-        )
+            faces = (
+                joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in indices
+            )
+        else:
+            res = runpy.run_path(
+                path,
+                init_globals={"values": indices, "fmt": "f", "length": ninds, "mask": mask},
+                run_name="__main__",
+            )
+            faces = res["result"]
+
         faces = it.chain(["# Faces\n"], faces)
 
         res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
