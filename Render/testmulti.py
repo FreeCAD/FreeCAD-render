@@ -1,10 +1,9 @@
 import multiprocessing as mp
 
 
-def foo():
-    print("Entering foo")
-    for i in range(2):
-        pass
+def foo(v):
+    return "v {} {} {}\n".format(*v)
+
 
 
 if __name__ == '__main__':
@@ -31,11 +30,10 @@ if __name__ == '__main__':
     except NameError:
         vertices = [(1,2,3),(4,5,6)]
 
+    res = []
     try:
-        p = mp.Process(target=foo, args=())
-        p.start()
-        print("started")
-        p.join()
-        print("joined")
+        with mp.Pool() as pool:
+            res = pool.map(foo, vertices)
+            print(res)
     finally:
         os.chdir(save_dir)
