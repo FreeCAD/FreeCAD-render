@@ -1,8 +1,4 @@
 import multiprocessing as mp
-from multiprocessing import spawn
-import sys
-import os
-import shutil
 
 
 def foo():
@@ -12,17 +8,34 @@ def foo():
 
 
 if __name__ == '__main__':
+    import sys
+    import os
+    import shutil
+
     print("Entering main")
-    os.chdir("/home/vincent/Documents/DevGit/FreeCAD-render/Render")
+
+    # Set directory and stdout
+    save_dir = os.getcwd()
+    os.chdir(os.path.dirname(__file__))
+
+    # Set executable
     executable = shutil.which("python")
+    if not executable:
+        raise RuntimeError("No Python executable")
     mp.set_executable(executable)
     mp.set_start_method('spawn', force=True)
-    stdin = sys.stdin
-    sys.stdin = sys.__stdin__
-    vertices = [(1,2,3),(4,5,6)]
-    p = mp.Process(target=foo, args=())
-    p.start()
-    print("started")
-    p.join()
-    print("joined")
-    sys.stdin = stdin
+
+    # Get variable
+    try:
+        vertices
+    except NameError:
+        vertices = [(1,2,3),(4,5,6)]
+
+    try:
+        p = mp.Process(target=foo, args=())
+        p.start()
+        print("started")
+        p.join()
+        print("joined")
+    finally:
+        os.chdir(save_dir)
