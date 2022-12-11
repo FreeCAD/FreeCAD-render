@@ -404,11 +404,9 @@ class RenderMesh:
 
         # Vertex normals
         if normals:
-            # TODO
             norms = self.__normals
             fmtn = functools.partial(str.format, "vn {} {} {}\n")
             norms = (fmtn(*n) for n in norms)
-            norms = ["# Vertex normals\n"] + norms + ["\n"]
         else:
             norms = []
 
@@ -437,6 +435,7 @@ class RenderMesh:
             (mtl, "s"),
             (verts, "v"),
             (uvs, "vt"),
+            (norms, "vn"),
             (objname, "s"),
             (faces, "f"),
         ]
