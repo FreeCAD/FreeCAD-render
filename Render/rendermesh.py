@@ -216,6 +216,7 @@ class RenderMesh:
         Returns: the name of file that the function wrote.
         """
         t = time.time()
+        # TODO add parameter and check if python is available
         if self.__mesh.CountPoints < 1000:
             func = self._write_objfile_sp
         else:
@@ -360,9 +361,7 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices, indices = self.Topology  # Time consuming...
-        nverts = self.__mesh.CountPoints
-        ninds = self.__mesh.CountFacets
+        vertices, faces = self.Topology  # Time consuming...
         path = os.path.join(PKGDIR, "testmulti.py")
 
         print("init", time.time() - t)
@@ -392,35 +391,20 @@ class RenderMesh:
             mtl = []
 
         # Vertices
-        verts_tuples = (tuple(v) for v in vertices)
-        res = runpy.run_path(
-            path,
-            init_globals={"values": verts_tuples, "fmt": "v"},
-            run_name="__main__",
-        )
-        verts = res["result"]
-        verts = ["# Vertices\n"] + verts + ["\n"]
+        verts = (tuple(v) for v in vertices)
         print("verts", time.time() - t)
 
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
-            print("uvtransform", time.time() - t)
-            res = runpy.run_path(
-                path,
-                init_globals={"values": uvs, "fmt": "vt" },
-                run_name="__main__",
-            )
-            print("uvtransform2", time.time() - t)
-            uvs = res["result"]
-            uvs = ["# Texture coordinates\n"] + uvs + ["\n"]
             print("uvs", time.time() - t)
         else:
             uvs = []
 
         # Vertex normals
         if normals:
+            # TODO
             norms = self.__normals
             fmtn = functools.partial(str.format, "vn {} {} {}\n")
             norms = (fmtn(*n) for n in norms)
@@ -444,23 +428,29 @@ class RenderMesh:
         else:
             mask = " {}"
 
-        res = runpy.run_path(
-            path,
-            init_globals={"values": indices, "fmt": "f",  "mask": mask},
-            run_name="__main__",
-        )
-        faces = res["result"]
         print("faces", time.time() - t)
 
-        faces = ["# Faces\n"] + faces
 
-        res = header + mtl + verts + uvs + norms + objname + faces
+        # TODO add normals
+        inlist = [
+            (header, "s"),
+            (mtl, "s"),
+            (verts, "v"),
+            (uvs, "vt"),
+            (objname, "s"),
+            (faces, "f"),
+        ]
 
-        with open(objfile, "w", encoding="utf-8") as f:
-            f.writelines(res)
+        res = runpy.run_path(
+            path,
+            init_globals={"inlist": inlist,  "mask": mask, "objfile": objfile},
+            run_name="__main__",
+        )
+
         print("end", time.time() - t)
 
         return objfile
+
 
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
