@@ -35,9 +35,10 @@ import tempfile
 import operator
 import itertools as it
 import functools
-import time  # TODO
+import time
 from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
 import runpy
+import shutil
 
 import FreeCAD as App
 import Mesh
@@ -215,11 +216,15 @@ class RenderMesh:
         Returns: the name of file that the function wrote.
         """
         tm0 = time.time()
-        # TODO add parameter and check if python is available
-        if self.__mesh.CountPoints < 1000:
-            func = self._write_objfile_sp
+        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+        if (
+            self.__mesh.CountPoints >= 10000
+            and shutil.which("python")
+            and params.GetBool("EnableMultiprocessing")
+        ):
+            func, mode = self._write_objfile_mp, "mp"
         else:
-            func = self._write_objfile_mp
+            func, mode = self._write_objfile_sp, "sp"
 
         objfile = func(
             name,
@@ -234,7 +239,9 @@ class RenderMesh:
         )
 
         App.Console.PrintLog(
-            "[Render] Write OBJ file: {} s\n".format(time.time() - tm0)
+            "[Render] Write OBJ file ({}): {}s\n".format(
+                mode, time.time() - tm0
+            )
         )
         return objfile
 
@@ -360,7 +367,7 @@ class RenderMesh:
 
         # Initialize
         vertices, faces = self.Topology  # Time consuming...
-        path = os.path.join(PKGDIR, "testmulti.py")
+        path = os.path.join(PKGDIR, "writeobj.py")
 
         # Get obj file name
         if objfile is None:
