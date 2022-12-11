@@ -60,5 +60,11 @@ from Render.material import (  # noqa: F401
     ViewProviderMaterial,
     make_material,
 )
-from Render.utils import reload, last_cmd, set_dryrun  # noqa: F401
+from Render.utils import (  # noqa: F401
+    reload,
+    last_cmd,
+    set_dryrun,
+    set_dryrun_on,
+    set_dryrun_off,
+)
 from Render.commands import RENDER_COMMANDS  # noqa: F401
