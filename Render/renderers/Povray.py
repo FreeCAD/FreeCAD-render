@@ -80,7 +80,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # UV map
     if mesh.has_uvmap():
-        uv_vectors = [f"<{t.x},{t.y}>" for t in mesh.uvmap]
+        uv_vectors = [f"<{tx},{ty}>" for tx, ty in mesh.uvmap]
         len_uv_vectors = len(uv_vectors)
         uv_vectors = "\n        ".join(uv_vectors)
         snippet_uv_vects = f"""\
