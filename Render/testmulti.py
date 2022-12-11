@@ -31,6 +31,8 @@ import functools
 # Init
 def init(*args):
     """Initialize pool."""
+    # pylint: disable=global-variable-undefined
+    # pylint: disable=invalid-name
     global fmt_v, fmt_vt, fmt_vn, fmt_f, join_f, mask_f
     fmt_v = functools.partial(str.format, "v {} {} {}\n")
     fmt_vt = functools.partial(str.format, "vt {} {}\n")
@@ -39,30 +41,39 @@ def init(*args):
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
 
+
 # Vertices
 def func_v(val):
+    """Write vertex."""
     return fmt_v(*val)
+
 
 # UV map
 def func_vt(val):
+    """Write uv."""
     return fmt_vt(*val)
+
 
 # Normals
 def func_vn(val):
+    """Write normal."""
     return fmt_vn(*val)
+
 
 # Faces
 def func_f(val):
+    """Write face."""
     return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"])
+
 
 # String
 def func_s(val):
+    """Write plain string (nop)."""
     return val
 
-# Main
 
-if __name__ == '__main__':
-    import sys
+# Main
+if __name__ == "__main__":
     import os
     import shutil
     import itertools
@@ -76,23 +87,24 @@ if __name__ == '__main__':
     if not executable:
         raise RuntimeError("No Python executable")
     mp.set_executable(executable)
-    mp.set_start_method('spawn', force=True)
+    mp.set_start_method("spawn", force=True)
 
     # Get variables
+    # pylint: disable=used-before-assignment
     try:
         inlist
     except NameError:
-        inlist = [([(1,2,3)] * 2000000, "v")]  # Debug purpose
+        inlist = [([(1, 2, 3)] * 2000000, "v")]  # Debug purpose
 
     try:
         mask
     except NameError:
-        mask = ""
+        mask = ""  # pylint: disable=invalid-name
 
     try:
         objfile
     except NameError:
-        objfile = "tmp.obj"
+        objfile = "tmp.obj"  # pylint: disable=invalid-name
 
     # Parse format
     functions = {
@@ -103,12 +115,16 @@ if __name__ == '__main__':
         "s": func_s,
     }
 
-    chunk_size = 20000
+    CHUNK_SIZE = 20000
+    NPROC = os.cpu_count()
 
     # Run
     try:
-        with mp.Pool(processes=os.cpu_count(), initializer=init, initargs=(mask,)) as pool:
-            result = (pool.imap(functions[fmt], values, chunk_size) for values, fmt in inlist)
+        with mp.Pool(NPROC, init, (mask,)) as pool:
+            result = (
+                pool.imap(functions[fmt], values, CHUNK_SIZE)
+                for values, fmt in inlist
+            )
             result = itertools.chain.from_iterable(result)
             with open(objfile, "w", encoding="utf-8") as f:
                 f.writelines(result)

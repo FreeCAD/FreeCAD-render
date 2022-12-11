@@ -45,7 +45,6 @@ import Mesh
 from Render.constants import PKGDIR
 
 
-
 class RenderMesh:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
@@ -215,7 +214,7 @@ class RenderMesh:
 
         Returns: the name of file that the function wrote.
         """
-        t = time.time()
+        tm0 = time.time()
         # TODO add parameter and check if python is available
         if self.__mesh.CountPoints < 1000:
             func = self._write_objfile_sp
@@ -231,12 +230,13 @@ class RenderMesh:
             normals,
             uv_translate,
             uv_rotate,
-            uv_scale
+            uv_scale,
         )
 
-        print("write_objfile", time.time() - t)
+        App.Console.PrintLog(
+            "[Render] Write OBJ file: {} s\n".format(time.time() - tm0)
+        )
         return objfile
-
 
     def _write_objfile_sp(
         self,
@@ -339,7 +339,6 @@ class RenderMesh:
 
         return objfile
 
-
     def _write_objfile_mp(
         self,
         name,
@@ -356,15 +355,12 @@ class RenderMesh:
 
         See write_objfile for more details.
         """
-        t = time.time()
         # Retrieve and normalize arguments
         normals = bool(normals)
 
         # Initialize
         vertices, faces = self.Topology  # Time consuming...
         path = os.path.join(PKGDIR, "testmulti.py")
-
-        print("init", time.time() - t)
 
         # Get obj file name
         if objfile is None:
@@ -392,13 +388,11 @@ class RenderMesh:
 
         # Vertices
         verts = (tuple(v) for v in vertices)
-        print("verts", time.time() - t)
 
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
-            print("uvs", time.time() - t)
         else:
             uvs = []
 
@@ -426,10 +420,6 @@ class RenderMesh:
         else:
             mask = " {}"
 
-        print("faces", time.time() - t)
-
-
-        # TODO add normals
         inlist = [
             (header, "s"),
             (mtl, "s"),
@@ -440,16 +430,14 @@ class RenderMesh:
             (faces, "f"),
         ]
 
-        res = runpy.run_path(
+        # Run
+        runpy.run_path(
             path,
-            init_globals={"inlist": inlist,  "mask": mask, "objfile": objfile},
+            init_globals={"inlist": inlist, "mask": mask, "objfile": objfile},
             run_name="__main__",
         )
 
-        print("end", time.time() - t)
-
         return objfile
-
 
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
@@ -500,17 +488,17 @@ class RenderMesh:
             uvbase = self.uvmap
             if translate.x != 0.0 or translate.y != 0.0:
                 uvbase = [
-                    (v.x + translate.x, v.y + translate.y) for v in uvbase
+                    (v[0] + translate.x, v[1] + translate.y) for v in uvbase
                 ]
             if rotate != 0.0:
                 cosr = cos(rotate)
                 sinr = sin(rotate)
                 uvbase = [
-                    Vector2d(v.x * cosr - v.y * sinr, v.x * sinr + v.y * cosr)
+                    (v[0] * cosr - v[1] * sinr, v[0] * sinr + v[1] * cosr)
                     for v in uvbase
                 ]
             if scale != 1.0:
-                uvbase = [(v.x * scale, v.y * scale) for v in uvbase]
+                uvbase = [(v[0] * scale, v[1] * scale) for v in uvbase]
         else:
             uvbase = []
         return uvbase
@@ -597,10 +585,7 @@ class RenderMesh:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [
-            Vector2d(atan2(p.x, p.y) * avg_radius, p.z) * 0.001
-            for p in points
-        ]
+        uvmap += [(atan2(p.x, p.y) * avg_radius, p.z) * 0.001 for p in points]
         regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
@@ -608,22 +593,17 @@ class RenderMesh:
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
         avg_radius = (
-            sum(hypot(p.x, p.y) for p in points) / len(points)
-            if points
-            else 0
+            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         )
         uvmap += [
-            Vector2d(_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001
-            for p in points
+            (_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001 for p in points
         ]
         seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
 
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
-        uvmap += [
-            Vector2d(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)
-        ]
+        uvmap += [(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)]
         z_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(z_mesh)
 
