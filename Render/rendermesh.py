@@ -37,7 +37,6 @@ import itertools as it
 import functools
 import time  # TODO
 from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
-from collections import namedtuple
 import runpy
 
 import FreeCAD as App
@@ -45,7 +44,6 @@ import Mesh
 
 from Render.constants import PKGDIR
 
-Vector2d = namedtuple("Vector2d", "x y")
 
 
 class RenderMesh:
@@ -194,7 +192,7 @@ class RenderMesh:
         mtlname=None,
         mtlcontent=None,
         normals=True,
-        uv_translate=Vector2d(0.0, 0.0),
+        uv_translate=(0.0, 0.0),
         uv_rotate=0.0,
         uv_scale=1.0,
     ):
@@ -211,21 +209,55 @@ class RenderMesh:
             mtlcontent -- MTL file content (optional) (str)
             normals -- Flag to control the writing of normals in the OBJ file
               (bool)
-            uv_translate -- UV translation vector (Vector2d)
+            uv_translate -- UV translation vector (2-uple)
             uv_rotate -- UV rotation angle in degrees (float)
             uv_scale -- UV scale factor (float)
 
         Returns: the name of file that the function wrote.
         """
         t = time.time()
+        if self.__mesh.CountPoints < 1000:
+            func = self._write_objfile_sp
+        else:
+            func = self._write_objfile_mp
+
+        objfile = func(
+            name,
+            objfile,
+            mtlfile,
+            mtlname,
+            mtlcontent,
+            normals,
+            uv_translate,
+            uv_rotate,
+            uv_scale
+        )
+
+        print("write_objfile", time.time() - t)
+        return objfile
+
+
+    def _write_objfile_sp(
+        self,
+        name,
+        objfile=None,
+        mtlfile=None,
+        mtlname=None,
+        mtlcontent=None,
+        normals=True,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write an OBJ file from a mesh - single process.
+
+        See write_objfile for more details.
+        """
         # Retrieve and normalize arguments
         normals = bool(normals)
 
         # Initialize
         vertices, indices = self.Topology  # Time consuming...
-        nverts = len(vertices)
-        ninds = len(indices)
-
 
         # Get obj file name
         if objfile is None:
@@ -252,35 +284,17 @@ class RenderMesh:
             mtl = []
 
         # Vertices
-        if nverts < 1000:
-            fmtv = functools.partial(str.format, "v {} {} {}\n")
-            verts = (fmtv(*v) for v in vertices)
-        else:
-            verts_tuples = [tuple(v) for v in vertices]
-            path = os.path.join(PKGDIR, "testmulti.py")
-            res = runpy.run_path(
-                path,
-                init_globals={"values": verts_tuples, "fmt": "v", "length": nverts},
-                run_name="__main__",
-            )
-            verts = res["result"]
+        fmtv = functools.partial(str.format, "v {} {} {}\n")
+        verts = (fmtv(*v) for v in vertices)
         verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
-            if nverts < 1000:
-                fmtuv = functools.partial(str.format, "vt {} {}\n")
-                uvs = (fmtuv(*t) for t in uvs)
-            else:
-                res = runpy.run_path(
-                    path,
-                    init_globals={"values": list(uvs), "fmt": "vt", "length": ninds},
-                    run_name="__main__",
-                )
-                uvs = res["result"]
-            uvs = it.chain(["# Texture coordinates\n"], uvs, "\n")
+            fmtuv = functools.partial(str.format, "vt {} {}\n")
+            uvs = (fmtuv(*t) for t in uvs)
+            uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
         else:
             uvs = []
 
@@ -289,7 +303,7 @@ class RenderMesh:
             norms = self.__normals
             fmtn = functools.partial(str.format, "vn {} {} {}\n")
             norms = (fmtn(*n) for n in norms)
-            norms = it.chain(["# Vertex normals\n"], norms, "\n")
+            norms = it.chain(["# Vertex normals\n"], norms, ["\n"])
         else:
             norms = []
 
@@ -309,21 +323,12 @@ class RenderMesh:
         else:
             mask = " {}"
 
-        if nverts < 1000:
-            fmtf = functools.partial(str.format, mask)
-            joinf = functools.partial(str.join, "")
+        fmtf = functools.partial(str.format, mask)
+        joinf = functools.partial(str.join, "")
 
-            faces = (
-                joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in indices
-            )
-        else:
-            res = runpy.run_path(
-                path,
-                init_globals={"values": indices, "fmt": "f", "length": ninds, "mask": mask},
-                run_name="__main__",
-            )
-            faces = res["result"]
-
+        faces = (
+            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in indices
+        )
         faces = it.chain(["# Faces\n"], faces)
 
         res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
@@ -331,7 +336,130 @@ class RenderMesh:
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
 
-        print("write_objfile", time.time() - t)
+        return objfile
+
+
+    def _write_objfile_mp(
+        self,
+        name,
+        objfile=None,
+        mtlfile=None,
+        mtlname=None,
+        mtlcontent=None,
+        normals=True,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write an OBJ file from a mesh - multi process version.
+
+        See write_objfile for more details.
+        """
+        t = time.time()
+        # Retrieve and normalize arguments
+        normals = bool(normals)
+
+        # Initialize
+        vertices, indices = self.Topology  # Time consuming...
+        nverts = self.__mesh.CountPoints
+        ninds = self.__mesh.CountFacets
+        path = os.path.join(PKGDIR, "testmulti.py")
+
+        print("init", time.time() - t)
+
+        # Get obj file name
+        if objfile is None:
+            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+            os.close(f_handle)
+        else:
+            objfile = str(objfile)
+
+        # Header
+        header = ["# Written by FreeCAD-Render\n"]
+
+        # Mtl
+        if mtlcontent is not None:
+            # Write mtl file
+            mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
+            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
+                raise ValueError(
+                    "OBJ and MTL files shoud be in the same dir\n"
+                    f"('{objfile}' versus '{mtlfilename}')"
+                )
+            mtlfilename = os.path.basename(mtlfilename)
+            mtl = [f"mtllib {mtlfilename}\n\n"]
+        else:
+            mtl = []
+
+        # Vertices
+        verts_tuples = (tuple(v) for v in vertices)
+        res = runpy.run_path(
+            path,
+            init_globals={"values": verts_tuples, "fmt": "v", "length": nverts},
+            run_name="__main__",
+        )
+        verts = res["result"]
+        verts = ["# Vertices\n"] + verts + ["\n"]
+        print("verts", time.time() - t)
+
+        # UV
+        if self.has_uvmap():
+            # Translate, rotate, scale (optionally)
+            uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
+            print("uvtransform", time.time() - t)
+            res = runpy.run_path(
+                path,
+                init_globals={"values": uvs, "fmt": "vt", "length": nverts},
+                run_name="__main__",
+            )
+            print("uvtransform2", time.time() - t)
+            uvs = res["result"]
+            uvs = ["# Texture coordinates\n"] + uvs + ["\n"]
+            print("uvs", time.time() - t)
+        else:
+            uvs = []
+
+        # Vertex normals
+        if normals:
+            norms = self.__normals
+            fmtn = functools.partial(str.format, "vn {} {} {}\n")
+            norms = (fmtn(*n) for n in norms)
+            norms = ["# Vertex normals\n"] + norms + ["\n"]
+        else:
+            norms = []
+
+        # Object name
+        objname = [f"o {name}\n"]
+        if mtlname is not None:
+            objname.append(f"usemtl {mtlname}\n")
+        objname.append("\n")
+
+        # Faces
+        if normals and self.has_uvmap():
+            mask = " {0}/{0}/{0}"
+        elif not normals and self.has_uvmap():
+            mask = " {0}/{0}"
+        elif normals and not self.has_uvmap():
+            mask = " {0}//{0}"
+        else:
+            mask = " {}"
+
+        res = runpy.run_path(
+            path,
+            init_globals={"values": indices, "fmt": "f", "length": ninds, "mask": mask},
+            run_name="__main__",
+        )
+        faces = res["result"]
+        print("faces", time.time() - t)
+
+        faces = ["# Faces\n"] + faces
+
+        res = header + mtl + verts + uvs + norms + objname + faces
+
+        with open(objfile, "w", encoding="utf-8") as f:
+            f.writelines(res)
+        print("end", time.time() - t)
+
         return objfile
 
     @staticmethod
@@ -538,7 +666,7 @@ class RenderMesh:
         regular_mesh = Mesh.Mesh(regular)
         vectors = [p.Vector - origin for p in list(regular_mesh.Points)]
         uvmap += [
-            Vector2d(
+            (
                 (0.5 + atan2(v.x, v.y) / (2 * pi)) * (v.Length / 1000.0 * pi),
                 (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
             )
@@ -551,7 +679,7 @@ class RenderMesh:
         seam_mesh = Mesh.Mesh(seam)
         vectors = [p.Vector - origin for p in list(seam_mesh.Points)]
         uvmap += [
-            Vector2d(
+            (
                 (0.5 + _pos_atan2(v.x, v.y) / (2 * pi))
                 * (v.Length / 1000.0 * pi),
                 (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
@@ -688,17 +816,17 @@ def _compute_uv_from_unitcube(point, face):
     """
     pt0, pt1, pt2 = point
     if face == 0:  # _UnitCubeFaceEnum.XPLUS
-        res = Vector2d(pt1, pt2)
+        res = (pt1, pt2)
     elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-        res = Vector2d(-pt1, pt2)
+        res = (-pt1, pt2)
     elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-        res = Vector2d(-pt0, pt2)
+        res = (-pt0, pt2)
     elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-        res = Vector2d(pt0, pt2)
+        res = (pt0, pt2)
     elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-        res = Vector2d(pt0, pt1)
+        res = (pt0, pt1)
     elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-        res = Vector2d(pt0, -pt1)
+        res = (pt0, -pt1)
     return res
 
 
@@ -756,16 +884,16 @@ def uvtransform(uvmap, translate, rotate, scale):
 
     def _00t():
         """Translate."""
-        return (Vector2d(vec.x + trans_x, vec.y + trans_y) for vec in uvmap)
+        return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
 
     def _0s0():
         """Scale."""
-        return (Vector2d(vec.x * scale, vec.y * scale) for vec in uvmap)
+        return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
 
     def _0st():
         """Scale, translate."""
         return (
-            Vector2d(vec.x * scale + trans_x, vec.y * scale + trans_y)
+            (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
             for vec in uvmap
         )
 
@@ -774,9 +902,9 @@ def uvtransform(uvmap, translate, rotate, scale):
         cosr = cos(rotate)
         sinr = sin(rotate)
         return (
-            Vector2d(
-                vec.x * cosr - vec.y * sinr,
-                vec.x * sinr + vec.y * cosr,
+            (
+                vec[0] * cosr - vec[1] * sinr,
+                vec[0] * sinr + vec[1] * cosr,
             )
             for vec in uvmap
         )
@@ -786,9 +914,9 @@ def uvtransform(uvmap, translate, rotate, scale):
         cosr = cos(rotate)
         sinr = sin(rotate)
         return (
-            Vector2d(
-                vec.x * cosr - vec.y * sinr + trans_x,
-                vec.x * sinr + vec.y * cosr + trans_y,
+            (
+                vec[0] * cosr - vec[1] * sinr + trans_x,
+                vec[0] * sinr + vec[1] * cosr + trans_y,
             )
             for vec in uvmap
         )
@@ -798,9 +926,9 @@ def uvtransform(uvmap, translate, rotate, scale):
         cosrs = cos(rotate) * scale
         sinrs = sin(rotate) * scale
         return (
-            Vector2d(
-                vec.x * cosrs - vec.y * sinrs,
-                vec.x * sinrs + vec.y * cosrs,
+            (
+                vec[0] * cosrs - vec[1] * sinrs,
+                vec[0] * sinrs + vec[1] * cosrs,
             )
             for vec in uvmap
         )
@@ -810,9 +938,9 @@ def uvtransform(uvmap, translate, rotate, scale):
         cosrs = cos(rotate) * scale
         sinrs = sin(rotate) * scale
         return (
-            Vector2d(
-                vec.x * cosrs - vec.y * sinrs + trans_x,
-                vec.x * sinrs + vec.y * cosrs + trans_y,
+            (
+                vec[0] * cosrs - vec[1] * sinrs + trans_x,
+                vec[0] * sinrs + vec[1] * cosrs + trans_y,
             )
             for vec in uvmap
         )

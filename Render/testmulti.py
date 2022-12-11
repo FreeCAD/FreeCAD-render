@@ -3,33 +3,32 @@ import functools
 
 # Vertices
 
-def init_v(args):
+def init_v(*args):
     global fmt_v
     fmt_v = functools.partial(str.format, "v {} {} {}\n")
 
-def func_v(v):
-    return fmt_v(*v)
+def func_v(val):
+    return fmt_v(*val)
 
 # UV map
 
-def init_vt(args):
+def init_vt(*args):
     global fmt_vt
     fmt_vt = functools.partial(str.format, "vt {} {}\n")
 
-def func_vt(v):
-    return fmt_vt(*v)
+def func_vt(val):
+    return fmt_vt(*val)
 
 # Faces
 
 def init_f(*args):
     global fmt_f, join_f, mask_f
-    mask_f = args[0]
-    print("mask_f", mask_f)
+    mask_f, *_ = args
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
 
-def func_f(v):
-    return join_f(["f"] + [fmt_f(x + 1) for x in v] + ["\n"])
+def func_f(val):
+    return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"])
 
 # Main
 
@@ -37,13 +36,6 @@ if __name__ == '__main__':
     import sys
     import os
     import shutil
-    try:
-        import FreeCAD as App
-        debug = App.Console.PrintLog
-    except ModuleNotFoundError:
-        debug = print
-
-    debug("[Render][Export] Using multiprocessing...\n")
 
     # Set directory and stdout
     save_dir = os.getcwd()
@@ -60,7 +52,7 @@ if __name__ == '__main__':
     try:
         values
     except NameError:
-        values = [(1,2,3),(4,5,6)]
+        values = [(1,2,3),(4,5,6)] * 2000000
 
     try:
         fmt
@@ -70,7 +62,7 @@ if __name__ == '__main__':
     try:
         length
     except NameError:
-        length = 2
+        length = len(values)
 
     try:
         mask
@@ -90,8 +82,8 @@ if __name__ == '__main__':
     # Run
     result = []
     try:
-        with mp.Pool(processes=4, initializer=init, initargs=(mask,)) as pool:
-            result = pool.imap(func, values, 200)
+        with mp.Pool(processes=os.cpu_count(), initializer=init, initargs=(mask,)) as pool:
+            result = pool.map(func, values, 20000)
             result = list(result)
     finally:
         os.chdir(save_dir)
