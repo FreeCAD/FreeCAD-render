@@ -395,7 +395,7 @@ class RenderMesh:
         verts_tuples = (tuple(v) for v in vertices)
         res = runpy.run_path(
             path,
-            init_globals={"values": verts_tuples, "fmt": "v", "length": nverts},
+            init_globals={"values": verts_tuples, "fmt": "v"},
             run_name="__main__",
         )
         verts = res["result"]
@@ -409,7 +409,7 @@ class RenderMesh:
             print("uvtransform", time.time() - t)
             res = runpy.run_path(
                 path,
-                init_globals={"values": uvs, "fmt": "vt", "length": nverts},
+                init_globals={"values": uvs, "fmt": "vt" },
                 run_name="__main__",
             )
             print("uvtransform2", time.time() - t)
@@ -446,7 +446,7 @@ class RenderMesh:
 
         res = runpy.run_path(
             path,
-            init_globals={"values": indices, "fmt": "f", "length": ninds, "mask": mask},
+            init_globals={"values": indices, "fmt": "f",  "mask": mask},
             run_name="__main__",
         )
         faces = res["result"]

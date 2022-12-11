@@ -60,11 +60,6 @@ if __name__ == '__main__':
         fmt = "v"
 
     try:
-        length
-    except NameError:
-        length = len(values)
-
-    try:
         mask
     except NameError:
         mask = ""
