@@ -539,6 +539,7 @@ class RenderMesh:
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
         projection = "Cubic" if projection is None else projection
+        tm0 = time.time()
         if projection == "Cubic":
             self._compute_uvmap_cube()
         elif projection == "Spherical":
@@ -547,6 +548,7 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
+        App.Console.PrintLog("[Render][Uvmap] Computation time: {}s\n".format(time.time() - tm0))
         self.compute_normals()
 
     def compute_normals(self):
@@ -676,6 +678,16 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        return self._compute_uvmap_cube_mp()
+
+
+    def _compute_uvmap_cube_sp(self):
+        """Compute UV map for cubic case - single process version.
+
+        We isolate submeshes by cube face in order to avoid trouble when
+        one edge belongs to several cube faces (cf. simple cube case, for
+        instance)
+        """
         # Isolate submeshes by cube face
         face_facets = ([], [], [], [], [], [])
         for facet in self.__originalmesh.Facets:
@@ -708,6 +720,56 @@ class RenderMesh:
         self.__mesh = mesh
         self.__uvmap = uvmap
 
+    def _compute_uvmap_cube_mp(self):
+        """Compute UV map for cubic case - multiprocessing version.
+
+        We isolate submeshes by cube face in order to avoid trouble when
+        one edge belongs to several cube faces (cf. simple cube case, for
+        instance)
+        """
+        tm0 = time.time()
+        path = os.path.join(PKGDIR, "uvmap_cube.py")
+        # Isolate submeshes by cube face
+        # face_facets = ([], [], [], [], [], [])
+        # for facet in self.__originalmesh.Facets:
+            # cubeface = _intersect_unitcube_face(facet.Normal)
+            # # Add facet to corresponding submesh
+            # face_facets[cubeface].append(facet)
+
+        # Run
+        facets = self.__originalmesh.Facets
+        res = runpy.run_path(
+            path,
+            init_globals={"facets": facets},
+            run_name="__main__",
+        )
+        face_facets = res["face_facets"]
+        print("face_facets", time.time() - tm0)
+
+        # Rebuid a complete mesh from face submeshes, with uvmap
+        uvmap = []
+        mesh = Mesh.Mesh()
+        try:
+            cog = self.__originalmesh.CenterOfGravity
+        except AttributeError:
+            cog = self.center_of_gravity()
+        transmat = self.__originalplacement.Matrix
+        for cubeface, facets in enumerate(face_facets):
+            facemesh = Mesh.Mesh(facets)
+            # Compute uvmap of the submesh
+            facemesh_uvmap = [
+                _compute_uv_from_unitcube((p.Vector - cog) / 1000, cubeface)
+                # pylint: disable=not-an-iterable
+                for p in facemesh.Points
+            ]
+            # Add submesh and uvmap
+            facemesh.transform(transmat)
+            mesh.addMesh(facemesh)
+            uvmap += facemesh_uvmap
+
+        # Replace previous values with newly computed ones
+        self.__mesh = mesh
+        self.__uvmap = uvmap
     def has_uvmap(self):
         """Check if object has a uv map."""
         return bool(self.__uvmap)
