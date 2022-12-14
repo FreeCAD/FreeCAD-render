@@ -20,8 +20,9 @@
 # *                                                                         *
 # ***************************************************************************
 import multiprocessing as mp
+import time
 
-def _intersect_unitcube_face(arg):
+def _intersect_unitcube_face(direction):
     """Get the face of the unit cube intersected by a line from origin.
 
     Args:
@@ -31,40 +32,67 @@ def _intersect_unitcube_face(arg):
     Returns:
         A face from the unit cube (_UnitCubeFaceEnum)
     """
-    points, direction = arg
     dirx, diry, dirz = direction
     dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
 
     if dabsx >= dabsy and dabsx >= dabsz:
         return (
-            (points, 0)  # _UnitCubeFaceEnum.XPLUS
+            0  # _UnitCubeFaceEnum.XPLUS
             if dirx >= 0
-            else (points, 1)  # _UnitCubeFaceEnum.XMINUS
+            else 1  # _UnitCubeFaceEnum.XMINUS
         )
 
     if dabsy >= dabsx and dabsy >= dabsz:
         return (
-            (points, 2)  # _UnitCubeFaceEnum.YPLUS
+            2  # _UnitCubeFaceEnum.YPLUS
             if diry >= 0
-            else (points, 3)  # _UnitCubeFaceEnum.YMINUS
+            else 3  # _UnitCubeFaceEnum.YMINUS
         )
 
     return (
-        (points, 4)  # _UnitCubeFaceEnum.ZPLUS
+        4  # _UnitCubeFaceEnum.ZPLUS
         if dirz >= 0
-        else (points, 5)  # _UnitCubeFaceEnum.ZMINUS
+        else 5  # _UnitCubeFaceEnum.ZMINUS
     )
 
+def normal(facet):
+    a, b, c = facet
+    v = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
+    w = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
+    res = (
+        v[1] * w[2] - v[2] * w[1],
+        v[2] * w[0] - v[0] * w[2],
+        v[0] * w[1] - v[1] * w[0],
+    )
+    return res
 
+
+def isolate_submeshes(facets):
+    submeshes = ([], [], [], [], [], [])
+    for facet in facets:
+        cubeface = _intersect_unitcube_face(normal(facet))
+        # Add facet to corresponding submesh
+        submeshes[cubeface].append(facet)
+    return submeshes
 
 if __name__ == "__main__":
     import os
     import shutil
     import operator
     import itertools
-    import time
 
     global facets
+
+    def batched(iterable, n):
+        "Batch data into lists of length n. The last batch may be shorter."
+        # batched('ABCDEFG', 3) --> ABC DEF G
+        # from Python itertools documentation...
+        if n < 1:
+            raise ValueError("n must be at least one")
+        it = iter(iterable)
+        while (batch := list(itertools.islice(it, n))):
+            yield batch
+
 
     # Set directory and stdout
     save_dir = os.getcwd()
@@ -84,20 +112,27 @@ if __name__ == "__main__":
     # Run
     try:
         tm0 = time.time()
-        facet_normals = ((f.Points, tuple(f.Normal)) for f in facets)
-        # TODO: divide into chunks and run a process on chunk. No map
+        chunks = batched((f.Points for f in facets), CHUNK_SIZE)
         print("iterator", time.time() - tm0)
         with mp.Pool(NPROC) as pool:
-            data = pool.imap_unordered(_intersect_unitcube_face, facet_normals, CHUNK_SIZE)
-            print("imap", time.time() - tm0)
-            l = list(data)
-            print("list", time.time() - tm0)
-            it1 = operator.itemgetter(1)
-            sorted(data, key=it1)
-            print("sort", time.time() - tm0)
-            face_facets = ([], [], [], [], [], [])
-            for facet, index in data:
-                face_facets[index].append(facet)
+            data = pool.map(isolate_submeshes, chunks)
+            print("map", time.time() - tm0)
+            face_facets = [[], [], [], [], [], []]
+            for subm in data:
+                face_facets[0] += subm[0]
+                face_facets[1] += subm[1]
+                face_facets[2] += subm[2]
+                face_facets[3] += subm[3]
+                face_facets[4] += subm[4]
+                face_facets[5] += subm[5]
             print("loop", time.time() - tm0)
+
+            # it1 = operator.itemgetter(1)
+            # sorted(data, key=it1)
+            # print("sort", time.time() - tm0)
+            # face_facets = ([], [], [], [], [], [])
+            # for facet, index in data:
+                # face_facets[index].append(facet)
+            # print("loop", time.time() - tm0)
     finally:
         os.chdir(save_dir)

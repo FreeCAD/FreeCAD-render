@@ -719,6 +719,7 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
+    run_concurrent = False
     if run_concurrent:
         App.Console.PrintLog("[Render][Objstrings] STARTING - CONCURRENT MODE\n")
         time0 = time.time()
