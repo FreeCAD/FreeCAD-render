@@ -66,6 +66,7 @@ if __name__ == "__main__":
     import operator
     import itertools
     import time
+    import functools
 
     global facets
 
@@ -102,25 +103,17 @@ if __name__ == "__main__":
         with mp.Pool(NPROC) as pool:
             data = pool.imap(compute_submeshes, chunks)
             print("map", time.time() - tm0)
-            face_facets = ([], [], [], [], [], [])
             faces = (
                 (ichunk * CHUNK_SIZE + iface, face)
                 for ichunk, chunk in enumerate(data)
                 for iface, face in enumerate(chunk)
             )
 
-            # for iface, face in faces:
-                # face_facets[face].append(facets[iface])
-            # import functools
-            # functools.reduce(lambda x, y: x[y[0]].append(y[1]), faces, ([], [], [], [], [], []))
+            def redfunc(x, y):
+                iface, face = y
+                x[face].append(facets[iface])
+                return x
+            face_facets = functools.reduce(redfunc, faces, [list()] * 6)
             print("loop", time.time() - tm0)
-
-            # it1 = operator.itemgetter(1)
-            # sorted(data, key=it1)
-            # print("sort", time.time() - tm0)
-            # face_facets = ([], [], [], [], [], [])
-            # for facet, index in data:
-            # face_facets[index].append(facet)
-            # print("loop", time.time() - tm0)
     finally:
         os.chdir(save_dir)
