@@ -21,6 +21,7 @@
 # ***************************************************************************
 import multiprocessing as mp
 
+
 def intersect_unitcube_face(direction):
     """Get the face of the unit cube intersected by a line from origin.
 
@@ -54,8 +55,10 @@ def intersect_unitcube_face(direction):
         else 5  # _UnitCubeFaceEnum.ZMINUS
     )
 
+
 def compute_submeshes(normals):
     return [intersect_unitcube_face(n) for n in normals]
+
 
 if __name__ == "__main__":
     import os
@@ -74,9 +77,8 @@ if __name__ == "__main__":
         if n < 1:
             raise ValueError("n must be at least one")
         it = iter(iterable)
-        while (batch := list(itertools.islice(it, n))):
+        while batch := list(itertools.islice(it, n)):
             yield batch
-
 
     # Set directory and stdout
     save_dir = os.getcwd()
@@ -89,9 +91,8 @@ if __name__ == "__main__":
     mp.set_executable(executable)
     mp.set_start_method("spawn", force=True)
 
-    CHUNK_SIZE = 50000
+    CHUNK_SIZE = 2000
     NPROC = os.cpu_count()
-
 
     # Run
     try:
@@ -102,10 +103,16 @@ if __name__ == "__main__":
             data = pool.imap(compute_submeshes, chunks)
             print("map", time.time() - tm0)
             face_facets = ([], [], [], [], [], [])
-            data = enumerate(data)
-            for ichunk, chunk in data:
-                for iface, face in enumerate(chunk):
-                    face_facets[face].append(facets[ichunk * CHUNK_SIZE + iface])
+            faces = (
+                (ichunk * CHUNK_SIZE + iface, face)
+                for ichunk, chunk in enumerate(data)
+                for iface, face in enumerate(chunk)
+            )
+
+            # for iface, face in faces:
+                # face_facets[face].append(facets[iface])
+            # import functools
+            # functools.reduce(lambda x, y: x[y[0]].append(y[1]), faces, ([], [], [], [], [], []))
             print("loop", time.time() - tm0)
 
             # it1 = operator.itemgetter(1)
@@ -113,7 +120,7 @@ if __name__ == "__main__":
             # print("sort", time.time() - tm0)
             # face_facets = ([], [], [], [], [], [])
             # for facet, index in data:
-                # face_facets[index].append(facet)
+            # face_facets[index].append(facet)
             # print("loop", time.time() - tm0)
     finally:
         os.chdir(save_dir)
