@@ -20,9 +20,8 @@
 # *                                                                         *
 # ***************************************************************************
 import multiprocessing as mp
-import time
 
-def _intersect_unitcube_face(direction):
+def intersect_unitcube_face(direction):
     """Get the face of the unit cube intersected by a line from origin.
 
     Args:
@@ -55,34 +54,19 @@ def _intersect_unitcube_face(direction):
         else 5  # _UnitCubeFaceEnum.ZMINUS
     )
 
-def normal(facet):
-    a, b, c = facet
-    v = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
-    w = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
-    res = (
-        v[1] * w[2] - v[2] * w[1],
-        v[2] * w[0] - v[0] * w[2],
-        v[0] * w[1] - v[1] * w[0],
-    )
-    return res
-
-
-def isolate_submeshes(facets):
-    submeshes = ([], [], [], [], [], [])
-    for facet in facets:
-        cubeface = _intersect_unitcube_face(normal(facet))
-        # Add facet to corresponding submesh
-        submeshes[cubeface].append(facet)
-    return submeshes
+def compute_submeshes(normals):
+    return [intersect_unitcube_face(n) for n in normals]
 
 if __name__ == "__main__":
     import os
     import shutil
     import operator
     import itertools
+    import time
 
     global facets
 
+    # TODO Only >= 3.8
     def batched(iterable, n):
         "Batch data into lists of length n. The last batch may be shorter."
         # batched('ABCDEFG', 3) --> ABC DEF G
@@ -105,26 +89,23 @@ if __name__ == "__main__":
     mp.set_executable(executable)
     mp.set_start_method("spawn", force=True)
 
-    CHUNK_SIZE = 20000
+    CHUNK_SIZE = 50000
     NPROC = os.cpu_count()
 
 
     # Run
     try:
         tm0 = time.time()
-        chunks = batched((f.Points for f in facets), CHUNK_SIZE)
+        chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
         print("iterator", time.time() - tm0)
         with mp.Pool(NPROC) as pool:
-            data = pool.map(isolate_submeshes, chunks)
+            data = pool.imap(compute_submeshes, chunks)
             print("map", time.time() - tm0)
-            face_facets = [[], [], [], [], [], []]
-            for subm in data:
-                face_facets[0] += subm[0]
-                face_facets[1] += subm[1]
-                face_facets[2] += subm[2]
-                face_facets[3] += subm[3]
-                face_facets[4] += subm[4]
-                face_facets[5] += subm[5]
+            face_facets = ([], [], [], [], [], [])
+            data = enumerate(data)
+            for ichunk, chunk in data:
+                for iface, face in enumerate(chunk):
+                    face_facets[face].append(facets[ichunk * CHUNK_SIZE + iface])
             print("loop", time.time() - tm0)
 
             # it1 = operator.itemgetter(1)
