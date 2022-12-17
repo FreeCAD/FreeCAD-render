@@ -60,33 +60,34 @@ def compute_submeshes(normals):
 
     return [intersect_unitcube_face(n) for n in normals]
 
+def compute_uv_from_unitcube(point, face):
+    """Compute UV coords from intersection point and face.
+
+    The cube is unfold this way:
+
+          +Z
+    +X +Y -X -Y
+          -Z
+
+    """
+    point = tuple((p - c) / 1000 for p, c in zip(point, COG))
+    pt0, pt1, pt2 = point
+    if face == 0:  # _UnitCubeFaceEnum.XPLUS
+        res = (pt1, pt2)
+    elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+        res = (-pt1, pt2)
+    elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+        res = (-pt0, pt2)
+    elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+        res = (pt0, pt2)
+    elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+        res = (pt0, pt1)
+    elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+        res = (pt0, -pt1)
+    return res
+
 
 def compute_uv(chunk):
-    def compute_uv_from_unitcube(point, face):
-        """Compute UV coords from intersection point and face.
-
-        The cube is unfold this way:
-
-              +Z
-        +X +Y -X -Y
-              -Z
-
-        """
-        point = tuple((p - c) / 1000 for p, c in zip(point, COG))
-        pt0, pt1, pt2 = point
-        if face == 0:  # _UnitCubeFaceEnum.XPLUS
-            res = (pt1, pt2)
-        elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-            res = (-pt1, pt2)
-        elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-            res = (-pt0, pt2)
-        elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-            res = (pt0, pt2)
-        elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-            res = (pt0, pt1)
-        elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-            res = (pt0, -pt1)
-        return res
     return [compute_uv_from_unitcube(point, face) for point, face in chunk]
 
 def init(*args):
@@ -163,30 +164,25 @@ if __name__ == "__main__":
                 x[face].append(facets[iface])
                 return x
             face_facets = functools.reduce(face_reducer, faces, [[], [], [], [], [], []])
-            submeshes = [Mesh.Mesh(facets) for facets in face_facets]
-            print("submeshes", time.time() - tm0)
+            print("face_facets", time.time() - tm0)
 
-            # Compute uvmap for submeshes
-            points = (
-                (tuple(p.Vector), cubeface)
-                for cubeface, mesh in enumerate(submeshes)
-                for p in mesh.Points
-            )
-            chunks = batched(points, CHUNK_SIZE)
-            uvmap = sum(pool.imap(compute_uv, chunks), [])
-            print("uv", time.time() - tm0)
-
-            # Compute final mesh
-            def mesh_reducer(x, y):
-                y.transform(transmat)
-                x.addMesh(y)
-                return x
-            mesh = functools.reduce(mesh_reducer, submeshes, Mesh.Mesh())
-            print("mesh", time.time() - tm0)
+            # Compute final mesh and uvmap
+            mesh = Mesh.Mesh()
+            uv_results = []
+            for cubeface, facets in enumerate(face_facets):
+                submesh = Mesh.Mesh(facets)
+                points = submesh.Points
+                data = ((tuple(p.Vector), cubeface) for p in points)
+                chunks = batched(data, CHUNK_SIZE)
+                uv_results.append(pool.map_async(compute_uv, chunks))
+                submesh.transform(transmat)
+                mesh.addMesh(submesh)
+            print("uvresult", time.time() - tm0)
+            uvmap = [uv for mapres in uv_results for chunks in mapres.get() for uv in chunks]
+            print("uvmap", time.time() - tm0)
 
             # Clean
             del face_facets
             del data
-            del submeshes
     finally:
         os.chdir(save_dir)
