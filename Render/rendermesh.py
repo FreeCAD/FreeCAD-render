@@ -748,35 +748,15 @@ class RenderMesh:
             path,
             init_globals={
                 "facets": facets,
+                "cog": tuple(cog),
                 "transmat": transmat
             },
             run_name="__main__",
         )
-        submeshes = res["submeshes"]
-
-        # Compute uvmap for submeshes
-        points = (
-            ((p.Vector - cog) / 1000 , cubeface)
-            for cubeface, submesh in enumerate(submeshes)
-            for p in submesh.Points
-        )
-        uvmap = [_compute_uv_from_unitcube(point, face) for point, face in points]
-        print("uv", time.time() - tm0)
-
-        # Compute final mesh
-        def mesh_reducer(x, y):
-            y.transform(transmat)
-            x.addMesh(y)
-            return x
-        mesh = functools.reduce(mesh_reducer, submeshes, Mesh.Mesh())
-        print("mesh", time.time() - tm0)
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
-        self.__uvmap = uvmap
-
-        # Clean script
-        del res["submeshes"]
+        self.__mesh = res["mesh"]
+        self.__uvmap = res["uvmap"]
         print("uv end", time.time() - tm0)
 
 
