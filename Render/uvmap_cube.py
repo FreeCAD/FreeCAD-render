@@ -59,6 +59,40 @@ def intersect_unitcube_face(direction):
 def compute_submeshes(normals):
     return [intersect_unitcube_face(n) for n in normals]
 
+def compute_uv_from_unitcube(point, face):
+    """Compute UV coords from intersection point and face.
+
+    The cube is unfold this way:
+
+          +Z
+    +X +Y -X -Y
+          -Z
+
+    """
+    pt0, pt1, pt2 = point
+    if face == 0:  # _UnitCubeFaceEnum.XPLUS
+        res = (pt1, pt2)
+    elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+        res = (-pt1, pt2)
+    elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+        res = (-pt0, pt2)
+    elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+        res = (pt0, pt2)
+    elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+        res = (pt0, pt1)
+    elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+        res = (pt0, -pt1)
+    return res
+
+def compute_uv(arg):
+   point, face = arg
+   point = tuple((p - c) / 1000 for p, c in zip(point, cog))
+   return compute_uv_from_unitcube(point, face)
+
+def init(*args):
+    global cog
+
+    cog, *_ = args
 
 if __name__ == "__main__":
     import os
@@ -71,6 +105,8 @@ if __name__ == "__main__":
     import Mesh
 
     global facets
+    global cog
+    global transmat
 
     # TODO Only >= 3.8
     def batched(iterable, n):
@@ -101,27 +137,41 @@ if __name__ == "__main__":
     try:
         tm0 = time.time()
         chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
-        print("iterator", time.time() - tm0)
-        with mp.Pool(NPROC) as pool:
+        with mp.Pool(NPROC, init, (cog,)) as pool:
             # Compute submeshes
             data = pool.imap(compute_submeshes, chunks)
-            print("map", time.time() - tm0)
             faces = (
                 (ichunk * CHUNK_SIZE + iface, face)
                 for ichunk, chunk in enumerate(data)
                 for iface, face in enumerate(chunk)
             )
 
-            def redfunc(x, y):
+            def face_reducer(x, y):
                 iface, face = y
                 x[face].append(facets[iface])
                 return x
-            face_facets = functools.reduce(redfunc, faces, [[], [], [], [], [], []])
-            print("loop", time.time() - tm0)
+            face_facets = functools.reduce(face_reducer, faces, [[], [], [], [], [], []])
             submeshes = [Mesh.Mesh(facets) for facets in face_facets]
-            del face_facets
             print("submeshes", time.time() - tm0)
 
             # Compute uvmap for submeshes
+            points = (
+                (tuple(p.Vector), cubeface)
+                for cubeface, mesh in enumerate(submeshes)
+                for p in mesh.Points
+            )
+            uvmap = list(pool.map(compute_uv, points))
+            print("uv", time.time() - tm0)
+            def mesh_reducer(x, y):
+                y.transform(transmat)
+                x.addMesh(y)
+                return x
+            mesh = functools.reduce(mesh_reducer, submeshes, Mesh.Mesh())
+            print("mesh", time.time() - tm0)
+
+            # Clean
+            del face_facets
+            del data
+            del submeshes
     finally:
         os.chdir(save_dir)

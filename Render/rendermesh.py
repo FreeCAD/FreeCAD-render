@@ -727,50 +727,33 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        # Init variables
         tm0 = time.time()
         path = os.path.join(PKGDIR, "uvmap_cube.py")
-        # Isolate submeshes by cube face
-        # face_facets = ([], [], [], [], [], [])
-        # for facet in self.__originalmesh.Facets:
-            # cubeface = _intersect_unitcube_face(facet.Normal)
-            # # Add facet to corresponding submesh
-            # face_facets[cubeface].append(facet)
+        transmat = self.__originalplacement.Matrix
+
+        try:
+            cog = self.__originalmesh.CenterOfGravity
+        except AttributeError:
+            cog = self.center_of_gravity()
 
         # Run
         facets = self.__originalmesh.Facets
         res = runpy.run_path(
             path,
-            init_globals={"facets": facets},
+            init_globals={
+                "facets": facets,
+                "cog": tuple(cog),
+                "transmat": transmat
+            },
             run_name="__main__",
         )
-        submeshes = res["submeshes"]
-        print("submeshes2", time.time() - tm0)
-
-        # Rebuid a complete mesh from face submeshes, with uvmap
-        uvmap = []
-        mesh = Mesh.Mesh()
-        try:
-            cog = self.__originalmesh.CenterOfGravity
-        except AttributeError:
-            cog = self.center_of_gravity()
-        transmat = self.__originalplacement.Matrix
-        for cubeface, facemesh in enumerate(submeshes):
-            # Compute uvmap of the submesh
-            facemesh_uvmap = [
-                _compute_uv_from_unitcube((p.Vector - cog) / 1000, cubeface)
-                # pylint: disable=not-an-iterable
-                for p in facemesh.Points
-            ]
-            # Add submesh and uvmap
-            facemesh.transform(transmat)
-            mesh.addMesh(facemesh)
-            uvmap += facemesh_uvmap
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
-        self.__uvmap = uvmap
+        self.__mesh = res["mesh"]
+        self.__uvmap = res["uvmap"]
+        print("uv end", time.time() - tm0)
 
-        del res["submeshes"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""
