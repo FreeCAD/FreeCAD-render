@@ -68,6 +68,8 @@ if __name__ == "__main__":
     import time
     import functools
 
+    import Mesh
+
     global facets
 
     # TODO Only >= 3.8
@@ -101,6 +103,7 @@ if __name__ == "__main__":
         chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
         print("iterator", time.time() - tm0)
         with mp.Pool(NPROC) as pool:
+            # Compute submeshes
             data = pool.imap(compute_submeshes, chunks)
             print("map", time.time() - tm0)
             faces = (
@@ -113,7 +116,12 @@ if __name__ == "__main__":
                 iface, face = y
                 x[face].append(facets[iface])
                 return x
-            face_facets = functools.reduce(redfunc, faces, [list()] * 6)
+            face_facets = functools.reduce(redfunc, faces, [[], [], [], [], [], []])
             print("loop", time.time() - tm0)
+            submeshes = [Mesh.Mesh(facets) for facets in face_facets]
+            del face_facets
+            print("submeshes", time.time() - tm0)
+
+            # Compute uvmap for submeshes
     finally:
         os.chdir(save_dir)

@@ -743,8 +743,8 @@ class RenderMesh:
             init_globals={"facets": facets},
             run_name="__main__",
         )
-        face_facets = res["face_facets"]
-        print("face_facets", time.time() - tm0)
+        submeshes = res["submeshes"]
+        print("submeshes2", time.time() - tm0)
 
         # Rebuid a complete mesh from face submeshes, with uvmap
         uvmap = []
@@ -754,8 +754,7 @@ class RenderMesh:
         except AttributeError:
             cog = self.center_of_gravity()
         transmat = self.__originalplacement.Matrix
-        for cubeface, facets in enumerate(face_facets):
-            facemesh = Mesh.Mesh(facets)
+        for cubeface, facemesh in enumerate(submeshes):
             # Compute uvmap of the submesh
             facemesh_uvmap = [
                 _compute_uv_from_unitcube((p.Vector - cog) / 1000, cubeface)
@@ -770,6 +769,9 @@ class RenderMesh:
         # Replace previous values with newly computed ones
         self.__mesh = mesh
         self.__uvmap = uvmap
+
+        del res["submeshes"]
+
     def has_uvmap(self):
         """Check if object has a uv map."""
         return bool(self.__uvmap)
