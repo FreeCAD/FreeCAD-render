@@ -41,7 +41,7 @@ from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
+from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION, PARAMS
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate, set_last_cmd, clear_report_view
@@ -719,7 +719,9 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    run_concurrent = False
+    if PARAMS.GetBool("EnableMultiprocessing"):
+        run_concurrent = False  # runpy is not compatible with multithread...
+
     if run_concurrent:
         App.Console.PrintLog("[Render][Objstrings] STARTING - CONCURRENT MODE\n")
         time0 = time.time()

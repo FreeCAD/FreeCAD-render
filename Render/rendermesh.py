@@ -43,7 +43,7 @@ import shutil
 import FreeCAD as App
 import Mesh
 
-from Render.constants import PKGDIR
+from Render.constants import PKGDIR, PARAMS
 
 
 class RenderMesh:
@@ -678,7 +678,12 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
-        return self._compute_uvmap_cube_mp()
+        if PARAMS.GetBool("EnableMultiprocessing"):
+            App.Console.PrintLog("[Render][Uvmap] Parallel computation\n")
+            return self._compute_uvmap_cube_mp()
+        else:
+            App.Console.PrintLog("[Render][Uvmap] Sequential computation\n")
+            return self._compute_uvmap_cube_sp()
 
 
     def _compute_uvmap_cube_sp(self):

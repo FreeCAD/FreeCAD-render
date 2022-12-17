@@ -22,77 +22,76 @@
 import multiprocessing as mp
 
 
-def intersect_unitcube_face(direction):
-    """Get the face of the unit cube intersected by a line from origin.
-
-    Args:
-        direction -- The directing vector for the intersection line
-        (a 3-float sequence)
-
-    Returns:
-        A face from the unit cube (_UnitCubeFaceEnum)
-    """
-    dirx, diry, dirz = direction
-    dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
-
-    if dabsx >= dabsy and dabsx >= dabsz:
-        return (
-            0  # _UnitCubeFaceEnum.XPLUS
-            if dirx >= 0
-            else 1  # _UnitCubeFaceEnum.XMINUS
-        )
-
-    if dabsy >= dabsx and dabsy >= dabsz:
-        return (
-            2  # _UnitCubeFaceEnum.YPLUS
-            if diry >= 0
-            else 3  # _UnitCubeFaceEnum.YMINUS
-        )
-
-    return (
-        4  # _UnitCubeFaceEnum.ZPLUS
-        if dirz >= 0
-        else 5  # _UnitCubeFaceEnum.ZMINUS
-    )
 
 
 def compute_submeshes(normals):
+    def intersect_unitcube_face(direction):
+        """Get the face of the unit cube intersected by a line from origin.
+
+        Args:
+            direction -- The directing vector for the intersection line
+            (a 3-float sequence)
+
+        Returns:
+            A face from the unit cube (_UnitCubeFaceEnum)
+        """
+        dirx, diry, dirz = direction
+        dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
+
+        if dabsx >= dabsy and dabsx >= dabsz:
+            return (
+                0  # _UnitCubeFaceEnum.XPLUS
+                if dirx >= 0
+                else 1  # _UnitCubeFaceEnum.XMINUS
+            )
+
+        if dabsy >= dabsx and dabsy >= dabsz:
+            return (
+                2  # _UnitCubeFaceEnum.YPLUS
+                if diry >= 0
+                else 3  # _UnitCubeFaceEnum.YMINUS
+            )
+
+        return (
+            4  # _UnitCubeFaceEnum.ZPLUS
+            if dirz >= 0
+            else 5  # _UnitCubeFaceEnum.ZMINUS
+        )
+
     return [intersect_unitcube_face(n) for n in normals]
 
-def compute_uv_from_unitcube(point, face):
-    """Compute UV coords from intersection point and face.
 
-    The cube is unfold this way:
+def compute_uv(chunk):
+    def compute_uv_from_unitcube(point, face):
+        """Compute UV coords from intersection point and face.
 
-          +Z
-    +X +Y -X -Y
-          -Z
+        The cube is unfold this way:
 
-    """
-    pt0, pt1, pt2 = point
-    if face == 0:  # _UnitCubeFaceEnum.XPLUS
-        res = (pt1, pt2)
-    elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-        res = (-pt1, pt2)
-    elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-        res = (-pt0, pt2)
-    elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-        res = (pt0, pt2)
-    elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-        res = (pt0, pt1)
-    elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-        res = (pt0, -pt1)
-    return res
+              +Z
+        +X +Y -X -Y
+              -Z
 
-def compute_uv(arg):
-   point, face = arg
-   point = tuple((p - c) / 1000 for p, c in zip(point, cog))
-   return compute_uv_from_unitcube(point, face)
+        """
+        point = tuple((p - c) / 1000 for p, c in zip(point, COG))
+        pt0, pt1, pt2 = point
+        if face == 0:  # _UnitCubeFaceEnum.XPLUS
+            res = (pt1, pt2)
+        elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+            res = (-pt1, pt2)
+        elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+            res = (-pt0, pt2)
+        elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+            res = (pt0, pt2)
+        elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+            res = (pt0, pt1)
+        elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+            res = (pt0, -pt1)
+        return res
+    return [compute_uv_from_unitcube(point, face) for point, face in chunk]
 
 def init(*args):
-    global cog
-
-    cog, *_ = args
+    global COG
+    COG, *_ = args
 
 if __name__ == "__main__":
     import os
@@ -104,9 +103,22 @@ if __name__ == "__main__":
 
     import Mesh
 
-    global facets
-    global cog
-    global transmat
+    # Get variables
+    # pylint: disable=used-before-assignment
+    try:
+        facets
+    except NameError:
+        facets = []
+
+    try:
+        cog
+    except NameError:
+        cog = (0.0, 0.0, 0.0)
+
+    try:
+        transmat
+    except NameError:
+        transmat = None
 
     # TODO Only >= 3.8
     def batched(iterable, n):
@@ -130,7 +142,7 @@ if __name__ == "__main__":
     mp.set_executable(executable)
     mp.set_start_method("spawn", force=True)
 
-    CHUNK_SIZE = 2000
+    CHUNK_SIZE = 20000
     NPROC = os.cpu_count()
 
     # Run
@@ -160,8 +172,11 @@ if __name__ == "__main__":
                 for cubeface, mesh in enumerate(submeshes)
                 for p in mesh.Points
             )
-            uvmap = list(pool.map(compute_uv, points))
+            chunks = batched(points, CHUNK_SIZE)
+            uvmap = sum(pool.imap(compute_uv, chunks), [])
             print("uv", time.time() - tm0)
+
+            # Compute final mesh
             def mesh_reducer(x, y):
                 y.transform(transmat)
                 x.addMesh(y)
