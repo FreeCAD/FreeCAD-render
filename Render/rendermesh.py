@@ -852,6 +852,39 @@ def _intersect_unitcube_face(direction):
     )
 
 
+def _uc_xplus(point):
+    pt0, pt1, pt2 = point
+    return (pt1, pt2)
+
+def _uc_xminus(point):
+    pt0, pt1, pt2 = point
+    return (-pt1, pt2)
+
+def _uc_yplus(point):
+    pt0, pt1, pt2 = point
+    return (-pt0, pt2)
+
+def _uc_yminus(point):
+    pt0, pt1, pt2 = point
+    return (pt0, pt2)
+
+def _uc_zplus(point):
+    pt0, pt1, pt2 = point
+    return (pt0, pt1)
+
+def _uc_zminus(point):
+    pt0, pt1, pt2 = point
+    return (pt0, -pt1)
+
+_UC_MAP = (
+    _uc_xplus,
+    _uc_xminus,
+    _uc_yplus,
+    _uc_yminus,
+    _uc_zplus,
+    _uc_zminus,
+)
+
 def _compute_uv_from_unitcube(point, face):
     """Compute UV coords from intersection point and face.
 
@@ -862,20 +895,21 @@ def _compute_uv_from_unitcube(point, face):
           -Z
 
     """
-    pt0, pt1, pt2 = point
-    if face == 0:  # _UnitCubeFaceEnum.XPLUS
-        res = (pt1, pt2)
-    elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-        res = (-pt1, pt2)
-    elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-        res = (-pt0, pt2)
-    elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-        res = (pt0, pt2)
-    elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-        res = (pt0, pt1)
-    elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-        res = (pt0, -pt1)
-    return res
+    # pt0, pt1, pt2 = point
+    # if face == 0:  # _UnitCubeFaceEnum.XPLUS
+        # res = (pt1, pt2)
+    # elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+        # res = (-pt1, pt2)
+    # elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+        # res = (-pt0, pt2)
+    # elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+        # res = (pt0, pt2)
+    # elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+        # res = (pt0, pt1)
+    # elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+        # res = (pt0, -pt1)
+    method = _UC_MAP[face]
+    return method(point)
 
 
 # ===========================================================================
