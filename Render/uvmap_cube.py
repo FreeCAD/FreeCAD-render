@@ -22,8 +22,6 @@
 import multiprocessing as mp
 
 
-
-
 def compute_submeshes(normals):
     def intersect_unitcube_face(direction):
         """Get the face of the unit cube intersected by a line from origin.
@@ -60,6 +58,7 @@ def compute_submeshes(normals):
 
     return [intersect_unitcube_face(n) for n in normals]
 
+
 def compute_uv_from_unitcube(x, y, z, face):
     """Compute UV coords from intersection point and face.
 
@@ -90,16 +89,16 @@ def compute_uv_from_unitcube(x, y, z, face):
 def compute_uv(chunk):
     return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
 
+
 def init(*args):
     global COG
     COG, *_ = args
 
+
 if __name__ == "__main__":
     import os
     import shutil
-    import operator
     import itertools
-    import time
     import functools
 
     import Mesh
@@ -121,13 +120,11 @@ if __name__ == "__main__":
     except NameError:
         transmat = None
 
-    # TODO Only >= 3.8
+    # Only >= 3.8
     def batched(iterable, n):
         "Batch data into lists of length n. The last batch may be shorter."
         # batched('ABCDEFG', 3) --> ABC DEF G
         # from Python itertools documentation...
-        if n < 1:
-            raise ValueError("n must be at least one")
         it = iter(iterable)
         while batch := list(itertools.islice(it, n)):
             yield batch
@@ -148,7 +145,6 @@ if __name__ == "__main__":
 
     # Run
     try:
-        tm0 = time.time()
         chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
         with ctx.Pool(NPROC, init, (cog,)) as pool:
             # Compute submeshes
@@ -163,8 +159,10 @@ if __name__ == "__main__":
                 iface, face = y
                 x[face].append(facets[iface])
                 return x
-            face_facets = functools.reduce(face_reducer, faces, [[], [], [], [], [], []])
-            print("face_facets", time.time() - tm0)
+
+            face_facets = functools.reduce(
+                face_reducer, faces, [[], [], [], [], [], []]
+            )
 
             # Compute final mesh and uvmap
             mesh = Mesh.Mesh()
@@ -177,9 +175,12 @@ if __name__ == "__main__":
                 uv_results.append(pool.map_async(compute_uv, chunks))
                 submesh.transform(transmat)
                 mesh.addMesh(submesh)
-            print("uvresult", time.time() - tm0)
-            uvmap = [uv for mapres in uv_results for chunks in mapres.get() for uv in chunks]
-            print("uvmap", time.time() - tm0)
+            uvmap = [
+                uv
+                for mapres in uv_results
+                for chunks in mapres.get()
+                for uv in chunks
+            ]
 
             # Clean
             del face_facets

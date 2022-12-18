@@ -238,10 +238,9 @@ class RenderMesh:
             uv_scale,
         )
 
+        tm1 = time.time() - tm0
         App.Console.PrintLog(
-            "[Render] Write OBJ file ({}): {}s\n".format(
-                mode, time.time() - tm0
-            )
+            f"[Render][OBJ file] Write OBJ file ({mode}): {tm1}\n"
         )
         return objfile
 
@@ -548,7 +547,7 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
-        App.Console.PrintLog("[Render][Uvmap] Computation time: {}s\n".format(time.time() - tm0))
+        App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
         self.compute_normals()
 
     def compute_normals(self):
@@ -678,13 +677,15 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
-        if PARAMS.GetBool("EnableMultiprocessing"):
-            App.Console.PrintLog("[Render][Uvmap] Parallel computation\n")
+        if (
+            PARAMS.GetBool("EnableMultiprocessing")
+            and self.__mesh.CountPoints >= 2000
+        ):
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             return self._compute_uvmap_cube_mp()
-        else:
-            App.Console.PrintLog("[Render][Uvmap] Sequential computation\n")
-            return self._compute_uvmap_cube_sp()
 
+        App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+        return self._compute_uvmap_cube_sp()
 
     def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
@@ -733,7 +734,6 @@ class RenderMesh:
         instance)
         """
         # Init variables
-        tm0 = time.time()
         path = os.path.join(PKGDIR, "uvmap_cube.py")
         transmat = self.__originalplacement.Matrix
 
@@ -749,7 +749,7 @@ class RenderMesh:
             init_globals={
                 "facets": facets,
                 "cog": tuple(cog),
-                "transmat": transmat
+                "transmat": transmat,
             },
             run_name="__main__",
         )
@@ -757,8 +757,6 @@ class RenderMesh:
         # Replace previous values with newly computed ones
         self.__mesh = res["mesh"]
         self.__uvmap = res["uvmap"]
-        print("uv end", time.time() - tm0)
-
 
     def has_uvmap(self):
         """Check if object has a uv map."""
@@ -833,28 +831,40 @@ def _intersect_unitcube_face(direction):
 
 
 def _uc_xplus(point):
-    pt0, pt1, pt2 = point
+    """Unit cube - xplus case."""
+    _, pt1, pt2 = point
     return (pt1, pt2)
 
+
 def _uc_xminus(point):
-    pt0, pt1, pt2 = point
+    """Unit cube - xminus case."""
+    _, pt1, pt2 = point
     return (-pt1, pt2)
 
+
 def _uc_yplus(point):
-    pt0, pt1, pt2 = point
+    """Unit cube - yplus case."""
+    pt0, _, pt2 = point
     return (-pt0, pt2)
 
+
 def _uc_yminus(point):
-    pt0, pt1, pt2 = point
+    """Unit cube - yminus case."""
+    pt0, _, pt2 = point
     return (pt0, pt2)
 
+
 def _uc_zplus(point):
-    pt0, pt1, pt2 = point
+    """Unit cube - zplus case."""
+    pt0, pt1, _ = point
     return (pt0, pt1)
 
+
 def _uc_zminus(point):
-    pt0, pt1, pt2 = point
+    """Unit cube - zminus case."""
+    pt0, pt1, _ = point
     return (pt0, -pt1)
+
 
 _UC_MAP = (
     _uc_xplus,
@@ -864,6 +874,7 @@ _UC_MAP = (
     _uc_zplus,
     _uc_zminus,
 )
+
 
 def _compute_uv_from_unitcube(point, face):
     """Compute UV coords from intersection point and face.
@@ -877,17 +888,17 @@ def _compute_uv_from_unitcube(point, face):
     """
     # pt0, pt1, pt2 = point
     # if face == 0:  # _UnitCubeFaceEnum.XPLUS
-        # res = (pt1, pt2)
+    # res = (pt1, pt2)
     # elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-        # res = (-pt1, pt2)
+    # res = (-pt1, pt2)
     # elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-        # res = (-pt0, pt2)
+    # res = (-pt0, pt2)
     # elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-        # res = (pt0, pt2)
+    # res = (pt0, pt2)
     # elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-        # res = (pt0, pt1)
+    # res = (pt0, pt1)
     # elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-        # res = (pt0, -pt1)
+    # res = (pt0, -pt1)
     method = _UC_MAP[face]
     return method(point)
 
