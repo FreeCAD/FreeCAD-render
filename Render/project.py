@@ -732,6 +732,6 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
         App.Console.PrintLog("[Render][Objstrings] STARTING - SEQUENTIAL MODE\n")
         time0 = time.time()
         objstrings = [get_rdr_string(v) for v in views]
-        App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
+
     App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
     return objstrings
