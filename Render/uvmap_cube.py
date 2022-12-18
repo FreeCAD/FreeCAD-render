@@ -140,8 +140,8 @@ if __name__ == "__main__":
     executable = shutil.which("python")
     if not executable:
         raise RuntimeError("No Python executable")
-    mp.set_executable(executable)
-    mp.set_start_method("spawn", force=True)
+    ctx = mp.get_context("spawn")
+    ctx.set_executable(executable)
 
     CHUNK_SIZE = 20000
     NPROC = os.cpu_count()
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     try:
         tm0 = time.time()
         chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
-        with mp.Pool(NPROC, init, (cog,)) as pool:
+        with ctx.Pool(NPROC, init, (cog,)) as pool:
             # Compute submeshes
             data = pool.imap(compute_submeshes, chunks)
             faces = (
