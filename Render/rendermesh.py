@@ -758,6 +758,10 @@ class RenderMesh:
         self.__mesh = res["mesh"]
         self.__uvmap = res["uvmap"]
 
+        # Clean
+        del res["mesh"]
+        del res["uvmap"]
+
     def has_uvmap(self):
         """Check if object has a uv map."""
         return bool(self.__uvmap)

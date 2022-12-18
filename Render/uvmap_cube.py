@@ -177,6 +177,7 @@ if __name__ == "__main__":
                 uv_results.append(pool.map_async(compute_uv, chunks))
                 submesh.transform(transmat)
                 mesh.addMesh(submesh)
+                del submesh
             uvmap = [
                 uv
                 for mapres in uv_results
@@ -185,6 +186,7 @@ if __name__ == "__main__":
             ]
 
             # Clean
+            del facets
             del face_facets
             del data
     finally:
