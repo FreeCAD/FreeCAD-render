@@ -19,7 +19,9 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-import concurrent.futures as cf
+import multiprocessing as mp
+
+
 
 
 def compute_submeshes(normals):
@@ -99,7 +101,6 @@ if __name__ == "__main__":
     import itertools
     import time
     import functools
-    import multiprocessing as mp
 
     import Mesh
 
@@ -148,10 +149,10 @@ if __name__ == "__main__":
     # Run
     try:
         tm0 = time.time()
-        with cf.ProcessPoolExecutor(NPROC, ctx, init, (cog,)) as pool:
+        chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
+        with ctx.Pool(NPROC, init, (cog,)) as pool:
             # Compute submeshes
-            chunks = batched((tuple(f.Normal) for f in facets), CHUNK_SIZE)
-            data = pool.map(compute_submeshes, chunks)
+            data = pool.imap(compute_submeshes, chunks)
             faces = (
                 (ichunk * CHUNK_SIZE + iface, face)
                 for ichunk, chunk in enumerate(data)
@@ -173,11 +174,11 @@ if __name__ == "__main__":
                 points = submesh.Points
                 data = ((p.x, p.y, p.z, cubeface) for p in points)
                 chunks = batched(data, CHUNK_SIZE)
-                uv_results.append(pool.map(compute_uv, chunks))
+                uv_results.append(pool.map_async(compute_uv, chunks))
                 submesh.transform(transmat)
                 mesh.addMesh(submesh)
             print("uvresult", time.time() - tm0)
-            uvmap = [uv for mapres in uv_results for chunks in mapres for uv in chunks]
+            uvmap = [uv for mapres in uv_results for chunks in mapres.get() for uv in chunks]
             print("uvmap", time.time() - tm0)
 
             # Clean
