@@ -58,7 +58,7 @@ def compute_submeshes(normals):
 
     return [intersect_unitcube_face(n) for n in normals]
 
-def compute_uv_from_unitcube(point, face):
+def compute_uv_from_unitcube(x, y, z, face):
     """Compute UV coords from intersection point and face.
 
     The cube is unfold this way:
@@ -68,8 +68,8 @@ def compute_uv_from_unitcube(point, face):
           -Z
 
     """
-    point = tuple((p - c) / 1000 for p, c in zip(point, COG))
-    pt0, pt1, pt2 = point
+    cx, cy, cz = COG
+    pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
     if face == 0:  # _UnitCubeFaceEnum.XPLUS
         res = (pt1, pt2)
     elif face == 1:  # _UnitCubeFaceEnum.XMINUS
@@ -86,7 +86,7 @@ def compute_uv_from_unitcube(point, face):
 
 
 def compute_uv(chunk):
-    return [compute_uv_from_unitcube(point, face) for point, face in chunk]
+    return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
 
 def init(*args):
     global COG
@@ -171,8 +171,7 @@ if __name__ == "__main__":
             for cubeface, facets in enumerate(face_facets):
                 submesh = Mesh.Mesh(facets)
                 points = submesh.Points
-                data = ((tuple(p.Vector), cubeface) for p in points)
-                # data = ((x, y, z, cubeface) for p in points for x, y, z in p.Vector)
+                data = ((p.x, p.y, p.z, cubeface) for p in points)
                 chunks = batched(data, CHUNK_SIZE)
                 uv_results.append(pool.map(compute_uv, chunks))
                 submesh.transform(transmat)
