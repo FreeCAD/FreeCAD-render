@@ -154,7 +154,6 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         # and further treatments will fail
         mesh = RenderMesh(obj.Mesh.copy())
         if mat.Proxy.has_textures():
-            print("Compute mesh uvmap")  # TODO
             uvprojection = kwargs.get("uvprojection")
             mesh.compute_uvmap(uvprojection)
         renderables = [Renderable(name, mesh, mat, color)]
