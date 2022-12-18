@@ -548,7 +548,7 @@ class RenderMesh:
         else:
             raise ValueError
         App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
-        self.compute_normals()
+        # self.compute_normals()  TODO
 
     def compute_normals(self):
         """Compute point normals.
