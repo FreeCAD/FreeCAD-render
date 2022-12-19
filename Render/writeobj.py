@@ -83,9 +83,11 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     # Set executable
-    executable = shutil.which("python")
+    executable = shutil.which("pythonw")
     if not executable:
-        raise RuntimeError("No Python executable")
+        executable = shutil.which("python")
+        if not executable:
+            raise RuntimeError("No Python executable")
     mp.set_executable(executable)
     mp.set_start_method("spawn", force=True)
 

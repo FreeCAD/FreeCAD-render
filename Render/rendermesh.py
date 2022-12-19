@@ -219,7 +219,7 @@ class RenderMesh:
         params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
         if (
             self.__mesh.CountPoints >= 10000
-            and shutil.which("python")
+            and (shutil.which("pythonw") or shutil.which("python"))
             and params.GetBool("EnableMultiprocessing")
         ):
             func, mode = self._write_objfile_mp, "mp"
