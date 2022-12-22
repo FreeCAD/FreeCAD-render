@@ -84,7 +84,7 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     norms = "  ".join(norms)
 
     if mesh.has_uvmap():
-        uvs = [f"{p.x} {p.y}" for p in mesh.uvmap_per_vertex()]
+        uvs = [f"{px} {py}" for px, py in mesh.uvmap_per_vertex()]
         uvs = "  ".join(uvs)
         uv_statement = f'    UV="{uvs}"\n'
     else:

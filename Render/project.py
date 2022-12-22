@@ -33,13 +33,15 @@ import os
 import re
 from operator import attrgetter
 from collections import namedtuple
+import concurrent.futures
+import time
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
+from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION, PARAMS
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate, set_last_cmd, clear_report_view
@@ -482,23 +484,22 @@ class Project(FeatureBase):
         Besides standard FCD objects (parts, shapes...), objects encompass
         lights and cameras.
         """
-        # Default mode is to compute strings, but if DelayedBuild is False
-        # we rely on views' ViewResult precomputed values.
-        get_rdr_string = (
-            renderer.get_rendering_string
-            if self.fpo.DelayedBuild
-            else attrgetter("ViewResult")
+        # Gather the views to render
+        # If App.Gui is up, we take View's Visibility property into account
+        views = (
+            [v for v in self.all_views() if v.Source.ViewObject.Visibility]
+            if App.Gui
+            else self.all_views()
         )
 
-        if App.GuiUp:
-            # App.Gui is up, we take View's Visibility property into account
-            objstrings = [
-                get_rdr_string(v)
-                for v in self.all_views()
-                if v.Source.ViewObject.Visibility
-            ]
-        else:
-            objstrings = [get_rdr_string(v) for v in self.all_views()]
+        # If DelayedBuild is false, we rely on views' ViewResult precomputed
+        # values.
+        if not self.fpo.DelayedBuild:
+            return [v.ViewResult for v in views]
+
+        # Otherwise, we have to compute strings
+        get_rdr_string = renderer.get_rendering_string
+        objstrings = _get_objstrings_helper(get_rdr_string, views)
 
         return objstrings
 
@@ -711,3 +712,26 @@ def user_select_template(renderer):
     if not template_path:
         return None
     return os.path.relpath(template_path, TEMPLATEDIR)
+
+
+def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
+    """Get strings from renderer (helper).
+
+    This helper is convenient for debugging purpose (easier to reload).
+    """
+    if PARAMS.GetBool("EnableMultiprocessing"):
+        run_concurrent = False  # runpy is not compatible with multithread...
+
+    if run_concurrent:
+        App.Console.PrintLog("[Render][Objstrings] STARTING - CONCURRENT MODE\n")
+        time0 = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(get_rdr_string, view) for view in views]
+            objstrings = [f.result() for f in concurrent.futures.as_completed(futures)]
+    else:
+        App.Console.PrintLog("[Render][Objstrings] STARTING - SEQUENTIAL MODE\n")
+        time0 = time.time()
+        objstrings = [get_rdr_string(v) for v in views]
+
+    App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
+    return objstrings

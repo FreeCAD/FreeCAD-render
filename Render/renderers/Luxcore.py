@@ -85,7 +85,7 @@ scene.materials.{name}.bumptex = {matval["normal"]}
 
     # UV map
     if mesh.has_uvmap():
-        uvs = [f"{t.x} {t.y}" for t in mesh.uvmap]
+        uvs = [f"{tx} {ty}" for tx, ty in mesh.uvmap]
         uvs = " ".join(uvs)
         snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
     else:

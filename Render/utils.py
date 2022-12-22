@@ -28,6 +28,7 @@ import sys
 import importlib
 import csv
 import itertools
+import functools
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -159,6 +160,16 @@ def set_dryrun(state):
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     state = bool(state)
     params.SetBool("DryRun", state)
+    msg = (
+        "[Render][Debug] Dry run is on\n"
+        if state
+        else "[Render][Debug] Dry run is off\n"
+    )
+    App.Console.PrintMessage(msg)
+
+
+set_dryrun_on = functools.partial(set_dryrun, state=True)
+set_dryrun_off = functools.partial(set_dryrun, state=False)
 
 
 def last_cmd():

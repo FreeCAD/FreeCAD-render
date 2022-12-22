@@ -78,7 +78,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
             uvbase = mesh.transformed_uvmap(translate, rotate, scale)
         else:
             uvbase = mesh.uvmap
-        uvs = [f"{t.x:+18.8f} {t.y:+18.8f}" for t in uvbase]
+        uvs = [f"{t[0]:+18.8f} {t[1]:+18.8f}" for t in uvbase]
         uvs = _format_list(uvs, 3)
         uvs = f"""    "point2 uv" [\n{uvs}\n    ]\n"""
     else:
