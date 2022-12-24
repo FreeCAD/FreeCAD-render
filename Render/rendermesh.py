@@ -526,13 +526,20 @@ class RenderMesh:
         Mesh CoG is the barycenter of the facets CoG, weighted by facets
         areas
         """
-        mesh = self.__originalmesh
-        vec0 = App.Vector(0, 0, 0)
 
-        facets = ([App.Vector(p) for p in f.Points] for f in mesh.Facets)
-        facetbars = [sum(f, vec0) / len(f) for f in facets]
-        areas = [f.Area for f in mesh.Facets]
-        cog = sum(map(operator.mul, facetbars, areas), vec0) / sum(areas)
+        def reducer(partial, facet):
+            """Reduce facets for center of gravity computation."""
+            sum1, sum2 = partial
+            points, area = facet
+            weight = area / len(points)
+            facetbar = (sum(x) * weight for x in zip(*points))
+            sum1 = tuple(x + y for x, y in zip(sum1, facetbar))
+            sum2 += area
+            return sum1, sum2
+
+        facets = ((f.Points, f.Area) for f in self.__originalmesh.Facets)
+        sum1, sum2 = functools.reduce(reducer, facets, ((0.0, 0.0, 0.0), 0.0))
+        cog = App.Vector(sum1) / sum2
         return cog
 
     def compute_uvmap(self, projection):
