@@ -600,7 +600,7 @@ class RenderMesh:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [(atan2(p.x, p.y) * avg_radius, p.z) * 0.001 for p in points]
+        uvmap += [(atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points]
         regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
@@ -611,7 +611,7 @@ class RenderMesh:
             sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         )
         uvmap += [
-            (_pos_atan2(p.x, p.y) * avg_radius, p.z) * 0.001 for p in points
+            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
         ]
         seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
