@@ -432,11 +432,12 @@ class Project(FeatureBase):
         cmd, img = renderer.render(
             self.fpo,
             params.prefix,
-            self.fpo.BatchMode,
+            params.batch,
             fpath,
             params.output,
             params.width,
             params.height,
+            params.spp,
         )
         if not cmd:
             # Command is empty (perhaps lack of data in parameters)
@@ -538,7 +539,7 @@ class Project(FeatureBase):
 
         This method is a (private) subroutine of `render` method.
         """
-        Params = namedtuple("Params", "prefix output width height")
+        Params = namedtuple("Params", "prefix output width height batch spp")
 
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
@@ -561,7 +562,18 @@ class Project(FeatureBase):
         except (AttributeError, ValueError, TypeError):
             height = 600
 
-        return Params(prefix, output, width, height)
+        try:
+            batch = bool(self.fpo.BatchMode)
+        except (AttributeError, ValueError, TypeError):
+            batch = False
+
+        try:
+            spp = int(self.fpo.SamplesPerPixel)
+            spp = spp if spp >= 0 else 0
+        except (AttributeError, ValueError, TypeError):
+            spp = 32
+
+        return Params(prefix, output, width, height, batch, spp)
 
 
 def _get_default_cam(renderer):

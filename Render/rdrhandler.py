@@ -131,7 +131,7 @@ class RendererHandler:
         }
 
     def render(
-        self, project, prefix, batch, input_file, output_file, width, height
+        self, project, prefix, batch, input_file, output_file, width, height, spp
     ):
         """Run the external renderer.
 
@@ -148,13 +148,14 @@ class RendererHandler:
         - output_file: path to output file
         - width:       rendered image width, in pixels
         - height:      rendered image height, in pixels
+        - spp:         samples per pixel
 
         Return:     path to image file generated, or None if no image has been
                     issued by external renderer
         """
         rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, batch, input_file, output_file, width, height
+            project, prefix, batch, input_file, output_file, width, height, spp
         )
 
     @staticmethod

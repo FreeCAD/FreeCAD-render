@@ -512,7 +512,7 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height, spp):
     """Generate renderer command.
 
     Args:
@@ -525,6 +525,7 @@ def render(project, prefix, batch, input_file, output_file, width, height):
         output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
+        spp -- Max samples per pixel (halt condition)
 
     Returns:
         The command to run renderer (string)
@@ -567,6 +568,12 @@ def render(project, prefix, batch, input_file, output_file, width, height):
     config["film.outputs.0.filename"] = output
     config["film.outputs.0.index"] = "0"
     config["periodicsave.film.outputs.period"] = "1"
+    if spp > 0:
+        config["batch.haltspp"] = str(spp)
+    elif batch:
+        # In case of batch mode and spp==0, we force to an arbitrary value
+        # Otherwise, Luxcore will run forever
+        config["batch.haltspp"] = str(32)
     cfg_path = export_section(config, project.Name, "cfg")
 
     # Export scene
