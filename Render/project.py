@@ -459,7 +459,7 @@ class Project(FeatureBase):
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor(cmd, img)
+        rdr_executor = RendererExecutor(cmd, img, self.fpo.OpenAfterRender)
         rdr_executor.start()
         if wait_for_completion:
             # Useful in console mode...
