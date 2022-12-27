@@ -567,15 +567,15 @@ def _format_list(inlist, elements_per_line, indentation=6):
 # ===========================================================================
 
 
-def render(project, prefix, external, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
-        external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderer
+        batch -- A boolean indicating whether to call UI (False) or console
+            (True) version of renderer.
         input_file -- path to input file
         output -- path to output file
         width -- Rendered image width, in pixels
@@ -611,6 +611,13 @@ def render(project, prefix, external, input_file, output_file, width, height):
         prefix += " "
     rpath = params.GetString("PbrtPath", "")
     args = params.GetString("PbrtParameters", "")
+    if not batch:
+        # Caveat: pbrt does not really provide a GUI interactive mode;
+        # instead it is capable to send intermediate frames to 'tev', an
+        # exr viewer (https://github.com/Tom94/tev)
+        # Open a tev session, set batch to False, run pbrt and you'll be able
+        # to visualize progressive rendering.
+        args += "--display-server localhost:14158 "  # For tev...
     args += f' --outfile "{output_file}" '
     if not rpath:
         App.Console.PrintError(
