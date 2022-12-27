@@ -441,7 +441,6 @@ class Project(FeatureBase):
             params.width,
             params.height,
         )
-        img = img if self.fpo.OpenAfterRender else None
         if not cmd:
             # Command is empty (perhaps lack of data in parameters)
             msg = translate("Render", "Empty rendering command")
