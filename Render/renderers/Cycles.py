@@ -765,7 +765,7 @@ def _write_color(col):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height, spp):
     """Generate renderer command.
 
     Args:
@@ -795,6 +795,8 @@ def render(project, prefix, batch, input_file, output_file, width, height):
     args += f""" --output "{output_file}" """
     if batch:
         args += " --background"
+    if spp:
+        args += f" --samples {spp}"
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
