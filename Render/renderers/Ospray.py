@@ -815,15 +815,15 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, external, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
-        external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderer
+        batch -- A boolean indicating whether to call UI (false) or console
+            (true) version of renderer
         input_file -- path to input file
         output -- path to output file
         width -- Rendered image width, in pixels
@@ -856,7 +856,10 @@ def render(project, prefix, external, input_file, output_file, width, height):
     # Nota: as a consequence, we cannot take user choice for output file into
     # account
     outfile_for_osp = os.path.join(tempfile.gettempdir(), "ospray_out")
-    outfile_actual = f"{outfile_for_osp}.0000.png"  # The file that osp'll use
+    if not batch:
+        outfile_actual = f"{outfile_for_osp}.0000.png"  # The file osp'll use
+    else:
+        outfile_actual = f"{outfile_for_osp}.00001.png"  # The file osp'll use
     # We remove the outfile before writing, otherwise ospray will choose
     # another file
     try:
@@ -871,9 +874,14 @@ def render(project, prefix, external, input_file, output_file, width, height):
     if prefix:
         prefix += " "
     rpath = params.GetString("OspPath", "")
-    args = params.GetString("OspParameters", "")
+
+    args = ""
+    if batch:
+        args += '"batch" '
+    args += params.GetString("OspParameters", "")
     if output_file:
         args += "  --image " + outfile_for_osp
+
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
