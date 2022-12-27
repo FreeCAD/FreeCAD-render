@@ -131,7 +131,7 @@ class RendererHandler:
         }
 
     def render(
-        self, project, prefix, external, input_file, output_file, width, height
+        self, project, prefix, batch, input_file, output_file, width, height
     ):
         """Run the external renderer.
 
@@ -142,8 +142,8 @@ class RendererHandler:
         - project:     the project to render
         - prefix:      a prefix string for call (will be inserted before path
                        to renderer)
-        - external:    a boolean indicating whether to call UI (true) or
-                       console (false) version of renderer
+        - batch:       a boolean indicating whether to call console batch (True)
+                       or UI interactive (False) version of renderer
         - input_file:  path to input file
         - output_file: path to output file
         - width:       rendered image width, in pixels
@@ -154,7 +154,7 @@ class RendererHandler:
         """
         rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, external, input_file, output_file, width, height
+            project, prefix, batch, input_file, output_file, width, height
         )
 
     @staticmethod

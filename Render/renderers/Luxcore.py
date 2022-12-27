@@ -512,15 +512,15 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, external, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height):
     """Generate renderer command.
 
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
-        external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderer
+        batch -- A boolean indicating whether to call console (True) or
+            UI (False) version of renderer
         input_file -- path to input file
         output -- path to output file
         width -- Rendered image width, in pixels
@@ -577,7 +577,7 @@ def render(project, prefix, external, input_file, output_file, width, height):
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxCoreParameters", "")
     rpath = params.GetString(
-        "LuxCorePath" if external else "LuxCoreConsolePath", ""
+        "LuxCorePath" if not batch else "LuxCoreConsolePath", ""
     )
     if not rpath:
         msg = (

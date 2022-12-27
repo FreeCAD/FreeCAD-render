@@ -373,13 +373,10 @@ class Project(FeatureBase):
 
         return all_group_objs(self.fpo, include_groups)
 
-    # TODO Remove external
-    def render(self, external=True, wait_for_completion=False):
+    def render(self, wait_for_completion=False):
         """Render the project, calling an external renderer.
 
         Args:
-            external -- flag to switch between internal/external version of
-                renderer
             wait_for_completion -- flag to wait for rendering completion before
                 return, in a blocking way (default to False)
 
@@ -435,7 +432,7 @@ class Project(FeatureBase):
         cmd, img = renderer.render(
             self.fpo,
             params.prefix,
-            external,
+            self.fpo.BatchMode,
             fpath,
             params.output,
             params.width,
