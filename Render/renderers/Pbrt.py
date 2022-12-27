@@ -567,7 +567,7 @@ def _format_list(inlist, elements_per_line, indentation=6):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height, spp):
     """Generate renderer command.
 
     Args:
@@ -580,6 +580,7 @@ def render(project, prefix, batch, input_file, output_file, width, height):
         output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
+        spp -- Max samples per pixel (halt condition)
 
     Returns:
         The command to run renderer (string)
@@ -619,6 +620,8 @@ def render(project, prefix, batch, input_file, output_file, width, height):
         # to visualize progressive rendering.
         args += "--display-server localhost:14158 "  # For tev...
     args += f' --outfile "{output_file}" '
+    if spp:
+        args += f" --spp {spp} "
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
