@@ -184,6 +184,25 @@ class Project(FeatureBase):
             ),
             (0, 0, 10, 1),
         ),
+        "BatchMode": Prop(
+            "App::PropertyBool",
+            "Execution Control",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Execute in batch mode (True) or GUI interactive mode (False)",
+            ),
+            False,
+        ),
+        "SamplesPerPixel": Prop(
+            "App::PropertyInteger",
+            "Execution Control",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Halt condition: number of samples per pixel "
+                "(0 or negative = indefinite).",
+            ),
+            0,
+        ),
     }
 
     ON_CHANGED = {
