@@ -447,6 +447,7 @@ class Project(FeatureBase):
             params.width,
             params.height,
             params.spp,
+            params.denoise,
         )
         if not cmd:
             # Command is empty (perhaps lack of data in parameters)
@@ -548,7 +549,7 @@ class Project(FeatureBase):
 
         This method is a (private) subroutine of `render` method.
         """
-        Params = namedtuple("Params", "prefix output width height batch spp")
+        Params = namedtuple("Params", "prefix output width height batch spp denoise")
 
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
@@ -582,7 +583,12 @@ class Project(FeatureBase):
         except (AttributeError, ValueError, TypeError):
             spp = 32
 
-        return Params(prefix, output, width, height, batch, spp)
+        try:
+            denoise = bool(self.fpo.Denoiser)
+        except (AttributeError, ValueError, TypeError):
+            denoise = False
+
+        return Params(prefix, output, width, height, batch, spp, denoise)
 
 
 def _get_default_cam(renderer):

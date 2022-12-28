@@ -816,7 +816,7 @@ def _write_texref(**kwargs):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp
+    project, prefix, batch, input_file, output_file, width, height, spp, denoise
 ):
     """Generate renderer command.
 
@@ -831,6 +831,7 @@ def render(
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
         spp -- Max samples per pixel (halt condition)
+        denoise -- Flag to run denoiser
 
     Returns:
         The command to run renderer (string)
