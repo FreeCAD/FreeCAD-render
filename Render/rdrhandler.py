@@ -131,7 +131,15 @@ class RendererHandler:
         }
 
     def render(
-        self, project, prefix, batch, input_file, output_file, width, height, spp
+        self,
+        project,
+        prefix,
+        batch,
+        input_file,
+        output_file,
+        width,
+        height,
+        spp,
     ):
         """Run the external renderer.
 
@@ -142,8 +150,8 @@ class RendererHandler:
         - project:     the project to render
         - prefix:      a prefix string for call (will be inserted before path
                        to renderer)
-        - batch:       a boolean indicating whether to call console batch (True)
-                       or UI interactive (False) version of renderer
+        - batch:       a boolean indicating whether to call console batch
+                       (True) or UI interactive (False) version of renderer
         - input_file:  path to input file
         - output_file: path to output file
         - width:       rendered image width, in pixels

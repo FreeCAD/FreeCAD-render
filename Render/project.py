@@ -31,7 +31,6 @@ import math
 import sys
 import os
 import re
-from operator import attrgetter
 from collections import namedtuple
 import concurrent.futures
 import time
@@ -41,7 +40,7 @@ from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION, PARAMS
+from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate, set_last_cmd, clear_report_view
@@ -504,7 +503,7 @@ class Project(FeatureBase):
         # If App.Gui is up, we take View's Visibility property into account
         views = (
             [v for v in self.all_views() if v.Source.ViewObject.Visibility]
-            if App.Gui
+            if App.GuiUp
             else self.all_views()
         )
 
@@ -741,7 +740,7 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
+def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
@@ -750,15 +749,23 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
         run_concurrent = False  # runpy is not compatible with multithread...
 
     if run_concurrent:
-        App.Console.PrintLog("[Render][Objstrings] STARTING - CONCURRENT MODE\n")
+        App.Console.PrintLog(
+            "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
+        )
         time0 = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             futures = [executor.submit(get_rdr_string, view) for view in views]
-            objstrings = [f.result() for f in concurrent.futures.as_completed(futures)]
+            objstrings = [
+                f.result() for f in concurrent.futures.as_completed(futures)
+            ]
     else:
-        App.Console.PrintLog("[Render][Objstrings] STARTING - SEQUENTIAL MODE\n")
+        App.Console.PrintLog(
+            "[Render][Objstrings] STARTING - SEQUENTIAL MODE\n"
+        )
         time0 = time.time()
         objstrings = [get_rdr_string(v) for v in views]
 
-    App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
+    App.Console.PrintLog(
+        f"[Render][Objstrings] ENDED - TIME: {time.time() - time0}\n"
+    )
     return objstrings

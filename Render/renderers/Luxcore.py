@@ -512,7 +512,9 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height, spp):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:

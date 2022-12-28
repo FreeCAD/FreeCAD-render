@@ -1138,7 +1138,9 @@ def _color_name(matname):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height, spp):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:
@@ -1232,12 +1234,18 @@ def render(project, prefix, batch, input_file, output_file, width, height, spp):
     # Set samples
     if spp:
         root = et.fromstring(template)
-        interactive_config = root.find("./configurations/configuration[@name='interactive']")
+        interactive_config = root.find(
+            "./configurations/configuration[@name='interactive']"
+        )
         # Get interactive renderer parameters
-        renderer_params = interactive_config.find('./parameters[name="progressive_frame_renderer"]')
+        renderer_params = interactive_config.find(
+            './parameters[name="progressive_frame_renderer"]'
+        )
         if not renderer_params:
             # Add renderer params to interactive config
-            renderer_params = et.Element("parameters", name="progressive_frame_renderer")
+            renderer_params = et.Element(
+                "parameters", name="progressive_frame_renderer"
+            )
 
             interactive_config.append(renderer_params)
 

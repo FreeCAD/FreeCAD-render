@@ -783,7 +783,6 @@ def render(project, prefix, batch, input_file, output_file, width, height):
     if output_file:
         args += f"""+O"{output_file}" """
 
-
     filepath = f'"{input_file}"'
 
     cmd = prefix + rpath + " " + args + " " + filepath
