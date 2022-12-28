@@ -202,6 +202,16 @@ class Project(FeatureBase):
             ),
             0,
         ),
+        "Denoiser": Prop(
+            "App::PropertyBool",
+            "Execution Control",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Make renderer invoke denoiser. WARNING: may not work with all "
+                "renderers - the renderer must have denoising capabilities.",
+            ),
+            False,
+        ),
     }
 
     ON_CHANGED = {
