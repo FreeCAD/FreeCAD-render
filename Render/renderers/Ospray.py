@@ -815,7 +815,9 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:
@@ -828,6 +830,7 @@ def render(project, prefix, batch, input_file, output_file, width, height):
         output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
+        spp -- Max samples per pixel (halt condition)
 
     Returns:
         The command to run renderer (string)
@@ -881,6 +884,8 @@ def render(project, prefix, batch, input_file, output_file, width, height):
     args += params.GetString("OspParameters", "")
     if output_file:
         args += "  --image " + outfile_for_osp
+    if spp:
+        args += f"  --accumLimit {spp} "
 
     if not rpath:
         App.Console.PrintError(

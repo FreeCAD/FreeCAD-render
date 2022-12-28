@@ -236,9 +236,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     return sky_sub(name, direction, turbidity, albedo)
 
 
-def _write_sunskylight_hosekwilkie(
-    name, direction, turbidity, albedo
-):
+def _write_sunskylight_hosekwilkie(name, direction, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
 
@@ -765,7 +763,9 @@ def _write_color(col):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:
@@ -795,6 +795,8 @@ def render(project, prefix, batch, input_file, output_file, width, height):
     args += f""" --output "{output_file}" """
     if batch:
         args += " --background"
+    if spp:
+        args += f" --samples {spp}"
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
