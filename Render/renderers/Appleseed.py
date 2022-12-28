@@ -1184,9 +1184,41 @@ def render(
         template = template[:pos] + contents + "\n" + template[pos:]
         return template
 
-    # Here you trigger a render by firing the renderer
-    # executable and passing it the needed arguments, and
-    # the file it needs to render
+    def set_config_param(root, config, submodule, param, value):
+        """Set a parameter of an submodule in a configuration.
+
+        Submodule can be a sampler, a renderer, an engine etc.
+        If submodule is None, the parameter is considered at top-level in
+        configuration.
+        """
+        config = str(config)
+        submodule = str(submodule) if submodule is not None else submodule
+        param = str(param)
+        value = str(value)
+
+        config_elt = root.find(
+            f"./configurations/configuration[@name='{config}']"
+        )
+
+        if submodule is not None:
+            submodule_elt = config_elt.find(
+                f"./parameters[@name='{submodule}']"
+            )
+            if not submodule_elt:
+                submodule_elt = et.Element("parameters", name=submodule)
+                config_elt.append(submodule_elt)
+        else:
+            submodule_elt = config_elt
+
+        param_elt = submodule_elt.find(f"./parameter[@name='{param}']")
+        if not param_elt:
+            param_elt = et.Element("parameter", name=param)
+            submodule_elt.append(param_elt)
+        param_elt.set("value", value)
+
+        return root
+
+    # Here starts render
 
     # Make various adjustments on file:
     # Change image size in template, adjust camera ratio, reorganize cameras
@@ -1231,34 +1263,29 @@ def render(
             template,
         )
 
-    # Set samples
+    # xml root element
+    root = et.fromstring(template)
+
+    # Set samples per pixel
     if spp:
-        root = et.fromstring(template)
-        interactive_config = root.find(
-            "./configurations/configuration[@name='interactive']"
+        root = set_config_param(
+            root,
+            "interactive",
+            "progressive_frame_renderer",
+            "max_average_spp",
+            spp,
         )
-        # Get interactive renderer parameters
-        renderer_params = interactive_config.find(
-            './parameters[name="progressive_frame_renderer"]'
+        root = set_config_param(
+            root, "final", "uniform_pixel_renderer", "samples", spp
         )
-        if not renderer_params:
-            # Add renderer params to interactive config
-            renderer_params = et.Element(
-                "parameters", name="progressive_frame_renderer"
-            )
+        root = set_config_param(root, "final", None, "passes", 1)
 
-            interactive_config.append(renderer_params)
+    # Use embree
+    root = set_config_param(root, "interactive", None, "use_embree", 1)
+    root = set_config_param(root, "final", None, "use_embree", 1)
 
-        # Get spp parameter
-        param = renderer_params.find('./parameter[name="max_average_spp"]')
-        if not param:
-            # Add param to renderer params
-            param = et.Element("parameter", name="max_average_spp")
-            renderer_params.append(param)
-
-        # Set spp parameter
-        param.set("value", str(spp))
-        template = et.tostring(root, encoding="unicode")
+    # Template update
+    template = et.tostring(root, encoding="unicode")
 
     # Write resulting output to file
     with open(input_file, "w", encoding="utf-8") as f:
@@ -1279,7 +1306,7 @@ def render(
             args += " "
         args += f"""--output "{output_file}" """
         if spp:
-            args += f"""--samples 16 --passes {spp // 16 + 1} """
+            args += f"""--samples {spp} --passes 1 """
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
