@@ -512,19 +512,22 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, external, input_file, output_file, width, height):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
-        external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderer
+        batch -- A boolean indicating whether to call console (True) or
+            UI (False) version of renderer
         input_file -- path to input file
         output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
+        spp -- Max samples per pixel (halt condition)
 
     Returns:
         The command to run renderer (string)
@@ -567,6 +570,12 @@ def render(project, prefix, external, input_file, output_file, width, height):
     config["film.outputs.0.filename"] = output
     config["film.outputs.0.index"] = "0"
     config["periodicsave.film.outputs.period"] = "1"
+    if spp > 0:
+        config["batch.haltspp"] = str(spp)
+    elif batch:
+        # In case of batch mode and spp==0, we force to an arbitrary value
+        # Otherwise, Luxcore will run forever
+        config["batch.haltspp"] = str(32)
     cfg_path = export_section(config, project.Name, "cfg")
 
     # Export scene
@@ -577,7 +586,7 @@ def render(project, prefix, external, input_file, output_file, width, height):
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxCoreParameters", "")
     rpath = params.GetString(
-        "LuxCorePath" if external else "LuxCoreConsolePath", ""
+        "LuxCorePath" if not batch else "LuxCoreConsolePath", ""
     )
     if not rpath:
         msg = (

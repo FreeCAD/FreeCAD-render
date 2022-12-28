@@ -31,7 +31,6 @@ import math
 import sys
 import os
 import re
-from operator import attrgetter
 from collections import namedtuple
 import concurrent.futures
 import time
@@ -41,7 +40,7 @@ from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION, PARAMS
+from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
 from Render.utils import translate, set_last_cmd, clear_report_view
@@ -183,6 +182,25 @@ class Project(FeatureBase):
                 " property).",
             ),
             (0, 0, 10, 1),
+        ),
+        "BatchMode": Prop(
+            "App::PropertyBool",
+            "Execution Control",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Execute in batch mode (True) or GUI interactive mode (False)",
+            ),
+            False,
+        ),
+        "SamplesPerPixel": Prop(
+            "App::PropertyInteger",
+            "Execution Control",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Halt condition: number of samples per pixel "
+                "(0 or negative = indefinite).",
+            ),
+            0,
         ),
     }
 
@@ -354,13 +372,10 @@ class Project(FeatureBase):
 
         return all_group_objs(self.fpo, include_groups)
 
-    # TODO Remove external
-    def render(self, external=True, wait_for_completion=False):
+    def render(self, wait_for_completion=False):
         """Render the project, calling an external renderer.
 
         Args:
-            external -- flag to switch between internal/external version of
-                renderer
             wait_for_completion -- flag to wait for rendering completion before
                 return, in a blocking way (default to False)
 
@@ -416,13 +431,13 @@ class Project(FeatureBase):
         cmd, img = renderer.render(
             self.fpo,
             params.prefix,
-            external,
+            params.batch,
             fpath,
             params.output,
             params.width,
             params.height,
+            params.spp,
         )
-        img = img if self.fpo.OpenAfterRender else None
         if not cmd:
             # Command is empty (perhaps lack of data in parameters)
             msg = translate("Render", "Empty rendering command")
@@ -441,7 +456,7 @@ class Project(FeatureBase):
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor(cmd, img)
+        rdr_executor = RendererExecutor(cmd, img, self.fpo.OpenAfterRender)
         rdr_executor.start()
         if wait_for_completion:
             # Useful in console mode...
@@ -488,7 +503,7 @@ class Project(FeatureBase):
         # If App.Gui is up, we take View's Visibility property into account
         views = (
             [v for v in self.all_views() if v.Source.ViewObject.Visibility]
-            if App.Gui
+            if App.GuiUp
             else self.all_views()
         )
 
@@ -523,7 +538,7 @@ class Project(FeatureBase):
 
         This method is a (private) subroutine of `render` method.
         """
-        Params = namedtuple("Params", "prefix output width height")
+        Params = namedtuple("Params", "prefix output width height batch spp")
 
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
@@ -546,7 +561,18 @@ class Project(FeatureBase):
         except (AttributeError, ValueError, TypeError):
             height = 600
 
-        return Params(prefix, output, width, height)
+        try:
+            batch = bool(self.fpo.BatchMode)
+        except (AttributeError, ValueError, TypeError):
+            batch = False
+
+        try:
+            spp = int(self.fpo.SamplesPerPixel)
+            spp = spp if spp >= 0 else 0
+        except (AttributeError, ValueError, TypeError):
+            spp = 32
+
+        return Params(prefix, output, width, height, batch, spp)
 
 
 def _get_default_cam(renderer):
@@ -714,7 +740,7 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
+def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
@@ -723,15 +749,23 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent = True):
         run_concurrent = False  # runpy is not compatible with multithread...
 
     if run_concurrent:
-        App.Console.PrintLog("[Render][Objstrings] STARTING - CONCURRENT MODE\n")
+        App.Console.PrintLog(
+            "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
+        )
         time0 = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             futures = [executor.submit(get_rdr_string, view) for view in views]
-            objstrings = [f.result() for f in concurrent.futures.as_completed(futures)]
+            objstrings = [
+                f.result() for f in concurrent.futures.as_completed(futures)
+            ]
     else:
-        App.Console.PrintLog("[Render][Objstrings] STARTING - SEQUENTIAL MODE\n")
+        App.Console.PrintLog(
+            "[Render][Objstrings] STARTING - SEQUENTIAL MODE\n"
+        )
         time0 = time.time()
         objstrings = [get_rdr_string(v) for v in views]
 
-    App.Console.PrintLog("[Render][Objstrings] ENDED - TIME: {}\n".format(time.time() - time0))
+    App.Console.PrintLog(
+        f"[Render][Objstrings] ENDED - TIME: {time.time() - time0}\n"
+    )
     return objstrings

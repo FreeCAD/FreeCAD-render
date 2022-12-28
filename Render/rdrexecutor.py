@@ -124,17 +124,19 @@ class RendererExecutorGui(QObject):
     anywhere.
     """
 
-    def __init__(self, cmd, img):
+    def __init__(self, cmd, img, open_after_render):
         """Initialize executor.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
+            open_after_render -- flag to display after render (bool)
         """
         super().__init__(QCoreApplication.instance())
         self.thread = QThread()
         self.worker = Worker(cmd, img)
         self.thread.setObjectName("fcd-renderexec")
+        self.open_after_render = bool(open_after_render)
 
     def start(self):
         """Start executor."""
@@ -149,7 +151,8 @@ class RendererExecutorGui(QObject):
         self.thread.finished.connect(self.thread.deleteLater)
         # self.thread.finished.connect(lambda: print("Thread finished")) # Dbg
 
-        self.worker.result_ready.connect(display_image)
+        if self.open_after_render:
+            self.worker.result_ready.connect(display_image)
 
         # Start the thread
         self.thread.start()
@@ -175,15 +178,18 @@ class RendererExecutorCli(threading.Thread):
     that, renderer is executed in a separate thread, using **Python threads**.
     """
 
-    def __init__(self, cmd, img):
+    def __init__(self, cmd, img, open_after_render):
         """Initialize executor.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
+            open_after_render -- flag to display after render.
+              IGNORED IN CLI (bool)
         """
         super().__init__()
         self.worker = Worker(cmd, img)
+        self.open_after_render = bool(open_after_render)
 
     def run(self):
         """Run thread.

@@ -236,9 +236,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     return sky_sub(name, direction, turbidity, albedo)
 
 
-def _write_sunskylight_hosekwilkie(
-    name, direction, turbidity, albedo
-):
+def _write_sunskylight_hosekwilkie(name, direction, turbidity, albedo):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
 
@@ -765,15 +763,17 @@ def _write_color(col):
 # ===========================================================================
 
 
-def render(project, prefix, external, input_file, output_file, width, height):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
-        external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderer
+        batch -- A boolean indicating whether to call UI (false) or console
+            (true) version of renderer
         input_file -- path to input file
         output -- path to output file
         width -- Rendered image width, in pixels
@@ -793,8 +793,10 @@ def render(project, prefix, external, input_file, output_file, width, height):
     rpath = params.GetString("CyclesPath", "")
     args = params.GetString("CyclesParameters", "")
     args += f""" --output "{output_file}" """
-    if not external:
+    if batch:
         args += " --background"
+    if spp:
+        args += f" --samples {spp}"
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "

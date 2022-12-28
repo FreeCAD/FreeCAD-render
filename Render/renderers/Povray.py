@@ -732,19 +732,22 @@ def _write_texref(**kwargs):
 # ===========================================================================
 
 
-def render(project, prefix, external, input_file, output_file, width, height):
+def render(
+    project, prefix, batch, input_file, output_file, width, height, spp
+):
     """Generate renderer command.
 
     Args:
         project -- The project to render
         prefix -- A prefix string for call (will be inserted before path to
             renderer)
-        external -- A boolean indicating whether to call UI (true) or console
-            (false) version of renderer
+        batch -- A boolean indicating whether to call UI (False) or console
+            (True) version of renderer
         input_file -- path to input file
         output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
+        spp -- Max samples per pixel (halt condition)
 
     Returns:
         The command to run renderer (string)
@@ -765,19 +768,24 @@ def render(project, prefix, external, input_file, output_file, width, height):
         )
         return None, None
 
+    # Prepare command line parameters
     args = params.GetString("PovRayParameters", "")
     if args:
         args += " "
     if "+W" in args:
         args = re.sub(r"\+W[0-9]+", f"+W{width}", args)
     else:
-        args = args + f"+W{width} "
+        args += f"+W{width} "
     if "+H" in args:
         args = re.sub(r"\+H[0-9]+", f"+H{height}", args)
     else:
-        args = args + f"+H{height} "
+        args += f"+H{height} "
+    args += "-D " if batch else "+D "
     if output_file:
-        args = args + f"""+O"{output_file}" """
+        args += f"""+O"{output_file}" """
+    if spp:
+        depth = round(math.sqrt(spp))
+        args += f"+AM1 +R{depth} "
 
     filepath = f'"{input_file}"'
 
