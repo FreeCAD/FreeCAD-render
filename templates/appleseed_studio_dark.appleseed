@@ -4,19 +4,13 @@
     </search_paths>
     <scene>
         <!--RaytracingCamera-->
-        <color name="horizon_radiance">
-            <parameter name="color_space" value="linear_rgb" />
+        <color name="environment_radiance">
+            <parameter name="color_space" value="srgb" />
             <parameter name="multiplier" value="1.0" />
-            <values>0.1 0.1 0.1</values>
+            <values>0.01 0.01 0.01</values>
         </color>
-        <color name="zenith_radiance">
-            <parameter name="color_space" value="linear_rgb" />
-            <parameter name="multiplier" value="1.0" />
-            <values>0.3 0.3 0.4</values>
-        </color>
-        <environment_edf name="environment_edf" model="gradient_environment_edf">
-            <parameter name="horizon_radiance" value="horizon_radiance" />
-            <parameter name="zenith_radiance" value="zenith_radiance" />
+        <environment_edf name="environment_edf" model="constant_environment_edf">
+            <parameter name="radiance" value="environment_radiance" />
         </environment_edf>
         <environment_shader name="environment_shader" model="edf_environment_shader">
             <parameter name="environment_edf" value="environment_edf" />
