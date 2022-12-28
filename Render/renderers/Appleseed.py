@@ -44,6 +44,7 @@ import re
 from textwrap import indent
 from math import degrees, acos, atan2, sqrt
 import collections
+import xml.etree.ElementTree as et
 
 import FreeCAD as App
 
@@ -1137,7 +1138,7 @@ def _color_name(matname):
 # ===========================================================================
 
 
-def render(project, prefix, batch, input_file, output_file, width, height):
+def render(project, prefix, batch, input_file, output_file, width, height, spp):
     """Generate renderer command.
 
     Args:
@@ -1150,6 +1151,7 @@ def render(project, prefix, batch, input_file, output_file, width, height):
         output -- path to output file
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
+        spp -- Max samples per pixel (halt condition)
 
     Returns:
         The command to run renderer (string)
@@ -1227,11 +1229,34 @@ def render(project, prefix, batch, input_file, output_file, width, height):
             template,
         )
 
+    # Set samples
+    if spp:
+        root = et.fromstring(template)
+        interactive_config = root.find("./configurations/configuration[@name='interactive']")
+        # Get interactive renderer parameters
+        renderer_params = interactive_config.find('./parameters[name="progressive_frame_renderer"]')
+        if not renderer_params:
+            # Add renderer params to interactive config
+            renderer_params = et.Element("parameters", name="progressive_frame_renderer")
+
+            interactive_config.append(renderer_params)
+
+        # Get spp parameter
+        param = renderer_params.find('./parameter[name="max_average_spp"]')
+        if not param:
+            # Add param to renderer params
+            param = et.Element("parameter", name="max_average_spp")
+            renderer_params.append(param)
+
+        # Set spp parameter
+        param.set("value", str(spp))
+        template = et.tostring(root, encoding="unicode")
+
     # Write resulting output to file
     with open(input_file, "w", encoding="utf-8") as f:
         f.write(template)
 
-    # Prepare parameters
+    # Prepare command line parameters
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if not batch:
         # GUI
@@ -1245,6 +1270,8 @@ def render(project, prefix, batch, input_file, output_file, width, height):
         if args:
             args += " "
         args += f"""--output "{output_file}" """
+        if spp:
+            args += f"""--samples 16 --passes {spp // 16 + 1} """
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
