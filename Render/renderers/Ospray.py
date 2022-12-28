@@ -885,7 +885,7 @@ def render(
     if output_file:
         args += "  --image " + outfile_for_osp
     if spp:
-        args += f"  --accumLimit {spp} "
+        args += f"  --accumLimit {spp} --spp 1 "
 
     if not rpath:
         App.Console.PrintError(
