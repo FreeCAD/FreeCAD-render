@@ -1139,7 +1139,15 @@ def _color_name(matname):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp, denoise
+    project,
+    prefix,
+    batch,
+    input_file,
+    output_file,
+    width,
+    height,
+    spp,
+    denoise,
 ):
     """Generate renderer command.
 
@@ -1284,6 +1292,25 @@ def render(
     # Use embree
     root = set_config_param(root, "interactive", None, "use_embree", 1)
     root = set_config_param(root, "final", None, "use_embree", 1)
+
+    # Denoiser
+    if denoise:
+        # Nota: only final can denoise (only generic_frame_renderer, actually)
+        # see code in (look for denoise):
+        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/generic/genericframerenderer.cpp
+        # versus code in
+        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/progressive/progressiveframerenderer.cpp
+        for frame in root.iterfind("./output/frame"):
+            denoise_param = frame.find("./parameter[@name='denoiser']")
+            if not denoise_param:
+                denoise_param = et.Element("parameter", name="denoiser")
+                frame.append(denoise_param)
+            denoise_param.set("value", "on")
+            tile_param = frame.find("./parameter[@name='tile_size']")
+            if not tile_param:
+                tile_param = et.Element("parameter", name="tile_size")
+                frame.append(tile_param)
+            tile_param.set("value", "32 32")
 
     # Template update
     template = et.tostring(root, encoding="unicode")
