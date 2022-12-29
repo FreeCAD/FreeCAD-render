@@ -513,7 +513,15 @@ def _write_texref(**kwargs):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp, denoise
+    project,
+    prefix,
+    batch,
+    input_file,
+    output_file,
+    width,
+    height,
+    spp,
+    denoise,
 ):
     """Generate renderer command.
 
@@ -563,20 +571,55 @@ def render(
         else os.path.splitext(input_file)[0] + ".png"
     )
 
-    # Export configuration
+    # Complete configuration
     config = pageresult["Configuration"]
+
+    # General settings
+    config["renderengine.seed"] = "1"
     config["film.width"] = str(width)
     config["film.height"] = str(height)
-    config["film.outputs.0.type"] = "RGB_IMAGEPIPELINE"
-    config["film.outputs.0.filename"] = output
-    config["film.outputs.0.index"] = "0"
-    config["periodicsave.film.outputs.period"] = "1"
+    config["periodicsave.film.outputs.period"] = "1" if not batch else "-1"
+    config["resumerendering.filesafe"] = "0"
     if spp > 0:
         config["batch.haltspp"] = str(spp)
     elif batch:
         # In case of batch mode and spp==0, we force to an arbitrary value
         # Otherwise, Luxcore will run forever
         config["batch.haltspp"] = str(32)
+    if denoise:
+        # If denoiser is invoked, must be in "Image view",
+        # otherwise the result is not consistent...
+        config["screen.tool.type"] = "IMAGE_VIEW"
+
+    # config["context.verbose"] = "1"
+    # config["screen.refresh.interval"] = "10000"  # milliseconds...
+    # config["path.aovs.warmup.spp"] = "2000"
+
+    # Pipelines
+    config["film.imagepipelines.0.0.type"] = "NOP"
+    if denoise:
+        config["film.imagepipelines.0.1.type"] = "INTEL_OIDN"
+        config["film.imagepipelines.0.1.prefilter.enable"] = "1"
+    config["film.imagepipelines.0.99.type"] = "GAMMA_CORRECTION"
+    config["film.imagepipelines.0.99.gamma"] = "2.2"
+    config["film.imagepipelines.1.0.type"] = "NOP"
+
+    if denoise:
+        # Denoiser triggering is driven by those settings
+        # (at least in batch mode)
+        config["film.noiseestimation.warmup"] = str(spp)
+        config["film.noiseestimation.index"] = "1"
+
+    # Outputs
+    config["film.outputs.0.type"] = "RGB_IMAGEPIPELINE"
+    config["film.outputs.0.filename"] = output
+    config["film.outputs.0.index"] = "0"
+    if denoise:
+        config["film.outputs.1.type"] = "ALBEDO"
+        config["film.outputs.1.filename"] = output + "_ALBEDO.exr"
+        config["film.outputs.2.type"] = "AVG_SHADING_NORMAL"
+        config["film.outputs.2.filename"] = output + "_AVG_SHADING_NORMAL.exr"
+
     cfg_path = export_section(config, project.Name, "cfg")
 
     # Export scene
