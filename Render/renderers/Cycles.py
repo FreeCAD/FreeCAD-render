@@ -52,6 +52,7 @@
 import pathlib
 import functools
 from math import degrees, asin, sqrt, radians, atan2, acos
+import xml.etree.ElementTree as et
 
 import FreeCAD as App
 
@@ -764,7 +765,15 @@ def _write_color(col):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp, denoise
+    project,
+    prefix,
+    batch,
+    input_file,
+    output_file,
+    width,
+    height,
+    spp,
+    denoise,
 ):
     """Generate renderer command.
 
@@ -785,9 +794,18 @@ def render(
         The command to run renderer (string)
         A path to output image file (string)
     """
-    # Here you trigger a render by firing the renderer
-    # executable and passing it the needed arguments, and
-    # the file it needs to render
+    # Denoise
+    if denoise:
+        tree = et.parse(input_file)
+        root = tree.getroot()
+        integrator = root.find("integrator")
+        if integrator is None:
+            integrator = et.Element("integrator")
+            root.append(integrator)
+        integrator.set("use_denoise", "true")
+        tree.write(input_file, encoding="unicode")
+
+    # Prepare command line arguments
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = params.GetString("Prefix", "")
     if prefix:
