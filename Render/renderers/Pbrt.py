@@ -608,6 +608,14 @@ def render(
     with open(input_file, "w", encoding="utf-8") as f:
         f.write(template)
 
+    # Denoiser (ignored)
+    if denoise:
+        wrn = (
+            "[Render][Pbrt] WARNING - Denoiser flag will be ignored: "
+            "Pbrt has no denoising capabilities.\n"
+        )
+        App.Console.PrintWarning(wrn)
+
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     prefix = params.GetString("Prefix", "")
