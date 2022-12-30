@@ -787,6 +787,12 @@ def render(
     if spp:
         depth = round(math.sqrt(spp))
         args += f"+AM1 +R{depth} "
+    if denoise:
+        wrn = (
+            "[Render][Povray] WARNING - Denoiser flag will be ignored: "
+            "Povray has no denoising capabilities.\n"
+        )
+        App.Console.PrintWarning(wrn)
 
     filepath = f'"{input_file}"'
 
