@@ -816,7 +816,15 @@ def _write_texref(**kwargs):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp, denoise
+    project,
+    prefix,
+    batch,
+    input_file,
+    output_file,
+    width,
+    height,
+    spp,
+    denoise,
 ):
     """Generate renderer command.
 
@@ -883,10 +891,20 @@ def render(
     if batch:
         args += '"batch" '
     args += params.GetString("OspParameters", "")
+    args += f" --resolution {width}x{height} "
     if output_file:
         args += "  --image " + outfile_for_osp
     if spp:
         args += f"  --accumLimit {spp} --spp 1 "
+    if denoise:
+        args += " --denoiser "
+        if not batch:
+            wrn = (
+                "[Render][Ospray] WARNING - Ospray denoiser cannot be set from "
+                "FreeCAD when Ospray is run in GUI mode. Please set denoiser "
+                "manually in Ospray GUI or use Ospray in Batch mode.\n"
+            )
+            App.Console.PrintWarning(wrn)
 
     if not rpath:
         App.Console.PrintError(
