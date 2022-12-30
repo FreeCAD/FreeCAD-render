@@ -130,7 +130,7 @@ object {{
     return snippet
 
 
-def write_camera(name, pos, updir, target, fov):
+def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
@@ -150,7 +150,7 @@ def write_camera(name, pos, updir, target, fov):
         updir.x * direction.z - updir.z * direction.x,
         updir.y * direction.x - updir.x * direction.y,
     )
-    right *= 4 / 3
+    # right *= 4 / 3
     # fov = 45 * 1.285
 
     snippet = f"""

@@ -342,10 +342,10 @@ class RendererHandler:
 
         return res
 
-    def get_camsource_string(self, camsource):
+    def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""
         return self._render_camera(
-            "Default_Camera", SimpleNamespace(Source=camsource)
+            "Default_Camera", SimpleNamespace(Source=camsource, InList=[project])
         )
 
     def _render_object(self, name, view):
@@ -469,12 +469,26 @@ class RendererHandler:
         source = view.Source
         a_ratio = float(source.AspectRatio)
         pos = App.Base.Placement(source.Placement)
-        target = pos.Base.add(
-            pos.Rotation.multVec(App.Vector(0, 0, -1)).multiply(a_ratio)
-        )
+        target = pos.Base.add(pos.Rotation.multVec(App.Vector(0, 0, -1)))
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         field_of_view = float(getattr(source, "HeightAngle", 60))
         specifics = self._get_renderer_specifics(view)
+
+        # Find rendering dimensions
+        try:
+            resolution = next(
+                (p.RenderWidth, p.RenderHeight)
+                for p in view.InList
+                if hasattr(p, "RenderWidth") and hasattr(p, "RenderHeight")
+            )
+        except StopIteration as exc:
+            # No corresponding project? Error...
+            msg = (
+                "Cannot export camera '{name}': missing project data "
+                "(rendering dimensions)"
+            )
+            raise RuntimeError(msg) from exc
+
 
         # Rescale
         pos.Base.multiply(SCALE)
@@ -488,6 +502,7 @@ class RendererHandler:
             updir,
             target,
             field_of_view,
+            resolution,
             **specifics,
         )
 

@@ -125,7 +125,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     return snippet
 
 
-def write_camera(name, pos, updir, target, fov):
+def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
@@ -140,7 +140,6 @@ def write_camera(name, pos, updir, target, fov):
             <parameter name="shutter_close_time" value="1" />
             <parameter name="film_width" value="0.032" />
             <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
-            <parameter name="focal_length" value="0" />
             <parameter name="horizontal_fov" value="{f}" />
             <transform>
                 <look_at origin="{o.x} {o.y} {o.z}"

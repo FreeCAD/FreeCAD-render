@@ -93,7 +93,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     return snippet_obj
 
 
-def write_camera(name, pos, updir, target, fov):
+def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
     # in osp coords.
