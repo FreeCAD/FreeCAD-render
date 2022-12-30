@@ -568,7 +568,7 @@ def _format_list(inlist, elements_per_line, indentation=6):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp
+    project, prefix, batch, input_file, output_file, width, height, spp, denoise
 ):
     """Generate renderer command.
 
@@ -583,6 +583,7 @@ def render(
         width -- Rendered image width, in pixels
         height -- Rendered image height, in pixels
         spp -- Max samples per pixel (halt condition)
+        denoise -- Flag to run denoiser
 
     Returns:
         The command to run renderer (string)
@@ -606,6 +607,14 @@ def render(
     # Write resulting output to file
     with open(input_file, "w", encoding="utf-8") as f:
         f.write(template)
+
+    # Denoiser (ignored)
+    if denoise:
+        wrn = (
+            "[Render][Pbrt] WARNING - Denoiser flag will be ignored: "
+            "Pbrt has no denoising capabilities.\n"
+        )
+        App.Console.PrintWarning(wrn)
 
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")

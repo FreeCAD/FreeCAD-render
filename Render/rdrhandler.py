@@ -140,6 +140,7 @@ class RendererHandler:
         width,
         height,
         spp,
+        denoise,
     ):
         """Run the external renderer.
 
@@ -163,7 +164,7 @@ class RendererHandler:
         """
         rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, batch, input_file, output_file, width, height, spp
+            project, prefix, batch, input_file, output_file, width, height, spp, denoise
         )
 
     @staticmethod
