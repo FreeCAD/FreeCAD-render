@@ -48,6 +48,8 @@ import xml.etree.ElementTree as et
 
 import FreeCAD as App
 
+from .utils.misc import fovy_to_fovx
+
 TEMPLATE_FILTER = "Appleseed templates (appleseed_*.appleseed)"
 
 SHADERS_DIR = os.path.join(os.path.dirname(__file__), "as_shaders")
@@ -127,14 +129,14 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
 def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
-    # This is where you create a piece of text in the format of
-    # your renderer, that represents the camera.
-
     orig = _transform(pos.Base)
     target = _transform(target)
     updir = _transform(updir)
     width, height = resolution
     aspect_ratio = width / height
+
+    # Appleseed expects horizontal fov, so we have to convert
+    fov = fovy_to_fovx(fov, *resolution)
 
     snippet = f"""
         <camera name="{name}" model="pinhole_camera">
