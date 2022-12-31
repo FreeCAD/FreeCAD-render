@@ -32,6 +32,8 @@ import configparser
 
 import FreeCAD as App
 
+from .utils.misc import fovy_to_fovx
+
 TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 
 # ===========================================================================
@@ -136,14 +138,18 @@ scene.shapes.{name}_mesh.faces = {tris}
 
 def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
-    snippet = """
-# Camera '{n}'
-scene.camera.lookat.orig = {o.x} {o.y} {o.z}
-scene.camera.lookat.target = {t.x} {t.y} {t.z}
-scene.camera.up = {u.x} {u.y} {u.z}
-scene.camera.fieldofview = {f}
+    # Nota: Luxcore use an horizontal fov, so we have to convert...
+    orig = pos.Base
+    fov = fovy_to_fovx(fov, *resolution)
+
+    snippet = f"""
+# Camera '{name}'
+scene.camera.lookat.orig = {orig.x} {orig.y} {orig.z}
+scene.camera.lookat.target = {target.x} {target.y} {target.z}
+scene.camera.up = {updir.x} {updir.y} {updir.z}
+scene.camera.fieldofview = {fov}
 """
-    return dedent(snippet).format(n=name, o=pos.Base, t=target, u=updir, f=fov)
+    return snippet
 
 
 def write_pointlight(name, pos, color, power):
