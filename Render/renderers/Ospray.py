@@ -44,7 +44,7 @@ import json
 import os
 import os.path
 import tempfile
-from math import degrees, asin, sqrt, atan2, pi
+from math import degrees, asin, sqrt, atan2, pi, radians
 
 import FreeCAD as App
 
@@ -92,8 +92,72 @@ def write_mesh(name, mesh, material, vertex_normals=False):
       }},"""
     return snippet_obj
 
-
 def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
+    """Compute a string in renderer SDL to represent a camera."""
+    # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
+    # in osp coords.
+    # At this time (12-30-2022), fovy parameter is not serviceable in
+    # sg camera
+    # As a workaround, we use a gltf file...
+
+    plc = TRANSFORM.multiply(pos)
+    base = plc.Base
+    rot = plc.Rotation.Q
+    fov = radians(fov)
+
+    gltf_snippet = f"""
+{{
+  "asset": {{
+    "generator": "FreeCAD Render Workbench",
+    "version": "2.0"
+  }},
+  "scene": 0,
+  "scenes": [
+    {{
+      "name": "scene",
+      "nodes": [0]
+    }}
+  ],
+  "cameras" : [
+    {{
+      "name": "{name}",
+      "type": "perspective",
+      "perspective": {{
+        "aspectRatio": 1.0,
+        "yfov": {fov},
+        "znear": 0.0
+      }}
+    }}
+  ],
+  "nodes" : [
+    {{
+      "translation" : [ {base.x}, {base.y}, {base.z} ],
+      "rotation" : [ {rot[0]}, {rot[1]}, {rot[2]}, {rot[3]} ],
+      "camera" : 0
+    }}
+  ]
+}}
+"""
+    gltf_file = App.ActiveDocument.getTempFileName(name + "_") + ".gltf"
+
+
+    with open(gltf_file, "w", encoding="utf-8") as f:
+        f.write(gltf_snippet)
+
+    gltf_file = os.path.basename(gltf_file)
+    snippet = f"""
+      {{
+        "name": {json.dumps(name)},
+        "type": "IMPORTER",
+        "filename": {json.dumps(gltf_file)},
+        "freecadtype" : "camera"
+      }},"""
+    return snippet
+
+
+
+# TODO
+def write_camera_old(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # OSP camera's default orientation is target=(0, 0, -1), up=(0, 1, 0),
     # in osp coords.
@@ -845,21 +909,29 @@ def render(
         The command to run renderer (string)
         A path to output image file (string)
     """
+    # TODO Simplify with json primitives read/write
     # Read result file (in a list)
     with open(input_file, "r", encoding="utf8") as f:
         in_file_list = f.readlines()
 
+    result = "".join(in_file_list)
+    scene_graph = json.loads(result)
+
     # Move cameras up to root node
-    result = _render_movecamerasup(in_file_list)
-    result = "".join(result)
+    # result = _render_movecamerasup(in_file_list)
+    # result = "".join(result)
+
+    # Keep only last cam
+    _render_keep1cam(scene_graph)
 
     # Merge light groups
-    json_load = json.loads(result)
-    _render_mergelightgroups(json_load)
+    _render_mergelightgroups(scene_graph)
+
+    print(json.dumps(scene_graph, indent=2))  # TODO
 
     # Write reformatted input to file
     with open(input_file, "w", encoding="utf-8") as f:
-        f.write(json.dumps(json_load, indent=2))
+        f.write(json.dumps(scene_graph, indent=2))
 
     # Prepare osp output file
     # Osp renames the output file when writing, so we have to ask it to write a
@@ -871,7 +943,7 @@ def render(
     if not batch:
         outfile_actual = f"{outfile_for_osp}.0000.png"  # The file osp'll use
     else:
-        outfile_actual = f"{outfile_for_osp}.00001.png"  # The file osp'll use
+        outfile_actual = f"{outfile_for_osp}.Camera_1.00001.png"  # The file osp'll use
     # We remove the outfile before writing, otherwise ospray will choose
     # another file
     try:
@@ -892,6 +964,7 @@ def render(
         args += '"batch" '
     args += params.GetString("OspParameters", "")
     args += f" --resolution {width}x{height} "
+    args += " --camera 1 --cameras 0 1000 "
     if output_file:
         args += "  --image " + outfile_for_osp
     if spp:
@@ -947,28 +1020,24 @@ def _render_mergelightgroups(json_result):
     lightsmanager_children.extend(lights)
 
 
-def _render_movecamerasup(in_file_list):
-    """Move cameras up in result file (helper).
+
+def _render_keep1cam(scene_graph):
+    """Keep only one camera (the last one) in the scene graph.
 
     Args:
-        in_file_list -- the input file (from merging of template and objects),
-            as a list
-
-    Returns:
-        The input file with cameras at the right place (list)
+        scene_graph -- the scene graph, in json format - in/out, will be
+            modified by this function
     """
-    cameras = ["\n"]
-    result = []
-    camflag = False
-    brace_nbr = 0
-    for line in in_file_list:
-        if '"camera"' in line or camflag:
-            cameras += line
-            camflag = True
-            brace_nbr += line.count("{") - line.count("}")
-            if not brace_nbr and '"camera"' not in line:
-                camflag = False
-        else:
-            result += line
-    result[2:2] = cameras
-    return result
+    world_children = scene_graph["world"]["children"]
+    cameras = [
+        c for c in reversed(world_children)
+        if c.get("freecadtype") == "camera"
+    ]
+    for index, cam in enumerate(cameras):
+        world_children.remove(cam)
+        if index == 0:
+            # If the camera is the 1st one (in reverse order),
+            # reinsert in front
+            world_children.insert(0, cam)
+    # Nota: camera must be in front of world children, otherwise import
+    # fails (bug, I think)
