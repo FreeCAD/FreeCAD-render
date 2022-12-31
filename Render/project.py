@@ -394,6 +394,16 @@ class Project(FeatureBase):
         """
         wait_for_completion = bool(wait_for_completion)
 
+        # Check project parameters
+        if self.fpo.RenderHeight <= 0 or self.fpo.RenderWidth <= 0:
+            msg = translate(
+                "Render",
+                "[Render][Project] CRITICAL ERROR - Negative or zero value(s) for "
+                "Render Height and/or Render Width: cannot render. Aborting...\n"
+            )
+            App.Console.PrintError(msg)
+            return None
+
         # Clear report view (if required)
         clear_report = PARAMS.GetBool("ClearReport")
         if clear_report:
