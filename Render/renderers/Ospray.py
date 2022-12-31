@@ -105,6 +105,8 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     base = plc.Base
     rot = plc.Rotation.Q
     fov = radians(fov)
+    width, height = resolution
+    aratio = width / height
 
     gltf_snippet = f"""
 {{
@@ -126,7 +128,8 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
       "perspective": {{
         "aspectRatio": 1.0,
         "yfov": {fov},
-        "znear": 0.0
+        "znear": 0.0,
+        "aspectRatio" : {aratio}
       }}
     }}
   ],
