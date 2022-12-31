@@ -132,7 +132,8 @@ class Camera(PointableFeatureMixin, FeatureBase):
                 "Render",
                 "Height angle, for perspective camera, in "
                 "degrees. Important: This value will be sent as "
-                "'Field of View' to the renderers.",
+                "'Field of View' to the renderers. Please note it is a"
+                "*vertical* field-of-view.",
             ),
             60,
         ),
