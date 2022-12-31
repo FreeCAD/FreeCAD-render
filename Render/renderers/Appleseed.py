@@ -129,32 +129,26 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.
-    #
-    # NOTE 'aspect_ratio' will be set at rendering time, when resolution is
-    # known. So, at this stage, we just insert a macro-identifier named
-    # @@ASPECT_RATIO@@, to be replaced by an actual value in 'render' function
 
-    snippet = """
-        <camera name="{n}" model="pinhole_camera">
-            <parameter name="shutter_open_time" value="0" />
-            <parameter name="shutter_close_time" value="1" />
+    orig = _transform(pos.Base)
+    target = _transform(target)
+    updir = _transform(updir)
+    width, height = resolution
+    aspect_ratio = width / height
+
+    snippet = f"""
+        <camera name="{name}" model="pinhole_camera">
             <parameter name="film_width" value="0.032" />
-            <parameter name="aspect_ratio" value="@@ASPECT_RATIO@@" />
-            <parameter name="horizontal_fov" value="{f}" />
+            <parameter name="aspect_ratio" value="{aspect_ratio}" />
+            <parameter name="horizontal_fov" value="{fov}" />
             <transform>
-                <look_at origin="{o.x} {o.y} {o.z}"
-                         target="{t.x} {t.y} {t.z}"
-                         up="{u.x} {u.y} {u.z}" />
+                <look_at origin="{orig.x} {orig.y} {orig.z}"
+                         target="{target.x} {target.y} {target.z}"
+                         up="{updir.x} {updir.y} {updir.z}" />
             </transform>
         </camera>"""
 
-    return snippet.format(
-        n=name,
-        o=_transform(pos.Base),
-        t=_transform(target),
-        u=_transform(updir),
-        f=fov,
-    )
+    return snippet
 
 
 def write_pointlight(name, pos, color, power):
@@ -1255,10 +1249,6 @@ def render(
     if res:
         snippet = '<parameter name="resolution" value="{} {}"/>'
         template = template.replace(res[0], snippet.format(width, height))
-
-    # Adjust cameras aspect ratio, in accordance with width & height
-    aspect_ratio = width / height if height else 1.0
-    template = template.replace("@@ASPECT_RATIO@@", str(aspect_ratio))
 
     # Define default camera
     res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
