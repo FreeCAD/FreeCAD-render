@@ -1,8 +1,8 @@
 {
-  %RaytracingCamera%
   "world": {
     "type": "WORLD",
     "children": [
+      %RaytracingCamera%
       %RaytracingContent%
       {"type": 9999, "name": "End-of-world"}
     ]

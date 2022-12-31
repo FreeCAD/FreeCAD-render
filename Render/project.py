@@ -394,6 +394,16 @@ class Project(FeatureBase):
         """
         wait_for_completion = bool(wait_for_completion)
 
+        # Check project parameters
+        if self.fpo.RenderHeight <= 0 or self.fpo.RenderWidth <= 0:
+            msg = translate(
+                "Render",
+                "[Render][Project] CRITICAL ERROR - Negative or zero value(s) for "
+                "Render Height and/or Render Width: cannot render. Aborting...\n"
+            )
+            App.Console.PrintError(msg)
+            return None
+
         # Clear report view (if required)
         clear_report = PARAMS.GetBool("ClearReport")
         if clear_report:
@@ -417,7 +427,7 @@ class Project(FeatureBase):
 
         # Build a default camera, to be used if no camera is present in the
         # scene
-        defaultcam = _get_default_cam(renderer)
+        defaultcam = _get_default_cam(renderer, self.fpo)
 
         # Get objects rendering strings (including lights, cameras...)
         objstrings = self._get_objstrings(renderer)
@@ -591,7 +601,7 @@ class Project(FeatureBase):
         return Params(prefix, output, width, height, batch, spp, denoise)
 
 
-def _get_default_cam(renderer):
+def _get_default_cam(renderer, project):
     """Build a default camera for rendering.
 
     This function is a (private) subroutine of `render` method.
@@ -605,7 +615,8 @@ def _get_default_cam(renderer):
         if App.GuiUp
         else DEFAULT_CAMERA_STRING
     )
-    return renderer.get_camsource_string(get_cam_from_coin_string(camstr))
+    camsource = get_cam_from_coin_string(camstr)
+    return renderer.get_camsource_string(camsource, project)
 
 
 def _instantiate_template(template, objstrings, defaultcam):

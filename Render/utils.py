@@ -128,6 +128,7 @@ def reload(module_name=None):
             "Render.renderers.Pbrt",
             "Render.renderers.Povray",
             "Render.renderers.utils.sunlight",
+            "Render.renderers.utils.misc",
             "Render",
         )
         if not module_name

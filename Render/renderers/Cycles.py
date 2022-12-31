@@ -119,7 +119,7 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     return snippet
 
 
-def write_camera(name, pos, updir, target, fov, **kwargs):
+def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     # This is where you create a piece of text in the format of
     # your renderer, that represents the camera.

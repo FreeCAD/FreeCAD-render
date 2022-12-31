@@ -118,7 +118,7 @@ AttributeEnd
     return snippet
 
 
-def write_camera(name, pos, updir, target, fov):
+def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
     snippet = """# Camera '{n}'
 Scale -1 1 1
