@@ -345,7 +345,7 @@ class RendererHandler:
     def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""
         return self._render_camera(
-            "Default_Camera", SimpleNamespace(Source=camsource, InList=[project])
+            "Default_Camera", SimpleNamespace(Source=camsource, InListRecursive=[project])
         )
 
     def _render_object(self, name, view):
@@ -478,13 +478,13 @@ class RendererHandler:
         try:
             resolution = next(
                 (p.RenderWidth, p.RenderHeight)
-                for p in view.InList
+                for p in view.InListRecursive
                 if hasattr(p, "RenderWidth") and hasattr(p, "RenderHeight")
             )
         except StopIteration as exc:
             # No corresponding project? Error...
             msg = (
-                "Cannot export camera '{name}': missing project data "
+                f"Cannot export camera '{name}': missing project data "
                 "(rendering dimensions)"
             )
             raise RuntimeError(msg) from exc
