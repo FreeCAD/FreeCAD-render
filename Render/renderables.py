@@ -153,7 +153,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         # Make a copy of obj.Mesh, otherwise we may have an immutable object
         # and further treatments will fail
         mesh = RenderMesh(obj.Mesh.copy())
-        if mat.Proxy.has_textures():
+        if mat and mat.Proxy.has_textures():
             uvprojection = kwargs.get("uvprojection")
             mesh.compute_uvmap(uvprojection)
         renderables = [Renderable(name, mesh, mat, color)]
