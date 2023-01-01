@@ -256,6 +256,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
             <parameter name="sun_theta" value="{b}" />
             <parameter name="turbidity" value="{t}" />
             <parameter name="ground_albedo" value="{g}" />
+            <parameter name="luminance_multiplier" value="2" />
         </environment_edf>
         <environment_shader name="{n}_env_shdr" model="edf_environment_shader">
             <parameter name="environment_edf" value="{n}_env_edf" />
