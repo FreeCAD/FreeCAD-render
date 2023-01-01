@@ -75,7 +75,6 @@ class RenderMesh:
         """
         if mesh:
             self.__mesh = mesh
-            assert mesh.Placement == App.Base.Placement()
             self.__originalmesh = mesh.copy()
             self.__originalmesh.transform(placement.inverse().Matrix)
             self.__originalplacement = placement.copy()
