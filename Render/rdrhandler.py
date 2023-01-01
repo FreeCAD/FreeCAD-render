@@ -49,6 +49,7 @@ from types import SimpleNamespace
 
 import FreeCAD as App
 import MeshPart
+import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render.rendermesh import RenderMesh
@@ -325,10 +326,10 @@ class RendererHandler:
         vertices = [
             App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
         ]  # Clamp to avoid huge dimensions...
-        mesh = RenderMesh()
+        mesh = Mesh.Mesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
-        mesh.compute_normals()
+        mesh = RenderMesh(mesh)
 
         mat = rendermaterial.get_rendering_material(None, "", color)
 

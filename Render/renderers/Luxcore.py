@@ -77,10 +77,9 @@ scene.materials.{name}.bumptex = {matval["normal"]}
         snippet_bump = ""
 
     # Points, vertices and normals
-    topology = mesh.Topology  # Compute once
-    points = [f"{v.x} {v.y} {v.z}" for v in topology[0]]
+    points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Points]
     points = " ".join(points)
-    tris = [f"{t[0]} {t[1]} {t[2]}" for t in topology[1]]
+    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.Facets]
     tris = " ".join(tris)
     nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     nrms = " ".join(nrms)

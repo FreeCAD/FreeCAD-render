@@ -75,11 +75,11 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
 
     snippet_mat = _write_material(name, matval)
 
-    points = [_write_point(p) for p in mesh.Topology[0]]
+    points = [_write_point(p) for p in mesh.Points]
     points = "  ".join(points)
-    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Topology[1]]
+    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Facets]
     verts = "  ".join(verts)
-    nverts = ["3"] * len(mesh.Topology[1])
+    nverts = ["3"] * mesh.CountFacets
     nverts = "  ".join(nverts)
     norms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     norms = "  ".join(norms)
@@ -743,7 +743,7 @@ _write_float = _rnd
 
 def _write_point(pnt):
     """Write a point."""
-    return f"{_rnd(pnt.x)} {_rnd(pnt.y)} {_rnd(pnt.z)}"
+    return f"{_rnd(pnt[0])} {_rnd(pnt[1])} {_rnd(pnt[2])}"
 
 
 _write_vec = _write_point  # Write a vector

@@ -53,14 +53,12 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         name, _write_texture, _write_value, _write_texref
     )
     material = _write_material(name, matval)
-    pnts = [
-        f"{p.x:+18.8f} {p.y:+18.8f} {p.z:+18.8f}" for p in mesh.Topology[0]
-    ]
+    pnts = [f"{p[0]:+18.8f} {p[1]:+18.8f} {p[2]:+18.8f}" for p in mesh.Points]
     ind_precision = math.ceil(math.log10(len(pnts)))
     pnts = _format_list(pnts, 2)
     inds = [
         f"{i[0]:{ind_precision}} {i[1]:{ind_precision}} {i[2]:{ind_precision}}"
-        for i in mesh.Topology[1]
+        for i in mesh.Facets
     ]
     inds = _format_list(inds, 5)
     if mesh.has_uvmap():

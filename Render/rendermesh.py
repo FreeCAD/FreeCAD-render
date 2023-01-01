@@ -39,6 +39,7 @@ import time
 from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
 import runpy
 import shutil
+import copy
 
 import FreeCAD as App
 import Mesh
@@ -74,7 +75,13 @@ class RenderMesh:
             uvmap -- a given uv map for initialization
         """
         if mesh:
-            self.__mesh = mesh
+            points, facets = mesh.Topology
+            points = [tuple(p) for p in points]
+            # TODO point index
+            self.__points = points
+            self.__facets = facets
+            self.__placement = mesh.Placement.copy()
+            # self.__mesh = mesh  # TODO
             self.__originalmesh = mesh.copy()
             self.__originalmesh.transform(placement.inverse().Matrix)
             self.__originalplacement = placement.copy()
@@ -87,29 +94,27 @@ class RenderMesh:
             self.__normals = (
                 normals
                 if normals is not None
-                else list(self.__mesh.getPointNormals())
+                else list(mesh.getPointNormals())
             )
         else:
-            self.__mesh = Mesh.Mesh()
+            # self.__mesh = Mesh.Mesh()  # TODO
+            self.__points = []
+            self.__vertices = []
             self.__normals = []
         self.__uvmap = uvmap if bool(uvmap) else []
 
-    # Reexposed Mesh.Mesh methods and attributes
-    def __repr__(self):
-        """Give a printable representation of the object."""
-        return self.__mesh.__repr__()
+    # # Reexposed Mesh.Mesh methods and attributes
+    # def __repr__(self):
+        # """Give a printable representation of the object."""
+        # return self.__mesh.__repr__()
 
-    def addFacet(self, *args):  # pylint: disable=invalid-name
-        """Add a facet to the mesh."""
-        self.__mesh.addFacet(*args)
+    # def addFacet(self, *args):  # pylint: disable=invalid-name
+        # """Add a facet to the mesh."""
+        # self.__mesh.addFacet(*args)
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return RenderMesh(
-            mesh=self.__mesh.copy(),
-            uvmap=self.__uvmap.copy(),
-            normals=self.__normals.copy(),
-        )
+        return copy.deepcopy(self)
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
@@ -125,62 +130,49 @@ class RenderMesh:
         Args:
             angle_x, angle_y, angle_z -- angles in radians
         """
-        self.__mesh.rotate(angle_x, angle_y, angle_z)
+        # self.__mesh.rotate(angle_x, angle_y, angle_z)  # TODO
         rotation = App.Base.Rotation(
             degrees(angle_z), degrees(angle_y), degrees(angle_x)
         )
+        self.__points = [tuple(rotation.multVec(App.Base.Vector(*p))) for p in self.__points]
         self.__normals = [rotation.multVec(v) for v in self.__normals]
 
     def transform(self, matrix):
         """Apply a transformation to the mesh."""
-        self.__mesh.transform(matrix)
+        # TODO Parallelize
+        self.__points = [tuple(matrix.multVec(App.Base.Vector(*p))) for p in self.__points]
         self.__normals = [matrix.multVec(v) for v in self.__normals]
         self.__normals = [
             v / v.Length for v in self.__normals if v.Length != 0.0
         ]
 
-    def write(self, filename):
-        """Write the mesh object into a file."""
-        self.__mesh.write(filename)
+    # TODO
+    # def write(self, filename):
+        # """Write the mesh object into a file."""
+        # self.__mesh.write(filename)
 
     @property
     def Placement(self):  # pylint: disable=invalid-name
         """Get the current transformation of the object as placement."""
-        return self.__mesh.Placement
+        return self.__placement
 
     @property
     def Points(self):  # pylint: disable=invalid-name
-        """Get a collection of the mesh points.
+        """Get a collection of the mesh points (iterator)."""
+        return self.__points
 
-        With this attribute, it is possible to get access to the points of the
-        mesh: for p in mesh.Points: print p.x, p.y, p.z,p.Index.
-
-        WARNING! Store Points in a local variable as it is generated on the
-        fly, each time it is accessed.
-        """
-        return iter(self.__mesh.Points)
+    @property
+    def CountPoints(self):
+        return len(self.__points)
 
     @property
     def Facets(self):  # pylint: disable=invalid-name
-        """Get a collection of the mesh points.
-
-        WARNING! Store Facets in a local variable as it is generated on the
-        fly, each time it is accessed.
-        """
-        return iter(self.__mesh.Facets)
+        """Get a collection of the mesh facets (iterator)."""
+        return self.__facets
 
     @property
-    def Topology(self):  # pylint: disable=invalid-name
-        """Get the points and faces indices as tuples.
-
-        Topology[0] is a list of all vertices. Each being a tuple of 3
-        coordinates. Topology[1] is a list of all polygons. Each being a list
-        of vertex indices into Topology[0]
-
-        WARNING! Store Topology in a local variable as it is generated on the
-        fly, each time it is accessed.
-        """
-        return self.__mesh.Topology
+    def CountFacets(self):
+        return len(self.__facets)
 
     # Specific methods
     def write_objfile(
@@ -217,7 +209,7 @@ class RenderMesh:
         tm0 = time.time()
         params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
         if (
-            self.__mesh.CountPoints >= 10000
+            self.CountPoints >= 10000
             and (shutil.which("pythonw") or shutil.which("python"))
             and params.GetBool("EnableMultiprocessing")
         ):
@@ -263,7 +255,7 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices, indices = self.Topology  # Time consuming...
+        vertices, indices = self.Points, self.Facets  # Time consuming...
 
         # Get obj file name
         if objfile is None:
@@ -364,7 +356,8 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices, faces = self.Topology  # Time consuming...
+        vertices = self.Points
+        faces = self.Facets
         path = os.path.join(PKGDIR, "writeobj.py")
 
         # Get obj file name
@@ -685,7 +678,7 @@ class RenderMesh:
         """
         if (
             PARAMS.GetBool("EnableMultiprocessing")
-            and self.__mesh.CountPoints >= 2000
+            and self.CountPoints >= 2000
         ):
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             return self._compute_uvmap_cube_mp()

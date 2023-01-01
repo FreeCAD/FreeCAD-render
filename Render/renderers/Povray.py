@@ -64,8 +64,8 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     )
 
     # Triangles
-    vrts = [f"<{v.x},{v.z},{v.y}>" for v in mesh.Topology[0]]
-    inds = [f"<{i[0]},{i[1]},{i[2]}>" for i in mesh.Topology[1]]
+    vrts = [f"<{v[0]},{v[2]},{v[1]}>" for v in mesh.Points]
+    inds = [f"<{i[0]},{i[1]},{i[2]}>" for i in mesh.Facets]
 
     vertices = "\n        ".join(vrts)
     len_vertices = len(vrts)
