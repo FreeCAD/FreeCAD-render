@@ -615,7 +615,10 @@ def _get_default_cam(renderer, project):
         if App.GuiUp
         else DEFAULT_CAMERA_STRING
     )
-    camsource = get_cam_from_coin_string(camstr)
+    try:
+        camsource = get_cam_from_coin_string(camstr)
+    except ValueError:
+        camsource = get_cam_from_coin_string(DEFAULT_CAMERA_STRING)
     return renderer.get_camsource_string(camsource, project)
 
 
