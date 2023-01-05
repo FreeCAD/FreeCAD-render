@@ -217,12 +217,6 @@ if __name__ == "__main__":
             faces = enumerate(colors)
             cog = fdiv(centroid, area_sum)
 
-            # faces = (
-                # (ichunk * CHUNK_SIZE + iface, face)
-                # for ichunk, chunk in enumerate(data)
-                # for iface, face in enumerate(chunk)
-            # )
-
             def face_reducer(x, y):
                 iface, face = y
                 x[face].append(point_facets[iface])
@@ -231,7 +225,6 @@ if __name__ == "__main__":
             face_facets = functools.reduce(
                 face_reducer, faces, init_face_facets
             )
-            print([len(f) for f in face_facets])
 
             # Compute final mesh and uvmap
             mesh = Mesh.Mesh()
