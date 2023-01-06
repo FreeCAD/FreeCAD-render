@@ -21,6 +21,7 @@
 # ***************************************************************************
 import multiprocessing as mp
 import functools
+import itertools
 import math
 
 
@@ -110,6 +111,56 @@ def compute_uv(cog, chunk):
 
     return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
 
+
+def compute_submesh(cog, index_triangles):
+    def compute_uv_from_unitcube(face, point):
+        """Compute UV coords from intersection point and face.
+
+        The cube is unfold this way:
+
+              +Z
+        +X +Y -X -Y
+              -Z
+
+        """
+        x, y, z = point
+        cx, cy, cz = cog
+        pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
+        if face == 0:  # _UnitCubeFaceEnum.XPLUS
+            res = (pt1, pt2)
+        elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+            res = (-pt1, pt2)
+        elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+            res = (-pt0, pt2)
+        elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+            res = (pt0, pt2)
+        elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+            res = (pt0, pt1)
+        elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+            res = (pt0, -pt1)
+        return res
+
+    # Inputs
+    index, triangles = index_triangles
+
+    # Compute points and facets
+    points = set(itertools.chain.from_iterable(triangles))
+    points = {p: i for i, p in enumerate(points)}
+    facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in triangles]
+    points = list(points.keys())
+
+    # Compute uvs
+    uv = [compute_uv_from_unitcube(index, point) for point in points]
+    print("here6")
+
+    return points, facets, uv
+
+
+
+
+# *************************************************************************************
+
+
 def add(*vectors):
     return tuple(sum(x) for x in zip(*vectors))
 
@@ -139,6 +190,10 @@ def normal(facet):
         vec1[0] * vec2[1] - vec1[1] * vec2[0],
     )
     return normal
+
+
+# *************************************************************************************
+
 
 if __name__ == "__main__":
     import os
@@ -189,6 +244,9 @@ if __name__ == "__main__":
 
     CHUNK_SIZE = 20000
     NPROC = os.cpu_count()
+    NPROC = 6  # TODO
+
+    # TODO Smart names for all variables...
 
     # Run
     try:
@@ -227,28 +285,37 @@ if __name__ == "__main__":
             )
 
             # Compute final mesh and uvmap
-            mesh = Mesh.Mesh()
-            uv_results = []
-            for cubeface, facets in enumerate(face_facets):
-                submesh = Mesh.Mesh(facets)
-                points = submesh.Points
-                data = ((p.x, p.y, p.z, cubeface) for p in points)
-                chunks = batched(data, CHUNK_SIZE)
-                compute = functools.partial(compute_uv, cog)
-                uv_results.append(pool.map_async(compute, chunks))
-                submesh.transform(transmat)
-                mesh.addMesh(submesh)
-                del submesh
+            compute = functools.partial(compute_submesh, cog)  # TODO rename compute_submesh
+            data = pool.imap(compute, enumerate(face_facets))
+            points, facets, uvmap = [], [], []
+            for subpoints, subfacets, subuv in data:
+                offset = len(points)
+                points += subpoints
+                subfacets = [(x + offset, y + offset, z + offset) for x, y, z in subfacets]
+                facets += subfacets
+                uvmap += subuv
+                # TODO transform
+                # submesh.transform(transmat)
 
-            uvmap = [
-                uv
-                for mapres in uv_results
-                for chunks in mapres.get()
-                for uv in chunks
-            ]
+            # for cubeface, facets in enumerate(face_facets):
+                # submesh = Mesh.Mesh(facets)
+                # points = submesh.Points
+                # data = ((p.x, p.y, p.z, cubeface) for p in points)
+                # chunks = batched(data, CHUNK_SIZE)
+                # compute = functools.partial(compute_uv, cog)
+                # uv_results.append(pool.map_async(compute, chunks))
+                # submesh.transform(transmat)
+                # mesh.addMesh(submesh)
+                # del submesh
+
+            # uvmap = [
+                # uv
+                # for mapres in uv_results
+                # for chunks in mapres.get()
+                # for uv in chunks
+            # ]
 
             # Clean
-            del facets
             del face_facets
             del data
     finally:

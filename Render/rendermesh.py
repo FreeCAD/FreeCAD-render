@@ -752,16 +752,13 @@ class RenderMesh:
         )
 
         # Replace previous values with newly computed ones
-        # TODO
-        mesh = res["mesh"]
-        points, facets = mesh.Topology
-        points = [tuple(p) for p in points]
-        self.__points = points
-        self.__facets = facets
+        self.__points = res["points"]
+        self.__facets = res["facets"]
         self.__uvmap = res["uvmap"]
 
-        # Clean
-        del res["mesh"]
+        # Clean (otherwise, there are mem leaks...)
+        del res["points"]
+        del res["facets"]
         del res["uvmap"]
 
     # TODO
