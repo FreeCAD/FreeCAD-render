@@ -21,7 +21,7 @@
 # ***************************************************************************
 
 from functools import reduce, partial
-from itertools import chain, islice
+from itertools import chain, islice, zip_longest
 from math import sqrt
 from operator import mul as op_mul, sub as op_sub
 
@@ -96,7 +96,9 @@ def colorize(triangles):
         colors, centroid, area_sum = x
         barycenter, normal = y
 
-        area = 0.5 * length(normal)
+        # Caveat, this 2 * area, actually
+        # It doesn't matter for our computation, but it could for others
+        area = length(normal)
 
         colors.append(intersect_unitcube_face(normal))
         centroid = add(centroid, fmul(barycenter, area))
@@ -240,7 +242,6 @@ def transform(matrix, vec):
 
 # *************************************************************************************
 
-
 def main(points, facets, transmat):
     """Entry point for __main__.
 
@@ -252,6 +253,9 @@ def main(points, facets, transmat):
     import os
     import shutil
     import itertools
+    import time
+
+    t0 = time.time()
 
     # Only >= 3.8
     def batched(iterable, n):
@@ -290,10 +294,12 @@ def main(points, facets, transmat):
     # Run
     try:
         with ctx.Pool(NPROC) as pool:
+            print(time.time() - t0)
             # Compute colors, and partial sums for center of gravity
             triangles = [tuple(points[i] for i in facet) for facet in facets]
             chunks = batched(triangles, CHUNK_SIZE)
             data = pool.imap(colorize, chunks)
+            print(time.time() - t0)
 
             # Concatenate/reduce processed chunks
             def chunk_reducer(x, y):
@@ -305,9 +311,10 @@ def main(points, facets, transmat):
                 running_colors += colors
                 return running_colors, running_centroid, running_area_sum
 
-            init_data = ([], (0.0, 0.0, 0.0), 0.0)
+            init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             triangle_colors, centroid, area_sum = data
+            print(time.time() - t0)
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
@@ -325,6 +332,7 @@ def main(points, facets, transmat):
                 enumerate(triangle_colors),
                 init_monochrome_triangles,
             )
+            print(time.time() - t0)
             # print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
@@ -343,10 +351,14 @@ def main(points, facets, transmat):
                 )
                 uvmap += subuv
 
+            print(time.time() - t0)
+
             # Transform points (with transmat)
             _transform_points = partial(transform_points, transmat)
             output = pool.imap(_transform_points, batched(points, CHUNK_SIZE))
             points = sum(output, [])
+
+            print(time.time() - t0)
 
     finally:
         os.chdir(save_dir)
