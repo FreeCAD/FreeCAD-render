@@ -337,11 +337,10 @@ def main(points, facets, transmat):
             for subpoints, subfacets, subuv in submeshes:
                 offset = len(points)
                 points += subpoints
-                subfacets = [
+                facets += (
                     (index1 + offset, index2 + offset, index3 + offset)
                     for index1, index2, index3 in subfacets
-                ]
-                facets += subfacets
+                )
                 uvmap += subuv
 
             # Transform points (with transmat)
