@@ -34,6 +34,7 @@ from math import sqrt
 #   submeshes
 # Chunk: a sliced sublist, to be processed in parallel way
 
+
 def colorize(triangles):
     """Attribute "colors" to triangles, depending on their orientations.
 
@@ -84,11 +85,10 @@ def colorize(triangles):
             else 5  # _UnitCubeFaceEnum.ZMINUS
         )
 
-
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
     centers = ((barycenter(t), normal(t)) for t in triangles)
 
-    def reducer(x,y):
+    def reducer(x, y):
         colors, centroid, area_sum = x
         barycenter, normal = y
 
@@ -132,12 +132,25 @@ def compute_uv(cog, chunk):
             res = (pt0, -pt1)
         return res
 
-
     return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
 
 
-def compute_submesh(cog, index_triangles):
-    def compute_uv_from_unitcube(face, point):
+def compute_uvmapped_submesh(chunk):
+    """Compute a submesh with uvmap from monochrome triangles.
+
+    Args:
+        chunk -- a tuple containing:
+            cog -- center of gravity (point: 3-float tuple)
+            color -- color of the triangles (integer)
+            triangles -- monochrome triangles (list of 3-points elements)
+
+    Returns:
+        points -- points of the submesh
+        facets -- facets of the submesh
+        uvmap -- uvmap of the submesh
+    """
+
+    def compute_uv_from_unitcube(color, point):
         """Compute UV coords from intersection point and face.
 
         The cube is unfold this way:
@@ -150,22 +163,22 @@ def compute_submesh(cog, index_triangles):
         x, y, z = point
         cx, cy, cz = cog
         pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
-        if face == 0:  # _UnitCubeFaceEnum.XPLUS
+        if color == 0:  # _UnitCubeFaceEnum.XPLUS
             res = (pt1, pt2)
-        elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+        elif color == 1:  # _UnitCubeFaceEnum.XMINUS
             res = (-pt1, pt2)
-        elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+        elif color == 2:  # _UnitCubeFaceEnum.YPLUS
             res = (-pt0, pt2)
-        elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+        elif color == 3:  # _UnitCubeFaceEnum.YMINUS
             res = (pt0, pt2)
-        elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+        elif color == 4:  # _UnitCubeFaceEnum.ZPLUS
             res = (pt0, pt1)
-        elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+        elif color == 5:  # _UnitCubeFaceEnum.ZMINUS
             res = (pt0, -pt1)
         return res
 
     # Inputs
-    index, triangles = index_triangles
+    cog, color, triangles = chunk
 
     # Compute points and facets
     points = set(chain.from_iterable(triangles))
@@ -174,11 +187,10 @@ def compute_submesh(cog, index_triangles):
     points = list(points.keys())
 
     # Compute uvs
-    uv = [compute_uv_from_unitcube(index, point) for point in points]
+    # TODO could precalculate compute_uv!
+    uv = [compute_uv_from_unitcube(color, point) for point in points]
 
     return points, facets, uv
-
-
 
 
 # *************************************************************************************
@@ -187,20 +199,26 @@ def compute_submesh(cog, index_triangles):
 def add(*vectors):
     return tuple(sum(x) for x in zip(*vectors))
 
+
 def sub(vec1, vec2):
     return tuple(x - y for x, y in zip(vec1, vec2))
+
 
 def fmul(vec, flt):
     return tuple(x * flt for x in vec)
 
+
 def fdiv(vec, flt):
     return tuple(x / flt for x in vec)
+
 
 def barycenter(facet):
     return fdiv(add(*facet), len(facet))
 
+
 def length(vec):
-    return sqrt(sum(x ** 2 for x in vec))
+    return sqrt(sum(x**2 for x in vec))
+
 
 def normal(facet):
     # (p1 - p0) ^ (p2 - p0)
@@ -216,6 +234,7 @@ def normal(facet):
 
 
 # *************************************************************************************
+
 
 def main(points, facets, transmat):
     """Entry point for __main__.
@@ -265,12 +284,13 @@ def main(points, facets, transmat):
             # Concatenate/reduce processed chunks
             def chunk_reducer(x, y):
                 """Reducer for colors chunks."""
-                running_colors, running_centroid, running_area_sum  = x
+                running_colors, running_centroid, running_area_sum = x
                 colors, centroid, area_sum = y
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
                 running_colors += colors
                 return running_colors, running_centroid, running_area_sum
+
             init_data = ([], (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             triangle_colors, centroid, area_sum = data
@@ -284,22 +304,29 @@ def main(points, facets, transmat):
                 itriangle, color = y
                 x[color].append(triangles[itriangle])
                 return x
+
             init_monochrome_triangles = [[], [], [], [], [], []]
             monochrome_triangles = reduce(
                 triangle_reducer,
                 enumerate(triangle_colors),
-                init_monochrome_triangles
+                init_monochrome_triangles,
             )
             # print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
-            compute = partial(compute_submesh, cog)  # TODO rename compute_submesh
-            data = pool.imap_unordered(compute, enumerate(monochrome_triangles))
+            chunks = (
+                (cog, color, triangles)
+                for color, triangles in enumerate(monochrome_triangles)
+            )
+            submeshes = pool.imap_unordered(compute_uvmapped_submesh, chunks)
             points, facets, uvmap = [], [], []
-            for subpoints, subfacets, subuv in data:
+            for subpoints, subfacets, subuv in submeshes:
                 offset = len(points)
                 points += subpoints
-                subfacets = [(x + offset, y + offset, z + offset) for x, y, z in subfacets]
+                subfacets = [
+                    (index1 + offset, index2 + offset, index3 + offset)
+                    for index1, index2, index3 in subfacets
+                ]
                 facets += subfacets
                 uvmap += subuv
                 # TODO transform
@@ -309,6 +336,7 @@ def main(points, facets, transmat):
         os.chdir(save_dir)
 
     return points, facets, uvmap
+
 
 # *************************************************************************************
 
