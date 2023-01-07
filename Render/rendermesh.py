@@ -736,67 +736,20 @@ class RenderMesh:
         path = os.path.join(PKGDIR, "uvmap_cube.py")
         transmat = self.__originalplacement.Matrix
 
-        # cog = self.center_of_gravity()
-
         # Run
-        points = self.Points
-        facets = self.Facets
         res = runpy.run_path(
             path,
             init_globals={
-                "points": points,
-                "facets": facets,
+                "points": self.__points,
+                "facets": self.__facets,
+                "uvmap": self.__uvmap,
                 "transmat": transmat,
             },
             run_name="__main__",
         )
 
-        # Replace previous values with newly computed ones
-        self.__points = res["points"]
-        self.__facets = res["facets"]
-        self.__uvmap = res["uvmap"]
+        print(res)  # TODO
 
-        # Clean (otherwise, there are mem leaks...)
-        del res["points"]
-        del res["facets"]
-        del res["uvmap"]
-
-    # TODO
-    # def _compute_uvmap_cube_mp_old(self):
-        # """Compute UV map for cubic case - multiprocessing version.
-
-        # We isolate submeshes by cube face in order to avoid trouble when
-        # one edge belongs to several cube faces (cf. simple cube case, for
-        # instance)
-        # """
-        # # Init variables
-        # path = os.path.join(PKGDIR, "uvmap_cube.py")
-        # transmat = self.__originalplacement.Matrix
-
-        # try:
-            # cog = self.__originalmesh.CenterOfGravity
-        # except AttributeError:
-            # cog = self.center_of_gravity()
-
-        # # Run
-        # facets = self.__originalmesh.Facets
-        # res = runpy.run_path(
-            # path,
-            # init_globals={
-                # "facets": facets,
-                # "cog": tuple(cog),
-                # "transmat": transmat,
-            # },
-            # run_name="__main__",
-        # )
-
-        # # Replace previous values with newly computed ones
-        # self.__mesh = res["mesh"]
-        # self.__uvmap = res["uvmap"]
-
-        # # Clean
-        # del res["mesh"]
-        # del res["uvmap"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""

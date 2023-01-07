@@ -19,11 +19,10 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-import multiprocessing as mp
-import functools
-import itertools
-import math
 
+from functools import reduce, partial
+from itertools import chain, islice
+from math import sqrt
 
 def compute_submeshes(facets):
     def intersect_unitcube_face(direction):
@@ -77,7 +76,7 @@ def compute_submeshes(facets):
         return centroid, area_sum, face_colors
 
     init_reducer = ((0.0, 0.0, 0.0), 0.0, [])
-    result = functools.reduce(reducer, centers, init_reducer)
+    result = reduce(reducer, centers, init_reducer)
     return result  # centroid, area sum, face colors
 
 
@@ -144,14 +143,13 @@ def compute_submesh(cog, index_triangles):
     index, triangles = index_triangles
 
     # Compute points and facets
-    points = set(itertools.chain.from_iterable(triangles))
+    points = set(chain.from_iterable(triangles))
     points = {p: i for i, p in enumerate(points)}
     facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in triangles]
     points = list(points.keys())
 
     # Compute uvs
     uv = [compute_uv_from_unitcube(index, point) for point in points]
-    print("here6")
 
     return points, facets, uv
 
@@ -177,7 +175,7 @@ def barycenter(facet):
     return fdiv(add(*facet), len(facet))
 
 def length(vec):
-    return math.sqrt(sum(x ** 2 for x in vec))
+    return sqrt(sum(x ** 2 for x in vec))
 
 def normal(facet):
     # (p1 - p0) ^ (p2 - p0)
@@ -194,31 +192,17 @@ def normal(facet):
 
 # *************************************************************************************
 
+def main(points, facets, transmat):
+    """Entry point for __main__.
 
-if __name__ == "__main__":
+    This code executes in main process.
+    Keeping this code out of global scope makes all local objects to be freed
+    at the end of the function and thus avoid memory leaks.
+    """
+    import multiprocessing as mp
     import os
     import shutil
     import itertools
-    import functools
-
-    import Mesh
-
-    # Get variables
-    # pylint: disable=used-before-assignment
-    try:
-        facets
-    except NameError:
-        facets = []
-
-    try:
-        points
-    except NameError:
-        points = []
-
-    try:
-        transmat
-    except NameError:
-        transmat = None
 
     # Only >= 3.8
     def batched(iterable, n):
@@ -226,7 +210,7 @@ if __name__ == "__main__":
         # batched('ABCDEFG', 3) --> ABC DEF G
         # from Python itertools documentation...
         it = iter(iterable)
-        while batch := list(itertools.islice(it, n)):
+        while batch := list(islice(it, n)):
             yield batch
 
     # Set directory and stdout
@@ -243,8 +227,7 @@ if __name__ == "__main__":
     ctx.set_executable(executable)
 
     CHUNK_SIZE = 20000
-    NPROC = os.cpu_count()
-    NPROC = 6  # TODO
+    NPROC = 6  # Number of faces
 
     # TODO Smart names for all variables...
 
@@ -268,7 +251,7 @@ if __name__ == "__main__":
                 return running_centroid, running_area_sum, running_colors
 
             init_data = ((0.0, 0.0, 0.0), 0.0, [])
-            data = functools.reduce(chunk_reducer, data, init_data)
+            data = reduce(chunk_reducer, data, init_data)
 
             centroid, area_sum, colors = data
 
@@ -280,13 +263,11 @@ if __name__ == "__main__":
                 x[face].append(point_facets[iface])
                 return x
             init_face_facets = [[], [], [], [], [], []]
-            face_facets = functools.reduce(
-                face_reducer, faces, init_face_facets
-            )
+            face_facets = reduce( face_reducer, faces, init_face_facets)
 
             # Compute final mesh and uvmap
-            compute = functools.partial(compute_submesh, cog)  # TODO rename compute_submesh
-            data = pool.imap(compute, enumerate(face_facets))
+            compute = partial(compute_submesh, cog)  # TODO rename compute_submesh
+            data = pool.imap_unordered(compute, enumerate(face_facets))
             points, facets, uvmap = [], [], []
             for subpoints, subfacets, subuv in data:
                 offset = len(points)
@@ -297,26 +278,29 @@ if __name__ == "__main__":
                 # TODO transform
                 # submesh.transform(transmat)
 
-            # for cubeface, facets in enumerate(face_facets):
-                # submesh = Mesh.Mesh(facets)
-                # points = submesh.Points
-                # data = ((p.x, p.y, p.z, cubeface) for p in points)
-                # chunks = batched(data, CHUNK_SIZE)
-                # compute = functools.partial(compute_uv, cog)
-                # uv_results.append(pool.map_async(compute, chunks))
-                # submesh.transform(transmat)
-                # mesh.addMesh(submesh)
-                # del submesh
-
-            # uvmap = [
-                # uv
-                # for mapres in uv_results
-                # for chunks in mapres.get()
-                # for uv in chunks
-            # ]
-
-            # Clean
-            del face_facets
-            del data
     finally:
         os.chdir(save_dir)
+
+    return points, facets, uvmap
+
+# *************************************************************************************
+
+if __name__ == "__main__":
+    # Get variables
+    # pylint: disable=used-before-assignment
+    try:
+        facets
+    except NameError:
+        facets = []
+
+    try:
+        points
+    except NameError:
+        points = []
+
+    try:
+        transmat
+    except NameError:
+        transmat = None
+
+    points, facets, uvmap = main(points, facets, transmat)
