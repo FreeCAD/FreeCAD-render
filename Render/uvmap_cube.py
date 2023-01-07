@@ -108,36 +108,7 @@ def colorize(triangles):
     result = reduce(reducer, data, init_reducer)
     return result  # triangle colors, centroid, area sum
 
-
-# TODO
-# def compute_uv(cog, chunk):
-    # def compute_uv_from_unitcube(x, y, z, face):
-        # """Compute UV coords from intersection point and face.
-
-        # The cube is unfold this way:
-
-              # +Z
-        # +X +Y -X -Y
-              # -Z
-
-        # """
-        # cx, cy, cz = cog
-        # pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
-        # if face == 0:  # _UnitCubeFaceEnum.XPLUS
-            # res = (pt1, pt2)
-        # elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-            # res = (-pt1, pt2)
-        # elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-            # res = (-pt0, pt2)
-        # elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-            # res = (pt0, pt2)
-        # elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-            # res = (pt0, pt1)
-        # elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-            # res = (pt0, -pt1)
-        # return res
-
-    # return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
+# *************************************************************************************
 
 
 def compute_uvmapped_submesh(chunk):
@@ -155,31 +126,51 @@ def compute_uvmapped_submesh(chunk):
         uvmap -- uvmap of the submesh
     """
 
-    def compute_uv_from_unitcube(color, point):
-        """Compute UV coords from intersection point and face.
+    def _uc_xplus(point):
+        """Unit cube - xplus case."""
+        _, pt1, pt2 = point
+        return (pt1, pt2)
 
-        The cube is unfold this way:
 
-              +Z
-        +X +Y -X -Y
-              -Z
+    def _uc_xminus(point):
+        """Unit cube - xminus case."""
+        _, pt1, pt2 = point
+        return (-pt1, pt2)
 
-        """
-        pt0, pt1, pt2 = fdiv(sub(point, cog), 1000)
 
-        if color == 0:  # _UnitCubeFaceEnum.XPLUS
-            res = (pt1, pt2)
-        elif color == 1:  # _UnitCubeFaceEnum.XMINUS
-            res = (-pt1, pt2)
-        elif color == 2:  # _UnitCubeFaceEnum.YPLUS
-            res = (-pt0, pt2)
-        elif color == 3:  # _UnitCubeFaceEnum.YMINUS
-            res = (pt0, pt2)
-        elif color == 4:  # _UnitCubeFaceEnum.ZPLUS
-            res = (pt0, pt1)
-        elif color == 5:  # _UnitCubeFaceEnum.ZMINUS
-            res = (pt0, -pt1)
-        return res
+    def _uc_yplus(point):
+        """Unit cube - yplus case."""
+        pt0, _, pt2 = point
+        return (-pt0, pt2)
+
+
+    def _uc_yminus(point):
+        """Unit cube - yminus case."""
+        pt0, _, pt2 = point
+        return (pt0, pt2)
+
+
+    def _uc_zplus(point):
+        """Unit cube - zplus case."""
+        pt0, pt1, _ = point
+        return (pt0, pt1)
+
+
+    def _uc_zminus(point):
+        """Unit cube - zminus case."""
+        pt0, pt1, _ = point
+        return (pt0, -pt1)
+
+
+    _UC_MAP = (
+        _uc_xplus,
+        _uc_xminus,
+        _uc_yplus,
+        _uc_yminus,
+        _uc_zplus,
+        _uc_zminus,
+    )
+
 
     # Inputs
     cog, color, triangles = chunk
@@ -191,8 +182,9 @@ def compute_uvmapped_submesh(chunk):
     points = list(points.keys())
 
     # Compute uvs
-    # TODO could precalculate compute_uv!
-    uv = [compute_uv_from_unitcube(color, point) for point in points]
+    map_func = _UC_MAP[color]
+    cog = map_func(cog)
+    uv = [fdiv(sub(map_func(p), cog), 1000) for p in points]
 
     return points, facets, uv
 
