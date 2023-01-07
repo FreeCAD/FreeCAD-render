@@ -23,6 +23,7 @@
 from functools import reduce, partial
 from itertools import chain, islice
 from math import sqrt
+from operator import mul as op_mul, sub as op_sub
 
 
 # Vocabulary:
@@ -33,6 +34,9 @@ from math import sqrt
 # Color: an integer associated to a facet/triangle, in order to separate
 #   submeshes
 # Chunk: a sliced sublist, to be processed in parallel way
+
+def transform_points(matrix, points):
+    return [transform(matrix, point) for point in points]
 
 
 def colorize(triangles):
@@ -86,7 +90,7 @@ def colorize(triangles):
         )
 
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
-    centers = ((barycenter(t), normal(t)) for t in triangles)
+    data = ((barycenter(t), normal(t)) for t in triangles)
 
     def reducer(x, y):
         colors, centroid, area_sum = x
@@ -100,39 +104,40 @@ def colorize(triangles):
 
         return colors, centroid, area_sum
 
-    init_reducer = ([], (0.0, 0.0, 0.0), 0.0)
-    result = reduce(reducer, centers, init_reducer)
+    init_reducer = (bytearray(0), (0.0, 0.0, 0.0), 0.0)
+    result = reduce(reducer, data, init_reducer)
     return result  # triangle colors, centroid, area sum
 
 
-def compute_uv(cog, chunk):
-    def compute_uv_from_unitcube(x, y, z, face):
-        """Compute UV coords from intersection point and face.
+# TODO
+# def compute_uv(cog, chunk):
+    # def compute_uv_from_unitcube(x, y, z, face):
+        # """Compute UV coords from intersection point and face.
 
-        The cube is unfold this way:
+        # The cube is unfold this way:
 
-              +Z
-        +X +Y -X -Y
-              -Z
+              # +Z
+        # +X +Y -X -Y
+              # -Z
 
-        """
-        cx, cy, cz = cog
-        pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
-        if face == 0:  # _UnitCubeFaceEnum.XPLUS
-            res = (pt1, pt2)
-        elif face == 1:  # _UnitCubeFaceEnum.XMINUS
-            res = (-pt1, pt2)
-        elif face == 2:  # _UnitCubeFaceEnum.YPLUS
-            res = (-pt0, pt2)
-        elif face == 3:  # _UnitCubeFaceEnum.YMINUS
-            res = (pt0, pt2)
-        elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
-            res = (pt0, pt1)
-        elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
-            res = (pt0, -pt1)
-        return res
+        # """
+        # cx, cy, cz = cog
+        # pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
+        # if face == 0:  # _UnitCubeFaceEnum.XPLUS
+            # res = (pt1, pt2)
+        # elif face == 1:  # _UnitCubeFaceEnum.XMINUS
+            # res = (-pt1, pt2)
+        # elif face == 2:  # _UnitCubeFaceEnum.YPLUS
+            # res = (-pt0, pt2)
+        # elif face == 3:  # _UnitCubeFaceEnum.YMINUS
+            # res = (pt0, pt2)
+        # elif face == 4:  # _UnitCubeFaceEnum.ZPLUS
+            # res = (pt0, pt1)
+        # elif face == 5:  # _UnitCubeFaceEnum.ZMINUS
+            # res = (pt0, -pt1)
+        # return res
 
-    return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
+    # return [compute_uv_from_unitcube(x, y, z, face) for x, y, z, face in chunk]
 
 
 def compute_uvmapped_submesh(chunk):
@@ -160,9 +165,8 @@ def compute_uvmapped_submesh(chunk):
               -Z
 
         """
-        x, y, z = point
-        cx, cy, cz = cog
-        pt0, pt1, pt2 = (x - cx) / 1000, (y - cy) / 1000, (z - cz) / 1000
+        pt0, pt1, pt2 = fdiv(sub(point, cog), 1000)
+
         if color == 0:  # _UnitCubeFaceEnum.XPLUS
             res = (pt1, pt2)
         elif color == 1:  # _UnitCubeFaceEnum.XMINUS
@@ -201,7 +205,7 @@ def add(*vectors):
 
 
 def sub(vec1, vec2):
-    return tuple(x - y for x, y in zip(vec1, vec2))
+    return tuple(map(op_sub, vec1, vec2))
 
 
 def fmul(vec, flt):
@@ -220,17 +224,26 @@ def length(vec):
     return sqrt(sum(x**2 for x in vec))
 
 
-def normal(facet):
+def normal(triangle):
     # (p1 - p0) ^ (p2 - p0)
-    pt0, pt1, pt2 = facet
-    vec1 = sub(pt1, pt0)
-    vec2 = sub(pt2, pt0)
+    point0, point1, point2 = triangle
+    vec1 = sub(point1, point0)
+    vec2 = sub(point2, point0)
     normal = (
         vec1[1] * vec2[2] - vec1[2] * vec2[1],
         vec1[2] * vec2[0] - vec1[0] * vec2[2],
         vec1[0] * vec2[1] - vec1[1] * vec2[0],
     )
     return normal
+
+def dot(vec1, vec2):
+    """Dot product."""
+    return sum(map(op_mul, vec1, vec2))
+
+def transform(matrix, vec):
+    """Transform a 3D vector with a transformation matrix 4x4."""
+    vec2 = (*vec, 1)
+    return tuple(dot(line, vec2) for line in matrix[:-1])
 
 
 # *************************************************************************************
@@ -271,7 +284,16 @@ def main(points, facets, transmat):
     ctx.set_executable(executable)
 
     CHUNK_SIZE = 20000
-    NPROC = 6  # Number of faces
+    NPROC = max(6, os.cpu_count())  # At least, number of faces
+
+    # TODO Move elsewhere
+    def grouper(iterable, n, fillvalue=None):
+        "Collect data into fixed-length chunks or blocks"
+        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+        args = [iter(iterable)] * n
+        return itertools.zip_longest(*args, fillvalue=fillvalue)
+
+    transmat = tuple(grouper(transmat.A, 4))
 
     # Run
     try:
@@ -329,8 +351,11 @@ def main(points, facets, transmat):
                 ]
                 facets += subfacets
                 uvmap += subuv
-                # TODO transform
-                # submesh.transform(transmat)
+
+            # Transform points (with transmat)
+            _transform_points = partial(transform_points, transmat)
+            output = pool.imap(_transform_points, batched(points, CHUNK_SIZE))
+            points = sum(output, [])
 
     finally:
         os.chdir(save_dir)
