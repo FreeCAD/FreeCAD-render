@@ -747,8 +747,9 @@ class RenderMesh:
             },
             run_name="__main__",
         )
-
-        print(res)  # TODO
+        self.__points = res["points"]
+        self.__facets = res["facets"]
+        self.__uvmap = res["uvmap"]
 
 
     def has_uvmap(self):

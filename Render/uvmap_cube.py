@@ -24,7 +24,33 @@ from functools import reduce, partial
 from itertools import chain, islice
 from math import sqrt
 
-def compute_submeshes(facets):
+
+# Vocabulary:
+# Point: a 3-tuple of float designing a point in 3D
+# Facet: a 3-tuple of indices (integer) pointing to 3 points in a point list
+# Triangle: a 3-tuple of points (see above)
+# Mesh: a pair (point list, facet list)
+# Color: an integer associated to a facet/triangle, in order to separate
+#   submeshes
+# Chunk: a sliced sublist, to be processed in parallel way
+
+def colorize(triangles):
+    """Attribute "colors" to triangles, depending on their orientations.
+
+    Color is an integer in [0,5].
+    The color depends on the normal of the triangle, projected to unit cube faces.
+    This method also computes partial sums for center of gravity.
+
+
+    Args:
+        triangles -- An iterable of triangles to process
+
+    Returns
+        Facet colors (list)
+        Centroid of facets (point: 3-float tuple)
+        Area sum of facets (float)
+    """
+
     def intersect_unitcube_face(direction):
         """Get the face of the unit cube intersected by a line from origin.
 
@@ -60,24 +86,23 @@ def compute_submeshes(facets):
 
 
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
-    centers = ((barycenter(facet), normal(facet)) for facet in facets)
-    # areas_centers = ((barycenter, 0.5 * length(normal)) for normal, barycenter in normals_centers)
+    centers = ((barycenter(t), normal(t)) for t in triangles)
 
     def reducer(x,y):
-        centroid, area_sum, face_colors = x
+        colors, centroid, area_sum = x
         barycenter, normal = y
 
         area = 0.5 * length(normal)
 
+        colors.append(intersect_unitcube_face(normal))
         centroid = add(centroid, fmul(barycenter, area))
         area_sum += area
-        face_colors.append(intersect_unitcube_face(normal))
 
-        return centroid, area_sum, face_colors
+        return colors, centroid, area_sum
 
-    init_reducer = ((0.0, 0.0, 0.0), 0.0, [])
+    init_reducer = ([], (0.0, 0.0, 0.0), 0.0)
     result = reduce(reducer, centers, init_reducer)
-    return result  # centroid, area sum, face colors
+    return result  # triangle colors, centroid, area sum
 
 
 def compute_uv(cog, chunk):
@@ -213,7 +238,7 @@ def main(points, facets, transmat):
         while batch := list(islice(it, n)):
             yield batch
 
-    # Set directory and stdout
+    # Set working directory
     save_dir = os.getcwd()
     os.chdir(os.path.dirname(__file__))
 
@@ -229,45 +254,47 @@ def main(points, facets, transmat):
     CHUNK_SIZE = 20000
     NPROC = 6  # Number of faces
 
-    # TODO Smart names for all variables...
-
     # Run
     try:
-        point_facets = [tuple(points[i] for i in facet) for facet in facets]
-        chunks = batched(point_facets, CHUNK_SIZE)
         with ctx.Pool(NPROC) as pool:
-            # Compute submeshes
-            data = pool.imap(compute_submeshes, chunks)
+            # Compute colors, and partial sums for center of gravity
+            triangles = [tuple(points[i] for i in facet) for facet in facets]
+            chunks = batched(triangles, CHUNK_SIZE)
+            data = pool.imap(colorize, chunks)
 
-            # Concatenate data
+            # Concatenate/reduce processed chunks
             def chunk_reducer(x, y):
-                running_centroid, running_area_sum, running_colors = x
-                centroid, area_sum, colors = y
-
+                """Reducer for colors chunks."""
+                running_colors, running_centroid, running_area_sum  = x
+                colors, centroid, area_sum = y
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
                 running_colors += colors
-
-                return running_centroid, running_area_sum, running_colors
-
-            init_data = ((0.0, 0.0, 0.0), 0.0, [])
+                return running_colors, running_centroid, running_area_sum
+            init_data = ([], (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
+            triangle_colors, centroid, area_sum = data
 
-            centroid, area_sum, colors = data
-
-            faces = enumerate(colors)
+            # Compute center of gravity
             cog = fdiv(centroid, area_sum)
 
-            def face_reducer(x, y):
-                iface, face = y
-                x[face].append(point_facets[iface])
+            # Generate 6 sublists of monochrome triangles
+            # TODO merge with previous computation?
+            def triangle_reducer(x, y):
+                itriangle, color = y
+                x[color].append(triangles[itriangle])
                 return x
-            init_face_facets = [[], [], [], [], [], []]
-            face_facets = reduce( face_reducer, faces, init_face_facets)
+            init_monochrome_triangles = [[], [], [], [], [], []]
+            monochrome_triangles = reduce(
+                triangle_reducer,
+                enumerate(triangle_colors),
+                init_monochrome_triangles
+            )
+            # print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
             compute = partial(compute_submesh, cog)  # TODO rename compute_submesh
-            data = pool.imap_unordered(compute, enumerate(face_facets))
+            data = pool.imap_unordered(compute, enumerate(monochrome_triangles))
             points, facets, uvmap = [], [], []
             for subpoints, subfacets, subuv in data:
                 offset = len(points)
@@ -297,6 +324,11 @@ if __name__ == "__main__":
         points
     except NameError:
         points = []
+
+    try:
+        uvmap
+    except NameError:
+        uvmap = []
 
     try:
         transmat
