@@ -41,14 +41,17 @@ from vector import add, sub, fmul, fdiv, barycenter, length, normal, transform
 #   submeshes
 # Chunk: a sliced sublist, to be processed in parallel way
 
+def getpoint(idx):
+    idx *= 3
+    return SHARED_POINTS[idx], SHARED_POINTS[idx+1], SHARED_POINTS[idx+2]
 
 def transform_points(matrix, points):
     """Transform points with a transformation matrix 4x4."""
     return [transform(matrix, point) for point in points]
 
 
-def colorize(triangles):
-    """Attribute "colors" to triangles, depending on their orientations.
+def colorize(facets):
+    """Attribute "colors" to facets, depending on their orientations.
 
     Color is an integer in [0,5].
     The color depends on the normal of the triangle, projected to unit cube
@@ -57,7 +60,7 @@ def colorize(triangles):
 
 
     Args:
-        triangles -- An iterable of triangles to process
+        facets -- An iterable of facets to process
 
     Returns
         Facet colors (list)
@@ -85,6 +88,7 @@ def colorize(triangles):
         return idx1 + int(idx2)
 
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
+    triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = ((barycenter(t), normal(t)) for t in triangles)
 
     def reducer(running, new):
@@ -193,6 +197,9 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
+def init(points):
+    global SHARED_POINTS
+    SHARED_POINTS = points
 
 def main(points, facets, transmat, showtime=False):
     """Entry point for __main__.
@@ -204,6 +211,7 @@ def main(points, facets, transmat, showtime=False):
     # pylint: disable=import-outside-toplevel
     # pylint: disable=too-many-locals
     import multiprocessing as mp
+    from multiprocessing.sharedctypes import RawArray
     import os
     import sys
     import shutil
@@ -255,14 +263,17 @@ def main(points, facets, transmat, showtime=False):
 
     transmat = tuple(grouper(transmat.A, 4))
 
+    # TODO
+    shd_points = RawArray('d', [x for p in points for x in p])
+
     # Run
     try:
-        with ctx.Pool(nproc) as pool:
+        with ctx.Pool(nproc, init, (shd_points,)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             triangles = [tuple(points[i] for i in facet) for facet in facets]
             tick("compute triangles")
-            chunks = batched(triangles, chunk_size)
+            chunks = batched(facets, chunk_size)
             data = pool.map(colorize, chunks)
             tick("colorize")
 
@@ -299,7 +310,7 @@ def main(points, facets, transmat, showtime=False):
             )
             tick("sublists")
 
-            # print([len(t) for t in monochrome_triangles])  # Debug
+            print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
             chunks = (
