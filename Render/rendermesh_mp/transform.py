@@ -22,23 +22,12 @@
 
 """Script for points transformation in multiprocessing mode."""
 
-from operator import mul as op_mul
+from Render.vector import transform
 
 def transform_points(matrix, points):
     """Transform points with a transformation matrix 4x4."""
     return [transform(matrix, point) for point in points]
 
-
-# TODO Create a vector module
-def dot(vec1, vec2):
-    """Dot product."""
-    return sum(map(op_mul, vec1, vec2))
-
-
-def transform(matrix, vec):
-    """Transform a 3D vector with a transformation matrix 4x4."""
-    vec2 = (*vec, 1)
-    return tuple(dot(line, vec2) for line in matrix[:-1])
 
 def main(matrix, points, showtime):
     """Main entry point for main process."""

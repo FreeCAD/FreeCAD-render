@@ -24,8 +24,8 @@
 
 from functools import reduce, partial
 from itertools import chain
-from math import sqrt
-from operator import mul as op_mul, sub as op_sub
+
+from Render.vector import add, sub, fmul, fdiv, barycenter, length, normal, transform
 
 
 # Vocabulary:
@@ -185,64 +185,6 @@ def offset_facets(offset, facets):
         (index1 + offset, index2 + offset, index3 + offset)
         for index1, index2, index3 in facets
     ]
-
-
-# *****************************************************************************
-
-
-def add(*vectors):
-    """Add 2 or more vectors."""
-    return tuple(sum(x) for x in zip(*vectors))
-
-
-def sub(vec1, vec2):
-    """Substract 2 vectors."""
-    return tuple(map(op_sub, vec1, vec2))
-
-
-def fmul(vec, flt):
-    """Multiply a vector by a float."""
-    return tuple(x * flt for x in vec)
-
-
-def fdiv(vec, flt):
-    """Divide a vector by a float."""
-    return tuple(x / flt for x in vec)
-
-
-def barycenter(polygon):
-    """Compute isobarycenter of a polygon."""
-    return fdiv(add(*polygon), len(polygon))
-
-
-def length(vec):
-    """Compute vector length."""
-    return sqrt(sum(x**2 for x in vec))
-
-
-def normal(triangle):
-    """Compute the normal of a triangle."""
-    # (p1 - p0) ^ (p2 - p0)
-    point0, point1, point2 = triangle
-    vec1 = sub(point1, point0)
-    vec2 = sub(point2, point0)
-    res = (
-        vec1[1] * vec2[2] - vec1[2] * vec2[1],
-        vec1[2] * vec2[0] - vec1[0] * vec2[2],
-        vec1[0] * vec2[1] - vec1[1] * vec2[0],
-    )
-    return res
-
-
-def dot(vec1, vec2):
-    """Dot product."""
-    return sum(map(op_mul, vec1, vec2))
-
-
-def transform(matrix, vec):
-    """Transform a 3D vector with a transformation matrix 4x4."""
-    vec2 = (*vec, 1)
-    return tuple(dot(line, vec2) for line in matrix[:-1])
 
 
 # *****************************************************************************
