@@ -168,9 +168,10 @@ def compute_uvmapped_submesh(chunk):
     )
 
     # Inputs
-    cog, color, triangles = chunk
+    cog, color, facets = chunk
 
     # Compute points and facets
+    triangles = [tuple(getpoint(i) for i in facet) for facet in facets]
     points = set(chain.from_iterable(triangles))
     points = {p: i for i, p in enumerate(points)}
     facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in triangles]
@@ -289,33 +290,32 @@ def main(points, facets, transmat, showtime=False):
 
             init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
-            triangle_colors, centroid, area_sum = data
+            facet_colors, centroid, area_sum = data
             tick("reduce colorize")
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
 
-            # Generate 6 sublists of monochrome triangles
+            # Generate 6 sublists of monochrome facets
             # TODO merge with previous computation?
-            def triangle_reducer(running, new):
-                itriangle, color = new
-                running[color].append(triangles[itriangle])
+            def facet_reducer(running, new):
+                ifacet, color = new
+                running[color].append(facets[ifacet])
                 return running
 
-            init_monochrome_triangles = [[], [], [], [], [], []]
-            monochrome_triangles = reduce(
-                triangle_reducer,
-                enumerate(triangle_colors),
-                init_monochrome_triangles,
+            monochrome_facets = reduce(
+                facet_reducer,
+                enumerate(facet_colors),
+                [[], [], [], [], [], []],
             )
             tick("sublists")
 
-            print([len(t) for t in monochrome_triangles])  # Debug
+            print([len(t) for t in monochrome_facets])  # Debug
 
             # Compute final mesh and uvmap
             chunks = (
-                (cog, color, triangles)
-                for color, triangles in enumerate(monochrome_triangles)
+                (cog, color, facets)
+                for color, facets in enumerate(monochrome_facets)
             )
             submeshes = pool.imap_unordered(compute_uvmapped_submesh, chunks)
             points, facets, uvmap = [], [], []
