@@ -91,8 +91,8 @@ def colorize(facets):
     data = ((barycenter(t), normal(t)) for t in triangles)
     data = ((intersect_unitcube_face(normal), barycenter, length(normal)) for barycenter, normal in data)
     data = ((color, fmul(barycenter, area), area) for color, barycenter, area in data)
-    data = list(data)
-    colors, barys, areas = list(zip(*data))
+    colors, barys, areas = zip(*data)
+    colors = bytearray(colors)
     centroid = add(*barys)
     # Caveat, this is 2 * area, actually
     # It doesn't matter for our computation, but it could for other cases
@@ -275,13 +275,14 @@ def main(points, facets, transmat, showtime=False):
                 running_colors += colors
                 return running_colors, running_centroid, running_area_sum
 
-            init_data = ([], (0.0, 0.0, 0.0), 0.0)
+            init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             facet_colors, centroid, area_sum = data
             tick("reduce colorize")
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
+            # print(cog)  # Debug
 
             # Generate 6 sublists of monochrome facets
             # TODO merge with previous computation?
@@ -297,7 +298,7 @@ def main(points, facets, transmat, showtime=False):
             )
             tick("sublists")
 
-            print([len(t) for t in monochrome_facets])  # Debug
+            # print([len(t) for t in monochrome_facets])  # Debug
 
             # Compute final mesh and uvmap
             chunks = (
