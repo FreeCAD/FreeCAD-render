@@ -248,7 +248,7 @@ def transform(matrix, vec):
 # *****************************************************************************
 
 
-def main(points, facets, transmat):
+def main(points, facets, transmat, showtime=False):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -265,6 +265,11 @@ def main(points, facets, transmat):
     import time
 
     tm0 = time.time()
+
+    def tick(msg=""):
+        """Print the time (debug purpose)."""
+        if showtime:
+            print(msg, time.time() - tm0)
 
     # Only >= 3.8
     def batched(iterable, number):
@@ -307,13 +312,13 @@ def main(points, facets, transmat):
     # Run
     try:
         with ctx.Pool(nproc) as pool:
-            print("start pool", time.time() - tm0)
+            tick("start pool")
             # Compute colors, and partial sums for center of gravity
             triangles = [tuple(points[i] for i in facet) for facet in facets]
-            print("compute triangles", time.time() - tm0)
+            tick("compute triangles")
             chunks = batched(triangles, chunk_size)
             data = pool.map(colorize, chunks)
-            print("colorize", time.time() - tm0)
+            tick("colorize")
 
             # Concatenate/reduce processed chunks
             def chunk_reducer(running, new):
@@ -328,7 +333,7 @@ def main(points, facets, transmat):
             init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             triangle_colors, centroid, area_sum = data
-            print("reduce colorize", time.time() - tm0)
+            tick("reduce colorize")
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
@@ -346,7 +351,8 @@ def main(points, facets, transmat):
                 enumerate(triangle_colors),
                 init_monochrome_triangles,
             )
-            print("sublists", time.time() - tm0)
+            tick("sublists")
+
             # print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
@@ -368,14 +374,14 @@ def main(points, facets, transmat):
 
                 uvmap += subuv
 
-            print("final mesh", time.time() - tm0)
+            tick("final mesh")
 
             # Transform points (with transmat)
             _transform_points = partial(transform_points, transmat)
             output = pool.imap(_transform_points, batched(points, chunk_size))
             points = sum(output, [])
 
-            print("transform", time.time() - tm0)
+            tick("transform")
 
     finally:
         os.chdir(save_dir)
@@ -408,4 +414,10 @@ if __name__ == "__main__":
     except NameError:
         TRANSMAT = None
 
-    POINTS, FACETS, UVMAP = main(POINTS, FACETS, TRANSMAT)
+    try:
+        SHOWTIME
+    except NameError:
+        SHOWTIME = False
+
+    SHOWTIME = True  # Debug
+    POINTS, FACETS, UVMAP = main(POINTS, FACETS, TRANSMAT, SHOWTIME)
