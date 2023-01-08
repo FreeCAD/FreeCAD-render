@@ -25,7 +25,11 @@
 from functools import reduce, partial
 from itertools import chain
 
-from Render.vector import add, sub, fmul, fdiv, barycenter, length, normal, transform
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
+from vector import add, sub, fmul, fdiv, barycenter, length, normal, transform
 
 
 # Vocabulary:
