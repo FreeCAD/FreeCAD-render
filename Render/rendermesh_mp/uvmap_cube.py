@@ -87,26 +87,50 @@ def colorize(facets):
         _, idx1, idx2 = max(vec)
         return idx1 + int(idx2)
 
+    import time
+    tm0 = time.time()
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
+    # triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
+    # data = ((barycenter(t), normal(t)) for t in triangles)
+
+    # def reducer(running, new):
+        # colors, centroid, area_sum = running
+        # bary, norm = new
+
+        # # Caveat, this is 2 * area, actually
+        # # It doesn't matter for our computation, but it could for other cases
+        # area = length(norm)
+
+        # colors.append(intersect_unitcube_face(norm))
+        # centroid = add(centroid, fmul(bary, area))
+        # area_sum += area
+
+        # return colors, centroid, area_sum
+
+    # init_reducer = (bytearray(0), (0.0, 0.0, 0.0), 0.0)
+    # result = reduce(reducer, data, init_reducer)
+    # print(time.time() - tm0)
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = ((barycenter(t), normal(t)) for t in triangles)
+    data = ((intersect_unitcube_face(normal), barycenter, length(normal)) for barycenter, normal in data)
+    data = ((color, fmul(barycenter, area), area) for color, barycenter, area in data)
+
+    # Caveat, this is 2 * area, actually
+    # It doesn't matter for our computation, but it could for other cases
 
     def reducer(running, new):
         colors, centroid, area_sum = running
-        bary, norm = new
+        color, bary, area = new
 
-        # Caveat, this is 2 * area, actually
-        # It doesn't matter for our computation, but it could for other cases
-        area = length(norm)
-
-        colors.append(intersect_unitcube_face(norm))
-        centroid = add(centroid, fmul(bary, area))
+        colors.append(color)
+        centroid = add(centroid, bary)
         area_sum += area
 
         return colors, centroid, area_sum
 
     init_reducer = (bytearray(0), (0.0, 0.0, 0.0), 0.0)
     result = reduce(reducer, data, init_reducer)
+    # print(time.time() - tm0)
     return result  # triangle colors, centroid, area sum
 
 
