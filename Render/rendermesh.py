@@ -358,7 +358,7 @@ class RenderMesh:
         # Initialize
         vertices = self.Points
         faces = self.Facets
-        path = os.path.join(PKGDIR, "writeobj.py")
+        path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
         # Get obj file name
         if objfile is None:
@@ -733,7 +733,7 @@ class RenderMesh:
         instance)
         """
         # Init variables
-        path = os.path.join(PKGDIR, "uvmap_cube.py")
+        path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
         transmat = self.__originalplacement.Matrix
 
         # Run

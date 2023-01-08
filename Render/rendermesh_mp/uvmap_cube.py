@@ -245,6 +245,7 @@ def main(points, facets, transmat):
     """
     import multiprocessing as mp
     import os
+    import sys
     import shutil
     import itertools
     import time
@@ -263,6 +264,10 @@ def main(points, facets, transmat):
     # Set working directory
     save_dir = os.getcwd()
     os.chdir(os.path.dirname(__file__))
+
+    # Set stdin
+    save_stdin = sys.stdin
+    sys.stdin = sys.__stdin__
 
     # Set executable
     executable = shutil.which("pythonw")
@@ -358,6 +363,7 @@ def main(points, facets, transmat):
 
     finally:
         os.chdir(save_dir)
+        sys.stdin = save_stdin
     return points, facets, uvmap
 
 
