@@ -67,27 +67,13 @@ def colorize(triangles):
             A face from the unit cube (_UnitCubeFaceEnum)
         """
         dirx, diry, dirz = direction
-        dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
-
-        if dabsx >= dabsy and dabsx >= dabsz:
-            return (
-                0  # _UnitCubeFaceEnum.XPLUS
-                if dirx >= 0
-                else 1  # _UnitCubeFaceEnum.XMINUS
-            )
-
-        if dabsy >= dabsx and dabsy >= dabsz:
-            return (
-                2  # _UnitCubeFaceEnum.YPLUS
-                if diry >= 0
-                else 3  # _UnitCubeFaceEnum.YMINUS
-            )
-
-        return (
-            4  # _UnitCubeFaceEnum.ZPLUS
-            if dirz >= 0
-            else 5  # _UnitCubeFaceEnum.ZMINUS
+        vec = (
+            (abs(dirx), 0, dirx < 0),
+            (abs(diry), 2, diry < 0),
+            (abs(dirz), 4, dirz < 0)
         )
+        _, a, b = max(vec)
+        return a + int(b)
 
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
     data = ((barycenter(t), normal(t)) for t in triangles)
