@@ -171,11 +171,10 @@ def compute_uvmapped_submesh(chunk):
     cog, color, facets = chunk
 
     # Compute points and facets
-    triangles = [tuple(getpoint(i) for i in facet) for facet in facets]
-    points = set(chain.from_iterable(triangles))
+    points = set(chain.from_iterable(facets))
     points = {p: i for i, p in enumerate(points)}
-    facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in triangles]
-    points = list(points.keys())
+    facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in facets]
+    points = [getpoint(i) for i in points.keys()]
 
     # Compute uvs
     map_func = uc_map[color]
@@ -272,8 +271,6 @@ def main(points, facets, transmat, showtime=False):
         with ctx.Pool(nproc, init, (shd_points,)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
-            triangles = [tuple(points[i] for i in facet) for facet in facets]
-            tick("compute triangles")
             chunks = batched(facets, chunk_size)
             data = pool.map(colorize, chunks)
             tick("colorize")
