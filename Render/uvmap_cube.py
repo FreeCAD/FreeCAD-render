@@ -193,6 +193,14 @@ def compute_uvmapped_submesh(chunk):
 
 # *************************************************************************************
 
+def offset_facets(offset, facets):
+    return [
+        (index1 + offset, index2 + offset, index3 + offset)
+        for index1, index2, index3 in facets
+    ]
+
+
+# *************************************************************************************
 
 def add(*vectors):
     return tuple(sum(x) for x in zip(*vectors))
@@ -294,12 +302,13 @@ def main(points, facets, transmat):
     # Run
     try:
         with ctx.Pool(NPROC) as pool:
-            print(time.time() - t0)
+            print("start pool", time.time() - t0)
             # Compute colors, and partial sums for center of gravity
             triangles = [tuple(points[i] for i in facet) for facet in facets]
+            print("compute triangles", time.time() - t0)
             chunks = batched(triangles, CHUNK_SIZE)
-            data = pool.imap(colorize, chunks)
-            print(time.time() - t0)
+            data = pool.map(colorize, chunks)
+            print("colorize", time.time() - t0)
 
             # Concatenate/reduce processed chunks
             def chunk_reducer(x, y):
@@ -314,7 +323,7 @@ def main(points, facets, transmat):
             init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             triangle_colors, centroid, area_sum = data
-            print(time.time() - t0)
+            print("reduce colorize", time.time() - t0)
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
@@ -332,7 +341,7 @@ def main(points, facets, transmat):
                 enumerate(triangle_colors),
                 init_monochrome_triangles,
             )
-            print(time.time() - t0)
+            print("sublists", time.time() - t0)
             # print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
@@ -345,24 +354,24 @@ def main(points, facets, transmat):
             for subpoints, subfacets, subuv in submeshes:
                 offset = len(points)
                 points += subpoints
-                facets += (
-                    (index1 + offset, index2 + offset, index3 + offset)
-                    for index1, index2, index3 in subfacets
-                )
+
+                chunks = batched(subfacets, CHUNK_SIZE)
+                offset_function = partial(offset_facets, offset)
+                facets += chain.from_iterable(pool.imap(offset_function, chunks))
+
                 uvmap += subuv
 
-            print(time.time() - t0)
+            print("final mesh", time.time() - t0)
 
             # Transform points (with transmat)
             _transform_points = partial(transform_points, transmat)
             output = pool.imap(_transform_points, batched(points, CHUNK_SIZE))
             points = sum(output, [])
 
-            print(time.time() - t0)
+            print("transform", time.time() - t0)
 
     finally:
         os.chdir(save_dir)
-
     return points, facets, uvmap
 
 
