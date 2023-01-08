@@ -20,8 +20,10 @@
 # *                                                                         *
 # ***************************************************************************
 
+"""Script for cubic uvmap computation in multiprocessing mode."""
+
 from functools import reduce, partial
-from itertools import chain, islice, zip_longest
+from itertools import chain
 from math import sqrt
 from operator import mul as op_mul, sub as op_sub
 
@@ -35,7 +37,9 @@ from operator import mul as op_mul, sub as op_sub
 #   submeshes
 # Chunk: a sliced sublist, to be processed in parallel way
 
+
 def transform_points(matrix, points):
+    """Transform points with a transformation matrix 4x4."""
     return [transform(matrix, point) for point in points]
 
 
@@ -43,7 +47,8 @@ def colorize(triangles):
     """Attribute "colors" to triangles, depending on their orientations.
 
     Color is an integer in [0,5].
-    The color depends on the normal of the triangle, projected to unit cube faces.
+    The color depends on the normal of the triangle, projected to unit cube
+    faces.
     This method also computes partial sums for center of gravity.
 
 
@@ -70,24 +75,24 @@ def colorize(triangles):
         vec = (
             (abs(dirx), 0, dirx < 0),
             (abs(diry), 2, diry < 0),
-            (abs(dirz), 4, dirz < 0)
+            (abs(dirz), 4, dirz < 0),
         )
-        _, a, b = max(vec)
-        return a + int(b)
+        _, idx1, idx2 = max(vec)
+        return idx1 + int(idx2)
 
     # https://stackoverflow.com/questions/48918530/how-to-compute-the-centroid-of-a-mesh-with-triangular-faces
     data = ((barycenter(t), normal(t)) for t in triangles)
 
-    def reducer(x, y):
-        colors, centroid, area_sum = x
-        barycenter, normal = y
+    def reducer(running, new):
+        colors, centroid, area_sum = running
+        bary, norm = new
 
-        # Caveat, this 2 * area, actually
-        # It doesn't matter for our computation, but it could for others
-        area = length(normal)
+        # Caveat, this is 2 * area, actually
+        # It doesn't matter for our computation, but it could for other cases
+        area = length(norm)
 
-        colors.append(intersect_unitcube_face(normal))
-        centroid = add(centroid, fmul(barycenter, area))
+        colors.append(intersect_unitcube_face(norm))
+        centroid = add(centroid, fmul(bary, area))
         area_sum += area
 
         return colors, centroid, area_sum
@@ -96,7 +101,8 @@ def colorize(triangles):
     result = reduce(reducer, data, init_reducer)
     return result  # triangle colors, centroid, area sum
 
-# *************************************************************************************
+
+# *****************************************************************************
 
 
 def compute_uvmapped_submesh(chunk):
@@ -119,38 +125,32 @@ def compute_uvmapped_submesh(chunk):
         _, pt1, pt2 = point
         return (pt1, pt2)
 
-
     def _uc_xminus(point):
         """Unit cube - xminus case."""
         _, pt1, pt2 = point
         return (-pt1, pt2)
-
 
     def _uc_yplus(point):
         """Unit cube - yplus case."""
         pt0, _, pt2 = point
         return (-pt0, pt2)
 
-
     def _uc_yminus(point):
         """Unit cube - yminus case."""
         pt0, _, pt2 = point
         return (pt0, pt2)
-
 
     def _uc_zplus(point):
         """Unit cube - zplus case."""
         pt0, pt1, _ = point
         return (pt0, pt1)
 
-
     def _uc_zminus(point):
         """Unit cube - zminus case."""
         pt0, pt1, _ = point
         return (pt0, -pt1)
 
-
-    _UC_MAP = (
+    uc_map = (
         _uc_xplus,
         _uc_xminus,
         _uc_yplus,
@@ -158,7 +158,6 @@ def compute_uvmapped_submesh(chunk):
         _uc_zplus,
         _uc_zminus,
     )
-
 
     # Inputs
     cog, color, triangles = chunk
@@ -170,63 +169,75 @@ def compute_uvmapped_submesh(chunk):
     points = list(points.keys())
 
     # Compute uvs
-    map_func = _UC_MAP[color]
+    map_func = uc_map[color]
     cog = map_func(cog)
-    uv = [fdiv(sub(map_func(p), cog), 1000) for p in points]
+    uvs = [fdiv(sub(map_func(p), cog), 1000) for p in points]
 
-    return points, facets, uv
+    return points, facets, uvs
 
 
-# *************************************************************************************
+# *****************************************************************************
+
 
 def offset_facets(offset, facets):
+    """Apply (integer) offset to facets indices."""
     return [
         (index1 + offset, index2 + offset, index3 + offset)
         for index1, index2, index3 in facets
     ]
 
 
-# *************************************************************************************
+# *****************************************************************************
+
 
 def add(*vectors):
+    """Add 2 or more vectors."""
     return tuple(sum(x) for x in zip(*vectors))
 
 
 def sub(vec1, vec2):
+    """Substract 2 vectors."""
     return tuple(map(op_sub, vec1, vec2))
 
 
 def fmul(vec, flt):
+    """Multiply a vector by a float."""
     return tuple(x * flt for x in vec)
 
 
 def fdiv(vec, flt):
+    """Divide a vector by a float."""
     return tuple(x / flt for x in vec)
 
 
-def barycenter(facet):
-    return fdiv(add(*facet), len(facet))
+def barycenter(polygon):
+    """Compute isobarycenter of a polygon."""
+    return fdiv(add(*polygon), len(polygon))
 
 
 def length(vec):
+    """Compute vector length."""
     return sqrt(sum(x**2 for x in vec))
 
 
 def normal(triangle):
+    """Compute the normal of a triangle."""
     # (p1 - p0) ^ (p2 - p0)
     point0, point1, point2 = triangle
     vec1 = sub(point1, point0)
     vec2 = sub(point2, point0)
-    normal = (
+    res = (
         vec1[1] * vec2[2] - vec1[2] * vec2[1],
         vec1[2] * vec2[0] - vec1[0] * vec2[2],
         vec1[0] * vec2[1] - vec1[1] * vec2[0],
     )
-    return normal
+    return res
+
 
 def dot(vec1, vec2):
     """Dot product."""
     return sum(map(op_mul, vec1, vec2))
+
 
 def transform(matrix, vec):
     """Transform a 3D vector with a transformation matrix 4x4."""
@@ -234,7 +245,8 @@ def transform(matrix, vec):
     return tuple(dot(line, vec2) for line in matrix[:-1])
 
 
-# *************************************************************************************
+# *****************************************************************************
+
 
 def main(points, facets, transmat):
     """Entry point for __main__.
@@ -243,6 +255,8 @@ def main(points, facets, transmat):
     Keeping this code out of global scope makes all local objects to be freed
     at the end of the function and thus avoid memory leaks.
     """
+    # pylint: disable=import-outside-toplevel
+    # pylint: disable=too-many-locals
     import multiprocessing as mp
     import os
     import sys
@@ -250,15 +264,15 @@ def main(points, facets, transmat):
     import itertools
     import time
 
-    t0 = time.time()
+    tm0 = time.time()
 
     # Only >= 3.8
-    def batched(iterable, n):
+    def batched(iterable, number):
         "Batch data into lists of length n. The last batch may be shorter."
         # batched('ABCDEFG', 3) --> ABC DEF G
         # from Python itertools documentation...
-        it = iter(iterable)
-        while batch := list(islice(it, n)):
+        iterator = iter(iterable)
+        while batch := list(itertools.islice(iterator, number)):
             yield batch
 
     # Set working directory
@@ -278,34 +292,34 @@ def main(points, facets, transmat):
     ctx = mp.get_context("spawn")
     ctx.set_executable(executable)
 
-    CHUNK_SIZE = 20000
-    NPROC = max(6, os.cpu_count())  # At least, number of faces
+    chunk_size = 20000
+    nproc = max(6, os.cpu_count())  # At least, number of faces
 
     # TODO Move elsewhere
-    def grouper(iterable, n, fillvalue=None):
+    def grouper(iterable, number, fillvalue=None):
         "Collect data into fixed-length chunks or blocks"
         # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-        args = [iter(iterable)] * n
+        args = [iter(iterable)] * number
         return itertools.zip_longest(*args, fillvalue=fillvalue)
 
     transmat = tuple(grouper(transmat.A, 4))
 
     # Run
     try:
-        with ctx.Pool(NPROC) as pool:
-            print("start pool", time.time() - t0)
+        with ctx.Pool(nproc) as pool:
+            print("start pool", time.time() - tm0)
             # Compute colors, and partial sums for center of gravity
             triangles = [tuple(points[i] for i in facet) for facet in facets]
-            print("compute triangles", time.time() - t0)
-            chunks = batched(triangles, CHUNK_SIZE)
+            print("compute triangles", time.time() - tm0)
+            chunks = batched(triangles, chunk_size)
             data = pool.map(colorize, chunks)
-            print("colorize", time.time() - t0)
+            print("colorize", time.time() - tm0)
 
             # Concatenate/reduce processed chunks
-            def chunk_reducer(x, y):
+            def chunk_reducer(running, new):
                 """Reducer for colors chunks."""
-                running_colors, running_centroid, running_area_sum = x
-                colors, centroid, area_sum = y
+                running_colors, running_centroid, running_area_sum = running
+                colors, centroid, area_sum = new
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
                 running_colors += colors
@@ -314,17 +328,17 @@ def main(points, facets, transmat):
             init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             triangle_colors, centroid, area_sum = data
-            print("reduce colorize", time.time() - t0)
+            print("reduce colorize", time.time() - tm0)
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
 
             # Generate 6 sublists of monochrome triangles
             # TODO merge with previous computation?
-            def triangle_reducer(x, y):
-                itriangle, color = y
-                x[color].append(triangles[itriangle])
-                return x
+            def triangle_reducer(running, new):
+                itriangle, color = new
+                running[color].append(triangles[itriangle])
+                return running
 
             init_monochrome_triangles = [[], [], [], [], [], []]
             monochrome_triangles = reduce(
@@ -332,7 +346,7 @@ def main(points, facets, transmat):
                 enumerate(triangle_colors),
                 init_monochrome_triangles,
             )
-            print("sublists", time.time() - t0)
+            print("sublists", time.time() - tm0)
             # print([len(t) for t in monochrome_triangles])  # Debug
 
             # Compute final mesh and uvmap
@@ -346,20 +360,22 @@ def main(points, facets, transmat):
                 offset = len(points)
                 points += subpoints
 
-                chunks = batched(subfacets, CHUNK_SIZE)
+                chunks = batched(subfacets, chunk_size)
                 offset_function = partial(offset_facets, offset)
-                facets += chain.from_iterable(pool.imap(offset_function, chunks))
+                facets += chain.from_iterable(
+                    pool.imap(offset_function, chunks)
+                )
 
                 uvmap += subuv
 
-            print("final mesh", time.time() - t0)
+            print("final mesh", time.time() - tm0)
 
             # Transform points (with transmat)
             _transform_points = partial(transform_points, transmat)
-            output = pool.imap(_transform_points, batched(points, CHUNK_SIZE))
+            output = pool.imap(_transform_points, batched(points, chunk_size))
             points = sum(output, [])
 
-            print("transform", time.time() - t0)
+            print("transform", time.time() - tm0)
 
     finally:
         os.chdir(save_dir)
@@ -367,29 +383,29 @@ def main(points, facets, transmat):
     return points, facets, uvmap
 
 
-# *************************************************************************************
+# *****************************************************************************
 
 if __name__ == "__main__":
     # Get variables
     # pylint: disable=used-before-assignment
     try:
-        facets
+        FACETS
     except NameError:
-        facets = []
+        FACETS = []
 
     try:
-        points
+        POINTS
     except NameError:
-        points = []
+        POINTS = []
 
     try:
-        uvmap
+        UVMAP
     except NameError:
-        uvmap = []
+        UVMAP = []
 
     try:
-        transmat
+        TRANSMAT
     except NameError:
-        transmat = None
+        TRANSMAT = None
 
-    points, facets, uvmap = main(points, facets, transmat)
+    POINTS, FACETS, UVMAP = main(POINTS, FACETS, TRANSMAT)

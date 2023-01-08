@@ -740,22 +740,22 @@ class RenderMesh:
         res = runpy.run_path(
             path,
             init_globals={
-                "points": self.__points,
-                "facets": self.__facets,
-                "uvmap": self.__uvmap,
-                "transmat": transmat,
+                "POINTS": self.__points,
+                "FACETS": self.__facets,
+                "UVMAP": self.__uvmap,
+                "TRANSMAT": transmat,
             },
             run_name="__main__",
         )
-        self.__points = res["points"]
-        self.__facets = res["facets"]
-        self.__uvmap = res["uvmap"]
+        self.__points = res["POINTS"]
+        self.__facets = res["FACETS"]
+        self.__uvmap = res["UVMAP"]
 
         # Clean
-        del res["points"]
-        del res["facets"]
-        del res["uvmap"]
-        del res["transmat"]
+        del res["POINTS"]
+        del res["FACETS"]
+        del res["UVMAP"]
+        del res["TRANSMAT"]
 
 
     def has_uvmap(self):
