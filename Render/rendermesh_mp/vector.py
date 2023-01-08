@@ -52,7 +52,7 @@ def barycenter(polygon):
 
 def length(vec):
     """Compute vector length."""
-    return sqrt(sum(x**2 for x in vec))
+    return sqrt(sum(x * x for x in vec))
 
 
 def normal(triangle):
