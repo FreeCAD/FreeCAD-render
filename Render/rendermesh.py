@@ -120,9 +120,10 @@ class RenderMesh:
         """Get the normals for each point."""
         return self.__normals
 
-    def harmonizeNormals(self):  # pylint: disable=invalid-name
-        """Adjust wrong oriented facets."""
-        self.__mesh.harmonizeNormals()
+    # TODO
+    # def harmonizeNormals(self):  # pylint: disable=invalid-name
+        # """Adjust wrong oriented facets."""
+        # self.__mesh.harmonizeNormals()
 
     def rotate(self, angle_x, angle_y, angle_z):
         """Apply a rotation to the mesh.
@@ -139,17 +140,44 @@ class RenderMesh:
 
     def transform(self, matrix):
         """Apply a transformation to the mesh."""
-        # TODO Parallelize
+        if (
+            PARAMS.GetBool("EnableMultiprocessing")
+            and self.CountPoints >= 2000
+        ):
+            return self._transform_mp(matrix)
+
+        return self._transform_sp(matrix)
+
+    def _transform_sp(self, matrix):
+        """Apply a transformation to the mesh."""
         self.__points = [tuple(matrix.multVec(App.Base.Vector(*p))) for p in self.__points]
         self.__normals = [matrix.multVec(v) for v in self.__normals]
         self.__normals = [
             v / v.Length for v in self.__normals if v.Length != 0.0
         ]
 
-    # TODO
-    # def write(self, filename):
-        # """Write the mesh object into a file."""
-        # self.__mesh.write(filename)
+    def _transform_mp(self, matrix):
+        """Apply a transformation to the mesh."""
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "transform.py")
+
+        # TODO Missing transform normals at this stage
+
+        # Run
+        res = runpy.run_path(
+            path,
+            init_globals={
+                "POINTS": self.__points,
+                "TRANSMAT": matrix,
+            },
+            run_name="__main__",
+        )
+        self.__points = res["POINTS"]
+
+        # Clean
+        del res["POINTS"]
+        del res["TRANSMAT"]
+
 
     @property
     def Placement(self):  # pylint: disable=invalid-name
