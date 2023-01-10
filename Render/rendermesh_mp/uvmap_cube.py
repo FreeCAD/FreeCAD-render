@@ -22,7 +22,7 @@
 
 """Script for cubic uvmap computation in multiprocessing mode."""
 
-from functools import reduce, partial
+from functools import reduce, partial, cache
 from itertools import chain
 
 import sys
@@ -45,12 +45,18 @@ def getpoint(idx):
     idx *= 3
     return SHARED_POINTS[idx], SHARED_POINTS[idx+1], SHARED_POINTS[idx+2]
 
+
+def getfacet(idx):
+    idx *= 3
+    return SHARED_FACETS[idx], SHARED_FACETS[idx+1], SHARED_FACETS[idx+2]
+
+
 def transform_points(matrix, points):
     """Transform points with a transformation matrix 4x4."""
     return [transform(matrix, point) for point in points]
 
 
-def colorize(facets):
+def colorize(chunk):
     """Attribute "colors" to facets, depending on their orientations.
 
     Color is an integer in [0,5].
@@ -87,6 +93,8 @@ def colorize(facets):
         _, idx1, idx2 = max(vec)
         return idx1 + int(idx2)
 
+    start, stop = chunk
+    facets = (getfacet(i) for i in range(start, stop))
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = ((barycenter(t), normal(t)) for t in triangles)
     data = ((intersect_unitcube_face(normal), barycenter, length(normal)) for barycenter, normal in data)
@@ -187,9 +195,11 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
-def init(points):
+def init(points, facets):
     global SHARED_POINTS
+    global SHARED_FACETS
     SHARED_POINTS = points
+    SHARED_FACETS = facets
 
 def main(points, facets, transmat, showtime=False):
     """Entry point for __main__.
@@ -255,13 +265,16 @@ def main(points, facets, transmat, showtime=False):
 
     # TODO
     shd_points = RawArray('d', [x for p in points for x in p])
+    shd_facets = RawArray('i', [i for f in facets for i in f])
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points,)) as pool:
+        with ctx.Pool(nproc, init, (shd_points,shd_facets,)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             chunks = batched(facets, chunk_size)
+            chunks = ((i, min(i+ chunk_size, len(facets)))
+                      for i in range(0, len(facets), chunk_size))
             data = pool.map(colorize, chunks)
             tick("colorize")
 
