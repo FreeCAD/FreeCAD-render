@@ -100,12 +100,13 @@ def colorize(chunk):
     data = ((intersect_unitcube_face(normal), barycenter, length(normal)) for barycenter, normal in data)
     data = ((color, fmul(barycenter, area), area) for color, barycenter, area in data)
     colors, barys, areas = zip(*data)
-    colors = bytearray(colors)
+    SHARED_COLORS[start:stop] = colors
+    # colors = bytearray(colors)
     centroid = add(*barys)
     # Caveat, this is 2 * area, actually
     # It doesn't matter for our computation, but it could for other cases
     area = sum(areas)
-    return colors, centroid, area
+    return centroid, area
 
 
 # *****************************************************************************
@@ -195,11 +196,13 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
-def init(points, facets):
+def init(points, facets, colors):
     global SHARED_POINTS
     global SHARED_FACETS
+    global SHARED_COLORS
     SHARED_POINTS = points
     SHARED_FACETS = facets
+    SHARED_COLORS = colors
 
 def main(points, facets, transmat, showtime=False):
     """Entry point for __main__.
@@ -265,32 +268,39 @@ def main(points, facets, transmat, showtime=False):
 
     # TODO
     shd_points = RawArray('d', [x for p in points for x in p])
-    shd_facets = RawArray('i', [i for f in facets for i in f])
+    shd_facets = RawArray('l', [i for f in facets for i in f])
+    shd_colors = RawArray('B', len(facets))
+
+    # TODO
+    from ctypes import Structure, c_double
+    Point = c_double * 3
+    test_points = RawArray(Point, points)
+    print(tuple(test_points[0]))
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points,shd_facets,)) as pool:
+        with ctx.Pool(nproc, init, (shd_points,shd_facets,shd_colors)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             chunks = batched(facets, chunk_size)
             chunks = ((i, min(i+ chunk_size, len(facets)))
                       for i in range(0, len(facets), chunk_size))
-            data = pool.map(colorize, chunks)
+            data = pool.imap_unordered(colorize, chunks)
             tick("colorize")
 
             # Concatenate/reduce processed chunks
             def chunk_reducer(running, new):
                 """Reducer for colors chunks."""
-                running_colors, running_centroid, running_area_sum = running
-                colors, centroid, area_sum = new
+                running_centroid, running_area_sum = running
+                centroid, area_sum = new
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
-                running_colors += colors
-                return running_colors, running_centroid, running_area_sum
+                return running_centroid, running_area_sum
 
-            init_data = (bytearray(), (0.0, 0.0, 0.0), 0.0)
+            init_data = ((0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
-            facet_colors, centroid, area_sum = data
+            centroid, area_sum = data
+            facet_colors = shd_colors
             tick("reduce colorize")
 
             # Compute center of gravity
