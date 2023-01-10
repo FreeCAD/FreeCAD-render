@@ -924,19 +924,16 @@ def render(
     args += params.GetString("OspParameters", "")
     args += f" --resolution {width}x{height} "
     args += " --camera 1 "
+    if not batch:
+        args += " --cameras 2 2 "
     if output_file:
         args += "  --image " + outfile_for_osp
     if spp:
         args += f"  --accumLimit {spp} --spp 1 "
     if denoise:
         args += " --denoiser "
-        if not batch:
-            wrn = (
-                "[Render][Ospray] WARNING - Ospray denoiser cannot be set from"
-                " FreeCAD when Ospray is run in GUI mode. Please set denoiser "
-                "manually in Ospray GUI or use Ospray in Batch mode.\n"
-            )
-            App.Console.PrintWarning(wrn)
+        if spp:
+            args += " --denoiseFinalFrame "
 
     if not rpath:
         App.Console.PrintError(
