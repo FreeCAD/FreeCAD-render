@@ -204,6 +204,7 @@ def init(points, facets, colors):
     SHARED_POINTS = points
     SHARED_FACETS = facets
     SHARED_COLORS = colors
+    sys.setswitchinterval(sys.maxsize)
 
 def main(points, facets, transmat, showtime=False):
     """Entry point for __main__.
