@@ -314,9 +314,10 @@ def main(points, facets, transmat, showtime=False):
 
             # Generate 6 sublists of monochrome facets
             # TODO merge with previous computation?
+            append = list.append
             def facet_reducer(running, new):
                 ifacet, color = new
-                running[color].append(facets[ifacet])
+                append(running[color], facets[ifacet])
                 return running
 
             monochrome_facets = reduce(
