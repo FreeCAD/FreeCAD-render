@@ -29,7 +29,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from vector import add, sub, fmul, fdiv, barycenter, length, normal, transform
+from vector3d import add, add_n, sub, fmul, fdiv, barycenter, length, normal, transform
+from vector2d import sub as sub2, fdiv as fdiv2
 
 
 # Vocabulary:
@@ -102,7 +103,7 @@ def colorize(chunk):
     colors, barys, areas = zip(*data)
     SHARED_COLORS[start:stop] = colors
     # colors = bytearray(colors)
-    centroid = add(*barys)
+    centroid = add_n(*barys)
     # Caveat, this is 2 * area, actually
     # It doesn't matter for our computation, but it could for other cases
     area = sum(areas)
@@ -178,7 +179,7 @@ def compute_uvmapped_submesh(chunk):
     # Compute uvs
     map_func = uc_map[color]
     cog = map_func(cog)
-    uvs = [fdiv(sub(map_func(p), cog), 1000) for p in points]
+    uvs = [fdiv2(sub2(map_func(p), cog), 1000) for p in points]
 
     return points, facets, uvs
 
@@ -270,12 +271,6 @@ def main(points, facets, transmat, showtime=False):
     shd_points = RawArray('d', [x for p in points for x in p])
     shd_facets = RawArray('l', [i for f in facets for i in f])
     shd_colors = RawArray('B', len(facets))
-
-    # TODO
-    from ctypes import Structure, c_double
-    Point = c_double * 3
-    test_points = RawArray(Point, points)
-    print(tuple(test_points[0]))
 
     # Run
     try:

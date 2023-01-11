@@ -26,7 +26,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from vector import add, sub, fmul, fdiv, barycenter, length, normal, transform
+from vector3d import add, sub, fmul, fdiv, barycenter, length, normal, transform
 
 def transform_points(matrix, points):
     """Transform points with a transformation matrix 4x4."""

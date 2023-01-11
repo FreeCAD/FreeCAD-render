@@ -20,61 +20,43 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""Vector manipulation helpers."""
+"""Vector 2D manipulation helpers."""
 
 from math import sqrt
 from operator import mul as op_mul, sub as op_sub
 
-def add(*vectors):
-    """Add 2 or more vectors."""
-    return tuple(sum(x) for x in zip(*vectors))
-
+def add(vec1, vec2):
+    """Add 2 vectors."""
+    vec1_x, vec1_y = vec1
+    vec2_x, vec2_y = vec2
+    return vec1_x + vec2_x, vec1_y + vec2_y
 
 def sub(vec1, vec2):
     """Substract 2 vectors."""
-    return tuple(map(op_sub, vec1, vec2))
-
+    vec1_x, vec1_y = vec1
+    vec2_x, vec2_y = vec2
+    return vec1_x - vec2_x, vec1_y - vec2_y
 
 def fmul(vec, flt):
     """Multiply a vector by a float."""
-    return tuple(x * flt for x in vec)
+    vec_x, vec_y = vec
+    return vec_x * flt, vec_y * flt
 
 
 def fdiv(vec, flt):
     """Divide a vector by a float."""
-    return tuple(x / flt for x in vec)
-
-
-def barycenter(polygon):
-    """Compute isobarycenter of a polygon."""
-    return fdiv(add(*polygon), len(polygon))
+    vec_x, vec_y = vec
+    return vec_x / flt, vec_y / flt
 
 
 def length(vec):
     """Compute vector length."""
-    return sqrt(sum(x * x for x in vec))
-
-
-def normal(triangle):
-    """Compute the normal of a triangle."""
-    # (p1 - p0) ^ (p2 - p0)
-    point0, point1, point2 = triangle
-    vec1 = sub(point1, point0)
-    vec2 = sub(point2, point0)
-    res = (
-        vec1[1] * vec2[2] - vec1[2] * vec2[1],
-        vec1[2] * vec2[0] - vec1[0] * vec2[2],
-        vec1[0] * vec2[1] - vec1[1] * vec2[0],
-    )
-    return res
+    vec_x, vec_y = vec
+    return sqrt(vec_x * vec_x + vec_y * vec_y)
 
 
 def dot(vec1, vec2):
     """Dot product."""
-    return sum(map(op_mul, vec1, vec2))
-
-
-def transform(matrix, vec):
-    """Transform a 3D vector with a transformation matrix 4x4."""
-    vec2 = (*vec, 1)
-    return tuple(dot(line, vec2) for line in matrix[:-1])
+    vec1_x, vec1_y = vec1
+    vec2_x, vec2_y = vec2
+    return vec1_x * vec2_x + vec1_y * vec2_y
