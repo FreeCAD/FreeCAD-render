@@ -268,8 +268,18 @@ def main(points, facets, transmat, showtime=False):
     transmat = tuple(grouper(transmat.A, 4))
 
     # TODO
-    shd_points = RawArray('d', [x for p in points for x in p])
-    shd_facets = RawArray('l', [i for f in facets for i in f])
+    class SharedWrapper:
+        def __init__(self, seq):
+            self.seq = seq
+
+        def __len__(self):
+            return len(self.seq) * 3
+
+        def __iter__(self):
+            return itertools.islice((x for elem in self.seq for x in elem), len(self.seq) * 3)
+
+    shd_points = RawArray('d', SharedWrapper(points))
+    shd_facets = RawArray('l', SharedWrapper(facets))
     shd_colors = RawArray('B', len(facets))
 
     # Run
@@ -277,7 +287,6 @@ def main(points, facets, transmat, showtime=False):
         with ctx.Pool(nproc, init, (shd_points,shd_facets,shd_colors)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
-            chunks = batched(facets, chunk_size)
             chunks = ((i, min(i+ chunk_size, len(facets)))
                       for i in range(0, len(facets), chunk_size))
             data = pool.imap_unordered(colorize, chunks)
