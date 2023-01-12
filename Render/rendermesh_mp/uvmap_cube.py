@@ -95,19 +95,34 @@ def colorize(chunk):
         return idx1 + int(idx2)
 
     start, stop = chunk
-    facets = (getfacet(i) for i in range(start, stop))
+    facets = [getfacet(i) for i in range(start, stop)]
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = ((barycenter(t), normal(t)) for t in triangles)
     data = ((intersect_unitcube_face(normal), barycenter, length(normal)) for barycenter, normal in data)
     data = ((color, fmul(barycenter, area), area) for color, barycenter, area in data)
     colors, barys, areas = zip(*data)
-    SHARED_COLORS[start:stop] = colors
+
+    # Compute monochrome sublists
+    # TODO Move definition out of function
+    append = list.append
+    def facet_reducer(running, new):
+        ifacet, color = new
+        append(running[color], facets[ifacet])
+        return running
+
+    monochrome_facets = reduce(
+        facet_reducer,
+        enumerate(colors),
+        [[], [], [], [], [], []],
+    )
+
+    # SHARED_COLORS[start:stop] = colors  # TODO
     # colors = bytearray(colors)
     centroid = add_n(*barys)
     # Caveat, this is 2 * area, actually
     # It doesn't matter for our computation, but it could for other cases
     area = sum(areas)
-    return centroid, area
+    return monochrome_facets, centroid, area
 
 
 # *****************************************************************************
@@ -197,13 +212,11 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
-def init(points, facets, colors):
+def init(points, facets):
     global SHARED_POINTS
     global SHARED_FACETS
-    global SHARED_COLORS
     SHARED_POINTS = points
     SHARED_FACETS = facets
-    SHARED_COLORS = colors
     sys.setswitchinterval(sys.maxsize)
 
 def main(points, facets, transmat, showtime=False):
@@ -230,7 +243,7 @@ def main(points, facets, transmat, showtime=False):
         if showtime:
             print(msg, time.time() - tm0)
 
-    # Only >= 3.8
+    # Only >= 3.8  # TODO
     def batched(iterable, number):
         "Batch data into lists of length n. The last batch may be shorter."
         # batched('ABCDEFG', 3) --> ABC DEF G
@@ -253,7 +266,8 @@ def main(points, facets, transmat, showtime=False):
         executable = shutil.which("python")
         if not executable:
             raise RuntimeError("No Python executable")
-    ctx = mp.get_context("spawn")
+    # ctx = mp.get_context("spawn")  # Debug
+    ctx = mp.get_context()
     ctx.set_executable(executable)
 
     chunk_size = 20000
@@ -281,11 +295,10 @@ def main(points, facets, transmat, showtime=False):
 
     shd_points = RawArray('d', SharedWrapper(points))
     shd_facets = RawArray('l', SharedWrapper(facets))
-    shd_colors = RawArray('B', len(facets))
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points,shd_facets,shd_colors)) as pool:
+        with ctx.Pool(nproc, init, (shd_points,shd_facets)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             chunks = ((i, min(i+ chunk_size, len(facets)))
@@ -296,35 +309,23 @@ def main(points, facets, transmat, showtime=False):
             # Concatenate/reduce processed chunks
             def chunk_reducer(running, new):
                 """Reducer for colors chunks."""
-                running_centroid, running_area_sum = running
-                centroid, area_sum = new
+                running_facets, running_centroid, running_area_sum = running
+                facets, centroid, area_sum = new
+                for i, j in zip(running_facets, facets):
+                    i += j
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
-                return running_centroid, running_area_sum
+                return running_facets, running_centroid, running_area_sum
 
-            init_data = ((0.0, 0.0, 0.0), 0.0)
+            init_data = ([[], [], [], [], [], []], (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
-            centroid, area_sum = data
-            facet_colors = shd_colors
+            monochrome_facets, centroid, area_sum = data
             tick("reduce colorize")
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
             # print(cog)  # Debug
 
-            # Generate 6 sublists of monochrome facets
-            # TODO merge with previous computation?
-            append = list.append
-            def facet_reducer(running, new):
-                ifacet, color = new
-                append(running[color], facets[ifacet])
-                return running
-
-            monochrome_facets = reduce(
-                facet_reducer,
-                enumerate(facet_colors),
-                [[], [], [], [], [], []],
-            )
             tick("sublists")
 
             # print([len(t) for t in monochrome_facets])  # Debug
