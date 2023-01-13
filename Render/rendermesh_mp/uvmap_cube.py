@@ -22,7 +22,7 @@
 
 """Script for cubic uvmap computation in multiprocessing mode."""
 
-from functools import reduce, partial, cache
+from functools import reduce, partial
 from itertools import chain
 
 import sys
