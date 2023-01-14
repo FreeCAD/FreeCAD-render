@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     # Set executable
     mp.set_executable(python)
-    # mp.set_start_method("spawn", force=True)  # Debug
+    mp.set_start_method("spawn", force=True)
 
     # Parse format
     functions = {

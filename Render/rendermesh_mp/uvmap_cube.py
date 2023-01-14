@@ -310,8 +310,7 @@ def main(python, points, facets, transmat, showtime=False):
     sys.stdin = sys.__stdin__
 
     # Set executable
-    # ctx = mp.get_context("spawn")  # Debug
-    ctx = mp.get_context()
+    ctx = mp.get_context("spawn")
     ctx.set_executable(python)
 
     chunk_size = 20000

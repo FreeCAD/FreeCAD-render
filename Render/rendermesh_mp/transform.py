@@ -68,8 +68,7 @@ def main(python, matrix, points, showtime):
     sys.stdin = sys.__stdin__
 
     # Set executable
-    # ctx = mp.get_context("spawn")
-    ctx = mp.get_context()
+    ctx = mp.get_context("spawn")
     ctx.set_executable(python)
 
     chunk_size = 20000
