@@ -91,7 +91,7 @@ class RenderMesh:
         else:
             # self.__mesh = Mesh.Mesh()  # TODO
             self.__points = []
-            self.__vertices = []
+            self.__facets = []
             self.__normals = []
 
         # uvmap
@@ -137,6 +137,11 @@ class RenderMesh:
 
     def transform(self, matrix):
         """Apply a transformation to the mesh."""
+        # TODO Debug
+        import traceback
+        stack = traceback.extract_stack()[:-1]
+        last_caller = stack[-1]
+        print(last_caller)
         if (
             PARAMS.GetBool("EnableMultiprocessing")
             and self.CountPoints >= 2000
