@@ -150,9 +150,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
         color = _get_shapecolor(obj, transparency_boost)
-        # Make a copy of obj.Mesh, otherwise we may have an immutable object
-        # and further treatments will fail
-        mesh = RenderMesh(obj.Mesh.copy())
+        mesh = RenderMesh(obj.Mesh)
         if mat and mat.Proxy.has_textures():
             uvprojection = kwargs.get("uvprojection")
             mesh.compute_uvmap(uvprojection)
