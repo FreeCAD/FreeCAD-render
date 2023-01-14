@@ -747,7 +747,7 @@ class RenderMesh:
             cog = self.__originalmesh.CenterOfGravity
         except AttributeError:
             cog = self.center_of_gravity()
-        transmat = self.__originalplacement.Matrix
+        transmat = self.__placement.Matrix
         for cubeface, facets in enumerate(face_facets):
             facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
@@ -777,7 +777,6 @@ class RenderMesh:
         """
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
-        transmat = self.__originalplacement.Matrix
 
         # Run
         res = runpy.run_path(
@@ -786,7 +785,6 @@ class RenderMesh:
                 "POINTS": self.__points,
                 "FACETS": self.__facets,
                 "UVMAP": self.__uvmap,
-                "TRANSMAT": transmat,
                 "PYTHON": self.python,
             },
             run_name="__main__",
@@ -795,14 +793,10 @@ class RenderMesh:
         self.__facets = res["FACETS"]
         self.__uvmap = res["UVMAP"]
 
-        # Tranform
-        self.transform(self.__originalplacement.Matrix)
-
         # Clean
         del res["POINTS"]
         del res["FACETS"]
         del res["UVMAP"]
-        del res["TRANSMAT"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""

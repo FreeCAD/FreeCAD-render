@@ -251,7 +251,7 @@ def init(points, facets):
 
 # *****************************************************************************
 
-def main(python, points, facets, transmat, showtime=False):
+def main(python, points, facets, showtime=False):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -315,8 +315,6 @@ def main(python, points, facets, transmat, showtime=False):
 
     chunk_size = 20000
     nproc = max(6, os.cpu_count())  # At least, number of faces
-
-    transmat = tuple(grouper(transmat.A, 4))
 
     shd_points = RawArray("d", SharedWrapper(points))
     shd_facets = RawArray("l", SharedWrapper(facets))
@@ -406,14 +404,9 @@ if __name__ == "__main__":
         UVMAP = []
 
     try:
-        TRANSMAT
-    except NameError:
-        TRANSMAT = None
-
-    try:
         SHOWTIME
     except NameError:
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, UVMAP = main(PYTHON, POINTS, FACETS, TRANSMAT, SHOWTIME)
+    POINTS, FACETS, UVMAP = main(PYTHON, POINTS, FACETS, SHOWTIME)
