@@ -50,15 +50,8 @@ from Render.constants import PKGDIR, PARAMS
 class RenderMesh:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
-    RenderMesh is based on Mesh.Mesh and most of its API is common with
-    the latter.
+    RenderMesh is based on Mesh.Mesh.
     In addition, RenderMesh implements UV map management.
-
-    Please note that RenderMesh does not subclass Mesh.Mesh, as Mesh.Mesh is
-    implemented in C, which prevents it to be subclassed in Python. As a
-    workaround, the required methods and attributes are explicitly
-    reimplemented as calls to the corresponding methods and attributes of
-    Mesh.Mesh.
     """
 
     def __init__(
@@ -643,7 +636,10 @@ class RenderMesh:
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
+        points, facets = mesh.Topology
+        points = [tuple(p) for p in points]
+        self.__points = points
+        self.__facets = facets
         self.__uvmap = uvmap
 
     def _compute_uvmap_sphere(self):
@@ -694,7 +690,10 @@ class RenderMesh:
         mesh.addMesh(seam_mesh)
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
+        points, facets = mesh.Topology
+        points = [tuple(p) for p in points]
+        self.__points = points
+        self.__facets = facets
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube(self):
@@ -750,7 +749,10 @@ class RenderMesh:
             uvmap += facemesh_uvmap
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
+        points, facets = mesh.Topology
+        points = [tuple(p) for p in points]
+        self.__points = points
+        self.__facets = facets
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube_mp(self):
