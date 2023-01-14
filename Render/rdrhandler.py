@@ -373,14 +373,14 @@ class RendererHandler:
             Returns a RenderMesh.
             """
             # Generate mesh
+            # Nota: the shape placement is stored in the mesh placement...
             mesh = MeshPart.meshFromShape(
                 Shape=shape,
                 LinearDeflection=self.linear_deflection,
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
-            mesh = RenderMesh(mesh, placement=shape.Placement)
-            mesh.harmonizeNormals()
+            mesh = RenderMesh(mesh)
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)
             return mesh

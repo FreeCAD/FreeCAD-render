@@ -59,30 +59,28 @@ class RenderMesh:
         mesh=None,
         uvmap=None,
         normals=None,
-        placement=App.Base.Placement(),
     ):
         """Initialize RenderMesh.
 
         Args:
             mesh -- a Mesh.Mesh object from which to initialize
             uvmap -- a given uv map for initialization
+            placement -- the shape placement before meshing
         """
         if mesh:
+            # First we make a copy of the mesh, we separate mesh and
+            # placement and we set the mesh at its origin (null placement)
+            self.__originalmesh = mesh.copy()
+            self.__placement = mesh.Placement.copy()
+            self.__originalmesh.Placement = App.Base.Placement()
+
+            # Then we store the topology in internal structures
             points, facets = mesh.Topology
             points = [tuple(p) for p in points]
             self.__points = points
             self.__facets = facets
-            self.__placement = mesh.Placement.copy()
 
-            self.__originalmesh = mesh.copy()
-            self.__originalmesh.transform(placement.inverse().Matrix)
-            self.__originalplacement = placement.copy()
-            # At the moment (08-16-2022), the mesh is generated with a null
-            # placement as the plugins don't know how to manage a non-null
-            # placement. However, for uv mapping, we have to turn back to this
-            # primary placement which is useful This is not a very clean way to
-            # do, so one day we'll have to manage placements in renderers
-            # (TODO).
+            # We store normals (#TODO)
             self.__normals = (
                 normals
                 if normals is not None
@@ -110,7 +108,7 @@ class RenderMesh:
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return copy.deepcopy(self)
+        return copy.copy(self)
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
