@@ -380,13 +380,6 @@ def main(python, points, facets, transmat, showtime=False):
 
             tick("final mesh")
 
-            # Transform points (with transmat)
-            _transform_points = partial(transform_points, transmat)
-            output = pool.imap(_transform_points, batched(points, chunk_size))
-            points = sum(output, [])
-
-            tick("transform")
-
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin

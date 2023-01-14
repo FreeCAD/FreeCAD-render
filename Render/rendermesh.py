@@ -787,12 +787,14 @@ class RenderMesh:
         self.__facets = res["FACETS"]
         self.__uvmap = res["UVMAP"]
 
+        # Tranform
+        self.transform(self.__originalplacement.Matrix)
+
         # Clean
         del res["POINTS"]
         del res["FACETS"]
         del res["UVMAP"]
         del res["TRANSMAT"]
-
 
     def has_uvmap(self):
         """Check if object has a uv map."""
