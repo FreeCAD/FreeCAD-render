@@ -251,7 +251,7 @@ def init(points, facets):
 
 # *****************************************************************************
 
-def main(points, facets, transmat, showtime=False):
+def main(python, points, facets, transmat, showtime=False):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -310,14 +310,9 @@ def main(points, facets, transmat, showtime=False):
     sys.stdin = sys.__stdin__
 
     # Set executable
-    executable = shutil.which("pythonw")
-    if not executable:
-        executable = shutil.which("python")
-        if not executable:
-            raise RuntimeError("No Python executable")
     # ctx = mp.get_context("spawn")  # Debug
     ctx = mp.get_context()
-    ctx.set_executable(executable)
+    ctx.set_executable(python)
 
     chunk_size = 20000
     nproc = max(6, os.cpu_count())  # At least, number of faces
@@ -429,4 +424,4 @@ if __name__ == "__main__":
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, UVMAP = main(POINTS, FACETS, TRANSMAT, SHOWTIME)
+    POINTS, FACETS, UVMAP = main(PYTHON, POINTS, FACETS, TRANSMAT, SHOWTIME)

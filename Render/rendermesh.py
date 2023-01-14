@@ -70,11 +70,10 @@ class RenderMesh:
         if mesh:
             points, facets = mesh.Topology
             points = [tuple(p) for p in points]
-            # TODO point index
             self.__points = points
             self.__facets = facets
             self.__placement = mesh.Placement.copy()
-            # self.__mesh = mesh  # TODO
+
             self.__originalmesh = mesh.copy()
             self.__originalmesh.transform(placement.inverse().Matrix)
             self.__originalplacement = placement.copy()
@@ -94,16 +93,20 @@ class RenderMesh:
             self.__points = []
             self.__vertices = []
             self.__normals = []
+
+        # uvmap
         self.__uvmap = uvmap if bool(uvmap) else []
 
-    # # Reexposed Mesh.Mesh methods and attributes
-    # def __repr__(self):
-        # """Give a printable representation of the object."""
-        # return self.__mesh.__repr__()
-
-    # def addFacet(self, *args):  # pylint: disable=invalid-name
-        # """Add a facet to the mesh."""
-        # self.__mesh.addFacet(*args)
+        # Python
+        self.multiprocessing = False
+        if (
+            PARAMS.GetBool("EnableMultiprocessing")
+            and self.CountPoints >= 2000
+        ):
+            python = _find_python()
+            if python:
+                self.multiprocessing = True
+                self.python = python
 
     def copy(self):
         """Creates a copy of this mesh."""
@@ -162,6 +165,7 @@ class RenderMesh:
             init_globals={
                 "POINTS": self.__points,
                 "TRANSMAT": matrix,
+                "PYTHON": self.python
             },
             run_name="__main__",
         )
@@ -229,11 +233,7 @@ class RenderMesh:
         """
         tm0 = time.time()
         params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-        if (
-            self.CountPoints >= 10000
-            and (shutil.which("pythonw") or shutil.which("python"))
-            and params.GetBool("EnableMultiprocessing")
-        ):
+        if self.multiprocessing:
             func, mode = self._write_objfile_mp, "mp"
         else:
             func, mode = self._write_objfile_sp, "sp"
@@ -452,7 +452,12 @@ class RenderMesh:
         # Run
         runpy.run_path(
             path,
-            init_globals={"inlist": inlist, "mask": mask, "objfile": objfile},
+            init_globals={
+                "inlist": inlist,
+                "mask": mask,
+                "objfile": objfile,
+                "python": self.python,
+            },
             run_name="__main__",
         )
 
@@ -774,6 +779,7 @@ class RenderMesh:
                 "FACETS": self.__facets,
                 "UVMAP": self.__uvmap,
                 "TRANSMAT": transmat,
+                "PYTHON": self.python
             },
             run_name="__main__",
         )
@@ -1057,3 +1063,15 @@ def uvtransform(uvmap, translate, rotate, scale):
     index = sum(it.compress((4, 2, 1), index))
     functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
     return functions[index]()
+
+def _find_python():
+    """Find Python executable."""
+    python = shutil.which("pythonw")
+    if python:
+        return python
+
+    python = shutil.which("python")
+    if python:
+        return python
+
+    return None

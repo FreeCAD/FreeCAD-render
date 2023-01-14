@@ -33,7 +33,7 @@ def transform_points(matrix, points):
     return [transform(matrix, point) for point in points]
 
 
-def main(matrix, points, showtime):
+def main(python, matrix, points, showtime):
     """Main entry point for main process."""
     # pylint: disable=import-outside-toplevel
     import multiprocessing as mp
@@ -68,13 +68,9 @@ def main(matrix, points, showtime):
     sys.stdin = sys.__stdin__
 
     # Set executable
-    executable = shutil.which("pythonw")
-    if not executable:
-        executable = shutil.which("python")
-        if not executable:
-            raise RuntimeError("No Python executable")
-    ctx = mp.get_context("spawn")
-    ctx.set_executable(executable)
+    # ctx = mp.get_context("spawn")
+    ctx = mp.get_context()
+    ctx.set_executable(python)
 
     chunk_size = 20000
     nproc = os.cpu_count()
@@ -123,5 +119,7 @@ if __name__ == "__main__":
     except NameError:
         SHOWTIME = False
 
+    assert PYTHON, "No Python executable provided."
+
     SHOWTIME = True  # TODO Debug
-    POINTS = main(TRANSMAT, POINTS, SHOWTIME)
+    POINTS = main(PYTHON, TRANSMAT, POINTS, SHOWTIME)
