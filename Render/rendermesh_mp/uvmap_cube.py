@@ -27,9 +27,21 @@ from itertools import chain
 
 import sys
 import os
+
+assert sys.version_info >= (3, 8), "MP requires Python 3.8 or higher"
 sys.path.insert(0, os.path.dirname(__file__))
 
-from vector3d import add, add_n, sub, fmul, fdiv, barycenter, length, normal, transform
+# pylint: disable=wrong-import-position
+from vector3d import (
+    add,
+    add_n,
+    fmul,
+    fdiv,
+    barycenter,
+    length,
+    normal,
+    transform,
+)
 from vector2d import sub as sub2, fdiv as fdiv2
 
 
@@ -42,19 +54,49 @@ from vector2d import sub as sub2, fdiv as fdiv2
 #   submeshes
 # Chunk: a sliced sublist, to be processed in parallel way
 
+
+# *****************************************************************************
+
 def getpoint(idx):
+    """Get a point from its index in the shared memory."""
     idx *= 3
-    return SHARED_POINTS[idx], SHARED_POINTS[idx+1], SHARED_POINTS[idx+2]
+    return SHARED_POINTS[idx], SHARED_POINTS[idx + 1], SHARED_POINTS[idx + 2]
 
 
 def getfacet(idx):
+    """Get a facet from its index in the shared memory."""
     idx *= 3
-    return SHARED_FACETS[idx], SHARED_FACETS[idx+1], SHARED_FACETS[idx+2]
+    return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
 
 def transform_points(matrix, points):
     """Transform points with a transformation matrix 4x4."""
     return [transform(matrix, point) for point in points]
+
+# *****************************************************************************
+
+
+def _intersect_unitcube_face(direction):
+    """Get the face of the unit cube intersected by a line from origin.
+
+    Args:
+        direction -- The directing vector for the intersection line
+        (a 3-float sequence)
+
+    Returns:
+        A face from the unit cube (_UnitCubeFaceEnum)
+    """
+    dirx, diry, dirz = direction
+    vec = (
+        (abs(dirx), 0, dirx < 0),
+        (abs(diry), 2, diry < 0),
+        (abs(dirz), 4, dirz < 0),
+    )
+    _, idx1, idx2 = max(vec)
+    return idx1 + int(idx2)
+
+
+_list_append = list.append
 
 
 def colorize(chunk):
@@ -75,39 +117,25 @@ def colorize(chunk):
         Area sum of facets (float)
     """
 
-    def intersect_unitcube_face(direction):
-        """Get the face of the unit cube intersected by a line from origin.
-
-        Args:
-            direction -- The directing vector for the intersection line
-            (a 3-float sequence)
-
-        Returns:
-            A face from the unit cube (_UnitCubeFaceEnum)
-        """
-        dirx, diry, dirz = direction
-        vec = (
-            (abs(dirx), 0, dirx < 0),
-            (abs(diry), 2, diry < 0),
-            (abs(dirz), 4, dirz < 0),
-        )
-        _, idx1, idx2 = max(vec)
-        return idx1 + int(idx2)
-
     start, stop = chunk
     facets = [getfacet(i) for i in range(start, stop)]
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = ((barycenter(t), normal(t)) for t in triangles)
-    data = ((intersect_unitcube_face(normal), barycenter, length(normal)) for barycenter, normal in data)
-    data = ((color, fmul(barycenter, area), area) for color, barycenter, area in data)
+    data = (
+        (_intersect_unitcube_face(normal), barycenter, length(normal))
+        for barycenter, normal in data
+    )
+    data = (
+        (color, fmul(barycenter, area), area)
+        for color, barycenter, area in data
+    )
     colors, barys, areas = zip(*data)
 
     # Compute monochrome sublists
-    # TODO Move definition out of function
-    append = list.append
+
     def facet_reducer(running, new):
         ifacet, color = new
-        append(running[color], facets[ifacet])
+        _list_append(running[color], facets[ifacet])
         return running
 
     monochrome_facets = reduce(
@@ -116,8 +144,6 @@ def colorize(chunk):
         [[], [], [], [], [], []],
     )
 
-    # SHARED_COLORS[start:stop] = colors  # TODO
-    # colors = bytearray(colors)
     centroid = add_n(*barys)
     # Caveat, this is 2 * area, actually
     # It doesn't matter for our computation, but it could for other cases
@@ -212,12 +238,18 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
+
 def init(points, facets):
+    """Initialize pool of processes."""
+    # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     global SHARED_FACETS
     SHARED_POINTS = points
     SHARED_FACETS = facets
     sys.setswitchinterval(sys.maxsize)
+
+
+# *****************************************************************************
 
 def main(points, facets, transmat, showtime=False):
     """Entry point for __main__.
@@ -230,8 +262,6 @@ def main(points, facets, transmat, showtime=False):
     # pylint: disable=too-many-locals
     import multiprocessing as mp
     from multiprocessing.sharedctypes import RawArray
-    import os
-    import sys
     import shutil
     import itertools
     import time
@@ -243,7 +273,7 @@ def main(points, facets, transmat, showtime=False):
         if showtime:
             print(msg, time.time() - tm0)
 
-    # Only >= 3.8  # TODO
+    # Only >= 3.8
     def batched(iterable, number):
         "Batch data into lists of length n. The last batch may be shorter."
         # batched('ABCDEFG', 3) --> ABC DEF G
@@ -251,6 +281,25 @@ def main(points, facets, transmat, showtime=False):
         iterator = iter(iterable)
         while batch := list(itertools.islice(iterator, number)):
             yield batch
+
+    def grouper(iterable, number, fillvalue=None):
+        "Collect data into fixed-length chunks or blocks"
+        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+        args = [iter(iterable)] * number
+        return itertools.zip_longest(*args, fillvalue=fillvalue)
+
+    class SharedWrapper:
+        """A wrapper for shared objects containing 3-tuples."""
+        def __init__(self, seq):
+            self.seq = seq
+
+        def __len__(self):
+            return len(self.seq) * 3
+
+        def __iter__(self):
+            return itertools.islice(
+                (x for elem in self.seq for x in elem), len(self.seq) * 3
+            )
 
     # Set working directory
     save_dir = os.getcwd()
@@ -273,37 +322,21 @@ def main(points, facets, transmat, showtime=False):
     chunk_size = 20000
     nproc = max(6, os.cpu_count())  # At least, number of faces
 
-    # TODO Move elsewhere
-    def grouper(iterable, number, fillvalue=None):
-        "Collect data into fixed-length chunks or blocks"
-        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-        args = [iter(iterable)] * number
-        return itertools.zip_longest(*args, fillvalue=fillvalue)
-
     transmat = tuple(grouper(transmat.A, 4))
 
-    # TODO
-    class SharedWrapper:
-        def __init__(self, seq):
-            self.seq = seq
-
-        def __len__(self):
-            return len(self.seq) * 3
-
-        def __iter__(self):
-            return itertools.islice((x for elem in self.seq for x in elem), len(self.seq) * 3)
-
-    shd_points = RawArray('d', SharedWrapper(points))
-    shd_facets = RawArray('l', SharedWrapper(facets))
+    shd_points = RawArray("d", SharedWrapper(points))
+    shd_facets = RawArray("l", SharedWrapper(facets))
     tick("prepare shared")
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points,shd_facets)) as pool:
+        with ctx.Pool(nproc, init, (shd_points, shd_facets)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
-            chunks = ((i, min(i+ chunk_size, len(facets)))
-                      for i in range(0, len(facets), chunk_size))
+            chunks = (
+                (i, min(i + chunk_size, len(facets)))
+                for i in range(0, len(facets), chunk_size)
+            )
             data = pool.imap_unordered(colorize, chunks)
             tick("colorize")
 
