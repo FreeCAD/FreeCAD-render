@@ -118,8 +118,8 @@ class RenderMesh:
 
     # TODO
     # def harmonizeNormals(self):  # pylint: disable=invalid-name
-        # """Adjust wrong oriented facets."""
-        # self.__mesh.harmonizeNormals()
+    # """Adjust wrong oriented facets."""
+    # self.__mesh.harmonizeNormals()
 
     def rotate(self, angle_x, angle_y, angle_z):
         """Apply a rotation to the mesh.
@@ -127,11 +127,12 @@ class RenderMesh:
         Args:
             angle_x, angle_y, angle_z -- angles in radians
         """
-        # self.__mesh.rotate(angle_x, angle_y, angle_z)  # TODO
         rotation = App.Base.Rotation(
             degrees(angle_z), degrees(angle_y), degrees(angle_x)
         )
-        self.__points = [tuple(rotation.multVec(App.Base.Vector(*p))) for p in self.__points]
+        self.__points = [
+            tuple(rotation.multVec(App.Base.Vector(*p))) for p in self.__points
+        ]
         self.__normals = [rotation.multVec(v) for v in self.__normals]
 
     def transform(self, matrix):
@@ -146,7 +147,9 @@ class RenderMesh:
 
     def _transform_sp(self, matrix):
         """Apply a transformation to the mesh."""
-        self.__points = [tuple(matrix.multVec(App.Base.Vector(*p))) for p in self.__points]
+        self.__points = [
+            tuple(matrix.multVec(App.Base.Vector(*p))) for p in self.__points
+        ]
         self.__normals = [matrix.multVec(v) for v in self.__normals]
         self.__normals = [
             v / v.Length for v in self.__normals if v.Length != 0.0
@@ -165,7 +168,7 @@ class RenderMesh:
             init_globals={
                 "POINTS": self.__points,
                 "TRANSMAT": matrix,
-                "PYTHON": self.python
+                "PYTHON": self.python,
             },
             run_name="__main__",
         )
@@ -174,7 +177,6 @@ class RenderMesh:
         # Clean
         del res["POINTS"]
         del res["TRANSMAT"]
-
 
     @property
     def Placement(self):  # pylint: disable=invalid-name
@@ -618,7 +620,9 @@ class RenderMesh:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [(atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points]
+        uvmap += [
+            (atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
+        ]
         regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
@@ -629,7 +633,8 @@ class RenderMesh:
             sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         )
         uvmap += [
-            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
+            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001)
+            for p in points
         ]
         seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
@@ -779,7 +784,7 @@ class RenderMesh:
                 "FACETS": self.__facets,
                 "UVMAP": self.__uvmap,
                 "TRANSMAT": transmat,
-                "PYTHON": self.python
+                "PYTHON": self.python,
             },
             run_name="__main__",
         )
@@ -1065,6 +1070,7 @@ def uvtransform(uvmap, translate, rotate, scale):
     index = sum(it.compress((4, 2, 1), index))
     functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
     return functions[index]()
+
 
 def _find_python():
     """Find Python executable."""
