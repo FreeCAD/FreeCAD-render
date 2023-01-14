@@ -534,7 +534,7 @@ class RenderMesh:
         """
         return [
             self.__uvmap[vertex_index]
-            for triangle in self.__mesh.Topology[1]
+            for triangle in self.__facets
             for vertex_index in triangle
         ]
 
