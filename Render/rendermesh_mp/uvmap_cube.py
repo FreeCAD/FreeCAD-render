@@ -295,6 +295,7 @@ def main(points, facets, transmat, showtime=False):
 
     shd_points = RawArray('d', SharedWrapper(points))
     shd_facets = RawArray('l', SharedWrapper(facets))
+    tick("prepare shared")
 
     # Run
     try:
