@@ -233,16 +233,16 @@ class RenderMesh:
         del res["TRANSMAT"]
 
     # TODO Remove
-    @property
-    def Placement(self):  # pylint: disable=invalid-name
-        """Get the current transformation of the object as placement."""
-        scale = self.__scale
-        scalemat = App.Matrix()
-        scalemat.scale(scale, scale, scale)
-        print(scalemat)  # TODO Debug
-        result = App.Placement(scalemat)
-        result.multiply(self.__placement)
-        return result
+    # @property
+    # def Placement(self):  # pylint: disable=invalid-name
+        # """Get the current transformation of the object as placement."""
+        # scale = self.__scale
+        # scalemat = App.Matrix()
+        # scalemat.scale(scale, scale, scale)
+        # print(scalemat)  # TODO Debug
+        # result = App.Placement(scalemat)
+        # result.multiply(self.__placement)
+        # return result
 
     @property
     def Points(self):  # pylint: disable=invalid-name

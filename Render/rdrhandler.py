@@ -334,10 +334,7 @@ class RendererHandler:
         mat = rendermaterial.get_rendering_material(None, "", color)
 
         # Rescale to meters
-        scalemat = App.Matrix()
-        scalemat.scale(SCALE, SCALE, SCALE)
-        mesh.transform(scalemat)
-        mesh.Placement.Base.multiply(SCALE)
+        mesh.set_scale(SCALE)
 
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
