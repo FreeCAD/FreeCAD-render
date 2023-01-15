@@ -183,67 +183,6 @@ class RenderMesh:
         return(transfo_cols)
 
 
-
-    # def transform(self, matrix):
-        # """Apply a transformation to the mesh."""
-        # # TODO Debug
-        # import traceback
-        # stack = traceback.extract_stack()[:-1]
-        # last_caller = stack[-1]
-        # print(last_caller)
-        # if (
-            # PARAMS.GetBool("EnableMultiprocessing")
-            # and self.CountPoints >= 2000
-        # ):
-            # return self._transform_mp(matrix)
-
-        # return self._transform_sp(matrix)
-
-    def _transform_sp(self, matrix):
-        """Apply a transformation to the mesh."""
-        self.__points = [
-            tuple(matrix.multVec(App.Base.Vector(*p))) for p in self.__points
-        ]
-        self.__normals = [matrix.multVec(v) for v in self.__normals]
-        self.__normals = [
-            v / v.Length for v in self.__normals if v.Length != 0.0
-        ]
-
-    def _transform_mp(self, matrix):
-        """Apply a transformation to the mesh."""
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "transform.py")
-
-        # TODO Missing transform normals at this stage
-
-        # Run
-        res = runpy.run_path(
-            path,
-            init_globals={
-                "POINTS": self.__points,
-                "TRANSMAT": matrix,
-                "PYTHON": self.python,
-            },
-            run_name="__main__",
-        )
-        self.__points = res["POINTS"]
-
-        # Clean
-        del res["POINTS"]
-        del res["TRANSMAT"]
-
-    # TODO Remove
-    # @property
-    # def Placement(self):  # pylint: disable=invalid-name
-        # """Get the current transformation of the object as placement."""
-        # scale = self.__scale
-        # scalemat = App.Matrix()
-        # scalemat.scale(scale, scale, scale)
-        # print(scalemat)  # TODO Debug
-        # result = App.Placement(scalemat)
-        # result.multiply(self.__placement)
-        # return result
-
     @property
     def Points(self):  # pylint: disable=invalid-name
         """Get a collection of the mesh points (iterator)."""
