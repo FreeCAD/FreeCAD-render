@@ -65,7 +65,6 @@ class RenderMesh:
         Args:
             mesh -- a Mesh.Mesh object from which to initialize
             uvmap -- a given uv map for initialization
-            placement -- the shape placement before meshing
         """
         if mesh:
             # First we make a copy of the mesh, we separate mesh and
@@ -73,9 +72,10 @@ class RenderMesh:
             self.__originalmesh = mesh.copy()
             self.__placement = mesh.Placement.copy()
             self.__originalmesh.Placement = App.Base.Placement()
+            self.__scale = 1
 
             # Then we store the topology in internal structures
-            points, facets = mesh.Topology
+            points, facets = self.__originalmesh.Topology
             points = [tuple(p) for p in points]
             self.__points = points
             self.__facets = facets
@@ -108,7 +108,15 @@ class RenderMesh:
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return copy.copy(self)
+        # Caveat: this is a shallow copy!
+        new_mesh = copy.copy(self)
+
+        # We make a fresh copy of placement, to be able to modify it
+        new_mesh.__placement = self.__placement.copy()
+
+        # Caveat: we don't copy the __originalmesh (Mesh.Mesh)
+        # So we point on the same object, which should not be modified
+        return new_mesh
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
@@ -134,19 +142,57 @@ class RenderMesh:
         self.__normals = [rotation.multVec(v) for v in self.__normals]
 
     def transform(self, matrix):
-        """Apply a transformation to the mesh."""
-        # TODO Debug
-        import traceback
-        stack = traceback.extract_stack()[:-1]
-        last_caller = stack[-1]
-        print(last_caller)
-        if (
-            PARAMS.GetBool("EnableMultiprocessing")
-            and self.CountPoints >= 2000
-        ):
-            return self._transform_mp(matrix)
+        """Apply a transformation to the mesh placement.
 
-        return self._transform_sp(matrix)
+        Nota bene: only mesh placement is updated, not underlying data.
+        """
+        self.__placement.Matrix *= matrix
+
+    def set_scale(self, scale):
+        """Modify mesh scale.
+
+        Nota bene: only mesh scale is updated, not underlying data.
+        """
+        self.__scale = scale
+
+
+    def get_transformation_rows(self):
+        """Get transformation matrix, including scale."""
+        mat = self.__placement.Matrix
+
+        # Get plain transfo
+        transfo_rows = [mat.A[i * 4 : (i + 1) * 4] for i in range(4)]
+
+        # Apply scale
+        transfo_rows = [
+            [val * self.__scale if rownumber < 3 else val for val in row]
+            for rownumber, row in enumerate(transfo_rows)
+        ]
+        return(transfo_rows)
+
+
+    def get_transformation_cols(self):
+        """Get transformation matrix, including scale."""
+        transfo_rows = self.get_transformation_rows()
+        transfo_cols = list(zip(*transfo_rows))
+        return(transfo_cols)
+
+
+
+    # def transform(self, matrix):
+        # """Apply a transformation to the mesh."""
+        # # TODO Debug
+        # import traceback
+        # stack = traceback.extract_stack()[:-1]
+        # last_caller = stack[-1]
+        # print(last_caller)
+        # if (
+            # PARAMS.GetBool("EnableMultiprocessing")
+            # and self.CountPoints >= 2000
+        # ):
+            # return self._transform_mp(matrix)
+
+        # return self._transform_sp(matrix)
 
     def _transform_sp(self, matrix):
         """Apply a transformation to the mesh."""

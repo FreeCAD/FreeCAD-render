@@ -29,6 +29,7 @@
 import os
 from textwrap import dedent
 import configparser
+import itertools as it
 
 import FreeCAD as App
 
@@ -83,6 +84,8 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     tris = " ".join(tris)
     nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     nrms = " ".join(nrms)
+    trans = [" ".join(str(v) for v in row) for row in mesh.get_transformation_cols()]
+    trans = "  ".join(trans)
 
     # UV map
     if mesh.has_uvmap():
@@ -113,6 +116,7 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
 # Object '{name}'
 scene.objects.{name}.shape = {obj_shape}
 scene.objects.{name}.material = {name}
+scene.objects.{name}.transformation = {trans}
 scene.shapes.{name}_mesh.type = inlinedmesh
 scene.shapes.{name}_mesh.vertices = {points}
 scene.shapes.{name}_mesh.faces = {tris}

@@ -374,12 +374,19 @@ class RendererHandler:
             """
             # Generate mesh
             # Nota: the shape placement is stored in the mesh placement...
+            shape = shape.copy()
+            shape_plc = shape.Placement
+            shape.Placement = App.Base.Placement()
             mesh = MeshPart.meshFromShape(
                 Shape=shape,
                 LinearDeflection=self.linear_deflection,
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
+            mesh.Placement = shape_plc
+            # Debug
+            print("mesh placement", mesh.Placement)
+            print("shape placement", shape.Placement)
             mesh = RenderMesh(mesh)
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)
@@ -430,11 +437,8 @@ class RendererHandler:
             return ""
 
         # Rescale to meters
-        scalemat = App.Matrix()
-        scalemat.scale(SCALE, SCALE, SCALE)
         for rend in rends:
-            rend.mesh.transform(scalemat)
-            rend.mesh.Placement.Base.multiply(SCALE)
+            rend.mesh.set_scale(SCALE)
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(
