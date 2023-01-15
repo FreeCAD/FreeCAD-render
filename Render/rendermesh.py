@@ -141,12 +141,17 @@ class RenderMesh:
         ]
         self.__normals = [rotation.multVec(v) for v in self.__normals]
 
-    def transform(self, matrix):
+    def transform(self, matrix, left=False):
         """Apply a transformation to the mesh placement.
 
         Nota bene: only mesh placement is updated, not underlying data.
         """
-        self.__placement.Matrix *= matrix
+        if not left:
+            self.__placement.Matrix *= matrix
+        else:
+            tmp = App.Placement(matrix)
+            tmp.Matrix *= self.__placement.Matrix
+            self.__placement = tmp
 
     def set_scale(self, scale):
         """Modify mesh scale.
@@ -227,10 +232,17 @@ class RenderMesh:
         del res["POINTS"]
         del res["TRANSMAT"]
 
+    # TODO Remove
     @property
     def Placement(self):  # pylint: disable=invalid-name
         """Get the current transformation of the object as placement."""
-        return self.__placement
+        scale = self.__scale
+        scalemat = App.Matrix()
+        scalemat.scale(scale, scale, scale)
+        print(scalemat)  # TODO Debug
+        result = App.Placement(scalemat)
+        result.multiply(self.__placement)
+        return result
 
     @property
     def Points(self):  # pylint: disable=invalid-name

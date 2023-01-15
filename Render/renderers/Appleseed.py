@@ -80,14 +80,19 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     )
 
     # Compute transformation from FCD coordinates to Appleseed ones
-    transform = TRANSFORM.copy()
-    transform.multiply(mesh.Placement)
-    transform.inverse()
-    transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
+    as_transform = TRANSFORM.copy()
+    mesh.transform(as_transform.toMatrix(), left=True)
+
     transfo_rows = [
         f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
-        for r in transfo_rows
+        for r in mesh.get_transformation_rows()
     ]
+    # transform.multiply(mesh.Placement)
+    # transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
+    # transfo_rows = [
+        # f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
+        # for r in transfo_rows
+    # ]
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials
