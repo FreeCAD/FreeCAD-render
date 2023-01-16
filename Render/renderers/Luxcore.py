@@ -84,7 +84,7 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     tris = " ".join(tris)
     nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     nrms = " ".join(nrms)
-    trans = [" ".join(str(v) for v in row) for row in mesh.get_transformation_cols()]
+    trans = [" ".join(str(v) for v in col) for col in mesh.get_transformation_cols()]
     trans = "  ".join(trans)
 
     # UV map
