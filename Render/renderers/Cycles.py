@@ -40,6 +40,8 @@
 # most interested in it)
 #
 # The xml input file is processed by 'src/app/cycles_xml.cpp' functions.
+# In particular, 'transform' and 'state' nodes are in 'src/app/cycles_xml.cpp'
+#
 # The entry point is 'xml_read_file', which cascades to 'xml_read_scene' via
 # 'xml_read_include' function.
 #
@@ -47,6 +49,8 @@
 # the possible nodes to 'xml_read_*' node-specialized parsing functions.
 # A few more 'xml_read_*' (including 'xml_read_node' are defined in
 # /src/graph/node_xml.cpp
+#
+# Most of the other nodes are in 'src/scene' directory
 
 
 import pathlib
@@ -91,26 +95,33 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     else:
         uv_statement = ""
 
+    trans = [" ".join(str(v) for v in col) for col in mesh.get_transformation_cols()]
+    trans = "  ".join(trans)
+
     snippet_obj = (
         f"""
-<state shader="{name}">
-<mesh
-    P="{points}"
-    N="{norms}"
-    verts="{verts}"
-    nverts="{nverts}"
-{uv_statement}/>
-</state>
+<transform matrix="{trans}">
+    <state shader="{name}">
+    <mesh
+        P="{points}"
+        N="{norms}"
+        verts="{verts}"
+        nverts="{nverts}"
+    {uv_statement}/>
+    </state>
+</transform>
 """
         if vertex_normals
         else f"""
-<state shader="{name}">
-<mesh
-    P="{points}"
-    verts="{verts}"
-    nverts="{nverts}"
-{uv_statement}/>
-</state>
+<transform matrix="{trans}">
+    <state shader="{name}">
+    <mesh
+        P="{points}"
+        verts="{verts}"
+        nverts="{nverts}"
+    {uv_statement}/>
+    </state>
+</transform>
 """
     )
 
