@@ -66,10 +66,12 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         name, _write_texture, _write_value, _write_texref
     )
     # Write the mesh as an OBJ tempfile
-    # Direct rotation of mesh is preferred to Placement modification
-    # because the latter is buggy (normals are not updated...)
-    # tmpmesh.Placement = TRANSFORM.multiply(tmpmesh.Placement)  # Buggy
-    mesh.rotate(-pi / 2, 0, 0)  # OK
+
+    # Compute OBJ transformation
+    # including transfo from FCD coordinates to ospray ones
+    osp_transform = TRANSFORM.copy()
+    mesh.transform(osp_transform.toMatrix(), left=True)
+
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_")
     objfile = mesh.write_objfile(
         name,
@@ -84,11 +86,61 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     filename = os.path.basename(objfile)
     filename = filename.encode("unicode_escape").decode("utf-8")
 
+    # Node and transform names
+    # Very important: keep them as is, as they are hard-coded in ospray...
+    nodename, _ = os.path.splitext(filename)
+    nodename = f"{nodename}_importer"
+    transform_name, _ = os.path.splitext(filename)
+    transform_name = f"{transform_name}_rootXfm"
+
+    # Compute transformation components
+    translation = ", ".join(str(v) for v in mesh.get_translation())
+    rotation = ", ".join(f'"{k}": {v}' for k, v in zip("ijkr", mesh.get_rotation()))
+    scale = ", ".join(str(v) for v in mesh.get_scale())
+
     snippet_obj = f"""
       {{
-        "name": {json.dumps(name)},
+        "name": {json.dumps(nodename)},
         "type": "IMPORTER",
-        "filename": {json.dumps(filename)}
+        "filename": {json.dumps(filename)},
+        "children": [
+            {{
+                "name":{json.dumps(transform_name)},
+                "type":"TRANSFORM",
+                "subType": "transform",
+                "value": {{
+                    "linear": {{
+                        "x":[1.0, 0.0, 0.0],
+                        "y":[0.0, 1.0, 0.0],
+                        "z":[0.0, 0.0, 1.0]
+                    }},
+                    "affine": [0.0,0.0,0.0]
+                }},
+                "children": [
+                    {{
+                        "name":"translation",
+                        "type":"PARAMETER",
+                        "subType":"vec3f",
+                        "sgOnly":false,
+                        "value":[{translation}]
+                    }},
+                    {{
+                        "name":"rotation",
+                        "type":"PARAMETER",
+                        "subType":"quaternionf",
+                        "sgOnly":false,
+                        "value": {{ {rotation} }}
+                    }},
+                    {{
+                        "name":"scale",
+                        "type":"PARAMETER",
+                        "subType":"vec3f",
+                        "sgOnly":false,
+                        "value": [{scale}]
+                    }}
+                ]
+            }}
+        ]
       }},"""
     return snippet_obj
 

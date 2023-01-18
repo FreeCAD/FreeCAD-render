@@ -182,6 +182,16 @@ class RenderMesh:
         transfo_cols = list(zip(*transfo_rows))
         return(transfo_cols)
 
+    def get_translation(self):
+        scale = self.__scale
+        return tuple(v * scale for v in tuple(self.__placement.Base))
+
+    def get_rotation(self):
+        return tuple(self.__placement.Rotation.Q)
+
+    def get_scale(self):
+        scale = self.__scale
+        return (scale, scale, scale)
 
     @property
     def Points(self):  # pylint: disable=invalid-name
