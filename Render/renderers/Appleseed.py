@@ -79,7 +79,8 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         name, objfile=basefilename, normals=vertex_normals
     )
 
-    # Compute transformation from FCD coordinates to Appleseed ones
+    # Compute OBJ transformation
+    # including transfo from FCD coordinates to Appleseed ones
     as_transform = TRANSFORM.copy()
     mesh.transform(as_transform.toMatrix(), left=True)
 
@@ -87,6 +88,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
         for r in mesh.get_transformation_rows()
     ]
+    # TODO
     # transform.multiply(mesh.Placement)
     # transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
     # transfo_rows = [
