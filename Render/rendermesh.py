@@ -160,6 +160,17 @@ class RenderMesh:
         """
         self.__scale = scale
 
+    def get_transformation_matrix(self):
+        mat = self.__placement.toMatrix()
+
+        # Scale
+        scale = self.__scale
+        mat.scale(self.__scale)
+        mat.A41 *= scale
+        mat.A42 *= scale
+        mat.A43 *= scale
+
+        return mat
 
     def get_transformation_rows(self):
         """Get transformation matrix, including scale."""
