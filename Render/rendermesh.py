@@ -161,7 +161,7 @@ class RenderMesh:
         self.__scale = scale
 
     def get_transformation_matrix(self):
-        mat = self.__placement.toMatrix()
+        mat = App.Matrix(self.__placement.toMatrix())
 
         # Scale
         scale = self.__scale
@@ -171,6 +171,16 @@ class RenderMesh:
         mat.A43 *= scale
 
         return mat
+
+    def get_transformation_ypr(self):
+        return self.__placement.Rotation.getYawPitchRoll()
+
+    def get_transformation_scale(self):
+        return self.__scale
+
+    def get_transformation_translation(self):
+        scale = self.__scale
+        return tuple(x * scale for x in self.__placement.Base)
 
     def get_transformation_rows(self):
         """Get transformation matrix, including scale."""

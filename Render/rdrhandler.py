@@ -381,9 +381,6 @@ class RendererHandler:
                 Relative=False,
             )
             mesh.Placement = shape_plc
-            # Debug
-            print("mesh placement", mesh.Placement)
-            print("shape placement", shape.Placement)
             mesh = RenderMesh(mesh)
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)
