@@ -785,7 +785,6 @@ class RenderMesh:
                 for p in facemesh.Points
             ]
             # Add submesh and uvmap
-            facemesh.transform(transmat)
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
 
