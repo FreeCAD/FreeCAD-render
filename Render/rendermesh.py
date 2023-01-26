@@ -654,7 +654,6 @@ class RenderMesh:
         uvmap += [
             (atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
         ]
-        regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
         # Non Z-normal facets (seam)
@@ -667,13 +666,11 @@ class RenderMesh:
             (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001)
             for p in points
         ]
-        seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
 
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
         uvmap += [(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)]
-        z_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
