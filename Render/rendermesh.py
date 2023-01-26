@@ -713,7 +713,6 @@ class RenderMesh:
             )
             for v in vectors
         ]
-        regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
         # Seam facets
@@ -727,7 +726,6 @@ class RenderMesh:
             )
             for v in vectors
         ]
-        seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
 
         # Replace previous values with newly computed ones
