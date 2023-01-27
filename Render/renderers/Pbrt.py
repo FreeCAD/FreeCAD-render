@@ -27,6 +27,21 @@
 # https://github.com/mmp/pbrt-v4-scenes
 # https://pbrt.org/
 
+# NOTE:
+# Please note that pbrt coordinate system appears to be different from
+# FreeCAD's one (z and y permuted)
+# See here:
+# https://www.pbr-book.org/3ed-2018/Geometry_and_Transformations/Coordinate_Systems#CoordinateSystemHandedness
+#
+# FreeCAD (z is up):         Pbrt (y is up):
+#
+#
+#  z  y                         y  z
+#  | /                          | /
+#  .--x                         .--x
+#
+# (same as povray)
+
 import os
 import re
 import math
@@ -34,11 +49,6 @@ import itertools
 import textwrap
 
 import FreeCAD as App
-
-# Transformation matrix from fcd coords to osp coords
-TRANSFORM = App.Placement(
-    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
-)
 
 TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 
@@ -96,8 +106,20 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     else:
         normals = ""
 
+    # Transformation
+    # (see https://www.povray.org/documentation/3.7.0/r3_3.html#r3_3_1_12_4)
+    yaw, pitch, roll = mesh.get_transformation_ypr()
+    scale = mesh.get_transformation_scale()
+    posx, posy, posz = mesh.get_transformation_translation()
+
     snippet = f"""# Object '{name}'
 AttributeBegin
+
+  Translate {posx:+15.8f} {posy:+15.8f} {posz:+15.8f}
+  Rotate    {yaw:+15.8f}  0 0 1
+  Rotate    {pitch:+15.8f}  0 1 0
+  Rotate    {roll:+15.8f}  1 0 0
+  Scale     {scale:+15.8f} {scale:+15.8f} {scale:+15.8f}
 
 {matval.write_textures()}
 {material}
