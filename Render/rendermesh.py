@@ -222,9 +222,6 @@ class RenderMesh:
         # Retrieve and normalize arguments
         normals = bool(normals)
 
-        # Initialize
-        vertices, indices = self.points, self.facets
-
         # Get obj file name
         if objfile is None:
             f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
@@ -251,7 +248,7 @@ class RenderMesh:
 
         # Vertices
         fmtv = functools.partial(str.format, "v {} {} {}\n")
-        verts = (fmtv(*v) for v in vertices)
+        verts = (fmtv(*v) for v in self.points)
         verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
         # UV
@@ -293,7 +290,8 @@ class RenderMesh:
         joinf = functools.partial(str.join, "")
 
         faces = (
-            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in indices
+            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"])
+            for f in self.facets
         )
         faces = it.chain(["# Faces\n"], faces)
 
@@ -583,7 +581,7 @@ class RenderMesh:
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
-        points, facets = mesh.Topology
+        points, facets = tuple(mesh.Topology)
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
@@ -635,9 +633,8 @@ class RenderMesh:
         mesh.addMesh(seam_mesh)
 
         # Replace previous values with newly computed ones
-        points, facets = mesh.Topology
-        points = [tuple(p) for p in points]
-        self.__points = points
+        points, facets = tuple(mesh.Topology)
+        self.__points = [tuple(p) for p in points]
         self.__facets = facets
         self.__uvmap = uvmap
 
@@ -692,7 +689,7 @@ class RenderMesh:
             uvmap += facemesh_uvmap
 
         # Replace previous values with newly computed ones
-        points, facets = mesh.Topology
+        points, facets = tuple(mesh.Topology)
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets

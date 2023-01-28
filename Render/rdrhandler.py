@@ -475,7 +475,6 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         source = view.Source
-        a_ratio = float(source.AspectRatio)
         pos = App.Base.Placement(source.Placement)
         target = pos.Base.add(pos.Rotation.multVec(App.Vector(0, 0, -1)))
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
