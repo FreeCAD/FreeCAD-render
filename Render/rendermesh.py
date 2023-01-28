@@ -185,6 +185,18 @@ class RenderMesh:
         else:
             func, mode = self._write_objfile_sp, "sp"
 
+        # Create OBJ file (empty)
+        if objfile is None:
+            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+            os.close(f_handle)
+            del f_handle
+        else:
+            objfile = str(objfile)
+
+        # Pack uv transformation
+        uv_transformation = (uv_translate, uv_rotate, uv_scale)
+
+        # Call main routine (single or multi process)
         objfile = func(
             name,
             objfile,
@@ -192,9 +204,7 @@ class RenderMesh:
             mtlname,
             mtlcontent,
             normals,
-            uv_translate,
-            uv_rotate,
-            uv_scale,
+            uv_transformation,
         )
 
         tm1 = time.time() - tm0
@@ -206,14 +216,12 @@ class RenderMesh:
     def _write_objfile_sp(
         self,
         name,
-        objfile=None,
-        mtlfile=None,
-        mtlname=None,
-        mtlcontent=None,
-        normals=True,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
+        objfile,
+        mtlfile,
+        mtlname,
+        mtlcontent,
+        normals,
+        uv_transformation,
     ):
         """Write an OBJ file from a mesh - single process.
 
@@ -221,13 +229,6 @@ class RenderMesh:
         """
         # Retrieve and normalize arguments
         normals = bool(normals)
-
-        # Get obj file name
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-        else:
-            objfile = str(objfile)
 
         # Header
         header = ["# Written by FreeCAD-Render\n"]
@@ -254,7 +255,7 @@ class RenderMesh:
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
+            uvs = uvtransform(self.uvmap, *uv_transformation)
             fmtuv = functools.partial(str.format, "vt {} {}\n")
             uvs = (fmtuv(*t) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
@@ -305,14 +306,12 @@ class RenderMesh:
     def _write_objfile_mp(
         self,
         name,
-        objfile=None,
-        mtlfile=None,
-        mtlname=None,
-        mtlcontent=None,
-        normals=True,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
+        objfile,
+        mtlfile,
+        mtlname,
+        mtlcontent,
+        normals,
+        uv_transformation,
     ):
         """Write an OBJ file from a mesh - multi process version.
 
@@ -323,13 +322,6 @@ class RenderMesh:
 
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
-
-        # Get obj file name
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-        else:
-            objfile = str(objfile)
 
         # Header
         header = ["# Written by FreeCAD-Render\n"]
@@ -351,7 +343,7 @@ class RenderMesh:
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
+            uvs = uvtransform(self.uvmap, *uv_transformation)
         else:
             uvs = []
 
@@ -433,39 +425,6 @@ class RenderMesh:
     def uvmap(self):
         """Get mesh uv map."""
         return self.__uvmap
-
-    def transformed_uvmap(self, translate, rotate, scale):
-        """Returns a transformed uvmap.
-
-        Args:
-            translate -- Translation vector (Vector2d)
-            rotate -- Rotation angle in degrees (float)
-            scale -- Scale factor (float)
-
-        Returns: a transformed uvmap
-        """
-        rotate = float(rotate)
-        scale = float(scale)
-        rotate = radians(rotate)
-        if self.has_uvmap():
-            # Translate, rotate, scale (optionally)
-            uvbase = self.uvmap
-            if translate.x != 0.0 or translate.y != 0.0:
-                uvbase = [
-                    (v[0] + translate.x, v[1] + translate.y) for v in uvbase
-                ]
-            if rotate != 0.0:
-                cosr = cos(rotate)
-                sinr = sin(rotate)
-                uvbase = [
-                    (v[0] * cosr - v[1] * sinr, v[0] * sinr + v[1] * cosr)
-                    for v in uvbase
-                ]
-            if scale != 1.0:
-                uvbase = [(v[0] * scale, v[1] * scale) for v in uvbase]
-        else:
-            uvbase = []
-        return uvbase
 
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
