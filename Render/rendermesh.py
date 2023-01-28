@@ -32,7 +32,6 @@ rendering purpose.
 import enum
 import os
 import tempfile
-import operator
 import itertools as it
 import functools
 import time
@@ -57,7 +56,7 @@ class RenderMesh:
     def __init__(
         self,
         mesh=None,
-        uvmap=None,
+        uvmap=None,  # TODO Useful?
         normals=None,
     ):
         """Initialize RenderMesh.
@@ -87,7 +86,6 @@ class RenderMesh:
                 else list(mesh.getPointNormals())
             )
         else:
-            # self.__mesh = Mesh.Mesh()  # TODO
             self.__points = []
             self.__facets = []
             self.__normals = []
@@ -99,7 +97,7 @@ class RenderMesh:
         self.multiprocessing = False
         if (
             PARAMS.GetBool("EnableMultiprocessing")
-            and self.CountPoints >= 2000
+            and self.count_points >= 2000
         ):
             python = _find_python()
             if python:
@@ -121,11 +119,6 @@ class RenderMesh:
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
         return self.__normals
-
-    # TODO
-    # def harmonizeNormals(self):  # pylint: disable=invalid-name
-    # """Adjust wrong oriented facets."""
-    # self.__mesh.harmonizeNormals()
 
     def rotate(self, angle_x, angle_y, angle_z):
         """Apply a rotation to the mesh.
@@ -214,24 +207,23 @@ class RenderMesh:
         return (scale, scale, scale)
 
     @property
-    def Points(self):  # pylint: disable=invalid-name
+    def points(self):
         """Get a collection of the mesh points (iterator)."""
         return self.__points
 
     @property
-    def CountPoints(self):
+    def count_points(self):
         return len(self.__points)
 
     @property
-    def Facets(self):  # pylint: disable=invalid-name
+    def facets(self):
         """Get a collection of the mesh facets (iterator)."""
         return self.__facets
 
     @property
-    def CountFacets(self):
+    def count_facets(self):
         return len(self.__facets)
 
-    # Specific methods
     def write_objfile(
         self,
         name,
@@ -264,7 +256,6 @@ class RenderMesh:
         Returns: the name of file that the function wrote.
         """
         tm0 = time.time()
-        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
         if self.multiprocessing:
             func, mode = self._write_objfile_mp, "mp"
         else:
@@ -308,7 +299,7 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices, indices = self.Points, self.Facets  # Time consuming...
+        vertices, indices = self.points, self.facets
 
         # Get obj file name
         if objfile is None:
@@ -409,8 +400,6 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices = self.Points
-        faces = self.Facets
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
         # Get obj file name
@@ -436,9 +425,6 @@ class RenderMesh:
             mtl = [f"mtllib {mtlfilename}\n\n"]
         else:
             mtl = []
-
-        # Vertices
-        verts = (tuple(v) for v in vertices)
 
         # UV
         if self.has_uvmap():
@@ -474,11 +460,11 @@ class RenderMesh:
         inlist = [
             (header, "s"),
             (mtl, "s"),
-            (verts, "v"),
+            (self.points, "v"),
             (uvs, "vt"),
             (norms, "vn"),
             (objname, "s"),
-            (faces, "f"),
+            (self.facets, "f"),
         ]
 
         # Run
@@ -612,9 +598,9 @@ class RenderMesh:
 
         Refresh self._normals.
         """
-        mesh = self.__mesh
+        mesh = self.__originalmesh
 
-        norms = [App.Base.Vector()] * mesh.CountPoints
+        norms = [App.Base.Vector()] * mesh.count_points
         for facet in mesh.Facets:
             weighted_norm = facet.Normal * facet.Area
             for index in facet.PointIndices:
@@ -740,7 +726,7 @@ class RenderMesh:
         """
         if (
             PARAMS.GetBool("EnableMultiprocessing")
-            and self.CountPoints >= 2000
+            and self.count_points >= 2000
         ):
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             return self._compute_uvmap_cube_mp()
@@ -769,7 +755,6 @@ class RenderMesh:
             cog = self.__originalmesh.CenterOfGravity
         except AttributeError:
             cog = self.center_of_gravity()
-        transmat = self.__placement.Matrix
         for cubeface, facets in enumerate(face_facets):
             facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
