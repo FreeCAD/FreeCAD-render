@@ -46,11 +46,18 @@ import Mesh
 from Render.constants import PKGDIR, PARAMS
 
 
+# ===========================================================================
+#                               RenderMesh
+# ===========================================================================
+
+
 class RenderMesh:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
     RenderMesh is based on Mesh.Mesh.
-    In addition, RenderMesh implements UV map management.
+    In addition, RenderMesh implements:
+    - UV map management
+    - scale, via RenderTransformation
     """
 
     def __init__(
@@ -807,6 +814,89 @@ class RenderMesh:
     def has_uvmap(self):
         """Check if object has a uv map."""
         return bool(self.__uvmap)
+
+
+# ===========================================================================
+#                               RenderTransformation
+# ===========================================================================
+
+class _Transformation:
+    """A extension of Placement, implementing also scale."""
+
+    def __init__(placement=App.Placement(), scale=1.0):
+        """Initialize transformation."""
+        self.__placement = App.Placement(placement)
+        self.__scale = float(scale)
+
+    def apply_placement(self, placement, left=False):
+        """Apply a FreeCAD placement to this.
+
+        By default, placement is applied on the right, but it can also be
+        applied on the left, with 'left' parameter.
+
+        """
+        placement = App.Placement(placement)
+        if not left:
+            self.__placement *= placement
+        else:
+            placement *= self.__placement
+            self.__placement = placement
+
+    # Getters
+    def get_matrix_fcd(self):
+        """Get transformation matrix in FreeCAD format."""
+        mat = App.Matrix(self.__placement.toMatrix())
+
+        # Scale
+        scale = self.__scale
+        mat.scale(self.__scale)
+        mat.A41 *= scale
+        mat.A42 *= scale
+        mat.A43 *= scale
+
+        return mat
+
+    def get_matrix_rows(self):
+        """Get transformation matrix as a list of rows."""
+        mat = self.__placement.Matrix
+
+        # Get plain transfo
+        transfo_rows = [mat.A[i * 4 : (i + 1) * 4] for i in range(4)]
+
+        # Apply scale
+        transfo_rows = [
+            [val * self.__scale if rownumber < 3 else val for val in row]
+            for rownumber, row in enumerate(transfo_rows)
+        ]
+        return transfo_rows
+
+    def get_matrix_columns(self):
+        """Get transformation matrix as a list of columns."""
+        transfo_rows = self.get_transformation_rows()
+        transfo_cols = list(zip(*transfo_rows))
+        return transfo_cols
+
+    def get_translation(self):
+        """Get translation component."""
+        scale = self.__scale
+        return tuple(v * scale for v in tuple(self.__placement.Base))
+
+    def get_rotation_quaternion(self):
+        """Get rotation component as a quaternion."""
+        return tuple(self.__placement.Rotation.Q)
+
+    def get_rotation_ypr(self):
+        """Get rotation component as yaw-pitch-roll angles."""
+        return self.__placement.Rotation.getYawPitchRoll()
+
+    def get_scale(self):
+        """Get scale component as single scalar."""
+        return self.__scale
+
+    def get_scale_vector(self):
+        """Get scale component as vector."""
+        scale = self.__scale
+        return (scale, scale, scale)
 
 
 # ===========================================================================
