@@ -95,7 +95,9 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     else:
         uv_statement = ""
 
-    trans = [" ".join(str(v) for v in col) for col in mesh.get_transformation_cols()]
+    trans = [
+        " ".join(str(v) for v in col) for col in mesh.get_transformation_cols()
+    ]
     trans = "  ".join(trans)
 
     snippet_obj = (

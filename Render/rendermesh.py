@@ -194,14 +194,13 @@ class RenderMesh:
             [val * self.__scale if rownumber < 3 else val for val in row]
             for rownumber, row in enumerate(transfo_rows)
         ]
-        return(transfo_rows)
-
+        return transfo_rows
 
     def get_transformation_cols(self):
         """Get transformation matrix, including scale."""
         transfo_rows = self.get_transformation_rows()
         transfo_cols = list(zip(*transfo_rows))
-        return(transfo_cols)
+        return transfo_cols
 
     def get_translation(self):
         scale = self.__scale

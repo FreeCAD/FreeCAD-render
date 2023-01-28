@@ -92,8 +92,8 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     # transform.multiply(mesh.Placement)
     # transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
     # transfo_rows = [
-        # f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
-        # for r in transfo_rows
+    # f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
+    # for r in transfo_rows
     # ]
 
     # Format output

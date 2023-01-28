@@ -165,7 +165,15 @@ class RendererHandler:
         """
         rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, batch, input_file, output_file, width, height, spp, denoise
+            project,
+            prefix,
+            batch,
+            input_file,
+            output_file,
+            width,
+            height,
+            spp,
+            denoise,
         )
 
     @staticmethod
@@ -343,7 +351,8 @@ class RendererHandler:
     def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""
         return self._render_camera(
-            "Default_Camera", SimpleNamespace(Source=camsource, InListRecursive=[project])
+            "Default_Camera",
+            SimpleNamespace(Source=camsource, InListRecursive=[project]),
         )
 
     def _render_object(self, name, view):
@@ -487,7 +496,6 @@ class RendererHandler:
                 "(rendering dimensions)"
             )
             raise RuntimeError(msg) from exc
-
 
         # Rescale
         pos.Base.multiply(SCALE)

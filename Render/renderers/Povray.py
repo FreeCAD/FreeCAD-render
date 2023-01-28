@@ -51,7 +51,7 @@ import FreeCAD as App
 from .utils.misc import fovy_to_fovx
 
 # Transformation matrix from fcd coords to pov coords
-TRANSFORM = App.Matrix(1, 0, 0, 0,  0, 0, 1, 0,  0, 1, 0, 0,  0, 0, 0, 1)
+TRANSFORM = App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1)
 
 
 TEMPLATE_FILTER = "Povray templates (povray_*.pov)"
@@ -760,7 +760,15 @@ def _write_texref(**kwargs):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp, denoise
+    project,
+    prefix,
+    batch,
+    input_file,
+    output_file,
+    width,
+    height,
+    spp,
+    denoise,
 ):
     """Generate renderer command.
 

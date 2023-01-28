@@ -95,7 +95,9 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # Compute transformation components
     translation = ", ".join(str(v) for v in mesh.get_translation())
-    rotation = ", ".join(f'"{k}": {v}' for k, v in zip("ijkr", mesh.get_rotation()))
+    rotation = ", ".join(
+        f'"{k}": {v}' for k, v in zip("ijkr", mesh.get_rotation())
+    )
     scale = ", ".join(str(v) for v in mesh.get_scale())
 
     snippet_obj = f"""

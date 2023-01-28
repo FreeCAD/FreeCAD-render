@@ -399,7 +399,7 @@ class Project(FeatureBase):
             msg = translate(
                 "Render",
                 "[Render][Project] CRITICAL ERROR - Negative or zero value(s) for "
-                "Render Height and/or Render Width: cannot render. Aborting...\n"
+                "Render Height and/or Render Width: cannot render. Aborting...\n",
             )
             App.Console.PrintError(msg)
             return None
@@ -559,7 +559,9 @@ class Project(FeatureBase):
 
         This method is a (private) subroutine of `render` method.
         """
-        Params = namedtuple("Params", "prefix output width height batch spp denoise")
+        Params = namedtuple(
+            "Params", "prefix output width height batch spp denoise"
+        )
 
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
