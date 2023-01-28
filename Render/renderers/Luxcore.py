@@ -77,13 +77,17 @@ scene.materials.{name}.bumptex = {matval["normal"]}
         snippet_bump = ""
 
     # Points, vertices and normals
-    topology = mesh.Topology  # Compute once
-    points = [f"{v.x} {v.y} {v.z}" for v in topology[0]]
+    points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
     points = " ".join(points)
-    tris = [f"{t[0]} {t[1]} {t[2]}" for t in topology[1]]
+    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.facets]
     tris = " ".join(tris)
     nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     nrms = " ".join(nrms)
+    trans = [
+        " ".join(str(v) for v in col)
+        for col in mesh.transformation.get_matrix_columns()
+    ]
+    trans = "  ".join(trans)
 
     # UV map
     if mesh.has_uvmap():
@@ -114,6 +118,7 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
 # Object '{name}'
 scene.objects.{name}.shape = {obj_shape}
 scene.objects.{name}.material = {name}
+scene.objects.{name}.transformation = {trans}
 scene.shapes.{name}_mesh.type = inlinedmesh
 scene.shapes.{name}_mesh.vertices = {points}
 scene.shapes.{name}_mesh.faces = {tris}

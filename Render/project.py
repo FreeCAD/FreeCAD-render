@@ -207,8 +207,9 @@ class Project(FeatureBase):
             "Execution Control",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "Make renderer invoke denoiser. WARNING: may not work with all "
-                "renderers - the renderer must have denoising capabilities.",
+                "Make renderer invoke denoiser. WARNING: may not work with "
+                "all renderers - the renderer must have denoising "
+                "capabilities.",
             ),
             False,
         ),
@@ -398,8 +399,9 @@ class Project(FeatureBase):
         if self.fpo.RenderHeight <= 0 or self.fpo.RenderWidth <= 0:
             msg = translate(
                 "Render",
-                "[Render][Project] CRITICAL ERROR - Negative or zero value(s) for "
-                "Render Height and/or Render Width: cannot render. Aborting...\n"
+                "[Render][Project] CRITICAL ERROR - Negative or zero value(s) "
+                "for Render Height and/or Render Width: cannot render. "
+                "Aborting...\n",
             )
             App.Console.PrintError(msg)
             return None
@@ -559,7 +561,9 @@ class Project(FeatureBase):
 
         This method is a (private) subroutine of `render` method.
         """
-        Params = namedtuple("Params", "prefix output width height batch spp denoise")
+        Params = namedtuple(
+            "Params", "prefix output width height batch spp denoise"
+        )
 
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:

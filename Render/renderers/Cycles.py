@@ -40,6 +40,8 @@
 # most interested in it)
 #
 # The xml input file is processed by 'src/app/cycles_xml.cpp' functions.
+# In particular, 'transform' and 'state' nodes are in 'src/app/cycles_xml.cpp'
+#
 # The entry point is 'xml_read_file', which cascades to 'xml_read_scene' via
 # 'xml_read_include' function.
 #
@@ -47,6 +49,8 @@
 # the possible nodes to 'xml_read_*' node-specialized parsing functions.
 # A few more 'xml_read_*' (including 'xml_read_node' are defined in
 # /src/graph/node_xml.cpp
+#
+# Most of the other nodes are in 'src/scene' directory
 
 
 import pathlib
@@ -75,11 +79,11 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
 
     snippet_mat = _write_material(name, matval)
 
-    points = [_write_point(p) for p in mesh.Topology[0]]
+    points = [_write_point(p) for p in mesh.points]
     points = "  ".join(points)
-    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Topology[1]]
+    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.facets]
     verts = "  ".join(verts)
-    nverts = ["3"] * len(mesh.Topology[1])
+    nverts = ["3"] * mesh.count_facets
     nverts = "  ".join(nverts)
     norms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     norms = "  ".join(norms)
@@ -91,26 +95,36 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     else:
         uv_statement = ""
 
+    trans = [
+        " ".join(str(v) for v in col)
+        for col in mesh.transformation.get_matrix_columns()
+    ]
+    trans = "  ".join(trans)
+
     snippet_obj = (
         f"""
-<state shader="{name}">
-<mesh
-    P="{points}"
-    N="{norms}"
-    verts="{verts}"
-    nverts="{nverts}"
-{uv_statement}/>
-</state>
+<transform matrix="{trans}">
+    <state shader="{name}">
+    <mesh
+        P="{points}"
+        N="{norms}"
+        verts="{verts}"
+        nverts="{nverts}"
+    {uv_statement}/>
+    </state>
+</transform>
 """
         if vertex_normals
         else f"""
-<state shader="{name}">
-<mesh
-    P="{points}"
-    verts="{verts}"
-    nverts="{nverts}"
-{uv_statement}/>
-</state>
+<transform matrix="{trans}">
+    <state shader="{name}">
+    <mesh
+        P="{points}"
+        verts="{verts}"
+        nverts="{nverts}"
+    {uv_statement}/>
+    </state>
+</transform>
 """
     )
 
@@ -743,7 +757,7 @@ _write_float = _rnd
 
 def _write_point(pnt):
     """Write a point."""
-    return f"{_rnd(pnt.x)} {_rnd(pnt.y)} {_rnd(pnt.z)}"
+    return f"{_rnd(pnt[0])} {_rnd(pnt[1])} {_rnd(pnt[2])}"
 
 
 _write_vec = _write_point  # Write a vector

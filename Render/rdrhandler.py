@@ -49,6 +49,7 @@ from types import SimpleNamespace
 
 import FreeCAD as App
 import MeshPart
+import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render.rendermesh import RenderMesh
@@ -164,7 +165,15 @@ class RendererHandler:
         """
         rendermaterial.clear_cache()  # Clear rendermaterial's cache
         return self.renderer_module.render(
-            project, prefix, batch, input_file, output_file, width, height, spp, denoise
+            project,
+            prefix,
+            batch,
+            input_file,
+            output_file,
+            width,
+            height,
+            spp,
+            denoise,
         )
 
     @staticmethod
@@ -325,18 +334,15 @@ class RendererHandler:
         vertices = [
             App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
         ]  # Clamp to avoid huge dimensions...
-        mesh = RenderMesh()
+        mesh = Mesh.Mesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
-        mesh.compute_normals()
+        mesh = RenderMesh(mesh)
 
         mat = rendermaterial.get_rendering_material(None, "", color)
 
         # Rescale to meters
-        scalemat = App.Matrix()
-        scalemat.scale(SCALE, SCALE, SCALE)
-        mesh.transform(scalemat)
-        mesh.Placement.Base.multiply(SCALE)
+        mesh.transformation.scale = SCALE
 
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
@@ -345,7 +351,8 @@ class RendererHandler:
     def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""
         return self._render_camera(
-            "Default_Camera", SimpleNamespace(Source=camsource, InListRecursive=[project])
+            "Default_Camera",
+            SimpleNamespace(Source=camsource, InListRecursive=[project]),
         )
 
     def _render_object(self, name, view):
@@ -372,14 +379,18 @@ class RendererHandler:
             Returns a RenderMesh.
             """
             # Generate mesh
+            # Nota: the shape placement is stored in the mesh placement...
+            shape = shape.copy()
+            shape_plc = shape.Placement
+            shape.Placement = App.Base.Placement()
             mesh = MeshPart.meshFromShape(
                 Shape=shape,
                 LinearDeflection=self.linear_deflection,
                 AngularDeflection=self.angular_deflection,
                 Relative=False,
             )
-            mesh = RenderMesh(mesh, placement=shape.Placement)
-            mesh.harmonizeNormals()
+            mesh.Placement = shape_plc
+            mesh = RenderMesh(mesh)
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)
             return mesh
@@ -429,11 +440,8 @@ class RendererHandler:
             return ""
 
         # Rescale to meters
-        scalemat = App.Matrix()
-        scalemat.scale(SCALE, SCALE, SCALE)
         for rend in rends:
-            rend.mesh.transform(scalemat)
-            rend.mesh.Placement.Base.multiply(SCALE)
+            rend.mesh.transformation.scale = SCALE
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(
@@ -467,7 +475,6 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         source = view.Source
-        a_ratio = float(source.AspectRatio)
         pos = App.Base.Placement(source.Placement)
         target = pos.Base.add(pos.Rotation.multVec(App.Vector(0, 0, -1)))
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
@@ -488,7 +495,6 @@ class RendererHandler:
                 "(rendering dimensions)"
             )
             raise RuntimeError(msg) from exc
-
 
         # Rescale
         pos.Base.multiply(SCALE)

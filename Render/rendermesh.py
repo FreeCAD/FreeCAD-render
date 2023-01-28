@@ -32,13 +32,13 @@ rendering purpose.
 import enum
 import os
 import tempfile
-import operator
 import itertools as it
 import functools
 import time
-from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
+from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import runpy
 import shutil
+import copy
 
 import FreeCAD as App
 import Mesh
@@ -46,26 +46,24 @@ import Mesh
 from Render.constants import PKGDIR, PARAMS
 
 
+# ===========================================================================
+#                               RenderMesh
+# ===========================================================================
+
+
 class RenderMesh:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
-    RenderMesh is based on Mesh.Mesh and most of its API is common with
-    the latter.
-    In addition, RenderMesh implements UV map management.
-
-    Please note that RenderMesh does not subclass Mesh.Mesh, as Mesh.Mesh is
-    implemented in C, which prevents it to be subclassed in Python. As a
-    workaround, the required methods and attributes are explicitly
-    reimplemented as calls to the corresponding methods and attributes of
-    Mesh.Mesh.
+    RenderMesh is based on Mesh.Mesh.
+    In addition, RenderMesh implements:
+    - UV map management
+    - scale, via RenderTransformation
     """
 
     def __init__(
         self,
         mesh=None,
-        uvmap=None,
         normals=None,
-        placement=App.Base.Placement(),
     ):
         """Initialize RenderMesh.
 
@@ -74,115 +72,82 @@ class RenderMesh:
             uvmap -- a given uv map for initialization
         """
         if mesh:
-            self.__mesh = mesh
+            # First we make a copy of the mesh, we separate mesh and
+            # placement and we set the mesh at its origin (null placement)
             self.__originalmesh = mesh.copy()
-            self.__originalmesh.transform(placement.inverse().Matrix)
-            self.__originalplacement = placement.copy()
-            # At the moment (08-16-2022), the mesh is generated with a null
-            # placement as the plugins don't know how to manage a non-null
-            # placement. However, for uv mapping, we have to turn back to this
-            # primary placement which is useful This is not a very clean way to
-            # do, so one day we'll have to manage placements in renderers
-            # (TODO).
+            self.__originalmesh.Placement = App.Base.Placement()
+
+            # We initialize mesh transformation
+            self.__transformation = _Transformation(mesh.Placement)
+
+            # Then we store the topology in internal structures
+            points, facets = self.__originalmesh.Topology
+            self.__points = [tuple(p) for p in points]
+            self.__facets = facets
+
+            # We store normals (#TODO)
             self.__normals = (
                 normals
                 if normals is not None
-                else list(self.__mesh.getPointNormals())
+                else list(mesh.getPointNormals())
             )
         else:
-            self.__mesh = Mesh.Mesh()
+            self.transformation = _Transformation()
+            self.__points = []
+            self.__facets = []
             self.__normals = []
-        self.__uvmap = uvmap if bool(uvmap) else []
 
-    # Reexposed Mesh.Mesh methods and attributes
-    def __repr__(self):
-        """Give a printable representation of the object."""
-        return self.__mesh.__repr__()
+        self.__uvmap = []
 
-    def addFacet(self, *args):  # pylint: disable=invalid-name
-        """Add a facet to the mesh."""
-        self.__mesh.addFacet(*args)
+        # Python
+        self.multiprocessing = False
+        if (
+            PARAMS.GetBool("EnableMultiprocessing")
+            and self.count_points >= 2000
+        ):
+            python = _find_python()
+            if python:
+                self.multiprocessing = True
+                self.python = python
 
     def copy(self):
         """Creates a copy of this mesh."""
-        return RenderMesh(
-            mesh=self.__mesh.copy(),
-            uvmap=self.__uvmap.copy(),
-            normals=self.__normals.copy(),
-        )
+        # Caveat: this is a shallow copy!
+        new_mesh = copy.copy(self)
+
+        # Caveat: we don't copy the __originalmesh (Mesh.Mesh)
+        # So we point on the same object, which should not be modified
+        return new_mesh
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
         return self.__normals
 
-    def harmonizeNormals(self):  # pylint: disable=invalid-name
-        """Adjust wrong oriented facets."""
-        self.__mesh.harmonizeNormals()
-
-    def rotate(self, angle_x, angle_y, angle_z):
-        """Apply a rotation to the mesh.
-
-        Args:
-            angle_x, angle_y, angle_z -- angles in radians
-        """
-        self.__mesh.rotate(angle_x, angle_y, angle_z)
-        rotation = App.Base.Rotation(
-            degrees(angle_z), degrees(angle_y), degrees(angle_x)
-        )
-        self.__normals = [rotation.multVec(v) for v in self.__normals]
-
-    def transform(self, matrix):
-        """Apply a transformation to the mesh."""
-        self.__mesh.transform(matrix)
-        self.__normals = [matrix.multVec(v) for v in self.__normals]
-        self.__normals = [
-            v / v.Length for v in self.__normals if v.Length != 0.0
-        ]
-
-    def write(self, filename):
-        """Write the mesh object into a file."""
-        self.__mesh.write(filename)
+    @property
+    def transformation(self):
+        """Get the mesh transformation."""
+        return self.__transformation
 
     @property
-    def Placement(self):  # pylint: disable=invalid-name
-        """Get the current transformation of the object as placement."""
-        return self.__mesh.Placement
+    def points(self):
+        """Get a collection of the mesh points."""
+        return self.__points
 
     @property
-    def Points(self):  # pylint: disable=invalid-name
-        """Get a collection of the mesh points.
-
-        With this attribute, it is possible to get access to the points of the
-        mesh: for p in mesh.Points: print p.x, p.y, p.z,p.Index.
-
-        WARNING! Store Points in a local variable as it is generated on the
-        fly, each time it is accessed.
-        """
-        return iter(self.__mesh.Points)
+    def count_points(self):
+        """Get the number of points."""
+        return len(self.__points)
 
     @property
-    def Facets(self):  # pylint: disable=invalid-name
-        """Get a collection of the mesh points.
-
-        WARNING! Store Facets in a local variable as it is generated on the
-        fly, each time it is accessed.
-        """
-        return iter(self.__mesh.Facets)
+    def facets(self):
+        """Get a collection of the mesh facets."""
+        return self.__facets
 
     @property
-    def Topology(self):  # pylint: disable=invalid-name
-        """Get the points and faces indices as tuples.
+    def count_facets(self):
+        """Get the number of facets."""
+        return len(self.__facets)
 
-        Topology[0] is a list of all vertices. Each being a tuple of 3
-        coordinates. Topology[1] is a list of all polygons. Each being a list
-        of vertex indices into Topology[0]
-
-        WARNING! Store Topology in a local variable as it is generated on the
-        fly, each time it is accessed.
-        """
-        return self.__mesh.Topology
-
-    # Specific methods
     def write_objfile(
         self,
         name,
@@ -215,16 +180,23 @@ class RenderMesh:
         Returns: the name of file that the function wrote.
         """
         tm0 = time.time()
-        params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-        if (
-            self.__mesh.CountPoints >= 10000
-            and (shutil.which("pythonw") or shutil.which("python"))
-            and params.GetBool("EnableMultiprocessing")
-        ):
+        if self.multiprocessing:
             func, mode = self._write_objfile_mp, "mp"
         else:
             func, mode = self._write_objfile_sp, "sp"
 
+        # Create OBJ file (empty)
+        if objfile is None:
+            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+            os.close(f_handle)
+            del f_handle
+        else:
+            objfile = str(objfile)
+
+        # Pack uv transformation
+        uv_transformation = (uv_translate, uv_rotate, uv_scale)
+
+        # Call main routine (single or multi process)
         objfile = func(
             name,
             objfile,
@@ -232,9 +204,7 @@ class RenderMesh:
             mtlname,
             mtlcontent,
             normals,
-            uv_translate,
-            uv_rotate,
-            uv_scale,
+            uv_transformation,
         )
 
         tm1 = time.time() - tm0
@@ -246,14 +216,12 @@ class RenderMesh:
     def _write_objfile_sp(
         self,
         name,
-        objfile=None,
-        mtlfile=None,
-        mtlname=None,
-        mtlcontent=None,
-        normals=True,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
+        objfile,
+        mtlfile,
+        mtlname,
+        mtlcontent,
+        normals,
+        uv_transformation,
     ):
         """Write an OBJ file from a mesh - single process.
 
@@ -261,16 +229,6 @@ class RenderMesh:
         """
         # Retrieve and normalize arguments
         normals = bool(normals)
-
-        # Initialize
-        vertices, indices = self.Topology  # Time consuming...
-
-        # Get obj file name
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-        else:
-            objfile = str(objfile)
 
         # Header
         header = ["# Written by FreeCAD-Render\n"]
@@ -291,13 +249,13 @@ class RenderMesh:
 
         # Vertices
         fmtv = functools.partial(str.format, "v {} {} {}\n")
-        verts = (fmtv(*v) for v in vertices)
+        verts = (fmtv(*v) for v in self.points)
         verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
+            uvs = self.uvtransform(*uv_transformation)
             fmtuv = functools.partial(str.format, "vt {} {}\n")
             uvs = (fmtuv(*t) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
@@ -333,7 +291,8 @@ class RenderMesh:
         joinf = functools.partial(str.join, "")
 
         faces = (
-            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in indices
+            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"])
+            for f in self.facets
         )
         faces = it.chain(["# Faces\n"], faces)
 
@@ -347,14 +306,12 @@ class RenderMesh:
     def _write_objfile_mp(
         self,
         name,
-        objfile=None,
-        mtlfile=None,
-        mtlname=None,
-        mtlcontent=None,
-        normals=True,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
+        objfile,
+        mtlfile,
+        mtlname,
+        mtlcontent,
+        normals,
+        uv_transformation,
     ):
         """Write an OBJ file from a mesh - multi process version.
 
@@ -364,15 +321,7 @@ class RenderMesh:
         normals = bool(normals)
 
         # Initialize
-        vertices, faces = self.Topology  # Time consuming...
-        path = os.path.join(PKGDIR, "writeobj.py")
-
-        # Get obj file name
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-        else:
-            objfile = str(objfile)
+        path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
         # Header
         header = ["# Written by FreeCAD-Render\n"]
@@ -391,13 +340,10 @@ class RenderMesh:
         else:
             mtl = []
 
-        # Vertices
-        verts = (tuple(v) for v in vertices)
-
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = uvtransform(self.uvmap, uv_translate, uv_rotate, uv_scale)
+            uvs = self.uvtransform(*uv_transformation)
         else:
             uvs = []
 
@@ -428,21 +374,120 @@ class RenderMesh:
         inlist = [
             (header, "s"),
             (mtl, "s"),
-            (verts, "v"),
+            (self.points, "v"),
             (uvs, "vt"),
             (norms, "vn"),
             (objname, "s"),
-            (faces, "f"),
+            (self.facets, "f"),
         ]
 
         # Run
         runpy.run_path(
             path,
-            init_globals={"inlist": inlist, "mask": mask, "objfile": objfile},
+            init_globals={
+                "inlist": inlist,
+                "mask": mask,
+                "objfile": objfile,
+                "python": self.python,
+            },
             run_name="__main__",
         )
 
         return objfile
+
+    def uvtransform(self, translate, rotate, scale):
+        """Compute a uv transformation (iterator).
+
+        Args:
+            uvmap -- the uv map to transform
+            translate -- Translation vector (Vector2d)
+            rotate -- Rotation angle in degrees (float)
+            scale -- Scale factor (float)
+        """
+        uvmap = self.uvmap
+        trans_x, trans_y = translate
+
+        scale = float(scale)
+
+        rotate = radians(float(rotate))
+
+        def _000():
+            """Nop."""
+            return iter(uvmap)
+
+        def _00t():
+            """Translate."""
+            return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
+
+        def _0s0():
+            """Scale."""
+            return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
+
+        def _0st():
+            """Scale, translate."""
+            return (
+                (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
+                for vec in uvmap
+            )
+
+        def _r00():
+            """Rotate."""
+            cosr = cos(rotate)
+            sinr = sin(rotate)
+            return (
+                (
+                    vec[0] * cosr - vec[1] * sinr,
+                    vec[0] * sinr + vec[1] * cosr,
+                )
+                for vec in uvmap
+            )
+
+        def _r0t():
+            """Rotate, translate."""
+            cosr = cos(rotate)
+            sinr = sin(rotate)
+            return (
+                (
+                    vec[0] * cosr - vec[1] * sinr + trans_x,
+                    vec[0] * sinr + vec[1] * cosr + trans_y,
+                )
+                for vec in uvmap
+            )
+
+        def _rs0():
+            """Rotate, scale."""
+            cosrs = cos(rotate) * scale
+            sinrs = sin(rotate) * scale
+            return (
+                (
+                    vec[0] * cosrs - vec[1] * sinrs,
+                    vec[0] * sinrs + vec[1] * cosrs,
+                )
+                for vec in uvmap
+            )
+
+        def _rst():
+            """Rotate, scale, translate."""
+            cosrs = cos(rotate) * scale
+            sinrs = sin(rotate) * scale
+            return (
+                (
+                    vec[0] * cosrs - vec[1] * sinrs + trans_x,
+                    vec[0] * sinrs + vec[1] * cosrs + trans_y,
+                )
+                for vec in uvmap
+            )
+
+        # Select and return the right function
+        index = (
+            rotate != 0.0,
+            scale != 1.0,
+            trans_x != 0.0 or trans_y != 0.0,
+        )
+        index = sum(it.compress((4, 2, 1), index))
+        functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
+        return functions[index]()
+
 
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
@@ -475,39 +520,6 @@ class RenderMesh:
         """Get mesh uv map."""
         return self.__uvmap
 
-    def transformed_uvmap(self, translate, rotate, scale):
-        """Returns a transformed uvmap.
-
-        Args:
-            translate -- Translation vector (Vector2d)
-            rotate -- Rotation angle in degrees (float)
-            scale -- Scale factor (float)
-
-        Returns: a transformed uvmap
-        """
-        rotate = float(rotate)
-        scale = float(scale)
-        rotate = radians(rotate)
-        if self.has_uvmap():
-            # Translate, rotate, scale (optionally)
-            uvbase = self.uvmap
-            if translate.x != 0.0 or translate.y != 0.0:
-                uvbase = [
-                    (v[0] + translate.x, v[1] + translate.y) for v in uvbase
-                ]
-            if rotate != 0.0:
-                cosr = cos(rotate)
-                sinr = sin(rotate)
-                uvbase = [
-                    (v[0] * cosr - v[1] * sinr, v[0] * sinr + v[1] * cosr)
-                    for v in uvbase
-                ]
-            if scale != 1.0:
-                uvbase = [(v[0] * scale, v[1] * scale) for v in uvbase]
-        else:
-            uvbase = []
-        return uvbase
-
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
 
@@ -515,7 +527,7 @@ class RenderMesh:
         """
         return [
             self.__uvmap[vertex_index]
-            for triangle in self.__mesh.Topology[1]
+            for triangle in self.__facets
             for vertex_index in triangle
         ]
 
@@ -561,9 +573,9 @@ class RenderMesh:
 
         Refresh self._normals.
         """
-        mesh = self.__mesh
+        mesh = self.__originalmesh
 
-        norms = [App.Base.Vector()] * mesh.CountPoints
+        norms = [App.Base.Vector()] * mesh.count_points
         for facet in mesh.Facets:
             weighted_norm = facet.Normal * facet.Area
             for index in facet.PointIndices:
@@ -599,8 +611,9 @@ class RenderMesh:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [(atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points]
-        regular_mesh.transform(self.__originalplacement.Matrix)
+        uvmap += [
+            (atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
+        ]
         mesh.addMesh(regular_mesh)
 
         # Non Z-normal facets (seam)
@@ -610,19 +623,21 @@ class RenderMesh:
             sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         )
         uvmap += [
-            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
+            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001)
+            for p in points
         ]
-        seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
 
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
         uvmap += [(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)]
-        z_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
+        points, facets = tuple(mesh.Topology)
+        points = [tuple(p) for p in points]
+        self.__points = points
+        self.__facets = facets
         self.__uvmap = uvmap
 
     def _compute_uvmap_sphere(self):
@@ -655,7 +670,6 @@ class RenderMesh:
             )
             for v in vectors
         ]
-        regular_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(regular_mesh)
 
         # Seam facets
@@ -669,11 +683,12 @@ class RenderMesh:
             )
             for v in vectors
         ]
-        seam_mesh.transform(self.__originalplacement.Matrix)
         mesh.addMesh(seam_mesh)
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
+        points, facets = tuple(mesh.Topology)
+        self.__points = [tuple(p) for p in points]
+        self.__facets = facets
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube(self):
@@ -685,7 +700,7 @@ class RenderMesh:
         """
         if (
             PARAMS.GetBool("EnableMultiprocessing")
-            and self.__mesh.CountPoints >= 2000
+            and self.count_points >= 2000
         ):
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             return self._compute_uvmap_cube_mp()
@@ -714,7 +729,6 @@ class RenderMesh:
             cog = self.__originalmesh.CenterOfGravity
         except AttributeError:
             cog = self.center_of_gravity()
-        transmat = self.__originalplacement.Matrix
         for cubeface, facets in enumerate(face_facets):
             facemesh = Mesh.Mesh(facets)
             # Compute uvmap of the submesh
@@ -724,12 +738,14 @@ class RenderMesh:
                 for p in facemesh.Points
             ]
             # Add submesh and uvmap
-            facemesh.transform(transmat)
             mesh.addMesh(facemesh)
             uvmap += facemesh_uvmap
 
         # Replace previous values with newly computed ones
-        self.__mesh = mesh
+        points, facets = tuple(mesh.Topology)
+        points = [tuple(p) for p in points]
+        self.__points = points
+        self.__facets = facets
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube_mp(self):
@@ -740,37 +756,127 @@ class RenderMesh:
         instance)
         """
         # Init variables
-        path = os.path.join(PKGDIR, "uvmap_cube.py")
-        transmat = self.__originalplacement.Matrix
-
-        try:
-            cog = self.__originalmesh.CenterOfGravity
-        except AttributeError:
-            cog = self.center_of_gravity()
+        path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
 
         # Run
-        facets = self.__originalmesh.Facets
         res = runpy.run_path(
             path,
             init_globals={
-                "facets": facets,
-                "cog": tuple(cog),
-                "transmat": transmat,
+                "POINTS": self.__points,
+                "FACETS": self.__facets,
+                "UVMAP": self.__uvmap,
+                "PYTHON": self.python,
             },
             run_name="__main__",
         )
-
-        # Replace previous values with newly computed ones
-        self.__mesh = res["mesh"]
-        self.__uvmap = res["uvmap"]
+        self.__points = res["POINTS"]
+        self.__facets = res["FACETS"]
+        self.__uvmap = res["UVMAP"]
 
         # Clean
-        del res["mesh"]
-        del res["uvmap"]
+        del res["POINTS"]
+        del res["FACETS"]
+        del res["UVMAP"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""
         return bool(self.__uvmap)
+
+
+# ===========================================================================
+#                               RenderTransformation
+# ===========================================================================
+
+
+class _Transformation:
+    """A extension of Placement, implementing also scale."""
+
+    def __init__(self, placement=App.Placement(), scale=1.0):
+        """Initialize transformation."""
+        self.__placement = App.Placement(placement)
+        self.__scale = float(scale)
+
+    def apply_placement(self, placement, left=False):
+        """Apply a FreeCAD placement to this.
+
+        By default, placement is applied on the right, but it can also be
+        applied on the left, with 'left' parameter.
+
+        """
+        placement = App.Placement(placement)
+        if not left:
+            self.__placement *= placement
+        else:
+            placement *= self.__placement
+            self.__placement = placement
+
+    @property
+    def scale(self):
+        """Get scale property."""
+        return self.__scale
+
+    @scale.setter
+    def scale(self, new_scale):
+        """Set scale property."""
+        new_scale = float(new_scale)
+        assert new_scale, "new_scale cannot be zero"
+        self.__scale = new_scale
+
+    # Getters
+    def get_matrix_fcd(self):
+        """Get transformation matrix in FreeCAD format."""
+        mat = App.Matrix(self.__placement.toMatrix())
+
+        # Scale
+        scale = self.__scale
+        mat.scale(self.__scale)
+        mat.A41 *= scale
+        mat.A42 *= scale
+        mat.A43 *= scale
+
+        return mat
+
+    def get_matrix_rows(self):
+        """Get transformation matrix as a list of rows."""
+        mat = self.__placement.Matrix
+
+        # Get plain transfo
+        transfo_rows = [mat.A[i * 4 : (i + 1) * 4] for i in range(4)]
+
+        # Apply scale
+        transfo_rows = [
+            [val * self.__scale if rownumber < 3 else val for val in row]
+            for rownumber, row in enumerate(transfo_rows)
+        ]
+        return transfo_rows
+
+    def get_matrix_columns(self):
+        """Get transformation matrix as a list of columns."""
+        transfo_rows = self.get_matrix_rows()
+        transfo_cols = list(zip(*transfo_rows))
+        return transfo_cols
+
+    def get_translation(self):
+        """Get translation component."""
+        scale = self.__scale
+        return tuple(v * scale for v in tuple(self.__placement.Base))
+
+    def get_rotation_qtn(self):
+        """Get rotation component as a quaternion."""
+        return tuple(self.__placement.Rotation.Q)
+
+    def get_rotation_ypr(self):
+        """Get rotation component as yaw-pitch-roll angles."""
+        return self.__placement.Rotation.getYawPitchRoll()
+
+    def get_scale(self):
+        """Get scale component as single scalar."""
+        return self.__scale
+
+    def get_scale_vector(self):
+        """Get scale component as vector."""
+        scale = self.__scale
+        return (scale, scale, scale)
 
 
 # ===========================================================================
@@ -946,94 +1052,14 @@ def _pos_atan2(p_x, p_y):
     return atan2_xy if atan2_xy >= 0 else atan2_xy + 2 * pi
 
 
-def uvtransform(uvmap, translate, rotate, scale):
-    """Compute a uv transformation (iterator).
+def _find_python():
+    """Find Python executable."""
+    python = shutil.which("pythonw")
+    if python:
+        return python
 
-    Args:
-        uvmap -- the uv map to transform
-        translate -- Translation vector (Vector2d)
-        rotate -- Rotation angle in degrees (float)
-        scale -- Scale factor (float)
-    """
-    trans_x, trans_y = translate
+    python = shutil.which("python")
+    if python:
+        return python
 
-    scale = float(scale)
-
-    rotate = radians(float(rotate))
-
-    def _000():
-        """Nop."""
-        return iter(uvmap)
-
-    def _00t():
-        """Translate."""
-        return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
-
-    def _0s0():
-        """Scale."""
-        return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
-
-    def _0st():
-        """Scale, translate."""
-        return (
-            (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
-            for vec in uvmap
-        )
-
-    def _r00():
-        """Rotate."""
-        cosr = cos(rotate)
-        sinr = sin(rotate)
-        return (
-            (
-                vec[0] * cosr - vec[1] * sinr,
-                vec[0] * sinr + vec[1] * cosr,
-            )
-            for vec in uvmap
-        )
-
-    def _r0t():
-        """Rotate, translate."""
-        cosr = cos(rotate)
-        sinr = sin(rotate)
-        return (
-            (
-                vec[0] * cosr - vec[1] * sinr + trans_x,
-                vec[0] * sinr + vec[1] * cosr + trans_y,
-            )
-            for vec in uvmap
-        )
-
-    def _rs0():
-        """Rotate, scale."""
-        cosrs = cos(rotate) * scale
-        sinrs = sin(rotate) * scale
-        return (
-            (
-                vec[0] * cosrs - vec[1] * sinrs,
-                vec[0] * sinrs + vec[1] * cosrs,
-            )
-            for vec in uvmap
-        )
-
-    def _rst():
-        """Rotate, scale, translate."""
-        cosrs = cos(rotate) * scale
-        sinrs = sin(rotate) * scale
-        return (
-            (
-                vec[0] * cosrs - vec[1] * sinrs + trans_x,
-                vec[0] * sinrs + vec[1] * cosrs + trans_y,
-            )
-            for vec in uvmap
-        )
-
-    # Select and return the right function
-    index = (
-        rotate != 0.0,
-        scale != 1.0,
-        trans_x != 0.0 or trans_y != 0.0,
-    )
-    index = sum(it.compress((4, 2, 1), index))
-    functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
-    return functions[index]()
+    return None

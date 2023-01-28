@@ -27,6 +27,21 @@
 # https://github.com/mmp/pbrt-v4-scenes
 # https://pbrt.org/
 
+# NOTE:
+# Please note that pbrt coordinate system appears to be different from
+# FreeCAD's one (z and y permuted)
+# See here:
+# https://www.pbr-book.org/3ed-2018/Geometry_and_Transformations/Coordinate_Systems#CoordinateSystemHandedness
+#
+# FreeCAD (z is up):         Pbrt (y is up):
+#
+#
+#  z  y                         y  z
+#  | /                          | /
+#  .--x                         .--x
+#
+# (same as povray)
+
 import os
 import re
 import math
@@ -34,11 +49,6 @@ import itertools
 import textwrap
 
 import FreeCAD as App
-
-# Transformation matrix from fcd coords to osp coords
-TRANSFORM = App.Placement(
-    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
-)
 
 TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 
@@ -53,14 +63,12 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         name, _write_texture, _write_value, _write_texref
     )
     material = _write_material(name, matval)
-    pnts = [
-        f"{p.x:+18.8f} {p.y:+18.8f} {p.z:+18.8f}" for p in mesh.Topology[0]
-    ]
+    pnts = [f"{p[0]:+18.8f} {p[1]:+18.8f} {p[2]:+18.8f}" for p in mesh.points]
     ind_precision = math.ceil(math.log10(len(pnts)))
     pnts = _format_list(pnts, 2)
     inds = [
         f"{i[0]:{ind_precision}} {i[1]:{ind_precision}} {i[2]:{ind_precision}}"
-        for i in mesh.Topology[1]
+        for i in mesh.facets
     ]
     inds = _format_list(inds, 5)
     if mesh.has_uvmap():
@@ -98,8 +106,21 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     else:
         normals = ""
 
+    # Transformation
+    # (see https://www.povray.org/documentation/3.7.0/r3_3.html#r3_3_1_12_4)
+    transfo = mesh.transformation
+    yaw, pitch, roll = transfo.get_rotation_ypr()
+    scale = transfo.scale
+    posx, posy, posz = transfo.get_translation()
+
     snippet = f"""# Object '{name}'
 AttributeBegin
+
+  Translate {posx:+15.8f} {posy:+15.8f} {posz:+15.8f}
+  Rotate    {yaw:+15.8f}  0 0 1
+  Rotate    {pitch:+15.8f}  0 1 0
+  Rotate    {roll:+15.8f}  1 0 0
+  Scale     {scale:+15.8f} {scale:+15.8f} {scale:+15.8f}
 
 {matval.write_textures()}
 {material}
@@ -568,7 +589,15 @@ def _format_list(inlist, elements_per_line, indentation=6):
 
 
 def render(
-    project, prefix, batch, input_file, output_file, width, height, spp, denoise
+    project,
+    prefix,
+    batch,
+    input_file,
+    output_file,
+    width,
+    height,
+    spp,
+    denoise,
 ):
     """Generate renderer command.
 

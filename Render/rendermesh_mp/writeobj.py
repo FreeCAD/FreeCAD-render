@@ -75,21 +75,9 @@ def func_s(val):
 # Main
 if __name__ == "__main__":
     import os
+    import sys
     import shutil
     import itertools
-
-    # Set directory and stdout
-    save_dir = os.getcwd()
-    os.chdir(os.path.dirname(__file__))
-
-    # Set executable
-    executable = shutil.which("pythonw")
-    if not executable:
-        executable = shutil.which("python")
-        if not executable:
-            raise RuntimeError("No Python executable")
-    mp.set_executable(executable)
-    mp.set_start_method("spawn", force=True)
 
     # Get variables
     # pylint: disable=used-before-assignment
@@ -107,6 +95,20 @@ if __name__ == "__main__":
         objfile
     except NameError:
         objfile = "tmp.obj"  # pylint: disable=invalid-name
+
+    assert python, "No Python executable provided."
+
+    # Set working directory
+    save_dir = os.getcwd()
+    os.chdir(os.path.dirname(__file__))
+
+    # Set stdin
+    save_stdin = sys.stdin
+    sys.stdin = sys.__stdin__
+
+    # Set executable
+    mp.set_executable(python)
+    mp.set_start_method("spawn", force=True)
 
     # Parse format
     functions = {
@@ -132,3 +134,4 @@ if __name__ == "__main__":
                 f.writelines(result)
     finally:
         os.chdir(save_dir)
+        sys.stdin = save_stdin

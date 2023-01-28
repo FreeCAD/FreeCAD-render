@@ -60,7 +60,7 @@ SHADERS_DIR = os.path.join(os.path.dirname(__file__), "as_shaders")
 # ===========================================================================
 
 # Transformation matrix from fcd coords to appleseed coords
-TRANSFORM = App.Placement(
+PLACEMENT = App.Placement(
     App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
 )
 
@@ -79,14 +79,12 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         name, objfile=basefilename, normals=vertex_normals
     )
 
-    # Compute transformation from FCD coordinates to Appleseed ones
-    transform = TRANSFORM.copy()
-    transform.multiply(mesh.Placement)
-    transform.inverse()
-    transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
+    # Compute OBJ transformation
+    # including transfo from FCD coordinates to Appleseed ones
+    mesh.transformation.apply_placement(PLACEMENT, left=True)
     transfo_rows = [
         f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
-        for r in transfo_rows
+        for r in mesh.transformation.get_matrix_rows()
     ]
 
     # Format output
