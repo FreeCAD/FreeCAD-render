@@ -255,7 +255,7 @@ class RenderMesh:
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = uvtransform(self.uvmap, *uv_transformation)
+            uvs = self.uvtransform(*uv_transformation)
             fmtuv = functools.partial(str.format, "vt {} {}\n")
             uvs = (fmtuv(*t) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
@@ -343,7 +343,7 @@ class RenderMesh:
         # UV
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
-            uvs = uvtransform(self.uvmap, *uv_transformation)
+            uvs = self.uvtransform(*uv_transformation)
         else:
             uvs = []
 
@@ -394,6 +394,100 @@ class RenderMesh:
         )
 
         return objfile
+
+    def uvtransform(self, translate, rotate, scale):
+        """Compute a uv transformation (iterator).
+
+        Args:
+            uvmap -- the uv map to transform
+            translate -- Translation vector (Vector2d)
+            rotate -- Rotation angle in degrees (float)
+            scale -- Scale factor (float)
+        """
+        uvmap = self.uvmap
+        trans_x, trans_y = translate
+
+        scale = float(scale)
+
+        rotate = radians(float(rotate))
+
+        def _000():
+            """Nop."""
+            return iter(uvmap)
+
+        def _00t():
+            """Translate."""
+            return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
+
+        def _0s0():
+            """Scale."""
+            return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
+
+        def _0st():
+            """Scale, translate."""
+            return (
+                (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
+                for vec in uvmap
+            )
+
+        def _r00():
+            """Rotate."""
+            cosr = cos(rotate)
+            sinr = sin(rotate)
+            return (
+                (
+                    vec[0] * cosr - vec[1] * sinr,
+                    vec[0] * sinr + vec[1] * cosr,
+                )
+                for vec in uvmap
+            )
+
+        def _r0t():
+            """Rotate, translate."""
+            cosr = cos(rotate)
+            sinr = sin(rotate)
+            return (
+                (
+                    vec[0] * cosr - vec[1] * sinr + trans_x,
+                    vec[0] * sinr + vec[1] * cosr + trans_y,
+                )
+                for vec in uvmap
+            )
+
+        def _rs0():
+            """Rotate, scale."""
+            cosrs = cos(rotate) * scale
+            sinrs = sin(rotate) * scale
+            return (
+                (
+                    vec[0] * cosrs - vec[1] * sinrs,
+                    vec[0] * sinrs + vec[1] * cosrs,
+                )
+                for vec in uvmap
+            )
+
+        def _rst():
+            """Rotate, scale, translate."""
+            cosrs = cos(rotate) * scale
+            sinrs = sin(rotate) * scale
+            return (
+                (
+                    vec[0] * cosrs - vec[1] * sinrs + trans_x,
+                    vec[0] * sinrs + vec[1] * cosrs + trans_y,
+                )
+                for vec in uvmap
+            )
+
+        # Select and return the right function
+        index = (
+            rotate != 0.0,
+            scale != 1.0,
+            trans_x != 0.0 or trans_y != 0.0,
+        )
+        index = sum(it.compress((4, 2, 1), index))
+        functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
+        return functions[index]()
+
 
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
@@ -956,99 +1050,6 @@ def _pos_atan2(p_x, p_y):
     """Wrap atan2 to get only positive values (seam treatment)."""
     atan2_xy = atan2(p_x, p_y)
     return atan2_xy if atan2_xy >= 0 else atan2_xy + 2 * pi
-
-
-def uvtransform(uvmap, translate, rotate, scale):
-    """Compute a uv transformation (iterator).
-
-    Args:
-        uvmap -- the uv map to transform
-        translate -- Translation vector (Vector2d)
-        rotate -- Rotation angle in degrees (float)
-        scale -- Scale factor (float)
-    """
-    trans_x, trans_y = translate
-
-    scale = float(scale)
-
-    rotate = radians(float(rotate))
-
-    def _000():
-        """Nop."""
-        return iter(uvmap)
-
-    def _00t():
-        """Translate."""
-        return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
-
-    def _0s0():
-        """Scale."""
-        return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
-
-    def _0st():
-        """Scale, translate."""
-        return (
-            (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
-            for vec in uvmap
-        )
-
-    def _r00():
-        """Rotate."""
-        cosr = cos(rotate)
-        sinr = sin(rotate)
-        return (
-            (
-                vec[0] * cosr - vec[1] * sinr,
-                vec[0] * sinr + vec[1] * cosr,
-            )
-            for vec in uvmap
-        )
-
-    def _r0t():
-        """Rotate, translate."""
-        cosr = cos(rotate)
-        sinr = sin(rotate)
-        return (
-            (
-                vec[0] * cosr - vec[1] * sinr + trans_x,
-                vec[0] * sinr + vec[1] * cosr + trans_y,
-            )
-            for vec in uvmap
-        )
-
-    def _rs0():
-        """Rotate, scale."""
-        cosrs = cos(rotate) * scale
-        sinrs = sin(rotate) * scale
-        return (
-            (
-                vec[0] * cosrs - vec[1] * sinrs,
-                vec[0] * sinrs + vec[1] * cosrs,
-            )
-            for vec in uvmap
-        )
-
-    def _rst():
-        """Rotate, scale, translate."""
-        cosrs = cos(rotate) * scale
-        sinrs = sin(rotate) * scale
-        return (
-            (
-                vec[0] * cosrs - vec[1] * sinrs + trans_x,
-                vec[0] * sinrs + vec[1] * cosrs + trans_y,
-            )
-            for vec in uvmap
-        )
-
-    # Select and return the right function
-    index = (
-        rotate != 0.0,
-        scale != 1.0,
-        trans_x != 0.0 or trans_y != 0.0,
-    )
-    index = sum(it.compress((4, 2, 1), index))
-    functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
-    return functions[index]()
 
 
 def _find_python():
