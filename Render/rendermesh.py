@@ -35,7 +35,7 @@ import tempfile
 import itertools as it
 import functools
 import time
-from math import pi, atan2, asin, isclose, radians, degrees, cos, sin, hypot
+from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import runpy
 import shutil
 import copy
@@ -63,7 +63,6 @@ class RenderMesh:
     def __init__(
         self,
         mesh=None,
-        uvmap=None,  # TODO Useful?
         normals=None,
     ):
         """Initialize RenderMesh.
@@ -76,14 +75,14 @@ class RenderMesh:
             # First we make a copy of the mesh, we separate mesh and
             # placement and we set the mesh at its origin (null placement)
             self.__originalmesh = mesh.copy()
-            self.__placement = mesh.Placement.copy()
             self.__originalmesh.Placement = App.Base.Placement()
-            self.__scale = 1
+
+            # We initialize mesh transformation
+            self.__transformation = _Transformation(mesh.Placement)
 
             # Then we store the topology in internal structures
             points, facets = self.__originalmesh.Topology
-            points = [tuple(p) for p in points]
-            self.__points = points
+            self.__points = [tuple(p) for p in points]
             self.__facets = facets
 
             # We store normals (#TODO)
@@ -93,12 +92,12 @@ class RenderMesh:
                 else list(mesh.getPointNormals())
             )
         else:
+            self.transformation = _Transformation()
             self.__points = []
             self.__facets = []
             self.__normals = []
 
-        # uvmap
-        self.__uvmap = uvmap if bool(uvmap) else []
+        self.__uvmap = []
 
         # Python
         self.multiprocessing = False
@@ -116,9 +115,6 @@ class RenderMesh:
         # Caveat: this is a shallow copy!
         new_mesh = copy.copy(self)
 
-        # We make a fresh copy of placement, to be able to modify it
-        new_mesh.__placement = self.__placement.copy()
-
         # Caveat: we don't copy the __originalmesh (Mesh.Mesh)
         # So we point on the same object, which should not be modified
         return new_mesh
@@ -127,108 +123,29 @@ class RenderMesh:
         """Get the normals for each point."""
         return self.__normals
 
-    def rotate(self, angle_x, angle_y, angle_z):
-        """Apply a rotation to the mesh.
-
-        Args:
-            angle_x, angle_y, angle_z -- angles in radians
-        """
-        rotation = App.Base.Rotation(
-            degrees(angle_z), degrees(angle_y), degrees(angle_x)
-        )
-        self.__points = [
-            tuple(rotation.multVec(App.Base.Vector(*p))) for p in self.__points
-        ]
-        self.__normals = [rotation.multVec(v) for v in self.__normals]
-
-    def transform(self, matrix, left=False):
-        """Apply a transformation to the mesh placement.
-
-        Nota bene: only mesh placement is updated, not underlying data.
-        """
-        if not left:
-            self.__placement.Matrix *= matrix
-        else:
-            tmp = App.Placement(matrix)
-            tmp.Matrix *= self.__placement.Matrix
-            self.__placement = tmp
-
-    def set_scale(self, scale):
-        """Modify mesh scale.
-
-        Nota bene: only mesh scale is updated, not underlying data.
-        """
-        self.__scale = scale
-
-    def get_transformation_matrix(self):
-        mat = App.Matrix(self.__placement.toMatrix())
-
-        # Scale
-        scale = self.__scale
-        mat.scale(self.__scale)
-        mat.A41 *= scale
-        mat.A42 *= scale
-        mat.A43 *= scale
-
-        return mat
-
-    def get_transformation_ypr(self):
-        return self.__placement.Rotation.getYawPitchRoll()
-
-    def get_transformation_scale(self):
-        return self.__scale
-
-    def get_transformation_translation(self):
-        scale = self.__scale
-        return tuple(x * scale for x in self.__placement.Base)
-
-    def get_transformation_rows(self):
-        """Get transformation matrix, including scale."""
-        mat = self.__placement.Matrix
-
-        # Get plain transfo
-        transfo_rows = [mat.A[i * 4 : (i + 1) * 4] for i in range(4)]
-
-        # Apply scale
-        transfo_rows = [
-            [val * self.__scale if rownumber < 3 else val for val in row]
-            for rownumber, row in enumerate(transfo_rows)
-        ]
-        return transfo_rows
-
-    def get_transformation_cols(self):
-        """Get transformation matrix, including scale."""
-        transfo_rows = self.get_transformation_rows()
-        transfo_cols = list(zip(*transfo_rows))
-        return transfo_cols
-
-    def get_translation(self):
-        scale = self.__scale
-        return tuple(v * scale for v in tuple(self.__placement.Base))
-
-    def get_rotation(self):
-        return tuple(self.__placement.Rotation.Q)
-
-    def get_scale(self):
-        scale = self.__scale
-        return (scale, scale, scale)
+    @property
+    def transformation(self):
+        """Get the mesh transformation."""
+        return self.__transformation
 
     @property
     def points(self):
-        """Get a collection of the mesh points (iterator)."""
+        """Get a collection of the mesh points."""
         return self.__points
 
     @property
     def count_points(self):
+        """Get the number of points."""
         return len(self.__points)
 
     @property
     def facets(self):
-        """Get a collection of the mesh facets (iterator)."""
+        """Get a collection of the mesh facets."""
         return self.__facets
 
     @property
     def count_facets(self):
+        """Get the number of facets."""
         return len(self.__facets)
 
     def write_objfile(
@@ -820,10 +737,11 @@ class RenderMesh:
 #                               RenderTransformation
 # ===========================================================================
 
+
 class _Transformation:
     """A extension of Placement, implementing also scale."""
 
-    def __init__(placement=App.Placement(), scale=1.0):
+    def __init__(self, placement=App.Placement(), scale=1.0):
         """Initialize transformation."""
         self.__placement = App.Placement(placement)
         self.__scale = float(scale)
@@ -841,6 +759,18 @@ class _Transformation:
         else:
             placement *= self.__placement
             self.__placement = placement
+
+    @property
+    def scale(self):
+        """Get scale property."""
+        return self.__scale
+
+    @scale.setter
+    def scale(self, new_scale):
+        """Set scale property."""
+        new_scale = float(new_scale)
+        assert new_scale, "new_scale cannot be zero"
+        self.__scale = new_scale
 
     # Getters
     def get_matrix_fcd(self):
@@ -872,7 +802,7 @@ class _Transformation:
 
     def get_matrix_columns(self):
         """Get transformation matrix as a list of columns."""
-        transfo_rows = self.get_transformation_rows()
+        transfo_rows = self.get_matrix_rows()
         transfo_cols = list(zip(*transfo_rows))
         return transfo_cols
 
@@ -881,7 +811,7 @@ class _Transformation:
         scale = self.__scale
         return tuple(v * scale for v in tuple(self.__placement.Base))
 
-    def get_rotation_quaternion(self):
+    def get_rotation_qtn(self):
         """Get rotation component as a quaternion."""
         return tuple(self.__placement.Rotation.Q)
 

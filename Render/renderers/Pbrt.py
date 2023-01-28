@@ -63,12 +63,12 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         name, _write_texture, _write_value, _write_texref
     )
     material = _write_material(name, matval)
-    pnts = [f"{p[0]:+18.8f} {p[1]:+18.8f} {p[2]:+18.8f}" for p in mesh.Points]
+    pnts = [f"{p[0]:+18.8f} {p[1]:+18.8f} {p[2]:+18.8f}" for p in mesh.points]
     ind_precision = math.ceil(math.log10(len(pnts)))
     pnts = _format_list(pnts, 2)
     inds = [
         f"{i[0]:{ind_precision}} {i[1]:{ind_precision}} {i[2]:{ind_precision}}"
-        for i in mesh.Facets
+        for i in mesh.facets
     ]
     inds = _format_list(inds, 5)
     if mesh.has_uvmap():
@@ -108,9 +108,10 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # Transformation
     # (see https://www.povray.org/documentation/3.7.0/r3_3.html#r3_3_1_12_4)
-    yaw, pitch, roll = mesh.get_transformation_ypr()
-    scale = mesh.get_transformation_scale()
-    posx, posy, posz = mesh.get_transformation_translation()
+    transfo = mesh.transformation
+    yaw, pitch, roll = transfo.get_rotation_ypr()
+    scale = transfo.scale
+    posx, posy, posz = transfo.get_translation()
 
     snippet = f"""# Object '{name}'
 AttributeBegin

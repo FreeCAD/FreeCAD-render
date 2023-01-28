@@ -29,7 +29,6 @@
 import os
 from textwrap import dedent
 import configparser
-import itertools as it
 
 import FreeCAD as App
 
@@ -78,14 +77,15 @@ scene.materials.{name}.bumptex = {matval["normal"]}
         snippet_bump = ""
 
     # Points, vertices and normals
-    points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Points]
+    points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
     points = " ".join(points)
-    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.Facets]
+    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.facets]
     tris = " ".join(tris)
     nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     nrms = " ".join(nrms)
     trans = [
-        " ".join(str(v) for v in col) for col in mesh.get_transformation_cols()
+        " ".join(str(v) for v in col)
+        for col in mesh.transformation.get_matrix_columns()
     ]
     trans = "  ".join(trans)
 

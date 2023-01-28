@@ -60,7 +60,7 @@ SHADERS_DIR = os.path.join(os.path.dirname(__file__), "as_shaders")
 # ===========================================================================
 
 # Transformation matrix from fcd coords to appleseed coords
-TRANSFORM = App.Placement(
+PLACEMENT = App.Placement(
     App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
 )
 
@@ -81,20 +81,11 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # Compute OBJ transformation
     # including transfo from FCD coordinates to Appleseed ones
-    as_transform = TRANSFORM.copy()
-    mesh.transform(as_transform.toMatrix(), left=True)
-
+    mesh.transformation.apply_placement(PLACEMENT, left=True)
     transfo_rows = [
         f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
-        for r in mesh.get_transformation_rows()
+        for r in mesh.transformation.get_matrix_rows()
     ]
-    # TODO
-    # transform.multiply(mesh.Placement)
-    # transfo_rows = [transform.Matrix.A[i * 4 : (i + 1) * 4] for i in range(4)]
-    # transfo_rows = [
-    # f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
-    # for r in transfo_rows
-    # ]
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials

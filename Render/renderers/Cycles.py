@@ -79,11 +79,11 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
 
     snippet_mat = _write_material(name, matval)
 
-    points = [_write_point(p) for p in mesh.Points]
+    points = [_write_point(p) for p in mesh.points]
     points = "  ".join(points)
-    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.Facets]
+    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.facets]
     verts = "  ".join(verts)
-    nverts = ["3"] * mesh.CountFacets
+    nverts = ["3"] * mesh.count_facets
     nverts = "  ".join(nverts)
     norms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
     norms = "  ".join(norms)
@@ -96,7 +96,8 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
         uv_statement = ""
 
     trans = [
-        " ".join(str(v) for v in col) for col in mesh.get_transformation_cols()
+        " ".join(str(v) for v in col)
+        for col in mesh.transformation.get_matrix_columns()
     ]
     trans = "  ".join(trans)
 

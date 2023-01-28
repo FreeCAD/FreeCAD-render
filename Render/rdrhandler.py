@@ -342,7 +342,7 @@ class RendererHandler:
         mat = rendermaterial.get_rendering_material(None, "", color)
 
         # Rescale to meters
-        mesh.set_scale(SCALE)
+        mesh.transformation.scale = SCALE
 
         res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
 
@@ -441,7 +441,7 @@ class RendererHandler:
 
         # Rescale to meters
         for rend in rends:
-            rend.mesh.set_scale(SCALE)
+            rend.mesh.transformation.scale = SCALE
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(

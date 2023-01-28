@@ -44,12 +44,12 @@ import json
 import os
 import os.path
 import tempfile
-from math import degrees, asin, sqrt, atan2, pi, radians
+from math import degrees, asin, sqrt, atan2, radians
 
 import FreeCAD as App
 
-# Transformation matrix from fcd coords to osp coords
-TRANSFORM = App.Placement(
+# Transformation from fcd coords to osp coords
+PLACEMENT = App.Placement(
     App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
 )
 
@@ -69,8 +69,8 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # Compute OBJ transformation
     # including transfo from FCD coordinates to ospray ones
-    osp_transform = TRANSFORM.copy()
-    mesh.transform(osp_transform.toMatrix(), left=True)
+    osp_placement = PLACEMENT.copy()
+    mesh.transformation.apply_placement(osp_placement, left=True)
 
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_")
     objfile = mesh.write_objfile(
@@ -94,11 +94,12 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     transform_name = f"{transform_name}_rootXfm"
 
     # Compute transformation components
-    translation = ", ".join(str(v) for v in mesh.get_translation())
+    transfo = mesh.transformation
+    translation = ", ".join(str(v) for v in transfo.get_translation())
     rotation = ", ".join(
-        f'"{k}": {v}' for k, v in zip("ijkr", mesh.get_rotation())
+        f'"{k}": {v}' for k, v in zip("ijkr", transfo.get_rotation_qtn())
     )
-    scale = ", ".join(str(v) for v in mesh.get_scale())
+    scale = ", ".join(str(v) for v in transfo.get_scale_vector())
 
     snippet_obj = f"""
       {{
@@ -155,7 +156,7 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     # sg camera
     # As a workaround, we use a gltf file...
 
-    plc = TRANSFORM.multiply(pos)
+    plc = PLACEMENT.multiply(pos)
     base = plc.Base
     rot = plc.Rotation.Q
     fov = radians(fov)
@@ -263,7 +264,7 @@ def write_pointlight(name, pos, color, power):
           }}
         ]
       }},"""
-    osp_pos = TRANSFORM.multVec(pos)
+    osp_pos = PLACEMENT.multVec(pos)
     return snippet.format(n=json.dumps(name), c=color, p=osp_pos, s=power)
 
 
@@ -292,7 +293,7 @@ transparency {transparency}
         f.write(mtl)
 
     # Write obj file (geometry)
-    osp_pos = TRANSFORM.multiply(pos)
+    osp_pos = PLACEMENT.multiply(pos)
     verts = [
         (-size_u, -size_v, 0),
         (+size_u, -size_v, 0),
@@ -341,7 +342,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     #  - West (270°) is -x (-1, 0, 0)
     # We'll compute elevation and azimuth accordingly...
 
-    _dir = TRANSFORM.multVec(App.Vector(direction))
+    _dir = PLACEMENT.multVec(App.Vector(direction))
     elevation = asin(_dir.y / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
     azimuth = atan2(_dir.x, _dir.z)
     snippet = """
