@@ -143,9 +143,12 @@ scene.shapes.{name}_mesh.faces = {tris}
 
 def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     """Compute a string in renderer SDL to represent a camera."""
-    # Nota: Luxcore use an horizontal fov, so we have to convert...
+    # The Luxcore fov is in the largest image dimension, so for the typical
+    # case where the image width is larger than the height the vertical fov
+    # used by FreeCAD needs to be converted to a horizontal fov
     orig = pos.Base
-    fov = fovy_to_fovx(fov, *resolution)
+    if resolution[0] > resolution[1]:  # aspect ratio > 1
+        fov = fovy_to_fovx(fov, *resolution)
 
     snippet = f"""
 # Camera '{name}'
