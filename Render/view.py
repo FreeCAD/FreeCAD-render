@@ -86,6 +86,28 @@ class View(FeatureBase):
             ("Cubic", "Spherical", "Cylindric"),
             0,
         ),
+        "AutoSmooth": Prop(
+            "App::PropertyBool",
+            "Smooth",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Enable normal auto smoothing",
+            ),
+            False,
+            0,
+        ),
+        "AutoSmoothAngle": Prop(
+            "App::PropertyAngle",
+            "Smooth",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Edges where an angle between the faces is smaller "
+                "than specified in this Angle field will be smoothed, "
+                "when auto smooth is enabled",
+            ),
+            30,
+            0,
+        ),
     }
 
     @classmethod
