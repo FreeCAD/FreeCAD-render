@@ -1056,10 +1056,12 @@ def _find_python():
     """Find Python executable."""
     python = shutil.which("pythonw")
     if python:
+        python = os.path.abspath(python)
         return python
 
     python = shutil.which("python")
     if python:
+        python = os.path.abspath(python)
         return python
 
     return None
