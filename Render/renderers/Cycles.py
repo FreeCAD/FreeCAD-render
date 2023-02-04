@@ -70,7 +70,7 @@ TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Compute material values
     matval = material.get_material_values(
@@ -114,7 +114,7 @@ def write_mesh(name, mesh, material, vertex_normals=False, **kwargs):
     </state>
 </transform>
 """
-        if vertex_normals
+        if mesh.has_vnormals()
         else f"""
 <transform matrix="{trans}">
     <state shader="{name}">

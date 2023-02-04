@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2022 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -44,6 +44,7 @@ import FreeCAD as App
 import Mesh
 
 from Render.constants import PKGDIR, PARAMS
+import Render.rendermesh_mp.vector3d as vector3d
 
 
 # ===========================================================================
@@ -63,7 +64,7 @@ class RenderMesh:
     def __init__(
         self,
         mesh=None,
-        normals=None,
+        recompute_normals=True,
     ):
         """Initialize RenderMesh.
 
@@ -71,6 +72,9 @@ class RenderMesh:
             mesh -- a Mesh.Mesh object from which to initialize
             uvmap -- a given uv map for initialization
         """
+        self.__vnormals = []
+        self.__uvmap = []
+
         if mesh:
             # First we make a copy of the mesh, we separate mesh and
             # placement and we set the mesh at its origin (null placement)
@@ -85,19 +89,17 @@ class RenderMesh:
             self.__points = [tuple(p) for p in points]
             self.__facets = facets
 
-            # We store normals (#TODO)
-            self.__normals = (
-                normals
-                if normals is not None
-                else list(mesh.getPointNormals())
-            )
+            # We store vertex normals
+            if recompute_normals:
+                self.compute_normals()
+            else:
+                self.__vnormals = list(mesh.getPointNormals())
+
         else:
             self.transformation = _Transformation()
             self.__points = []
             self.__facets = []
-            self.__normals = []
 
-        self.__uvmap = []
 
         # Python
         self.multiprocessing = False
@@ -124,7 +126,7 @@ class RenderMesh:
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
-        return self.__normals
+        return self.__vnormals
 
     @property
     def transformation(self):
@@ -266,8 +268,8 @@ class RenderMesh:
             uvs = []
 
         # Vertex normals
-        if normals:
-            norms = self.__normals
+        if self.has_vnormals():
+            norms = self.__vnormals
             fmtn = functools.partial(str.format, "vn {} {} {}\n")
             norms = (fmtn(*n) for n in norms)
             norms = it.chain(["# Vertex normals\n"], norms, ["\n"])
@@ -281,11 +283,11 @@ class RenderMesh:
         objname.append("\n")
 
         # Faces
-        if normals and self.has_uvmap():
+        if self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}/{0}"
-        elif not normals and self.has_uvmap():
+        elif not self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}"
-        elif normals and not self.has_uvmap():
+        elif self.has_vnormals() and not self.has_uvmap():
             mask = " {0}//{0}"
         else:
             mask = " {}"
@@ -351,10 +353,8 @@ class RenderMesh:
             uvs = []
 
         # Vertex normals
-        if normals:
-            norms = self.__normals
-            fmtn = functools.partial(str.format, "vn {} {} {}\n")
-            norms = (fmtn(*n) for n in norms)
+        if self.has_vnormals():
+            norms = self.__vnormals
         else:
             norms = []
 
@@ -365,11 +365,11 @@ class RenderMesh:
         objname.append("\n")
 
         # Faces
-        if normals and self.has_uvmap():
+        if self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}/{0}"
-        elif not normals and self.has_uvmap():
+        elif not self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}"
-        elif normals and not self.has_uvmap():
+        elif self.has_vnormals() and not self.has_uvmap():
             mask = " {0}//{0}"
         else:
             mask = " {}"
@@ -571,22 +571,6 @@ class RenderMesh:
         App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
         # self.compute_normals()  TODO
 
-    def compute_normals(self):
-        """Compute point normals.
-
-        Refresh self._normals.
-        """
-        mesh = self.__originalmesh
-
-        norms = [App.Base.Vector()] * mesh.count_points
-        for facet in mesh.Facets:
-            weighted_norm = facet.Normal * facet.Area
-            for index in facet.PointIndices:
-                norms[index] += weighted_norm
-        for norm in norms:
-            norm.normalize()
-        self.__normals = norms
-
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
 
@@ -643,6 +627,9 @@ class RenderMesh:
         self.__facets = facets
         self.__uvmap = uvmap
 
+        # Recompute normals
+        self.compute_normals()
+
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
         # Split mesh into 2 submeshes:
@@ -694,6 +681,9 @@ class RenderMesh:
         self.__facets = facets
         self.__uvmap = uvmap
 
+        # Recompute normals
+        self.compute_normals()
+
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case.
 
@@ -706,10 +696,13 @@ class RenderMesh:
             and self.count_points >= 2000
         ):
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
-            return self._compute_uvmap_cube_mp()
+            func = self._compute_uvmap_cube_mp
+        else:
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            func = self._compute_uvmap_cube_sp
 
-        App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
-        return self._compute_uvmap_cube_sp()
+        func()
+        self.compute_normals()
 
     def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
@@ -785,6 +778,47 @@ class RenderMesh:
         """Check if object has a uv map."""
         return bool(self.__uvmap)
 
+    # TODO
+    def compute_normals_old(self):
+        """Compute vertex normals.
+
+        Refresh self._normals.
+        """
+        print("OLD COMPUTE NORMALS")
+        mesh = self.__originalmesh
+
+        norms = [App.Base.Vector()] * mesh.CountPoints
+        for facet in mesh.Facets:
+            weighted_norm = facet.Normal * facet.Area
+            for index in facet.PointIndices:
+                norms[index] += weighted_norm
+        for norm in norms:
+            norm.normalize()
+        self.__vnormals = norms
+
+    def compute_normals(self):
+        """Compute vertex normals.
+
+        Refresh self._normals.
+        """
+        # TODO Optimize
+        norms = [(0,0,0)] * self.count_points
+        for facet in self.__facets:
+            triangle = [self.__points[i] for i in facet]
+            weighted_norm = vector3d.normal(triangle)
+            for point_index in facet:
+                norms[point_index] = vector3d.add(norms[point_index], weighted_norm)
+
+        # Normalize
+        # for norm in norms:
+            # length = vector3d.length(norm)
+            # norm = vector3d.fdiv(norm, length) if length else (0.0, 0.0, 0.0)
+
+        self.__vnormals = norms
+
+    def has_vnormals(self):
+        """Check if object has a normals."""
+        return bool(self.__vnormals)
 
 # ===========================================================================
 #                               RenderTransformation

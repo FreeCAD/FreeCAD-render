@@ -41,7 +41,7 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Material values
     matval = material.get_material_values(
@@ -123,7 +123,7 @@ scene.shapes.{name}_mesh.type = inlinedmesh
 scene.shapes.{name}_mesh.vertices = {points}
 scene.shapes.{name}_mesh.faces = {tris}
 """
-    if vertex_normals:
+    if mesh.has_vnormals():
         snippet_obj += f"""scene.shapes.{name}_mesh.normals = {nrms}\n"""
 
     # Consolidation

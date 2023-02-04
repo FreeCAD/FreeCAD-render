@@ -57,7 +57,7 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
@@ -92,9 +92,9 @@ def write_mesh(name, mesh, material, vertex_normals=False):
     else:
         uvs = ""
 
-    if vertex_normals:
+    if mesh.has_vnormals():
         nrms = [
-            f"{v.x:+18.8f} {v.y:+18.8f} {v.z:+18.8f}"
+            f"{v[0]:+18.8f} {v[1]:+18.8f} {v[2]:+18.8f}"
             for v in mesh.getPointNormals()
         ]
         nrms = _format_list(nrms, 2)

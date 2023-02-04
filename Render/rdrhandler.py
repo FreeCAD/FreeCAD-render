@@ -398,6 +398,11 @@ class RendererHandler:
         source = view.Source
         label = getattr(source, "Label", name)
         uvproj = getattr(view, "UvProjection", None)
+        autosmooth = getattr(view, "AutoSmooth", False)
+        try:
+            autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
+        except AttributeError:
+            autosmooth_angle = 0
         specifics = self._get_renderer_specifics(view)
         debug("Object", label, "Processing")
 
