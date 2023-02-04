@@ -22,7 +22,7 @@
 
 """Vector 3D manipulation helpers."""
 
-from math import sqrt
+from math import sqrt, acos
 from operator import mul as op_mul, sub as op_sub
 
 def add_n(*vectors):
@@ -78,6 +78,47 @@ def normal(triangle):
         vec1_x * vec2_y - vec1_y * vec2_x,
     )
     return res
+
+def safe_normalize(vec):
+    """Safely normalize a vector.
+
+    If argument has null length, return null vector.
+    """
+    try:
+        res = fdiv(vec, length(vec))
+    except ZeroDivisionError:
+        res = (0.0, 0.0, 0.0)
+    return res
+
+def vect_angle(vec1, vec2):
+    """Compute the angle between 2 vectors."""
+    vec1 = safe_normalize(vec1)
+    vec2 = safe_normalize(vec2)
+    return acos(dot(vec1, vec2))
+
+def vector(point0, point1):
+    """Get vector from 2 points."""
+    return sub(point1, point0)
+
+def angles(triangle):
+    """Compute angles of a triangle, in radians."""
+    point0, point1, point2 = triangle
+
+    # Reminder:
+    # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
+    # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
+    # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
+
+    # TODO Optimize (list comp...)
+    angle0 = vect_angle(vector(point0, point1), vector(point0, point2))
+    angle1 = vect_angle(vector(point1, point0), vector(point1, point2))
+    angle2 = vect_angle(vector(point2, point0), vector(point2, point1))
+    # # TODO Debug
+    # assert angle0 >= 0.0
+    # assert angle1 >= 0.0
+    # assert angle2 >= 0.0
+    # print(angle0 + angle1 + angle2)
+    return angle0, angle1, angle2
 
 
 def dot(vec1, vec2):
