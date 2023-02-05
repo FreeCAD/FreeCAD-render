@@ -99,7 +99,7 @@ class RenderMesh:
 
         # TODO Debug
         adjacents = self.adjacent_facets(radians(30))
-        submesh = self.connected_facets(50, adjacents)
+        submesh = self.connected_facets(0, adjacents)
         self.__facets = list(it.compress(self.__facets, submesh))
 
         # We store vertex normals
@@ -864,7 +864,7 @@ class RenderMesh:
     def connected_facets(self, starting_facet_index, adjacents, tag=1):
         """Get all the facets connected to a given one.
 
-        This is a depth-first search.
+        This is a depth-first search, iterative version.
         """
         tags = [None] * self.count_facets
         stack = []
@@ -872,43 +872,19 @@ class RenderMesh:
 
         stack.append(current_index)
 
-        forward = True
-        try:
-            successor_index = adjacents[current_index].pop()
-        except IndexError:
-            forward = False  # Flag to continue on a path
-
         while stack:
-            while forward:
+            while adjacents[current_index]:
+                successor_index = adjacents[current_index].pop()
                 if tags[successor_index] is None:
                     # successor is not tagged, we can proceed
                     tags[successor_index] = tag
                     stack.append(successor_index)
                     current_index = successor_index
 
-                    try:
-                        successor_index = adjacents[current_index].pop()
-                    except IndexError:
-                        # No more successor, stop exploring this path
-                        forward = False
-                else:
-                    # successor is already tagged, we look for next successor
-                    try:
-                        successor_index = adjacents[current_index].pop()
-                    except IndexError:
-                        # No more successor, stop moving forward on this path
-                        forward = False
-
             # Backward
             successor_index = stack.pop()
             if stack:
                 current_index = stack[-1]
-                forward = True
-                try:
-                    successor_index = adjacents[current_index].pop()
-                except IndexError:
-                    # No more successor, stop moving forward on this path
-                    forward = False
 
         # Final formatting (TODO)
         result = tags
