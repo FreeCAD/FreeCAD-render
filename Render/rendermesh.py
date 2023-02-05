@@ -58,13 +58,14 @@ class RenderMesh:
     RenderMesh is based on Mesh.Mesh.
     In addition, RenderMesh implements:
     - UV map management
-    - scale, via RenderTransformation
+    - scaling, via RenderTransformation
+    - an improved vertex normals computation
     """
 
     def __init__(
         self,
-        mesh=None,
-        recompute_normals=True,
+        mesh,
+        recompute_vnormals=True,
     ):
         """Initialize RenderMesh.
 
@@ -72,36 +73,43 @@ class RenderMesh:
             mesh -- a Mesh.Mesh object from which to initialize
             uvmap -- a given uv map for initialization
         """
+        if not mesh:
+            raise ValueError()
+
         self.__vnormals = []
         self.__uvmap = []
 
-        if mesh:
-            # First we make a copy of the mesh, we separate mesh and
-            # placement and we set the mesh at its origin (null placement)
-            self.__originalmesh = mesh.copy()
-            self.__originalmesh.Placement = App.Base.Placement()
+        # First we make a copy of the mesh, we separate mesh and
+        # placement and we set the mesh at its origin (null placement)
+        self.__originalmesh = mesh.copy()
+        self.__originalmesh.Placement = App.Base.Placement()
 
-            # We initialize mesh transformation
-            self.__transformation = _Transformation(mesh.Placement)
+        # We initialize self transformation
+        self.__transformation = _Transformation(mesh.Placement)
 
-            # Then we store the topology in internal structures
-            points, facets = self.__originalmesh.Topology
-            self.__points = [tuple(p) for p in points]
-            self.__facets = facets
+        # Then we store the topology in internal structures
+        points, facets = self.__originalmesh.Topology
+        self.__points = [tuple(p) for p in points]
+        self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
+        self.__areas = [f.Area for f in self.__originalmesh.Facets]
+        # TODO Optimize
+        # TODO Use self.__normals in uv computation (don't recompute)
 
-            # We store vertex normals
-            if recompute_normals:
-                self.compute_normals()
-            else:
-                self.__vnormals = list(mesh.getPointNormals())
 
+        # TODO Debug
+        adjacents = self.adjacent_facets(radians(30))
+        submesh = self.connected_facets(50, adjacents)
+        self.__facets = list(it.compress(self.__facets, submesh))
+
+        # We store vertex normals
+        if recompute_vnormals:
+            self.compute_vnormals()
         else:
-            self.transformation = _Transformation()
-            self.__points = []
-            self.__facets = []
+            self.__vnormals = list(mesh.getPointNormals())
 
 
-        # Python
+        # Python executable for multiprocessing
         self.multiprocessing = False
         if (
             PARAMS.GetBool("EnableMultiprocessing")
@@ -779,7 +787,7 @@ class RenderMesh:
         return bool(self.__uvmap)
 
     # TODO
-    def compute_normals_old(self):
+    def compute_vnormals_old(self):
         """Compute vertex normals.
 
         Refresh self._normals.
@@ -796,7 +804,7 @@ class RenderMesh:
             norm.normalize()
         self.__vnormals = norms
 
-    def compute_normals(self):
+    def compute_vnormals(self):
         """Compute vertex normals.
 
         Refresh self._normals. We use an area & angle weighting algorithm."
@@ -808,23 +816,114 @@ class RenderMesh:
 
         # TODO Optimize
 
-        norms = [(0,0,0)] * self.count_points
+        vnorms = [(0,0,0)] * self.count_points
         for facet in self.__facets:
             triangle = [self.__points[i] for i in facet]
-            weighted_norm = vector3d.normal(triangle)
+            weighted_vnorm = vector3d.normal(triangle)
             angles = vector3d.angles(triangle)
             for point_index, angle in zip(facet, angles):
-                weighted_norm = vector3d.fmul(weighted_norm, angle)  # Weight with angle
-                norms[point_index] = vector3d.add(norms[point_index], weighted_norm)
+                weighted_vnorm = vector3d.fmul(weighted_vnorm, angle)  # Weight with angle
+                vnorms[point_index] = vector3d.add(vnorms[point_index], weighted_vnorm)
 
         # Normalize
-        norms = [vector3d.safe_normalize(n) for n in norms]
+        vnorms = [vector3d.safe_normalize(n) for n in vnorms]
 
-        self.__vnormals = norms
+        self.__vnormals = vnorms
 
     def has_vnormals(self):
         """Check if object has a normals."""
         return bool(self.__vnormals)
+
+    def adjacent_facets(self, split_angle_cos=None):
+        """Compute the adjacent facets for each facet of the mesh.
+
+        Returns a list of sets of facet indices.
+        """
+        if split_angle_cos is None:
+            split_angle_cos = -1000
+
+        # TODO Optimize
+        facets_per_point = [list() for _ in range(self.count_points)]
+        for facet_index, facet in enumerate(self.__facets):
+            for point_index in facet:
+                facets_per_point[point_index].append(facet_index)
+
+        adjacents = [set() for _ in range(self.count_facets)]
+        for facet_index, facet in enumerate(self.__facets):
+            for point_index in facet:
+                for other_index in facets_per_point[point_index]:
+                    other_facet = self.__facets[other_index]
+                    common_points = set(facet) & set(other_facet)
+                    # Adjacency criteria: 2 vertices in common
+                    # and cos > split_angle
+                    if len(common_points) == 2 and vector3d.dot(self.__normals[facet_index], self.__normals[other_index])>=split_angle_cos:
+                        adjacents[facet_index].add(other_index)
+
+        return [list(s) for s in adjacents]
+
+    def connected_facets(self, starting_facet_index, adjacents, tag=1):
+        """Get all the facets connected to a given one.
+
+        This is a depth-first search.
+        """
+        tags = [None] * self.count_facets
+        stack = []
+        current_index = starting_facet_index
+
+        stack.append(current_index)
+
+        try:
+            successor_index = adjacents[current_index].pop()
+        except IndexError:
+            forward = False  # Flag to continue on a path
+        else:
+            forward = True
+
+        while stack:
+            while forward:
+                if tags[successor_index] is None:
+                    # successor is not tagged, we can proceed
+                    tags[successor_index] = tag
+                    stack.append(successor_index)
+                    current_index = successor_index
+
+                    try:
+                        successor_index = adjacents[current_index].pop()
+                    except IndexError:
+                        # No more successor, stop exploring this path
+                        forward = False
+                else:
+                    # successor is already tagged, we look for next successor
+                    try:
+                        successor_index = adjacents[current_index].pop()
+                    except IndexError:
+                        # No more successor, stop moving forward on this path
+                        forward = False
+
+            # Backward
+            successor_index = stack.pop()
+            if stack:
+                current_index = stack[-1]
+                try:
+                    successor_index = adjacents[current_index].pop()
+                except IndexError:
+                    # No more successor, stop moving forward on this path
+                    forward = False
+                else:
+                    forward = True
+
+        # Final formatting (TODO)
+        result = tags
+        return result
+
+
+
+
+
+
+
+
+
 
 # ===========================================================================
 #                               RenderTransformation
