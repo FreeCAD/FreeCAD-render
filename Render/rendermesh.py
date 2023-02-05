@@ -872,12 +872,11 @@ class RenderMesh:
 
         stack.append(current_index)
 
+        forward = True
         try:
             successor_index = adjacents[current_index].pop()
         except IndexError:
             forward = False  # Flag to continue on a path
-        else:
-            forward = True
 
         while stack:
             while forward:
@@ -904,13 +903,12 @@ class RenderMesh:
             successor_index = stack.pop()
             if stack:
                 current_index = stack[-1]
+                forward = True
                 try:
                     successor_index = adjacents[current_index].pop()
                 except IndexError:
                     # No more successor, stop moving forward on this path
                     forward = False
-                else:
-                    forward = True
 
         # Final formatting (TODO)
         result = tags
