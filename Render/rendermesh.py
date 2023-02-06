@@ -98,9 +98,8 @@ class RenderMesh:
 
 
         # TODO Debug
-        adjacents = self.adjacent_facets(radians(30))
-        submesh = self.connected_facets(0, adjacents)
-        self.__facets = list(it.compress(self.__facets, submesh))
+        tags, max_tag = self.connected_components()
+        print(max_tag, tags)
 
         # We store vertex normals
         if recompute_vnormals:
@@ -861,12 +860,13 @@ class RenderMesh:
 
         return [list(s) for s in adjacents]
 
-    def connected_facets(self, starting_facet_index, adjacents, tag=1):
+    # TODO Debug or Remove
+    def connected_facets_test(self, starting_facet_index, adjacents, tags, new_tag):
         """Get all the facets connected to a given one.
 
         This is a depth-first search, iterative version.
         """
-        tags = [None] * self.count_facets
+        # TODO Docstring
         stack = []
         current_index = starting_facet_index
 
@@ -877,7 +877,7 @@ class RenderMesh:
                 successor_index = adjacents[current_index].pop()
                 if tags[successor_index] is None:
                     # successor is not tagged, we can proceed
-                    tags[successor_index] = tag
+                    tags[successor_index] = new_tag
                     stack.append(successor_index)
                     current_index = successor_index
 
@@ -886,9 +886,71 @@ class RenderMesh:
             if stack:
                 current_index = stack[-1]
 
+            return tags
+
+    def connected_facets(self, starting_facet_index, adjacents, tags, tag=1):
+        """Get all the facets connected to a given one.
+
+        This is a depth-first search.
+        """
+        # tags = [None] * self.count_facets
+        stack = []
+        current_index = starting_facet_index
+
+        stack.append(current_index)
+
+        forward = True
+        try:
+            successor_index = adjacents[current_index].pop()
+        except IndexError:
+            forward = False  # Flag to continue on a path
+
+        while stack:
+            while forward:
+                if tags[successor_index] is None:
+                    # successor is not tagged, we can proceed
+                    tags[successor_index] = tag
+                    stack.append(successor_index)
+                    current_index = successor_index
+
+                    try:
+                        successor_index = adjacents[current_index].pop()
+                    except IndexError:
+                        # No more successor, stop exploring this path
+                        forward = False
+                else:
+                    # successor is already tagged, we look for next successor
+                    try:
+                        successor_index = adjacents[current_index].pop()
+                    except IndexError:
+                        # No more successor, stop moving forward on this path
+                        forward = False
+
+            # Backward
+            successor_index = stack.pop()
+            if stack:
+                current_index = stack[-1]
+                forward = True
+                try:
+                    successor_index = adjacents[current_index].pop()
+                except IndexError:
+                    # No more successor, stop moving forward on this path
+                    forward = False
+
         # Final formatting (TODO)
         result = tags
         return result
+
+    def connected_components(self, split_angle=radians(30)):
+        adjacents = self.adjacent_facets(cos(split_angle))
+        tags = [None] * self.count_facets
+
+        iterator = zip(it.count(), (x for x, y in enumerate(tags) if y is None))
+        for tag, starting_point in iterator:
+            tags = self.connected_facets(starting_point, adjacents, tags, tag)
+
+        return tags, tag
+
 
 
 
