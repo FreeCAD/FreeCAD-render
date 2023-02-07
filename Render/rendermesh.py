@@ -96,7 +96,6 @@ class RenderMesh:
         # TODO Optimize
         # TODO Use self.__normals in uv computation (don't recompute)
 
-
         # TODO Debug
         tags, max_tag = self.connected_components()
         print(max_tag, tags)
@@ -106,7 +105,6 @@ class RenderMesh:
             self.compute_vnormals()
         else:
             self.__vnormals = list(mesh.getPointNormals())
-
 
         # Python executable for multiprocessing
         self.multiprocessing = False
@@ -498,7 +496,6 @@ class RenderMesh:
         functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
         return functions[index]()
 
-
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
         """Write a MTL file.
@@ -812,17 +809,20 @@ class RenderMesh:
         # http://www.bytehazard.com/articles/wnormals.html
         # (and look at script wnormals100.ms)
 
-
         # TODO Optimize
 
-        vnorms = [(0,0,0)] * self.count_points
+        vnorms = [(0, 0, 0)] * self.count_points
         for facet in self.__facets:
             triangle = [self.__points[i] for i in facet]
             weighted_vnorm = vector3d.normal(triangle)
             angles = vector3d.angles(triangle)
             for point_index, angle in zip(facet, angles):
-                weighted_vnorm = vector3d.fmul(weighted_vnorm, angle)  # Weight with angle
-                vnorms[point_index] = vector3d.add(vnorms[point_index], weighted_vnorm)
+                weighted_vnorm = vector3d.fmul(
+                    weighted_vnorm, angle
+                )  # Weight with angle
+                vnorms[point_index] = vector3d.add(
+                    vnorms[point_index], weighted_vnorm
+                )
 
         # Normalize
         vnorms = [vector3d.safe_normalize(n) for n in vnorms]
@@ -842,20 +842,23 @@ class RenderMesh:
             split_angle_cos = -1000
 
         # TODO Optimize
-        facets_per_point = [list() for _ in range(self.count_points)]
-        iterator = ((fi, pi) for fi, f in enumerate(self.__facets) for pi in f)
+        # For each point, compute facets that contain this point as a vertex
+        iterator = (
+            (facet_index, point_index)
+            for facet_index, facet in enumerate(self.__facets)
+            for point_index in facet
+        )
+
         def fpp_reducer(rolling, new):
             facet_index, point_index = new
             rolling[point_index].append(facet_index)
             return rolling
 
-        facets_per_point = functools.reduce(fpp_reducer, iterator, facets_per_point)
+        facets_per_point = functools.reduce(
+            fpp_reducer, iterator, [list() for _ in range(self.count_points)]
+        )
 
-        # for facet_index, facet in enumerate(self.__facets):
-            # for point_index in facet:
-                # facets_per_point[point_index].append(facet_index)
-
-
+        # Compute adjacency
         adjacents = [set() for _ in range(self.count_facets)]
         for facet_index, facet in enumerate(self.__facets):
             for point_index in facet:
@@ -864,7 +867,14 @@ class RenderMesh:
                     common_points = set(facet) & set(other_facet)
                     # Adjacency criteria: 2 vertices in common
                     # and cos > split_angle
-                    if len(common_points) == 2 and vector3d.dot(self.__normals[facet_index], self.__normals[other_index])>=split_angle_cos:
+                    if (
+                        len(common_points) == 2
+                        and vector3d.dot(
+                            self.__normals[facet_index],
+                            self.__normals[other_index],
+                        )
+                        >= split_angle_cos
+                    ):
                         adjacents[facet_index].add(other_index)
 
         return [list(s) for s in adjacents]
@@ -914,20 +924,13 @@ class RenderMesh:
         adjacents = self.adjacent_facets(cos(split_angle))
         tags = [None] * self.count_facets
 
-        iterator = zip(it.count(), (x for x, y in enumerate(tags) if y is None))
+        iterator = zip(
+            it.count(), (x for x, y in enumerate(tags) if y is None)
+        )
         for tag, starting_point in iterator:
             tags = self.connected_facets(starting_point, adjacents, tags, tag)
 
         return tags, tag
-
-
-
-
-
-
-
-
-
 
 
 # ===========================================================================
