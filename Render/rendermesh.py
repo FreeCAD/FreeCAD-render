@@ -864,6 +864,7 @@ class RenderMesh:
         """Get the maximal connected component containing the starting facet.
 
         It uses a depth-first search algorithm, iterative version.
+        Caveat: adjacents and tags may be modified by the algorithm.
 
         Args:
             starting_facet_index -- the index of the facet to start
@@ -878,12 +879,13 @@ class RenderMesh:
             A list of tags (same size as self.__facets). The elements tagged
             with 'new_tag' are the computed connected component.
         """
-        stack = []
-        current_index = starting_facet_index
-
-        stack.append(current_index)
+        # Create and init stack
+        stack = [starting_facet_index]
 
         while stack:
+            # Current index (stack top)
+            current_index = stack[-1]
+
             # Forward
             while adjacents[current_index]:
                 successor_index = adjacents[current_index].pop()
@@ -895,9 +897,8 @@ class RenderMesh:
 
             # Backward
             successor_index = stack.pop()
-            if stack:
-                current_index = stack[-1]
 
+        # Final
         return tags
 
     def connected_components(self, split_angle=radians(30)):
