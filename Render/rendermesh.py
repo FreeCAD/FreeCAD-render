@@ -98,7 +98,6 @@ class RenderMesh:
 
         # TODO Debug
         tags, max_tag = self.connected_components()
-        print(max_tag, tags)
 
         # We store vertex normals
         if recompute_vnormals:
@@ -859,25 +858,32 @@ class RenderMesh:
         )
 
         # Compute adjacency
-        adjacents = [set() for _ in range(self.count_facets)]
-        for facet_index, facet in enumerate(self.__facets):
-            for point_index in facet:
-                for other_index in facets_per_point[point_index]:
-                    other_facet = self.__facets[other_index]
-                    common_points = set(facet) & set(other_facet)
-                    # Adjacency criteria: 2 vertices in common
-                    # and cos > split_angle
-                    if (
-                        len(common_points) == 2
-                        and vector3d.dot(
-                            self.__normals[facet_index],
-                            self.__normals[other_index],
-                        )
-                        >= split_angle_cos
-                    ):
-                        adjacents[facet_index].add(other_index)
+        normals = self.__normals
+        facets = self.__facets
+        dot = vector3d.dot
+        iterator = (
+            (facet, facets[other_index], facet_index, other_index)
+            for facet_index, facet in enumerate(facets)
+            for point_index in facet
+            for other_index in facets_per_point[point_index]
+        )
+        iterator = (
+            (facet_idx, other_idx)
+            for facet, other_facet, facet_idx, other_idx in iterator
+            if len(set(facet) & set(other_facet)) == 2
+            and dot(normals[facet_idx], normals[other_idx]) >= split_angle_cos
+        )
 
-        return [list(s) for s in adjacents]
+        def reduce_adj(rolling, new):
+            facet_index, other_index = new
+            rolling[facet_index].add(other_index)
+            return rolling
+
+        adjacents = functools.reduce(
+            reduce_adj, iterator, [set() for _ in range(self.count_facets)]
+        )
+
+        return adjacents
 
     def connected_facets(self, starting_facet_index, adjacents, tags, new_tag):
         """Get the maximal connected component containing the starting facet.
@@ -900,6 +906,9 @@ class RenderMesh:
         """
         # Create and init stack
         stack = [starting_facet_index]
+
+        # Tag starting_facet_index
+        tags[starting_facet_index] = new_tag
 
         while stack:
             # Current index (stack top)
