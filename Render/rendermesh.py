@@ -843,9 +843,18 @@ class RenderMesh:
 
         # TODO Optimize
         facets_per_point = [list() for _ in range(self.count_points)]
-        for facet_index, facet in enumerate(self.__facets):
-            for point_index in facet:
-                facets_per_point[point_index].append(facet_index)
+        iterator = ((fi, pi) for fi, f in enumerate(self.__facets) for pi in f)
+        def fpp_reducer(rolling, new):
+            facet_index, point_index = new
+            rolling[point_index].append(facet_index)
+            return rolling
+
+        facets_per_point = functools.reduce(fpp_reducer, iterator, facets_per_point)
+
+        # for facet_index, facet in enumerate(self.__facets):
+            # for point_index in facet:
+                # facets_per_point[point_index].append(facet_index)
+
 
         adjacents = [set() for _ in range(self.count_facets)]
         for facet_index, facet in enumerate(self.__facets):
