@@ -860,23 +860,35 @@ class RenderMesh:
 
         return [list(s) for s in adjacents]
 
-    # TODO Debug or Remove
-    def connected_facets_test(self, starting_facet_index, adjacents, tags, new_tag):
-        """Get all the facets connected to a given one.
+    def connected_facets(self, starting_facet_index, adjacents, tags, new_tag):
+        """Get the maximal connected component containing the starting facet.
 
-        This is a depth-first search, iterative version.
+        It uses a depth-first search algorithm, iterative version.
+
+        Args:
+            starting_facet_index -- the index of the facet to start
+                with (integer)
+            adjacents -- facet adjacency list (list, same size as
+                self.__facets)
+            tags -- the tags that have already been set (list, same size as
+                self.__facets)
+            new_tag -- the tag to use to mark the component
+
+        Returns:
+            A list of tags (same size as self.__facets). The elements tagged
+            with 'new_tag' are the computed connected component.
         """
-        # TODO Docstring
         stack = []
         current_index = starting_facet_index
 
         stack.append(current_index)
 
         while stack:
+            # Forward
             while adjacents[current_index]:
                 successor_index = adjacents[current_index].pop()
                 if tags[successor_index] is None:
-                    # successor is not tagged, we can proceed
+                    # successor is not tagged, we can go on forward
                     tags[successor_index] = new_tag
                     stack.append(successor_index)
                     current_index = successor_index
@@ -886,60 +898,7 @@ class RenderMesh:
             if stack:
                 current_index = stack[-1]
 
-            return tags
-
-    def connected_facets(self, starting_facet_index, adjacents, tags, tag=1):
-        """Get all the facets connected to a given one.
-
-        This is a depth-first search.
-        """
-        # tags = [None] * self.count_facets
-        stack = []
-        current_index = starting_facet_index
-
-        stack.append(current_index)
-
-        forward = True
-        try:
-            successor_index = adjacents[current_index].pop()
-        except IndexError:
-            forward = False  # Flag to continue on a path
-
-        while stack:
-            while forward:
-                if tags[successor_index] is None:
-                    # successor is not tagged, we can proceed
-                    tags[successor_index] = tag
-                    stack.append(successor_index)
-                    current_index = successor_index
-
-                    try:
-                        successor_index = adjacents[current_index].pop()
-                    except IndexError:
-                        # No more successor, stop exploring this path
-                        forward = False
-                else:
-                    # successor is already tagged, we look for next successor
-                    try:
-                        successor_index = adjacents[current_index].pop()
-                    except IndexError:
-                        # No more successor, stop moving forward on this path
-                        forward = False
-
-            # Backward
-            successor_index = stack.pop()
-            if stack:
-                current_index = stack[-1]
-                forward = True
-                try:
-                    successor_index = adjacents[current_index].pop()
-                except IndexError:
-                    # No more successor, stop moving forward on this path
-                    forward = False
-
-        # Final formatting (TODO)
-        result = tags
-        return result
+        return tags
 
     def connected_components(self, split_angle=radians(30)):
         adjacents = self.adjacent_facets(cos(split_angle))
