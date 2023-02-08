@@ -96,8 +96,7 @@ class RenderMesh:
         # TODO Optimize
         # TODO Use self.__normals in uv computation (don't recompute)
 
-        # TODO Debug
-        tags, max_tag = self.connected_components()
+        self.separate_connected_components()
 
         # We store vertex normals
         if recompute_vnormals:
@@ -631,7 +630,7 @@ class RenderMesh:
         self.__uvmap = uvmap
 
         # Recompute normals
-        self.compute_normals()
+        self.compute_vnormals()
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
@@ -685,7 +684,7 @@ class RenderMesh:
         self.__uvmap = uvmap
 
         # Recompute normals
-        self.compute_normals()
+        self.compute_vnormals()
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case.
@@ -705,7 +704,7 @@ class RenderMesh:
             func = self._compute_uvmap_cube_sp
 
         func()
-        self.compute_normals()
+        self.compute_vnormals()
 
     def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
@@ -832,15 +831,13 @@ class RenderMesh:
         """Check if object has a normals."""
         return bool(self.__vnormals)
 
-    def adjacent_facets(self, split_angle_cos=None):
+    def adjacent_facets(self, split_angle_cos="-inf"):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices.
         """
-        if split_angle_cos is None:
-            split_angle_cos = -1000
+        split_angle_cos = float(split_angle_cos)
 
-        # TODO Optimize
         # For each point, compute facets that contain this point as a vertex
         iterator = (
             (facet_index, point_index)
@@ -907,7 +904,7 @@ class RenderMesh:
         # Create and init stack
         stack = [starting_facet_index]
 
-        # Tag starting_facet_index
+        # Tag starting facet
         tags[starting_facet_index] = new_tag
 
         while stack:
@@ -940,6 +937,32 @@ class RenderMesh:
             tags = self.connected_facets(starting_point, adjacents, tags, tag)
 
         return tags, tag
+
+    def separate_connected_components(self, split_angle=radians(30)):
+        tags, max_tag = self.connected_components()
+
+        points = self.__points
+        facets = self.__facets
+
+        # Initialize the map
+        newpoints = {
+            (point_index, tag): None
+            for facet, tag in zip(facets, tags)
+            for point_index in facet
+        }
+
+        # Number newpoint
+        for index, point in enumerate(newpoints):
+            newpoints[point] = index
+
+        # Rebuild point list
+        self.__points = [points[point_index] for point_index, tag in newpoints]
+
+        # Update point indices in facets
+        self.__facets = [
+            tuple(newpoints[point_index, tag] for point_index in facet)
+            for facet, tag in zip(facets, tags)
+        ]
 
 
 # ===========================================================================
