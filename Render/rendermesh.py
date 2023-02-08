@@ -797,24 +797,6 @@ class RenderMesh:
         """Check if object has a uv map."""
         return bool(self.__uvmap)
 
-    # TODO
-    def compute_vnormals_old(self):
-        """Compute vertex normals.
-
-        Refresh self._normals.
-        """
-        print("OLD COMPUTE NORMALS")
-        mesh = self.__originalmesh
-
-        norms = [App.Base.Vector()] * mesh.CountPoints
-        for facet in mesh.Facets:
-            weighted_norm = facet.Normal * facet.Area
-            for index in facet.PointIndices:
-                norms[index] += weighted_norm
-        for norm in norms:
-            norm.normalize()
-        self.__vnormals = norms
-
     def compute_vnormals(self):
         """Compute vertex normals.
 
