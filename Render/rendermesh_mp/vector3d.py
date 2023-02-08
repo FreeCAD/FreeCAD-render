@@ -24,10 +24,13 @@
 
 from math import sqrt, acos
 from operator import mul as op_mul, sub as op_sub
+import sys
+
 
 def add_n(*vectors):
     """Add 2 or more vectors."""
     return tuple(sum(x) for x in zip(*vectors))
+
 
 def add(vec1, vec2):
     """Add 2 vectors."""
@@ -35,11 +38,13 @@ def add(vec1, vec2):
     vec2_x, vec2_y, vec2_z = vec2
     return vec1_x + vec2_x, vec1_y + vec2_y, vec1_z + vec2_z
 
+
 def sub(vec1, vec2):
     """Substract 2 vectors."""
     vec1_x, vec1_y, vec1_z = vec1
     vec2_x, vec2_y, vec2_z = vec2
     return vec1_x - vec2_x, vec1_y - vec2_y, vec1_z - vec2_z
+
 
 def fmul(vec, flt):
     """Multiply a vector by a float."""
@@ -58,10 +63,20 @@ def barycenter(polygon):
     return fdiv(add_n(*polygon), len(polygon))
 
 
-def length(vec):
-    """Compute vector length."""
-    vec_x, vec_y, vec_z = vec
-    return sqrt(vec_x * vec_x + vec_y * vec_y + vec_z * vec_z)
+if sys.version_info >= (3, 8):
+    from math import hypot
+
+    # Only for >= 3.8
+    def length(vec):
+        """Compute vector length."""
+        return hypot(*vec)
+
+else:
+
+    def length(vec):
+        """Compute vector length."""
+        vec_x, vec_y, vec_z = vec
+        return sqrt(vec_x * vec_x + vec_y * vec_y + vec_z * vec_z)
 
 
 def normal(triangle):
@@ -79,6 +94,7 @@ def normal(triangle):
     )
     return res
 
+
 def safe_normalize(vec):
     """Safely normalize a vector.
 
@@ -90,15 +106,18 @@ def safe_normalize(vec):
         res = (0.0, 0.0, 0.0)
     return res
 
+
 def vect_angle(vec1, vec2):
     """Compute the angle between 2 vectors."""
     vec1 = safe_normalize(vec1)
     vec2 = safe_normalize(vec2)
     return acos(dot(vec1, vec2))
 
+
 def vector(point0, point1):
     """Get vector from 2 points."""
     return sub(point1, point0)
+
 
 def angles(triangle):
     """Compute angles of a triangle, in radians."""
@@ -127,11 +146,14 @@ def dot(vec1, vec2):
     vec2_x, vec2_y, vec2_z = vec2
     return vec1_x * vec2_x + vec1_y * vec2_y + vec1_z * vec2_z
 
+
 def dot4(vec1, vec2):
     """Dot product."""
     vec1_x, vec1_y, vec1_z, vec1_t = vec1
     vec2_x, vec2_y, vec2_z, vec2_t = vec2
-    return vec1_x * vec2_x + vec1_y * vec2_y + vec1_z * vec2_z + vec1_t * vec2_t
+    return (
+        vec1_x * vec2_x + vec1_y * vec2_y + vec1_z * vec2_z + vec1_t * vec2_t
+    )
 
 
 def transform(matrix, vec):
