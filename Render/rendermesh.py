@@ -40,6 +40,11 @@ import runpy
 import shutil
 import copy
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 import FreeCAD as App
 import Mesh
 
@@ -73,6 +78,10 @@ class RenderMesh:
             mesh -- a Mesh.Mesh object from which to initialize
             uvmap -- a given uv map for initialization
         """
+        # Creating profile object
+        prof = cProfile.Profile()
+        prof.enable()
+
         if not mesh:
             raise ValueError()
 
@@ -114,6 +123,13 @@ class RenderMesh:
             if python:
                 self.multiprocessing = True
                 self.python = python
+
+        prof.disable()
+        sec = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+        ps.print_stats()
+        print(sec.getvalue())
 
     def copy(self):
         """Creates a copy of this mesh."""
@@ -856,18 +872,14 @@ class RenderMesh:
 
         # Compute adjacency
         normals = self.__normals
-        facets = self.__facets
+        facets = [set(f) for f in self.__facets]
         dot = vector3d.dot
         iterator = (
-            (facet, facets[other_index], facet_index, other_index)
-            for facet_index, facet in enumerate(facets)
-            for point_index in facet
-            for other_index in facets_per_point[point_index]
-        )
-        iterator = (
             (facet_idx, other_idx)
-            for facet, other_facet, facet_idx, other_idx in iterator
-            if len(set(facet) & set(other_facet)) == 2
+            for facet_idx, facet in enumerate(facets)
+            for point_idx in facet
+            for other_idx in facets_per_point[point_idx]
+            if len(facet & facets[other_idx]) == 2
             and dot(normals[facet_idx], normals[other_idx]) >= split_angle_cos
         )
 
