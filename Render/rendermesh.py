@@ -104,6 +104,7 @@ class RenderMesh:
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
         # TODO Optimize
         # TODO Use self.__normals in uv computation (don't recompute)
+        # TODO Use facet adjacency lists from Mesh (don't recompute)
 
         self.separate_connected_components()
 
@@ -863,12 +864,10 @@ class RenderMesh:
 
         def fpp_reducer(rolling, new):
             facet_index, point_index = new
-            rolling[point_index].append(facet_index)
-            return rolling
+            facets_per_point[point_index].append(facet_index)
 
-        facets_per_point = functools.reduce(
-            fpp_reducer, iterator, [list() for _ in range(self.count_points)]
-        )
+        facets_per_point = [list() for _ in range(self.count_points)]
+        functools.reduce(fpp_reducer, iterator)
 
         # Compute adjacency
         normals = self.__normals
@@ -883,14 +882,21 @@ class RenderMesh:
             and dot(normals[facet_idx], normals[other_idx]) >= split_angle_cos
         )
 
+        # TODO
+        # def reduce_adj(rolling, new):
+            # facet_index, other_index = new
+            # rolling[facet_index].add(other_index)
+            # return rolling
+
+        # adjacents = functools.reduce(
+            # reduce_adj, iterator, [set() for _ in range(self.count_facets)]
+        # )
+        adjacents = [set() for _ in range(self.count_facets)]
         def reduce_adj(rolling, new):
             facet_index, other_index = new
-            rolling[facet_index].add(other_index)
-            return rolling
+            adjacents[facet_index].add(other_index)
 
-        adjacents = functools.reduce(
-            reduce_adj, iterator, [set() for _ in range(self.count_facets)]
-        )
+        functools.reduce(reduce_adj, iterator)
 
         return adjacents
 
