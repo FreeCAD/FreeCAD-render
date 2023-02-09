@@ -807,6 +807,36 @@ class RenderMesh:
         # (and look at script wnormals100.ms)
 
         # TODO Optimize
+        normal = vector3d.normal
+        fmul = vector3d.fmul
+        v3d_angles = vector3d.angles
+        add = vector3d.add
+        points = self.__points
+
+        vnorms = [(0, 0, 0)] * self.count_points
+        for facet in self.__facets:
+            triangle = [points[i] for i in facet]
+            weighted_vnorm = normal(triangle)
+            angles = v3d_angles(triangle)
+            for point_index, angle in zip(facet, angles):
+                weighted_vnorm = fmul(weighted_vnorm, angle)  # Weight by angle
+                vnorms[point_index] = add(vnorms[point_index], weighted_vnorm)
+
+        # Normalize
+        vnorms = [vector3d.safe_normalize(n) for n in vnorms]
+
+        self.__vnormals = vnorms
+
+    def compute_vnormals_old(self):
+        """Compute vertex normals.
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        # See here
+        # http://www.bytehazard.com/articles/wnormals.html
+        # (and look at script wnormals100.ms)
+
+        # TODO Optimize
 
         vnorms = [(0, 0, 0)] * self.count_points
         for facet in self.__facets:
