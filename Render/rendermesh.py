@@ -35,7 +35,7 @@ import tempfile
 import itertools as it
 import functools
 import time
-from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
+from math import pi, atan2, asin, isclose, radians, cos, sin, hypot, degrees
 import runpy
 import shutil
 import copy
@@ -830,77 +830,41 @@ class RenderMesh:
         """Check if object has a normals."""
         return bool(self.__vnormals)
 
-    def adjacent_facets(self, split_angle_cos="-inf"):
-        """Compute the adjacent facets for each facet of the mesh.
-
-        Returns a list of sets of facet indices.
-        """
-        split_angle_cos = float(split_angle_cos)
-
-        # For each point, compute facets that contain this point as a vertex
-        iterator = (
-            (facet_index, point_index)
-            for facet_index, facet in enumerate(self.__facets)
-            for point_index in facet
-        )
-
-        def fpp_reducer(rolling, new):
-            facet_index, point_index = new
-            facets_per_point[point_index].append(facet_index)
-
-        facets_per_point = [list() for _ in range(self.count_points)]
-        functools.reduce(fpp_reducer, iterator)
-
-        # Compute adjacency
-        normals = self.__normals
-        facets = [set(f) for f in self.__facets]
-        dot = vector3d.dot
-        iterator = (
-            (facet_idx, other_idx)
-            for facet_idx, facet in enumerate(facets)
-            for point_idx in facet
-            for other_idx in facets_per_point[point_idx]
-            if len(facet & facets[other_idx]) == 2
-            and dot(normals[facet_idx], normals[other_idx]) >= split_angle_cos
-        )
-
-        # TODO
-        # def reduce_adj(rolling, new):
-            # facet_index, other_index = new
-            # rolling[facet_index].add(other_index)
-            # return rolling
-
-        # adjacents = functools.reduce(
-            # reduce_adj, iterator, [set() for _ in range(self.count_facets)]
-        # )
-        adjacents = [set() for _ in range(self.count_facets)]
-        def reduce_adj(rolling, new):
-            facet_index, other_index = new
-            adjacents[facet_index].add(other_index)
-
-        functools.reduce(reduce_adj, iterator)
-
-        return adjacents
-
-    def connected_facets(self, starting_facet_index, adjacents, tags, new_tag):
+    def connected_facets(
+        self,
+        starting_facet_index,
+        adjacents,
+        tags,
+        new_tag,
+        split_angle_cos,
+    ):
         """Get the maximal connected component containing the starting facet.
 
         It uses a depth-first search algorithm, iterative version.
-        Caveat: adjacents and tags may be modified by the algorithm.
+        Caveat:
+        - tags may be modified by the algorithm.
+        - for speed reasons, we rely on self.__originalmesh topology, **NOT**
+        current topology (so, if topology has been modified, the result is
+        irrelevant)
 
         Args:
             starting_facet_index -- the index of the facet to start
                 with (integer)
-            adjacents -- facet adjacency list (list, same size as
-                self.__facets)
+            adjacents -- adjacency lists (one list per facet)
             tags -- the tags that have already been set (list, same size as
                 self.__facets)
             new_tag -- the tag to use to mark the component
+            split_angle_cos -- the cos of the angle that breaks adjacency
 
         Returns:
             A list of tags (same size as self.__facets). The elements tagged
             with 'new_tag' are the computed connected component.
         """
+        # Init
+        split_angle_cos = float(split_angle_cos)
+        dot = vector3d.dot
+        normals = self.__normals
+
         # Create and init stack
         stack = [starting_facet_index]
 
@@ -914,6 +878,15 @@ class RenderMesh:
             # Forward
             while adjacents[current_index]:
                 successor_index = adjacents[current_index].pop()
+
+                # Test angle
+                if (
+                    successor_index == 18446744073709551615
+                    or dot(normals[current_index], normals[successor_index])
+                    < split_angle_cos
+                ):
+                    continue
+
                 if tags[successor_index] is None:
                     # successor is not tagged, we can go on forward
                     tags[successor_index] = new_tag
@@ -927,14 +900,31 @@ class RenderMesh:
         return tags
 
     def connected_components(self, split_angle=radians(30)):
-        adjacents = self.adjacent_facets(cos(split_angle))
+        """Get all connected components of facets in the mesh.
+
+        Args:
+            split_angle -- the angle that breaks adjacency
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        split_angle_cos = cos(split_angle)
+
+        adjacents = [
+            list(f.NeighbourIndices) for f in self.__originalmesh.Facets
+        ]
+
         tags = [None] * self.count_facets
 
         iterator = zip(
             it.count(), (x for x, y in enumerate(tags) if y is None)
         )
         for tag, starting_point in iterator:
-            tags = self.connected_facets(starting_point, adjacents, tags, tag)
+            tags = self.connected_facets(
+                starting_point, adjacents, tags, tag, split_angle_cos
+            )
 
         return tags, tag
 
