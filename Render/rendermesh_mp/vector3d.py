@@ -22,7 +22,7 @@
 
 """Vector 3D manipulation helpers."""
 
-from math import sqrt, acos
+from math import sqrt, acos, pi
 from operator import mul as op_mul, sub as op_sub
 import sys
 
@@ -131,7 +131,8 @@ def angles(triangle):
     # TODO Optimize (list comp...)
     angle0 = vect_angle(vector(point0, point1), vector(point0, point2))
     angle1 = vect_angle(vector(point1, point0), vector(point1, point2))
-    angle2 = vect_angle(vector(point2, point0), vector(point2, point1))
+    angle2 = pi - angle0 - angle1
+    # angle2 = vect_angle(vector(point2, point0), vector(point2, point1))
     # # TODO Debug
     # assert angle0 >= 0.0
     # assert angle1 >= 0.0
