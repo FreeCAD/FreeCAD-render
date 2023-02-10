@@ -114,6 +114,9 @@ class RenderMesh:
         """Creates a copy of this mesh."""
         # Caveat: this is a shallow copy!
         new_mesh = copy.copy(self)
+        transformation = copy.copy(self.transformation)
+        new_mesh.__transformation = transformation
+
 
         # Caveat: we don't copy the __originalmesh (Mesh.Mesh)
         # So we point on the same object, which should not be modified

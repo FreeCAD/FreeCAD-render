@@ -225,9 +225,9 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not obj.LinkTransform:
-                new_mesh.transform(linkedobject_plc_inverse_matrix)
-            new_mesh.transform(base_plc_matrix)
-            new_mesh.transform(element_plc_matrix)
+                new_mesh.transformation.apply_placement(linkedobject_plc_inverse_matrix)
+            new_mesh.transformation.apply_placement(base_plc_matrix)
+            new_mesh.transformation.apply_placement(element_plc_matrix)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
@@ -260,8 +260,8 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
         new_mat = _get_material(base_rend, material)
         new_color = base_rend.defcolor
         if not obj.LinkTransform:
-            new_mesh.transform(linkedobj_plc_inverse_matrix)
-        new_mesh.transform(link_plc_matrix)
+            new_mesh.transformation.apply_placement(linkedobj_plc_inverse_matrix)
+        new_mesh.transformation.apply_placement(link_plc_matrix)
         return Renderable(new_name, new_mesh, new_mat, new_color)
 
     return [new_rend(r) for r in base_rends]
@@ -317,9 +317,9 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
         counter, plc = enum_plc
         new_mesh = base_rend.mesh.copy()
         if not obj.LinkTransform:
-            new_mesh.transform(base_inv_plc_matrix)
-        new_mesh.transform(plc.toMatrix())
-        new_mesh.transform(obj_plc_matrix)
+            new_mesh.transformation.apply_placement(base_inv_plc_matrix)
+        new_mesh.transformation.apply_placement(plc.toMatrix())
+        new_mesh.transformation.apply_placement(obj_plc_matrix)
         subname = f"{name}_{base_rend.name}_{counter}"
         new_mat = _get_material(base_rend, material)
         new_color = base_rend.defcolor
@@ -449,7 +449,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
         """Reposition to origin and set material of the given renderable."""
         origin_matrix = origin.toMatrix()
         new_mesh = rend.mesh.copy()
-        new_mesh.transform(origin_matrix)
+        new_mesh.transformation.apply_placement(origin_matrix)
         new_mat = _get_material(rend, upper_material)
         new_color = rend.defcolor
         return Renderable(rend.name, new_mesh, new_mat, new_color)
@@ -465,7 +465,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
                 subobj, subname, material, mesher, **kwargs
             )
 
-    rends = [_adjust(r, origin, material) for r in rends if r.mesh.Topology[0]]
+    rends = [_adjust(r, origin, material) for r in rends if r.mesh.count_points]
 
     return rends
 
