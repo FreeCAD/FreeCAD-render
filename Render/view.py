@@ -93,7 +93,7 @@ class View(FeatureBase):
                 "App::Property",
                 "Enable normal auto smoothing",
             ),
-            False,
+            True,
             0,
         ),
         "AutoSmoothAngle": Prop(
