@@ -953,6 +953,7 @@ class RenderMesh:
         ]
 
         tags = [None] * self.count_facets
+        tag = None
 
         iterator = zip(
             it.count(), (x for x, y in enumerate(tags) if y is None)
