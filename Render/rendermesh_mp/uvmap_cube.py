@@ -69,11 +69,6 @@ def getfacet(idx):
     return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
 
-# TODO Remove
-def transform_points(matrix, points):
-    """Transform points with a transformation matrix 4x4."""
-    return [transform(matrix, point) for point in points]
-
 # *****************************************************************************
 
 
