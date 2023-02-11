@@ -179,10 +179,6 @@ def check_renderables(renderables):
             raise ValueError(translate("Render", "Cannot find mesh data"))
         if not mesh.count_points or not mesh.count_facets:
             raise ValueError(translate("Render", "Mesh topology is empty"))
-        if not mesh.getPointNormals():
-            raise ValueError(
-                translate("Render", "Mesh topology has no normals")
-            )
 
 
 # ===========================================================================

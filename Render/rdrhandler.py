@@ -367,7 +367,13 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        autosmooth = getattr(view, "AutoSmooth", False)
+        try:
+            autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
+        except AttributeError:
+            autosmooth_angle = 0
 
+        # Mesher
         def mesher(
             shape,
             compute_uvmap=True,
@@ -401,7 +407,7 @@ class RendererHandler:
                 )
                 mesh.Placement = shape_plc
 
-            mesh = RenderMesh(mesh)
+            mesh = RenderMesh(mesh, autosmooth, autosmooth_angle)
             if compute_uvmap:
                 mesh.compute_uvmap(uvmap_projection)
             return mesh
@@ -409,11 +415,6 @@ class RendererHandler:
         source = view.Source
         label = getattr(source, "Label", name)
         uvproj = getattr(view, "UvProjection", None)
-        autosmooth = getattr(view, "AutoSmooth", False)
-        try:
-            autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
-        except AttributeError:
-            autosmooth_angle = 0
         specifics = self._get_renderer_specifics(view)
         debug("Object", label, "Processing")
 

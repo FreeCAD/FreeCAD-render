@@ -70,7 +70,8 @@ class RenderMesh:
     def __init__(
         self,
         mesh,
-        recompute_vnormals=True,
+        autosmooth=True,
+        split_angle=radians(30),
     ):
         """Initialize RenderMesh.
 
@@ -104,13 +105,11 @@ class RenderMesh:
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
         # TODO Use self.__normals in uv computation (don't recompute)
 
-        self.separate_connected_components()
-
-        # We store vertex normals
-        if recompute_vnormals:
+        # Autosmooth
+        if autosmooth:
+            App.Console.PrintLog(f"[Render][Mesh] Autosmooth\n")
+            self.separate_connected_components(split_angle)
             self.compute_vnormals()
-        else:
-            self.__vnormals = list(mesh.getPointNormals())
 
         # Python executable for multiprocessing
         self.multiprocessing = False
