@@ -22,7 +22,7 @@
 
 """Vector 3D manipulation helpers."""
 
-from math import sqrt, acos, pi
+from math import sqrt, acos, pi, copysign
 from operator import mul as op_mul, sub as op_sub
 import sys
 
@@ -111,7 +111,12 @@ def vect_angle(vec1, vec2):
     """Compute the angle between 2 vectors."""
     vec1 = safe_normalize(vec1)
     vec2 = safe_normalize(vec2)
-    return acos(dot(vec1, vec2))
+    dot_result = dot(vec1, vec2)
+    try:
+        return acos(dot_result)
+    except ValueError:
+        # Round error --> acos raises...
+        return acos(copysign(1.0, dot_result))
 
 
 def vector(point0, point1):
