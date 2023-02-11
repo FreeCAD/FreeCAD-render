@@ -35,7 +35,7 @@ import tempfile
 import itertools as it
 import functools
 import time
-from math import pi, atan2, asin, isclose, radians, cos, sin, hypot, degrees
+from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import runpy
 import shutil
 import copy
@@ -49,7 +49,7 @@ import FreeCAD as App
 import Mesh
 
 from Render.constants import PKGDIR, PARAMS
-import Render.rendermesh_mp.vector3d as vector3d
+from Render.rendermesh_mp import vector3d
 
 
 # ===========================================================================
@@ -102,9 +102,7 @@ class RenderMesh:
         self.__facets = facets
         self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
-        # TODO Optimize
         # TODO Use self.__normals in uv computation (don't recompute)
-        # TODO Use facet adjacency lists from Mesh (don't recompute)
 
         self.separate_connected_components()
 
@@ -128,20 +126,18 @@ class RenderMesh:
         prof.disable()
         sec = io.StringIO()
         sortby = SortKey.CUMULATIVE
-        ps = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-        ps.print_stats()
+        pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+        pstat.print_stats()
         print(sec.getvalue())
 
     def copy(self):
         """Creates a copy of this mesh."""
         # Caveat: this is a shallow copy!
-        new_mesh = copy.copy(self)
-        transformation = copy.copy(self.transformation)
-        new_mesh.__transformation = transformation
-
-
-        # Caveat: we don't copy the __originalmesh (Mesh.Mesh)
+        # In particular, we don't copy the __originalmesh (Mesh.Mesh)
         # So we point on the same object, which should not be modified
+        new_mesh = copy.copy(self)
+        # pylint: disable=protected-access, unused-private-member
+        new_mesh.__transformation = copy.copy(self.transformation)
         return new_mesh
 
     def getPointNormals(self):  # pylint: disable=invalid-name
@@ -966,7 +962,15 @@ class RenderMesh:
         return tags, tag
 
     def separate_connected_components(self, split_angle=radians(30)):
-        tags, max_tag = self.connected_components()
+        """Operate a separation into the mesh between connected components.
+
+        Only points are modified. Facets are kept as-is.
+
+        Args:
+            split_angle -- angle threshold, above which 2 adjacents facets
+                are considered as non-connected (in radians)
+        """
+        tags, _ = self.connected_components(split_angle)
 
         points = self.__points
         facets = self.__facets
