@@ -1244,6 +1244,16 @@ def _compute_uv_from_unitcube(point, face):
 #                           Other uvmap helpers
 # ===========================================================================
 
+def _safe_normalize(vec):
+    """Safely normalize a FreeCAD Vector.
+
+    If vector's length is 0, returns (0, 0, 0).
+    """
+    try:
+        res = vec.normalize()
+    except App.Base.FreeCADError:
+        res = App.Base.Vector(0.0, 0.0, 0.0)
+    return res
 
 def _is_facet_normal_to_vector(facet, vector):
     """Test whether a facet is normal to a vector.
@@ -1251,9 +1261,9 @@ def _is_facet_normal_to_vector(facet, vector):
     math.isclose is used to assess dot product nullity.
     """
     pt1, pt2, pt3 = facet.Points
-    vec1 = (App.Base.Vector(*pt2) - App.Base.Vector(*pt1)).normalize()
-    vec2 = (App.Base.Vector(*pt3) - App.Base.Vector(*pt1)).normalize()
-    vector = vector.normalize()
+    vec1 = _safe_normalize(App.Base.Vector(*pt2) - App.Base.Vector(*pt1))
+    vec2 = _safe_normalize(App.Base.Vector(*pt3) - App.Base.Vector(*pt1))
+    vector = _safe_normalize(vector)
     tolerance = 1e-5
     res = isclose(vec1.dot(vector), 0.0, abs_tol=tolerance) and isclose(
         vec2.dot(vector), 0.0, abs_tol=tolerance
