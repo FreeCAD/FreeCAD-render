@@ -802,6 +802,8 @@ class RenderMesh:
         )
         self.__points = res["POINTS"]
         self.__facets = res["FACETS"]
+        self.__normals = res["NORMALS"]
+        self.__areas = res["AREAS"]
         self.__uvmap = res["UVMAP"]
 
         # Clean

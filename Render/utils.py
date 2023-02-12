@@ -174,6 +174,29 @@ set_dryrun_on = functools.partial(set_dryrun, state=True)
 set_dryrun_off = functools.partial(set_dryrun, state=False)
 
 
+def set_debug(state):
+    """Set debug run parameter on/off.
+
+    Warning: debug purpose only. /!\\
+
+    Args:
+        state -- state to set debug (boolean)
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    state = bool(state)
+    params.SetBool("Debug", state)
+    msg = (
+        "[Render][Debug] Debug is on\n"
+        if state
+        else "[Render][Debug] Debug is off\n"
+    )
+    App.Console.PrintMessage(msg)
+
+
+set_debug_on = functools.partial(set_debug, state=True)
+set_debug_off = functools.partial(set_debug, state=False)
+
+
 def last_cmd():
     """Return last executed renderer command (debug purpose)."""
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")

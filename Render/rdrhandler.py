@@ -52,6 +52,7 @@ import MeshPart
 import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
+from Render.constants import PARAMS
 from Render.rendermesh import RenderMesh
 from Render import renderables
 from Render import rendermaterial
@@ -459,7 +460,10 @@ class RendererHandler:
                     framestack.name,
                 )
             )
-            return ""
+            if not PARAMS.GetBool("Debug"):
+                return ""
+            else:
+                raise err
 
         # Rescale to meters
         for rend in rends:

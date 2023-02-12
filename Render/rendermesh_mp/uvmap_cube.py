@@ -138,7 +138,8 @@ def colorize(chunk):
 
     def facet_reducer(running, new):
         ifacet, color = new
-        _list_append(running[color], facets[ifacet])
+        facet = facets[ifacet], normals[ifacet], areas[ifacet]
+        _list_append(running[color], facet)
         return running
 
     monochrome_facets = reduce(
@@ -212,7 +213,9 @@ def compute_uvmapped_submesh(chunk):
     )
 
     # Inputs
-    cog, color, facets = chunk
+    cog, color, extended_facets = chunk
+
+    facets, normals, areas = [list(i) for i in zip(*extended_facets)]
 
     # Compute points and facets
     points = set(chain.from_iterable(facets))
@@ -225,7 +228,7 @@ def compute_uvmapped_submesh(chunk):
     cog = map_func(cog)
     uvs = [fdiv2(sub2(map_func(p), cog), 1000) for p in points]
 
-    return points, facets, uvs
+    return points, facets, normals, areas, uvs
 
 
 # *****************************************************************************
@@ -355,29 +358,34 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             # Compute final mesh and uvmap
             chunks = (
-                (cog, color, facets)
-                for color, facets in enumerate(monochrome_facets)
+                (cog, color, extended_facets)
+                for color, extended_facets in enumerate(monochrome_facets)
             )
             submeshes = pool.imap_unordered(compute_uvmapped_submesh, chunks)
-            points, facets, uvmap = [], [], []
-            for subpoints, subfacets, subuv in submeshes:
+            points, facets, normals, areas, uvmap = [], [], [], [], []
+            for subpoints, subfacets, subnormals, subareas, subuv in submeshes:
                 offset = len(points)
                 points += subpoints
 
+                # Renumber points inside facets
                 chunks = batched(subfacets, chunk_size)
                 offset_function = partial(offset_facets, offset)
                 facets += chain.from_iterable(
                     pool.imap(offset_function, chunks)
                 )
 
+                # Update normals, areas, uvmap
                 uvmap += subuv
+                normals += subnormals
+                areas += subareas
 
             tick("final mesh")
 
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-    return points, facets, uvmap
+        del ctx
+    return points, facets, normals, areas, uvmap
 
 
 # *****************************************************************************
@@ -416,4 +424,4 @@ if __name__ == "__main__":
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, UVMAP = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME)
+    POINTS, FACETS, NORMALS, AREAS, UVMAP = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME)
