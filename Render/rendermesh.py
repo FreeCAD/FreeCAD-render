@@ -585,6 +585,12 @@ class RenderMesh:
 
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
+        # Warning:
+        # The computation should ensure consistency on the following data:
+        # - self.__points
+        # - self.__facets
+        # - self.__normals
+        # - self.__areas
         projection = "Cubic" if projection is None else projection
         tm0 = time.time()
         if projection == "Cubic":
@@ -596,7 +602,6 @@ class RenderMesh:
         else:
             raise ValueError
         App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
-        # self.compute_normals()  TODO
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
@@ -883,9 +888,6 @@ class RenderMesh:
         It uses a depth-first search algorithm, iterative version.
         Caveat:
         - tags may be modified by the algorithm.
-        - for speed reasons, we rely on self.__originalmesh topology, **NOT**
-        current topology (so, if topology has been modified, the result is
-        irrelevant)
 
         Args:
             starting_facet_index -- the index of the facet to start
@@ -943,6 +945,54 @@ class RenderMesh:
         # Final
         return tags
 
+    def adjacent_facets(self, split_angle_cos="-inf"):
+        """Compute the adjacent facets for each facet of the mesh.
+        Returns a list of sets of facet indices.
+        """
+        # For each point, compute facets that contain this point as a vertex
+        iterator = (
+            (facet_index, point_index)
+            for facet_index, facet in enumerate(self.__facets)
+            for point_index in facet
+        )
+
+        def fpp_reducer(rolling, new):
+            facet_index, point_index = new
+            facets_per_point[point_index].append(facet_index)
+
+        facets_per_point = [list() for _ in range(self.count_points)]
+        functools.reduce(fpp_reducer, iterator)
+
+        # Compute adjacency
+        normals = self.__normals
+        facets = [set(f) for f in self.__facets]
+        iterator = (
+            (facet_idx, other_idx)
+            for facet_idx, facet in enumerate(facets)
+            for point_idx in facet
+            for other_idx in facets_per_point[point_idx]
+            if len(facet & facets[other_idx]) == 2
+        )
+
+        # TODO
+        # def reduce_adj(rolling, new):
+            # facet_index, other_index = new
+            # rolling[facet_index].add(other_index)
+            # return rolling
+
+        # adjacents = functools.reduce(
+            # reduce_adj, iterator, [set() for _ in range(self.count_facets)]
+        # )
+        adjacents = [set() for _ in range(self.count_facets)]
+        def reduce_adj(rolling, new):
+            facet_index, other_index = new
+            adjacents[facet_index].add(other_index)
+
+        functools.reduce(reduce_adj, iterator)
+
+        return adjacents
+
+
     def connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
 
@@ -956,9 +1006,11 @@ class RenderMesh:
         """
         split_angle_cos = cos(split_angle)
 
-        adjacents = [
-            list(f.NeighbourIndices) for f in self.__originalmesh.Facets
-        ]
+        # TODO
+        # adjacents = [
+            # list(f.NeighbourIndices) for f in self.__originalmesh.Facets
+        # ]
+        adjacents = self.adjacent_facets()
 
         tags = [None] * self.count_facets
         tag = None
@@ -1000,6 +1052,13 @@ class RenderMesh:
 
         # Rebuild point list
         self.__points = [points[point_index] for point_index, tag in newpoints]
+
+        # If necessary, rebuild uvmap
+        if self.__uvmap:
+            self.__uvmap = [
+                self.__uvmap[point_index]
+                for point_index, tag in newpoints
+            ]
 
         # Update point indices in facets
         self.__facets = [
