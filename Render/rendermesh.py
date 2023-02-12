@@ -807,7 +807,10 @@ class RenderMesh:
         # Clean
         del res["POINTS"]
         del res["FACETS"]
+        del res["NORMALS"]
+        del res["AREAS"]
         del res["UVMAP"]
+        del res["PYTHON"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""

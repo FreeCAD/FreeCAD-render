@@ -164,7 +164,7 @@ def compute_uvmapped_submesh(chunk):
         chunk -- a tuple containing:
             cog -- center of gravity (point: 3-float tuple)
             color -- color of the triangles (integer)
-            triangles -- monochrome triangles (list of 3-points elements)
+            triangles -- monochrome triangles (list of 3-indices elements)
 
     Returns:
         points -- points of the submesh
