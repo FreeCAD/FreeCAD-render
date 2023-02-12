@@ -123,19 +123,19 @@ def colorize(chunk):
 
     start, stop = chunk
     facets = [getfacet(i) for i in range(start, stop)]
-    normals = (getnormals(i) for i in range(start, stop))
-    areas = (getareas(i) for i in range(start, stop))
+    normals = (getnormal(i) for i in range(start, stop))
+    areas = [getarea(i) for i in range(start, stop)]
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
-    data = ((barycenter(t), normal) for t, normal in zip(triangles, normals, areas))
+    data = ((barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas))
     data = (
         (_intersect_unitcube_face(normal), barycenter, area)
         for barycenter, normal, area in data
     )
     data = (
-        (color, fmul(barycenter, area), area)
+        (color, fmul(barycenter, area))
         for color, barycenter, area in data
     )
-    colors, barys, areas = zip(*data)
+    colors, barys = zip(*data)
 
     # Compute monochrome sublists
 
@@ -334,7 +334,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals)) as pool:
+        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals, shd_areas)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             chunks = (
@@ -430,4 +430,4 @@ if __name__ == "__main__":
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, NORMALS, AREAS, UVMAP = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME)
+    POINTS, FACETS, UVMAP = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME)

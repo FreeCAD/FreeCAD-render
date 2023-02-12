@@ -128,6 +128,7 @@ class RenderMesh:
             msg = f"[Render][Object] Uv map '{uvmap_projection}'\n"
             App.Console.PrintLog(msg)
             self.compute_uvmap(uvmap_projection)
+            assert self.has_uvmap()
 
         # Autosmooth
         if autosmooth:
@@ -732,6 +733,7 @@ class RenderMesh:
             func = self._compute_uvmap_cube_sp
 
         func()
+        assert self.has_uvmap()
 
     def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
@@ -791,6 +793,8 @@ class RenderMesh:
             init_globals={
                 "POINTS": self.__points,
                 "FACETS": self.__facets,
+                "NORMALS": self.__normals,
+                "AREAS": self.__areas,
                 "UVMAP": self.__uvmap,
                 "PYTHON": self.python,
             },
