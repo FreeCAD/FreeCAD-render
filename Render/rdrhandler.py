@@ -407,9 +407,14 @@ class RendererHandler:
                 )
                 mesh.Placement = shape_plc
 
-            mesh = RenderMesh(mesh, autosmooth, autosmooth_angle)
-            if compute_uvmap:
-                mesh.compute_uvmap(uvmap_projection)
+            mesh = RenderMesh(
+                mesh,
+                autosmooth,
+                autosmooth_angle,
+                compute_uvmap,
+                uvmap_projection,
+            )
+
             return mesh
 
         source = view.Source

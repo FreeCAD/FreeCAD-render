@@ -72,12 +72,19 @@ class RenderMesh:
         mesh,
         autosmooth=True,
         split_angle=radians(30),
+        compute_uvmap=False,
+        uvmap_projection=None,
     ):
         """Initialize RenderMesh.
 
         Args:
             mesh -- a Mesh.Mesh object from which to initialize
-            uvmap -- a given uv map for initialization
+            autosmooth -- flag to trigger autosmooth computation (bool)
+            split_angle -- angle that breaks adjacency, for sharp edge
+                (float, in radians)
+            compute_uvmap -- flag to trigger uvmap computation (bool)
+            uvmap_projection -- type of projection to use for uv map
+                among "Cubic", "Spherical", "Cylindric"
         """
         # Creating profile object
         prof = cProfile.Profile()
@@ -105,12 +112,6 @@ class RenderMesh:
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
         # TODO Use self.__normals in uv computation (don't recompute)
 
-        # Autosmooth
-        if autosmooth:
-            App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
-            self.separate_connected_components(split_angle)
-            self.compute_vnormals()
-
         # Python executable for multiprocessing
         self.multiprocessing = False
         if (
@@ -121,6 +122,18 @@ class RenderMesh:
             if python:
                 self.multiprocessing = True
                 self.python = python
+
+        # Uvmap
+        if compute_uvmap:
+            msg = f"[Render][Object] Uv map '{uvmap_projection}'\n"
+            App.Console.PrintLog(msg)
+            self.compute_uvmap(uvmap_projection)
+
+        # Autosmooth
+        if autosmooth:
+            App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
+            self.separate_connected_components(split_angle)
+            self.compute_vnormals()
 
         prof.disable()
         sec = io.StringIO()
@@ -639,10 +652,9 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
+        self.__areas = [f.Area for f in mesh.Facets]
         self.__uvmap = uvmap
-
-        # Recompute normals
-        self.compute_vnormals()
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
@@ -693,10 +705,9 @@ class RenderMesh:
         points, facets = tuple(mesh.Topology)
         self.__points = [tuple(p) for p in points]
         self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
+        self.__areas = [f.Area for f in mesh.Facets]
         self.__uvmap = uvmap
-
-        # Recompute normals
-        self.compute_vnormals()
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case.
@@ -716,7 +727,6 @@ class RenderMesh:
             func = self._compute_uvmap_cube_sp
 
         func()
-        self.compute_vnormals()
 
     def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
@@ -756,6 +766,8 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
+        self.__areas = [f.Area for f in mesh.Facets]
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube_mp(self):
@@ -824,6 +836,7 @@ class RenderMesh:
 
         self.__vnormals = vnorms
 
+    # TODO Remove
     def compute_vnormals_old(self):
         """Compute vertex normals.
 
