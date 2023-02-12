@@ -68,6 +68,14 @@ def getfacet(idx):
     idx *= 3
     return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
+def getnormal(idx):
+    """Get a normal from its index in the shared memory."""
+    idx *= 3
+    return SHARED_NORMALS[idx], SHARED_NORMALS[idx + 1], SHARED_NORMALS[idx + 2]
+
+def getarea(idx):
+    """Get a normal from its index in the shared memory."""
+    return SHARED_AREAS[idx]
 
 # *****************************************************************************
 
@@ -115,11 +123,13 @@ def colorize(chunk):
 
     start, stop = chunk
     facets = [getfacet(i) for i in range(start, stop)]
+    normals = (getnormals(i) for i in range(start, stop))
+    areas = (getareas(i) for i in range(start, stop))
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
-    data = ((barycenter(t), normal(t)) for t in triangles)
+    data = ((barycenter(t), normal) for t, normal in zip(triangles, normals, areas))
     data = (
-        (_intersect_unitcube_face(normal), barycenter, length(normal))
-        for barycenter, normal in data
+        (_intersect_unitcube_face(normal), barycenter, area)
+        for barycenter, normal, area in data
     )
     data = (
         (color, fmul(barycenter, area), area)
@@ -235,19 +245,23 @@ def offset_facets(offset, facets):
 # *****************************************************************************
 
 
-def init(points, facets):
+def init(points, facets, normals, areas):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     global SHARED_FACETS
+    global SHARED_NORMALS
+    global SHARED_AREAS
     SHARED_POINTS = points
     SHARED_FACETS = facets
+    SHARED_NORMALS = normals
+    SHARED_AREAS = areas
     sys.setswitchinterval(sys.maxsize)
 
 
 # *****************************************************************************
 
-def main(python, points, facets, showtime=False):
+def main(python, points, facets, normals, areas, showtime=False):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -314,11 +328,13 @@ def main(python, points, facets, showtime=False):
 
     shd_points = RawArray("d", SharedWrapper(points))
     shd_facets = RawArray("l", SharedWrapper(facets))
+    shd_normals = RawArray("d", SharedWrapper(normals))
+    shd_areas = RawArray("d", areas)
     tick("prepare shared")
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points, shd_facets)) as pool:
+        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             chunks = (
@@ -385,14 +401,23 @@ if __name__ == "__main__":
     # Get variables
     # pylint: disable=used-before-assignment
     try:
-        FACETS
-    except NameError:
-        FACETS = []
-
-    try:
         POINTS
     except NameError:
         POINTS = []
+
+    try:
+        FACETS
+    except NameError:
+        FACETS = []
+    try:
+        NORMALS
+    except NameError:
+        NORMALS = []
+
+    try:
+        AREAS
+    except NameError:
+        AREAS = []
 
     try:
         UVMAP
@@ -405,4 +430,4 @@ if __name__ == "__main__":
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, UVMAP = main(PYTHON, POINTS, FACETS, SHOWTIME)
+    POINTS, FACETS, NORMALS, AREAS, UVMAP = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME)
