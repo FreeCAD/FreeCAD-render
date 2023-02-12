@@ -107,7 +107,7 @@ class RenderMesh:
 
         # Autosmooth
         if autosmooth:
-            App.Console.PrintLog(f"[Render][Mesh] Autosmooth\n")
+            App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
 
