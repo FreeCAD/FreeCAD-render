@@ -121,10 +121,7 @@ def colorize(chunk):
         Area sum of facets (float)
     """
 
-    start, stop = chunk
-    facets = [getfacet(i) for i in range(start, stop)]
-    normals = (getnormal(i) for i in range(start, stop))
-    areas = [getarea(i) for i in range(start, stop)]
+    facets, normals, areas = zip(*chunk)
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = ((barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas))
     data = (
@@ -245,17 +242,11 @@ def offset_facets(offset, facets):
 # *****************************************************************************
 
 
-def init(points, facets, normals, areas):
+def init(points):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
-    global SHARED_FACETS
-    global SHARED_NORMALS
-    global SHARED_AREAS
     SHARED_POINTS = points
-    SHARED_FACETS = facets
-    SHARED_NORMALS = normals
-    SHARED_AREAS = areas
     sys.setswitchinterval(sys.maxsize)
 
 
@@ -327,20 +318,14 @@ def main(python, points, facets, normals, areas, showtime=False):
     nproc = max(6, os.cpu_count())  # At least, number of faces
 
     shd_points = RawArray("d", SharedWrapper(points))
-    shd_facets = RawArray("l", SharedWrapper(facets))
-    shd_normals = RawArray("d", SharedWrapper(normals))
-    shd_areas = RawArray("d", areas)
     tick("prepare shared")
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals, shd_areas)) as pool:
+        with ctx.Pool(nproc, init, (shd_points, )) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
-            chunks = (
-                (i, min(i + chunk_size, len(facets)))
-                for i in range(0, len(facets), chunk_size)
-            )
+            chunks = batched(zip(facets, normals, areas), chunk_size)
             data = pool.imap_unordered(colorize, chunks)
             tick("colorize")
 
@@ -409,6 +394,7 @@ if __name__ == "__main__":
         FACETS
     except NameError:
         FACETS = []
+
     try:
         NORMALS
     except NameError:
