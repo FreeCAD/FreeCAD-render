@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
 from vector3d import (
     add,
+    sub,
     add_n,
     fmul,
     fdiv,
@@ -43,6 +44,7 @@ from vector3d import (
     transform,
 )
 from vector2d import sub as sub2, fdiv as fdiv2
+import time  # TODO
 
 
 # Vocabulary:
@@ -57,6 +59,7 @@ from vector2d import sub as sub2, fdiv as fdiv2
 
 # *****************************************************************************
 
+
 def getpoint(idx):
     """Get a point from its index in the shared memory."""
     idx *= 3
@@ -68,14 +71,21 @@ def getfacet(idx):
     idx *= 3
     return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
+
 def getnormal(idx):
     """Get a normal from its index in the shared memory."""
     idx *= 3
-    return SHARED_NORMALS[idx], SHARED_NORMALS[idx + 1], SHARED_NORMALS[idx + 2]
+    return (
+        SHARED_NORMALS[idx],
+        SHARED_NORMALS[idx + 1],
+        SHARED_NORMALS[idx + 2],
+    )
+
 
 def getarea(idx):
     """Get a normal from its index in the shared memory."""
     return SHARED_AREAS[idx]
+
 
 # *****************************************************************************
 
@@ -120,39 +130,61 @@ def colorize(chunk):
         Centroid of facets (point: 3-float tuple)
         Area sum of facets (float)
     """
-
-    facets, normals, areas = zip(*chunk)
+    # TODO Put facets in shared
+    enum_facets, normals, areas = zip(*chunk)
+    ifacets, facets = zip(*enum_facets)
+    facets = list(facets)
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
-    data = ((barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas))
+    data = (
+        (barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas)
+    )
     data = (
         (_intersect_unitcube_face(normal), barycenter, area)
         for barycenter, normal, area in data
     )
     data = (
-        (color, fmul(barycenter, area))
-        for color, barycenter, area in data
+        (color, fmul(barycenter, area)) for color, barycenter, area in data
     )
     colors, barys = zip(*data)
 
+    # TODO Remove
     # Compute monochrome sublists
 
-    def facet_reducer(running, new):
-        ifacet, color = new
-        facet = facets[ifacet], normals[ifacet], areas[ifacet]
-        _list_append(running[color], facet)
-        return running
+    # def facet_reducer(running, new):
+    # ifacet, color = new
+    # facet = facets[ifacet], normals[ifacet], areas[ifacet]
+    # _list_append(running[color], facet)
+    # return running
 
-    monochrome_facets = reduce(
-        facet_reducer,
-        enumerate(colors),
-        [[], [], [], [], [], []],
-    )
+    # monochrome_facets = reduce(
+    # facet_reducer,
+    # enumerate(colors),
+    # [[], [], [], [], [], []],
+    # )
 
     centroid = add_n(*barys)
-    # Caveat, this is 2 * area, actually
-    # It doesn't matter for our computation, but it could for other cases
     area = sum(areas)
-    return monochrome_facets, centroid, area
+    ext_facets = list(zip(ifacets, facets, colors))
+
+    # Returns extended facet = (index, points, color)
+    return ext_facets, centroid, area
+
+
+# *****************************************************************************
+
+
+def update_facets(chunk):
+    # Inputs
+    point_map = SHARED_POINT_MAP
+    result = [
+        (
+            point_map[facet[0], color],
+            point_map[facet[1], color],
+            point_map[facet[2], color],
+        )
+        for _, facet, color in chunk
+    ]
+    return result
 
 
 # *****************************************************************************
@@ -212,23 +244,27 @@ def compute_uvmapped_submesh(chunk):
         _uc_zminus,
     )
 
-    # Inputs
-    cog, color, extended_facets = chunk
+    # TODO Test
+    # print(SHARED_POINTS2)
 
-    facets, normals, areas = [list(i) for i in zip(*extended_facets)]
+    # Inputs
+    # ifacets, facets, colors = [list(i) for i in zip(*colored_facets)]
 
     # Compute points and facets
-    points = set(chain.from_iterable(facets))
-    points = {p: i for i, p in enumerate(points)}
-    facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in facets]
-    points = [getpoint(i) for i in points.keys()]
+    # TODO
+    # points = set(chain.from_iterable(facets))
+    # points = {p: i for i, p in enumerate(points)}
+    # points = SHD_POINTS2
+    # facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in facets]
 
     # Compute uvs
-    map_func = uc_map[color]
-    cog = map_func(cog)
-    uvs = [fdiv2(sub2(map_func(p), cog), 1000) for p in points]
+    # map_func = uc_map[color]  # TODO
+    # cog = map_func(cog)
+    uvs = ((uc_map[c], getpoint(p)) for p, c in chunk)
+    uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
 
-    return points, facets, normals, areas, uvs
+    # return points, facets, normals, areas, uvs
+    return uvs
 
 
 # *****************************************************************************
@@ -253,7 +289,26 @@ def init(points):
     sys.setswitchinterval(sys.maxsize)
 
 
+def init2(points, points2, point_colors, cog):
+    """Initialize pool of processes."""
+    # pylint: disable=global-variable-undefined
+    global SHARED_POINTS
+    SHARED_POINTS = points
+
+    global SHARED_POINT_MAP
+    SHARED_POINT_MAP = {
+        colored_point: index
+        for index, colored_point in enumerate(zip(points2, point_colors))
+    }
+
+    global COG
+    COG = cog
+
+    sys.setswitchinterval(sys.maxsize)
+
+
 # *****************************************************************************
+
 
 def main(python, points, facets, normals, areas, showtime=False):
     """Entry point for __main__.
@@ -294,6 +349,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
     class SharedWrapper:
         """A wrapper for shared objects containing 3-tuples."""
+
         def __init__(self, seq):
             self.seq = seq
 
@@ -301,8 +357,9 @@ def main(python, points, facets, normals, areas, showtime=False):
             return len(self.seq) * 3
 
         def __iter__(self):
+            seq = self.seq
             return itertools.islice(
-                (x for elem in self.seq for x in elem), len(self.seq) * 3
+                (x for elem in seq for x in elem), len(seq) * 3
             )
 
     # Set working directory
@@ -318,18 +375,22 @@ def main(python, points, facets, normals, areas, showtime=False):
     ctx.set_executable(python)
 
     chunk_size = 20000
-    nproc = max(6, os.cpu_count())  # At least, number of faces
+    nproc = os.cpu_count()
 
+    # Prepare shared data
     shd_points = RawArray("d", SharedWrapper(points))
+
     tick("prepare shared")
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points, )) as pool:
+        with ctx.Pool(nproc, init, (shd_points,)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
-            chunks = batched(zip(facets, normals, areas), chunk_size)
-            data = pool.imap_unordered(colorize, chunks)
+            chunks = batched(
+                zip(enumerate(facets), normals, areas), chunk_size
+            )
+            data = pool.imap(colorize, chunks)  # Keep order
             tick("colorize")
 
             # Concatenate/reduce processed chunks
@@ -337,55 +398,60 @@ def main(python, points, facets, normals, areas, showtime=False):
                 """Reducer for colors chunks."""
                 running_facets, running_centroid, running_area_sum = running
                 facets, centroid, area_sum = new
-                for i, j in zip(running_facets, facets):
-                    i += j
+                running_facets += facets
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
                 return running_facets, running_centroid, running_area_sum
 
-            init_data = ([[], [], [], [], [], []], (0.0, 0.0, 0.0), 0.0)
+            init_data = ([], (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
-            monochrome_facets, centroid, area_sum = data
+            # TODO Colors as a separate list
+            colored_facets, centroid, area_sum = data
             tick("reduce colorize")
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
             # print(cog)  # Debug
 
-            tick("sublists")
+        tick("sublists")
 
-            # print([len(t) for t in monochrome_facets])  # Debug
+        # Update points
+        colored_points = {
+            (ipoint, color)
+            for _, facet, color in colored_facets
+            for ipoint in facet
+        }
+        points2, point_colors = zip(*colored_points)
+        shd_points2 = RawArray("L", points2)
+        shd_point_colors = RawArray("B", point_colors)
+
+        tick("points2")
+
+        with ctx.Pool(
+            nproc, init2, (shd_points, shd_points2, shd_point_colors, cog)
+        ) as pool:
+            tick("restart pool")
+
+            # Update facets
+            chunks = batched(colored_facets, chunk_size)
+            facets = sum(pool.imap(update_facets, chunks), [])
+
+            tick("update facets")
 
             # Compute final mesh and uvmap
-            chunks = (
-                (cog, color, extended_facets)
-                for color, extended_facets in enumerate(monochrome_facets)
-            )
-            submeshes = pool.imap_unordered(compute_uvmapped_submesh, chunks)
-            points, facets, normals, areas, uvmap = [], [], [], [], []
-            for subpoints, subfacets, subnormals, subareas, subuv in submeshes:
-                offset = len(points)
-                points += subpoints
+            chunks = batched(colored_points, chunk_size)
+            uvmap = sum( pool.imap(compute_uvmapped_submesh, chunks), [])
+            tick("uv map")
 
-                # Renumber points inside facets
-                chunks = batched(subfacets, chunk_size)
-                offset_function = partial(offset_facets, offset)
-                facets += chain.from_iterable(
-                    pool.imap(offset_function, chunks)
-                )
-
-                # Update normals, areas, uvmap
-                uvmap += subuv
-                normals += subnormals
-                areas += subareas
-
-            tick("final mesh")
-
+            # Point list
+            outpoints = [points[i] for i in points2]
+            tick("new point list")
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
         del ctx
-    return points, facets, normals, areas, uvmap
+
+    return outpoints, facets, normals, areas, uvmap
 
 
 # *****************************************************************************
@@ -424,4 +490,6 @@ if __name__ == "__main__":
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, NORMALS, AREAS, UVMAP = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME)
+    POINTS, FACETS, NORMALS, AREAS, UVMAP = main(
+        PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME
+    )
