@@ -870,7 +870,12 @@ class _Transformation:
 
     def get_rotation_ypr(self):
         """Get rotation component as yaw-pitch-roll angles."""
-        return self.__placement.Rotation.getYawPitchRoll()
+        try:
+            # >0.20
+            return self.__placement.Rotation.getYawPitchRoll()
+        except AttributeError:
+            # 0.19
+            return self.__placement.Rotation.toEuler()
 
     def get_scale(self):
         """Get scale component as single scalar."""
