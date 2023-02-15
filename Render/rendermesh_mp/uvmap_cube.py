@@ -149,27 +149,13 @@ def colorize(chunk):
     )
     colors, barys = zip(*data)
 
-    # TODO Remove
-    # Compute monochrome sublists
-
-    # def facet_reducer(running, new):
-    # ifacet, color = new
-    # facet = facets[ifacet], normals[ifacet], areas[ifacet]
-    # _list_append(running[color], facet)
-    # return running
-
-    # monochrome_facets = reduce(
-    # facet_reducer,
-    # enumerate(colors),
-    # [[], [], [], [], [], []],
-    # )
-
     centroid = add_n(*barys)
     area = sum(areas)
-    ext_facets = list(zip(facets, colors))
 
-    # Returns extended facet = (index, points, color)
-    return ext_facets, centroid, area
+    for ifacet, color in zip(range(start,stop), colors):
+        SHARED_FACET_COLORS[ifacet] = color
+
+    return centroid, area
 
 
 # *****************************************************************************
@@ -282,17 +268,19 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
-def init(points, facets, normals, areas):
+def init(points, facets, normals, areas, facet_colors):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     global SHARED_FACETS
     global SHARED_NORMALS
     global SHARED_AREAS
+    global SHARED_FACET_COLORS
     SHARED_POINTS = points
     SHARED_FACETS = facets
     SHARED_NORMALS = normals
     SHARED_AREAS = areas
+    SHARED_FACET_COLORS = facet_colors
     sys.setswitchinterval(sys.maxsize)
 
 
@@ -389,12 +377,14 @@ def main(python, points, facets, normals, areas, showtime=False):
     shd_facets = RawArray("l", SharedWrapper(facets))
     shd_normals = RawArray("d", SharedWrapper(normals))
     shd_areas = RawArray("d", areas)
+    shd_facet_colors = RawArray("B", len(facets))
 
     tick("prepare shared")
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals, shd_areas)) as pool:
+        # TODO Move args above
+        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals, shd_areas, shd_facet_colors)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
             chunks = (
@@ -407,17 +397,16 @@ def main(python, points, facets, normals, areas, showtime=False):
             # Concatenate/reduce processed chunks
             def chunk_reducer(running, new):
                 """Reducer for colors chunks."""
-                running_facets, running_centroid, running_area_sum = running
-                facets, centroid, area_sum = new
-                running_facets += facets
+                running_centroid, running_area_sum = running
+                centroid, area_sum = new
                 running_centroid = add(running_centroid, centroid)
                 running_area_sum += area_sum
-                return running_facets, running_centroid, running_area_sum
+                return running_centroid, running_area_sum
 
-            init_data = ([], (0.0, 0.0, 0.0), 0.0)
+            init_data = ((0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
             # TODO Colors as a separate list and retrieve only colors
-            colored_facets, centroid, area_sum = data
+            centroid, area_sum = data
             tick("reduce colorize")
 
             # Compute center of gravity
@@ -429,7 +418,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         # Update points
         colored_points = {
             (ipoint, color)
-            for facet, color in colored_facets
+            for facet, color in zip(facets, shd_facet_colors)
             for ipoint in facet
         }
         new_points, new_point_colors = zip(*colored_points)
@@ -444,7 +433,8 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("restart pool")
 
             # Update facets
-            chunks = batched(colored_facets, chunk_size)
+            # TODO Use shared mem and ranges
+            chunks = batched(zip(facets, shd_facet_colors), chunk_size)
             facets = sum(pool.imap(update_facets, chunks), [])
 
             tick("update facets")
