@@ -131,9 +131,11 @@ def colorize(chunk):
         Area sum of facets (float)
     """
     # TODO Put facets in shared
-    enum_facets, normals, areas = zip(*chunk)
-    ifacets, facets = zip(*enum_facets)
-    facets = list(facets)
+
+    start, stop = chunk
+    facets = [getfacet(i) for i in range(start, stop)]
+    normals = (getnormal(i) for i in range(start, stop))
+    areas = [getarea(i) for i in range(start, stop)]
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
     data = (
         (barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas)
@@ -164,7 +166,7 @@ def colorize(chunk):
 
     centroid = add_n(*barys)
     area = sum(areas)
-    ext_facets = list(zip(ifacets, facets, colors))
+    ext_facets = list(zip(facets, colors))
 
     # Returns extended facet = (index, points, color)
     return ext_facets, centroid, area
@@ -182,7 +184,7 @@ def update_facets(chunk):
             point_map[facet[1], color],
             point_map[facet[2], color],
         )
-        for _, facet, color in chunk
+        for facet, color in chunk
     ]
     return result
 
@@ -280,12 +282,17 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
-
-def init(points):
+def init(points, facets, normals, areas):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
+    global SHARED_FACETS
+    global SHARED_NORMALS
+    global SHARED_AREAS
     SHARED_POINTS = points
+    SHARED_FACETS = facets
+    SHARED_NORMALS = normals
+    SHARED_AREAS = areas
     sys.setswitchinterval(sys.maxsize)
 
 
@@ -379,16 +386,20 @@ def main(python, points, facets, normals, areas, showtime=False):
 
     # Prepare shared data
     shd_points = RawArray("d", SharedWrapper(points))
+    shd_facets = RawArray("l", SharedWrapper(facets))
+    shd_normals = RawArray("d", SharedWrapper(normals))
+    shd_areas = RawArray("d", areas)
 
     tick("prepare shared")
 
     # Run
     try:
-        with ctx.Pool(nproc, init, (shd_points,)) as pool:
+        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals, shd_areas)) as pool:
             tick("start pool")
             # Compute colors, and partial sums for center of gravity
-            chunks = batched(
-                zip(enumerate(facets), normals, areas), chunk_size
+            chunks = (
+                (i, min(i + chunk_size, len(facets)))
+                for i in range(0, len(facets), chunk_size)
             )
             data = pool.imap(colorize, chunks)  # Keep order
             tick("colorize")
@@ -405,7 +416,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             init_data = ([], (0.0, 0.0, 0.0), 0.0)
             data = reduce(chunk_reducer, data, init_data)
-            # TODO Colors as a separate list
+            # TODO Colors as a separate list and retrieve only colors
             colored_facets, centroid, area_sum = data
             tick("reduce colorize")
 
@@ -418,12 +429,12 @@ def main(python, points, facets, normals, areas, showtime=False):
         # Update points
         colored_points = {
             (ipoint, color)
-            for _, facet, color in colored_facets
+            for facet, color in colored_facets
             for ipoint in facet
         }
-        points2, point_colors = zip(*colored_points)
-        shd_points2 = RawArray("L", points2)
-        shd_point_colors = RawArray("B", point_colors)
+        new_points, new_point_colors = zip(*colored_points)
+        shd_points2 = RawArray("L", new_points)
+        shd_point_colors = RawArray("B", new_point_colors)
 
         tick("points2")
 
@@ -444,13 +455,14 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("uv map")
 
             # Point list
-            outpoints = [points[i] for i in points2]
+            outpoints = [points[i] for i in new_points]
             tick("new point list")
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
         del ctx
 
+    # TODO Do not return normals, areas
     return outpoints, facets, normals, areas, uvmap
 
 
