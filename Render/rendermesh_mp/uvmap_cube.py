@@ -378,42 +378,30 @@ def main(python, points, facets, normals, areas, showtime=False):
     shd_normals = RawArray("d", SharedWrapper(normals))
     shd_areas = RawArray("d", areas)
     shd_facet_colors = RawArray("B", len(facets))
-
+    pool1_args = (shd_points, shd_facets, shd_normals, shd_areas, shd_facet_colors)
     tick("prepare shared")
 
     # Run
     try:
-        # TODO Move args above
-        with ctx.Pool(nproc, init, (shd_points, shd_facets, shd_normals, shd_areas, shd_facet_colors)) as pool:
-            tick("start pool")
-            # Compute colors, and partial sums for center of gravity
+        # Compute facets colors and center of gravity
+        with ctx.Pool(nproc, init, pool1_args) as pool:
+            tick("start pool1")
             chunks = (
                 (i, min(i + chunk_size, len(facets)))
                 for i in range(0, len(facets), chunk_size)
             )
             data = pool.imap(colorize, chunks)  # Keep order
-            tick("colorize")
+            tick("imap colorize")
 
-            # Concatenate/reduce processed chunks
-            def chunk_reducer(running, new):
-                """Reducer for colors chunks."""
-                running_centroid, running_area_sum = running
-                centroid, area_sum = new
-                running_centroid = add(running_centroid, centroid)
-                running_area_sum += area_sum
-                return running_centroid, running_area_sum
-
-            init_data = ((0.0, 0.0, 0.0), 0.0)
-            data = reduce(chunk_reducer, data, init_data)
-            # TODO Colors as a separate list and retrieve only colors
-            centroid, area_sum = data
-            tick("reduce colorize")
+            centroids, area_sums = zip(*data)
+            centroid = add_n(*centroids)
+            area_sum = sum(area_sums)
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
             # print(cog)  # Debug
 
-        tick("sublists")
+        tick("colorize")
 
         # Update points
         colored_points = {
@@ -430,7 +418,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         with ctx.Pool(
             nproc, init2, (shd_points, shd_points2, shd_point_colors, cog)
         ) as pool:
-            tick("restart pool")
+            tick("start pool2")
 
             # Update facets
             # TODO Use shared mem and ranges
