@@ -406,7 +406,7 @@ def main(python, points, facets, normals, areas, showtime=False):
                 (i, min(i + chunk_size, len(facets)))
                 for i in range(0, len(facets), chunk_size)
             )
-            data = pool.imap(colorize, chunks)  # Keep order
+            data = pool.imap_unordered(colorize, chunks)
             tick("imap colorize")
 
             centroids, area_sums = zip(*data)
@@ -452,7 +452,8 @@ def main(python, points, facets, normals, areas, showtime=False):
                 (i, min(i + chunk_size, len(facets)))
                 for i in range(0, len(facets), chunk_size)
             )
-            pool.map(update_facets, chunks)
+            res = pool.imap_unordered(update_facets, chunks)
+            res.next()
             facets = list(grouper(shd_facets, 3))
 
             tick("update facets")
