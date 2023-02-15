@@ -152,7 +152,7 @@ def colorize(chunk):
     centroid = add_n(*barys)
     area = sum(areas)
 
-    for ifacet, color in zip(range(start,stop), colors):
+    for ifacet, color in zip(range(start, stop), colors):
         SHARED_FACET_COLORS[ifacet] = color
 
     return centroid, area
@@ -271,6 +271,7 @@ def offset_facets(offset, facets):
 
 # *****************************************************************************
 
+
 def init(points, facets, normals, areas, facet_colors):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
@@ -387,7 +388,13 @@ def main(python, points, facets, normals, areas, showtime=False):
     shd_normals = RawArray("d", SharedWrapper(normals))
     shd_areas = RawArray("d", areas)
     shd_facet_colors = RawArray("B", len(facets))
-    pool1_args = (shd_points, shd_facets, shd_normals, shd_areas, shd_facet_colors)
+    pool1_args = (
+        shd_points,
+        shd_facets,
+        shd_normals,
+        shd_areas,
+        shd_facet_colors,
+    )
     tick("prepare shared")
 
     # Run
@@ -425,7 +432,14 @@ def main(python, points, facets, normals, areas, showtime=False):
         tick("array1")
         shd_point_colors = RawArray("B", new_point_colors)
         tick("array2")
-        args_pool2 = (shd_points, shd_points2, shd_point_colors, shd_facets, shd_facet_colors, cog)
+        args_pool2 = (
+            shd_points,
+            shd_points2,
+            shd_point_colors,
+            shd_facets,
+            shd_facet_colors,
+            cog,
+        )
 
         tick("points2")
 
@@ -445,7 +459,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             # Compute final mesh and uvmap
             chunks = batched(colored_points, chunk_size)
-            uvmap = sum( pool.imap(compute_uvmapped_submesh, chunks), [])
+            uvmap = sum(pool.imap(compute_uvmapped_submesh, chunks), [])
             tick("uv map")
 
             # Point list
