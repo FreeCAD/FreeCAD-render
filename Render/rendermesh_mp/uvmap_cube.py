@@ -166,21 +166,15 @@ def update_facets(chunk):
     start, stop = chunk
     point_map = SHARED_POINT_MAP
 
-    facets = SHARED_FACETS[start * 3 : stop * 3]
-    args = [iter(facets)] * 3
-    facets = zip(*args)
+    facets = SHARED_FACETS
 
-    colors = SHARED_FACET_COLORS[start:stop]
+    colors = SHARED_FACET_COLORS
 
-    result = [
-        (
-            point_map[facet[0], color],
-            point_map[facet[1], color],
-            point_map[facet[2], color],
-        )
-        for facet, color in zip(facets, colors)
-    ]
-    return result
+    for ifacet in range(start, stop):
+        color = colors[ifacet]
+        facets[ifacet * 3 + 0] = point_map[facets[ifacet * 3 + 0], color]
+        facets[ifacet * 3 + 1] = point_map[facets[ifacet * 3 + 1], color]
+        facets[ifacet * 3 + 2] = point_map[facets[ifacet * 3 + 2], color]
 
 
 # *****************************************************************************
@@ -424,9 +418,13 @@ def main(python, points, facets, normals, areas, showtime=False):
             for facet, color in zip(facets, shd_facet_colors)
             for ipoint in facet
         }
+        tick("new points")
         new_points, new_point_colors = zip(*colored_points)
+        tick("zip")
         shd_points2 = RawArray("L", new_points)
+        tick("array1")
         shd_point_colors = RawArray("B", new_point_colors)
+        tick("array2")
         args_pool2 = (shd_points, shd_points2, shd_point_colors, shd_facets, shd_facet_colors, cog)
 
         tick("points2")
@@ -436,13 +434,12 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("start pool2")
 
             # Update facets
-            # TODO Use shared mem and ranges
             chunks = (
                 (i, min(i + chunk_size, len(facets)))
                 for i in range(0, len(facets), chunk_size)
             )
-            # chunks = batched(zip(facets, shd_facet_colors), chunk_size)
-            facets = sum(pool.imap(update_facets, chunks), [])
+            pool.map(update_facets, chunks)
+            facets = list(grouper(shd_facets, 3))
 
             tick("update facets")
 
