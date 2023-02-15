@@ -163,14 +163,22 @@ def colorize(chunk):
 
 def update_facets(chunk):
     # Inputs
+    start, stop = chunk
     point_map = SHARED_POINT_MAP
+
+    facets = SHARED_FACETS[start * 3 : stop * 3]
+    args = [iter(facets)] * 3
+    facets = zip(*args)
+
+    colors = SHARED_FACET_COLORS[start:stop]
+
     result = [
         (
             point_map[facet[0], color],
             point_map[facet[1], color],
             point_map[facet[2], color],
         )
-        for facet, color in chunk
+        for facet, color in zip(facets, colors)
     ]
     return result
 
@@ -258,6 +266,7 @@ def compute_uvmapped_submesh(chunk):
 # *****************************************************************************
 
 
+# TODO Remove
 def offset_facets(offset, facets):
     """Apply (integer) offset to facets indices."""
     return [
@@ -284,7 +293,7 @@ def init(points, facets, normals, areas, facet_colors):
     sys.setswitchinterval(sys.maxsize)
 
 
-def init2(points, points2, point_colors, cog):
+def init2(points, points2, point_colors, facets, facet_colors, cog):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
@@ -295,6 +304,12 @@ def init2(points, points2, point_colors, cog):
         colored_point: index
         for index, colored_point in enumerate(zip(points2, point_colors))
     }
+
+    global SHARED_FACETS
+    SHARED_FACETS = facets
+
+    global SHARED_FACET_COLORS
+    SHARED_FACET_COLORS = facet_colors
 
     global COG
     COG = cog
@@ -412,17 +427,21 @@ def main(python, points, facets, normals, areas, showtime=False):
         new_points, new_point_colors = zip(*colored_points)
         shd_points2 = RawArray("L", new_points)
         shd_point_colors = RawArray("B", new_point_colors)
+        args_pool2 = (shd_points, shd_points2, shd_point_colors, shd_facets, shd_facet_colors, cog)
 
         tick("points2")
 
-        with ctx.Pool(
-            nproc, init2, (shd_points, shd_points2, shd_point_colors, cog)
-        ) as pool:
+        # Update facets points and compute uv map
+        with ctx.Pool(nproc, init2, args_pool2) as pool:
             tick("start pool2")
 
             # Update facets
             # TODO Use shared mem and ranges
-            chunks = batched(zip(facets, shd_facet_colors), chunk_size)
+            chunks = (
+                (i, min(i + chunk_size, len(facets)))
+                for i in range(0, len(facets), chunk_size)
+            )
+            # chunks = batched(zip(facets, shd_facet_colors), chunk_size)
             facets = sum(pool.imap(update_facets, chunks), [])
 
             tick("update facets")
