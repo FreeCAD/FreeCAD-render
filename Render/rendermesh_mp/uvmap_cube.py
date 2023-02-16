@@ -22,9 +22,6 @@
 
 """Script for cubic uvmap computation in multiprocessing mode."""
 
-from functools import reduce, partial
-from itertools import chain
-
 import sys
 import os
 
@@ -33,18 +30,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 # pylint: disable=wrong-import-position
 from vector3d import (
-    add,
     sub,
     add_n,
     fmul,
     fdiv,
     barycenter,
-    length,
-    normal,
-    transform,
 )
-from vector2d import sub as sub2, fdiv as fdiv2
-import time  # TODO
+from vector2d import fdiv as fdiv2
 
 
 # Vocabulary:
@@ -120,18 +112,16 @@ def colorize(chunk):
     The color depends on the normal of the triangle, projected to unit cube
     faces.
     This method also computes partial sums for center of gravity.
+    The colors are directly set in shared memory.
 
 
     Args:
-        facets -- An iterable of facets to process
+        chunk -- a pair of facet indices (start, stop)
 
     Returns
-        Facet colors (list)
         Centroid of facets (point: 3-float tuple)
         Area sum of facets (float)
     """
-    # TODO Put facets in shared
-
     start, stop = chunk
     facets = [getfacet(i) for i in range(start, stop)]
     normals = (getnormal(i) for i in range(start, stop))
@@ -162,6 +152,10 @@ def colorize(chunk):
 
 
 def update_facets(chunk):
+    """Update point indices in facets.
+
+    To be run once points have been split by color.
+    """
     # Inputs
     start, stop = chunk
     point_map = SHARED_POINT_MAP
@@ -194,7 +188,7 @@ def compute_uvmapped_submesh(chunk):
         facets -- facets of the submesh
         uvmap -- uvmap of the submesh
     """
-
+    # TODO Use lambdas and move it outside
     def _uc_xplus(point):
         """Unit cube - xplus case."""
         _, pt1, pt2 = point
@@ -234,22 +228,6 @@ def compute_uvmapped_submesh(chunk):
         _uc_zminus,
     )
 
-    # TODO Test
-    # print(SHARED_POINTS2)
-
-    # Inputs
-    # ifacets, facets, colors = [list(i) for i in zip(*colored_facets)]
-
-    # Compute points and facets
-    # TODO
-    # points = set(chain.from_iterable(facets))
-    # points = {p: i for i, p in enumerate(points)}
-    # points = SHD_POINTS2
-    # facets = [(points[p1], points[p2], points[p3]) for p1, p2, p3 in facets]
-
-    # Compute uvs
-    # map_func = uc_map[color]  # TODO
-    # cog = map_func(cog)
     uvs = ((uc_map[c], getpoint(p)) for p, c in chunk)
     uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
 
@@ -260,20 +238,8 @@ def compute_uvmapped_submesh(chunk):
 # *****************************************************************************
 
 
-# TODO Remove
-def offset_facets(offset, facets):
-    """Apply (integer) offset to facets indices."""
-    return [
-        (index1 + offset, index2 + offset, index3 + offset)
-        for index1, index2, index3 in facets
-    ]
-
-
-# *****************************************************************************
-
-
 def init(points, facets, normals, areas, facet_colors):
-    """Initialize pool of processes."""
+    """Initialize pool of processes #1."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     global SHARED_FACETS
@@ -289,7 +255,7 @@ def init(points, facets, normals, areas, facet_colors):
 
 
 def init2(points, shd_colored_points, facets, facet_colors, cog):
-    """Initialize pool of processes."""
+    """Initialize pool of processes #2."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     SHARED_POINTS = points
@@ -327,7 +293,6 @@ def main(python, points, facets, normals, areas, showtime=False):
     # pylint: disable=too-many-locals
     import multiprocessing as mp
     from multiprocessing.sharedctypes import RawArray
-    import shutil
     import itertools
     import time
 
@@ -479,6 +444,11 @@ def main(python, points, facets, normals, areas, showtime=False):
 if __name__ == "__main__":
     # Get variables
     # pylint: disable=used-before-assignment
+    try:
+        PYTHON
+    except NameError:
+        PYTHON = ""
+
     try:
         POINTS
     except NameError:
