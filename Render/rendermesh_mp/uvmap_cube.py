@@ -25,9 +25,6 @@
 import sys
 import os
 
-assert sys.version_info >= (3, 8), "MP requires Python 3.8 or higher"
-sys.path.insert(0, os.path.dirname(__file__))
-
 # pylint: disable=wrong-import-position
 from vector3d import (
     sub,
@@ -37,6 +34,9 @@ from vector3d import (
     barycenter,
 )
 from vector2d import fdiv as fdiv2
+
+assert sys.version_info >= (3, 8), "MP requires Python 3.8 or higher"
+sys.path.insert(0, os.path.dirname(__file__))
 
 
 # Vocabulary:
@@ -100,9 +100,6 @@ def _intersect_unitcube_face(direction):
     )
     _, idx1, idx2 = max(vec)
     return idx1 + int(idx2)
-
-
-_list_append = list.append
 
 
 def colorize(chunk):
@@ -173,6 +170,45 @@ def update_facets(chunk):
 
 # *****************************************************************************
 
+def _uc_xplus(point):
+    """Unit cube - xplus case."""
+    _, pt1, pt2 = point
+    return (pt1, pt2)
+
+def _uc_xminus(point):
+    """Unit cube - xminus case."""
+    _, pt1, pt2 = point
+    return (-pt1, pt2)
+
+def _uc_yplus(point):
+    """Unit cube - yplus case."""
+    pt0, _, pt2 = point
+    return (-pt0, pt2)
+
+def _uc_yminus(point):
+    """Unit cube - yminus case."""
+    pt0, _, pt2 = point
+    return (pt0, pt2)
+
+def _uc_zplus(point):
+    """Unit cube - zplus case."""
+    pt0, pt1, _ = point
+    return (pt0, pt1)
+
+def _uc_zminus(point):
+    """Unit cube - zminus case."""
+    pt0, pt1, _ = point
+    return (pt0, -pt1)
+
+UC_MAP = (
+    _uc_xplus,
+    _uc_xminus,
+    _uc_yplus,
+    _uc_yminus,
+    _uc_zplus,
+    _uc_zminus,
+)
+
 
 def compute_uvmapped_submesh(chunk):
     """Compute a submesh with uvmap from monochrome triangles.
@@ -188,47 +224,7 @@ def compute_uvmapped_submesh(chunk):
         facets -- facets of the submesh
         uvmap -- uvmap of the submesh
     """
-    # TODO Use lambdas and move it outside
-    def _uc_xplus(point):
-        """Unit cube - xplus case."""
-        _, pt1, pt2 = point
-        return (pt1, pt2)
-
-    def _uc_xminus(point):
-        """Unit cube - xminus case."""
-        _, pt1, pt2 = point
-        return (-pt1, pt2)
-
-    def _uc_yplus(point):
-        """Unit cube - yplus case."""
-        pt0, _, pt2 = point
-        return (-pt0, pt2)
-
-    def _uc_yminus(point):
-        """Unit cube - yminus case."""
-        pt0, _, pt2 = point
-        return (pt0, pt2)
-
-    def _uc_zplus(point):
-        """Unit cube - zplus case."""
-        pt0, pt1, _ = point
-        return (pt0, pt1)
-
-    def _uc_zminus(point):
-        """Unit cube - zminus case."""
-        pt0, pt1, _ = point
-        return (pt0, -pt1)
-
-    uc_map = (
-        _uc_xplus,
-        _uc_xminus,
-        _uc_yplus,
-        _uc_yminus,
-        _uc_zplus,
-        _uc_zminus,
-    )
-
-    uvs = ((uc_map[c], getpoint(p)) for p, c in chunk)
+    uvs = ((UC_MAP[c], getpoint(p)) for p, c in chunk)
     uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
 
     # return points, facets, normals, areas, uvs
