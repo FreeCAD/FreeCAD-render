@@ -288,16 +288,17 @@ def init(points, facets, normals, areas, facet_colors):
     sys.setswitchinterval(sys.maxsize)
 
 
-def init2(points, points2, point_colors, facets, facet_colors, cog):
+def init2(points, shd_colored_points, facets, facet_colors, cog):
     """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     SHARED_POINTS = points
 
     global SHARED_POINT_MAP
+    iterator = [iter(shd_colored_points)] * 2
+    iterator = zip(*iterator)
     SHARED_POINT_MAP = {
-        colored_point: index
-        for index, colored_point in enumerate(zip(points2, point_colors))
+        colored_point: index for index, colored_point in enumerate(iterator)
     }
 
     global SHARED_FACETS
@@ -353,18 +354,20 @@ def main(python, points, facets, normals, areas, showtime=False):
         return itertools.zip_longest(*args, fillvalue=fillvalue)
 
     class SharedWrapper:
-        """A wrapper for shared objects containing 3-tuples."""
+        """A wrapper for shared objects containing tuples."""
 
-        def __init__(self, seq):
+        def __init__(self, seq, tuple_length):
             self.seq = seq
+            self.tuple_length = tuple_length
 
         def __len__(self):
-            return len(self.seq) * 3
+            return len(self.seq) * self.tuple_length
 
         def __iter__(self):
             seq = self.seq
+            tuple_length = self.tuple_length
             return itertools.islice(
-                (x for elem in seq for x in elem), len(seq) * 3
+                (x for elem in seq for x in elem), len(seq) * tuple_length
             )
 
     # Set working directory
@@ -383,9 +386,9 @@ def main(python, points, facets, normals, areas, showtime=False):
     nproc = os.cpu_count()
 
     # Prepare shared data
-    shd_points = RawArray("d", SharedWrapper(points))
-    shd_facets = RawArray("l", SharedWrapper(facets))
-    shd_normals = RawArray("d", SharedWrapper(normals))
+    shd_points = RawArray("d", SharedWrapper(points, 3))
+    shd_facets = RawArray("l", SharedWrapper(facets, 3))
+    shd_normals = RawArray("d", SharedWrapper(normals, 3))
     shd_areas = RawArray("d", areas)
     shd_facet_colors = RawArray("B", len(facets))
     pool1_args = (
@@ -407,7 +410,7 @@ def main(python, points, facets, normals, areas, showtime=False):
                 for i in range(0, len(facets), chunk_size)
             )
             data = pool.imap_unordered(colorize, chunks)
-            tick("imap colorize")
+            # tick("imap colorize")
 
             centroids, area_sums = zip(*data)
             centroid = add_n(*centroids)
@@ -426,22 +429,16 @@ def main(python, points, facets, normals, areas, showtime=False):
             for ipoint in facet
         }
         tick("new points")
-        new_points, new_point_colors = zip(*colored_points)
-        tick("zip")
-        shd_points2 = RawArray("L", new_points)
-        tick("array1")
-        shd_point_colors = RawArray("B", new_point_colors)
-        tick("array2")
+        shd_colored_points = RawArray("L", SharedWrapper(colored_points, 2))
         args_pool2 = (
             shd_points,
-            shd_points2,
-            shd_point_colors,
+            shd_colored_points,
             shd_facets,
             shd_facet_colors,
             cog,
         )
 
-        tick("points2")
+        tick("prepare shared")
 
         # Update facets points and compute uv map
         with ctx.Pool(nproc, init2, args_pool2) as pool:
@@ -452,8 +449,7 @@ def main(python, points, facets, normals, areas, showtime=False):
                 (i, min(i + chunk_size, len(facets)))
                 for i in range(0, len(facets), chunk_size)
             )
-            res = pool.imap_unordered(update_facets, chunks)
-            res.next()
+            pool.map(update_facets, chunks)
             facets = list(grouper(shd_facets, 3))
 
             tick("update facets")
@@ -464,7 +460,10 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("uv map")
 
             # Point list
-            outpoints = [points[i] for i in new_points]
+            outpoints = [
+                points[i]
+                for i in itertools.islice(shd_colored_points, 0, None, 2)
+            ]
             tick("new point list")
     finally:
         os.chdir(save_dir)
