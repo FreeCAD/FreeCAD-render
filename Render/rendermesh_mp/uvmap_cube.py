@@ -210,24 +210,21 @@ UC_MAP = (
 )
 
 
-def compute_uvmapped_submesh(chunk):
-    """Compute a submesh with uvmap from monochrome triangles.
+# TODO Use ranges
+def compute_uvmap(chunk):
+    """Compute uvmap.
 
     Args:
-        chunk -- a tuple containing:
-            cog -- center of gravity (point: 3-float tuple)
-            color -- color of the triangles (integer)
-            triangles -- monochrome triangles (list of 3-indices elements)
+        chunk -- a iterable of pairs containing:
+            color -- color of the point (integer)
+            point -- point index (integer)
 
     Returns:
-        points -- points of the submesh
-        facets -- facets of the submesh
-        uvmap -- uvmap of the submesh
+        uvmap
     """
     uvs = ((UC_MAP[c], getpoint(p)) for p, c in chunk)
     uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
 
-    # return points, facets, normals, areas, uvs
     return uvs
 
 
@@ -415,9 +412,10 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             tick("update facets")
 
-            # Compute final mesh and uvmap
+            # Compute uvmap
+            # TODO Use ranges
             chunks = batched(colored_points, chunk_size)
-            uvmap = sum(pool.imap(compute_uvmapped_submesh, chunks), [])
+            uvmap = sum(pool.imap(compute_uvmap, chunks), [])
             tick("uv map")
 
             # Point list
@@ -430,6 +428,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         os.chdir(save_dir)
         sys.stdin = save_stdin
         del ctx
+        # TODO Clean shared?
 
     # TODO Do not return normals, areas
     return outpoints, facets, normals, areas, uvmap
