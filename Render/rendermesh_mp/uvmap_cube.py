@@ -25,6 +25,7 @@
 import sys
 import os
 
+sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
 from vector3d import (
     sub,
@@ -36,7 +37,6 @@ from vector3d import (
 from vector2d import fdiv as fdiv2
 
 assert sys.version_info >= (3, 8), "MP requires Python 3.8 or higher"
-sys.path.insert(0, os.path.dirname(__file__))
 
 
 # Vocabulary:
