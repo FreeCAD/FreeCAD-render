@@ -24,6 +24,7 @@
 
 import sys
 import os
+import itertools
 
 sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
@@ -216,7 +217,6 @@ UC_MAP = (
 )
 
 
-# TODO Use ranges
 def compute_uvmap(chunk):
     """Compute uvmap.
 
@@ -228,7 +228,12 @@ def compute_uvmap(chunk):
     Returns:
         uvmap
     """
-    uvs = ((UC_MAP[c], getpoint(p)) for p, c in chunk)
+    start, stop = chunk
+    colored_points = SHARED_COLORED_POINTS[start * 2 : stop * 2]
+    colored_points = [iter(colored_points)] * 2
+    colored_points = zip(*colored_points)
+
+    uvs = ((UC_MAP[c], getpoint(p)) for p, c in colored_points)
     uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
 
     return uvs
@@ -266,6 +271,9 @@ def init2(points, shd_colored_points, facets, facet_colors, cog):
         colored_point: index for index, colored_point in enumerate(iterator)
     }
 
+    global SHARED_COLORED_POINTS
+    SHARED_COLORED_POINTS = shd_colored_points
+
     global SHARED_FACETS
     SHARED_FACETS = facets
 
@@ -294,7 +302,6 @@ def main(python, points, facets, normals, areas, showtime=False):
     from multiprocessing.sharedctypes import RawArray
     import itertools
     import time
-
 
     def tick(msg=""):
         """Print the time (debug purpose)."""
@@ -418,8 +425,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("update facets")
 
             # Compute uvmap
-            # TODO Use ranges
-            chunks = batched(colored_points, chunk_size)
+            chunks = make_chunks(chunk_size, len(colored_points))
             uvmap = sum(pool.imap(compute_uvmap, chunks), [])
             tick("uv map")
 
@@ -433,7 +439,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         os.chdir(save_dir)
         sys.stdin = save_stdin
         del ctx
-        # TODO Clean shared?
+        # TODO Clean shared
 
     # TODO Do not return normals, areas
     return outpoints, facets, normals, areas, uvmap
