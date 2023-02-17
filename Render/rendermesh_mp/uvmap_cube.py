@@ -67,11 +67,7 @@ def getfacet(idx):
 def getnormal(idx):
     """Get a normal from its index in the shared memory."""
     idx *= 3
-    return (
-        SHARED_NORMALS[idx],
-        SHARED_NORMALS[idx + 1],
-        SHARED_NORMALS[idx + 2],
-    )
+    return SHARED_NORMALS[idx], SHARED_NORMALS[idx + 1], SHARED_NORMALS[idx + 2]
 
 
 def getarea(idx):
@@ -120,10 +116,11 @@ def colorize(chunk):
         Area sum of facets (float)
     """
     start, stop = chunk
-    facets = [getfacet(i) for i in range(start, stop)]
+    facets = (getfacet(i) for i in range(start, stop))
     normals = (getnormal(i) for i in range(start, stop))
     areas = [getarea(i) for i in range(start, stop)]
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
+
     data = (
         (barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas)
     )
@@ -156,9 +153,7 @@ def update_facets(chunk):
     # Inputs
     start, stop = chunk
     point_map = SHARED_POINT_MAP
-
     facets = SHARED_FACETS
-
     colors = SHARED_FACET_COLORS
 
     for ifacet in range(start, stop):
