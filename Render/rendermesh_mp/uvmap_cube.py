@@ -319,6 +319,12 @@ def main(python, points, facets, normals, areas, showtime=False):
         args = [iter(iterable)] * number
         return itertools.zip_longest(*args, fillvalue=fillvalue)
 
+    def make_chunks(chunk_size, length):
+        return (
+            (i, min(i + chunk_size, length))
+            for i in range(0, length, chunk_size)
+        )
+
     class SharedWrapper:
         """A wrapper for shared objects containing tuples."""
 
@@ -368,10 +374,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         # Compute facets colors and center of gravity
         with ctx.Pool(nproc, init, pool1_args) as pool:
             tick("start pool1")
-            chunks = (
-                (i, min(i + chunk_size, len(facets)))
-                for i in range(0, len(facets), chunk_size)
-            )
+            chunks = make_chunks(chunk_size, len(facets))
             data = pool.imap_unordered(colorize, chunks)
             # tick("imap colorize")
 
@@ -408,10 +411,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("start pool2")
 
             # Update facets
-            chunks = (
-                (i, min(i + chunk_size, len(facets)))
-                for i in range(0, len(facets), chunk_size)
-            )
+            chunks = make_chunks(chunk_size, len(facets))
             pool.map(update_facets, chunks)
             facets = list(grouper(shd_facets, 3))
 
