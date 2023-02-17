@@ -67,7 +67,11 @@ def getfacet(idx):
 def getnormal(idx):
     """Get a normal from its index in the shared memory."""
     idx *= 3
-    return SHARED_NORMALS[idx], SHARED_NORMALS[idx + 1], SHARED_NORMALS[idx + 2]
+    return (
+        SHARED_NORMALS[idx],
+        SHARED_NORMALS[idx + 1],
+        SHARED_NORMALS[idx + 2],
+    )
 
 
 def getarea(idx):
@@ -165,35 +169,42 @@ def update_facets(chunk):
 
 # *****************************************************************************
 
+
 def _uc_xplus(point):
     """Unit cube - xplus case."""
     _, pt1, pt2 = point
     return (pt1, pt2)
+
 
 def _uc_xminus(point):
     """Unit cube - xminus case."""
     _, pt1, pt2 = point
     return (-pt1, pt2)
 
+
 def _uc_yplus(point):
     """Unit cube - yplus case."""
     pt0, _, pt2 = point
     return (-pt0, pt2)
+
 
 def _uc_yminus(point):
     """Unit cube - yminus case."""
     pt0, _, pt2 = point
     return (pt0, pt2)
 
+
 def _uc_zplus(point):
     """Unit cube - zplus case."""
     pt0, pt1, _ = point
     return (pt0, pt1)
 
+
 def _uc_zminus(point):
     """Unit cube - zminus case."""
     pt0, pt1, _ = point
     return (pt0, -pt1)
+
 
 UC_MAP = (
     _uc_xplus,
@@ -284,12 +295,14 @@ def main(python, points, facets, normals, areas, showtime=False):
     import itertools
     import time
 
-    tm0 = time.time()
 
     def tick(msg=""):
         """Print the time (debug purpose)."""
         if showtime:
             print(msg, time.time() - tm0)
+
+    tm0 = time.time()
+    tick("start uv computation")
 
     # Only >= 3.8
     def batched(iterable, number):
@@ -318,10 +331,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
         def __iter__(self):
             seq = self.seq
-            tuple_length = self.tuple_length
-            return itertools.islice(
-                (x for elem in seq for x in elem), len(seq) * tuple_length
-            )
+            return itertools.chain.from_iterable(seq)
 
     # Set working directory
     save_dir = os.getcwd()
