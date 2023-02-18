@@ -63,8 +63,8 @@ class RenderMesh:
     RenderMesh is based on Mesh.Mesh.
     In addition, RenderMesh implements:
     - UV map management
-    - scaling, via RenderTransformation
-    - an improved vertex normals computation
+    - scaling, via _Transformation
+    - an improved vertex normals computation, for autosmoothing
     """
 
     def __init__(
@@ -93,9 +93,11 @@ class RenderMesh:
             prof = cProfile.Profile()
             prof.enable()
 
+        # Check mandatory input
         if not mesh:
             raise ValueError()
 
+        # Initialize
         self.__vnormals = []
         self.__uvmap = []
 
@@ -137,6 +139,9 @@ class RenderMesh:
             App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
+            self.__autosmooth = True
+        else:
+            self.__autosmooth = False
 
         # Print profile stats (debug)
         if self.debug:
@@ -185,6 +190,11 @@ class RenderMesh:
     def count_facets(self):
         """Get the number of facets."""
         return len(self.__facets)
+
+    @property
+    def autosmooth(self):
+        """Get the smoothness state of the mesh (boolean)."""
+        return self.__autosmooth
 
     def write_objfile(
         self,

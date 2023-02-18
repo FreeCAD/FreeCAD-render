@@ -85,8 +85,6 @@ def write_mesh(name, mesh, material, **kwargs):
     verts = "  ".join(verts)
     nverts = ["3"] * mesh.count_facets
     nverts = "  ".join(nverts)
-    norms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
-    norms = "  ".join(norms)
 
     if mesh.has_uvmap():
         uvs = [f"{px} {py}" for px, py in mesh.uvmap_per_vertex()]
@@ -101,13 +99,14 @@ def write_mesh(name, mesh, material, **kwargs):
     ]
     trans = "  ".join(trans)
 
+    interpolation = "smooth" if mesh.autosmooth else "flat"
+
     snippet_obj = (
         f"""
 <transform matrix="{trans}">
-    <state shader="{name}">
+    <state interpolation="{interpolation}" shader="{name}">
     <mesh
         P="{points}"
-        N="{norms}"
         verts="{verts}"
         nverts="{nverts}"
     {uv_statement}/>
