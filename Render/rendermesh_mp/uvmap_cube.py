@@ -24,7 +24,6 @@
 
 import sys
 import os
-import itertools
 
 sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
@@ -234,10 +233,10 @@ def compute_uvmap(chunk):
     colored_points = zip(*colored_points)
 
     uvs = ((UC_MAP[c], getpoint(p)) for p, c in colored_points)
-    uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
+    uvs = (fdiv2(func(sub(point, COG)), 1000) for func, point in uvs)
 
-    for index, uv in zip(range(start, stop), uvs):
-        SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv
+    for index, uv_ in zip(range(start, stop), uvs):
+        SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv_
 
 
 # *****************************************************************************
@@ -303,17 +302,21 @@ def main(python, points, facets, normals, areas, showtime=False):
     # pylint: disable=import-outside-toplevel
     # pylint: disable=too-many-locals
     import multiprocessing as mp
-    from multiprocessing.sharedctypes import RawArray
     import itertools
     import time
+
+    tm0 = time.time()
+    if showtime:
+        msg = (
+            f"start uv computation: {len(points)} points, "
+            f"{len(facets)} facets"
+        )
+        print(msg)
 
     def tick(msg=""):
         """Print the time (debug purpose)."""
         if showtime:
             print(msg, time.time() - tm0)
-
-    tm0 = time.time()
-    tick(f"start uv computation: {len(points)} points, {len(facets)} facets ")
 
     def grouper(iterable, number, fillvalue=None):
         "Collect data into fixed-length chunks or blocks"
@@ -329,7 +332,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
-        for res in imap:
+        for _ in imap:
             pass
 
     class SharedWrapper:
@@ -396,7 +399,9 @@ def main(python, points, facets, normals, areas, showtime=False):
         tick("new points")
 
         # Update facets points and compute uv map
-        shared["colored_points"] = ctx.RawArray("L", SharedWrapper(colored_points, 2))
+        shared["colored_points"] = ctx.RawArray(
+            "L", SharedWrapper(colored_points, 2)
+        )
         shared["uvmap"] = ctx.RawArray("d", len(colored_points) * 2)
         tick("prepare shared")
         with ctx.Pool(nproc, init2, (shared, cog)) as pool:
@@ -405,8 +410,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             # Update facets
             chunks = make_chunks(chunk_size, len(facets))
             run_unordered(pool, update_facets, chunks)
-            facets = list(grouper(shared["facets"], 3))
-
+            newfacets = list(grouper(shared["facets"], 3))
             tick("update facets")
 
             # Compute uvmap
@@ -415,18 +419,15 @@ def main(python, points, facets, normals, areas, showtime=False):
             uvmap = list(grouper(shared["uvmap"], 2))
             tick("uv map")
 
-            # Point list
-            newpoints = [
-                points[i]
-                for i in itertools.islice(shared["colored_points"], 0, None, 2)
-            ]
-            tick("new point list")
+        # Recompute point list
+        newpoints = [points[i] for i, _ in colored_points]
+        tick("new point list")
 
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
 
-    return newpoints, facets, uvmap
+    return newpoints, newfacets, uvmap
 
 
 # *****************************************************************************
