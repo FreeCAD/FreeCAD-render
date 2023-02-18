@@ -327,6 +327,11 @@ def main(python, points, facets, normals, areas, showtime=False):
             for i in range(0, length, chunk_size)
         )
 
+    def run_unordered(pool, function, iterable):
+        imap = pool.imap_unordered(function, iterable)
+        for res in imap:
+            pass
+
     class SharedWrapper:
         """A wrapper for shared objects containing tuples."""
 
@@ -399,14 +404,14 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             # Update facets
             chunks = make_chunks(chunk_size, len(facets))
-            pool.map(update_facets, chunks)
+            run_unordered(pool, update_facets, chunks)
             facets = list(grouper(shared["facets"], 3))
 
             tick("update facets")
 
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
-            pool.map(compute_uvmap, chunks)
+            run_unordered(pool, compute_uvmap, chunks)
             uvmap = list(grouper(shared["uvmap"], 2))
             tick("uv map")
 
