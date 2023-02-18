@@ -813,6 +813,10 @@ class _Transformation:
             placement *= self.__placement
             self.__placement = placement
 
+    def __str__(self):
+        """Give a string representation."""
+        return f"Placement={self.__placement}, Scale={self.__scale}"
+
     @property
     def scale(self):
         """Get scale property."""
