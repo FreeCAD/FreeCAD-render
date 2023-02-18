@@ -566,7 +566,6 @@ def _get_shapecolor(obj, transparency_boost):
     try:
         elem_colors = vobj.getElementColors()
         color = RGBA(*elem_colors["Face"])
-        print(color)  # TODO
     except (AttributeError, KeyError):
         # Shape color
         color = RGBA(

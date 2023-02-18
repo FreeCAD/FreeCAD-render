@@ -470,7 +470,6 @@ if __name__ == "__main__":
     except NameError:
         SHOWTIME = False
 
-    SHOWTIME = True  # Debug
     POINTS, FACETS, UVMAP = main(
         PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME
     )

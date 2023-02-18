@@ -86,9 +86,12 @@ class RenderMesh:
             uvmap_projection -- type of projection to use for uv map
                 among "Cubic", "Spherical", "Cylindric"
         """
-        # Creating profile object
-        prof = cProfile.Profile()
-        prof.enable()
+        self.debug = PARAMS.GetBool("Debug")
+
+        # Create profile object (debug)
+        if self.debug:
+            prof = cProfile.Profile()
+            prof.enable()
 
         if not mesh:
             raise ValueError()
@@ -110,9 +113,8 @@ class RenderMesh:
         self.__facets = facets
         self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
-        # TODO Use self.__normals in uv computation (don't recompute)
 
-        # Python executable for multiprocessing
+        # Multiprocessing preparation (if required)
         self.multiprocessing = False
         if (
             PARAMS.GetBool("EnableMultiprocessing")
@@ -136,12 +138,14 @@ class RenderMesh:
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
 
-        prof.disable()
-        sec = io.StringIO()
-        sortby = SortKey.CUMULATIVE
-        pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-        pstat.print_stats()
-        print(sec.getvalue())
+        # Print profile stats (debug)
+        if self.debug:
+            prof.disable()
+            sec = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+            pstat.print_stats()
+            print(sec.getvalue())
 
     def copy(self):
         """Creates a copy of this mesh."""
@@ -722,10 +726,7 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
-        if (
-            PARAMS.GetBool("EnableMultiprocessing")
-            and self.count_points >= 2000
-        ):
+        if self.multiprocessing:
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             func = self._compute_uvmap_cube_mp
         else:
@@ -797,6 +798,7 @@ class RenderMesh:
                 "AREAS": self.__areas,
                 "UVMAP": self.__uvmap,
                 "PYTHON": self.python,
+                "SHOWTIME": self.debug,
             },
             run_name="__main__",
         )
@@ -811,6 +813,7 @@ class RenderMesh:
         del res["AREAS"]
         del res["UVMAP"]
         del res["PYTHON"]
+        del res["SHOWTIME"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""
