@@ -236,7 +236,8 @@ def compute_uvmap(chunk):
     uvs = ((UC_MAP[c], getpoint(p)) for p, c in colored_points)
     uvs = [fdiv2(func(sub(point, COG)), 1000) for func, point in uvs]
 
-    return uvs
+    for index, uv in zip(range(start, stop), uvs):
+        SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv
 
 
 # *****************************************************************************
@@ -279,6 +280,9 @@ def init2(shared, cog):
 
     global SHARED_FACET_COLORS
     SHARED_FACET_COLORS = shared["facet_colors"]
+
+    global SHARED_UVMAP
+    SHARED_UVMAP = shared["uvmap"]
 
     global COG
     COG = cog
@@ -388,6 +392,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
         # Update facets points and compute uv map
         shared["colored_points"] = ctx.RawArray("L", SharedWrapper(colored_points, 2))
+        shared["uvmap"] = ctx.RawArray("d", len(colored_points) * 2)
         tick("prepare shared")
         with ctx.Pool(nproc, init2, (shared, cog)) as pool:
             tick("start pool2")
@@ -400,9 +405,9 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("update facets")
 
             # Compute uvmap
-            # TODO Return uv via shared mem
             chunks = make_chunks(chunk_size, len(colored_points))
-            uvmap = sum(pool.imap(compute_uvmap, chunks), [])
+            pool.map(compute_uvmap, chunks)
+            uvmap = list(grouper(shared["uvmap"], 2))
             tick("uv map")
 
             # Point list
