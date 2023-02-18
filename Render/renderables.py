@@ -450,7 +450,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
         """Reposition to origin and set material of the given renderable."""
         origin_matrix = origin.toMatrix()
         new_mesh = rend.mesh.copy()
-        new_mesh.transformation.apply_placement(origin_matrix)
+        new_mesh.transformation.apply_placement(origin_matrix, left=True)
         new_mat = _get_material(rend, upper_material)
         new_color = rend.defcolor
         return Renderable(rend.name, new_mesh, new_mat, new_color)
