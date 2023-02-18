@@ -352,29 +352,25 @@ def main(python, points, facets, normals, areas, showtime=False):
     chunk_size = 20000
     nproc = os.cpu_count()
 
-    # Prepare shared data
-    shd_points = RawArray("d", SharedWrapper(points, 3))
-    shd_facets = RawArray("l", SharedWrapper(facets, 3))
-    shd_normals = RawArray("d", SharedWrapper(normals, 3))
-    shd_areas = RawArray("d", areas)
-    shd_facet_colors = RawArray("B", len(facets))
-    pool1_args = (
-        shd_points,
-        shd_facets,
-        shd_normals,
-        shd_areas,
-        shd_facet_colors,
-    )
-    tick("prepare shared")
-
-    # Run
     try:
         # Compute facets colors and center of gravity
+        shd_points = ctx.RawArray("d", SharedWrapper(points, 3))
+        shd_facets = ctx.RawArray("l", SharedWrapper(facets, 3))
+        shd_normals = ctx.RawArray("d", SharedWrapper(normals, 3))
+        shd_areas = ctx.RawArray("d", areas)
+        shd_facet_colors = ctx.RawArray("B", len(facets))
+        pool1_args = (
+            shd_points,
+            shd_facets,
+            shd_normals,
+            shd_areas,
+            shd_facet_colors,
+        )
+        tick("prepare shared")
         with ctx.Pool(nproc, init, pool1_args) as pool:
             tick("start pool1")
             chunks = make_chunks(chunk_size, len(facets))
             data = pool.imap_unordered(colorize, chunks)
-            # tick("imap colorize")
 
             centroids, area_sums = zip(*data)
             centroid = add_n(*centroids)
@@ -383,7 +379,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
             # print(cog)  # Debug
-
+        del pool1_args
         tick("colorize")
 
         # Update points
@@ -393,19 +389,18 @@ def main(python, points, facets, normals, areas, showtime=False):
             for ipoint in facet
         }
         tick("new points")
-        shd_colored_points = RawArray("L", SharedWrapper(colored_points, 2))
-        args_pool2 = (
+
+        # Update facets points and compute uv map
+        shd_colored_points = ctx.RawArray("L", SharedWrapper(colored_points, 2))
+        pool2_args = (
             shd_points,
             shd_colored_points,
             shd_facets,
             shd_facet_colors,
             cog,
         )
-
         tick("prepare shared")
-
-        # Update facets points and compute uv map
-        with ctx.Pool(nproc, init2, args_pool2) as pool:
+        with ctx.Pool(nproc, init2, pool2_args) as pool:
             tick("start pool2")
 
             # Update facets
@@ -416,6 +411,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("update facets")
 
             # Compute uvmap
+            # TODO Return uv via shared mem
             chunks = make_chunks(chunk_size, len(colored_points))
             uvmap = sum(pool.imap(compute_uvmap, chunks), [])
             tick("uv map")
@@ -426,10 +422,13 @@ def main(python, points, facets, normals, areas, showtime=False):
                 for i in itertools.islice(shd_colored_points, 0, None, 2)
             ]
             tick("new point list")
+        del pool2_args
+
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-        del ctx
+        import gc
+        gc.get_referrers(shd_colored_points)
         # TODO Clean shared
 
     return newpoints, facets, uvmap
@@ -438,6 +437,9 @@ def main(python, points, facets, normals, areas, showtime=False):
 # *****************************************************************************
 
 if __name__ == "__main__":
+    import gc
+    gc.set_debug(0)
+
     # Get variables
     # pylint: disable=used-before-assignment
     try:
