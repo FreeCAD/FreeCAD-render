@@ -309,16 +309,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             print(msg, time.time() - tm0)
 
     tm0 = time.time()
-    tick("start uv computation")
-
-    # Only >= 3.8
-    def batched(iterable, number):
-        "Batch data into lists of length n. The last batch may be shorter."
-        # batched('ABCDEFG', 3) --> ABC DEF G
-        # from Python itertools documentation...
-        iterator = iter(iterable)
-        while batch := list(itertools.islice(iterator, number)):
-            yield batch
+    tick(f"start uv computation: {len(points)} points, {len(facets)} facets ")
 
     def grouper(iterable, number, fillvalue=None):
         "Collect data into fixed-length chunks or blocks"
@@ -430,7 +421,7 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("uv map")
 
             # Point list
-            outpoints = [
+            newpoints = [
                 points[i]
                 for i in itertools.islice(shd_colored_points, 0, None, 2)
             ]
@@ -441,8 +432,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         del ctx
         # TODO Clean shared
 
-    # TODO Do not return normals, areas
-    return outpoints, facets, normals, areas, uvmap
+    return newpoints, facets, uvmap
 
 
 # *****************************************************************************
@@ -486,6 +476,6 @@ if __name__ == "__main__":
         SHOWTIME = False
 
     SHOWTIME = True  # Debug
-    POINTS, FACETS, NORMALS, AREAS, UVMAP = main(
+    POINTS, FACETS, UVMAP = main(
         PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME
     )
