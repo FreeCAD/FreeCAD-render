@@ -568,12 +568,17 @@ def _get_shapecolor(obj, transparency_boost):
         color = RGBA(*elem_colors["Face"])
     except (AttributeError, KeyError):
         # Shape color
-        color = RGBA(
-            vobj.ShapeColor[0],
-            vobj.ShapeColor[1],
-            vobj.ShapeColor[2],
-            vobj.Transparency / 100,
-        )
+        try:
+            shapecolor = vobj.ShapeColor
+            transparency = vobj.transparency
+            color = RGBA(
+                shapecolor[0],
+                shapecolor[1],
+                shapecolor[2],
+                transparency / 100,
+            )
+        except AttributeError:
+            color = RGBA(0.8, 0.8, 0.8, 1.0)
 
     return _boost_tp(color, transparency_boost)
 
