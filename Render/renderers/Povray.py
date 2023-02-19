@@ -60,7 +60,7 @@ mimetypes.init()
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
@@ -104,7 +104,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         snippet_uv_vects = ""
 
     # Normals
-    if vertex_normals:
+    if mesh.has_vnormals():
         nrms = [f"<{n[0]},{n[1]},{n[2]}>" for n in mesh.getPointNormals()]
         normals = "\n        ".join(nrms)
         len_normals = len(nrms)

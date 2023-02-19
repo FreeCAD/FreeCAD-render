@@ -52,6 +52,7 @@ import MeshPart
 import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
+from Render.constants import PARAMS
 from Render.rendermesh import RenderMesh
 from Render import renderables
 from Render import rendermaterial
@@ -367,32 +368,54 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        autosmooth = getattr(view, "AutoSmooth", False)
+        try:
+            autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
+        except AttributeError:
+            autosmooth_angle = 0
 
-        def mesher(shape, compute_uvmap=True, uvmap_projection=None):
+        # Mesher
+        def mesher(
+            shape,
+            compute_uvmap=True,
+            uvmap_projection=None,
+            is_already_a_mesh=False,
+        ):
             """Mesh a shape.
 
             Args:
-              compute_uvmap -- Determine if an uv map must be computed (bool)
-              uvmap_projection -- Type of uv map to compute (string, see View
-                object and RenderMesh)
+                compute_uvmap -- Determine if an uv map must be computed (bool)
+                uvmap_projection -- Type of uv map to compute (string, see View
+                    object and RenderMesh)
+                is_already_a_mesh  -- Flag to indicate the shape is actually
+                    already a mesh, so no meshing should be applied
 
             Returns a RenderMesh.
             """
-            # Generate mesh
-            # Nota: the shape placement is stored in the mesh placement...
-            shape = shape.copy()
-            shape_plc = shape.Placement
-            shape.Placement = App.Base.Placement()
-            mesh = MeshPart.meshFromShape(
-                Shape=shape,
-                LinearDeflection=self.linear_deflection,
-                AngularDeflection=self.angular_deflection,
-                Relative=False,
+            if is_already_a_mesh:
+                mesh = shape.Mesh.copy()
+            else:
+                # Generate mesh
+                # Nota: the shape placement is stored in the mesh placement...
+                shape = shape.copy()
+                shape_plc = shape.Placement
+                shape.Placement = App.Base.Placement()
+                mesh = MeshPart.meshFromShape(
+                    Shape=shape,
+                    LinearDeflection=self.linear_deflection,
+                    AngularDeflection=self.angular_deflection,
+                    Relative=False,
+                )
+                mesh.Placement = shape_plc
+
+            mesh = RenderMesh(
+                mesh,
+                autosmooth,
+                autosmooth_angle,
+                compute_uvmap,
+                uvmap_projection,
             )
-            mesh.Placement = shape_plc
-            mesh = RenderMesh(mesh)
-            if compute_uvmap:
-                mesh.compute_uvmap(uvmap_projection)
+
             return mesh
 
         source = view.Source
@@ -437,7 +460,10 @@ class RendererHandler:
                     framestack.name,
                 )
             )
-            return ""
+            if not PARAMS.GetBool("Debug"):
+                return ""
+            else:
+                raise err
 
         # Rescale to meters
         for rend in rends:

@@ -41,7 +41,6 @@ import math
 
 from Render.utils import translate, debug, warn, getproxyattr, RGBA
 from Render.rendermaterial import is_multimat, is_valid_material
-from Render.rendermesh import RenderMesh
 
 
 # ===========================================================================
@@ -150,11 +149,10 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
         color = _get_shapecolor(obj, transparency_boost)
-        mesh = RenderMesh(obj.Mesh)
-        if mat and mat.Proxy.has_textures():
-            uvprojection = kwargs.get("uvprojection")
-            mesh.compute_uvmap(uvprojection)
-        renderables = [Renderable(name, mesh, mat, color)]
+        kwargs["meshcolor"] = color
+        renderables = _get_rends_from_meshfeature(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Unhandled
     else:
@@ -181,10 +179,6 @@ def check_renderables(renderables):
             raise ValueError(translate("Render", "Cannot find mesh data"))
         if not mesh.count_points or not mesh.count_facets:
             raise ValueError(translate("Render", "Mesh topology is empty"))
-        if not mesh.getPointNormals():
-            raise ValueError(
-                translate("Render", "Mesh topology has no normals")
-            )
 
 
 # ===========================================================================
@@ -225,7 +219,9 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not obj.LinkTransform:
-                new_mesh.transformation.apply_placement(linkedobject_plc_inverse_matrix)
+                new_mesh.transformation.apply_placement(
+                    linkedobject_plc_inverse_matrix
+                )
             new_mesh.transformation.apply_placement(base_plc_matrix)
             new_mesh.transformation.apply_placement(element_plc_matrix)
             new_mat = _get_material(base_rend, material)
@@ -261,7 +257,9 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
         new_mat = _get_material(base_rend, material)
         new_color = objcolor
         if not obj.LinkTransform:
-            new_mesh.transformation.apply_placement(linkedobj_plc_inverse_matrix)
+            new_mesh.transformation.apply_placement(
+                linkedobj_plc_inverse_matrix
+            )
         new_mesh.transformation.apply_placement(link_plc_matrix)
         return Renderable(new_name, new_mesh, new_mat, new_color)
 
@@ -466,7 +464,9 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
                 subobj, subname, material, mesher, **kwargs
             )
 
-    rends = [_adjust(r, origin, material) for r in rends if r.mesh.count_points]
+    rends = [
+        _adjust(r, origin, material) for r in rends if r.mesh.count_points
+    ]
 
     return rends
 
@@ -518,6 +518,31 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
     return renderables
 
 
+def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
+    """Get renderables from a Mesh::Feature object.
+
+    Parameters:
+        obj -- the Mesh::Feature object
+        name -- the name assigned to the object for rendering
+        material -- the material for the object
+        mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+        A list of renderables for the Mesh::Feature object
+    """
+    compute_uvmap = material and material.Proxy.has_textures()
+    uvprojection = kwargs.get("uvprojection", None)
+    mesh = mesher(
+        obj,
+        compute_uvmap=compute_uvmap,
+        uvmap_projection=uvprojection,
+        is_already_a_mesh=True,
+    )
+    color = kwargs["meshcolor"]
+    renderables = [Renderable(name, mesh, material, color)]
+    return renderables
+
+
 def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""
     upper_mat_is_multimat = is_multimat(upper_material)
@@ -541,15 +566,19 @@ def _get_shapecolor(obj, transparency_boost):
     try:
         elem_colors = vobj.getElementColors()
         color = RGBA(*elem_colors["Face"])
-        print(color)  # TODO
     except (AttributeError, KeyError):
         # Shape color
-        color = RGBA(
-            vobj.ShapeColor[0],
-            vobj.ShapeColor[1],
-            vobj.ShapeColor[2],
-            vobj.Transparency / 100,
-        )
+        try:
+            shapecolor = vobj.ShapeColor
+            transparency = vobj.transparency
+            color = RGBA(
+                shapecolor[0],
+                shapecolor[1],
+                shapecolor[2],
+                transparency / 100,
+            )
+        except AttributeError:
+            color = RGBA(0.8, 0.8, 0.8, 1.0)
 
     return _boost_tp(color, transparency_boost)
 

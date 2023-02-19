@@ -66,5 +66,8 @@ from Render.utils import (  # noqa: F401
     set_dryrun,
     set_dryrun_on,
     set_dryrun_off,
+    set_debug,
+    set_debug_on,
+    set_debug_off,
 )
 from Render.commands import RENDER_COMMANDS  # noqa: F401

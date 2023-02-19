@@ -86,6 +86,7 @@ FreeCAD model is just a 4-steps process:
 
 Optionally, you may tweak some particulars of your scene:
 * Modify some [options of your rendering project](./docs/Projects.md)
+* Adjust [the way a particular object is rendered (view options)](./docs/Views.md)
 * Add [lights](./docs/Lights.md) to your scene
 * Add extra [cameras](./docs/Cameras.md)
 * Add [materials](./docs/Materials.md) to your objects

@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2022 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -40,10 +40,16 @@ import runpy
 import shutil
 import copy
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 import FreeCAD as App
 import Mesh
 
 from Render.constants import PKGDIR, PARAMS
+from Render.rendermesh_mp import vector3d
 
 
 # ===========================================================================
@@ -57,49 +63,60 @@ class RenderMesh:
     RenderMesh is based on Mesh.Mesh.
     In addition, RenderMesh implements:
     - UV map management
-    - scale, via RenderTransformation
+    - scaling, via _Transformation
+    - an improved vertex normals computation, for autosmoothing
     """
 
     def __init__(
         self,
-        mesh=None,
-        normals=None,
+        mesh,
+        autosmooth=True,
+        split_angle=radians(30),
+        compute_uvmap=False,
+        uvmap_projection=None,
     ):
         """Initialize RenderMesh.
 
         Args:
             mesh -- a Mesh.Mesh object from which to initialize
-            uvmap -- a given uv map for initialization
+            autosmooth -- flag to trigger autosmooth computation (bool)
+            split_angle -- angle that breaks adjacency, for sharp edge
+                (float, in radians)
+            compute_uvmap -- flag to trigger uvmap computation (bool)
+            uvmap_projection -- type of projection to use for uv map
+                among "Cubic", "Spherical", "Cylindric"
         """
-        if mesh:
-            # First we make a copy of the mesh, we separate mesh and
-            # placement and we set the mesh at its origin (null placement)
-            self.__originalmesh = mesh.copy()
-            self.__originalmesh.Placement = App.Base.Placement()
+        self.debug = PARAMS.GetBool("Debug")
 
-            # We initialize mesh transformation
-            self.__transformation = _Transformation(mesh.Placement)
+        # Create profile object (debug)
+        if self.debug:
+            prof = cProfile.Profile()
+            prof.enable()
 
-            # Then we store the topology in internal structures
-            points, facets = self.__originalmesh.Topology
-            self.__points = [tuple(p) for p in points]
-            self.__facets = facets
+        # Check mandatory input
+        if not mesh:
+            raise ValueError()
 
-            # We store normals (#TODO)
-            self.__normals = (
-                normals
-                if normals is not None
-                else list(mesh.getPointNormals())
-            )
-        else:
-            self.transformation = _Transformation()
-            self.__points = []
-            self.__facets = []
-            self.__normals = []
-
+        # Initialize
+        self.__vnormals = []
         self.__uvmap = []
 
-        # Python
+        # First we make a copy of the mesh, we separate mesh and
+        # placement and we set the mesh at its origin (null placement)
+        self.__originalmesh = mesh.copy()
+        self.__originalmesh.Placement = App.Base.Placement()
+
+        # We initialize self transformation
+        self.__transformation = _Transformation(mesh.Placement)
+
+        # Then we store the topology in internal structures
+        points, facets = self.__originalmesh.Topology
+        self.__points = [tuple(p) for p in points]
+        self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
+        self.__areas = [f.Area for f in self.__originalmesh.Facets]
+
+        # Multiprocessing preparation (if required)
         self.multiprocessing = False
         if (
             PARAMS.GetBool("EnableMultiprocessing")
@@ -110,21 +127,44 @@ class RenderMesh:
                 self.multiprocessing = True
                 self.python = python
 
+        # Uvmap
+        if compute_uvmap:
+            msg = f"[Render][Object] Uv map '{uvmap_projection}'\n"
+            App.Console.PrintLog(msg)
+            self.compute_uvmap(uvmap_projection)
+            assert self.has_uvmap()
+
+        # Autosmooth
+        if autosmooth:
+            App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
+            self.separate_connected_components(split_angle)
+            self.compute_vnormals()
+            self.__autosmooth = True
+        else:
+            self.__autosmooth = False
+
+        # Print profile stats (debug)
+        if self.debug:
+            prof.disable()
+            sec = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+            pstat.print_stats()
+            print(sec.getvalue())
+
     def copy(self):
         """Creates a copy of this mesh."""
         # Caveat: this is a shallow copy!
-        new_mesh = copy.copy(self)
-        transformation = copy.copy(self.transformation)
-        new_mesh.__transformation = transformation
-
-
-        # Caveat: we don't copy the __originalmesh (Mesh.Mesh)
+        # In particular, we don't copy the __originalmesh (Mesh.Mesh)
         # So we point on the same object, which should not be modified
+        new_mesh = copy.copy(self)
+        # pylint: disable=protected-access, unused-private-member
+        new_mesh.__transformation = copy.copy(self.transformation)
         return new_mesh
 
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
-        return self.__normals
+        return self.__vnormals
 
     @property
     def transformation(self):
@@ -150,6 +190,11 @@ class RenderMesh:
     def count_facets(self):
         """Get the number of facets."""
         return len(self.__facets)
+
+    @property
+    def autosmooth(self):
+        """Get the smoothness state of the mesh (boolean)."""
+        return self.__autosmooth
 
     def write_objfile(
         self,
@@ -266,8 +311,8 @@ class RenderMesh:
             uvs = []
 
         # Vertex normals
-        if normals:
-            norms = self.__normals
+        if self.has_vnormals():
+            norms = self.__vnormals
             fmtn = functools.partial(str.format, "vn {} {} {}\n")
             norms = (fmtn(*n) for n in norms)
             norms = it.chain(["# Vertex normals\n"], norms, ["\n"])
@@ -281,11 +326,11 @@ class RenderMesh:
         objname.append("\n")
 
         # Faces
-        if normals and self.has_uvmap():
+        if self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}/{0}"
-        elif not normals and self.has_uvmap():
+        elif not self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}"
-        elif normals and not self.has_uvmap():
+        elif self.has_vnormals() and not self.has_uvmap():
             mask = " {0}//{0}"
         else:
             mask = " {}"
@@ -351,10 +396,8 @@ class RenderMesh:
             uvs = []
 
         # Vertex normals
-        if normals:
-            norms = self.__normals
-            fmtn = functools.partial(str.format, "vn {} {} {}\n")
-            norms = (fmtn(*n) for n in norms)
+        if self.has_vnormals():
+            norms = self.__vnormals
         else:
             norms = []
 
@@ -365,11 +408,11 @@ class RenderMesh:
         objname.append("\n")
 
         # Faces
-        if normals and self.has_uvmap():
+        if self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}/{0}"
-        elif not normals and self.has_uvmap():
+        elif not self.has_vnormals() and self.has_uvmap():
             mask = " {0}/{0}"
-        elif normals and not self.has_uvmap():
+        elif self.has_vnormals() and not self.has_uvmap():
             mask = " {0}//{0}"
         else:
             mask = " {}"
@@ -491,7 +534,6 @@ class RenderMesh:
         functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
         return functions[index]()
 
-
     @staticmethod
     def write_mtl(name, mtlcontent, mtlfile=None):
         """Write a MTL file.
@@ -558,6 +600,12 @@ class RenderMesh:
 
     def compute_uvmap(self, projection):
         """Compute UV map for this mesh."""
+        # Warning:
+        # The computation should ensure consistency on the following data:
+        # - self.__points
+        # - self.__facets
+        # - self.__normals
+        # - self.__areas
         projection = "Cubic" if projection is None else projection
         tm0 = time.time()
         if projection == "Cubic":
@@ -569,23 +617,6 @@ class RenderMesh:
         else:
             raise ValueError
         App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
-        # self.compute_normals()  TODO
-
-    def compute_normals(self):
-        """Compute point normals.
-
-        Refresh self._normals.
-        """
-        mesh = self.__originalmesh
-
-        norms = [App.Base.Vector()] * mesh.count_points
-        for facet in mesh.Facets:
-            weighted_norm = facet.Normal * facet.Area
-            for index in facet.PointIndices:
-                norms[index] += weighted_norm
-        for norm in norms:
-            norm.normalize()
-        self.__normals = norms
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
@@ -641,6 +672,8 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
+        self.__areas = [f.Area for f in mesh.Facets]
         self.__uvmap = uvmap
 
     def _compute_uvmap_sphere(self):
@@ -692,6 +725,8 @@ class RenderMesh:
         points, facets = tuple(mesh.Topology)
         self.__points = [tuple(p) for p in points]
         self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
+        self.__areas = [f.Area for f in mesh.Facets]
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube(self):
@@ -701,15 +736,15 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
-        if (
-            PARAMS.GetBool("EnableMultiprocessing")
-            and self.count_points >= 2000
-        ):
+        if self.multiprocessing:
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
-            return self._compute_uvmap_cube_mp()
+            func = self._compute_uvmap_cube_mp
+        else:
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            func = self._compute_uvmap_cube_sp
 
-        App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
-        return self._compute_uvmap_cube_sp()
+        func()
+        assert self.has_uvmap()
 
     def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
@@ -749,6 +784,8 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
+        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
+        self.__areas = [f.Area for f in mesh.Facets]
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube_mp(self):
@@ -767,8 +804,11 @@ class RenderMesh:
             init_globals={
                 "POINTS": self.__points,
                 "FACETS": self.__facets,
+                "NORMALS": self.__normals,
+                "AREAS": self.__areas,
                 "UVMAP": self.__uvmap,
                 "PYTHON": self.python,
+                "SHOWTIME": self.debug,
             },
             run_name="__main__",
         )
@@ -779,11 +819,263 @@ class RenderMesh:
         # Clean
         del res["POINTS"]
         del res["FACETS"]
+        del res["NORMALS"]
+        del res["AREAS"]
         del res["UVMAP"]
+        del res["PYTHON"]
+        del res["SHOWTIME"]
 
     def has_uvmap(self):
         """Check if object has a uv map."""
         return bool(self.__uvmap)
+
+    def compute_vnormals(self):
+        """Compute vertex normals.
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        # See here
+        # http://www.bytehazard.com/articles/wnormals.html
+        # (and look at script wnormals100.ms)
+
+        # TODO Optimize
+        fmul = vector3d.fmul
+        v3d_angles = vector3d.angles
+        add = vector3d.add
+        safe_normalize = vector3d.safe_normalize
+        points = self.__points
+        normals = self.__normals
+        areas = self.__areas
+
+        vnorms = [(0, 0, 0)] * self.count_points
+        for index, facet in enumerate(self.__facets):
+            normal = normals[index]
+            area = areas[index]
+            angles = v3d_angles(points[i] for i in facet)
+            for point_index, angle in zip(facet, angles):
+                weighted_vnorm = fmul(normal, angle * area)
+                vnorms[point_index] = add(vnorms[point_index], weighted_vnorm)
+
+        # Normalize
+        vnorms = [safe_normalize(n) for n in vnorms]
+
+        self.__vnormals = vnorms
+
+    # TODO Remove
+    def compute_vnormals_old(self):
+        """Compute vertex normals.
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        # See here
+        # http://www.bytehazard.com/articles/wnormals.html
+        # (and look at script wnormals100.ms)
+
+        # TODO Optimize
+
+        vnorms = [(0, 0, 0)] * self.count_points
+        for facet in self.__facets:
+            triangle = [self.__points[i] for i in facet]
+            weighted_vnorm = vector3d.normal(triangle)
+            angles = vector3d.angles(triangle)
+            for point_index, angle in zip(facet, angles):
+                weighted_vnorm = vector3d.fmul(
+                    weighted_vnorm, angle
+                )  # Weight with angle
+                vnorms[point_index] = vector3d.add(
+                    vnorms[point_index], weighted_vnorm
+                )
+
+        # Normalize
+        vnorms = [vector3d.safe_normalize(n) for n in vnorms]
+
+        self.__vnormals = vnorms
+
+    def has_vnormals(self):
+        """Check if object has a normals."""
+        return bool(self.__vnormals)
+
+    def connected_facets(
+        self,
+        starting_facet_index,
+        adjacents,
+        tags,
+        new_tag,
+        split_angle_cos,
+    ):
+        """Get the maximal connected component containing the starting facet.
+
+        It uses a depth-first search algorithm, iterative version.
+        Caveat:
+        - tags may be modified by the algorithm.
+
+        Args:
+            starting_facet_index -- the index of the facet to start
+                with (integer)
+            adjacents -- adjacency lists (one list per facet)
+            tags -- the tags that have already been set (list, same size as
+                self.__facets)
+            new_tag -- the tag to use to mark the component
+            split_angle_cos -- the cos of the angle that breaks adjacency
+
+        Returns:
+            A list of tags (same size as self.__facets). The elements tagged
+            with 'new_tag' are the computed connected component.
+        """
+        # Init
+        split_angle_cos = float(split_angle_cos)
+        dot = vector3d.dot
+        normals = self.__normals
+
+        # Create and init stack
+        stack = [starting_facet_index]
+
+        # Tag starting facet
+        tags[starting_facet_index] = new_tag
+
+        while stack:
+            # Current index (stack top)
+            current_index = stack[-1]
+            current_normal = normals[current_index]
+
+            # Forward
+            while adjacents[current_index]:
+                successor_index = adjacents[current_index].pop()
+
+                # Test angle
+                try:
+                    successor_normal = normals[successor_index]
+                except IndexError:
+                    # Facet.NeighbourIndices can contain irrelevant index...
+                    continue
+
+                if dot(current_normal, successor_normal) < split_angle_cos:
+                    continue
+
+                if tags[successor_index] is None:
+                    # successor is not tagged, we can go on forward
+                    tags[successor_index] = new_tag
+                    stack.append(successor_index)
+                    current_index = successor_index
+                    current_normal = normals[current_index]
+
+            # Backward
+            successor_index = stack.pop()
+
+        # Final
+        return tags
+
+    def adjacent_facets(self, split_angle_cos="-inf"):
+        """Compute the adjacent facets for each facet of the mesh.
+        Returns a list of sets of facet indices.
+        """
+        # For each point, compute facets that contain this point as a vertex
+        iterator = (
+            (facet_index, point_index)
+            for facet_index, facet in enumerate(self.__facets)
+            for point_index in facet
+        )
+
+        def fpp_reducer(rolling, new):
+            facet_index, point_index = new
+            facets_per_point[point_index].append(facet_index)
+
+        facets_per_point = [list() for _ in range(self.count_points)]
+        functools.reduce(fpp_reducer, iterator, None)
+
+        # Compute adjacency
+        normals = self.__normals
+        facets = [set(f) for f in self.__facets]
+        iterator = (
+            (facet_idx, other_idx)
+            for facet_idx, facet in enumerate(facets)
+            for point_idx in facet
+            for other_idx in facets_per_point[point_idx]
+            if len(facet & facets[other_idx]) == 2
+        )
+
+        adjacents = [set() for _ in range(self.count_facets)]
+        def reduce_adj(rolling, new):
+            facet_index, other_index = new
+            adjacents[facet_index].add(other_index)
+
+        functools.reduce(reduce_adj, iterator, None)
+
+        return adjacents
+
+
+    def connected_components(self, split_angle=radians(30)):
+        """Get all connected components of facets in the mesh.
+
+        Args:
+            split_angle -- the angle that breaks adjacency
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        split_angle_cos = cos(split_angle)
+
+        # TODO
+        # adjacents = [
+            # list(f.NeighbourIndices) for f in self.__originalmesh.Facets
+        # ]
+        adjacents = self.adjacent_facets()
+
+        tags = [None] * self.count_facets
+        tag = None
+
+        iterator = zip(
+            it.count(), (x for x, y in enumerate(tags) if y is None)
+        )
+        for tag, starting_point in iterator:
+            tags = self.connected_facets(
+                starting_point, adjacents, tags, tag, split_angle_cos
+            )
+
+        return tags, tag
+
+    def separate_connected_components(self, split_angle=radians(30)):
+        """Operate a separation into the mesh between connected components.
+
+        Only points are modified. Facets are kept as-is.
+
+        Args:
+            split_angle -- angle threshold, above which 2 adjacents facets
+                are considered as non-connected (in radians)
+        """
+        tags, _ = self.connected_components(split_angle)
+
+        points = self.__points
+        facets = self.__facets
+
+        # Initialize the map
+        newpoints = {
+            (point_index, tag): None
+            for facet, tag in zip(facets, tags)
+            for point_index in facet
+        }
+
+        # Number newpoint
+        for index, point in enumerate(newpoints):
+            newpoints[point] = index
+
+        # Rebuild point list
+        self.__points = [points[point_index] for point_index, tag in newpoints]
+
+        # If necessary, rebuild uvmap
+        if self.__uvmap:
+            self.__uvmap = [
+                self.__uvmap[point_index]
+                for point_index, tag in newpoints
+            ]
+
+        # Update point indices in facets
+        self.__facets = [
+            tuple(newpoints[point_index, tag] for point_index in facet)
+            for facet, tag in zip(facets, tags)
+        ]
 
 
 # ===========================================================================
@@ -1035,6 +1327,16 @@ def _compute_uv_from_unitcube(point, face):
 #                           Other uvmap helpers
 # ===========================================================================
 
+def _safe_normalize(vec):
+    """Safely normalize a FreeCAD Vector.
+
+    If vector's length is 0, returns (0, 0, 0).
+    """
+    try:
+        res = vec.normalize()
+    except App.Base.FreeCADError:
+        res = App.Base.Vector(0.0, 0.0, 0.0)
+    return res
 
 def _is_facet_normal_to_vector(facet, vector):
     """Test whether a facet is normal to a vector.
@@ -1042,9 +1344,9 @@ def _is_facet_normal_to_vector(facet, vector):
     math.isclose is used to assess dot product nullity.
     """
     pt1, pt2, pt3 = facet.Points
-    vec1 = (App.Base.Vector(*pt2) - App.Base.Vector(*pt1)).normalize()
-    vec2 = (App.Base.Vector(*pt3) - App.Base.Vector(*pt1)).normalize()
-    vector = vector.normalize()
+    vec1 = _safe_normalize(App.Base.Vector(*pt2) - App.Base.Vector(*pt1))
+    vec2 = _safe_normalize(App.Base.Vector(*pt3) - App.Base.Vector(*pt1))
+    vector = _safe_normalize(vector)
     tolerance = 1e-5
     res = isclose(vec1.dot(vector), 0.0, abs_tol=tolerance) and isclose(
         vec2.dot(vector), 0.0, abs_tol=tolerance
