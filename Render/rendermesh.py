@@ -981,7 +981,7 @@ class RenderMesh:
             facets_per_point[point_index].append(facet_index)
 
         facets_per_point = [list() for _ in range(self.count_points)]
-        functools.reduce(fpp_reducer, iterator)
+        functools.reduce(fpp_reducer, iterator, None)
 
         # Compute adjacency
         normals = self.__normals
@@ -994,21 +994,12 @@ class RenderMesh:
             if len(facet & facets[other_idx]) == 2
         )
 
-        # TODO
-        # def reduce_adj(rolling, new):
-            # facet_index, other_index = new
-            # rolling[facet_index].add(other_index)
-            # return rolling
-
-        # adjacents = functools.reduce(
-            # reduce_adj, iterator, [set() for _ in range(self.count_facets)]
-        # )
         adjacents = [set() for _ in range(self.count_facets)]
         def reduce_adj(rolling, new):
             facet_index, other_index = new
             adjacents[facet_index].add(other_index)
 
-        functools.reduce(reduce_adj, iterator)
+        functools.reduce(reduce_adj, iterator, None)
 
         return adjacents
 
