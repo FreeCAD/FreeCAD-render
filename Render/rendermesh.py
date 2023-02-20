@@ -861,36 +861,6 @@ class RenderMesh:
 
         self.__vnormals = vnorms
 
-    # TODO Remove
-    def compute_vnormals_old(self):
-        """Compute vertex normals.
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        # See here
-        # http://www.bytehazard.com/articles/wnormals.html
-        # (and look at script wnormals100.ms)
-
-        # TODO Optimize
-
-        vnorms = [(0, 0, 0)] * self.count_points
-        for facet in self.__facets:
-            triangle = [self.__points[i] for i in facet]
-            weighted_vnorm = vector3d.normal(triangle)
-            angles = vector3d.angles(triangle)
-            for point_index, angle in zip(facet, angles):
-                weighted_vnorm = vector3d.fmul(
-                    weighted_vnorm, angle
-                )  # Weight with angle
-                vnorms[point_index] = vector3d.add(
-                    vnorms[point_index], weighted_vnorm
-                )
-
-        # Normalize
-        vnorms = [vector3d.safe_normalize(n) for n in vnorms]
-
-        self.__vnormals = vnorms
-
     def has_vnormals(self):
         """Check if object has a normals."""
         return bool(self.__vnormals)
@@ -1017,10 +987,6 @@ class RenderMesh:
         """
         split_angle_cos = cos(split_angle)
 
-        # TODO
-        # adjacents = [
-            # list(f.NeighbourIndices) for f in self.__originalmesh.Facets
-        # ]
         adjacents = self.adjacent_facets()
 
         tags = [None] * self.count_facets
