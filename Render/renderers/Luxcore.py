@@ -81,28 +81,11 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     plyfile = mesh.write_plyfile(name, plyfile=basefilename)
 
     # Points, vertices and normals
-    # TODO
-    # points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
-    # points = " ".join(points)
-    # tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.facets]
-    # tris = " ".join(tris)
-    # nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
-    # nrms = " ".join(nrms)
-    # TODO Transform into iterator
-    trans = [
+    trans = (
         " ".join(str(v) for v in col)
         for col in mesh.transformation.get_matrix_columns()
-    ]
+    )
     trans = "  ".join(trans)
-
-    # UV map
-    # TODO
-    # if mesh.has_uvmap():
-        # uvs = [f"{tx} {ty}" for tx, ty in mesh.uvmap]
-        # uvs = " ".join(uvs)
-        # snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
-    # else:
-        # snippet_uv = ""
 
     # Displacement (if any)
     if matval.has_displacement():
@@ -129,15 +112,10 @@ scene.objects.{name}.transformation = {trans}
 scene.shapes.{name}_mesh.type = mesh
 scene.shapes.{name}_mesh.ply = "{plyfile}"
 """
-    # TODO
-    # if mesh.has_vnormals():
-        # snippet_obj += f"""scene.shapes.{name}_mesh.normals = {nrms}\n"""
-
     # Consolidation
     snippet = [
         snippet_obj,
         snippet_disp,
-        # snippet_uv, TODO
         snippet_mat,
         snippet_tex,
         snippet_bump,
