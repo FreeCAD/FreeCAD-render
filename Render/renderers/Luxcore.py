@@ -76,16 +76,19 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     else:
         snippet_bump = ""
 
-    # TODO
-    mesh.write_plyfile(name)
+    # Get PLY file
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".ply"
+    plyfile = mesh.write_plyfile(name, plyfile=basefilename)
 
     # Points, vertices and normals
-    points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
-    points = " ".join(points)
-    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.facets]
-    tris = " ".join(tris)
-    nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
-    nrms = " ".join(nrms)
+    # TODO
+    # points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
+    # points = " ".join(points)
+    # tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.facets]
+    # tris = " ".join(tris)
+    # nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
+    # nrms = " ".join(nrms)
+    # TODO Transform into iterator
     trans = [
         " ".join(str(v) for v in col)
         for col in mesh.transformation.get_matrix_columns()
@@ -93,12 +96,13 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     trans = "  ".join(trans)
 
     # UV map
-    if mesh.has_uvmap():
-        uvs = [f"{tx} {ty}" for tx, ty in mesh.uvmap]
-        uvs = " ".join(uvs)
-        snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
-    else:
-        snippet_uv = ""
+    # TODO
+    # if mesh.has_uvmap():
+        # uvs = [f"{tx} {ty}" for tx, ty in mesh.uvmap]
+        # uvs = " ".join(uvs)
+        # snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
+    # else:
+        # snippet_uv = ""
 
     # Displacement (if any)
     if matval.has_displacement():
@@ -122,23 +126,23 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
 scene.objects.{name}.shape = {obj_shape}
 scene.objects.{name}.material = {name}
 scene.objects.{name}.transformation = {trans}
-scene.shapes.{name}_mesh.type = inlinedmesh
-scene.shapes.{name}_mesh.vertices = {points}
-scene.shapes.{name}_mesh.faces = {tris}
+scene.shapes.{name}_mesh.type = mesh
+scene.shapes.{name}_mesh.ply = "{plyfile}"
 """
-    if mesh.has_vnormals():
-        snippet_obj += f"""scene.shapes.{name}_mesh.normals = {nrms}\n"""
+    # TODO
+    # if mesh.has_vnormals():
+        # snippet_obj += f"""scene.shapes.{name}_mesh.normals = {nrms}\n"""
 
     # Consolidation
     snippet = [
         snippet_obj,
         snippet_disp,
-        snippet_uv,
+        # snippet_uv, TODO
         snippet_mat,
         snippet_tex,
         snippet_bump,
     ]
-    snippet = [s for s in snippet if s]
+    snippet = (s for s in snippet if s)
     snippet = "\n".join(snippet)
 
     return snippet

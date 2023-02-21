@@ -529,7 +529,7 @@ class RenderMesh:
 
         # Concat and write
         res = it.chain(header, verts, faces)
-        with open(plyfile, "w", encoding="utf-8") as f:
+        with open(plyfile, "w", encoding="utf-8", newline="\n") as f:
             f.writelines(res)
         print(plyfile)  # TODO
         return plyfile
