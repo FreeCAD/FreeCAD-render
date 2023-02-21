@@ -329,11 +329,11 @@ class RenderMaterial:
         # it leads to a lot of materials definitions in output files which
         # hinders the proper functioning of most of the renderers, so we
         # implement a more selective operation.
-        if float(_alpha) == 1.0:
+        if float(_alpha) == 0:
             # Build diffuse
             shadertype = "Diffuse"
             values = (("Color", _color, _color, "RGB", _rgbcolor),)
-        elif float(_alpha) == 0.0:
+        elif float(_alpha) == 1:
             # Build glass
             shadertype = "Glass"
             values = (
