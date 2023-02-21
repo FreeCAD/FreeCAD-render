@@ -192,10 +192,16 @@ class RenderMesh:
         return len(self.__facets)
 
     @property
+    def vnormals(self):
+        """Get the vertex normals (if computed)."""
+        return self.__vnormals
+
+    @property
     def autosmooth(self):
         """Get the smoothness state of the mesh (boolean)."""
         return self.__autosmooth
 
+    # TODO Remove normals argument
     def write_objfile(
         self,
         name,
@@ -440,6 +446,93 @@ class RenderMesh:
         )
 
         return objfile
+
+    def write_plyfile(
+        self,
+        name,
+        plyfile=None,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write an PLY file from a mesh.
+
+        Args:
+            name -- Name of the mesh (str)
+            objfile -- Name of the PLY file (str). If None, the PLY file is
+              written in a temporary file, whose name is returned by the
+              function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Returns: the name of file that the function wrote.
+        """
+        # Create OBJ file (empty)
+        if plyfile is None:
+            f_handle, plyfile = tempfile.mkstemp(suffix=".ply", prefix="_")
+            os.close(f_handle)
+            del f_handle
+        else:
+            plyfile = str(plyfile)
+
+        # Header - Intro
+        header = [
+            "ply\n",
+            "format ascii 1.0\n",
+            "comment Created by FreeCAD-Render\n",
+            f"comment '{name}'\n",
+        ]
+
+        # Header - Vertices (and vertex normals and uv)
+        header += [
+            f"element vertex {self.count_points}\n",
+            "property float x\n",
+            "property float y\n",
+            "property float z\n",
+        ]
+        if self.has_vnormals():
+            header += [
+                "property float nx\n",
+                "property float ny\n",
+                "property float nz\n",
+            ]
+        if self.has_uvmap():
+            header += [
+                "property float s\n",
+                "property float t\n",
+            ]
+
+        # Header - Faces
+        header += [
+            f"element face {self.count_facets}\n",
+            "property list uchar int vertex_indices\n",
+            "end_header\n"
+        ]
+
+        # Body - Vertices (and vertex normals and uv)
+        fmt3 = functools.partial(str.format, "{} {} {}")
+        verts = [iter(fmt3(*v) for v in self.points)]
+        if self.has_vnormals():
+            verts += [iter(fmt3(*v) for v in self.vnormals)]
+        if self.has_uvmap():
+            # Translate, rotate, scale (optionally)
+            uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
+            fmt2 = functools.partial(str.format, "{} {}")
+            verts += [iter(fmt2(*v) for v in uvs)]
+        verts += [it.repeat("\n")]
+        verts = (" ".join(v) for v in zip(*verts))
+
+        # Body - Faces
+        fmtf = functools.partial(str.format, "3 {} {} {}\n")
+        faces = (fmtf(*v) for v in self.facets)
+
+        # Concat and write
+        res = it.chain(header, verts, faces)
+        with open(plyfile, "w", encoding="utf-8") as f:
+            f.writelines(res)
+        print(plyfile)  # TODO
+        return plyfile
 
     def uvtransform(self, translate, rotate, scale):
         """Compute a uv transformation (iterator).

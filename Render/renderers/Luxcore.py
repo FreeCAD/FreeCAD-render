@@ -76,6 +76,9 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     else:
         snippet_bump = ""
 
+    # TODO
+    mesh.write_plyfile(name)
+
     # Points, vertices and normals
     points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
     points = " ".join(points)
