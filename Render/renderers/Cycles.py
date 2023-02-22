@@ -79,19 +79,9 @@ def write_mesh(name, mesh, material, **kwargs):
 
     snippet_mat = _write_material(name, matval)
 
-    points = [_write_point(p) for p in mesh.points]
-    points = "  ".join(points)
-    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.facets]
-    verts = "  ".join(verts)
-    nverts = ["3"] * mesh.count_facets
-    nverts = "  ".join(nverts)
-
-    if mesh.has_uvmap():
-        uvs = [f"{px} {py}" for px, py in mesh.uvmap_per_vertex()]
-        uvs = "  ".join(uvs)
-        uv_statement = f'    UV="{uvs}"\n'
-    else:
-        uv_statement = ""
+    # Get mesh file
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".xml"
+    cyclesfile = mesh.write_cyclesfile(name, cyclesfile=basefilename)
 
     trans = [
         " ".join(str(v) for v in col)
@@ -101,31 +91,13 @@ def write_mesh(name, mesh, material, **kwargs):
 
     interpolation = "smooth" if mesh.autosmooth else "flat"
 
-    snippet_obj = (
-        f"""
+    snippet_obj = f"""
 <transform matrix="{trans}">
     <state interpolation="{interpolation}" shader="{name}">
-    <mesh
-        P="{points}"
-        verts="{verts}"
-        nverts="{nverts}"
-    {uv_statement}/>
+        <include src="{cyclesfile}" />
     </state>
 </transform>
 """
-        if mesh.has_vnormals()
-        else f"""
-<transform matrix="{trans}">
-    <state shader="{name}">
-    <mesh
-        P="{points}"
-        verts="{verts}"
-        nverts="{nverts}"
-    {uv_statement}/>
-    </state>
-</transform>
-"""
-    )
 
     snippet = snippet_mat + snippet_obj
 

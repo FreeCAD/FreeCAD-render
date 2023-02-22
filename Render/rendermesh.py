@@ -459,7 +459,7 @@ class RenderMesh:
 
         Args:
             name -- Name of the mesh (str)
-            objfile -- Name of the PLY file (str). If None, the PLY file is
+            plyfile -- Name of the PLY file (str). If None, the PLY file is
               written in a temporary file, whose name is returned by the
               function.
             uv_translate -- UV translation vector (2-uple)
@@ -468,7 +468,7 @@ class RenderMesh:
 
         Returns: the name of file that the function wrote.
         """
-        # Create OBJ file (empty)
+        # Create PLY file (empty)
         if plyfile is None:
             f_handle, plyfile = tempfile.mkstemp(suffix=".ply", prefix="_")
             os.close(f_handle)
@@ -532,6 +532,75 @@ class RenderMesh:
         with open(plyfile, "w", encoding="utf-8", newline="\n") as f:
             f.writelines(res)
         return plyfile
+
+    def write_cyclesfile(
+        self,
+        name,
+        cyclesfile=None,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write an Cycles file from a mesh.
+
+        Args:
+            name -- Name of the mesh (str)
+            cyclesfile -- Name of the PLY file (str). If None, the PLY file is
+              written in a temporary file, whose name is returned by the
+              function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Returns: the name of file that the function wrote.
+        """
+        _rnd = functools.partial(round, ndigits=8)  # Round to 8 digits (helper)
+
+        def _write_point(pnt):
+            """Write a point."""
+            return f"{_rnd(pnt[0])} {_rnd(pnt[1])} {_rnd(pnt[2])}"
+
+        # Create Cycles file (empty)
+        if cyclesfile is None:
+            f_handle, cyclesfile = tempfile.mkstemp(suffix=".xml", prefix="_")
+            os.close(f_handle)
+            del f_handle
+        else:
+            cyclesfile = str(cyclesfile)
+
+        points = [_write_point(p) for p in self.points]
+        points = "  ".join(points)
+        verts = [f"{v[0]} {v[1]} {v[2]}" for v in self.facets]
+        verts = "  ".join(verts)
+        nverts = ["3"] * self.count_facets
+        nverts = "  ".join(nverts)
+
+        if self.has_uvmap():
+            uvs = [f"{px} {py}" for px, py in self.uvmap_per_vertex()]
+            uvs = "  ".join(uvs)
+            uv_statement = f'    UV="{uvs}"\n'
+        else:
+            uv_statement = ""
+
+        snippet_obj = f"""\
+<?xml version="1.0" ?>
+<cycles>
+<mesh
+    P="{points}"
+    verts="{verts}"
+    nverts="{nverts}"
+{uv_statement}/>
+</cycles>
+"""
+
+        # Concat and write
+        with open(cyclesfile, "w", encoding="utf-8") as f:
+            f.write(snippet_obj)
+        # TODO The project directory should be recorded somewhere
+        cyclesfile = os.path.relpath(cyclesfile, App.ActiveDocument.TransientDir)
+        return cyclesfile
+
+
 
     def uvtransform(self, translate, rotate, scale):
         """Compute a uv transformation (iterator).
