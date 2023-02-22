@@ -76,17 +76,6 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     else:
         snippet_bump = ""
 
-    # Get PLY file
-    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".ply"
-    plyfile = mesh.write_plyfile(name, plyfile=basefilename)
-
-    # Points, vertices and normals
-    trans = (
-        " ".join(str(v) for v in col)
-        for col in mesh.transformation.get_matrix_columns()
-    )
-    trans = "  ".join(trans)
-
     # Displacement (if any)
     if matval.has_displacement():
         obj_shape = f"{name}_disp"
@@ -102,6 +91,17 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
     else:
         obj_shape = f"{name}_mesh"
         snippet_disp = ""
+
+    # Get PLY file
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".ply"
+    plyfile = mesh.write_plyfile(name, plyfile=basefilename)
+
+    # Transformation matrix
+    trans = (
+        " ".join(str(v) for v in col)
+        for col in mesh.transformation.get_matrix_columns()
+    )
+    trans = "  ".join(trans)
 
     # Object & Mesh
     snippet_obj = f"""
@@ -250,8 +250,6 @@ scene.lights.{n}.file = "{f}"
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
-
-# TODO Fix normals issue (see Gauge test file, with mirror)
 
 
 def _write_material(name, matval):
