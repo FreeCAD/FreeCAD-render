@@ -39,7 +39,14 @@ import itertools
 import collections
 import math
 
-from Render.utils import translate, debug, warn, getproxyattr, RGBA
+from Render.utils import (
+    translate,
+    debug,
+    warn,
+    getproxyattr,
+    RGBA,
+    fcdcolor2rgba,
+)
 from Render.rendermaterial import is_multimat, is_valid_material
 
 
@@ -423,7 +430,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
     colors = [
-        _boost_tp(RGBA(*m.Color[0:3], m.Transparency), tp_boost)
+        _boost_tp(RGBA(*m.Color[0:3], 1.0 - m.Transparency), tp_boost)
         for m in materials
     ]
 
@@ -560,22 +567,22 @@ def _get_shapecolor(obj, transparency_boost):
 
     # Is there a view object? (console mode, for instance)
     if vobj is None:
-        return RGBA(0.8, 0.8, 0.8, 0.0)
+        return RGBA(0.8, 0.8, 0.8, 1.0)
 
     # Overridden color for faces?
     try:
         elem_colors = vobj.getElementColors()
-        color = RGBA(*elem_colors["Face"])
+        color = fcdcolor2rgba(elem_colors["Face"])
     except (AttributeError, KeyError):
         # Shape color
         try:
             shapecolor = vobj.ShapeColor
-            transparency = vobj.transparency
+            transparency = vobj.Transparency
             color = RGBA(
                 shapecolor[0],
                 shapecolor[1],
                 shapecolor[2],
-                transparency / 100,
+                1.0 - transparency / 100,
             )
         except AttributeError:
             color = RGBA(0.8, 0.8, 0.8, 1.0)
@@ -585,8 +592,9 @@ def _get_shapecolor(obj, transparency_boost):
 
 def _boost_tp(color, boost_factor):
     """Get a color with boosted transparency."""
-    transparency = math.pow(color[3], 1 / (boost_factor + 1))
-    return RGBA(color[0], color[1], color[2], transparency)
+    transparency = 1 - color[3]
+    transparency = math.pow(transparency, 1 / (boost_factor + 1))
+    return RGBA(color[0], color[1], color[2], 1 - transparency)
 
 
 def _needs_uvmap(material):

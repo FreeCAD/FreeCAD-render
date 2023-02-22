@@ -78,6 +78,16 @@ def str2rgb(string):
     return RGB._make(float_tuple)
 
 
+def fcdcolor2rgba(fcdcolor):
+    """Convert a FreeCAD color to RGBA.
+
+    Main difference is 4th component: FreeCAD color stores transparency,
+    whereas, in RGBA, alpha is opacity.
+    """
+    red, green, blue, transparency = fcdcolor
+    return RGBA(red, green, blue, 1.0 - transparency)
+
+
 def parse_csv_str(string, delimiter=";"):
     """Parse a csv string, with ";" as default delimiter.
 
