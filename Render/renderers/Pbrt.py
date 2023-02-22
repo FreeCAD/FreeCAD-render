@@ -63,48 +63,30 @@ def write_mesh(name, mesh, material):
         name, _write_texture, _write_value, _write_texref
     )
     material = _write_material(name, matval)
-    pnts = [f"{p[0]:+18.8f} {p[1]:+18.8f} {p[2]:+18.8f}" for p in mesh.points]
-    ind_precision = math.ceil(math.log10(len(pnts)))
-    pnts = _format_list(pnts, 2)
-    inds = [
-        f"{i[0]:{ind_precision}} {i[1]:{ind_precision}} {i[2]:{ind_precision}}"
-        for i in mesh.facets
-    ]
-    inds = _format_list(inds, 5)
-    if mesh.has_uvmap():
-        if matval.has_textures():
-            # Here we transform uv according to texture transformation
-            # This is necessary as pbrt texture transformation features are
-            # incomplete. They lack rotation in general, and full
-            # transformation for normal map.
-            tex = next(iter(matval.texobjects.values()))  # Take 1st texture
-            translate = -App.Base.Vector2d(
-                tex.translation_u, tex.translation_v
-            )
-            rotate = -tex.rotation
-            scale = 1.0 / tex.scale if tex.scale != 0.0 else 1.0
-            uvbase = mesh.transformed_uvmap(translate, rotate, scale)
-        else:
-            uvbase = mesh.uvmap
-        uvs = [f"{t[0]:+18.8f} {t[1]:+18.8f}" for t in uvbase]
-        uvs = _format_list(uvs, 3)
-        uvs = f"""    "point2 uv" [\n{uvs}\n    ]\n"""
-    else:
-        uvs = ""
 
-    if mesh.has_vnormals():
-        nrms = [
-            f"{v[0]:+18.8f} {v[1]:+18.8f} {v[2]:+18.8f}"
-            for v in mesh.getPointNormals()
-        ]
-        nrms = _format_list(nrms, 2)
-        normals = f"""\
-    "normal N" [
-{nrms}
-    ]
-"""
+    if mesh.has_uvmap() and matval.has_textures():
+        # Here we transform uv according to texture transformation
+        # This is necessary as pbrt texture transformation features are
+        # incomplete. They lack rotation in general, and full
+        # transformation for normal map.
+        tex = next(iter(matval.texobjects.values()))  # Take 1st texture
+        translate = (-tex.translation_u, -tex.translation_v)
+        rotate = -tex.rotation
+        scale = 1.0 / tex.scale if tex.scale != 0.0 else 1.0
     else:
-        normals = ""
+        translate = (0.0, 0.0)
+        rotate = 0
+        scale = 1.0
+
+    # Get PLY file
+    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".ply"
+    plyfile = mesh.write_plyfile(
+        name,
+        plyfile=basefilename,
+        uv_translate=translate,
+        uv_rotate=rotate,
+        uv_scale=scale,
+    )
 
     # Transformation
     # (see https://www.povray.org/documentation/3.7.0/r3_3.html#r3_3_1_12_4)
@@ -113,7 +95,8 @@ def write_mesh(name, mesh, material):
     scale = transfo.scale
     posx, posy, posz = transfo.get_translation()
 
-    snippet = f"""# Object '{name}'
+    snippet = f"""\
+# Object '{name}'
 AttributeBegin
 
   Translate {posx:+15.8f} {posy:+15.8f} {posz:+15.8f}
@@ -124,15 +107,8 @@ AttributeBegin
 
 {matval.write_textures()}
 {material}
-  Shape "trianglemesh"
-    "point3 P" [
-{pnts}
-    ]
-    "integer indices" [
-{inds}
-    ]
-{normals}
-{uvs}
+  Shape "plymesh"
+    "string filename" [ "{plyfile}" ]
 AttributeEnd
 # ~Object '{name}'
 """
