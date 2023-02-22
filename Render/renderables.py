@@ -39,7 +39,14 @@ import itertools
 import collections
 import math
 
-from Render.utils import translate, debug, warn, getproxyattr, RGBA
+from Render.utils import (
+    translate,
+    debug,
+    warn,
+    getproxyattr,
+    RGBA,
+    fcdcolor2rgba,
+)
 from Render.rendermaterial import is_multimat, is_valid_material
 
 
@@ -565,13 +572,12 @@ def _get_shapecolor(obj, transparency_boost):
     # Overridden color for faces?
     try:
         elem_colors = vobj.getElementColors()
-        red, green, blue, transparency = elem_colors["Face"]
-        color = RGBA(red, green, blue, 1 - transparency)
+        color = fcdcolor2rgba(elem_colors["Face"])
     except (AttributeError, KeyError):
         # Shape color
         try:
             shapecolor = vobj.ShapeColor
-            transparency = vobj.transparency
+            transparency = vobj.Transparency
             color = RGBA(
                 shapecolor[0],
                 shapecolor[1],
@@ -580,8 +586,6 @@ def _get_shapecolor(obj, transparency_boost):
             )
         except AttributeError:
             color = RGBA(0.8, 0.8, 0.8, 1.0)
-
-    print(color)  # TODO
 
     return _boost_tp(color, transparency_boost)
 
