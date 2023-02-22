@@ -604,8 +604,6 @@ def _get_shapecolor(obj, transparency_boost):
         except AttributeError:
             color = RGBA(0.8, 0.8, 0.8, 1.0)
 
-    print(color)  # TODO
-
     return _boost_tp(color, transparency_boost)
 
 
