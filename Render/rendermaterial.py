@@ -251,7 +251,7 @@ def get_rendering_material(material, renderer, default_color):
             diffusecolor.r,
             diffusecolor.g,
             diffusecolor.b,
-            float(mat.get("Transparency", "0")) / 100,
+            1 - float(mat.get("Transparency", "0")) / 100,
         )
         return RenderMaterial.build_fallback(color)
 
@@ -321,7 +321,7 @@ class RenderMaterial:
             _alpha = str(color[3])
         except IndexError:
             _color = "0.8, 0.8, 0.8"
-            _alpha = "0.0"
+            _alpha = "1.0"
 
         _rgbcolor = str2rgb(_color)
 
@@ -343,11 +343,12 @@ class RenderMaterial:
         else:
             # Build mixed
             shadertype = "Mixed"
+            _trsparency = str(1.0 - float(_alpha))
             values = (
                 ("Diffuse.Color", _color, _color, "RGB", _rgbcolor),
                 ("Glass.IOR", "1.5", "1.5", "float", _rgbcolor),
                 ("Glass.Color", _color, _color, "RGB", _rgbcolor),
-                ("Transparency", _alpha, _alpha, "float", _rgbcolor),
+                ("Transparency", _trsparency, _trsparency, "float", _rgbcolor),
             )
 
         return RenderMaterial.build_standard(shadertype, values)

@@ -43,7 +43,12 @@ import FreeCADGui as Gui
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
 from Render.rdrexecutor import RendererExecutor
-from Render.utils import translate, set_last_cmd, clear_report_view
+from Render.utils import (
+    translate,
+    set_last_cmd,
+    clear_report_view,
+    fcdcolor2rgba,
+)
 from Render.view import View
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
@@ -279,7 +284,7 @@ class Project(FeatureBase):
         result = ""
         if bbox.isValid():
             zpos = self.fpo.GroundPlaneZ
-            color = self.fpo.GroundPlaneColor
+            color = fcdcolor2rgba(self.fpo.GroundPlaneColor)
             factor = self.fpo.GroundPlaneSizeFactor
             result = renderer.get_groundplane_string(bbox, zpos, color, factor)
         return result
