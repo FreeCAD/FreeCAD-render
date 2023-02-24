@@ -55,16 +55,18 @@ class Worker(QObject):
     finished = Signal(int)
     result_ready = Signal(str)  # Triggered when result is ready for display
 
-    def __init__(self, cmd, img):
+    def __init__(self, cmd, img, cwd):
         """Initialize worker.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
+            cwd -- directory where to execute subprocess
         """
         super().__init__()
         self.cmd = cmd
         self.img = img
+        self.cwd = cwd
 
     def run(self):
         """Run worker.
@@ -86,6 +88,7 @@ class Worker(QObject):
                 stderr=STDOUT,
                 bufsize=1,
                 universal_newlines=True,
+                cwd=self.cwd
             ) as proc:
                 for line in proc.stdout:
                     message(line)
@@ -124,17 +127,18 @@ class RendererExecutorGui(QObject):
     anywhere.
     """
 
-    def __init__(self, cmd, img, open_after_render):
+    def __init__(self, cmd, img, open_after_render, cwd=None):
         """Initialize executor.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
             open_after_render -- flag to display after render (bool)
+            cwd -- directory where to execute subprocess
         """
         super().__init__(QCoreApplication.instance())
         self.thread = QThread()
-        self.worker = Worker(cmd, img)
+        self.worker = Worker(cmd, img, cwd)
         self.thread.setObjectName("fcd-renderexec")
         self.open_after_render = bool(open_after_render)
 
@@ -178,7 +182,7 @@ class RendererExecutorCli(threading.Thread):
     that, renderer is executed in a separate thread, using **Python threads**.
     """
 
-    def __init__(self, cmd, img, open_after_render):
+    def __init__(self, cmd, img, open_after_render, cwd=None):
         """Initialize executor.
 
         Args:
@@ -186,9 +190,10 @@ class RendererExecutorCli(threading.Thread):
             img -- path to resulting image (the renderer output) (str)
             open_after_render -- flag to display after render.
               IGNORED IN CLI (bool)
+            cwd -- directory where to execute subprocess
         """
         super().__init__()
-        self.worker = Worker(cmd, img)
+        self.worker = Worker(cmd, img, cwd)
         self.open_after_render = bool(open_after_render)
 
     def run(self):
