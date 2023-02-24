@@ -37,5 +37,5 @@ Parameter | Type | Description
 Please note that smoothing is enabled by default, to avoid disgraceful
 tessellation at rendering. In most cases, it should not be disabled. However,
 smoothing involves calculations that can be lengthy, especially for large
-meshes, and in some cases, bring only a small benefit, if the mesh is dense
-enough. In this case, you can disable smoothing here.
+meshes, and in some cases, may bring only a small benefit, if the mesh is dense
+enough. In this case, you may disable smoothing here.
