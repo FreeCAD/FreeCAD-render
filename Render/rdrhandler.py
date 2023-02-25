@@ -109,6 +109,10 @@ class RendererHandler:
                 mesher.
             transparency_boost -- an integer to augment transparency in
                 implicit material computation
+            project_directory -- the directory where the project is to be
+                exported
+            object_directory -- the directory where the objects are to be
+                exported
         """
         self.renderer_name = str(rdrname)
         self.linear_deflection = float(kwargs.get("linear_deflection", 0.1))
@@ -122,6 +126,9 @@ class RendererHandler:
             self.renderer_module = import_module(module_name)
         except ModuleNotFoundError:
             raise RendererNotFoundError(rdrname) from None
+
+        self.project_directory = kwargs.get("project_directory")
+        self.object_directory = kwargs.get("object_directory")
 
         self.switcher = {
             RenderingTypes.OBJECT: RendererHandler._render_object,
@@ -414,6 +421,8 @@ class RendererHandler:
                 autosmooth_angle,
                 compute_uvmap,
                 uvmap_projection,
+                project_directory=self.project_directory,
+                export_directory=self.object_directory,
             )
 
             return mesh

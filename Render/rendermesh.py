@@ -74,7 +74,9 @@ class RenderMesh:
         split_angle=radians(30),
         compute_uvmap=False,
         uvmap_projection=None,
+        project_directory=None,
         export_directory=None,
+        relative_path=True,
     ):
         """Initialize RenderMesh.
 
@@ -86,8 +88,10 @@ class RenderMesh:
             compute_uvmap -- flag to trigger uvmap computation (bool)
             uvmap_projection -- type of projection to use for uv map
                 among "Cubic", "Spherical", "Cylindric"
-            project_directory -- directory where the rendering project will be
-                exported (str)
+            export_directory -- directory where the mesh is to be exported
+            project_directory -- directory where the rendering project lays
+            relative_path -- flag to control whether returned path is relative
+                or absolute to project_directory
         """
         self.debug = PARAMS.GetBool("Debug")
 
@@ -146,13 +150,10 @@ class RenderMesh:
         else:
             self.__autosmooth = False
 
-        # Export directory, for write methods
-        if export_directory is not None and not os.path.isdir(
-            export_directory
-        ):
-            msg = f"Mesh: invalid project directory '{project_directory}'"
-            raise ValueError(msg)
-        self.export_directory = export_directory
+        # Directories, for write methods
+        self.export_directory = _check_directory(export_directory)
+        self.project_directory = _check_directory(project_directory)
+        self.relative_path = bool(relative_path)
 
         # Profile statistics (debug)
         if self.debug:
@@ -162,6 +163,10 @@ class RenderMesh:
             pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
             pstat.print_stats()
             print(sec.getvalue())
+
+    ##########################################################################
+    #                               Copy                                     #
+    ##########################################################################
 
     def copy(self):
         """Creates a copy of this mesh."""
@@ -307,6 +312,10 @@ class RenderMesh:
         else:
             raise ValueError(f"Unknown mesh file type '{filetype}'")
 
+        # Relative/absolute path
+        if self.relative_path and self.project_directory:
+            res = os.path.relpath(res, self.project_directory)
+
         # Return
         return res
 
@@ -339,6 +348,8 @@ class RenderMesh:
         Returns: the name of file that the function wrote.
         """
         tm0 = time.time()
+
+        # Select routine (single or multi processing)
         if self.multiprocessing:
             func, mode = self._write_objfile_mp, "mp"
         else:
@@ -1702,4 +1713,11 @@ def _find_python():
 
     return None
 
-
+def _check_directory(directory):
+    """Check if directory is consistent (or None)."""
+    if directory is None:
+        return directory
+    if not os.path.isdir(directory):
+        msg = f"Mesh: invalid directory '{directory}'"
+        raise ValueError(msg)
+    return directory

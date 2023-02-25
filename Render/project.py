@@ -2,6 +2,7 @@
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
 # *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -411,6 +412,10 @@ class Project(FeatureBase):
             App.Console.PrintError(msg)
             return None
 
+        # Set export directories
+        project_directory = self.fpo.Document.TransientDir
+        object_directory = self.fpo.Document.TransientDir
+
         # Clear report view (if required)
         clear_report = PARAMS.GetBool("ClearReport")
         if clear_report:
@@ -423,6 +428,8 @@ class Project(FeatureBase):
                 linear_deflection=self.fpo.LinearDeflection,
                 angular_deflection=self.fpo.AngularDeflection,
                 transparency_boost=self.fpo.TransparencySensitivity,
+                project_directory=project_directory,
+                object_directory=object_directory,
             )
         except RendererNotFoundError as err:
             msg = translate("Render", "Renderer not found ('{}') ")
