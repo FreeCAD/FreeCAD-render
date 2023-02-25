@@ -73,10 +73,6 @@ def write_mesh(name, mesh, material):
         mtlcontent=_write_material(name, matval),
     )
 
-    # OBJ is supposed to be in the same directory as final sg file
-    filename = os.path.basename(objfile)
-    filename = filename.encode("unicode_escape").decode("utf-8")
-
     # Compute OBJ transformation
     # including transfo from FCD coordinates to ospray ones
     osp_placement = PLACEMENT.copy()
@@ -84,9 +80,11 @@ def write_mesh(name, mesh, material):
 
     # Node and transform names
     # Very important: keep them as is, as they are hard-coded in ospray...
-    nodename, _ = os.path.splitext(filename)
+    basename = os.path.basename(objfile)
+    basename = basename.encode("unicode_escape").decode("utf-8")
+    nodename, _ = os.path.splitext(basename)
     nodename = f"{nodename}_importer"
-    transform_name, _ = os.path.splitext(filename)
+    transform_name, _ = os.path.splitext(basename)
     transform_name = f"{transform_name}_rootXfm"
 
     # Compute transformation components
@@ -101,7 +99,7 @@ def write_mesh(name, mesh, material):
       {{
         "name": {json.dumps(nodename)},
         "type": "IMPORTER",
-        "filename": {json.dumps(filename)},
+        "filename": {json.dumps(objfile)},
         "children": [
             {{
                 "name":{json.dumps(transform_name)},
