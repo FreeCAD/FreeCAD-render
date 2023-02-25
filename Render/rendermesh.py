@@ -344,6 +344,20 @@ class RenderMesh:
         else:
             func, mode = self._write_objfile_sp, "sp"
 
+        # Mtl
+        if mtlcontent is not None:
+            # Write mtl file
+            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
+            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
+                raise ValueError(
+                    "OBJ and MTL files shoud be in the same dir\n"
+                    f"('{objfile}' versus '{mtlfilename}')"
+                )
+            mtlfilename = os.path.basename(mtlfilename)
+            mtlname = mtlname if mtlname else "material"
+        else:
+            mtlfilename, mtlname = None, None
+
         # Create OBJ file (empty)
         if objfile is None:
             f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
@@ -359,10 +373,9 @@ class RenderMesh:
         objfile = func(
             name,
             objfile,
-            mtlfile,
-            mtlname,
-            mtlcontent,
             uv_transformation,
+            mtlfilename,
+            mtlname,
         )
 
         tm1 = time.time() - tm0
@@ -375,10 +388,9 @@ class RenderMesh:
         self,
         name,
         objfile,
-        mtlfile,
-        mtlname,
-        mtlcontent,
         uv_transformation,
+        mtlfilename=None,
+        mtlname=None,
     ):
         """Write an OBJ file from a mesh - single process.
 
@@ -388,18 +400,7 @@ class RenderMesh:
         header = ["# Written by FreeCAD-Render\n"]
 
         # Mtl
-        if mtlcontent is not None:
-            # Write mtl file
-            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
-            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                raise ValueError(
-                    "OBJ and MTL files shoud be in the same dir\n"
-                    f"('{objfile}' versus '{mtlfilename}')"
-                )
-            mtlfilename = os.path.basename(mtlfilename)
-            mtl = [f"mtllib {mtlfilename}\n\n"]
-        else:
-            mtl = []
+        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
 
         # Vertices
         fmtv = functools.partial(str.format, "v {} {} {}\n")
@@ -461,10 +462,9 @@ class RenderMesh:
         self,
         name,
         objfile,
-        mtlfile,
-        mtlname,
-        mtlcontent,
         uv_transformation,
+        mtlfilename=None,
+        mtlname=None,
     ):
         """Write an OBJ file from a mesh - multi process version.
 
@@ -477,18 +477,7 @@ class RenderMesh:
         header = ["# Written by FreeCAD-Render\n"]
 
         # Mtl
-        if mtlcontent is not None:
-            # Write mtl file
-            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
-            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                raise ValueError(
-                    "OBJ and MTL files shoud be in the same dir\n"
-                    f"('{objfile}' versus '{mtlfilename}')"
-                )
-            mtlfilename = os.path.basename(mtlfilename)
-            mtl = [f"mtllib {mtlfilename}\n\n"]
-        else:
-            mtl = []
+        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
 
         # UV
         if self.has_uvmap():
