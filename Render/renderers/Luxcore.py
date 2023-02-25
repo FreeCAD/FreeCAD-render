@@ -94,7 +94,7 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
 
     # Get PLY file
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".ply"
-    plyfile = mesh.write_plyfile(name, plyfile=basefilename)
+    plyfile = mesh.write_file(name, mesh.ExportType.PLY, basefilename)
 
     # Transformation matrix
     trans = (

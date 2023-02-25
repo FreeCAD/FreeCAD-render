@@ -80,9 +80,10 @@ def write_mesh(name, mesh, material):
 
     # Get PLY file
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".ply"
-    plyfile = mesh.write_plyfile(
+    plyfile = mesh.write_file(
         name,
-        plyfile=basefilename,
+        mesh.ExportType.PLY,
+        basefilename,
         uv_translate=translate,
         uv_rotate=rotate,
         uv_scale=scale,

@@ -206,14 +206,88 @@ class RenderMesh:
         return bool(self.__uvmap)
 
     def has_vnormals(self):
-        """Check if object has a normals."""
+        """Check if object has a vertex normals."""
         return bool(self.__vnormals)
 
     ##########################################################################
     #                               Write functions                          #
     ##########################################################################
 
-    def write_objfile(
+    class ExportType(enum.IntEnum):
+        """File types for mesh export."""
+        OBJ = enum.auto()
+        PLY = enum.auto()
+        CYCLES = enum.auto()
+        POVRAY = enum.auto()
+
+    def write_file(
+        self,
+        name,
+        filetype,
+        filename,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+        **kwargs,
+    ):
+        """Export a mesh as a file.
+
+        Args:
+            name -- Name of the mesh (str)
+            filetype -- The type of the file to write (Rendermesh.ExportType)
+            filename -- The name of the file (str). If None, the file is
+              written in a temporary file, whose name is returned by the
+              function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Keyword args:
+            mtlfile -- MTL file name to reference in OBJ (optional) (str)
+            mtlname -- Material name to reference in OBJ, must be defined in
+              MTL file (optional) (str)
+            mtlcontent -- MTL file content (optional) (str)
+
+        Returns:
+            The name of file that the function wrote.
+        """
+        # Normalize
+        filetype = RenderMesh.ExportType(filetype)
+
+        # Switch/case
+        if filetype == RenderMesh.ExportType.OBJ:
+            mtlfile = kwargs.get("mtlfile")
+            mtlname = kwargs.get("mtlname")
+            mtlcontent = kwargs.get("mtlcontent")
+            res = self._write_objfile(
+                name,
+                filename,
+                mtlfile,
+                mtlname,
+                mtlcontent,
+                uv_translate,
+                uv_rotate,
+                uv_scale,
+            )
+        elif filetype == RenderMesh.ExportType.PLY:
+            res = self._write_plyfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
+        elif filetype == RenderMesh.ExportType.CYCLES:
+            res = self._write_cyclesfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
+        elif filetype == RenderMesh.ExportType.POVRAY:
+            res = self._write_povfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
+        else:
+            raise ValueError(f"Unknown mesh file type '{filetype}'")
+
+        # Return
+        return res
+
+    def _write_objfile(
         self,
         name,
         objfile=None,
@@ -235,8 +309,6 @@ class RenderMesh:
             mtlname -- Material name to reference in OBJ, must be defined in
               MTL file (optional) (str)
             mtlcontent -- MTL file content (optional) (str)
-            normals -- Flag to control the writing of normals in the OBJ file
-              (bool)
             uv_translate -- UV translation vector (2-uple)
             uv_rotate -- UV rotation angle in degrees (float)
             uv_scale -- UV scale factor (float)
@@ -384,7 +456,7 @@ class RenderMesh:
         # Mtl
         if mtlcontent is not None:
             # Write mtl file
-            mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
+            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -449,7 +521,7 @@ class RenderMesh:
         return objfile
 
     @staticmethod
-    def write_mtl(name, mtlcontent, mtlfile=None):
+    def _write_mtl(name, mtlcontent, mtlfile=None):
         """Write a MTL file.
 
         MTL file is the companion of OBJ file, thus we keep this method in
@@ -474,7 +546,7 @@ class RenderMesh:
             f.write(mtlcontent)
         return mtlfile
 
-    def write_plyfile(
+    def _write_plyfile(
         self,
         name,
         plyfile=None,
@@ -560,7 +632,7 @@ class RenderMesh:
             f.writelines(res)
         return plyfile
 
-    def write_cyclesfile(
+    def _write_cyclesfile(
         self,
         name,
         cyclesfile=None,
@@ -632,7 +704,7 @@ class RenderMesh:
         )
         return cyclesfile
 
-    def write_povfile(
+    def _write_povfile(
         self,
         name,
         povfile=None,

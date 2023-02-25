@@ -81,7 +81,7 @@ def write_mesh(name, mesh, material, **kwargs):
 
     # Get mesh file
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".xml"
-    cyclesfile = mesh.write_cyclesfile(name, cyclesfile=basefilename)
+    cyclesfile = mesh.write_file(name, mesh.FileType.CYCLES, basefilename)
 
     trans = [
         " ".join(str(v) for v in col)

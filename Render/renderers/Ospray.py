@@ -68,9 +68,10 @@ def write_mesh(name, mesh, material):
 
     # Write the mesh as an OBJ tempfile
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_")
-    objfile = mesh.write_objfile(
+    objfile = mesh.write_file(
         name,
-        objfile=basefilename + ".obj",
+        mesh.ExportType.OBJ,
+        basefilename + ".obj",
         mtlfile=basefilename + ".mtl",
         mtlname="material",
         mtlcontent=_write_material(name, matval),

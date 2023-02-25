@@ -75,7 +75,7 @@ def write_mesh(name, mesh, material):
 
     # Get OBJ file
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".obj"
-    objfile = mesh.write_objfile(name, objfile=basefilename)
+    objfile = mesh.write_file(name, mesh.ExportType.OBJ, basefilename)
 
     # Compute OBJ transformation
     # including transfo from FCD coordinates to Appleseed ones
