@@ -414,7 +414,9 @@ class Project(FeatureBase):
 
         # Set export directories
         project_directory = self.fpo.Document.TransientDir
-        object_directory = self.fpo.Document.TransientDir
+        object_directory = os.path.join(project_directory, self.fpo.Name)
+        if not os.path.exists(object_directory):
+            os.mkdir(object_directory)
 
         # Clear report view (if required)
         clear_report = PARAMS.GetBool("ClearReport")
@@ -455,7 +457,9 @@ class Project(FeatureBase):
         instantiated = _instantiate_template(template, objstrings, defaultcam)
 
         # Write instantiated template into a temporary file
-        fpath = self._write_instantiated_template_to_file(instantiated)
+        fpath = self._write_instantiated_template_to_file(
+            instantiated, project_directory
+        )
 
         # Fetch the rendering parameters
         params = self._get_rendering_params()
@@ -555,17 +559,15 @@ class Project(FeatureBase):
 
         return objstrings
 
-    def _write_instantiated_template_to_file(self, template):
+    def _write_instantiated_template_to_file(self, template, directory):
         """Write an instantiated template to a temporary file.
 
         This method is a (private) subroutine of `render` method.
 
         Returns path to temp file.
         """
-        suffix = os.path.splitext(self.fpo.Template)[-1]
-        fpath = os.path.join(
-            self.fpo.Document.TransientDir, self.fpo.Name + suffix
-        )
+        _, suffix = os.path.splitext(self.fpo.Template)
+        fpath = os.path.join(directory, self.fpo.Name + suffix)
         with open(fpath, "w", encoding="utf8") as fobj:
             fobj.write(template)
         return fpath
