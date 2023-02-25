@@ -86,9 +86,8 @@ def write_mesh(name, mesh, material):
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials
-    basefilename = os.path.basename(objfile)
-    shortfilename = os.path.splitext(basefilename)[0]
-    filename = basefilename.encode("unicode_escape").decode("utf-8")
+    shortfilename, _ = os.path.splitext(os.path.basename(objfile))
+    filename = objfile.encode("unicode_escape").decode("utf-8")
 
     snippet_mat = _write_material(mat_name, matval)
     snippet_obj = f"""
@@ -97,6 +96,32 @@ def write_mesh(name, mesh, material):
             </object>
             <object_instance name="{shortfilename}.{name}.instance"
                              object="{shortfilename}.{name}" >
+                <transform>
+                    <matrix>
+                        {transfo_rows[0]}
+                        {transfo_rows[1]}
+                        {transfo_rows[2]}
+                        {transfo_rows[3]}
+                    </matrix>
+                </transform>
+                <assign_material
+                    slot="default"
+                    side="front"
+                    material="{mat_name}"
+                />
+                <assign_material
+                    slot="default"
+                    side="back"
+                    material="{mat_name}"
+                />
+            </object_instance>"""
+
+    snippet_obj = f"""
+            <object name="{shortfilename}" model="mesh_object">
+                <parameter name="filename" value="{filename}" />
+            </object>
+            <object_instance name="{shortfilename}.instance"
+                             object="{shortfilename}" >
                 <transform>
                     <matrix>
                         {transfo_rows[0]}
