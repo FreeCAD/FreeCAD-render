@@ -279,7 +279,7 @@ class RenderMesh:
 
         # Switch to specialized write function
         if filetype == RenderMesh.ExportType.OBJ:
-            mtlfile = kwargs.get("mtlfile")  # TODO Base mtl file on obj
+            mtlfile = kwargs.get("mtlfile")
             mtlname = kwargs.get("mtlname")
             mtlcontent = kwargs.get("mtlcontent")
             res = self._write_objfile(
@@ -344,8 +344,22 @@ class RenderMesh:
         else:
             func, mode = self._write_objfile_sp, "sp"
 
+        # Create OBJ file (empty)
+        if objfile is None:
+            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
+            os.close(f_handle)
+            del f_handle
+        else:
+            objfile = str(objfile)
+
         # Mtl
         if mtlcontent is not None:
+            # Material name
+            mtlname = mtlname if mtlname else "material"
+            # Target file
+            if mtlfile is None:
+                mtlfile, _ = os.path.splitext(objfile)
+                mtlfile += ".mtl"
             # Write mtl file
             mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
@@ -354,17 +368,8 @@ class RenderMesh:
                     f"('{objfile}' versus '{mtlfilename}')"
                 )
             mtlfilename = os.path.basename(mtlfilename)
-            mtlname = mtlname if mtlname else "material"
         else:
             mtlfilename, mtlname = None, None
-
-        # Create OBJ file (empty)
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-            del f_handle
-        else:
-            objfile = str(objfile)
 
         # Pack uv transformation
         uv_transformation = (uv_translate, uv_rotate, uv_scale)
