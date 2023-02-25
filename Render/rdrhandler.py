@@ -345,7 +345,11 @@ class RendererHandler:
         mesh = Mesh.Mesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
-        mesh = RenderMesh(mesh)
+        mesh = RenderMesh(
+            mesh,
+            project_directory=self.project_directory,
+            export_directory=self.object_directory,
+        )
 
         mat = rendermaterial.get_rendering_material(None, "", color)
 
