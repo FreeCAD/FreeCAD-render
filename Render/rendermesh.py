@@ -162,11 +162,6 @@ class RenderMesh:
         new_mesh.__transformation = copy.copy(self.transformation)
         return new_mesh
 
-    # TODO Remove (use vnormals instead)
-    def getPointNormals(self):  # pylint: disable=invalid-name
-        """Get the normals for each point."""
-        return self.__vnormals
-
     ##########################################################################
     #                               Getters                                  #
     ##########################################################################
@@ -690,7 +685,7 @@ class RenderMesh:
 
         # Normals
         if self.has_vnormals():
-            nrms = [f"<{n[0]},{n[1]},{n[2]}>" for n in self.getPointNormals()]
+            nrms = [f"<{n[0]},{n[1]},{n[2]}>" for n in self.vnormals]
             normals = "\n        ".join(nrms)
             len_normals = len(nrms)
             snippet_normals = f"""\
