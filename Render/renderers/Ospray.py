@@ -60,18 +60,13 @@ TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
     )
+
     # Write the mesh as an OBJ tempfile
-
-    # Compute OBJ transformation
-    # including transfo from FCD coordinates to ospray ones
-    osp_placement = PLACEMENT.copy()
-    mesh.transformation.apply_placement(osp_placement, left=True)
-
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_")
     objfile = mesh.write_objfile(
         name,
@@ -79,12 +74,16 @@ def write_mesh(name, mesh, material, vertex_normals=False):
         mtlfile=basefilename + ".mtl",
         mtlname="material",
         mtlcontent=_write_material(name, matval),
-        normals=vertex_normals,
     )
 
     # OBJ is supposed to be in the same directory as final sg file
     filename = os.path.basename(objfile)
     filename = filename.encode("unicode_escape").decode("utf-8")
+
+    # Compute OBJ transformation
+    # including transfo from FCD coordinates to ospray ones
+    osp_placement = PLACEMENT.copy()
+    mesh.transformation.apply_placement(osp_placement, left=True)
 
     # Node and transform names
     # Very important: keep them as is, as they are hard-coded in ospray...

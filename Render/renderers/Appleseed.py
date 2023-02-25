@@ -65,7 +65,7 @@ PLACEMENT = App.Placement(
 )
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
 
     # Compute material values
@@ -75,9 +75,7 @@ def write_mesh(name, mesh, material, vertex_normals=False):
 
     # Get OBJ file
     basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".obj"
-    objfile = mesh.write_objfile(
-        name, objfile=basefilename, normals=vertex_normals
-    )
+    objfile = mesh.write_objfile(name, objfile=basefilename)
 
     # Compute OBJ transformation
     # including transfo from FCD coordinates to Appleseed ones

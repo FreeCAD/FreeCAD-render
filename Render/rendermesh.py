@@ -218,7 +218,6 @@ class RenderMesh:
     #                               Write functions                          #
     ##########################################################################
 
-    # TODO Remove normals argument
     def write_objfile(
         self,
         name,
@@ -226,7 +225,6 @@ class RenderMesh:
         mtlfile=None,
         mtlname=None,
         mtlcontent=None,
-        normals=True,
         uv_translate=(0.0, 0.0),
         uv_rotate=0.0,
         uv_scale=1.0,
@@ -274,7 +272,6 @@ class RenderMesh:
             mtlfile,
             mtlname,
             mtlcontent,
-            normals,
             uv_transformation,
         )
 
@@ -291,16 +288,12 @@ class RenderMesh:
         mtlfile,
         mtlname,
         mtlcontent,
-        normals,
         uv_transformation,
     ):
         """Write an OBJ file from a mesh - single process.
 
         See write_objfile for more details.
         """
-        # Retrieve and normalize arguments
-        normals = bool(normals)
-
         # Header
         header = ["# Written by FreeCAD-Render\n"]
 
@@ -381,16 +374,12 @@ class RenderMesh:
         mtlfile,
         mtlname,
         mtlcontent,
-        normals,
         uv_transformation,
     ):
         """Write an OBJ file from a mesh - multi process version.
 
         See write_objfile for more details.
         """
-        # Retrieve and normalize arguments
-        normals = bool(normals)
-
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
