@@ -82,8 +82,7 @@ def write_mesh(name, mesh, material):
         textures = f"// Textures\n{textures}"
 
     # Get mesh file
-    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".inc"
-    povfile = mesh.write_file(name, mesh.ExportType.POVRAY, basefilename)
+    povfile = mesh.write_file(name, mesh.ExportType.POVRAY)
 
     # Transformation
     # (see https://www.povray.org/documentation/3.7.0/r3_3.html#r3_3_1_12_4)

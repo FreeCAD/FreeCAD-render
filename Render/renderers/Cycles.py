@@ -80,9 +80,9 @@ def write_mesh(name, mesh, material, **kwargs):
     snippet_mat = _write_material(name, matval)
 
     # Get mesh file
-    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".xml"
-    cyclesfile = mesh.write_file(name, mesh.FileType.CYCLES, basefilename)
+    cyclesfile = mesh.write_file(name, mesh.ExportType.CYCLES)
 
+    # Compute transformation
     trans = [
         " ".join(str(v) for v in col)
         for col in mesh.transformation.get_matrix_columns()

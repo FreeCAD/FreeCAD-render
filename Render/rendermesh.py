@@ -74,6 +74,7 @@ class RenderMesh:
         split_angle=radians(30),
         compute_uvmap=False,
         uvmap_projection=None,
+        export_directory=None,
     ):
         """Initialize RenderMesh.
 
@@ -85,6 +86,8 @@ class RenderMesh:
             compute_uvmap -- flag to trigger uvmap computation (bool)
             uvmap_projection -- type of projection to use for uv map
                 among "Cubic", "Spherical", "Cylindric"
+            project_directory -- directory where the rendering project will be
+                exported (str)
         """
         self.debug = PARAMS.GetBool("Debug")
 
@@ -143,7 +146,15 @@ class RenderMesh:
         else:
             self.__autosmooth = False
 
-        # Print profile stats (debug)
+        # Export directory, for write methods
+        if export_directory is not None and not os.path.isdir(
+            export_directory
+        ):
+            msg = f"Mesh: invalid project directory '{project_directory}'"
+            raise ValueError(msg)
+        self.export_directory = export_directory
+
+        # Profile statistics (debug)
         if self.debug:
             prof.disable()
             sec = io.StringIO()
@@ -215,6 +226,7 @@ class RenderMesh:
 
     class ExportType(enum.IntEnum):
         """File types for mesh export."""
+
         OBJ = enum.auto()
         PLY = enum.auto()
         CYCLES = enum.auto()
@@ -224,7 +236,7 @@ class RenderMesh:
         self,
         name,
         filetype,
-        filename,
+        filename=None,
         uv_translate=(0.0, 0.0),
         uv_rotate=0.0,
         uv_scale=1.0,
@@ -251,12 +263,23 @@ class RenderMesh:
         Returns:
             The name of file that the function wrote.
         """
-        # Normalize
+        # Normalize arguments
         filetype = RenderMesh.ExportType(filetype)
 
-        # Switch/case
+        # Compute target file
+        if filename is None:
+            export_directory = (
+                self.export_directory
+                if self.export_directory is not None
+                else App.ActiveDocument.TransientDir
+            )
+            extension = _EXPORT_EXTENSIONS[filetype]
+            basename = name + extension
+            filename = os.path.join(export_directory, basename)
+
+        # Switch to specialized write function
         if filetype == RenderMesh.ExportType.OBJ:
-            mtlfile = kwargs.get("mtlfile")
+            mtlfile = kwargs.get("mtlfile")  # TODO Base mtl file on obj
             mtlname = kwargs.get("mtlname")
             mtlcontent = kwargs.get("mtlcontent")
             res = self._write_objfile(
@@ -367,7 +390,7 @@ class RenderMesh:
         # Mtl
         if mtlcontent is not None:
             # Write mtl file
-            mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
+            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -1657,6 +1680,20 @@ def _pos_atan2(p_x, p_y):
     return atan2_xy if atan2_xy >= 0 else atan2_xy + 2 * pi
 
 
+# ===========================================================================
+#                           Miscellaneous
+# ===========================================================================
+
+
+
+_EXPORT_EXTENSIONS = {
+    RenderMesh.ExportType.OBJ: ".obj",
+    RenderMesh.ExportType.PLY: ".ply",
+    RenderMesh.ExportType.CYCLES: ".xml",
+    RenderMesh.ExportType.POVRAY: ".inc",
+}
+
+
 def _find_python():
     """Find Python executable."""
     python = shutil.which("pythonw")
@@ -1670,3 +1707,5 @@ def _find_python():
         return python
 
     return None
+
+
