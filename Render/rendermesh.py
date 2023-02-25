@@ -162,9 +162,14 @@ class RenderMesh:
         new_mesh.__transformation = copy.copy(self.transformation)
         return new_mesh
 
+    # TODO Remove (use vnormals instead)
     def getPointNormals(self):  # pylint: disable=invalid-name
         """Get the normals for each point."""
         return self.__vnormals
+
+    ##########################################################################
+    #                               Getters                                  #
+    ##########################################################################
 
     @property
     def transformation(self):
@@ -200,6 +205,18 @@ class RenderMesh:
     def autosmooth(self):
         """Get the smoothness state of the mesh (boolean)."""
         return self.__autosmooth
+
+    def has_uvmap(self):
+        """Check if object has a uv map."""
+        return bool(self.__uvmap)
+
+    def has_vnormals(self):
+        """Check if object has a normals."""
+        return bool(self.__vnormals)
+
+    ##########################################################################
+    #                               Write functions                          #
+    ##########################################################################
 
     # TODO Remove normals argument
     def write_objfile(
@@ -447,6 +464,32 @@ class RenderMesh:
 
         return objfile
 
+    @staticmethod
+    def write_mtl(name, mtlcontent, mtlfile=None):
+        """Write a MTL file.
+
+        MTL file is the companion of OBJ file, thus we keep this method in
+        RenderMesh, although there is no need of 'self' to write the MTL...
+
+        Args:
+        name -- The material name, to be referenced in OBJ (str)
+        mtlcontent -- The material content (str)
+        mtlfile -- The mtl file name to write to. If None, a temp file is
+          created. (str)
+
+        Returns:
+        The MTL file name
+        """
+        if mtlfile is None:
+            f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
+            os.close(f_handle)
+
+        # _write_material(name, material)
+        with open(mtlfile, "w", encoding="utf-8") as f:
+            f.write(f"newmtl {name}\n")
+            f.write(mtlcontent)
+        return mtlfile
+
     def write_plyfile(
         self,
         name,
@@ -692,6 +735,10 @@ class RenderMesh:
 
         return povfile
 
+    ##########################################################################
+    #                               UV manipulations                         #
+    ##########################################################################
+
     def uvtransform(self, translate, rotate, scale):
         """Compute a uv transformation (iterator).
 
@@ -784,32 +831,6 @@ class RenderMesh:
         index = sum(it.compress((4, 2, 1), index))
         functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
         return functions[index]()
-
-    @staticmethod
-    def write_mtl(name, mtlcontent, mtlfile=None):
-        """Write a MTL file.
-
-        MTL file is the companion of OBJ file, thus we keep this method in
-        RenderMesh, although there is no need of 'self' to write the MTL...
-
-        Args:
-        name -- The material name, to be referenced in OBJ (str)
-        mtlcontent -- The material content (str)
-        mtlfile -- The mtl file name to write to. If None, a temp file is
-          created. (str)
-
-        Returns:
-        The MTL file name
-        """
-        if mtlfile is None:
-            f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
-            os.close(f_handle)
-
-        # _write_material(name, material)
-        with open(mtlfile, "w", encoding="utf-8") as f:
-            f.write(f"newmtl {name}\n")
-            f.write(mtlcontent)
-        return mtlfile
 
     @property
     def uvmap(self):
@@ -1076,9 +1097,9 @@ class RenderMesh:
         del res["PYTHON"]
         del res["SHOWTIME"]
 
-    def has_uvmap(self):
-        """Check if object has a uv map."""
-        return bool(self.__uvmap)
+    ##########################################################################
+    #                       Vertex Normals manipulations                     #
+    ##########################################################################
 
     def compute_vnormals(self):
         """Compute vertex normals.
@@ -1111,10 +1132,6 @@ class RenderMesh:
         vnorms = [safe_normalize(n) for n in vnorms]
 
         self.__vnormals = vnorms
-
-    def has_vnormals(self):
-        """Check if object has a normals."""
-        return bool(self.__vnormals)
 
     def connected_facets(
         self,
