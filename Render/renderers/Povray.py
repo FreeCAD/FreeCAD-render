@@ -60,7 +60,7 @@ mimetypes.init()
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
@@ -134,7 +134,7 @@ camera {{
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # Note: power is of no use for POV-Ray, as light intensity is determined
     # by RGB (see POV-Ray documentation), therefore it is ignored.
@@ -155,7 +155,9 @@ light_source {{
     return snippet
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
@@ -205,7 +207,7 @@ light_source {{
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light.
 
     Since POV-Ray does not provide a built-in Hosek-Wilkie feature, sunsky is
@@ -249,7 +251,7 @@ light_source {{
     return snippet
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision

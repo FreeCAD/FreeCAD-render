@@ -726,10 +726,6 @@ class RenderMesh:
         # Write
         with open(cyclesfile, "w", encoding="utf-8") as f:
             f.write(snippet_obj)
-        # TODO The project directory should be recorded somewhere
-        cyclesfile = os.path.relpath(
-            cyclesfile, App.ActiveDocument.TransientDir
-        )
         return cyclesfile
 
     def _write_povfile(

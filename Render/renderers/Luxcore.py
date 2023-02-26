@@ -41,7 +41,7 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Material values
     matval = material.get_material_values(
@@ -166,7 +166,9 @@ scene.lights.{n}.efficency = {e}
     )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     efficiency = 15
     gain = 0.001  # Guesstimated!
@@ -207,17 +209,15 @@ scene.objects.{n}.transformation = {t}
     )
 
 
-def write_sunskylight(
-    name, direction, distance, turbidity, albedo, **specifics
-):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    gain_preset = specifics.get("GainPreset", "Mitigated")
+    gain_preset = kwargs.get("GainPreset", "Mitigated")
     if gain_preset == "Physical":
         gain = 1.0
     elif gain_preset == "Mitigated":
         gain = 0.00003
     elif gain_preset == "Custom":
-        gain = specifics.get("CustomGain")
+        gain = kwargs.get("CustomGain")
     else:
         raise NotImplementedError(gain_preset)
     snippet = f"""
@@ -235,7 +235,7 @@ scene.lights.{name}_sky.gain = {gain} {gain} {gain}
     return snippet
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
 # Image light '{n}'

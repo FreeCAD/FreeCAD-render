@@ -191,17 +191,16 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
   ]
 }}
 """
-    gltf_file = App.ActiveDocument.getTempFileName(name + "_") + ".gltf"
+    gltf_file, gltf_file_rel = _new_object_file_path(name, "gltf", **kwargs)
 
     with open(gltf_file, "w", encoding="utf-8") as f:
         f.write(gltf_snippet)
 
-    gltf_file = os.path.basename(gltf_file)
     snippet = f"""
       {{
         "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {json.dumps(gltf_file)},
+        "filename": {json.dumps(gltf_file_rel)},
         "freecadtype" : "camera"
       }},"""
     return snippet
@@ -262,7 +261,9 @@ def write_pointlight(name, pos, color, power):
     return snippet.format(n=json.dumps(name), c=color, p=osp_pos, s=power)
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     # Note: ospray expects a radiance (W/m²), we have to convert power
     # See here: https://www.ospray.org/documentation.html#luminous
@@ -279,11 +280,8 @@ color {color[0]} {color[1]} {color[2]}
 intensity {radiance}
 transparency {transparency}
 """
-
-    filebase = App.ActiveDocument.getTempFileName(name + "_")
-
-    mtlfile = f"{filebase}.mtl"
-    with open(mtlfile, "w", encoding="utf-8") as f:
+    mtl_file, _ = _new_object_file_path(name, "mtl", **kwargs)
+    with open(mtl_file, "w", encoding="utf-8") as f:
         f.write(mtl)
 
     # Write obj file (geometry)
@@ -301,7 +299,7 @@ transparency {transparency}
 
     obj = f"""
 # Created by FreeCAD <http://www.freecadweb.org>"]
-mtllib {os.path.basename(mtlfile)}
+mtllib {os.path.basename(mtl_file)}
 {verts}
 vn {normal.x} {normal.y} {normal.z}
 o {name}
@@ -309,18 +307,16 @@ usemtl material
 f 1//1 2//1 3//1 4//1
 """
 
-    objfile = f"{filebase}.obj"
-    with open(objfile, "w", encoding="utf-8") as f:
+    obj_file, obj_file_rel = _new_object_file_path(name, "obj", **kwargs)
+    with open(obj_file, "w", encoding="utf-8") as f:
         f.write(obj)
 
     # Return SDL
-    filename = os.path.basename(objfile)
-    filename = filename.encode("unicode_escape").decode("utf-8")
     snippet = f"""
       {{
         "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {json.dumps(filename)}
+        "filename": {json.dumps(obj_file_rel)}
       }},"""
 
     return snippet
@@ -445,7 +441,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     )
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     # At this time (02-15-2021), in current version (0.6.0),
     # texture import is not serviceable in OspStudio - see here:
@@ -473,7 +469,7 @@ def write_imagelight(name, image):
   }}
 }}
 """
-    gltf_file = App.ActiveDocument.getTempFileName(name + "_") + ".gltf"
+    gltf_file, gltf_file_rel = _new_object_file_path(name, "gltf", **kwargs)
 
     # osp requires the hdr file path to be relative from the gltf file path
     # (see GLTFData::createLights insg/importer/glTF.cpp, ),
@@ -488,7 +484,7 @@ def write_imagelight(name, image):
       {{
         "name": {json.dumps(name)},
         "type": "IMPORTER",
-        "filename": {json.dumps(gltf_file)}
+        "filename": {json.dumps(gltf_file_rel)}
       }},"""
     return snippet
 
@@ -1047,3 +1043,21 @@ def _render_keep1cam(scene_graph):
             world_children.insert(0, cam)
     # Nota: camera must be in front of world children, otherwise import
     # fails (bug, I think)
+
+
+def _new_object_file_path(basename, extension, **kwargs):
+    """Compute a new file name for export.
+
+    The computation takes into account the directory dedicated for object
+    files, that must be in keyword arguments.
+
+    Returns:
+        The new file name, and the relative path from project directory.
+    """
+    filename = f"{basename}.{extension}"
+    project_directory = kwargs["project_directory"]
+    object_directory = kwargs["object_directory"]
+    abspath = os.path.join(object_directory, filename)
+    relpath = os.path.relpath(abspath, project_directory)
+    relpath = relpath.encode("unicode_escape").decode("utf-8")
+    return abspath, relpath

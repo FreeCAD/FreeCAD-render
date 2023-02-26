@@ -57,7 +57,7 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     matval = material.get_material_values(
         name, _write_texture, _write_value, _write_texref
@@ -126,7 +126,7 @@ Camera "perspective" "float fov" {f:+.5f}
     return snippet.format(n=name, p=pos.Base, t=target, u=updir, f=fov)
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     snippet = """# Pointlight '{n}'
 AttributeBegin
@@ -140,7 +140,9 @@ AttributeEnd
     return snippet.format(n=name, o=pos, c=color, s=power)
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     points = [
         (-size_u / 2, -size_v / 2, 0),
@@ -171,7 +173,7 @@ AttributeEnd
     return snippet.format(n=name, c=color, s=power, p=points)
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # As pbrt does not provide an integrated support for sun-sky lighting
     # (like Hosek-Wilkie e.g.), so we just use an bluish infinite light
@@ -192,7 +194,7 @@ AttributeEnd
     return snippet.format(n=name, d=direction)
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: pbrt just accepts square images...
     snippet = """# Imagelight '{n}'

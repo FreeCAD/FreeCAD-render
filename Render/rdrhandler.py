@@ -529,7 +529,6 @@ class RendererHandler:
         general_data = self._get_general_data()
         kwargs = specifics | general_data
 
-
         # Find rendering dimensions
         try:
             resolution = next(
