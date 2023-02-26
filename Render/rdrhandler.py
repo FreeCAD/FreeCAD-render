@@ -113,6 +113,7 @@ class RendererHandler:
                 exported
             object_directory -- the directory where the objects are to be
                 exported
+            skip_meshing -- a flag to skip the meshing step
         """
         self.renderer_name = str(rdrname)
         self.linear_deflection = float(kwargs.get("linear_deflection", 0.1))
@@ -120,6 +121,9 @@ class RendererHandler:
             kwargs.get("angular_deflection", 0.524)
         )
         self.transparency_boost = float(kwargs.get("transparency_boost", 0))
+        self.project_directory = kwargs.get("project_directory")
+        self.object_directory = kwargs.get("object_directory")
+        self.skip_meshing = bool(kwargs.get("skip_meshing", False))
 
         try:
             module_name = f"Render.renderers.{rdrname}"
@@ -127,8 +131,6 @@ class RendererHandler:
         except ModuleNotFoundError:
             raise RendererNotFoundError(rdrname) from None
 
-        self.project_directory = kwargs.get("project_directory")
-        self.object_directory = kwargs.get("object_directory")
 
         self.switcher = {
             RenderingTypes.OBJECT: RendererHandler._render_object,
@@ -410,6 +412,21 @@ class RendererHandler:
 
             Returns a RenderMesh.
             """
+            # Skip meshing?
+            if self.skip_meshing:
+                # We just need placement, and an empty mesh
+                debug("Object", view.Source.Label, "Skip meshing")
+                mesh = Mesh.Mesh()
+                mesh.Placement = shape.Placement
+                return RenderMesh(
+                    mesh,
+                    project_directory=self.project_directory,
+                    export_directory=self.object_directory,
+                    relative_path=True,
+                    skip_meshing=self.skip_meshing,
+                )
+
+            # Standard case
             if is_already_a_mesh:
                 mesh = shape.Mesh.copy()
             else:
@@ -434,6 +451,8 @@ class RendererHandler:
                 uvmap_projection,
                 project_directory=self.project_directory,
                 export_directory=self.object_directory,
+                relative_path=True,
+                skip_meshing=self.skip_meshing,
             )
 
             return mesh

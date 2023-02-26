@@ -77,6 +77,7 @@ class RenderMesh:
         project_directory=None,
         export_directory=None,
         relative_path=True,
+        skip_meshing=False,
     ):
         """Initialize RenderMesh.
 
@@ -93,9 +94,23 @@ class RenderMesh:
             relative_path -- flag to control whether returned path is relative
                 or absolute to project_directory
         """
-        self.debug = PARAMS.GetBool("Debug")
+        # Directories, for write methods
+        self.export_directory = _check_directory(export_directory)
+        self.project_directory = _check_directory(project_directory)
+        self.relative_path = bool(relative_path)
+
+        # We initialize self transformation
+        self.__transformation = _Transformation(mesh.Placement)
+
+        # Skip meshing?
+        self.skip_meshing = bool(skip_meshing)
+        if self.skip_meshing:
+            self.__points = []
+            self.__facets = []
+            return
 
         # Create profile object (debug)
+        self.debug = PARAMS.GetBool("Debug")
         if self.debug:
             prof = cProfile.Profile()
             prof.enable()
@@ -112,9 +127,6 @@ class RenderMesh:
         # placement and we set the mesh at its origin (null placement)
         self.__originalmesh = mesh.copy()
         self.__originalmesh.Placement = App.Base.Placement()
-
-        # We initialize self transformation
-        self.__transformation = _Transformation(mesh.Placement)
 
         # Then we store the topology in internal structures
         points, facets = self.__originalmesh.Topology
@@ -149,11 +161,6 @@ class RenderMesh:
             self.__autosmooth = True
         else:
             self.__autosmooth = False
-
-        # Directories, for write methods
-        self.export_directory = _check_directory(export_directory)
-        self.project_directory = _check_directory(project_directory)
-        self.relative_path = bool(relative_path)
 
         # Profile statistics (debug)
         if self.debug:
@@ -282,12 +289,22 @@ class RenderMesh:
             basename = name + extension
             filename = os.path.join(export_directory, basename)
 
+        # Relative/absolute path
+        if self.relative_path and self.project_directory:
+            res = os.path.relpath(filename, self.project_directory)
+        else:
+            res = filename
+
+        # Skip meshing?
+        if self.skip_meshing:
+            return res
+
         # Switch to specialized write function
         if filetype == RenderMesh.ExportType.OBJ:
             mtlfile = kwargs.get("mtlfile")
             mtlname = kwargs.get("mtlname")
             mtlcontent = kwargs.get("mtlcontent")
-            res = self._write_objfile(
+            self._write_objfile(
                 name,
                 filename,
                 mtlfile,
@@ -298,23 +315,19 @@ class RenderMesh:
                 uv_scale,
             )
         elif filetype == RenderMesh.ExportType.PLY:
-            res = self._write_plyfile(
+            self._write_plyfile(
                 name, filename, uv_translate, uv_rotate, uv_scale
             )
         elif filetype == RenderMesh.ExportType.CYCLES:
-            res = self._write_cyclesfile(
+            self._write_cyclesfile(
                 name, filename, uv_translate, uv_rotate, uv_scale
             )
         elif filetype == RenderMesh.ExportType.POVRAY:
-            res = self._write_povfile(
+            self._write_povfile(
                 name, filename, uv_translate, uv_rotate, uv_scale
             )
         else:
             raise ValueError(f"Unknown mesh file type '{filetype}'")
-
-        # Relative/absolute path
-        if self.relative_path and self.project_directory:
-            res = os.path.relpath(res, self.project_directory)
 
         # Return
         return res
@@ -355,14 +368,6 @@ class RenderMesh:
         else:
             func, mode = self._write_objfile_sp, "sp"
 
-        # Create OBJ file (empty)
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-            del f_handle
-        else:
-            objfile = str(objfile)
-
         # Mtl
         if mtlcontent is not None:
             # Material name
@@ -398,7 +403,6 @@ class RenderMesh:
         App.Console.PrintLog(
             f"[Render][OBJ file] Write OBJ file ({mode}): {tm1}\n"
         )
-        return objfile
 
     def _write_objfile_sp(
         self,
@@ -472,8 +476,6 @@ class RenderMesh:
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
 
-        return objfile
-
     def _write_objfile_mp(
         self,
         name,
@@ -546,8 +548,6 @@ class RenderMesh:
             run_name="__main__",
         )
 
-        return objfile
-
     @staticmethod
     def _write_mtl(name, mtlcontent, mtlfile=None):
         """Write a MTL file.
@@ -595,14 +595,6 @@ class RenderMesh:
 
         Returns: the name of file that the function wrote.
         """
-        # Create PLY file (empty)
-        if plyfile is None:
-            f_handle, plyfile = tempfile.mkstemp(suffix=".ply", prefix="_")
-            os.close(f_handle)
-            del f_handle
-        else:
-            plyfile = str(plyfile)
-
         # Header - Intro
         header = [
             "ply\n",
@@ -658,7 +650,6 @@ class RenderMesh:
         res = it.chain(header, verts, faces)
         with open(plyfile, "w", encoding="utf-8", newline="\n") as f:
             f.writelines(res)
-        return plyfile
 
     def _write_cyclesfile(
         self,
@@ -690,14 +681,6 @@ class RenderMesh:
             """Write a point."""
             return f"{_rnd(pnt[0])} {_rnd(pnt[1])} {_rnd(pnt[2])}"
 
-        # Create Cycles file (empty)
-        if cyclesfile is None:
-            f_handle, cyclesfile = tempfile.mkstemp(suffix=".xml", prefix="_")
-            os.close(f_handle)
-            del f_handle
-        else:
-            cyclesfile = str(cyclesfile)
-
         points = [_write_point(p) for p in self.points]
         points = "  ".join(points)
         verts = [f"{v[0]} {v[1]} {v[2]}" for v in self.facets]
@@ -726,7 +709,6 @@ class RenderMesh:
         # Write
         with open(cyclesfile, "w", encoding="utf-8") as f:
             f.write(snippet_obj)
-        return cyclesfile
 
     def _write_povfile(
         self,
@@ -749,14 +731,6 @@ class RenderMesh:
 
         Returns: the name of file that the function wrote.
         """
-        # Create Povray file (empty)
-        if povfile is None:
-            f_handle, povfile = tempfile.mkstemp(suffix=".inc", prefix="_")
-            os.close(f_handle)
-            del f_handle
-        else:
-            povfile = str(povfile)
-
         # Triangles
         vrts = [f"<{x},{y},{z}>" for x, y, z in self.points]
         inds = [f"<{i},{j},{k}>" for i, j, k in self.facets]
@@ -812,8 +786,6 @@ class RenderMesh:
         # Write
         with open(povfile, "w", encoding="utf-8") as f:
             f.write(snippet)
-
-        return povfile
 
     ##########################################################################
     #                               UV manipulations                         #

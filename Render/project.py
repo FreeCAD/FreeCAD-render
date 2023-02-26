@@ -389,12 +389,15 @@ class Project(FeatureBase):
 
         return all_group_objs(self.fpo, include_groups)
 
-    def render(self, wait_for_completion=False):
+    def render(self, wait_for_completion=False, skip_meshing=False):
         """Render the project, calling an external renderer.
 
         Args:
             wait_for_completion -- flag to wait for rendering completion before
                 return, in a blocking way (default to False)
+            skip_meshing -- flag to skip the meshing step. In this case, the
+                renderer will use existing mesh files. Mainly implemented for
+                Movie usage.
 
         Returns:
             Output file path
@@ -432,6 +435,7 @@ class Project(FeatureBase):
                 transparency_boost=self.fpo.TransparencySensitivity,
                 project_directory=project_directory,
                 object_directory=object_directory,
+                skip_meshing=skip_meshing,
             )
         except RendererNotFoundError as err:
             msg = translate("Render", "Renderer not found ('{}') ")
