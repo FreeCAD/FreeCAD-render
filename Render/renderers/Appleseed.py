@@ -45,6 +45,7 @@ from textwrap import indent
 from math import degrees, acos, atan2, sqrt
 import collections
 import xml.etree.ElementTree as et
+import xml.dom.minidom
 
 import FreeCAD as App
 
@@ -80,7 +81,7 @@ def write_mesh(name, mesh, material):
     # including transfo from FCD coordinates to Appleseed ones
     mesh.transformation.apply_placement(PLACEMENT, left=True)
     transfo_rows = [
-        f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
+        f"<dummy>{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}</dummy>"
         for r in mesh.transformation.get_matrix_rows()
     ]
 
@@ -1299,10 +1300,20 @@ def render(
             tile_param.set("value", "32 32")
 
     # Template update
-    template = et.tostring(root, encoding="unicode")
+    template = et.tostring(root, encoding="unicode", xml_declaration=True)
+
+    # # Beautify
+    template = [l.strip(" ") for l in template.splitlines()]
+    template = [l for l in template if l]  # Remove empty lines
+    template = "".join(template)
+    template = template.replace("<dummy>", "\n        ")
+    template = template.replace("</dummy>", "")
+    template = template.replace("</matrix>", "\n          </matrix>")
+    with xml.dom.minidom.parseString(template) as node:
+        template = node.toprettyxml(indent="  ", encoding="utf-8")
 
     # Write resulting output to file
-    with open(input_file, "w", encoding="utf-8") as f:
+    with open(input_file, "wb") as f:
         f.write(template)
 
     # Prepare command line parameters
