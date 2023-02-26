@@ -273,6 +273,13 @@ class RendererHandler:
             }
             return res
 
+    def _get_general_data(self):
+        """Get general data for keyword arguments."""
+        return {
+            "project_directory": self.project_directory,
+            "object_directory": self.object_directory,
+        }
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
 
@@ -519,6 +526,9 @@ class RendererHandler:
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         field_of_view = float(getattr(source, "HeightAngle", 60))
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = specifics | general_data
+
 
         # Find rendering dimensions
         try:
@@ -548,7 +558,7 @@ class RendererHandler:
             target,
             field_of_view,
             resolution,
-            **specifics,
+            **kwargs,
         )
 
     def _render_pointlight(self, name, view):
@@ -567,6 +577,8 @@ class RendererHandler:
 
         source = view.Source
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = specifics | general_data
 
         # Get location, color
         location = App.Base.Vector(source.Location)
@@ -585,7 +597,7 @@ class RendererHandler:
             location,
             color,
             power,
-            **specifics,
+            **kwargs,
         )
 
     def _render_arealight(self, name, view):
@@ -612,6 +624,8 @@ class RendererHandler:
         size_v = float(source.SizeV) * SCALE
         transparent = bool(source.Transparent)
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = specifics | general_data
 
         # Send everything to renderer module
         return self._call_renderer(
@@ -623,7 +637,7 @@ class RendererHandler:
             color,
             power,
             transparent,
-            **specifics,
+            **kwargs,
         )
 
     def _render_sunskylight(self, name, view):
@@ -643,7 +657,6 @@ class RendererHandler:
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
         albedo = float(src.GroundAlbedo)
-        specifics = self._get_renderer_specifics(view)
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
@@ -653,6 +666,10 @@ class RendererHandler:
 
         assert direction.Length, "Sun direction is null"
 
+        specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = specifics | general_data
+
         return self._call_renderer(
             "write_sunskylight",
             name,
@@ -660,7 +677,7 @@ class RendererHandler:
             distance,
             turbidity,
             albedo,
-            **specifics,
+            **kwargs,
         )
 
     def _render_imagelight(self, name, view):
@@ -679,9 +696,11 @@ class RendererHandler:
         src = view.Source
         image = src.ImageFile
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = specifics | general_data
 
         return self._call_renderer(
-            "write_imagelight", name, image, **specifics
+            "write_imagelight", name, image, **kwargs
         )
 
     def _call_renderer(self, method, *args, **kwargs):
