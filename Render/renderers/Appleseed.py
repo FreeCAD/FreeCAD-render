@@ -94,34 +94,8 @@ def write_mesh(name, mesh, material):
             <object name="{shortfilename}" model="mesh_object">
                 <parameter name="filename" value="{filename}" />
             </object>
-            <object_instance name="{shortfilename}.{name}.instance"
-                             object="{shortfilename}.{name}" >
-                <transform>
-                    <matrix>
-                        {transfo_rows[0]}
-                        {transfo_rows[1]}
-                        {transfo_rows[2]}
-                        {transfo_rows[3]}
-                    </matrix>
-                </transform>
-                <assign_material
-                    slot="default"
-                    side="front"
-                    material="{mat_name}"
-                />
-                <assign_material
-                    slot="default"
-                    side="back"
-                    material="{mat_name}"
-                />
-            </object_instance>"""
-
-    snippet_obj = f"""
-            <object name="{shortfilename}" model="mesh_object">
-                <parameter name="filename" value="{filename}" />
-            </object>
             <object_instance name="{shortfilename}.instance"
-                             object="{shortfilename}" >
+                             object="{shortfilename}.{shortfilename}" >
                 <transform>
                     <matrix>
                         {transfo_rows[0]}
