@@ -546,7 +546,9 @@ class RendererHandler:
         field_of_view = float(getattr(source, "HeightAngle", 60))
         specifics = self._get_renderer_specifics(view)
         general_data = self._get_general_data()
-        kwargs = specifics | general_data
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         # Find rendering dimensions
         try:
@@ -596,7 +598,9 @@ class RendererHandler:
         source = view.Source
         specifics = self._get_renderer_specifics(view)
         general_data = self._get_general_data()
-        kwargs = specifics | general_data
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         # Get location, color
         location = App.Base.Vector(source.Location)
@@ -643,7 +647,9 @@ class RendererHandler:
         transparent = bool(source.Transparent)
         specifics = self._get_renderer_specifics(view)
         general_data = self._get_general_data()
-        kwargs = specifics | general_data
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         # Send everything to renderer module
         return self._call_renderer(
@@ -686,7 +692,9 @@ class RendererHandler:
 
         specifics = self._get_renderer_specifics(view)
         general_data = self._get_general_data()
-        kwargs = specifics | general_data
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         return self._call_renderer(
             "write_sunskylight",
@@ -715,7 +723,9 @@ class RendererHandler:
         image = src.ImageFile
         specifics = self._get_renderer_specifics(view)
         general_data = self._get_general_data()
-        kwargs = specifics | general_data
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         return self._call_renderer(
             "write_imagelight", name, image, **kwargs
