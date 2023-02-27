@@ -295,6 +295,9 @@ class RenderMesh:
         else:
             res = filename
 
+        # Escape characters
+        res = res.encode("unicode_escape").decode("utf-8")
+
         # Skip meshing?
         if self.skip_meshing:
             return res
