@@ -70,6 +70,7 @@ def write_mesh(name, mesh, material, **kwargs):
         _write_value,
         _write_texref,
         kwargs["project_directory"],
+        kwargs["object_directory"],
     )
 
     # Write the mesh as an OBJ tempfile
@@ -736,9 +737,11 @@ def _write_texture(**kwargs):
     shadertype = kwargs["shadertype"]
     propvalue = kwargs["propvalue"]
     objname = kwargs["objname"]
+    object_directory = kwargs["object_directory"]
 
     # Get texture parameters
-    filename = os.path.basename(propvalue.file)
+    filename = os.path.basename(propvalue.file)  # TODO
+    filename = os.path.relpath(propvalue.file, object_directory)
     scale, rotation = float(propvalue.scale), float(propvalue.rotation)
     translation_u = float(propvalue.translation_u)
     translation_v = float(propvalue.translation_v)

@@ -453,6 +453,7 @@ class RenderMaterial:
         write_value_fun,
         write_texref_fun,
         project_directory,
+        object_directory=None,
     ):
         """Provide a MaterialValues object.
 
@@ -470,6 +471,7 @@ class RenderMaterial:
             write_value_fun,
             write_texref_fun,
             project_directory=project_directory,
+            object_directory=object_directory,
         )
         return materialvalues
 
@@ -506,6 +508,7 @@ class MaterialValues:
         parent_shadertype=None,
         inherited_unique_name=None,
         project_directory=None,
+        object_directory=None,
     ):
         """Initialize material values.
 
@@ -532,6 +535,7 @@ class MaterialValues:
         self._write_value = write_value_fun
         self._write_texref = write_texref_fun
         self._project_directory = project_directory
+        self._object_directory = object_directory
         # To avoid duplicate materials (Appleseed)
         self._unique_matname = (
             f"{objname}.{uuid.uuid1()}"
@@ -559,7 +563,8 @@ class MaterialValues:
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
                     unique_matname=self._unique_matname,
-                    project_directory=self._project_directory
+                    project_directory=self._project_directory,
+                    object_directory=self._object_directory,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
