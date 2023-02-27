@@ -45,7 +45,11 @@ def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Material values
     matval = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
 
     # Compute bump & normal statements
@@ -410,11 +414,13 @@ def _write_texture(**kwargs):
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+    project_directory = kwargs["project_directory"]
 
     # Compute texture parameters
     texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
     gamma = 2.2 if proptype == "RGB" else 1.0
-    filename = propvalue.file
+    filename = os.path.relpath(propvalue.file, project_directory)
+    print(project_directory)  # TODO
     rotation = float(propvalue.rotation)
     scale = 1 / float(propvalue.scale)
     trans_u = float(propvalue.translation_u)

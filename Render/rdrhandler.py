@@ -461,6 +461,10 @@ class RendererHandler:
         label = getattr(source, "Label", name)
         uvproj = getattr(view, "UvProjection", None)
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
         debug("Object", label, "Processing")
 
         # Build a list of renderables from the object
@@ -513,7 +517,7 @@ class RendererHandler:
             RendererHandler._call_renderer,
             self,
             "write_mesh",
-            **specifics,
+            **kwargs,
         )
 
         get_mat = rendermaterial.get_rendering_material

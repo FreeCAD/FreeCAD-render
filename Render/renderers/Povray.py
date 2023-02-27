@@ -2,6 +2,7 @@
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
 # *   Copyright (c) 2022 Howetuft <howetuft-at-gmail>                       *
+# *   Copyright (c) 2023 Howetuft <howetuft-at-gmail>                       *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -67,10 +68,12 @@ def write_mesh(name, mesh, material, **kwargs):
     name = name + "_"
 
     # Material values
-
-    # Material values
     materialvalues = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
 
     # Material
@@ -558,6 +561,7 @@ def _write_texture(**kwargs):
     propvalue = kwargs["propvalue"]
     shadertype = kwargs["shadertype"]
     parent_shadertype = kwargs["parent_shadertype"]
+    project_directory = kwargs["project_directory"]
 
     # Compute texture name
     texname = _texname(**kwargs)
@@ -580,7 +584,7 @@ def _write_texture(**kwargs):
         App.Console.PrintWarning(msg)
         return texname, ""
 
-    imagefile = propvalue.file
+    imagefile = os.path.relpath(propvalue.file, project_directory)
 
     if shadertype in ["Glass", "glass"]:
         # Glass, either standalone ('Glass') or in mixed shader ('glass')

@@ -2,6 +2,7 @@
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
 # *   Copyright (c) 2022 Howetuft <howetuft-at-gmail.com>                   *
+# *   Copyright (c) 2023 Howetuft <howetuft-at-gmail.com>                   *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -66,12 +67,16 @@ PLACEMENT = App.Placement(
 )
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
 
     # Compute material values
     matval = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
 
     # Get OBJ file
