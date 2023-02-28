@@ -88,7 +88,7 @@ class Worker(QObject):
                 stderr=STDOUT,
                 bufsize=1,
                 universal_newlines=True,
-                cwd=self.cwd
+                cwd=self.cwd,
             ) as proc:
                 for line in proc.stdout:
                     message(line)

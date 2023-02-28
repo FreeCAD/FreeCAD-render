@@ -1661,7 +1661,6 @@ def _pos_atan2(p_x, p_y):
 # ===========================================================================
 
 
-
 _EXPORT_EXTENSIONS = {
     RenderMesh.ExportType.OBJ: ".obj",
     RenderMesh.ExportType.PLY: ".ply",
@@ -1683,6 +1682,7 @@ def _find_python():
         return python
 
     return None
+
 
 def _check_directory(directory):
     """Check if directory is consistent (or None)."""

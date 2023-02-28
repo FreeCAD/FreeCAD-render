@@ -182,7 +182,9 @@ def write_pointlight(name, pos, color, power, **kwargs):
     )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     # Appleseed uses radiance (power/surface) instead of power
     radiance = power / (size_u * size_v)

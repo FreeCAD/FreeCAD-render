@@ -131,7 +131,6 @@ class RendererHandler:
         except ModuleNotFoundError:
             raise RendererNotFoundError(rdrname) from None
 
-
         self.switcher = {
             RenderingTypes.OBJECT: RendererHandler._render_object,
             RenderingTypes.CAMERA: RendererHandler._render_camera,
@@ -739,9 +738,7 @@ class RendererHandler:
         kwargs.update(specifics)
         kwargs.update(general_data)
 
-        return self._call_renderer(
-            "write_imagelight", name, image, **kwargs
-        )
+        return self._call_renderer("write_imagelight", name, image, **kwargs)
 
     def _call_renderer(self, method, *args, **kwargs):
         """Call a render method of the renderer module.
