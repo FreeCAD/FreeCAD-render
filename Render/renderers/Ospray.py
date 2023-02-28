@@ -213,7 +213,7 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # Tip: in studio, to visualize where the light is, increase the radius
 
@@ -329,7 +329,7 @@ f 1//1 2//1 3//1 4//1
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We make angle calculations in osp's coordinates system
     # By default, Up is (0,1,0), Right is (1,0,0), and:

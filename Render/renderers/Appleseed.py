@@ -153,7 +153,7 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # This is where you write the renderer-specific code
     # to export the point light in the renderer format
@@ -182,7 +182,7 @@ def write_pointlight(name, pos, color, power):
     )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
     """Compute a string in renderer SDL to represent an area light."""
     # Appleseed uses radiance (power/surface) instead of power
     radiance = power / (size_u * size_v)
@@ -240,7 +240,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # Caution: Take Appleseed system of coordinates into account
     # From documentation: "Appleseed uses a right-handed coordinate system,
@@ -274,7 +274,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     return snippet.format(n=name, a=phi, b=theta, t=turbidity, g=albedo)
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
         <scene_texture name="{n}_tex" model="disk_texture_2d">
