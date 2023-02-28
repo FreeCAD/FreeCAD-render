@@ -365,7 +365,15 @@ class RendererHandler:
         # Rescale to meters
         mesh.transformation.scale = SCALE
 
-        res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
+        # Keyword arguments
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(general_data)
+
+        # Call to plugin
+        res = self.renderer_module.write_mesh(
+            "ground_plane", mesh, mat, **kwargs
+        )
 
         return res
 
