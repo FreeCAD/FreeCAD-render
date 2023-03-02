@@ -513,8 +513,7 @@ class RendererHandler:
             )
             if not PARAMS.GetBool("Debug"):
                 return ""
-            else:
-                raise err
+            raise err
 
         # Rescale to meters
         for rend in rends:
