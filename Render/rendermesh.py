@@ -1141,7 +1141,6 @@ class RenderMesh:
         # http://www.bytehazard.com/articles/wnormals.html
         # (and look at script wnormals100.ms)
 
-        # TODO Optimize
         fmul = vector3d.fmul
         v3d_angles = vector3d.angles
         add = vector3d.add
@@ -1149,15 +1148,26 @@ class RenderMesh:
         points = self.__points
         normals = self.__normals
         areas = self.__areas
+        facets = self.__facets
 
         vnorms = [(0, 0, 0)] * self.count_points
-        for index, facet in enumerate(self.__facets):
-            normal = normals[index]
-            area = areas[index]
-            angles = v3d_angles(points[i] for i in facet)
-            for point_index, angle in zip(facet, angles):
-                weighted_vnorm = fmul(normal, angle * area)
-                vnorms[point_index] = add(vnorms[point_index], weighted_vnorm)
+
+        it_facets = (
+            (facet, normal, area, v3d_angles(points[i] for i in facet))
+            for facet, normal, area in zip(facets, normals, areas)
+        )
+        it_points = (
+            (point_index, fmul(normal, angle * area))
+            for facet, normal, area, angles in it_facets
+            for point_index, angle in zip(facet, angles)
+        )
+
+        def vnorm_reducer(rolling, new):
+            point_index, weighted_vnorm = new
+            rolling[point_index]= add(rolling[point_index], weighted_vnorm)
+            return rolling
+
+        vnorms = functools.reduce(vnorm_reducer, it_points, vnorms)
 
         # Normalize
         vnorms = [safe_normalize(n) for n in vnorms]
