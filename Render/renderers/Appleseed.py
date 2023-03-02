@@ -1283,9 +1283,10 @@ def render(
         )
         root = set_config_param(root, "final", None, "passes", 1)
 
-    # Use embree
-    root = set_config_param(root, "interactive", None, "use_embree", 1)
-    root = set_config_param(root, "final", None, "use_embree", 1)
+    # Don't use Embree
+    # (see https://github.com/appleseedhq/appleseed/issues/2921
+    root = set_config_param(root, "interactive", None, "use_embree", 0)
+    root = set_config_param(root, "final", None, "use_embree", 0)
 
     # Denoiser
     if denoise:
