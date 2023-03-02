@@ -203,7 +203,6 @@ class RenderMeshBase:
         else:
             self.__autosmooth = False
 
-<<<<<<< HEAD
     def __del__(self):
         """Finalize RenderMesh.
 
@@ -222,8 +221,6 @@ class RenderMeshBase:
         # for e in gc.get_referrers(self.__points):
         # print(myrepr.repr(e))
 
-=======
->>>>>>> bfe6eaf (Project: profiling)
     ##########################################################################
     #                               Copy                                     #
     ##########################################################################
