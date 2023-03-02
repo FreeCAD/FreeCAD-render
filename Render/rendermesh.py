@@ -119,7 +119,7 @@ class RenderMesh:
 
         # First we make a copy of the mesh, we separate mesh and
         # placement and we set the mesh at its origin (null placement)
-        self.__originalmesh = mesh.copy()
+        self.__originalmesh = mesh
         self.__originalmesh.Placement = App.Base.Placement()
 
         # Then we store the topology in internal structures
@@ -1174,6 +1174,45 @@ class RenderMesh:
 
         self.__vnormals = vnorms
 
+    def adjacent_facets(self):
+        """Compute the adjacent facets for each facet of the mesh.
+
+        Returns a list of sets of facet indices (adjacency list).
+        """
+        # For each point, compute facets that contain this point as a vertex
+        iterator = (
+            (facet_index, point_index)
+            for facet_index, facet in enumerate(self.__facets)
+            for point_index in facet
+        )
+
+        def fpp_reducer(_, new):
+            facet_index, point_index = new
+            facets_per_point[point_index].append(facet_index)
+
+        facets_per_point = [[] for _ in range(self.count_points)]
+        functools.reduce(fpp_reducer, iterator, None)
+
+        # Compute adjacency
+        facets = [set(f) for f in self.__facets]
+        iterator = (
+            (facet_idx, other_idx)
+            for facet_idx, facet in enumerate(facets)
+            for point_idx in facet
+            for other_idx in facets_per_point[point_idx]
+            if len(facet & facets[other_idx]) == 2
+        )
+
+        adjacents = [set() for _ in range(self.count_facets)]
+
+        def reduce_adj(_, new):
+            facet_index, other_index = new
+            adjacents[facet_index].add(other_index)
+
+        functools.reduce(reduce_adj, iterator, None)
+
+        return adjacents
+
     def connected_facets(
         self,
         starting_facet_index,
@@ -1243,45 +1282,6 @@ class RenderMesh:
 
         # Final
         return tags
-
-    def adjacent_facets(self):
-        """Compute the adjacent facets for each facet of the mesh.
-
-        Returns a list of sets of facet indices.
-        """
-        # For each point, compute facets that contain this point as a vertex
-        iterator = (
-            (facet_index, point_index)
-            for facet_index, facet in enumerate(self.__facets)
-            for point_index in facet
-        )
-
-        def fpp_reducer(_, new):
-            facet_index, point_index = new
-            facets_per_point[point_index].append(facet_index)
-
-        facets_per_point = [[] for _ in range(self.count_points)]
-        functools.reduce(fpp_reducer, iterator, None)
-
-        # Compute adjacency
-        facets = [set(f) for f in self.__facets]
-        iterator = (
-            (facet_idx, other_idx)
-            for facet_idx, facet in enumerate(facets)
-            for point_idx in facet
-            for other_idx in facets_per_point[point_idx]
-            if len(facet & facets[other_idx]) == 2
-        )
-
-        adjacents = [set() for _ in range(self.count_facets)]
-
-        def reduce_adj(_, new):
-            facet_index, other_index = new
-            adjacents[facet_index].add(other_index)
-
-        functools.reduce(reduce_adj, iterator, None)
-
-        return adjacents
 
     def connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
