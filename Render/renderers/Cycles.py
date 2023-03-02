@@ -74,25 +74,19 @@ def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Compute material values
     matval = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
 
     snippet_mat = _write_material(name, matval)
 
-    points = [_write_point(p) for p in mesh.points]
-    points = "  ".join(points)
-    verts = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.facets]
-    verts = "  ".join(verts)
-    nverts = ["3"] * mesh.count_facets
-    nverts = "  ".join(nverts)
+    # Get mesh file
+    cyclesfile = mesh.write_file(name, mesh.ExportType.CYCLES)
 
-    if mesh.has_uvmap():
-        uvs = [f"{px} {py}" for px, py in mesh.uvmap_per_vertex()]
-        uvs = "  ".join(uvs)
-        uv_statement = f'    UV="{uvs}"\n'
-    else:
-        uv_statement = ""
-
+    # Compute transformation
     trans = [
         " ".join(str(v) for v in col)
         for col in mesh.transformation.get_matrix_columns()
@@ -101,31 +95,13 @@ def write_mesh(name, mesh, material, **kwargs):
 
     interpolation = "smooth" if mesh.autosmooth else "flat"
 
-    snippet_obj = (
-        f"""
+    snippet_obj = f"""
 <transform matrix="{trans}">
     <state interpolation="{interpolation}" shader="{name}">
-    <mesh
-        P="{points}"
-        verts="{verts}"
-        nverts="{nverts}"
-    {uv_statement}/>
+        <include src="{cyclesfile}" />
     </state>
 </transform>
 """
-        if mesh.has_vnormals()
-        else f"""
-<transform matrix="{trans}">
-    <state shader="{name}">
-    <mesh
-        P="{points}"
-        verts="{verts}"
-        nverts="{nverts}"
-    {uv_statement}/>
-    </state>
-</transform>
-"""
-    )
 
     snippet = snippet_mat + snippet_obj
 
@@ -353,7 +329,7 @@ def _write_sunskylight_nishita(name, direction, turbidity, albedo):
     return "".join([snippet_shader, snippet_sun, snippet_sky])
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: Cycles requires the image file to be in the same directory
     # as the input file

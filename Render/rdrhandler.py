@@ -109,6 +109,11 @@ class RendererHandler:
                 mesher.
             transparency_boost -- an integer to augment transparency in
                 implicit material computation
+            project_directory -- the directory where the project is to be
+                exported
+            object_directory -- the directory where the objects are to be
+                exported
+            skip_meshing -- a flag to skip the meshing step
         """
         self.renderer_name = str(rdrname)
         self.linear_deflection = float(kwargs.get("linear_deflection", 0.1))
@@ -116,6 +121,9 @@ class RendererHandler:
             kwargs.get("angular_deflection", 0.524)
         )
         self.transparency_boost = float(kwargs.get("transparency_boost", 0))
+        self.project_directory = kwargs.get("project_directory")
+        self.object_directory = kwargs.get("object_directory")
+        self.skip_meshing = bool(kwargs.get("skip_meshing", False))
 
         try:
             module_name = f"Render.renderers.{rdrname}"
@@ -266,6 +274,13 @@ class RendererHandler:
             }
             return res
 
+    def _get_general_data(self):
+        """Get general data for keyword arguments."""
+        return {
+            "project_directory": self.project_directory,
+            "object_directory": self.object_directory,
+        }
+
     def get_rendering_string(self, view):
         """Provide a rendering string for the view of an object.
 
@@ -338,14 +353,26 @@ class RendererHandler:
         mesh = Mesh.Mesh()
         mesh.addFacet(vertices[0], vertices[1], vertices[2])
         mesh.addFacet(vertices[0], vertices[2], vertices[3])
-        mesh = RenderMesh(mesh)
+        mesh = RenderMesh(
+            mesh,
+            project_directory=self.project_directory,
+            export_directory=self.object_directory,
+        )
 
         mat = rendermaterial.get_rendering_material(None, "", color)
 
         # Rescale to meters
         mesh.transformation.scale = SCALE
 
-        res = self.renderer_module.write_mesh("ground_plane", mesh, mat)
+        # Keyword arguments
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(general_data)
+
+        # Call to plugin
+        res = self.renderer_module.write_mesh(
+            "ground_plane", mesh, mat, **kwargs
+        )
 
         return res
 
@@ -392,6 +419,21 @@ class RendererHandler:
 
             Returns a RenderMesh.
             """
+            # Skip meshing?
+            if self.skip_meshing:
+                # We just need placement, and an empty mesh
+                debug("Object", view.Source.Label, "Skip meshing")
+                mesh = Mesh.Mesh()
+                mesh.Placement = shape.Placement
+                return RenderMesh(
+                    mesh,
+                    project_directory=self.project_directory,
+                    export_directory=self.object_directory,
+                    relative_path=True,
+                    skip_meshing=self.skip_meshing,
+                )
+
+            # Standard case
             if is_already_a_mesh:
                 mesh = shape.Mesh.copy()
             else:
@@ -414,6 +456,10 @@ class RendererHandler:
                 autosmooth_angle,
                 compute_uvmap,
                 uvmap_projection,
+                project_directory=self.project_directory,
+                export_directory=self.object_directory,
+                relative_path=True,
+                skip_meshing=self.skip_meshing,
             )
 
             return mesh
@@ -422,6 +468,10 @@ class RendererHandler:
         label = getattr(source, "Label", name)
         uvproj = getattr(view, "UvProjection", None)
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
         debug("Object", label, "Processing")
 
         # Build a list of renderables from the object
@@ -474,7 +524,7 @@ class RendererHandler:
             RendererHandler._call_renderer,
             self,
             "write_mesh",
-            **specifics,
+            **kwargs,
         )
 
         get_mat = rendermaterial.get_rendering_material
@@ -506,6 +556,10 @@ class RendererHandler:
         updir = pos.Rotation.multVec(App.Vector(0, 1, 0))
         field_of_view = float(getattr(source, "HeightAngle", 60))
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         # Find rendering dimensions
         try:
@@ -535,7 +589,7 @@ class RendererHandler:
             target,
             field_of_view,
             resolution,
-            **specifics,
+            **kwargs,
         )
 
     def _render_pointlight(self, name, view):
@@ -554,6 +608,10 @@ class RendererHandler:
 
         source = view.Source
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         # Get location, color
         location = App.Base.Vector(source.Location)
@@ -572,7 +630,7 @@ class RendererHandler:
             location,
             color,
             power,
-            **specifics,
+            **kwargs,
         )
 
     def _render_arealight(self, name, view):
@@ -599,6 +657,10 @@ class RendererHandler:
         size_v = float(source.SizeV) * SCALE
         transparent = bool(source.Transparent)
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
         # Send everything to renderer module
         return self._call_renderer(
@@ -610,7 +672,7 @@ class RendererHandler:
             color,
             power,
             transparent,
-            **specifics,
+            **kwargs,
         )
 
     def _render_sunskylight(self, name, view):
@@ -630,7 +692,6 @@ class RendererHandler:
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
         albedo = float(src.GroundAlbedo)
-        specifics = self._get_renderer_specifics(view)
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
@@ -640,6 +701,12 @@ class RendererHandler:
 
         assert direction.Length, "Sun direction is null"
 
+        specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
+
         return self._call_renderer(
             "write_sunskylight",
             name,
@@ -647,7 +714,7 @@ class RendererHandler:
             distance,
             turbidity,
             albedo,
-            **specifics,
+            **kwargs,
         )
 
     def _render_imagelight(self, name, view):
@@ -666,10 +733,12 @@ class RendererHandler:
         src = view.Source
         image = src.ImageFile
         specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
 
-        return self._call_renderer(
-            "write_imagelight", name, image, **specifics
-        )
+        return self._call_renderer("write_imagelight", name, image, **kwargs)
 
     def _call_renderer(self, method, *args, **kwargs):
         """Call a render method of the renderer module.

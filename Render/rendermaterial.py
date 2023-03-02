@@ -447,7 +447,13 @@ class RenderMaterial:
         return self._partypes[param_name]
 
     def get_material_values(
-        self, objname, write_texture_fun, write_value_fun, write_texref_fun
+        self,
+        objname,
+        write_texture_fun,
+        write_value_fun,
+        write_texref_fun,
+        project_directory,
+        object_directory=None,
     ):
         """Provide a MaterialValues object.
 
@@ -459,7 +465,13 @@ class RenderMaterial:
         the plugin.
         """
         materialvalues = MaterialValues(
-            objname, self, write_texture_fun, write_value_fun, write_texref_fun
+            objname,
+            self,
+            write_texture_fun,
+            write_value_fun,
+            write_texref_fun,
+            project_directory=project_directory,
+            object_directory=object_directory,
         )
         return materialvalues
 
@@ -495,6 +507,8 @@ class MaterialValues:
         write_texref_fun,
         parent_shadertype=None,
         inherited_unique_name=None,
+        project_directory=None,
+        object_directory=None,
     ):
         """Initialize material values.
 
@@ -507,6 +521,8 @@ class MaterialValues:
                 string
             write_texref_fun  -- The function to call back to get a texture
                 reference in SDL
+            project_directory -- The directory of the project, for relative
+                path computations
         """
         self.material = material
         self.shader = material.shader
@@ -518,6 +534,8 @@ class MaterialValues:
         self._write_texture = write_texture_fun
         self._write_value = write_value_fun
         self._write_texref = write_texref_fun
+        self._project_directory = project_directory
+        self._object_directory = object_directory
         # To avoid duplicate materials (Appleseed)
         self._unique_matname = (
             f"{objname}.{uuid.uuid1()}"
@@ -545,6 +563,8 @@ class MaterialValues:
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
                     unique_matname=self._unique_matname,
+                    project_directory=self._project_directory,
+                    object_directory=self._object_directory,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)

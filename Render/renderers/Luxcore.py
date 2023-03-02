@@ -41,11 +41,15 @@ TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # Material values
     matval = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
 
     # Compute bump & normal statements
@@ -76,27 +80,6 @@ scene.materials.{name}.bumptex = {matval["normal"]}
     else:
         snippet_bump = ""
 
-    # Points, vertices and normals
-    points = [f"{v[0]} {v[1]} {v[2]}" for v in mesh.points]
-    points = " ".join(points)
-    tris = [f"{t[0]} {t[1]} {t[2]}" for t in mesh.facets]
-    tris = " ".join(tris)
-    nrms = [f"{n[0]} {n[1]} {n[2]}" for n in mesh.getPointNormals()]
-    nrms = " ".join(nrms)
-    trans = [
-        " ".join(str(v) for v in col)
-        for col in mesh.transformation.get_matrix_columns()
-    ]
-    trans = "  ".join(trans)
-
-    # UV map
-    if mesh.has_uvmap():
-        uvs = [f"{tx} {ty}" for tx, ty in mesh.uvmap]
-        uvs = " ".join(uvs)
-        snippet_uv = f"""scene.shapes.{name}_mesh.uvs = {uvs}\n"""
-    else:
-        snippet_uv = ""
-
     # Displacement (if any)
     if matval.has_displacement():
         obj_shape = f"{name}_disp"
@@ -113,29 +96,34 @@ scene.shapes.{name}_disp.map.channels = 0 2 1
         obj_shape = f"{name}_mesh"
         snippet_disp = ""
 
+    # Get PLY file
+    plyfile = mesh.write_file(name, mesh.ExportType.PLY)
+
+    # Transformation matrix
+    trans = (
+        " ".join(str(v) for v in col)
+        for col in mesh.transformation.get_matrix_columns()
+    )
+    trans = "  ".join(trans)
+
     # Object & Mesh
     snippet_obj = f"""
 # Object '{name}'
 scene.objects.{name}.shape = {obj_shape}
 scene.objects.{name}.material = {name}
 scene.objects.{name}.transformation = {trans}
-scene.shapes.{name}_mesh.type = inlinedmesh
-scene.shapes.{name}_mesh.vertices = {points}
-scene.shapes.{name}_mesh.faces = {tris}
+scene.shapes.{name}_mesh.type = mesh
+scene.shapes.{name}_mesh.ply = "{plyfile}"
 """
-    if mesh.has_vnormals():
-        snippet_obj += f"""scene.shapes.{name}_mesh.normals = {nrms}\n"""
-
     # Consolidation
     snippet = [
         snippet_obj,
         snippet_disp,
-        snippet_uv,
         snippet_mat,
         snippet_tex,
         snippet_bump,
     ]
-    snippet = [s for s in snippet if s]
+    snippet = (s for s in snippet if s)
     snippet = "\n".join(snippet)
 
     return snippet
@@ -182,7 +170,9 @@ scene.lights.{n}.efficency = {e}
     )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     efficiency = 15
     gain = 0.001  # Guesstimated!
@@ -223,17 +213,15 @@ scene.objects.{n}.transformation = {t}
     )
 
 
-def write_sunskylight(
-    name, direction, distance, turbidity, albedo, **specifics
-):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
-    gain_preset = specifics.get("GainPreset", "Mitigated")
+    gain_preset = kwargs.get("GainPreset", "Mitigated")
     if gain_preset == "Physical":
         gain = 1.0
     elif gain_preset == "Mitigated":
         gain = 0.00003
     elif gain_preset == "Custom":
-        gain = specifics.get("CustomGain")
+        gain = kwargs.get("CustomGain")
     else:
         raise NotImplementedError(gain_preset)
     snippet = f"""
@@ -251,7 +239,7 @@ scene.lights.{name}_sky.gain = {gain} {gain} {gain}
     return snippet
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
 # Image light '{n}'
@@ -265,8 +253,6 @@ scene.lights.{n}.file = "{f}"
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
-
-# TODO Fix normals issue (see Gauge test file, with mirror)
 
 
 def _write_material(name, matval):
@@ -428,11 +414,13 @@ def _write_texture(**kwargs):
     propname = kwargs["propname"]
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+    project_directory = kwargs["project_directory"]
 
     # Compute texture parameters
     texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
     gamma = 2.2 if proptype == "RGB" else 1.0
-    filename = propvalue.file
+    filename = os.path.relpath(propvalue.file, project_directory)
+    print(project_directory)  # TODO
     rotation = float(propvalue.rotation)
     scale = 1 / float(propvalue.scale)
     trans_u = float(propvalue.translation_u)

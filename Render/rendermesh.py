@@ -74,6 +74,10 @@ class RenderMesh:
         split_angle=radians(30),
         compute_uvmap=False,
         uvmap_projection=None,
+        project_directory=None,
+        export_directory=None,
+        relative_path=True,
+        skip_meshing=False,
     ):
         """Initialize RenderMesh.
 
@@ -85,10 +89,28 @@ class RenderMesh:
             compute_uvmap -- flag to trigger uvmap computation (bool)
             uvmap_projection -- type of projection to use for uv map
                 among "Cubic", "Spherical", "Cylindric"
+            export_directory -- directory where the mesh is to be exported
+            project_directory -- directory where the rendering project lays
+            relative_path -- flag to control whether returned path is relative
+                or absolute to project_directory
         """
-        self.debug = PARAMS.GetBool("Debug")
+        # Directories, for write methods
+        self.export_directory = _check_directory(export_directory)
+        self.project_directory = _check_directory(project_directory)
+        self.relative_path = bool(relative_path)
+
+        # We initialize self transformation
+        self.__transformation = _Transformation(mesh.Placement)
+
+        # Skip meshing?
+        self.skip_meshing = bool(skip_meshing)
+        if self.skip_meshing:
+            self.__points = []
+            self.__facets = []
+            return
 
         # Create profile object (debug)
+        self.debug = PARAMS.GetBool("Debug")
         if self.debug:
             prof = cProfile.Profile()
             prof.enable()
@@ -105,9 +127,6 @@ class RenderMesh:
         # placement and we set the mesh at its origin (null placement)
         self.__originalmesh = mesh.copy()
         self.__originalmesh.Placement = App.Base.Placement()
-
-        # We initialize self transformation
-        self.__transformation = _Transformation(mesh.Placement)
 
         # Then we store the topology in internal structures
         points, facets = self.__originalmesh.Topology
@@ -143,7 +162,7 @@ class RenderMesh:
         else:
             self.__autosmooth = False
 
-        # Print profile stats (debug)
+        # Profile statistics (debug)
         if self.debug:
             prof.disable()
             sec = io.StringIO()
@@ -151,6 +170,10 @@ class RenderMesh:
             pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
             pstat.print_stats()
             print(sec.getvalue())
+
+    ##########################################################################
+    #                               Copy                                     #
+    ##########################################################################
 
     def copy(self):
         """Creates a copy of this mesh."""
@@ -162,9 +185,9 @@ class RenderMesh:
         new_mesh.__transformation = copy.copy(self.transformation)
         return new_mesh
 
-    def getPointNormals(self):  # pylint: disable=invalid-name
-        """Get the normals for each point."""
-        return self.__vnormals
+    ##########################################################################
+    #                               Getters                                  #
+    ##########################################################################
 
     @property
     def transformation(self):
@@ -192,18 +215,133 @@ class RenderMesh:
         return len(self.__facets)
 
     @property
+    def vnormals(self):
+        """Get the vertex normals (if computed)."""
+        return self.__vnormals
+
+    @property
     def autosmooth(self):
         """Get the smoothness state of the mesh (boolean)."""
         return self.__autosmooth
 
-    def write_objfile(
+    def has_uvmap(self):
+        """Check if object has a uv map."""
+        return bool(self.__uvmap)
+
+    def has_vnormals(self):
+        """Check if object has a vertex normals."""
+        return bool(self.__vnormals)
+
+    ##########################################################################
+    #                               Write functions                          #
+    ##########################################################################
+
+    class ExportType(enum.IntEnum):
+        """File types for mesh export."""
+
+        OBJ = enum.auto()
+        PLY = enum.auto()
+        CYCLES = enum.auto()
+        POVRAY = enum.auto()
+
+    def write_file(
+        self,
+        name,
+        filetype,
+        filename=None,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+        **kwargs,
+    ):
+        """Export a mesh as a file.
+
+        Args:
+            name -- Name of the mesh (str)
+            filetype -- The type of the file to write (Rendermesh.ExportType)
+            filename -- The name of the file (str). If None, the file is
+              written in a temporary file, whose name is returned by the
+              function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Keyword args:
+            mtlfile -- MTL file name to reference in OBJ (optional) (str)
+            mtlname -- Material name to reference in OBJ, must be defined in
+              MTL file (optional) (str)
+            mtlcontent -- MTL file content (optional) (str)
+
+        Returns:
+            The name of file that the function wrote.
+        """
+        # Normalize arguments
+        filetype = RenderMesh.ExportType(filetype)
+
+        # Compute target file
+        if filename is None:
+            export_directory = (
+                self.export_directory
+                if self.export_directory is not None
+                else App.ActiveDocument.TransientDir
+            )
+            extension = _EXPORT_EXTENSIONS[filetype]
+            basename = name + extension
+            filename = os.path.join(export_directory, basename)
+
+        # Relative/absolute path
+        if self.relative_path and self.project_directory:
+            res = os.path.relpath(filename, self.project_directory)
+        else:
+            res = filename
+
+        # Escape characters
+        res = res.encode("unicode_escape").decode("utf-8")
+
+        # Skip meshing?
+        if self.skip_meshing:
+            return res
+
+        # Switch to specialized write function
+        if filetype == RenderMesh.ExportType.OBJ:
+            mtlfile = kwargs.get("mtlfile")
+            mtlname = kwargs.get("mtlname")
+            mtlcontent = kwargs.get("mtlcontent")
+            self._write_objfile(
+                name,
+                filename,
+                mtlfile,
+                mtlname,
+                mtlcontent,
+                uv_translate,
+                uv_rotate,
+                uv_scale,
+            )
+        elif filetype == RenderMesh.ExportType.PLY:
+            self._write_plyfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
+        elif filetype == RenderMesh.ExportType.CYCLES:
+            self._write_cyclesfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
+        elif filetype == RenderMesh.ExportType.POVRAY:
+            self._write_povfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
+        else:
+            raise ValueError(f"Unknown mesh file type '{filetype}'")
+
+        # Return
+        return res
+
+    def _write_objfile(
         self,
         name,
         objfile=None,
         mtlfile=None,
         mtlname=None,
         mtlcontent=None,
-        normals=True,
         uv_translate=(0.0, 0.0),
         uv_rotate=0.0,
         uv_scale=1.0,
@@ -219,8 +357,6 @@ class RenderMesh:
             mtlname -- Material name to reference in OBJ, must be defined in
               MTL file (optional) (str)
             mtlcontent -- MTL file content (optional) (str)
-            normals -- Flag to control the writing of normals in the OBJ file
-              (bool)
             uv_translate -- UV translation vector (2-uple)
             uv_rotate -- UV rotation angle in degrees (float)
             uv_scale -- UV scale factor (float)
@@ -228,18 +364,31 @@ class RenderMesh:
         Returns: the name of file that the function wrote.
         """
         tm0 = time.time()
+
+        # Select routine (single or multi processing)
         if self.multiprocessing:
             func, mode = self._write_objfile_mp, "mp"
         else:
             func, mode = self._write_objfile_sp, "sp"
 
-        # Create OBJ file (empty)
-        if objfile is None:
-            f_handle, objfile = tempfile.mkstemp(suffix=".obj", prefix="_")
-            os.close(f_handle)
-            del f_handle
+        # Mtl
+        if mtlcontent is not None:
+            # Material name
+            mtlname = mtlname if mtlname else "material"
+            # Target file
+            if mtlfile is None:
+                mtlfile, _ = os.path.splitext(objfile)
+                mtlfile += ".mtl"
+            # Write mtl file
+            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
+            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
+                raise ValueError(
+                    "OBJ and MTL files shoud be in the same dir\n"
+                    f"('{objfile}' versus '{mtlfilename}')"
+                )
+            mtlfilename = os.path.basename(mtlfilename)
         else:
-            objfile = str(objfile)
+            mtlfilename, mtlname = None, None
 
         # Pack uv transformation
         uv_transformation = (uv_translate, uv_rotate, uv_scale)
@@ -248,52 +397,33 @@ class RenderMesh:
         objfile = func(
             name,
             objfile,
-            mtlfile,
-            mtlname,
-            mtlcontent,
-            normals,
             uv_transformation,
+            mtlfilename,
+            mtlname,
         )
 
         tm1 = time.time() - tm0
         App.Console.PrintLog(
             f"[Render][OBJ file] Write OBJ file ({mode}): {tm1}\n"
         )
-        return objfile
 
     def _write_objfile_sp(
         self,
         name,
         objfile,
-        mtlfile,
-        mtlname,
-        mtlcontent,
-        normals,
         uv_transformation,
+        mtlfilename=None,
+        mtlname=None,
     ):
         """Write an OBJ file from a mesh - single process.
 
         See write_objfile for more details.
         """
-        # Retrieve and normalize arguments
-        normals = bool(normals)
-
         # Header
         header = ["# Written by FreeCAD-Render\n"]
 
         # Mtl
-        if mtlcontent is not None:
-            # Write mtl file
-            mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
-            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                raise ValueError(
-                    "OBJ and MTL files shoud be in the same dir\n"
-                    f"('{objfile}' versus '{mtlfilename}')"
-                )
-            mtlfilename = os.path.basename(mtlfilename)
-            mtl = [f"mtllib {mtlfilename}\n\n"]
-        else:
-            mtl = []
+        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
 
         # Vertices
         fmtv = functools.partial(str.format, "v {} {} {}\n")
@@ -349,25 +479,18 @@ class RenderMesh:
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
 
-        return objfile
-
     def _write_objfile_mp(
         self,
         name,
         objfile,
-        mtlfile,
-        mtlname,
-        mtlcontent,
-        normals,
         uv_transformation,
+        mtlfilename=None,
+        mtlname=None,
     ):
         """Write an OBJ file from a mesh - multi process version.
 
         See write_objfile for more details.
         """
-        # Retrieve and normalize arguments
-        normals = bool(normals)
-
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
@@ -375,18 +498,7 @@ class RenderMesh:
         header = ["# Written by FreeCAD-Render\n"]
 
         # Mtl
-        if mtlcontent is not None:
-            # Write mtl file
-            mtlfilename = RenderMesh.write_mtl(mtlname, mtlcontent, mtlfile)
-            if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
-                raise ValueError(
-                    "OBJ and MTL files shoud be in the same dir\n"
-                    f"('{objfile}' versus '{mtlfilename}')"
-                )
-            mtlfilename = os.path.basename(mtlfilename)
-            mtl = [f"mtllib {mtlfilename}\n\n"]
-        else:
-            mtl = []
+        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
 
         # UV
         if self.has_uvmap():
@@ -439,7 +551,248 @@ class RenderMesh:
             run_name="__main__",
         )
 
-        return objfile
+    @staticmethod
+    def _write_mtl(name, mtlcontent, mtlfile=None):
+        """Write a MTL file.
+
+        MTL file is the companion of OBJ file, thus we keep this method in
+        RenderMesh, although there is no need of 'self' to write the MTL...
+
+        Args:
+        name -- The material name, to be referenced in OBJ (str)
+        mtlcontent -- The material content (str)
+        mtlfile -- The mtl file name to write to. If None, a temp file is
+          created. (str)
+
+        Returns:
+        The MTL file name
+        """
+        if mtlfile is None:
+            f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
+            os.close(f_handle)
+
+        # _write_material(name, material)
+        with open(mtlfile, "w", encoding="utf-8") as f:
+            f.write(f"newmtl {name}\n")
+            f.write(mtlcontent)
+        return mtlfile
+
+    def _write_plyfile(
+        self,
+        name,
+        plyfile=None,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write an PLY file from a mesh.
+
+        Args:
+            name -- Name of the mesh (str)
+            plyfile -- Name of the PLY file (str). If None, the PLY file is
+              written in a temporary file, whose name is returned by the
+              function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Returns: the name of file that the function wrote.
+        """
+        # Header - Intro
+        header = [
+            "ply\n",
+            "format ascii 1.0\n",
+            "comment Created by FreeCAD-Render\n",
+            f"comment '{name}'\n",
+        ]
+
+        # Header - Vertices (and vertex normals and uv)
+        header += [
+            f"element vertex {self.count_points}\n",
+            "property float x\n",
+            "property float y\n",
+            "property float z\n",
+        ]
+        if self.has_vnormals():
+            header += [
+                "property float nx\n",
+                "property float ny\n",
+                "property float nz\n",
+            ]
+        if self.has_uvmap():
+            header += [
+                "property float s\n",
+                "property float t\n",
+            ]
+
+        # Header - Faces
+        header += [
+            f"element face {self.count_facets}\n",
+            "property list uchar int vertex_indices\n",
+            "end_header\n",
+        ]
+
+        # Body - Vertices (and vertex normals and uv)
+        fmt3 = functools.partial(str.format, "{} {} {}")
+        verts = [iter(fmt3(*v) for v in self.points)]
+        if self.has_vnormals():
+            verts += [iter(fmt3(*v) for v in self.vnormals)]
+        if self.has_uvmap():
+            # Translate, rotate, scale (optionally)
+            uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
+            fmt2 = functools.partial(str.format, "{} {}")
+            verts += [iter(fmt2(*v) for v in uvs)]
+        verts += [it.repeat("\n")]
+        verts = (" ".join(v) for v in zip(*verts))
+
+        # Body - Faces
+        fmtf = functools.partial(str.format, "3 {} {} {}\n")
+        faces = (fmtf(*v) for v in self.facets)
+
+        # Concat and write
+        res = it.chain(header, verts, faces)
+        with open(plyfile, "w", encoding="utf-8", newline="\n") as f:
+            f.writelines(res)
+
+    def _write_cyclesfile(
+        self,
+        name,
+        cyclesfile=None,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write a Cycles file from a mesh.
+
+        Args:
+            name -- Name of the mesh (str)
+            cyclesfile -- Name of the Cycles file (str). If None, the Cycles
+                file is written in a temporary file, whose name is returned by
+                the function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Returns: the name of file that the function wrote.
+        """
+        # TODO Stop rounding
+        _rnd = functools.partial(
+            round, ndigits=8
+        )  # Round to 8 digits (helper)
+
+        def _write_point(pnt):
+            """Write a point."""
+            return f"{_rnd(pnt[0])} {_rnd(pnt[1])} {_rnd(pnt[2])}"
+
+        points = [_write_point(p) for p in self.points]
+        points = "  ".join(points)
+        verts = [f"{v[0]} {v[1]} {v[2]}" for v in self.facets]
+        verts = "  ".join(verts)
+        nverts = ["3"] * self.count_facets
+        nverts = "  ".join(nverts)
+
+        if self.has_uvmap():
+            uvs = [f"{px} {py}" for px, py in self.uvmap_per_vertex()]
+            uvs = "  ".join(uvs)
+            uv_statement = f'    UV="{uvs}"\n'
+        else:
+            uv_statement = ""
+
+        snippet_obj = f"""\
+<?xml version="1.0" ?>
+<cycles>
+<mesh
+    P="{points}"
+    verts="{verts}"
+    nverts="{nverts}"
+{uv_statement}/>
+</cycles>
+"""
+
+        # Write
+        with open(cyclesfile, "w", encoding="utf-8") as f:
+            f.write(snippet_obj)
+
+    def _write_povfile(
+        self,
+        name,
+        povfile=None,
+        uv_translate=(0.0, 0.0),
+        uv_rotate=0.0,
+        uv_scale=1.0,
+    ):
+        """Write an Povray file from a mesh.
+
+        Args:
+            name -- Name of the mesh (str)
+            povfile -- Name of the Povray file (str). If None, the Povray file
+                is written in a temporary file, whose name is returned by the
+                function.
+            uv_translate -- UV translation vector (2-uple)
+            uv_rotate -- UV rotation angle in degrees (float)
+            uv_scale -- UV scale factor (float)
+
+        Returns: the name of file that the function wrote.
+        """
+        # Triangles
+        vrts = [f"<{x},{y},{z}>" for x, y, z in self.points]
+        inds = [f"<{i},{j},{k}>" for i, j, k in self.facets]
+
+        vertices = "\n        ".join(vrts)
+        len_vertices = len(vrts)
+        indices = "\n        ".join(inds)
+        len_indices = len(inds)
+
+        # UV map
+        if self.has_uvmap():
+            uv_vectors = [f"<{tx},{ty}>" for tx, ty in self.uvmap]
+            len_uv_vectors = len(uv_vectors)
+            uv_vectors = "\n        ".join(uv_vectors)
+            snippet_uv_vects = f"""\
+        uv_vectors {{
+            {len_uv_vectors},
+            {uv_vectors}
+        }}"""
+        else:
+            snippet_uv_vects = ""
+
+        # Normals
+        if self.has_vnormals():
+            nrms = [f"<{nx},{ny},{nz}>" for nx, ny, nz in self.vnormals]
+            normals = "\n        ".join(nrms)
+            len_normals = len(nrms)
+            snippet_normals = f"""\
+        normal_vectors {{
+            {len_normals},
+            {normals}
+        }}"""
+        else:
+            snippet_normals = ""
+
+        snippet = f"""\
+// Generated by FreeCAD-Render
+// Declares object '{name}'
+#declare {name} = mesh2 {{
+    vertex_vectors {{
+        {len_vertices},
+        {vertices}
+    }}
+{snippet_normals}
+{snippet_uv_vects}
+    face_indices {{
+        {len_indices},
+        {indices}
+    }}
+}}  // {name}
+"""
+
+        # Write
+        with open(povfile, "w", encoding="utf-8") as f:
+            f.write(snippet)
+
+    ##########################################################################
+    #                               UV manipulations                         #
+    ##########################################################################
 
     def uvtransform(self, translate, rotate, scale):
         """Compute a uv transformation (iterator).
@@ -533,32 +886,6 @@ class RenderMesh:
         index = sum(it.compress((4, 2, 1), index))
         functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
         return functions[index]()
-
-    @staticmethod
-    def write_mtl(name, mtlcontent, mtlfile=None):
-        """Write a MTL file.
-
-        MTL file is the companion of OBJ file, thus we keep this method in
-        RenderMesh, although there is no need of 'self' to write the MTL...
-
-        Args:
-        name -- The material name, to be referenced in OBJ (str)
-        mtlcontent -- The material content (str)
-        mtlfile -- The mtl file name to write to. If None, a temp file is
-          created. (str)
-
-        Returns:
-        The MTL file name
-        """
-        if mtlfile is None:
-            f_handle, mtlfile = tempfile.mkstemp(suffix=".mtl", prefix="_")
-            os.close(f_handle)
-
-        # _write_material(name, material)
-        with open(mtlfile, "w", encoding="utf-8") as f:
-            f.write(f"newmtl {name}\n")
-            f.write(mtlcontent)
-        return mtlfile
 
     @property
     def uvmap(self):
@@ -825,9 +1152,9 @@ class RenderMesh:
         del res["PYTHON"]
         del res["SHOWTIME"]
 
-    def has_uvmap(self):
-        """Check if object has a uv map."""
-        return bool(self.__uvmap)
+    ##########################################################################
+    #                       Vertex Normals manipulations                     #
+    ##########################################################################
 
     def compute_vnormals(self):
         """Compute vertex normals.
@@ -860,40 +1187,6 @@ class RenderMesh:
         vnorms = [safe_normalize(n) for n in vnorms]
 
         self.__vnormals = vnorms
-
-    # TODO Remove
-    def compute_vnormals_old(self):
-        """Compute vertex normals.
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        # See here
-        # http://www.bytehazard.com/articles/wnormals.html
-        # (and look at script wnormals100.ms)
-
-        # TODO Optimize
-
-        vnorms = [(0, 0, 0)] * self.count_points
-        for facet in self.__facets:
-            triangle = [self.__points[i] for i in facet]
-            weighted_vnorm = vector3d.normal(triangle)
-            angles = vector3d.angles(triangle)
-            for point_index, angle in zip(facet, angles):
-                weighted_vnorm = vector3d.fmul(
-                    weighted_vnorm, angle
-                )  # Weight with angle
-                vnorms[point_index] = vector3d.add(
-                    vnorms[point_index], weighted_vnorm
-                )
-
-        # Normalize
-        vnorms = [vector3d.safe_normalize(n) for n in vnorms]
-
-        self.__vnormals = vnorms
-
-    def has_vnormals(self):
-        """Check if object has a normals."""
-        return bool(self.__vnormals)
 
     def connected_facets(
         self,
@@ -995,6 +1288,7 @@ class RenderMesh:
         )
 
         adjacents = [set() for _ in range(self.count_facets)]
+
         def reduce_adj(rolling, new):
             facet_index, other_index = new
             adjacents[facet_index].add(other_index)
@@ -1002,7 +1296,6 @@ class RenderMesh:
         functools.reduce(reduce_adj, iterator, None)
 
         return adjacents
-
 
     def connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
@@ -1017,10 +1310,6 @@ class RenderMesh:
         """
         split_angle_cos = cos(split_angle)
 
-        # TODO
-        # adjacents = [
-            # list(f.NeighbourIndices) for f in self.__originalmesh.Facets
-        # ]
         adjacents = self.adjacent_facets()
 
         tags = [None] * self.count_facets
@@ -1067,8 +1356,7 @@ class RenderMesh:
         # If necessary, rebuild uvmap
         if self.__uvmap:
             self.__uvmap = [
-                self.__uvmap[point_index]
-                for point_index, tag in newpoints
+                self.__uvmap[point_index] for point_index, tag in newpoints
             ]
 
         # Update point indices in facets
@@ -1327,6 +1615,7 @@ def _compute_uv_from_unitcube(point, face):
 #                           Other uvmap helpers
 # ===========================================================================
 
+
 def _safe_normalize(vec):
     """Safely normalize a FreeCAD Vector.
 
@@ -1337,6 +1626,7 @@ def _safe_normalize(vec):
     except App.Base.FreeCADError:
         res = App.Base.Vector(0.0, 0.0, 0.0)
     return res
+
 
 def _is_facet_normal_to_vector(facet, vector):
     """Test whether a facet is normal to a vector.
@@ -1366,6 +1656,19 @@ def _pos_atan2(p_x, p_y):
     return atan2_xy if atan2_xy >= 0 else atan2_xy + 2 * pi
 
 
+# ===========================================================================
+#                           Miscellaneous
+# ===========================================================================
+
+
+_EXPORT_EXTENSIONS = {
+    RenderMesh.ExportType.OBJ: ".obj",
+    RenderMesh.ExportType.PLY: ".ply",
+    RenderMesh.ExportType.CYCLES: ".xml",
+    RenderMesh.ExportType.POVRAY: ".inc",
+}
+
+
 def _find_python():
     """Find Python executable."""
     python = shutil.which("pythonw")
@@ -1379,3 +1682,13 @@ def _find_python():
         return python
 
     return None
+
+
+def _check_directory(directory):
+    """Check if directory is consistent (or None)."""
+    if directory is None:
+        return directory
+    if not os.path.isdir(directory):
+        msg = f"Mesh: invalid directory '{directory}'"
+        raise ValueError(msg)
+    return directory

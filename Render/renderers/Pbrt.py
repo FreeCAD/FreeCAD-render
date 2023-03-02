@@ -1,6 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -57,54 +58,39 @@ TEMPLATE_FILTER = "Pbrt templates (pbrt_*.pbrt)"
 # ===========================================================================
 
 
-def write_mesh(name, mesh, material):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     matval = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
     material = _write_material(name, matval)
-    pnts = [f"{p[0]:+18.8f} {p[1]:+18.8f} {p[2]:+18.8f}" for p in mesh.points]
-    ind_precision = math.ceil(math.log10(len(pnts)))
-    pnts = _format_list(pnts, 2)
-    inds = [
-        f"{i[0]:{ind_precision}} {i[1]:{ind_precision}} {i[2]:{ind_precision}}"
-        for i in mesh.facets
-    ]
-    inds = _format_list(inds, 5)
-    if mesh.has_uvmap():
-        if matval.has_textures():
-            # Here we transform uv according to texture transformation
-            # This is necessary as pbrt texture transformation features are
-            # incomplete. They lack rotation in general, and full
-            # transformation for normal map.
-            tex = next(iter(matval.texobjects.values()))  # Take 1st texture
-            translate = -App.Base.Vector2d(
-                tex.translation_u, tex.translation_v
-            )
-            rotate = -tex.rotation
-            scale = 1.0 / tex.scale if tex.scale != 0.0 else 1.0
-            uvbase = mesh.transformed_uvmap(translate, rotate, scale)
-        else:
-            uvbase = mesh.uvmap
-        uvs = [f"{t[0]:+18.8f} {t[1]:+18.8f}" for t in uvbase]
-        uvs = _format_list(uvs, 3)
-        uvs = f"""    "point2 uv" [\n{uvs}\n    ]\n"""
-    else:
-        uvs = ""
 
-    if mesh.has_vnormals():
-        nrms = [
-            f"{v[0]:+18.8f} {v[1]:+18.8f} {v[2]:+18.8f}"
-            for v in mesh.getPointNormals()
-        ]
-        nrms = _format_list(nrms, 2)
-        normals = f"""\
-    "normal N" [
-{nrms}
-    ]
-"""
+    if mesh.has_uvmap() and matval.has_textures():
+        # Here we transform uv according to texture transformation
+        # This is necessary as pbrt texture transformation features are
+        # incomplete. They lack rotation in general, and full
+        # transformation for normal map.
+        tex = next(iter(matval.texobjects.values()))  # Take 1st texture
+        translate = (-tex.translation_u, -tex.translation_v)
+        rotate = -tex.rotation
+        scale = 1.0 / tex.scale if tex.scale != 0.0 else 1.0
     else:
-        normals = ""
+        translate = (0.0, 0.0)
+        rotate = 0
+        scale = 1.0
+
+    # Get PLY file
+    plyfile = mesh.write_file(
+        name,
+        mesh.ExportType.PLY,
+        uv_translate=translate,
+        uv_rotate=rotate,
+        uv_scale=scale,
+    )
 
     # Transformation
     # (see https://www.povray.org/documentation/3.7.0/r3_3.html#r3_3_1_12_4)
@@ -113,7 +99,8 @@ def write_mesh(name, mesh, material):
     scale = transfo.scale
     posx, posy, posz = transfo.get_translation()
 
-    snippet = f"""# Object '{name}'
+    snippet = f"""\
+# Object '{name}'
 AttributeBegin
 
   Translate {posx:+15.8f} {posy:+15.8f} {posz:+15.8f}
@@ -124,15 +111,8 @@ AttributeBegin
 
 {matval.write_textures()}
 {material}
-  Shape "trianglemesh"
-    "point3 P" [
-{pnts}
-    ]
-    "integer indices" [
-{inds}
-    ]
-{normals}
-{uvs}
+  Shape "plymesh"
+    "string filename" [ "{plyfile}" ]
 AttributeEnd
 # ~Object '{name}'
 """
@@ -151,7 +131,7 @@ Camera "perspective" "float fov" {f:+.5f}
     return snippet.format(n=name, p=pos.Base, t=target, u=updir, f=fov)
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     snippet = """# Pointlight '{n}'
 AttributeBegin
@@ -165,7 +145,9 @@ AttributeEnd
     return snippet.format(n=name, o=pos, c=color, s=power)
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     points = [
         (-size_u / 2, -size_v / 2, 0),
@@ -196,7 +178,7 @@ AttributeEnd
     return snippet.format(n=name, c=color, s=power, p=points)
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # As pbrt does not provide an integrated support for sun-sky lighting
     # (like Hosek-Wilkie e.g.), so we just use an bluish infinite light
@@ -217,7 +199,7 @@ AttributeEnd
     return snippet.format(n=name, d=direction)
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: pbrt just accepts square images...
     snippet = """# Imagelight '{n}'

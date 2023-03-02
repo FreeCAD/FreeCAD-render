@@ -2,6 +2,7 @@
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
 # *   Copyright (c) 2022 Howetuft <howetuft-at-gmail.com>                   *
+# *   Copyright (c) 2023 Howetuft <howetuft-at-gmail.com>                   *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -45,6 +46,7 @@ from textwrap import indent
 from math import degrees, acos, atan2, sqrt
 import collections
 import xml.etree.ElementTree as et
+import xml.dom.minidom
 
 import FreeCAD as App
 
@@ -65,41 +67,41 @@ PLACEMENT = App.Placement(
 )
 
 
-def write_mesh(name, mesh, material, vertex_normals=False):
+def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
 
     # Compute material values
     matval = material.get_material_values(
-        name, _write_texture, _write_value, _write_texref
+        name,
+        _write_texture,
+        _write_value,
+        _write_texref,
+        kwargs["project_directory"],
     )
 
     # Get OBJ file
-    basefilename = App.ActiveDocument.getTempFileName(f"{name}_") + ".obj"
-    objfile = mesh.write_objfile(
-        name, objfile=basefilename, normals=vertex_normals
-    )
+    objfile = mesh.write_file(name, mesh.ExportType.OBJ)
 
     # Compute OBJ transformation
     # including transfo from FCD coordinates to Appleseed ones
     mesh.transformation.apply_placement(PLACEMENT, left=True)
     transfo_rows = [
-        f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
+        f"<dummy>{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}</dummy>"
         for r in mesh.transformation.get_matrix_rows()
     ]
 
     # Format output
     mat_name = matval.unique_matname  # Avoid duplicate materials
-    basefilename = os.path.basename(objfile)
-    shortfilename = os.path.splitext(basefilename)[0]
-    filename = basefilename.encode("unicode_escape").decode("utf-8")
+    shortfilename, _ = os.path.splitext(os.path.basename(objfile))
+    filename = objfile.encode("unicode_escape").decode("utf-8")
 
     snippet_mat = _write_material(mat_name, matval)
     snippet_obj = f"""
             <object name="{shortfilename}" model="mesh_object">
                 <parameter name="filename" value="{filename}" />
             </object>
-            <object_instance name="{shortfilename}.{name}.instance"
-                             object="{shortfilename}.{name}" >
+            <object_instance name="{shortfilename}.instance"
+                             object="{shortfilename}.{shortfilename}" >
                 <transform>
                     <matrix>
                         {transfo_rows[0]}
@@ -151,7 +153,7 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # This is where you write the renderer-specific code
     # to export the point light in the renderer format
@@ -180,7 +182,9 @@ def write_pointlight(name, pos, color, power):
     )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     # Appleseed uses radiance (power/surface) instead of power
     radiance = power / (size_u * size_v)
@@ -238,7 +242,7 @@ def write_arealight(name, pos, size_u, size_v, color, power, transparent):
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo):
+def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # Caution: Take Appleseed system of coordinates into account
     # From documentation: "Appleseed uses a right-handed coordinate system,
@@ -272,7 +276,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo):
     return snippet.format(n=name, a=phi, b=theta, t=turbidity, g=albedo)
 
 
-def write_imagelight(name, image):
+def write_imagelight(name, image, **kwargs):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
         <scene_texture name="{n}_tex" model="disk_texture_2d">
@@ -1279,9 +1283,10 @@ def render(
         )
         root = set_config_param(root, "final", None, "passes", 1)
 
-    # Use embree
-    root = set_config_param(root, "interactive", None, "use_embree", 1)
-    root = set_config_param(root, "final", None, "use_embree", 1)
+    # Don't use Embree
+    # (see https://github.com/appleseedhq/appleseed/issues/2921
+    root = set_config_param(root, "interactive", None, "use_embree", 0)
+    root = set_config_param(root, "final", None, "use_embree", 0)
 
     # Denoiser
     if denoise:
@@ -1303,10 +1308,20 @@ def render(
             tile_param.set("value", "32 32")
 
     # Template update
-    template = et.tostring(root, encoding="unicode")
+    template = et.tostring(root, encoding="unicode", xml_declaration=True)
+
+    # # Beautify
+    template = [l.strip(" ") for l in template.splitlines()]
+    template = [l for l in template if l]  # Remove empty lines
+    template = "".join(template)
+    template = template.replace("<dummy>", "\n        ")
+    template = template.replace("</dummy>", "")
+    template = template.replace("</matrix>", "\n          </matrix>")
+    with xml.dom.minidom.parseString(template) as node:
+        template = node.toprettyxml(indent="  ", encoding="utf-8")
 
     # Write resulting output to file
-    with open(input_file, "w", encoding="utf-8") as f:
+    with open(input_file, "wb") as f:
         f.write(template)
 
     # Prepare command line parameters

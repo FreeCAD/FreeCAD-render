@@ -2,6 +2,7 @@
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
 # *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -388,12 +389,15 @@ class Project(FeatureBase):
 
         return all_group_objs(self.fpo, include_groups)
 
-    def render(self, wait_for_completion=False):
+    def render(self, wait_for_completion=False, skip_meshing=False):
         """Render the project, calling an external renderer.
 
         Args:
             wait_for_completion -- flag to wait for rendering completion before
                 return, in a blocking way (default to False)
+            skip_meshing -- flag to skip the meshing step. In this case, the
+                renderer will use existing mesh files. Mainly implemented for
+                Movie usage.
 
         Returns:
             Output file path
@@ -411,6 +415,12 @@ class Project(FeatureBase):
             App.Console.PrintError(msg)
             return None
 
+        # Set export directories
+        project_directory = self.fpo.Document.TransientDir
+        object_directory = os.path.join(project_directory, self.fpo.Name)
+        if not os.path.exists(object_directory):
+            os.mkdir(object_directory)
+
         # Clear report view (if required)
         clear_report = PARAMS.GetBool("ClearReport")
         if clear_report:
@@ -423,6 +433,9 @@ class Project(FeatureBase):
                 linear_deflection=self.fpo.LinearDeflection,
                 angular_deflection=self.fpo.AngularDeflection,
                 transparency_boost=self.fpo.TransparencySensitivity,
+                project_directory=project_directory,
+                object_directory=object_directory,
+                skip_meshing=skip_meshing,
             )
         except RendererNotFoundError as err:
             msg = translate("Render", "Renderer not found ('{}') ")
@@ -448,7 +461,9 @@ class Project(FeatureBase):
         instantiated = _instantiate_template(template, objstrings, defaultcam)
 
         # Write instantiated template into a temporary file
-        fpath = self._write_instantiated_template_to_file(instantiated)
+        fpath = self._write_instantiated_template_to_file(
+            instantiated, project_directory
+        )
 
         # Fetch the rendering parameters
         params = self._get_rendering_params()
@@ -484,7 +499,9 @@ class Project(FeatureBase):
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor(cmd, img, self.fpo.OpenAfterRender)
+        rdr_executor = RendererExecutor(
+            cmd, img, self.fpo.OpenAfterRender, os.path.dirname(fpath)
+        )
         rdr_executor.start()
         if wait_for_completion:
             # Useful in console mode...
@@ -546,17 +563,15 @@ class Project(FeatureBase):
 
         return objstrings
 
-    def _write_instantiated_template_to_file(self, template):
+    def _write_instantiated_template_to_file(self, template, directory):
         """Write an instantiated template to a temporary file.
 
         This method is a (private) subroutine of `render` method.
 
         Returns path to temp file.
         """
-        suffix = os.path.splitext(self.fpo.Template)[-1]
-        fpath = os.path.join(
-            self.fpo.Document.TransientDir, self.fpo.Name + suffix
-        )
+        _, suffix = os.path.splitext(self.fpo.Template)
+        fpath = os.path.join(directory, self.fpo.Name + suffix)
         with open(fpath, "w", encoding="utf8") as fobj:
             fobj.write(template)
         return fpath

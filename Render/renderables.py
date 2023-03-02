@@ -182,6 +182,8 @@ def check_renderables(renderables):
         raise ValueError(translate("Render", "Nothing to render"))
     for renderable in renderables:
         mesh = renderable.mesh
+        if mesh.skip_meshing:
+            continue
         if not mesh:
             raise ValueError(translate("Render", "Cannot find mesh data"))
         if not mesh.count_points or not mesh.count_facets:
