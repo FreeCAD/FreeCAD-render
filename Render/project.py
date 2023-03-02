@@ -42,6 +42,11 @@ import pstats
 import io
 from pstats import SortKey
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
