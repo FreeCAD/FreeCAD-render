@@ -155,7 +155,7 @@ class RenderMesh:
 
         # Autosmooth
         if autosmooth:
-            App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
+            App.Console.PrintLog("[Render][Object] Autosmooth\n")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
             self.__autosmooth = True
@@ -322,13 +322,9 @@ class RenderMesh:
                 name, filename, uv_translate, uv_rotate, uv_scale
             )
         elif filetype == RenderMesh.ExportType.CYCLES:
-            self._write_cyclesfile(
-                name, filename, uv_translate, uv_rotate, uv_scale
-            )
+            self._write_cyclesfile(name, filename)
         elif filetype == RenderMesh.ExportType.POVRAY:
-            self._write_povfile(
-                name, filename, uv_translate, uv_rotate, uv_scale
-            )
+            self._write_povfile(name, filename)
         else:
             raise ValueError(f"Unknown mesh file type '{filetype}'")
 
@@ -394,7 +390,7 @@ class RenderMesh:
         uv_transformation = (uv_translate, uv_rotate, uv_scale)
 
         # Call main routine (single or multi process)
-        objfile = func(
+        func(
             name,
             objfile,
             uv_transformation,
@@ -658,9 +654,6 @@ class RenderMesh:
         self,
         name,
         cyclesfile=None,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
     ):
         """Write a Cycles file from a mesh.
 
@@ -700,6 +693,7 @@ class RenderMesh:
 
         snippet_obj = f"""\
 <?xml version="1.0" ?>
+<!-- {name} -->
 <cycles>
 <mesh
     P="{points}"
@@ -717,9 +711,6 @@ class RenderMesh:
         self,
         name,
         povfile=None,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
     ):
         """Write an Povray file from a mesh.
 
@@ -999,8 +990,8 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
-        self.__areas = [f.Area for f in mesh.Facets]
+        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
 
     def _compute_uvmap_sphere(self):
@@ -1052,8 +1043,8 @@ class RenderMesh:
         points, facets = tuple(mesh.Topology)
         self.__points = [tuple(p) for p in points]
         self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
-        self.__areas = [f.Area for f in mesh.Facets]
+        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube(self):
@@ -1111,8 +1102,8 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
-        self.__areas = [f.Area for f in mesh.Facets]
+        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube_mp(self):
@@ -1258,8 +1249,9 @@ class RenderMesh:
         # Final
         return tags
 
-    def adjacent_facets(self, split_angle_cos="-inf"):
+    def adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
+
         Returns a list of sets of facet indices.
         """
         # For each point, compute facets that contain this point as a vertex
@@ -1269,15 +1261,14 @@ class RenderMesh:
             for point_index in facet
         )
 
-        def fpp_reducer(rolling, new):
+        def fpp_reducer(_, new):
             facet_index, point_index = new
             facets_per_point[point_index].append(facet_index)
 
-        facets_per_point = [list() for _ in range(self.count_points)]
+        facets_per_point = [[] for _ in range(self.count_points)]
         functools.reduce(fpp_reducer, iterator, None)
 
         # Compute adjacency
-        normals = self.__normals
         facets = [set(f) for f in self.__facets]
         iterator = (
             (facet_idx, other_idx)
@@ -1289,7 +1280,7 @@ class RenderMesh:
 
         adjacents = [set() for _ in range(self.count_facets)]
 
-        def reduce_adj(rolling, new):
+        def reduce_adj(_, new):
             facet_index, other_index = new
             adjacents[facet_index].add(other_index)
 
