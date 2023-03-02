@@ -218,6 +218,7 @@ class RenderMeshBase:
         self._normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
         self._areas = [f.Area for f in self.__originalmesh.Facets]
 
+<<<<<<< HEAD
     def __del__(self):
         """Finalize RenderMesh.
 
@@ -236,6 +237,8 @@ class RenderMeshBase:
         # for e in gc.get_referrers(self.__points):
         # print(myrepr.repr(e))
 
+=======
+>>>>>>> bfe6eaf (Project: profiling)
     ##########################################################################
     #                               Copy                                     #
     ##########################################################################
