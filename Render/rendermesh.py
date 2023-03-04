@@ -45,6 +45,12 @@ import pstats
 import io
 from pstats import SortKey
 
+try:
+    import numpy as np
+    USE_NUMPY = True
+except ModuleNotFoundError:
+    USE_NUMPY = False
+
 import FreeCAD as App
 import Mesh
 
@@ -1039,10 +1045,12 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
-        self._compute_uvmap_cube_np()  # TODO
         if self.multiprocessing:
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             func = self._compute_uvmap_cube_mp
+        elif USE_NUMPY:
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (np)\n")
+            func = self._compute_uvmap_cube_np
         else:
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
             func = self._compute_uvmap_cube_sp
@@ -1130,14 +1138,19 @@ class RenderMesh:
         del res["SHOWTIME"]
 
     def _compute_uvmap_cube_np(self):
-        import numpy as np  # TODO
-        t0 = time.time()
+        debug = PARAMS.GetBool("Debug")
+        if debug:
+            t0 = time.time()
+
+        # Set common parameters
         count_facets = self.count_facets
-        np.set_printoptions(threshold=np.inf)  # TODO
+        normals = np.array(self.__normals)
+        facets = np.array(self.facets)
+        points = np.array(self.points)
+        areas = np.array(self.__areas)
 
         # Compute facet colors
         # TODO Make variable names more significant
-        normals = np.array(self.__normals)
         color_data1 = np.abs(normals)
         color_data1 = np.argmax(color_data1, axis=1)  # Maximal coordinate
         color_data1 = np.expand_dims(color_data1, axis=1)
@@ -1148,9 +1161,6 @@ class RenderMesh:
         facet_colors = facet_colors.ravel()
 
         # Compute center of gravity
-        facets = np.array(self.facets)
-        points = np.array(self.points)
-        areas = np.array(self.__areas)
         triangles = np.take(points, facets, axis=0)
         triangle_cogs = np.add.reduce(triangles, 1) / 3
         weighted_triangle_cogs = triangle_cogs * areas[:,np.newaxis]
@@ -1187,9 +1197,15 @@ class RenderMesh:
             np.expand_dims(centered_points, axis=2),
             axes=[(1, 2), (1, 2) , (1, 2)]
         )
+        uvs = uvs.squeeze(axis=2)
         uvs /= 1000
 
-        print("numpy", time.time() - t0)
+        self.__facets = new_facets.tolist()
+        self.__points = new_points.tolist()
+        self.__uvmap = uvs.tolist()
+
+        if debug:
+            print("numpy", time.time() - t0)
 
     ##########################################################################
     #                       Vertex Normals manipulations                     #
