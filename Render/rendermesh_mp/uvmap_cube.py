@@ -385,7 +385,6 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
-            # print(cog)  # Debug
         del shared["normals"]
         del shared["areas"]
         tick("colorize")

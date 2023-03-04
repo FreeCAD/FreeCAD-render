@@ -1039,6 +1039,7 @@ class RenderMesh:
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        self._compute_uvmap_cube_np()  # TODO
         if self.multiprocessing:
             App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
             func = self._compute_uvmap_cube_mp
@@ -1127,6 +1128,68 @@ class RenderMesh:
         del res["UVMAP"]
         del res["PYTHON"]
         del res["SHOWTIME"]
+
+    def _compute_uvmap_cube_np(self):
+        import numpy as np  # TODO
+        t0 = time.time()
+        count_facets = self.count_facets
+        np.set_printoptions(threshold=np.inf)  # TODO
+
+        # Compute facet colors
+        # TODO Make variable names more significant
+        normals = np.array(self.__normals)
+        color_data1 = np.abs(normals)
+        color_data1 = np.argmax(color_data1, axis=1)  # Maximal coordinate
+        color_data1 = np.expand_dims(color_data1, axis=1)
+        color_data2 = np.less(normals, np.zeros((count_facets, 3)))
+        color_data2 = color_data2.astype(int)
+        color_data3 = np.take_along_axis(color_data2, color_data1, axis=1)
+        facet_colors = color_data1 * 2 + color_data3
+        facet_colors = facet_colors.ravel()
+
+        # Compute center of gravity
+        facets = np.array(self.facets)
+        points = np.array(self.points)
+        areas = np.array(self.__areas)
+        triangles = np.take(points, facets, axis=0)
+        triangle_cogs = np.add.reduce(triangles, 1) / 3
+        weighted_triangle_cogs = triangle_cogs * areas[:,np.newaxis]
+        cog = np.sum(weighted_triangle_cogs, axis=0) / np.sum(areas)
+
+        # Update point list
+        # colored_points: the points of the facets, with the facet colors
+        a, b, c = triangles.shape
+        unfolded_points = triangles.reshape(a * b, c)
+        unfolded_point_colors = np.repeat(facet_colors, 3)
+        unfolded_point_colors = np.expand_dims(unfolded_point_colors, axis=1)
+        unfolded_colored_points = np.hstack((unfolded_points, unfolded_point_colors))
+        # TODO list(set) may be faster than unique...
+        colored_points, new_facets = np.unique(
+            unfolded_colored_points, return_inverse=True, axis=0
+        )
+        new_points = colored_points[::, 0:3]
+        new_facets = new_facets.reshape(count_facets, 3)
+
+        # Compute uvmap
+        centered_points = new_points - cog
+        point_colors = colored_points[::, 3].astype(np.int64)
+        base_matrices = np.array([
+            [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+            [[0.0, -1.0, 0.0], [0.0, 0.0, 1.0]],
+            [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
+        ])
+        matrices = np.take(base_matrices, point_colors, axis=0)
+        uvs = np.matmul(
+            matrices,
+            np.expand_dims(centered_points, axis=2),
+            axes=[(1, 2), (1, 2) , (1, 2)]
+        )
+        uvs /= 1000
+
+        print("numpy", time.time() - t0)
 
     ##########################################################################
     #                       Vertex Normals manipulations                     #
