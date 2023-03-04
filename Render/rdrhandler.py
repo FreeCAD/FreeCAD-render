@@ -47,6 +47,11 @@ import enum
 from importlib import import_module
 from types import SimpleNamespace
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 import FreeCAD as App
 import MeshPart
 import Mesh
@@ -294,37 +299,59 @@ class RendererHandler:
         Returns: a rendering string in the format of the external renderer
         for the supplied 'view'
         """
+        # Create profile object (debug)
+        debug = PARAMS.GetBool("Debug")
+        if debug:
+            prof = cProfile.Profile()
+            prof.enable()
+
+        # Alias parameters
         source = view.Source
         name = str(source.Name)
 
-        # Render Workbench objects
-        try:
-            # If this is a renderable object of Render WB, it appoints a
-            # rendering method
-            rendering_type = view.Source.Proxy.RENDERING_TYPE
-            rendering_type = RenderingTypes(rendering_type)
-            method = self.switcher[rendering_type]
-        except AttributeError:
-            pass
-        else:
-            return method(self, name, view)
+        def _wrapper():
+            """Computations wrapper for profiling."""
+            # Render Workbench objects
+            try:
+                # If this is a renderable object of Render WB, it appoints a
+                # rendering method
+                rendering_type = view.Source.Proxy.RENDERING_TYPE
+                rendering_type = RenderingTypes(rendering_type)
+                method = self.switcher[rendering_type]
+            except AttributeError:
+                pass
+            else:
+                return method(self, name, view)
 
-        # ArchTexture PointLight (or everything that looks like)
-        try:
-            # Duck typing
-            source.getPropertyByName("Location")
-            source.getPropertyByName("Color")
-            source.getPropertyByName("Power")
-            # And type-checking...
-            if source.Proxy.type != "PointLight":
-                raise TypeError
-        except (AttributeError, TypeError):
-            pass
-        else:
-            return RendererHandler._render_pointlight(self, name, view)
+            # ArchTexture PointLight (or everything that looks like)
+            try:
+                # Duck typing
+                source.getPropertyByName("Location")
+                source.getPropertyByName("Color")
+                source.getPropertyByName("Power")
+                # And type-checking...
+                if source.Proxy.type != "PointLight":
+                    raise TypeError
+            except (AttributeError, TypeError):
+                pass
+            else:
+                return RendererHandler._render_pointlight(self, name, view)
 
-        # Fallback/default: render it as an 'object'
-        return RendererHandler._render_object(self, name, view)
+            # Fallback/default: render it as an 'object'
+            return RendererHandler._render_object(self, name, view)
+
+        result = _wrapper()
+
+        # Profile statistics (debug)
+        if debug:
+            prof.disable()
+            sec = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+            pstat.print_stats()
+            print(sec.getvalue())
+
+        return result
 
     def get_groundplane_string(self, bbox, zpos, color, sizefactor):
         """Get a rendering string for a ground plane.

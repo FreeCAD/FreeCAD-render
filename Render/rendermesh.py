@@ -40,6 +40,11 @@ import runpy
 import shutil
 import copy
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 try:
     import numpy as np
 
