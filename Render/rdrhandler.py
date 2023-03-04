@@ -299,59 +299,38 @@ class RendererHandler:
         Returns: a rendering string in the format of the external renderer
         for the supplied 'view'
         """
-        # Create profile object (debug)
-        debug = PARAMS.GetBool("Debug")
-        if debug:
-            prof = cProfile.Profile()
-            prof.enable()
-
         # Alias parameters
         source = view.Source
         name = str(source.Name)
 
-        def _wrapper():
-            """Computations wrapper for profiling."""
-            # Render Workbench objects
-            try:
-                # If this is a renderable object of Render WB, it appoints a
-                # rendering method
-                rendering_type = view.Source.Proxy.RENDERING_TYPE
-                rendering_type = RenderingTypes(rendering_type)
-                method = self.switcher[rendering_type]
-            except AttributeError:
-                pass
-            else:
-                return method(self, name, view)
+        # Render Workbench objects
+        try:
+            # If this is a renderable object of Render WB, it appoints a
+            # rendering method
+            rendering_type = view.Source.Proxy.RENDERING_TYPE
+            rendering_type = RenderingTypes(rendering_type)
+            method = self.switcher[rendering_type]
+        except AttributeError:
+            pass
+        else:
+            return method(self, name, view)
 
-            # ArchTexture PointLight (or everything that looks like)
-            try:
-                # Duck typing
-                source.getPropertyByName("Location")
-                source.getPropertyByName("Color")
-                source.getPropertyByName("Power")
-                # And type-checking...
-                if source.Proxy.type != "PointLight":
-                    raise TypeError
-            except (AttributeError, TypeError):
-                pass
-            else:
-                return RendererHandler._render_pointlight(self, name, view)
+        # ArchTexture PointLight (or everything that looks like)
+        try:
+            # Duck typing
+            source.getPropertyByName("Location")
+            source.getPropertyByName("Color")
+            source.getPropertyByName("Power")
+            # And type-checking...
+            if source.Proxy.type != "PointLight":
+                raise TypeError
+        except (AttributeError, TypeError):
+            pass
+        else:
+            return RendererHandler._render_pointlight(self, name, view)
 
-            # Fallback/default: render it as an 'object'
-            return RendererHandler._render_object(self, name, view)
-
-        result = _wrapper()
-
-        # Profile statistics (debug)
-        if debug:
-            prof.disable()
-            sec = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-            pstat.print_stats()
-            print(sec.getvalue())
-
-        return result
+        # Fallback/default: render it as an 'object'
+        return RendererHandler._render_object(self, name, view)
 
     def get_groundplane_string(self, bbox, zpos, color, sizefactor):
         """Get a rendering string for a ground plane.
@@ -423,6 +402,12 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
+        # Create profile object (debug)
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            prof = cProfile.Profile()
+            prof.enable()
+
         autosmooth = getattr(view, "AutoSmooth", False)
         try:
             autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
@@ -563,6 +548,16 @@ class RendererHandler:
             )
             for r in rends
         ]
+
+        # Profile statistics (debug)
+        if debug_flag:
+            prof.disable()
+            sec = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+            pstat.print_stats()
+            print(sec.getvalue())
+
         return "".join(res)
 
     def _render_camera(self, name, view):
