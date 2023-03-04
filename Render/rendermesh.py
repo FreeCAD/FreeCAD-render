@@ -40,11 +40,6 @@ import runpy
 import shutil
 import copy
 
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
 try:
     import numpy as np
 
@@ -116,12 +111,6 @@ class RenderMesh:
             self.__facets = []
             return
 
-        # Create profile object (debug)
-        self.debug = PARAMS.GetBool("Debug")
-        if self.debug:
-            prof = cProfile.Profile()
-            prof.enable()
-
         # Check mandatory input
         if not mesh:
             raise ValueError()
@@ -169,14 +158,14 @@ class RenderMesh:
         else:
             self.__autosmooth = False
 
-        # Profile statistics (debug)
-        if self.debug:
-            prof.disable()
-            sec = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-            pstat.print_stats()
-            print(sec.getvalue())
+    def __del__(self):
+        """Finalize RenderMesh.
+
+        In particular, we clear and del the original Mesh.Mesh object (copy),
+        to avoid memory leaks.
+        """
+        self.__originalmesh.clear()
+        del self.__originalmesh
 
     ##########################################################################
     #                               Copy                                     #
