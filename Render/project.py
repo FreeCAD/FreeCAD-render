@@ -36,11 +36,6 @@ from collections import namedtuple
 import concurrent.futures
 import time
 
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
@@ -407,15 +402,7 @@ class Project(FeatureBase):
         Returns:
             Output file path
         """
-        # Create profile object (debug)
-        debug = PARAMS.GetBool("Debug")
-        if debug:
-            prof = cProfile.Profile()
-            prof.enable()
-
-        # Normalize arguments
         wait_for_completion = bool(wait_for_completion)
-        skip_meshing = bool(skip_meshing)
 
         # Check project parameters
         if self.fpo.RenderHeight <= 0 or self.fpo.RenderWidth <= 0:
@@ -519,15 +506,6 @@ class Project(FeatureBase):
         if wait_for_completion:
             # Useful in console mode...
             rdr_executor.join()
-
-        # Profile statistics (debug)
-        if debug:
-            prof.disable()
-            sec = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-            pstat.print_stats()
-            print(sec.getvalue())
 
         # And eventually return result path
         return img

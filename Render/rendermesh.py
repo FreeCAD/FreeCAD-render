@@ -111,6 +111,12 @@ class RenderMesh:
             self.__facets = []
             return
 
+        # Create profile object (debug)
+        self.debug = PARAMS.GetBool("Debug")
+        if self.debug:
+            prof = cProfile.Profile()
+            prof.enable()
+
         # Check mandatory input
         if not mesh:
             raise ValueError()
@@ -157,6 +163,15 @@ class RenderMesh:
             self.__autosmooth = True
         else:
             self.__autosmooth = False
+
+        # Profile statistics (debug)
+        if self.debug:
+            prof.disable()
+            sec = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+            pstat.print_stats()
+            print(sec.getvalue())
 
     ##########################################################################
     #                               Copy                                     #
@@ -1116,7 +1131,7 @@ class RenderMesh:
                 "AREAS": self.__areas,
                 "UVMAP": self.__uvmap,
                 "PYTHON": self.python,
-                "SHOWTIME": PARAMS.GetBool("Debug"),
+                "SHOWTIME": self.debug,
             },
             run_name="__main__",
         )
