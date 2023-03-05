@@ -1229,7 +1229,105 @@ class RenderMesh:
     ##########################################################################
 
     def compute_vnormals(self):
-        """Compute vertex normals.
+        """Compute vertex normals - entry point."""
+        if self.multiprocessing:
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            func = self._compute_vnormals_sp  # TODO
+        elif USE_NUMPY:
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (np)\n")
+            func = self._compute_vnormals_np
+        else:
+            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            func = self._compute_vnormals_sp
+
+        func()
+
+    def _compute_vnormals_np(self):
+        """Compute vertex normals (numpy version).
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        debug = PARAMS.GetBool("Debug")
+        if debug:
+            print("compute vnormals Numpy")
+            tm0 = time.time()
+
+        # Prepare parameters
+        points = np.array(self.__points)
+        normals = np.array(self.__normals)
+        areas = np.array(self.__areas)
+        facets = np.array(self.__facets)
+        triangles = np.take(points, facets, axis=0)
+        indices = facets.ravel(order="F")
+        nb_points, _ = points.shape
+
+        if debug:
+            print("init", time.time() - tm0)
+
+        def _safe_normalize(vect_array):
+            """Safely normalize an array of vectors."""
+            magnitudes = np.sqrt((vect_array**2).sum(-1))
+            magnitudes = np.expand_dims(magnitudes, axis=1)
+            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
+
+        def _angles(i, j, k):
+            """Compute triangle vertex angles."""
+            # Compute normalized vectors
+            vec1 = triangles[::, j, ::] - triangles[::, i, ::]
+            vec1 = _safe_normalize(vec1)
+
+            vec2 = triangles[::, k, ::] - triangles[::, i, ::]
+            vec2 = _safe_normalize(vec2)
+
+            # Compute dot products
+            # (Clip to avoid precision issues)
+            dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
+
+            # Compute arccos of dot products
+            angles = np.arccos(dots)
+            return angles
+
+        # Reminder:
+        # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
+        # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
+        # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
+        angles0 = _angles(0, 1, 2)
+        angles1 = _angles(1, 0, 2)
+        angles2 = np.pi - angles1 - angles0
+        # Debug
+        # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
+        vertex_angles = np.concatenate((angles0, angles1, angles2))
+        if debug:
+            print("angles", time.time() - tm0)
+
+        # Compute weighted normals for each vertex of the triangles
+        vertex_areas = np.concatenate((areas, areas, areas))
+        weights = vertex_areas * vertex_angles
+        weights = np.expand_dims(weights, axis=1)
+
+        vertex_normals = np.concatenate((normals, normals, normals), axis=0)
+        weighted_normals = vertex_normals * weights
+
+        if debug:
+            print("vertex weighted normals", time.time() - tm0)
+
+        # Weighted sum of normals
+        point_normals = np.column_stack(
+            (
+                np.bincount(indices, weighted_normals[..., 0]),
+                np.bincount(indices, weighted_normals[..., 1]),
+                np.bincount(indices, weighted_normals[..., 2]),
+            )
+        )
+        point_normals = _safe_normalize(point_normals)
+
+        self.__vnormals = point_normals.tolist()
+
+        if debug:
+            print(time.time() - tm0)
+
+    def _compute_vnormals_sp(self):
+        """Compute vertex normals (single process).
 
         Refresh self._normals. We use an area & angle weighting algorithm."
         """
