@@ -1231,13 +1231,13 @@ class RenderMesh:
     def compute_vnormals(self):
         """Compute vertex normals - entry point."""
         if self.multiprocessing:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            App.Console.PrintLog("[Render][Object] Compute vertex normals (sp)\n")
             func = self._compute_vnormals_sp  # TODO
         elif USE_NUMPY:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (np)\n")
+            App.Console.PrintLog("[Render][Object] Compute vertex normals (np)\n")
             func = self._compute_vnormals_np
         else:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            App.Console.PrintLog("[Render][Object] Compute vertex normals (sp)\n")
             func = self._compute_vnormals_sp
 
         func()
