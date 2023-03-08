@@ -25,6 +25,13 @@
 import sys
 import os
 
+try:
+    import numpy as np
+
+    USE_NUMPY = True
+except ModuleNotFoundError:
+    USE_NUMPY = False
+
 sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
 from vector3d import (
@@ -103,6 +110,13 @@ def _intersect_unitcube_face(direction):
 
 
 def colorize(chunk):
+    if USE_NUMPY:
+        return colorize_np(chunk)
+    else:
+        return colorize_std(chunk)
+
+
+def colorize_std(chunk):
     """Attribute "colors" to facets, depending on their orientations.
 
     Color is an integer in [0,5].
@@ -140,11 +154,60 @@ def colorize(chunk):
     centroid = add_n(*barys)
     area = sum(areas)
 
+    # TODO Use slicing?
     for ifacet, color in zip(range(start, stop), colors):
         SHARED_FACET_COLORS[ifacet] = color
 
     return centroid, area
 
+def colorize_np(chunk):
+    # Set common parameters
+    start, stop = chunk
+
+    count_facets = len(SHARED_FACETS) // 3
+
+    normals = np.ctypeslib.as_array(SHARED_NORMALS)
+    normals.shape = (len(SHARED_NORMALS) // 3, 3)
+    normals = normals[start:stop,]
+
+    facets = np.ctypeslib.as_array(SHARED_FACETS)
+    facets.shape = (len(SHARED_FACETS) // 3, 3)
+    facets = facets[start:stop,]
+
+    areas = np.ctypeslib.as_array(SHARED_AREAS)
+    areas = areas[start:stop]
+
+    points = np.ctypeslib.as_array(SHARED_POINTS)
+    points.shape = (len(SHARED_POINTS) // 3, 3)
+
+
+    triangles = np.take(points, facets, axis=0)
+
+    # Compute facet colors
+    # Color is made of 2 terms:
+    # First term: max of absolute coordinates of normals
+    # Second term: sign of corresponding coordinate
+    first_term = np.abs(normals)
+    first_term = np.argmax(first_term, axis=1)  # Maximal coordinate
+    first_term = np.expand_dims(first_term, axis=1)
+    second_term = np.less(normals, np.zeros((stop - start, 3))).astype(int)
+    second_term = np.take_along_axis(second_term, first_term, axis=1)
+    facet_colors = first_term * 2 + second_term
+    facet_colors = facet_colors.ravel()
+
+    # Update facet colors
+    shared_facet_colors = np.ctypeslib.as_array(SHARED_FACET_COLORS)
+    shared_facet_colors = shared_facet_colors[start:stop]
+    np.copyto(shared_facet_colors, facet_colors, casting="unsafe")
+
+    # Compute center of gravity (triangle cogs weighted by triangle areas)
+    weighted_triangle_cogs = (
+        np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
+    )
+    centroid = np.sum(weighted_triangle_cogs, axis=0).tolist()
+    area = float(np.sum(areas))
+
+    return centroid, area
 
 # *****************************************************************************
 
