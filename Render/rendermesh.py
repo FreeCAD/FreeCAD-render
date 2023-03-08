@@ -1125,7 +1125,7 @@ class RenderMesh:
                 "AREAS": self.__areas,
                 "UVMAP": self.__uvmap,
                 "PYTHON": self.python,
-                "SHOWTIME": self.debug,
+                "SHOWTIME": PARAMS.GetBool("Debug"),
             },
             run_name="__main__",
         )
