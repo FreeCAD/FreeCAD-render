@@ -223,11 +223,13 @@ def update_facets(chunk):
     facets = SHARED_FACETS
     colors = SHARED_FACET_COLORS
 
+    # TODO (re)try slicing
     for ifacet in range(start, stop):
         color = colors[ifacet]
-        facets[ifacet * 3 + 0] = point_map[facets[ifacet * 3 + 0], color]
-        facets[ifacet * 3 + 1] = point_map[facets[ifacet * 3 + 1], color]
-        facets[ifacet * 3 + 2] = point_map[facets[ifacet * 3 + 2], color]
+        index = ifacet * 3
+        facets[index] = point_map[facets[index], color]
+        facets[index + 1] = point_map[facets[index + 1], color]
+        facets[index + 2] = point_map[facets[index + 2], color]
 
 
 # *****************************************************************************
@@ -290,6 +292,23 @@ def compute_uvmap(chunk):
     Returns:
         uvmap
     """
+    if USE_NUMPY:
+        return compute_uvmap_np(chunk)
+    else:
+        return compute_uvmap_std(chunk)
+
+
+def compute_uvmap_std(chunk):
+    """Compute uvmap.
+
+    Args:
+        chunk -- a iterable of pairs containing:
+            color -- color of the point (integer)
+            point -- point index (integer)
+
+    Returns:
+        uvmap
+    """
     start, stop = chunk
     colored_points = SHARED_COLORED_POINTS[start * 2 : stop * 2]
     colored_points = [iter(colored_points)] * 2
@@ -300,6 +319,66 @@ def compute_uvmap(chunk):
 
     for index, uv_ in zip(range(start, stop), uvs):
         SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv_
+
+if USE_NUMPY:
+    BASE_MATRICES = np.array(
+        [
+            [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+            [[0.0, -1.0, 0.0], [0.0, 0.0, 1.0]],
+            [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
+        ]
+    )
+
+def compute_uvmap_np(chunk):
+    """Compute uvmap (numpy).
+
+    Args:
+        chunk -- a iterable of pairs containing:
+            color -- color of the point (integer)
+            point -- point index (integer)
+
+    Returns:
+        uvmap
+    """
+    # Unpack args
+    start, stop = chunk
+
+    # Retrieve globals
+    # TODO Factorize
+    shared_colored_points = np.ctypeslib.as_array(SHARED_COLORED_POINTS)
+    shared_colored_points.shape = (len(SHARED_COLORED_POINTS) // 2, 2)
+
+    shared_points = np.ctypeslib.as_array(SHARED_POINTS)
+    shared_points.shape = (len(SHARED_POINTS) // 3, 3)
+
+    shared_uvmap = np.ctypeslib.as_array(SHARED_UVMAP)
+    shared_uvmap.shape = (len(SHARED_UVMAP) // 2, 2)
+
+    # Prepare chunk
+    point_indices = shared_colored_points[start:stop, 0].astype(np.int64)
+    points = np.take(shared_points, point_indices, axis=0)
+    point_colors = shared_colored_points[start:stop, 1].astype(np.int64)
+
+    cog = np.array(COG)
+
+    # Compute uvmap
+    # Center points to center of gravity.
+    # Apply linear transformation to point coordinates.
+    # The transformation depends on the point color.
+    centered_points = points - cog
+    uvs = np.matmul(
+        BASE_MATRICES.take(point_colors, axis=0),
+        np.expand_dims(centered_points, axis=2),
+        axes=[(1, 2), (1, 2), (1, 2)],
+    )
+    uvs = uvs.squeeze(axis=2)
+    uvs /= 1000  # Scale
+
+    np.copyto(shared_uvmap[start:stop], uvs, casting="unsafe")
+
 
 
 # *****************************************************************************
@@ -451,6 +530,8 @@ def main(python, points, facets, normals, areas, showtime=False):
         del shared["normals"]
         del shared["areas"]
         tick("colorize")
+
+        # TODO Keep pool
 
         # Update points
         colored_points = {
