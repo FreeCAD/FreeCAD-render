@@ -166,22 +166,13 @@ def colorize_np(chunk):
 
     count_facets = len(SHARED_FACETS) // 3
 
-    normals = np.ctypeslib.as_array(SHARED_NORMALS)
-    normals.shape = (len(SHARED_NORMALS) // 3, 3)
-    normals = normals[start:stop,]
+    normals = SHARED_NORMALS_NP[start:stop,]
 
-    facets = np.ctypeslib.as_array(SHARED_FACETS)
-    facets.shape = (len(SHARED_FACETS) // 3, 3)
-    facets = facets[start:stop,]
+    facets = SHARED_FACETS_NP[start:stop,]
 
-    areas = np.ctypeslib.as_array(SHARED_AREAS)
-    areas = areas[start:stop]
+    areas = SHARED_AREAS_NP[start:stop]
 
-    points = np.ctypeslib.as_array(SHARED_POINTS)
-    points.shape = (len(SHARED_POINTS) // 3, 3)
-
-
-    triangles = np.take(points, facets, axis=0)
+    triangles = np.take(SHARED_POINTS_NP, facets, axis=0)
 
     # Compute facet colors
     # Color is made of 2 terms:
@@ -196,9 +187,7 @@ def colorize_np(chunk):
     facet_colors = facet_colors.ravel()
 
     # Update facet colors
-    shared_facet_colors = np.ctypeslib.as_array(SHARED_FACET_COLORS)
-    shared_facet_colors = shared_facet_colors[start:stop]
-    np.copyto(shared_facet_colors, facet_colors, casting="unsafe")
+    np.copyto(SHARED_FACET_COLORS_NP[start:stop], facet_colors, casting="unsafe")
 
     # Compute center of gravity (triangle cogs weighted by triangle areas)
     weighted_triangle_cogs = (
@@ -346,29 +335,16 @@ def compute_uvmap_np(chunk):
     # Unpack args
     start, stop = chunk
 
-    # Retrieve globals
-    # TODO Factorize
-    shared_colored_points = np.ctypeslib.as_array(SHARED_COLORED_POINTS)
-    shared_colored_points.shape = (len(SHARED_COLORED_POINTS) // 2, 2)
-
-    shared_points = np.ctypeslib.as_array(SHARED_POINTS)
-    shared_points.shape = (len(SHARED_POINTS) // 3, 3)
-
-    shared_uvmap = np.ctypeslib.as_array(SHARED_UVMAP)
-    shared_uvmap.shape = (len(SHARED_UVMAP) // 2, 2)
-
     # Prepare chunk
-    point_indices = shared_colored_points[start:stop, 0].astype(np.int64)
-    points = np.take(shared_points, point_indices, axis=0)
-    point_colors = shared_colored_points[start:stop, 1].astype(np.int64)
-
-    cog = np.array(COG)
+    point_indices = SHARED_COLORED_POINTS_NP[start:stop, 0].astype(np.int64)
+    points = np.take(SHARED_POINTS_NP, point_indices, axis=0)
+    point_colors = SHARED_COLORED_POINTS_NP[start:stop, 1].astype(np.int64)
 
     # Compute uvmap
     # Center points to center of gravity.
     # Apply linear transformation to point coordinates.
     # The transformation depends on the point color.
-    centered_points = points - cog
+    centered_points = points - COG_NP
     uvs = np.matmul(
         BASE_MATRICES.take(point_colors, axis=0),
         np.expand_dims(centered_points, axis=2),
@@ -377,7 +353,7 @@ def compute_uvmap_np(chunk):
     uvs = uvs.squeeze(axis=2)
     uvs /= 1000  # Scale
 
-    np.copyto(shared_uvmap[start:stop], uvs, casting="unsafe")
+    np.copyto(SHARED_UVMAP_NP[start:stop], uvs, casting="unsafe")
 
 
 
@@ -397,6 +373,26 @@ def init(shared):
     SHARED_NORMALS = shared["normals"]
     SHARED_AREAS = shared["areas"]
     SHARED_FACET_COLORS = shared["facet_colors"]
+
+    if USE_NUMPY:
+        global SHARED_NORMALS_NP
+        SHARED_NORMALS_NP = np.ctypeslib.as_array(SHARED_NORMALS)
+        SHARED_NORMALS_NP.shape = (len(SHARED_NORMALS) // 3, 3)
+
+        global SHARED_FACETS_NP
+        SHARED_FACETS_NP = np.ctypeslib.as_array(SHARED_FACETS)
+        SHARED_FACETS_NP.shape = (len(SHARED_FACETS) // 3, 3)
+
+        global SHARED_AREAS_NP
+        SHARED_AREAS_NP = np.ctypeslib.as_array(SHARED_AREAS)
+
+        global SHARED_POINTS_NP
+        SHARED_POINTS_NP = np.ctypeslib.as_array(SHARED_POINTS)
+        SHARED_POINTS_NP.shape = (len(SHARED_POINTS) // 3, 3)
+
+        global SHARED_FACET_COLORS_NP
+        SHARED_FACET_COLORS_NP = np.ctypeslib.as_array(SHARED_FACET_COLORS)
+
     sys.setswitchinterval(sys.maxsize)
 
 
@@ -427,6 +423,23 @@ def init2(shared, cog):
 
     global COG
     COG = cog
+
+    if USE_NUMPY:
+        global SHARED_COLORED_POINTS_NP
+        SHARED_COLORED_POINTS_NP = np.ctypeslib.as_array(SHARED_COLORED_POINTS)
+        SHARED_COLORED_POINTS_NP.shape = (len(SHARED_COLORED_POINTS) // 2, 2)
+
+        global SHARED_POINTS_NP
+        SHARED_POINTS_NP = np.ctypeslib.as_array(SHARED_POINTS)
+        SHARED_POINTS_NP.shape = (len(SHARED_POINTS) // 3, 3)
+
+        global SHARED_UVMAP_NP
+        SHARED_UVMAP_NP = np.ctypeslib.as_array(SHARED_UVMAP)
+        SHARED_UVMAP_NP.shape = (len(SHARED_UVMAP) // 2, 2)
+
+        global COG_NP
+        COG_NP = np.array(COG)
+
 
     sys.setswitchinterval(sys.maxsize)
 
