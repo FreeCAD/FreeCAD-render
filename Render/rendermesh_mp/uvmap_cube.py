@@ -208,6 +208,19 @@ def update_facets(chunk):
     """
     # Inputs
     start, stop = chunk
+
+    # Point map
+    global SHARED_POINT_MAP
+    if SHARED_POINT_MAP is None:
+        length = SHARED_COLORED_POINTS_LEN.value
+        iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
+        iterator = zip(*iterator)
+        SHARED_POINT_MAP = {
+            colored_point: index for index, colored_point in enumerate(iterator)
+        }
+
+    # Aliases
+    # TODO Remove
     point_map = SHARED_POINT_MAP
     facets = SHARED_FACETS
     colors = SHARED_FACET_COLORS
@@ -364,15 +377,28 @@ def init(shared):
     """Initialize pool of processes #1."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
-    global SHARED_FACETS
-    global SHARED_NORMALS
-    global SHARED_AREAS
-    global SHARED_FACET_COLORS
     SHARED_POINTS = shared["points"]
+
+    global SHARED_FACETS
     SHARED_FACETS = shared["facets"]
+
+    global SHARED_NORMALS
     SHARED_NORMALS = shared["normals"]
+
+    global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
+
+    global SHARED_FACET_COLORS
     SHARED_FACET_COLORS = shared["facet_colors"]
+
+    global SHARED_COLORED_POINTS
+    SHARED_COLORED_POINTS = shared["colored_points"]
+
+    global SHARED_COLORED_POINTS_LEN
+    SHARED_COLORED_POINTS_LEN = shared["colored_points_len"]
+
+    global SHARED_POINT_MAP
+    SHARED_POINT_MAP = None
 
     if USE_NUMPY:
         global SHARED_NORMALS_NP
@@ -393,6 +419,7 @@ def init(shared):
         global SHARED_FACET_COLORS_NP
         SHARED_FACET_COLORS_NP = np.ctypeslib.as_array(SHARED_FACET_COLORS)
 
+
     sys.setswitchinterval(sys.maxsize)
 
 
@@ -402,12 +429,13 @@ def init2(shared, cog):
     global SHARED_POINTS
     SHARED_POINTS = shared["points"]
 
-    global SHARED_POINT_MAP
-    iterator = [iter(shared["colored_points"])] * 2
-    iterator = zip(*iterator)
-    SHARED_POINT_MAP = {
-        colored_point: index for index, colored_point in enumerate(iterator)
-    }
+    # TODO
+    # global SHARED_POINT_MAP
+    # iterator = [iter(shared["colored_points"])] * 2
+    # iterator = zip(*iterator)
+    # SHARED_POINT_MAP = {
+        # colored_point: index for index, colored_point in enumerate(iterator)
+    # }
 
     global SHARED_COLORED_POINTS
     SHARED_COLORED_POINTS = shared["colored_points"]
@@ -527,6 +555,8 @@ def main(python, points, facets, normals, areas, showtime=False):
             "normals": ctx.RawArray("d", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("d", areas),
             "facet_colors": ctx.RawArray("B", len(facets)),
+            "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
+            "colored_points_len": ctx.RawValue("l")
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -540,34 +570,33 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
-        del shared["normals"]
-        del shared["areas"]
-        tick("colorize")
+            tick("colorize")
 
-        # TODO Keep pool
+            # Update points
+            colored_points = {
+                (ipoint, color)
+                for facet, color in zip(facets, shared["facet_colors"])
+                for ipoint in facet
+            }
+            tick("new points")
 
-        # Update points
-        colored_points = {
-            (ipoint, color)
-            for facet, color in zip(facets, shared["facet_colors"])
-            for ipoint in facet
-        }
-        tick("new points")
-
-        # Update facets points and compute uv map
-        shared["colored_points"] = ctx.RawArray(
-            "L", SharedWrapper(colored_points, 2)
-        )
-        shared["uvmap"] = ctx.RawArray("d", len(colored_points) * 2)
-        tick("prepare shared")
-        with ctx.Pool(nproc, init2, (shared, cog)) as pool:
-            tick("start pool2")
+            # Update facets points
+            wrapper = SharedWrapper(colored_points, 2)
+            shared["colored_points"][0:len(wrapper)] = list(wrapper)
+            shared["colored_points_len"].value = len(wrapper)
 
             # Update facets
             chunks = make_chunks(chunk_size, len(facets))
             run_unordered(pool, update_facets, chunks)
             newfacets = list(grouper(shared["facets"], 3))
             tick("update facets")
+
+        # TODO Keep pool
+        shared["uvmap"] = ctx.RawArray("d", len(colored_points) * 2)
+        tick("prepare shared")
+
+        with ctx.Pool(nproc, init2, (shared, cog)) as pool:
+            tick("start pool2")
 
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
