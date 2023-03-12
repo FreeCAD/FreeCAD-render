@@ -384,7 +384,7 @@ def compute_uvmap_np(chunk):
 
 
 def init(shared):
-    """Initialize pool of processes #1."""
+    """Initialize pool of processes."""
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     SHARED_POINTS = shared["points"]
@@ -529,19 +529,19 @@ def main(python, points, facets, normals, areas, showtime=False):
     try:
         # Compute facets colors and center of gravity
         shared = {
-            "points": ctx.RawArray("d", SharedWrapper(points, 3)),
+            "points": ctx.RawArray("f", SharedWrapper(points, 3)),
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
-            "normals": ctx.RawArray("d", SharedWrapper(normals, 3)),
-            "areas": ctx.RawArray("d", areas),
-            "cog": ctx.RawArray("d", 3),
+            "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
+            "areas": ctx.RawArray("f", areas),
+            "cog": ctx.RawArray("f", 3),
             "facet_colors": ctx.RawArray("B", len(facets)),
             "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
             "colored_points_len": ctx.RawValue("l"),
-            "uvmap": ctx.RawArray("d", len(points) * 2 * 6),
+            "uvmap": ctx.RawArray("f", len(points) * 2 * 6),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
-            tick("start pool1")
+            tick("start pool")
             chunks = make_chunks(chunk_size, len(facets))
             data = pool.imap_unordered(colorize, chunks)
 
