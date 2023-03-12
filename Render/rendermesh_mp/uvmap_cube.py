@@ -160,15 +160,20 @@ def colorize_std(chunk):
 
     return centroid, area
 
+
 def colorize_np(chunk):
     # Set common parameters
     start, stop = chunk
 
     count_facets = len(SHARED_FACETS) // 3
 
-    normals = SHARED_NORMALS_NP[start:stop,]
+    normals = SHARED_NORMALS_NP[
+        start:stop,
+    ]
 
-    facets = SHARED_FACETS_NP[start:stop,]
+    facets = SHARED_FACETS_NP[
+        start:stop,
+    ]
 
     areas = SHARED_AREAS_NP[start:stop]
 
@@ -187,7 +192,9 @@ def colorize_np(chunk):
     facet_colors = facet_colors.ravel()
 
     # Update facet colors
-    np.copyto(SHARED_FACET_COLORS_NP[start:stop], facet_colors, casting="unsafe")
+    np.copyto(
+        SHARED_FACET_COLORS_NP[start:stop], facet_colors, casting="unsafe"
+    )
 
     # Compute center of gravity (triangle cogs weighted by triangle areas)
     weighted_triangle_cogs = (
@@ -197,6 +204,7 @@ def colorize_np(chunk):
     area = float(np.sum(areas))
 
     return centroid, area
+
 
 # *****************************************************************************
 
@@ -216,11 +224,11 @@ def update_facets(chunk):
         iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
         iterator = zip(*iterator)
         SHARED_POINT_MAP = {
-            colored_point: index for index, colored_point in enumerate(iterator)
+            colored_point: index
+            for index, colored_point in enumerate(iterator)
         }
 
     # Aliases
-    # TODO Remove
     point_map = SHARED_POINT_MAP
     facets = SHARED_FACETS
     colors = SHARED_FACET_COLORS
@@ -315,12 +323,14 @@ def compute_uvmap_std(chunk):
     colored_points = SHARED_COLORED_POINTS[start * 2 : stop * 2]
     colored_points = [iter(colored_points)] * 2
     colored_points = zip(*colored_points)
+    cog = tuple(SHARED_COG)
 
     uvs = ((UC_MAP[c], getpoint(p)) for p, c in colored_points)
-    uvs = (fdiv2(func(sub(point, COG)), 1000) for func, point in uvs)
+    uvs = (fdiv2(func(sub(point, cog)), 1000) for func, point in uvs)
 
     for index, uv_ in zip(range(start, stop), uvs):
         SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv_
+
 
 if USE_NUMPY:
     BASE_MATRICES = np.array(
@@ -333,6 +343,7 @@ if USE_NUMPY:
             [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
         ]
     )
+
 
 def compute_uvmap_np(chunk):
     """Compute uvmap (numpy).
@@ -357,7 +368,7 @@ def compute_uvmap_np(chunk):
     # Center points to center of gravity.
     # Apply linear transformation to point coordinates.
     # The transformation depends on the point color.
-    centered_points = points - COG_NP
+    centered_points = points - SHARED_COG_NP
     uvs = np.matmul(
         BASE_MATRICES.take(point_colors, axis=0),
         np.expand_dims(centered_points, axis=2),
@@ -367,7 +378,6 @@ def compute_uvmap_np(chunk):
     uvs /= 1000  # Scale
 
     np.copyto(SHARED_UVMAP_NP[start:stop], uvs, casting="unsafe")
-
 
 
 # *****************************************************************************
@@ -388,6 +398,9 @@ def init(shared):
     global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
 
+    global SHARED_COG
+    SHARED_COG = shared["cog"]
+
     global SHARED_FACET_COLORS
     SHARED_FACET_COLORS = shared["facet_colors"]
 
@@ -399,6 +412,9 @@ def init(shared):
 
     global SHARED_POINT_MAP
     SHARED_POINT_MAP = None
+
+    global SHARED_UVMAP
+    SHARED_UVMAP = shared["uvmap"]
 
     if USE_NUMPY:
         global SHARED_NORMALS_NP
@@ -419,55 +435,16 @@ def init(shared):
         global SHARED_FACET_COLORS_NP
         SHARED_FACET_COLORS_NP = np.ctypeslib.as_array(SHARED_FACET_COLORS)
 
-
-    sys.setswitchinterval(sys.maxsize)
-
-
-def init2(shared, cog):
-    """Initialize pool of processes #2."""
-    # pylint: disable=global-variable-undefined
-    global SHARED_POINTS
-    SHARED_POINTS = shared["points"]
-
-    # TODO
-    # global SHARED_POINT_MAP
-    # iterator = [iter(shared["colored_points"])] * 2
-    # iterator = zip(*iterator)
-    # SHARED_POINT_MAP = {
-        # colored_point: index for index, colored_point in enumerate(iterator)
-    # }
-
-    global SHARED_COLORED_POINTS
-    SHARED_COLORED_POINTS = shared["colored_points"]
-
-    global SHARED_FACETS
-    SHARED_FACETS = shared["facets"]
-
-    global SHARED_FACET_COLORS
-    SHARED_FACET_COLORS = shared["facet_colors"]
-
-    global SHARED_UVMAP
-    SHARED_UVMAP = shared["uvmap"]
-
-    global COG
-    COG = cog
-
-    if USE_NUMPY:
         global SHARED_COLORED_POINTS_NP
         SHARED_COLORED_POINTS_NP = np.ctypeslib.as_array(SHARED_COLORED_POINTS)
         SHARED_COLORED_POINTS_NP.shape = (len(SHARED_COLORED_POINTS) // 2, 2)
 
-        global SHARED_POINTS_NP
-        SHARED_POINTS_NP = np.ctypeslib.as_array(SHARED_POINTS)
-        SHARED_POINTS_NP.shape = (len(SHARED_POINTS) // 3, 3)
+        global SHARED_COG_NP
+        SHARED_COG_NP = np.ctypeslib.as_array(SHARED_COG)
 
         global SHARED_UVMAP_NP
         SHARED_UVMAP_NP = np.ctypeslib.as_array(SHARED_UVMAP)
         SHARED_UVMAP_NP.shape = (len(SHARED_UVMAP) // 2, 2)
-
-        global COG_NP
-        COG_NP = np.array(COG)
-
 
     sys.setswitchinterval(sys.maxsize)
 
@@ -501,11 +478,13 @@ def main(python, points, facets, normals, areas, showtime=False):
         if showtime:
             print(msg, time.time() - tm0)
 
-    def grouper(iterable, number, fillvalue=None):
+    def grouper(iterable, number, fillvalue=None, count=None):
         "Collect data into fixed-length chunks or blocks"
         # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
         args = [iter(iterable)] * number
-        return itertools.zip_longest(*args, fillvalue=fillvalue)
+        res = itertools.zip_longest(*args, fillvalue=fillvalue)
+        res = itertools.islice(res, count)
+        return res
 
     def make_chunks(chunk_size, length):
         return (
@@ -554,9 +533,11 @@ def main(python, points, facets, normals, areas, showtime=False):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("d", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("d", areas),
+            "cog": ctx.RawArray("d", 3),
             "facet_colors": ctx.RawArray("B", len(facets)),
             "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
-            "colored_points_len": ctx.RawValue("l")
+            "colored_points_len": ctx.RawValue("l"),
+            "uvmap": ctx.RawArray("d", len(points) * 2 * 6),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -570,6 +551,7 @@ def main(python, points, facets, normals, areas, showtime=False):
 
             # Compute center of gravity
             cog = fdiv(centroid, area_sum)
+            shared["cog"][:] = cog
             tick("colorize")
 
             # Update points
@@ -578,11 +560,12 @@ def main(python, points, facets, normals, areas, showtime=False):
                 for facet, color in zip(facets, shared["facet_colors"])
                 for ipoint in facet
             }
-            tick("new points")
+            colored_points_len = len(colored_points)
+            tick(f"new points ({colored_points_len} pts)")
 
             # Update facets points
             wrapper = SharedWrapper(colored_points, 2)
-            shared["colored_points"][0:len(wrapper)] = list(wrapper)
+            shared["colored_points"][0 : len(wrapper)] = list(wrapper)
             shared["colored_points_len"].value = len(wrapper)
 
             # Update facets
@@ -591,26 +574,22 @@ def main(python, points, facets, normals, areas, showtime=False):
             newfacets = list(grouper(shared["facets"], 3))
             tick("update facets")
 
-        # TODO Keep pool
-        shared["uvmap"] = ctx.RawArray("d", len(colored_points) * 2)
-        tick("prepare shared")
-
-        with ctx.Pool(nproc, init2, (shared, cog)) as pool:
-            tick("start pool2")
-
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
             run_unordered(pool, compute_uvmap, chunks)
-            uvmap = list(grouper(shared["uvmap"], 2))
+            uvmap = list(
+                grouper(shared["uvmap"], number=2, count=colored_points_len)
+            )
             tick("uv map")
 
-        # Recompute point list
-        newpoints = [points[i] for i, _ in colored_points]
-        tick("new point list")
+            # Recompute point list
+            newpoints = [points[i] for i, _ in colored_points]
+            tick("new point list")
 
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
+        # TODO Free resources
 
     return newpoints, newfacets, uvmap
 
