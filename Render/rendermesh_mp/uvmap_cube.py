@@ -220,6 +220,7 @@ def update_facets(chunk):
     # Point map
     global SHARED_POINT_MAP
     if SHARED_POINT_MAP is None:
+        print("update_facets: compute SHARED_POINT_MAP")
         length = SHARED_COLORED_POINTS_LEN.value
         iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
         iterator = zip(*iterator)
@@ -589,7 +590,7 @@ def main(python, points, facets, normals, areas, showtime=False):
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-        # TODO Free resources
+        del shared
 
     return newpoints, newfacets, uvmap
 
