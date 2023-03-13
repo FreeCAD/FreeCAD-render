@@ -392,7 +392,7 @@ def _write_material(name, matval):
         bump_snippet = f"""
 <bump
     name="{name}_bump"
-    use_object_space = "true"
+    use_object_space = "false"
     invert = "false"
     distance = "{bump_factor}"
     strength = "1.0"
@@ -628,7 +628,7 @@ def _write_texture(**kwargs):
 />
 <normal_map
     name="{texname}_normalmap"
-    space="blender_object"
+    space="tangent"
     strength="{normal_strength}"
 />
 <connect from="{texname} color" to="{texname}_curve value"/>
@@ -640,7 +640,7 @@ def _write_texture(**kwargs):
         connect = f"""
 <normal_map
     name="{texname}_normalmap_disp"
-    space="object"
+    space="tangent"
     strength="0.2"
 />
 <connect from="{texname} color" to="output displacement"/>"""
@@ -676,7 +676,7 @@ def _write_texture(**kwargs):
     filename="{filename}"
     colorspace="{colorspace}"
     tex_mapping.scale="{scale} {scale} {scale}"
-    tex_mapping.rotation="{rotation} {rotation} {rotation}"
+    tex_mapping.rotation="0 0 {rotation}"
     tex_mapping.translation="{translation_u} {translation_v} 0.0"
 />"""
 
