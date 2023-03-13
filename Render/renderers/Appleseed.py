@@ -468,7 +468,7 @@ def _write_material_carpaint(name, matval):
 
     <shader_group name="{name}_group">
 {snippet_tex}
-        <shader layer="NormalMix" type="shader" name="as_blend_normal" >
+        <shader layer="NormalMix" type="shader" name="fc_add_normal" >
             <parameter name="in_base_normal_mode" value="string Signed" />
             <parameter name="in_detail_normal_mode" value="string Signed" />
             <parameter name="in_detail_normal_weight" value="float 1.0" />
