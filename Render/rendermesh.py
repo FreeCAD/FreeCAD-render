@@ -153,6 +153,7 @@ class RenderMesh:
         if autosmooth:
             App.Console.PrintLog("[Render][Object] Autosmooth\n")
             self.separate_connected_components(split_angle)
+            print("multip", self.multiprocessing)  # TODO
             self.compute_vnormals()
             self.__autosmooth = True
         else:
@@ -1230,9 +1231,10 @@ class RenderMesh:
 
     def compute_vnormals(self):
         """Compute vertex normals - entry point."""
+        print("vnormals multip", self.multiprocessing)  # TODO
         if self.multiprocessing:
-            App.Console.PrintLog("[Render][Object] Compute vertex normals (sp)\n")
-            func = self._compute_vnormals_sp  # TODO
+            App.Console.PrintLog("[Render][Object] Compute vertex normals (mp)\n")
+            func = self._compute_vnormals_mp
         elif USE_NUMPY:
             App.Console.PrintLog("[Render][Object] Compute vertex normals (np)\n")
             func = self._compute_vnormals_np
@@ -1367,6 +1369,39 @@ class RenderMesh:
         vnorms = [safe_normalize(n) for n in vnorms]
 
         self.__vnormals = vnorms
+
+    def _compute_vnormals_mp(self):
+        """Compute vertex normals (single process).
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
+
+        # Run
+        res = runpy.run_path(
+            path,
+            init_globals={
+                "POINTS": self.__points,
+                "FACETS": self.__facets,
+                "NORMALS": self.__normals,
+                "AREAS": self.__areas,
+                "VNORMALS": self.__uvmap,
+                "PYTHON": self.python,
+                "SHOWTIME": PARAMS.GetBool("Debug"),
+            },
+            run_name="__main__",
+        )
+        self.__vnormals = res["VNORMALS"]
+
+        # Clean
+        del res["POINTS"]
+        del res["FACETS"]
+        del res["NORMALS"]
+        del res["AREAS"]
+        del res["VNORMALS"]
+        del res["PYTHON"]
+        del res["SHOWTIME"]
 
     def adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
