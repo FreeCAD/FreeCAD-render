@@ -549,6 +549,10 @@ class RendererHandler:
             for r in rends
         ]
 
+        # Remove everything
+        while rends:
+            rends.pop()
+
         # Profile statistics (debug)
         if debug_flag:
             prof.disable()
@@ -557,6 +561,7 @@ class RendererHandler:
             pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
             pstat.print_stats()
             print(sec.getvalue())
+
 
         return "".join(res)
 
