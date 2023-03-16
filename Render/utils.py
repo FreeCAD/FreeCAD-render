@@ -207,6 +207,29 @@ set_debug_on = functools.partial(set_debug, state=True)
 set_debug_off = functools.partial(set_debug, state=False)
 
 
+def set_memcheck(state):
+    """Set memory checking parameter on/off.
+
+    Warning: debug purpose only. /!\\
+
+    Args:
+        state -- state to set memory checking (boolean)
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    state = bool(state)
+    params.SetBool("Memcheck", state)
+    msg = (
+        "[Render][Debug] Memcheck is on\n"
+        if state
+        else "[Render][Debug] Memcheck is off\n"
+    )
+    App.Console.PrintMessage(msg)
+
+
+set_memcheck_on = functools.partial(set_memcheck, state=True)
+set_memcheck_off = functools.partial(set_memcheck, state=False)
+
+
 def last_cmd():
     """Return last executed renderer command (debug purpose)."""
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")

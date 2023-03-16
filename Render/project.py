@@ -35,6 +35,7 @@ import re
 from collections import namedtuple
 import concurrent.futures
 import time
+import tracemalloc
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
@@ -402,6 +403,13 @@ class Project(FeatureBase):
         Returns:
             Output file path
         """
+        # Create memcheck object (debug)
+        memcheck_flag = PARAMS.GetBool("Memcheck")
+        if memcheck_flag:
+            tracemalloc.start()
+            snapshot1 = tracemalloc.take_snapshot()
+
+        # Normalize arguments
         wait_for_completion = bool(wait_for_completion)
 
         # Check project parameters
@@ -496,6 +504,13 @@ class Project(FeatureBase):
             # Debug purpose only
             App.Console.PrintWarning("*** DRY RUN ***\n")
             App.Console.PrintMessage(cmd)
+            # Memcheck statistics (debug)
+            if memcheck_flag:
+                snapshot2 = tracemalloc.take_snapshot()
+                top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+                print("[ Memory check - Top 10 differences ]")
+                for stat in top_stats[:10]:
+                    print(stat)
             return None
 
         # Execute renderer
@@ -506,6 +521,14 @@ class Project(FeatureBase):
         if wait_for_completion:
             # Useful in console mode...
             rdr_executor.join()
+
+        # Memcheck statistics (debug)
+        if memcheck_flag:
+            snapshot2 = tracemalloc.take_snapshot()
+            top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+            print("[ Memory check - Top 10 differences ]")
+            for stat in top_stats[:10]:
+                print(stat)
 
         # And eventually return result path
         return img

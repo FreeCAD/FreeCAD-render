@@ -69,5 +69,8 @@ from Render.utils import (  # noqa: F401
     set_debug,
     set_debug_on,
     set_debug_off,
+    set_memcheck,
+    set_memcheck_on,
+    set_memcheck_off,
 )
 from Render.commands import RENDER_COMMANDS  # noqa: F401
