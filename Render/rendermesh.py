@@ -167,6 +167,11 @@ class RenderMesh:
         """
         self.__originalmesh.clear()
         del self.__originalmesh
+        print("Delete")  # TODO Debug
+        import gc
+        for e in gc.get_referrers(self.__normals):
+            print(e)
+        print(gc.get_referrers(self))
 
     ##########################################################################
     #                               Copy                                     #

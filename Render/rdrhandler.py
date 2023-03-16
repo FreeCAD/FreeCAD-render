@@ -549,9 +549,16 @@ class RendererHandler:
             for r in rends
         ]
 
+        # TODO DEBUG
+        import gc
+        print(gc.get_referrers(rends))
+
         # Remove everything
         while rends:
             rends.pop()
+        del rends
+        gc.collect()
+        print(gc.garbage)
 
         # Profile statistics (debug)
         if debug_flag:
