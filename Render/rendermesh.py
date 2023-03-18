@@ -39,6 +39,7 @@ from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import runpy
 import shutil
 import copy
+import struct
 
 try:
     import numpy as np
@@ -153,7 +154,6 @@ class RenderMesh:
         if autosmooth:
             App.Console.PrintLog("[Render][Object] Autosmooth\n")
             self.separate_connected_components(split_angle)
-            print("multip", self.multiprocessing)  # TODO
             self.compute_vnormals()
             self.__autosmooth = True
         else:
@@ -165,13 +165,17 @@ class RenderMesh:
         In particular, we clear and del the original Mesh.Mesh object (copy),
         to avoid memory leaks.
         """
+        # Clean original mesh
         self.__originalmesh.clear()
-        del self.__originalmesh
-        print("Delete")  # TODO Debug
-        import gc
-        for e in gc.get_referrers(self.__normals):
-            print(e)
-        print(gc.get_referrers(self))
+        self.__originalmesh = None
+
+        # # Debug memory:
+        # import gc
+        # import reprlib
+        # myrepr = reprlib.Repr()
+        # myrepr.maxdict = 50
+        # for e in gc.get_referrers(self.__points):
+        # print(myrepr.repr(e))
 
     ##########################################################################
     #                               Copy                                     #
@@ -1121,32 +1125,49 @@ class RenderMesh:
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
 
+        # Init output buffers
+        facets = self.__facets
+        facets_count = len(facets)
+        color_count = 6
+        points_per_facet = 3
+        maxpoints = facets_count * color_count * points_per_facet
+
+        points_buf = bytearray(maxpoints * struct.calcsize("fff"))
+        facets_buf = bytearray(len(facets) * struct.calcsize("lll"))
+        uvmap_buf = bytearray(maxpoints * struct.calcsize("ff"))
+
         # Run
         res = runpy.run_path(
             path,
             init_globals={
+                "PYTHON": self.python,
                 "POINTS": self.__points,
                 "FACETS": self.__facets,
                 "NORMALS": self.__normals,
                 "AREAS": self.__areas,
-                "UVMAP": self.__uvmap,
-                "PYTHON": self.python,
                 "SHOWTIME": PARAMS.GetBool("Debug"),
+                "OUT_POINTS": points_buf,
+                "OUT_FACETS": facets_buf,
+                "OUT_UVMAP": uvmap_buf,
             },
             run_name="__main__",
         )
-        self.__points = res["POINTS"]
-        self.__facets = res["FACETS"]
-        self.__uvmap = res["UVMAP"]
 
-        # Clean
-        del res["POINTS"]
-        del res["FACETS"]
-        del res["NORMALS"]
-        del res["AREAS"]
-        del res["UVMAP"]
-        del res["PYTHON"]
-        del res["SHOWTIME"]
+        point_count = res["POINT_COUNT"]
+
+        points_mv = memoryview(
+            points_buf[: point_count * struct.calcsize("fff")]
+        )
+        points_mv = points_mv.cast("f", [point_count, 3])
+        self.__points = points_mv.tolist()
+
+        facets_mv = memoryview(facets_buf)
+        facets_mv = facets_mv.cast("l", [facets_count, 3])
+        self.__facets = facets_mv.tolist()
+
+        uvmap_mv = memoryview(uvmap_buf[: point_count * struct.calcsize("ff")])
+        uvmap_mv = uvmap_mv.cast("f", [point_count, 2])
+        self.__uvmap = uvmap_mv.tolist()
 
     def _compute_uvmap_cube_np(self):
         """Compute UV map for cubic case - numpy version."""
@@ -1236,15 +1257,20 @@ class RenderMesh:
 
     def compute_vnormals(self):
         """Compute vertex normals - entry point."""
-        print("vnormals multip", self.multiprocessing)  # TODO
         if self.multiprocessing:
-            App.Console.PrintLog("[Render][Object] Compute vertex normals (mp)\n")
+            App.Console.PrintLog(
+                "[Render][Object] Compute vertex normals (mp)\n"
+            )
             func = self._compute_vnormals_mp
         elif USE_NUMPY:
-            App.Console.PrintLog("[Render][Object] Compute vertex normals (np)\n")
+            App.Console.PrintLog(
+                "[Render][Object] Compute vertex normals (np)\n"
+            )
             func = self._compute_vnormals_np
         else:
-            App.Console.PrintLog("[Render][Object] Compute vertex normals (sp)\n")
+            App.Console.PrintLog(
+                "[Render][Object] Compute vertex normals (sp)\n"
+            )
             func = self._compute_vnormals_sp
 
         func()

@@ -567,7 +567,9 @@ class RendererHandler:
             sortby = SortKey.CUMULATIVE
             pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
             pstat.print_stats()
-            print(sec.getvalue())
+            lines = sec.getvalue().splitlines()
+            print("\n".join(lines[:20]))
+            # print(sec.getvalue())
 
 
         return "".join(res)
