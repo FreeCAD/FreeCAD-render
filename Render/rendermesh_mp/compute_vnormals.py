@@ -24,6 +24,7 @@
 
 import sys
 import os
+import struct
 
 try:
     import numpy as np
@@ -94,6 +95,22 @@ def compute_weighted_normals(chunk):
     return normals
 
 
+# *****************************************************************************
+
+def normalize(chunk):
+    start, stop = chunk
+
+    fmt = "fff"
+    itemsize = struct.calcsize(fmt)
+
+    vnormals = memoryview(SHARED_VNORMALS).cast("b")[start * itemsize: stop * itemsize]
+
+    result = b"".join(
+        struct.pack(fmt, *safe_normalize(v))
+        for v in struct.iter_unpack(fmt, vnormals)
+    )
+
+    vnormals[::] = memoryview(result).cast("b")
 
 
 
@@ -115,6 +132,8 @@ def init(shared):
     global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
 
+    global SHARED_VNORMALS
+    SHARED_VNORMALS = shared["vnormals"]
 
 # *****************************************************************************
 
@@ -220,7 +239,13 @@ def main(python, points, facets, normals, areas, showtime=False):
             tick("reduced weighted normals")
 
             # Normalize  (TODO)
-            vnorms = [safe_normalize(n) for n in vnorms]
+            vnormals_mem = memoryview(shared["vnormals"]).cast("b")
+            vnormals_mem[::] = memoryview(
+                b"".join(struct.pack("fff", *v) for v in vnorms)
+            ).cast("b")
+            # vnorms = [safe_normalize(n) for n in vnorms]
+            chunks = make_chunks(chunk_size, len(points))
+            run_unordered(pool, normalize, chunks)
             tick("normalize")
     finally:
         os.chdir(save_dir)
