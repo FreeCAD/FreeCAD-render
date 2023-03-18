@@ -168,13 +168,9 @@ def colorize_np(chunk):
 
     count_facets = len(SHARED_FACETS) // 3
 
-    normals = SHARED_NORMALS_NP[
-        start:stop,
-    ]
+    normals = SHARED_NORMALS_NP[start:stop,]
 
-    facets = SHARED_FACETS_NP[
-        start:stop,
-    ]
+    facets = SHARED_FACETS_NP[start:stop,]
 
     areas = SHARED_AREAS_NP[start:stop]
 
@@ -221,7 +217,6 @@ def update_facets(chunk):
     # Point map
     global SHARED_POINT_MAP
     if SHARED_POINT_MAP is None:
-        print("update_facets: compute SHARED_POINT_MAP")
         length = SHARED_COLORED_POINTS_LEN.value
         iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
         iterator = zip(*iterator)
@@ -454,7 +449,17 @@ def init(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, showtime=False):
+def main(
+    python,
+    points,
+    facets,
+    normals,
+    areas,
+    showtime,
+    out_points,
+    out_facets,
+    out_uvmap,
+):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -466,6 +471,7 @@ def main(python, points, facets, normals, areas, showtime=False):
     import multiprocessing as mp
     import itertools
     import time
+    import struct
 
     tm0 = time.time()
     if showtime:
@@ -479,14 +485,6 @@ def main(python, points, facets, normals, areas, showtime=False):
         """Print the time (debug purpose)."""
         if showtime:
             print(msg, time.time() - tm0)
-
-    def grouper(iterable, number, fillvalue=None, count=None):
-        "Collect data into fixed-length chunks or blocks"
-        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-        args = [iter(iterable)] * number
-        res = itertools.zip_longest(*args, fillvalue=fillvalue)
-        res = itertools.islice(res, count)
-        return res
 
     def make_chunks(chunk_size, length):
         return (
@@ -573,19 +571,20 @@ def main(python, points, facets, normals, areas, showtime=False):
             # Update facets
             chunks = make_chunks(chunk_size, len(facets))
             run_unordered(pool, update_facets, chunks)
-            newfacets = list(grouper(shared["facets"], 3))
+            out_facets[::] = shared["facets"]
             tick("update facets")
 
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
             run_unordered(pool, compute_uvmap, chunks)
-            uvmap = list(
-                grouper(shared["uvmap"], number=2, count=colored_points_len)
-            )
+            out_uvmap[:colored_points_len] = shared["uvmap"]
             tick("uv map")
 
             # Recompute point list
             newpoints = [points[i] for i, _ in colored_points]
+            out_points[:colored_points_len] = b"".join(
+                struct.pack("fff", *p) for p in newpoints
+            )
             tick("new point list")
 
     finally:
@@ -593,7 +592,7 @@ def main(python, points, facets, normals, areas, showtime=False):
         sys.stdin = save_stdin
         del shared
 
-    return newpoints, newfacets, uvmap
+    return colored_points_len
 
 
 # *****************************************************************************
@@ -627,15 +626,37 @@ if __name__ == "__main__":
         AREAS = []
 
     try:
-        UVMAP
-    except NameError:
-        UVMAP = []
-
-    try:
         SHOWTIME
     except NameError:
         SHOWTIME = False
 
-    POINTS, FACETS, UVMAP = main(
-        PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME
+    POINT_COUNT = main(
+        PYTHON,
+        POINTS,
+        FACETS,
+        NORMALS,
+        AREAS,
+        SHOWTIME,
+        OUT_POINTS,
+        OUT_FACETS,
+        OUT_UVMAP,
     )
+
+    # Clean
+    PYTHON = None
+    POINTS = None
+    FACETS = None
+    NORMALS = None
+    AREAS = None
+    SHOWTIME = None
+    OUT_POINTS = None
+    OUT_FACETS = None
+    OUT_UVMAP = None
+    BASE_MATRICES = None
+    del PYTHON
+    del POINTS
+    del FACETS
+    del NORMALS
+    del AREAS
+    del SHOWTIME
+    del BASE_MATRICES
