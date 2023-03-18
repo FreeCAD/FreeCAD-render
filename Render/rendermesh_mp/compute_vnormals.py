@@ -87,11 +87,11 @@ def compute_weighted_normals(chunk):
         (facet, normal, area, angles(tuple(getpoint(i) for i in facet)))
         for facet, normal, area in it_facets
     )
-    normals = [
-        (point_index, *fmul(normal, angle * area))
+    normals = b"".join(
+        struct.pack("lfff", point_index, *fmul(normal, angle * area))
         for facet, normal, area, angles in it_facets
         for point_index, angle in zip(facet, angles)
-    ]
+    )
     return normals
 
 
@@ -219,7 +219,6 @@ def main(python, points, facets, normals, areas, showtime=False):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
-            "wnormals": ctx.RawArray("f", len(facets) * 4 * 3),
             "vnormals": ctx.RawArray("f", len(points) * 3)
         }
         tick("prepare shared")
@@ -229,21 +228,19 @@ def main(python, points, facets, normals, areas, showtime=False):
             # Compute weighted normals (n per vertex)
             chunks = make_chunks(chunk_size, len(facets))
             data = pool.imap_unordered(compute_weighted_normals, chunks)
-            tick("weighted normals")
 
             # Reduce weighted normals (one per vertex)
-            vnorms = [(0, 0, 0)] * len(points)
+            vnorms = [(0.0, 0.0, 0.0)] * len(points)
             for chunk in data:
-                for point_index, *weighted_vnorm in chunk:
+                for point_index, *weighted_vnorm in struct.iter_unpack("lfff", chunk):
                     vnorms[point_index] =  add(vnorms[point_index], weighted_vnorm)
             tick("reduced weighted normals")
 
-            # Normalize  (TODO)
+            # Normalize
             vnormals_mem = memoryview(shared["vnormals"]).cast("b")
             vnormals_mem[::] = memoryview(
                 b"".join(struct.pack("fff", *v) for v in vnorms)
             ).cast("b")
-            # vnorms = [safe_normalize(n) for n in vnorms]
             chunks = make_chunks(chunk_size, len(points))
             run_unordered(pool, normalize, chunks)
             tick("normalize")
