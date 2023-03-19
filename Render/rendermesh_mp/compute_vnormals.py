@@ -235,8 +235,9 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             for chunk in data:
                 for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
                     offset = point_index * 3
-                    for i in range(3):
-                        vnorms[offset + i] += weighted_vnorm[i]
+                    vnorms[offset] += weighted_vnorm[0]
+                    vnorms[offset + 1] += weighted_vnorm[1]
+                    vnorms[offset + 2] += weighted_vnorm[2]
             tick("reduced weighted normals")
 
             # Normalize
@@ -257,41 +258,13 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 # *****************************************************************************
 
 if __name__ == "__main__":
-    # Get variables
-    # pylint: disable=used-before-assignment
-    try:
-        PYTHON
-    except NameError:
-        PYTHON = ""
-
-    try:
-        POINTS
-    except NameError:
-        POINTS = []
-
-    try:
-        FACETS
-    except NameError:
-        FACETS = []
-
-    try:
-        NORMALS
-    except NameError:
-        NORMALS = []
-
-    try:
-        AREAS
-    except NameError:
-        AREAS = []
-
-    try:
-        OUT_VNORMALS
-    except NameError:
-        VNORMALS = []
-
-    try:
-        SHOWTIME
-    except NameError:
-        SHOWTIME = False
-
     main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_VNORMALS)
+
+    # Clean (remove references to foreign objects)
+    PYTHON = None
+    POINTS = None
+    FACETS = None
+    NORMALS = None
+    AREAS = None
+    SHOWTIME = None
+    OUT_VNORMALS = None
