@@ -138,7 +138,7 @@ def init(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, showtime=False):
+def main(python, points, facets, normals, areas, showtime, out_vnormals):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -243,14 +243,16 @@ def main(python, points, facets, normals, areas, showtime=False):
             chunks = make_chunks(chunk_size, len(points))
             run_unordered(pool, normalize, chunks)
             tick("normalize")
+
+            # Write output buffer
+            out_vnormals[::] = shared["vnormals"]
+            tick("write buffer")
+
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
         del shared
 
-    result = memoryview(vnorms).cast("b").cast("f", [len(points), 3]).tolist()
-    tick("to list")
-    return result
 
 # *****************************************************************************
 
@@ -283,7 +285,7 @@ if __name__ == "__main__":
         AREAS = []
 
     try:
-        VNORMALS
+        OUT_VNORMALS
     except NameError:
         VNORMALS = []
 
@@ -292,6 +294,4 @@ if __name__ == "__main__":
     except NameError:
         SHOWTIME = False
 
-    VNORMALS = main(
-        PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME
-    )
+    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_VNORMALS)

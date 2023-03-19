@@ -1409,6 +1409,9 @@ class RenderMesh:
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
 
+        # Init output buffer
+        vnormals_buf = bytearray(self.count_points * struct.calcsize("fff"))
+
         # Run
         res = runpy.run_path(
             path,
@@ -1417,22 +1420,16 @@ class RenderMesh:
                 "FACETS": self.__facets,
                 "NORMALS": self.__normals,
                 "AREAS": self.__areas,
-                "VNORMALS": self.__uvmap,
                 "PYTHON": self.python,
                 "SHOWTIME": PARAMS.GetBool("Debug"),
+                "OUT_VNORMALS": vnormals_buf,
             },
             run_name="__main__",
         )
-        self.__vnormals = res["VNORMALS"]
 
-        # Clean
-        del res["POINTS"]
-        del res["FACETS"]
-        del res["NORMALS"]
-        del res["AREAS"]
-        del res["VNORMALS"]
-        del res["PYTHON"]
-        del res["SHOWTIME"]
+        # Update properties
+        vnormals_mv = memoryview(vnormals_buf).cast("f", [self.count_points, 3])
+        self.__vnormals = vnormals_mv.tolist()
 
     def adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
