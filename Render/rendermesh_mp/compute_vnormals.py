@@ -230,14 +230,13 @@ def main(python, points, facets, normals, areas, showtime=False):
             data = pool.imap_unordered(compute_weighted_normals, chunks)
 
             # Reduce weighted normals (one per vertex)
-            # vnorms = [(0.0, 0.0, 0.0)] * len(points)
             vnorms = shared["vnormals"]
+            wstruct = struct.Struct("lfff")
             for chunk in data:
-                for point_index, *weighted_vnorm in struct.iter_unpack("lfff", chunk):
+                for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
                     offset = point_index * 3
                     for i in range(3):
                         vnorms[offset + i] += weighted_vnorm[i]
-                    # vnorms[point_index] =  add(vnorms[point_index], weighted_vnorm)
             tick("reduced weighted normals")
 
             # Normalize
@@ -249,7 +248,9 @@ def main(python, points, facets, normals, areas, showtime=False):
         sys.stdin = save_stdin
         del shared
 
-    return memoryview(vnorms).cast("b").cast("f", [len(points), 3]).tolist()
+    result = memoryview(vnorms).cast("b").cast("f", [len(points), 3]).tolist()
+    tick("to list")
+    return result
 
 # *****************************************************************************
 
