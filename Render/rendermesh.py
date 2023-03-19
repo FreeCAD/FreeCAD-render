@@ -1432,6 +1432,26 @@ class RenderMesh:
         self.__vnormals = vnormals_mv.tolist()
 
     def adjacent_facets(self):
+        """Compute vertex normals - entry point."""
+        if self.multiprocessing:
+            App.Console.PrintLog(
+                "[Render][Object] Compute adjacency (mp)\n"
+            )
+            func = self._adjacent_facets_mp
+        elif USE_NUMPY:
+            App.Console.PrintLog(
+                "[Render][Object] Compute adjacency (sp)\n"
+            )
+            func = self._adjacent_facets_sp  # TODO
+        else:
+            App.Console.PrintLog(
+                "[Render][Object] Compute adjacency (sp)\n"
+            )
+            func = self._adjacent_facets_sp
+
+        return func()
+
+    def _adjacent_facets_sp(self):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
@@ -1469,6 +1489,44 @@ class RenderMesh:
         functools.reduce(reduce_adj, iterator, None)
 
         return adjacents
+
+    def _adjacent_facets_mp(self):
+        """Compute the adjacent facets for each facet of the mesh.
+
+        Returns a list of sets of facet indices (adjacency list).
+
+        Warning: this method assumes:
+        1. geometry is manifold (no "t-type" flaw, 3 adjacents per facet)
+        2. facets are all triangles
+        """
+        # TODO Test if geometry is manifold in init
+        # TODO
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "adjacency.py")
+
+        # Init output buffer
+        adjacents_buf = bytearray(self.count_facets * struct.calcsize("lll"))
+
+        # Run
+        res = runpy.run_path(
+            path,
+            init_globals={
+                "POINTS": self.__points,
+                "FACETS": self.__facets,
+                "NORMALS": self.__normals,
+                "AREAS": self.__areas,
+                "PYTHON": self.python,
+                "SHOWTIME": PARAMS.GetBool("Debug"),
+                # "OUT_ADJACENTS": adjacents_buf,
+                "OUT_ADJACENTS": None,
+            },
+            run_name="__main__",
+        )
+
+        # # Update properties
+        # adjacents_mv = memoryview(adjacents_buf).cast("l", [self.count_facets, 3])
+        # return adjacents_mv.tolist()
+        return res["OUT_ADJACENTS"]  # TODO
 
     def connected_facets(
         self,
