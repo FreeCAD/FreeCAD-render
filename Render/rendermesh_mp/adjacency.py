@@ -34,21 +34,20 @@ def getfacet(idx):
 
 # *****************************************************************************
 
-def compute_edge_facets(chunk):
-    """Returns all pairs (edge, facet).
+def compute_points_facets(chunk):
+    """Writes all pairs (point, facet) to shared.
 
     Edge is a tuple of two vertices.
     """
     start, stop = chunk
-    edge_facets = [
-        (point1, point2, ifacet)
+    points_facets = (
+        (ipoint, ifacet)
         for ifacet in range(start, stop)
-        for point1, point2 in itertools.combinations(getfacet(ifacet), 2)
-    ]
-    edge_facets.sort()
-    if len(edge_facets) != (stop - start) * 3:
-        raise ValueError
-    SHARED_EDGES[start * 3 *3: stop * 3 * 3] = list(itertools.chain.from_iterable(edge_facets))
+        for ipoint in getfacet(ifacet)
+    )
+    SHARED_POINTS_FACETS[start * 3 * 2: stop * 3 * 2] = list(
+        itertools.chain.from_iterable(points_facets)
+    )
 
 # TODO Remove
 def compute_facets_per_point(chunk):
@@ -92,8 +91,8 @@ def init(shared):
     global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
 
-    global SHARED_EDGES
-    SHARED_EDGES = shared["edges"]
+    global SHARED_POINTS_FACETS
+    SHARED_POINTS_FACETS = shared["points_facets"]
 
 # *****************************************************************************
 
@@ -178,20 +177,27 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
-            "edges": ctx.RawArray("l", len(facets) * 3 * 3),  # 3 edges/facet, 3 int per edge
+            "points_facets": ctx.RawArray("l", len(facets) * 3 * 2),  # 3 points/facet
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
             # List edges, with belonging facets
+            points_facets = shared["points_facets"]
             chunks = make_chunks(chunk_size, len(facets))
-            run_unordered(pool, compute_edge_facets, chunks)
+            run_unordered(pool, compute_points_facets, chunks)
+            pf_mv = memoryview(points_facets).cast("b").cast("q")
+            sorted_pf = sorted(pf_mv)
+            tick("sorted")
+            structq = struct.Struct("q")
+            pack = structq.pack
+            result = b"".join(pack(e) for e in sorted_pf )
+            pf_mv = pf_mv.cast("b")
+            pf_mv[::] = memoryview(result).cast("b")
 
             tick("edges")
 
-            edges = sorted(struct("lll").iter_unpack(shared["edges"]))
-            shared["edges"][::] = list(itertools.chain.from_iterable(edges))
             tick("written edges")
 
 
