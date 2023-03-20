@@ -25,6 +25,7 @@
 import sys
 import os
 import functools
+import itertools
 
 def getfacet(idx):
     """Get a facet from its index in the shared memory."""
@@ -33,6 +34,23 @@ def getfacet(idx):
 
 # *****************************************************************************
 
+def compute_edge_facets(chunk):
+    """Returns all pairs (edge, facet).
+
+    Edge is a tuple of two vertices.
+    """
+    start, stop = chunk
+    edge_facets = [
+        (point1, point2, ifacet)
+        for ifacet in range(start, stop)
+        for point1, point2 in itertools.combinations(getfacet(ifacet), 2)
+    ]
+    edge_facets.sort()
+    if len(edge_facets) != (stop - start) * 3:
+        raise ValueError
+    SHARED_EDGES[start * 3 *3: stop * 3 * 3] = list(itertools.chain.from_iterable(edge_facets))
+
+# TODO Remove
 def compute_facets_per_point(chunk):
     """For each point, compute facets that contain this point as a vertex"""
 
@@ -74,6 +92,8 @@ def init(shared):
     global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
 
+    global SHARED_EDGES
+    SHARED_EDGES = shared["edges"]
 
 # *****************************************************************************
 
@@ -158,22 +178,35 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
+            "edges": ctx.RawArray("l", len(facets) * 3 * 3),  # 3 edges/facet, 3 int per edge
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
-            # For each point, compute belonging facets
+            # List edges, with belonging facets
             chunks = make_chunks(chunk_size, len(facets))
-            data = pool.imap_unordered(compute_facets_per_point, chunks)
+            run_unordered(pool, compute_edge_facets, chunks)
 
-            facets_per_point = [[] for _ in range(len(points))]
-            def fpp_reducer(running, new):
-                for ifacet, facet_list in enumerate(new):
-                    facets_per_point[ifacet].extend(facet_list)
+            tick("edges")
 
-            functools.reduce(fpp_reducer, data, None)
-            tick("facets per point")
+            edges = sorted(struct("lll").iter_unpack(shared["edges"]))
+            shared["edges"][::] = list(itertools.chain.from_iterable(edges))
+            tick("written edges")
+
+
+
+            groups = []
+            for k, g in itertools.groupby(data, key=lambda x: (x[0], x[1])):
+                groups.append(list(g))
+            tick("couples")
+            # facets_per_point = [[] for _ in range(len(points))]
+            # def fpp_reducer(running, new):
+                # for ifacet, facet_list in enumerate(new):
+                    # facets_per_point[ifacet].extend(facet_list)
+
+            # functools.reduce(fpp_reducer, data, None)
+            # tick("facets per point")
 
             # Compute adjacency
             facets = [set(f) for f in facets]
