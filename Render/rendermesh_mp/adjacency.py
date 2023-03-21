@@ -26,6 +26,8 @@ import sys
 import os
 import functools
 import itertools
+import operator
+import bisect
 
 def getfacet(idx):
     """Get a facet from its index in the shared memory."""
@@ -40,37 +42,55 @@ def compute_points_facets(chunk):
     Edge is a tuple of two vertices.
     """
     start, stop = chunk
+    # We store (point, facet) in the same quad int (8 bytes)
     points_facets = (
-        (ipoint, ifacet)
+        ipoint << 32 | ifacet
         for ifacet in range(start, stop)
         for ipoint in getfacet(ifacet)
     )
-    SHARED_POINTS_FACETS[start * 3 * 2: stop * 3 * 2] = list(
-        itertools.chain.from_iterable(points_facets)
+    SHARED_POINTS_FACETS[start * 3: stop * 3] = list(points_facets)
+
+# @functools.lru_cache(128)  TODO
+def get_facets_from_point(ipoint):
+    """Get the facets which a given point belongs to."""
+    # Find first candidate
+    first = bisect.bisect_left(SHARED_POINTS_FACETS, ipoint << 32)
+
+    # Get others
+    facets = set(
+            x & 0xffffffff for x in itertools.takewhile(lambda x: x >> 32 == ipoint, SHARED_POINTS_FACETS[first::])
     )
+    return facets
 
-# TODO Remove
-def compute_facets_per_point(chunk):
-    """For each point, compute facets that contain this point as a vertex"""
 
+def compute_adjacents(chunk):
+    """Compute adjacency lists for a chunk of facets."""
+    print("begin compute_points_facets")  # TODO
     start, stop = chunk
-    count_points = len(SHARED_POINTS) // 3
 
-
+    # Facets per point
+    facets = [set(getfacet(i)) for i in range(start, stop)]
     iterator = (
-        (facet_index, point_index)
-        for facet_index in range(start, stop)
-        for point_index in getfacet(facet_index)
+        (facet_idx, other_idx)
+        for facet_idx, facet in enumerate(facets, start=start)
+        for point_idx in facet
+        for other_idx in get_facets_from_point(point_idx)
+        if len(facet & set(getfacet(other_idx))) == 2
     )
 
-    facets_per_point = [[] for _ in range(count_points)]
-    def fpp_reducer(_, new):
-        facet_index, point_index = new
-        facets_per_point[point_index].append(facet_index)
+    adjacents = [set() for _ in range(start, stop)]
 
-    functools.reduce(fpp_reducer, iterator, None)
+    def reduce_adj(_, new):
+        facet_index, other_index = new
+        # assert 0 <= facet_index - start < stop - start  # TODO
+        adjacents[facet_index - start].add(other_index)
 
-    return facets_per_point
+    functools.reduce(reduce_adj, iterator, None)
+    print("end compute_points_facets")  # TODO
+
+    return adjacents
+
+
 
 
 # *****************************************************************************
@@ -177,61 +197,27 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
-            "points_facets": ctx.RawArray("l", len(facets) * 3 * 2),  # 3 points/facet
+            # We store (point, facet) in a quad int
+            "points_facets": ctx.RawArray("q", len(facets) * 3),  # 3 points/facet
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
-            # List edges, with belonging facets
+            # List points / facets, in a sorted manner
             points_facets = shared["points_facets"]
             chunks = make_chunks(chunk_size, len(facets))
             run_unordered(pool, compute_points_facets, chunks)
-            pf_mv = memoryview(points_facets).cast("b").cast("q")
-            sorted_pf = sorted(pf_mv)
-            tick("sorted")
-            structq = struct.Struct("q")
-            pack = structq.pack
-            result = b"".join(pack(e) for e in sorted_pf )
-            pf_mv = pf_mv.cast("b")
-            pf_mv[::] = memoryview(result).cast("b")
+            sorted_pf = sorted(points_facets)
+            points_facets[::] = sorted_pf
+            tick("points_facets")
 
-            tick("edges")
-
-            tick("written edges")
-
-
-
-            groups = []
-            for k, g in itertools.groupby(data, key=lambda x: (x[0], x[1])):
-                groups.append(list(g))
-            tick("couples")
-            # facets_per_point = [[] for _ in range(len(points))]
-            # def fpp_reducer(running, new):
-                # for ifacet, facet_list in enumerate(new):
-                    # facets_per_point[ifacet].extend(facet_list)
-
-            # functools.reduce(fpp_reducer, data, None)
-            # tick("facets per point")
 
             # Compute adjacency
-            facets = [set(f) for f in facets]
-            iterator = (
-                (facet_idx, other_idx)
-                for facet_idx, facet in enumerate(facets)
-                for point_idx in facet
-                for other_idx in facets_per_point[point_idx]
-                if len(facet & facets[other_idx]) == 2
-            )
-
-            adjacents = [set() for _ in range(len(facets))]
-
-            def reduce_adj(_, new):
-                facet_index, other_index = new
-                adjacents[facet_index].add(other_index)
-
-            functools.reduce(reduce_adj, iterator, None)
-            tick("reduce adjacents")
+            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(200, len(facets))  # TODO
+            data = pool.imap(compute_adjacents, chunks)
+            adjacents = sum(data, [])
 
             # Update output buffer TODO
             return adjacents
