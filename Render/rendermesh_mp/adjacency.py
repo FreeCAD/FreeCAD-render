@@ -89,18 +89,19 @@ def compute_adjacents_old(chunk):
     return adjacents
 
 
+
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
     start, stop = chunk
+    count_facets = len(SHARED_FACETS) // 3
 
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
         # For each point, compute facets that contain this point as a vertex
-        count_facets = len(SHARED_FACETS) // 3
         iterator = (
             (facet_index, point_index)
             for facet_index in range(count_facets)
-            for point_index in getfacet(facet_index)
+            for point_index in SHARED_FACETS[facet_index * 3: (facet_index + 1) * 3]
         )
 
         count_points = len(SHARED_POINTS) // 3
@@ -110,15 +111,14 @@ def compute_adjacents(chunk):
             FACETS_PER_POINT[point_index].append(facet_index)
         functools.reduce(fpp_reducer, iterator, None)
 
-    # Compute adjacency for the chunk
-    @functools.lru_cache(1024)
+    @functools.lru_cache(128)
     def getfacet_as_set(ifacet):
         return set(getfacet(ifacet))
 
-    facets = list(map(getfacet_as_set, range(start, stop)))
+    # Compute adjacency for the chunk
     iterator = (
         (facet_idx, other_idx)
-        for facet_idx, facet in enumerate(facets)
+        for facet_idx, facet in enumerate(map(getfacet_as_set, range(start, stop)))
         for point_idx in facet
         for other_idx in FACETS_PER_POINT[point_idx]
         if len(facet & getfacet_as_set(other_idx)) == 2
@@ -168,6 +168,7 @@ def init(shared):
 
     global SHARED_ADJACENCY_LEN
     SHARED_ADJACENCY_LEN = shared["adjacency_len"]
+
 
 # *****************************************************************************
 
