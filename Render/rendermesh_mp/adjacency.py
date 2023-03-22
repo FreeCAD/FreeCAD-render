@@ -63,9 +63,8 @@ def get_facets_from_point(ipoint):
     return facets
 
 
-def compute_adjacents(chunk):
+def compute_adjacents_old(chunk):
     """Compute adjacency lists for a chunk of facets."""
-    print("begin compute_points_facets")  # TODO
     start, stop = chunk
 
     # Facets per point
@@ -86,11 +85,61 @@ def compute_adjacents(chunk):
         adjacents[facet_index - start].add(other_index)
 
     functools.reduce(reduce_adj, iterator, None)
-    print("end compute_points_facets")  # TODO
 
     return adjacents
 
 
+def compute_adjacents(chunk):
+    """Compute adjacency lists for a chunk of facets."""
+    start, stop = chunk
+
+    global FACETS_PER_POINT
+    if FACETS_PER_POINT is None:
+        # For each point, compute facets that contain this point as a vertex
+        count_facets = len(SHARED_FACETS) // 3
+        iterator = (
+            (facet_index, point_index)
+            for facet_index in range(count_facets)
+            for point_index in getfacet(facet_index)
+        )
+
+        count_points = len(SHARED_POINTS) // 3
+        FACETS_PER_POINT = [[] for _ in range(count_points)]
+        def fpp_reducer(_, new):
+            facet_index, point_index = new
+            FACETS_PER_POINT[point_index].append(facet_index)
+        functools.reduce(fpp_reducer, iterator, None)
+
+    # Compute adjacency for the chunk
+    @functools.lru_cache(1024)
+    def getfacet_as_set(ifacet):
+        return set(getfacet(ifacet))
+
+    facets = list(map(getfacet_as_set, range(start, stop)))
+    iterator = (
+        (facet_idx, other_idx)
+        for facet_idx, facet in enumerate(facets)
+        for point_idx in facet
+        for other_idx in FACETS_PER_POINT[point_idx]
+        if len(facet & getfacet_as_set(other_idx)) == 2
+    )
+
+    adjacents = [set() for _ in range(stop - start)]
+
+    def reduce_adj(_, new):
+        facet_index, other_index = new
+        adjacents[facet_index].add(other_index)
+
+    functools.reduce(reduce_adj, iterator, None)
+
+    # Write shared
+    SHARED_ADJACENCY_LEN[start:stop] = list(map(len, adjacents))
+
+    SHARED_ADJACENCY[start * 3: stop * 3] = [
+        a
+        for adj in adjacents
+        for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
+    ]
 
 
 # *****************************************************************************
@@ -111,8 +160,14 @@ def init(shared):
     global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
 
-    global SHARED_POINTS_FACETS
-    SHARED_POINTS_FACETS = shared["points_facets"]
+    global FACETS_PER_POINT
+    FACETS_PER_POINT = None
+
+    global SHARED_ADJACENCY
+    SHARED_ADJACENCY = shared["adjacency"]
+
+    global SHARED_ADJACENCY_LEN
+    SHARED_ADJACENCY_LEN = shared["adjacency_len"]
 
 # *****************************************************************************
 
@@ -197,27 +252,18 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
-            # We store (point, facet) in a quad int
-            "points_facets": ctx.RawArray("q", len(facets) * 3),  # 3 points/facet
+            "adjacency": ctx.RawArray("q", len(facets) * 3),  # max 3 adjacents/facet
+            "adjacency_len": ctx.RawArray("c", len(facets)),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
-            # List points / facets, in a sorted manner
-            points_facets = shared["points_facets"]
-            chunks = make_chunks(chunk_size, len(facets))
-            run_unordered(pool, compute_points_facets, chunks)
-            sorted_pf = sorted(points_facets)
-            points_facets[::] = sorted_pf
-            tick("points_facets")
-
-
             # Compute adjacency
             chunks = make_chunks(chunk_size, len(facets))
-            chunks = make_chunks(200, len(facets))  # TODO
-            data = pool.imap(compute_adjacents, chunks)
-            adjacents = sum(data, [])
+            run_unordered(pool, compute_adjacents, chunks)
+
+            tick("adjacency")
 
             # Update output buffer TODO
             return adjacents
