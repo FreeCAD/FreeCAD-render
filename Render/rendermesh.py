@@ -40,6 +40,7 @@ import runpy
 import shutil
 import copy
 import struct
+import operator
 
 try:
     import numpy as np
@@ -1506,6 +1507,7 @@ class RenderMesh:
 
         # Init output buffer
         adjacents_buf = bytearray(self.count_facets * struct.calcsize("lll"))
+        adjacents_len_buf = bytearray(self.count_facets * struct.calcsize("b"))
 
         # Run
         res = runpy.run_path(
@@ -1517,16 +1519,22 @@ class RenderMesh:
                 "AREAS": self.__areas,
                 "PYTHON": self.python,
                 "SHOWTIME": PARAMS.GetBool("Debug"),
-                # "OUT_ADJACENTS": adjacents_buf,
-                "OUT_ADJACENTS": None,
+                "OUT_ADJACENTS": adjacents_buf,
+                "OUT_ADJACENTS_LEN": adjacents_len_buf,
             },
             run_name="__main__",
         )
 
-        # # Update properties
-        # adjacents_mv = memoryview(adjacents_buf).cast("l", [self.count_facets, 3])
-        # return adjacents_mv.tolist()
-        return res["OUT_ADJACENTS"]  # TODO
+        # Update properties
+        adjacents_mv = memoryview(adjacents_buf).cast("l", [self.count_facets, 3])
+        adjacents = adjacents_mv.tolist()
+
+        adjacents_len_mv = memoryview(adjacents_len_buf).cast("b")
+        adjacents_len = adjacents_len_mv.tolist()
+
+        is_pos = functools.partial(operator.le, 0)
+        result = [set(filter(is_pos, adjs[0:3])) for adjs in adjacents]
+        return result
 
     def connected_facets(
         self,
