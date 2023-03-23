@@ -135,12 +135,6 @@ def compute_adjacents(chunk):
 
     functools.reduce(reduce_adj, iterator, None)
 
-
-    # Write shared
-    SHARED_ADJACENCY_LEN[start:stop] = list(map(len, adjacents))
-
-    # assert all(a <= 3 for a in SHARED_ADJACENCY_LEN)
-
     SHARED_ADJACENCY[start * 3: stop * 3] = [
         a
         for adj in adjacents
@@ -172,13 +166,10 @@ def init(shared):
     global SHARED_ADJACENCY
     SHARED_ADJACENCY = shared["adjacency"]
 
-    global SHARED_ADJACENCY_LEN
-    SHARED_ADJACENCY_LEN = shared["adjacency_len"]
-
 
 # *****************************************************************************
 
-def main(python, points, facets, normals, areas, showtime, out_vnormals):
+def main(python, points, facets, normals, areas, showtime, out_adjacents):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -260,7 +251,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
             "adjacency": ctx.RawArray("q", len(facets) * 3),  # max 3 adjacents/facet
-            "adjacency_len": ctx.RawArray("i", len(facets)),
+            "adjacency_len": ctx.RawArray("b", len(facets)),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -272,8 +263,10 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 
             tick("adjacency")
 
-            # Update output buffer TODO
-            return adjacents
+            # Update output buffer
+            out_adjacents[::] = shared["adjacency"]
+
+            tick("output buffer")
 
     finally:
         os.chdir(save_dir)
@@ -282,7 +275,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 # *****************************************************************************
 
 if __name__ == "__main__":
-    OUT_ADJACENTS = main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_ADJACENTS)
+    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_ADJACENTS)
 
     # Clean (remove references to foreign objects)
     PYTHON = None
@@ -291,4 +284,4 @@ if __name__ == "__main__":
     NORMALS = None
     AREAS = None
     SHOWTIME = None
-    # OUT_ADJACENTS = None
+    OUT_ADJACENTS = None
