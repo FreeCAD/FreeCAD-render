@@ -27,7 +27,7 @@ import os
 import functools
 import itertools
 import operator
-import bisect
+import time
 
 def getfacet(idx):
     """Get a facet from its index in the shared memory."""
@@ -97,6 +97,7 @@ def compute_adjacents(chunk):
 
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
+        tm0 = time.time()
         # For each point, compute facets that contain this point as a vertex
         iterator = (
             (facet_index, point_index)
@@ -110,17 +111,19 @@ def compute_adjacents(chunk):
             facet_index, point_index = new
             FACETS_PER_POINT[point_index].append(facet_index)
         functools.reduce(fpp_reducer, iterator, None)
+        print("Facets per point", time.time() - tm0)
 
-    @functools.lru_cache(128)
+    @functools.lru_cache(stop - start)
     def getfacet_as_set(ifacet):
         return set(getfacet(ifacet))
 
     # Compute adjacency for the chunk
+    get_fpp = functools.partial(operator.getitem, FACETS_PER_POINT)
+    chain = itertools.chain.from_iterable
     iterator = (
         (facet_idx, other_idx)
         for facet_idx, facet in enumerate(map(getfacet_as_set, range(start, stop)))
-        for point_idx in facet
-        for other_idx in FACETS_PER_POINT[point_idx]
+        for other_idx in chain(map(get_fpp, facet))
         if len(facet & getfacet_as_set(other_idx)) == 2
     )
 
@@ -132,8 +135,11 @@ def compute_adjacents(chunk):
 
     functools.reduce(reduce_adj, iterator, None)
 
+
     # Write shared
     SHARED_ADJACENCY_LEN[start:stop] = list(map(len, adjacents))
+
+    # assert all(a <= 3 for a in SHARED_ADJACENCY_LEN)
 
     SHARED_ADJACENCY[start * 3: stop * 3] = [
         a
@@ -254,7 +260,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
             "adjacency": ctx.RawArray("q", len(facets) * 3),  # max 3 adjacents/facet
-            "adjacency_len": ctx.RawArray("c", len(facets)),
+            "adjacency_len": ctx.RawArray("i", len(facets)),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
