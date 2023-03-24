@@ -29,12 +29,15 @@ import itertools
 import operator
 import time
 
+
 def getfacet(idx):
     """Get a facet from its index in the shared memory."""
     idx *= 3
     return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
+
 # *****************************************************************************
+
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
@@ -48,16 +51,19 @@ def compute_adjacents(chunk):
         iterator = (
             (facet_index, point_index)
             for facet_index in range(count_facets)
-            for point_index in SHARED_FACETS[facet_index * 3: (facet_index + 1) * 3]
+            for point_index in SHARED_FACETS[
+                facet_index * 3 : (facet_index + 1) * 3
+            ]
         )
 
         count_points = len(SHARED_POINTS) // 3
         FACETS_PER_POINT = [[] for _ in range(count_points)]
+
         def fpp_reducer(_, new):
             facet_index, point_index = new
             FACETS_PER_POINT[point_index].append(facet_index)
+
         functools.reduce(fpp_reducer, iterator, None)
-        print("Facets per point", time.time() - tm0)
 
     @functools.lru_cache(stop - start)
     def getfacet_as_set(ifacet):
@@ -68,20 +74,24 @@ def compute_adjacents(chunk):
     chain = itertools.chain.from_iterable
     iterator = (
         (facet_idx, other_idx)
-        for facet_idx, facet in enumerate(map(getfacet_as_set, range(start, stop)))
+        for facet_idx, facet in enumerate(
+            map(getfacet_as_set, range(start, stop))
+        )
         for other_idx in chain(map(get_fpp, facet))
         if len(facet & getfacet_as_set(other_idx)) == 2
     )
 
     adjacents = [set() for _ in range(stop - start)]
 
+    add = set.add
+    get_adj = functools.partial(operator.getitem, adjacents)
     def reduce_adj(_, new):
         facet_index, other_index = new
-        adjacents[facet_index].add(other_index)
+        add(get_adj(facet_index), other_index)
 
     functools.reduce(reduce_adj, iterator, None)
 
-    SHARED_ADJACENCY[start * 3: stop * 3] = [
+    SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
         for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
@@ -114,6 +124,7 @@ def init(shared):
 
 
 # *****************************************************************************
+
 
 def main(python, points, facets, normals, areas, showtime, out_adjacents):
     """Entry point for __main__.
@@ -196,8 +207,9 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
-            "adjacency": ctx.RawArray("l", len(facets) * 3),  # max 3 adjacents/facet
-            "adjacency_len": ctx.RawArray("b", len(facets)),
+            "adjacency": ctx.RawArray(
+                "l", len(facets) * 3
+            ),  # max 3 adjacents/facet
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -217,6 +229,7 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
+
 
 # *****************************************************************************
 
