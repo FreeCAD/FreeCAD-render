@@ -36,60 +36,6 @@ def getfacet(idx):
 
 # *****************************************************************************
 
-def compute_points_facets(chunk):
-    """Writes all pairs (point, facet) to shared.
-
-    Edge is a tuple of two vertices.
-    """
-    start, stop = chunk
-    # We store (point, facet) in the same quad int (8 bytes)
-    points_facets = (
-        ipoint << 32 | ifacet
-        for ifacet in range(start, stop)
-        for ipoint in getfacet(ifacet)
-    )
-    SHARED_POINTS_FACETS[start * 3: stop * 3] = list(points_facets)
-
-# @functools.lru_cache(128)  TODO
-def get_facets_from_point(ipoint):
-    """Get the facets which a given point belongs to."""
-    # Find first candidate
-    first = bisect.bisect_left(SHARED_POINTS_FACETS, ipoint << 32)
-
-    # Get others
-    facets = set(
-            x & 0xffffffff for x in itertools.takewhile(lambda x: x >> 32 == ipoint, SHARED_POINTS_FACETS[first::])
-    )
-    return facets
-
-
-def compute_adjacents_old(chunk):
-    """Compute adjacency lists for a chunk of facets."""
-    start, stop = chunk
-
-    # Facets per point
-    facets = [set(getfacet(i)) for i in range(start, stop)]
-    iterator = (
-        (facet_idx, other_idx)
-        for facet_idx, facet in enumerate(facets, start=start)
-        for point_idx in facet
-        for other_idx in get_facets_from_point(point_idx)
-        if len(facet & set(getfacet(other_idx))) == 2
-    )
-
-    adjacents = [set() for _ in range(start, stop)]
-
-    def reduce_adj(_, new):
-        facet_index, other_index = new
-        # assert 0 <= facet_index - start < stop - start  # TODO
-        adjacents[facet_index - start].add(other_index)
-
-    functools.reduce(reduce_adj, iterator, None)
-
-    return adjacents
-
-
-
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
     start, stop = chunk
@@ -250,7 +196,7 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
             "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
             "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
             "areas": ctx.RawArray("f", areas),
-            "adjacency": ctx.RawArray("q", len(facets) * 3),  # max 3 adjacents/facet
+            "adjacency": ctx.RawArray("l", len(facets) * 3),  # max 3 adjacents/facet
             "adjacency_len": ctx.RawArray("b", len(facets)),
         }
         tick("prepare shared")
