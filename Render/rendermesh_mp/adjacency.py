@@ -212,10 +212,11 @@ def connected_components(chunk):
 
     SHARED_TAGS[start:stop] = tags
 
+    # TODO
     # Reset unnecessary adj
-    for i in range(start,stop):
-        if start <= SHARED_ADJACENCY[i] < stop:
-            SHARED_ADJACENCY[i] = -1
+    # for i in range(start,stop):
+    # if start <= SHARED_ADJACENCY[i] < stop:
+    # SHARED_ADJACENCY[i] = -1
     # print("tag ", tag - start)  # Debug
 
 
@@ -368,13 +369,25 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
             l3size = l3struct.size
             l3unpack_from = l3struct.unpack_from
 
-            for ifacet, tag in enumerate(tags):
-                subcomponents[tag].append(ifacet)
-                subadjacency[tag].extend(
-                    tags[ifacet2]
-                    for ifacet2 in l3unpack_from(adjacency, ifacet * l3size)
-                    if ifacet2 >= 0
+            iterator = (
+                (
+                    subcomponents[tag],
+                    ifacet,
+                    subadjacency[tag],
+                    [
+                        tags[ifacet2]
+                        for ifacet2 in l3unpack_from(
+                            adjacency, ifacet * l3size
+                        )
+                        if ifacet2 >= 0
+                    ],
                 )
+                for ifacet, tag in enumerate(tags)
+            )
+
+            for subcomp, ifacet, subadj, subtags in iterator:
+                subcomp.append(ifacet)
+                subadj.extend(subtags)
 
             tick("connected components (reduce)")
             print(
