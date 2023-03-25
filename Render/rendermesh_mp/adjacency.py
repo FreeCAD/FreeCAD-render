@@ -211,6 +211,11 @@ def connected_components(chunk):
         )
 
     SHARED_TAGS[start:stop] = tags
+
+    # Reset unnecessary adj
+    for i in range(start,stop):
+        if start <= SHARED_ADJACENCY[i] < stop:
+            SHARED_ADJACENCY[i] = -1
     # print("tag ", tag - start)  # Debug
 
 
