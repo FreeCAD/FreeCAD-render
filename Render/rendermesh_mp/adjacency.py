@@ -179,6 +179,23 @@ def _connected_facets(
     return tags
 
 
+def _connected_components(adjacents, offset=0):
+    tags = [None] * len(adjacents)
+    tag = None
+
+    iterator = zip(
+        itertools.count(offset), (x for x, y in enumerate(tags) if y is None)
+    )
+    for tag, starting_point in iterator:
+        tags = _connected_facets(
+            starting_point,
+            adjacents,
+            tags,
+            tag,
+        )
+    return tags
+
+
 def connected_components(chunk):
     """Get all connected components of facets in the mesh."""
     start, stop = chunk
@@ -196,19 +213,7 @@ def connected_components(chunk):
         for ifacet in range(start, stop)
     ]
 
-    tags = [None] * (stop - start)
-    tag = None
-
-    iterator = zip(
-        itertools.count(start), (x for x, y in enumerate(tags) if y is None)
-    )
-    for tag, starting_point in iterator:
-        tags = _connected_facets(
-            starting_point,
-            adjacents,
-            tags,
-            tag,
-        )
+    tags = _connected_components(adjacents, offset=start)
 
     SHARED_TAGS[start:stop] = tags
 
@@ -393,6 +398,8 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
             print(
                 f"{len(subcomponents)} subcomponents, {len(subadjacency)} adjacent lists"
             )
+
+
 
     finally:
         os.chdir(save_dir)
