@@ -43,8 +43,6 @@ def getfacet(idx):
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
-    gc.disable()  # Suspend garbage collector (faster)
-
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
@@ -97,14 +95,14 @@ def compute_adjacents(chunk):
         for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
     ]
 
-    gc.enable()
-
 
 # *****************************************************************************
 
 
 def init(shared):
     """Initialize pool of processes."""
+    gc.disable()
+
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     SHARED_POINTS = shared["points"]
