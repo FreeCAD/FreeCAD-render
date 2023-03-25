@@ -28,6 +28,7 @@ import functools
 import itertools
 import operator
 import time
+import struct
 
 
 def getfacet(idx):
@@ -43,26 +44,25 @@ def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
+    count_points = len(SHARED_POINTS) // 3
 
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
         # For each point, compute facets that contain this point as a vertex
+        FACETS_PER_POINT = [[] for _ in range(count_points)]
+        l3struct = struct.Struct("lll")
+        l3size = l3struct.size
+        l3unpack_from = l3struct.unpack_from
+
         iterator = (
-            (facet_index, point_index)
+            (FACETS_PER_POINT[point_index], facet_index)
             for facet_index in range(count_facets)
-            for point_index in SHARED_FACETS[
-                facet_index * 3 : (facet_index + 1) * 3
-            ]
+            for point_index in l3unpack_from(SHARED_FACETS, facet_index * l3size)
         )
 
-        count_points = len(SHARED_POINTS) // 3
-        FACETS_PER_POINT = [[] for _ in range(count_points)]
+        append = list.append
+        any(itertools.starmap(append, iterator))  # Sorry, we use side effect (faster)...
 
-        def fpp_reducer(_, new):
-            facet_index, point_index = new
-            FACETS_PER_POINT[point_index].append(facet_index)
-
-        functools.reduce(fpp_reducer, iterator, None)
 
     @functools.lru_cache(stop - start)
     def getfacet_as_set(ifacet):
