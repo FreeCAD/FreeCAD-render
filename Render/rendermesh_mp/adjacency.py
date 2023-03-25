@@ -46,7 +46,6 @@ def compute_adjacents(chunk):
 
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
-        tm0 = time.time()
         # For each point, compute facets that contain this point as a vertex
         iterator = (
             (facet_index, point_index)
@@ -70,26 +69,21 @@ def compute_adjacents(chunk):
         return set(getfacet(ifacet))
 
     # Compute adjacency for the chunk
-    get_fpp = functools.partial(operator.getitem, FACETS_PER_POINT)
     chain = itertools.chain.from_iterable
     iterator = (
-        (facet_idx, other_idx)
+        (adjacents[facet_idx], other_idx)
         for facet_idx, facet in enumerate(
             map(getfacet_as_set, range(start, stop))
         )
-        for other_idx in chain(map(get_fpp, facet))
+        for other_idx in chain(FACETS_PER_POINT[p] for p in facet)
         if len(facet & getfacet_as_set(other_idx)) == 2
     )
 
     adjacents = [set() for _ in range(stop - start)]
 
     add = set.add
-    get_adj = functools.partial(operator.getitem, adjacents)
-    def reduce_adj(_, new):
-        facet_index, other_index = new
-        add(get_adj(facet_index), other_index)
+    any(itertools.starmap(add, iterator))  # Sorry, we use side effect...
 
-    functools.reduce(reduce_adj, iterator, None)
 
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
