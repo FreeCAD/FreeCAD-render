@@ -29,6 +29,7 @@ import itertools
 import operator
 import time
 import struct
+import gc
 
 
 def getfacet(idx):
@@ -42,6 +43,8 @@ def getfacet(idx):
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
+    gc.disable()  # Suspend garbage collector (faster)
+
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
@@ -94,6 +97,7 @@ def compute_adjacents(chunk):
         for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
     ]
 
+    gc.enable()
 
 
 # *****************************************************************************
