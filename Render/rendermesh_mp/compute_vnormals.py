@@ -25,6 +25,7 @@
 import sys
 import os
 import struct
+import gc
 
 try:
     import numpy as np
@@ -76,6 +77,7 @@ def getarea(idx):
 
 def compute_weighted_normals(chunk):
     """Compute weighted normals for each point."""
+    gc.disable()
     start, stop = chunk
 
     it_facets = (
@@ -92,25 +94,29 @@ def compute_weighted_normals(chunk):
         for facet, normal, area, angles in it_facets
         for point_index, angle in zip(facet, angles)
     )
+    gc.enable()
     return normals
 
 
 # *****************************************************************************
 
 def normalize(chunk):
+    """Normalize normal vectors"""
+    gc.disable()
     start, stop = chunk
 
     fmt = "fff"
-    itemsize = struct.calcsize(fmt)
+    f3struct = struct.Struct(fmt)
+    f3pack = f3struct.pack
+    f3iter_unpack = f3struct.iter_unpack
+    f3itemsize = struct.calcsize(fmt)
 
-    vnormals = memoryview(SHARED_VNORMALS).cast("b")[start * itemsize: stop * itemsize]
+    vnormals = memoryview(SHARED_VNORMALS).cast("b")[start * f3itemsize: stop * f3itemsize]
 
-    result = b"".join(
-        struct.pack(fmt, *safe_normalize(v))
-        for v in struct.iter_unpack(fmt, vnormals)
-    )
+    result = b"".join(f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals))
 
     vnormals[::] = memoryview(result).cast("b")
+    gc.enable()
 
 
 
