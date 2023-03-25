@@ -179,12 +179,14 @@ def _connected_facets(
     return tags
 
 
-def _connected_components(adjacents, offset=0):
-    tags = [None] * len(adjacents)
+def connected_components(adjacents, offset=0, node_ids=None):
+    node_ids = node_ids or range(len(adjacents))
+    tags = {i:None for i in node_ids}
+    print("tags len", len(tags))
     tag = None
 
     iterator = zip(
-        itertools.count(offset), (x for x, y in enumerate(tags) if y is None)
+        itertools.count(offset), (x for x, y in tags.items() if y is None)
     )
     for tag, starting_point in iterator:
         tags = _connected_facets(
@@ -196,8 +198,8 @@ def _connected_components(adjacents, offset=0):
     return tags
 
 
-def connected_components(chunk):
-    """Get all connected components of facets in the mesh."""
+def connected_components_chunk(chunk):
+    """Get all connected components of facets in a submesh."""
     start, stop = chunk
 
     l3struct = struct.Struct("lll")
@@ -213,9 +215,9 @@ def connected_components(chunk):
         for ifacet in range(start, stop)
     ]
 
-    tags = _connected_components(adjacents, offset=start)
+    tags = connected_components(adjacents, offset=start)
 
-    SHARED_TAGS[start:stop] = tags
+    SHARED_TAGS[start:stop] = list(tags.values())
 
     # TODO
     # Reset unnecessary adj
@@ -223,6 +225,7 @@ def connected_components(chunk):
     # if start <= SHARED_ADJACENCY[i] < stop:
     # SHARED_ADJACENCY[i] = -1
     # print("tag ", tag - start)  # Debug
+
 
 
 # *****************************************************************************
@@ -360,7 +363,7 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
 
             # Compute connected components
             chunks = make_chunks(len(facets) // nproc, len(facets))
-            run_unordered(pool, connected_components, chunks)
+            run_unordered(pool, connected_components_chunk, chunks)
 
             tick("connected components (map)")
 
@@ -376,28 +379,33 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
 
             iterator = (
                 (
-                    subcomponents[tag],
+                    tag,
                     ifacet,
-                    subadjacency[tag],
                     [
                         tags[ifacet2]
                         for ifacet2 in l3unpack_from(
                             adjacency, ifacet * l3size
                         )
-                        if ifacet2 >= 0
+                        if ifacet2 >= 0 and tags[ifacet2] != tag
                     ],
                 )
                 for ifacet, tag in enumerate(tags)
             )
 
-            for subcomp, ifacet, subadj, subtags in iterator:
-                subcomp.append(ifacet)
-                subadj.extend(subtags)
+            for tag, ifacet, subtags in iterator:
+                subcomponents[tag].append(ifacet)
+                subadjacency[tag].extend(subtags)
 
             tick("connected components (reduce)")
-            print(
-                f"{len(subcomponents)} subcomponents, {len(subadjacency)} adjacent lists"
-            )
+
+            final_tags = connected_components(subadjacency, node_ids=subadjacency.keys())
+            tick("connected components (subadj)")
+
+            # Update tags
+            for i in range(len(tags)):
+                tags[i] = final_tags[tags[i]]
+            tick("Updated tags (subadj)")
+
 
 
 
