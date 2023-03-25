@@ -46,6 +46,10 @@ def compute_adjacents(chunk):
     count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
 
+    l3struct = struct.Struct("lll")
+    l3size = l3struct.size
+    l3unpack_from = l3struct.unpack_from
+
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
         # For each point, compute facets that contain this point as a vertex
@@ -63,10 +67,9 @@ def compute_adjacents(chunk):
         append = list.append
         any(itertools.starmap(append, iterator))  # Sorry, we use side effect (faster)...
 
-
     @functools.lru_cache(stop - start)
     def getfacet_as_set(ifacet):
-        return set(getfacet(ifacet))
+        return set(l3unpack_from(SHARED_FACETS, ifacet * l3size))
 
     # Compute adjacency for the chunk
     chain = itertools.chain.from_iterable
@@ -82,7 +85,7 @@ def compute_adjacents(chunk):
     adjacents = [set() for _ in range(stop - start)]
 
     add = set.add
-    any(itertools.starmap(add, iterator))  # Sorry, we use side effect...
+    any(itertools.starmap(add, iterator))  # Sorry, we use side effect (faster)...
 
 
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
@@ -90,6 +93,7 @@ def compute_adjacents(chunk):
         for adj in adjacents
         for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
     ]
+
 
 
 # *****************************************************************************
