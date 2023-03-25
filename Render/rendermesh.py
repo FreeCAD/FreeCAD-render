@@ -1640,6 +1640,8 @@ class RenderMesh:
         """
         tags, _ = self.connected_components(split_angle)
 
+        print("unique tags", len(set(tags)))  # TODO
+
         points = self.__points
         facets = self.__facets
 
