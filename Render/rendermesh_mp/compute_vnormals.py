@@ -77,7 +77,6 @@ def getarea(idx):
 
 def compute_weighted_normals(chunk):
     """Compute weighted normals for each point."""
-    gc.disable()
     start, stop = chunk
 
     it_facets = (
@@ -94,7 +93,6 @@ def compute_weighted_normals(chunk):
         for facet, normal, area, angles in it_facets
         for point_index, angle in zip(facet, angles)
     )
-    gc.enable()
     return normals
 
 
@@ -102,7 +100,6 @@ def compute_weighted_normals(chunk):
 
 def normalize(chunk):
     """Normalize normal vectors"""
-    gc.disable()
     start, stop = chunk
 
     fmt = "fff"
@@ -116,7 +113,6 @@ def normalize(chunk):
     result = b"".join(f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals))
 
     vnormals[::] = memoryview(result).cast("b")
-    gc.enable()
 
 
 
@@ -125,6 +121,8 @@ def normalize(chunk):
 
 def init(shared):
     """Initialize pool of processes."""
+    gc.disable()
+
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     SHARED_POINTS = shared["points"]
