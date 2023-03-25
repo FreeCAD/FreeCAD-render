@@ -161,25 +161,16 @@ def _connected_facets(
     while stack:
         # Current index (stack top)
         current_index = stack[-1]
-        current_normal = normals[current_index]
 
         # Forward
         while adjacents[current_index]:
             successor_index = adjacents[current_index].pop()
-
-            # Test angle
-            try:
-                successor_normal = normals[successor_index]
-            except IndexError:
-                # Facet.NeighbourIndices can contain irrelevant index...
-                continue
 
             if tags[successor_index] is None:
                 # successor is not tagged, we can go on forward
                 tags[successor_index] = new_tag
                 stack.append(successor_index)
                 current_index = successor_index
-                current_normal = normals[current_index]
 
         # Backward
         successor_index = stack.pop()
