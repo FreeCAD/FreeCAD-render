@@ -43,6 +43,7 @@ def getfacet(idx):
     idx *= 3
     return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
+
 def getnormal(idx):
     """Get a normal from its index in the shared memory."""
     idx *= 3
@@ -58,9 +59,14 @@ def getnormal(idx):
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
+    # Init
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
+
+    split_angle = radians(30)  # TODO
+    split_angle_cos = cos(split_angle)
+    dot = vector3d.dot
 
     l3struct = struct.Struct("lll")
     l3size = l3struct.size
@@ -92,6 +98,7 @@ def compute_adjacents(chunk):
         return set(l3unpack_from(SHARED_FACETS, ifacet * l3size))
 
     # Compute adjacency for the chunk
+    # Warning: facet_idx in [0, stop - start], other_idx in [0, count_facets]
     chain = itertools.chain.from_iterable
     iterator = (
         (adjacents[facet_idx], other_idx)
@@ -100,6 +107,8 @@ def compute_adjacents(chunk):
         )
         for other_idx in chain(FACETS_PER_POINT[p] for p in facet)
         if len(facet & getfacet_as_set(other_idx)) == 2
+        and dot(getnormal(facet_idx + start), getnormal(other_idx))
+        >= split_angle_cos
     )
 
     adjacents = [set() for _ in range(stop - start)]
@@ -122,10 +131,8 @@ def compute_adjacents(chunk):
 def _connected_facets(
     starting_facet_index,
     adjacents,
-    normals,
     tags,
     new_tag,
-    split_angle_cos,
 ):
     """Get the maximal connected component containing the starting facet.
 
@@ -140,16 +147,11 @@ def _connected_facets(
         tags -- the tags that have already been set (list, same size as
             self.__facets)
         new_tag -- the tag to use to mark the component
-        split_angle_cos -- the cos of the angle that breaks adjacency
 
     Returns:
         A list of tags (same size as self.__facets). The elements tagged
         with 'new_tag' are the computed connected component.
     """
-    # Init
-    split_angle_cos = float(split_angle_cos)
-    dot = vector3d.dot
-
     # Create and init stack
     stack = [starting_facet_index]
 
@@ -172,9 +174,6 @@ def _connected_facets(
                 # Facet.NeighbourIndices can contain irrelevant index...
                 continue
 
-            if dot(current_normal, successor_normal) < split_angle_cos:
-                continue
-
             if tags[successor_index] is None:
                 # successor is not tagged, we can go on forward
                 tags[successor_index] = new_tag
@@ -190,19 +189,8 @@ def _connected_facets(
 
 
 def connected_components(chunk):
-    """Get all connected components of facets in the mesh.
-
-    Args:
-        split_angle -- the angle that breaks adjacency
-
-    Returns:
-        a list of tags. Each tag gives the component of the corresponding
-            facet
-        the number of components
-    """
+    """Get all connected components of facets in the mesh."""
     start, stop = chunk
-    split_angle = radians(30)  # TODO
-    split_angle_cos = cos(split_angle)
 
     l3struct = struct.Struct("lll")
     l3size = l3struct.size
@@ -216,15 +204,19 @@ def connected_components(chunk):
         ]
         for ifacet in range(start, stop)
     ]
-    normals = [getnormal(i) for i in range(start, stop)]
 
     tags = [None] * (stop - start)
     tag = None
 
-    iterator = zip(itertools.count(start), (x for x, y in enumerate(tags) if y is None))
+    iterator = zip(
+        itertools.count(start), (x for x, y in enumerate(tags) if y is None)
+    )
     for tag, starting_point in iterator:
         tags = _connected_facets(
-            starting_point, adjacents, normals, tags, tag, split_angle_cos
+            starting_point,
+            adjacents,
+            tags,
+            tag,
         )
 
     SHARED_TAGS[start:stop] = tags
@@ -259,6 +251,7 @@ def init(shared):
 
     global SHARED_TAGS
     SHARED_TAGS = shared["tags"]
+
 
 # *****************************************************************************
 
@@ -346,7 +339,7 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
             "areas": ctx.RawArray("f", areas),
             # max 3 adjacents/facet
             "adjacency": ctx.RawArray("l", len(facets) * 3),
-            "tags": ctx.RawArray("l", len(facets))
+            "tags": ctx.RawArray("l", len(facets)),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -388,9 +381,9 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
                 )
 
             tick("connected components (reduce)")
-            print(f"{len(subcomponents)} subcomponents, {len(subadjacency)} adjacent lists")
-
-
+            print(
+                f"{len(subcomponents)} subcomponents, {len(subadjacency)} adjacent lists"
+            )
 
     finally:
         os.chdir(save_dir)
