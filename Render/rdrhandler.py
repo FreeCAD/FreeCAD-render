@@ -46,6 +46,7 @@ import traceback
 import enum
 from importlib import import_module
 from types import SimpleNamespace
+import time
 
 import cProfile
 import pstats
@@ -446,6 +447,10 @@ class RendererHandler:
                     skip_meshing=self.skip_meshing,
                 )
 
+            # Log
+            debug("Object", view.Source.Label, "Begin meshing")
+            tm0 = time.time()
+
             # Standard case
             if is_already_a_mesh:
                 mesh = shape.Mesh.copy()
@@ -474,6 +479,12 @@ class RendererHandler:
                 relative_path=True,
                 skip_meshing=self.skip_meshing,
             )
+
+            duration = time.time() - tm0
+            msg = f"End meshing ({duration}s)"
+            debug("Object", view.Source.Label, msg)
+            if debug_flag:
+                print(msg)
 
             return mesh
 

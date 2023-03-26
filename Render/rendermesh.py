@@ -1644,7 +1644,6 @@ class RenderMesh:
                 facet
             the number of components
         """
-        # TODO Use split_angle
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
 
