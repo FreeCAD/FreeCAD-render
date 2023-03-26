@@ -64,7 +64,7 @@ def compute_adjacents(chunk):
     count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
 
-    split_angle = radians(30)  # TODO
+    split_angle = SHARED_SPLIT_ANGLE.value
     split_angle_cos = cos(split_angle)
     dot = vector3d.dot
 
@@ -247,6 +247,9 @@ def init(shared):
     global SHARED_AREAS
     SHARED_AREAS = shared["areas"]
 
+    global SHARED_SPLIT_ANGLE
+    SHARED_SPLIT_ANGLE = shared["split_angle"]
+
     global FACETS_PER_POINT
     FACETS_PER_POINT = None
 
@@ -260,7 +263,7 @@ def init(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, showtime, out_tags):
+def main(python, points, facets, normals, areas, split_angle, showtime, out_tags):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -344,6 +347,7 @@ def main(python, points, facets, normals, areas, showtime, out_tags):
             # max 3 adjacents/facet
             "adjacency": ctx.RawArray("l", len(facets) * 3),
             "tags": ctx.RawArray("l", len(facets)),
+            "split_angle": ctx.RawValue("f", split_angle),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -415,7 +419,7 @@ def main(python, points, facets, normals, areas, showtime, out_tags):
 # *****************************************************************************
 
 if __name__ == "__main__":
-    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_TAGS)
+    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
 
     # Clean (remove references to foreign objects)
     PYTHON = None
@@ -423,5 +427,6 @@ if __name__ == "__main__":
     FACETS = None
     NORMALS = None
     AREAS = None
+    SPLIT_ANGLE = None
     SHOWTIME = None
     OUT_TAGS = None
