@@ -1646,7 +1646,7 @@ class RenderMesh:
         """
         # TODO Use split_angle
         # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "adjacency.py")  # TODO
+        path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
 
         # Init output buffer
         tags_buf = bytearray(self.count_facets * struct.calcsize("l"))
@@ -1659,6 +1659,7 @@ class RenderMesh:
                 "FACETS": self.__facets,
                 "NORMALS": self.__normals,
                 "AREAS": self.__areas,
+                "SPLIT_ANGLE": split_angle,
                 "PYTHON": self.python,
                 "SHOWTIME": PARAMS.GetBool("Debug"),
                 "OUT_TAGS": tags_buf,
