@@ -260,7 +260,7 @@ def init(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, showtime, out_adjacents):
+def main(python, points, facets, normals, areas, showtime, out_tags):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -355,11 +355,6 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
 
             tick("adjacency")
 
-            # Update output buffer
-            out_adjacents[::] = shared["adjacency"]
-
-            tick("output buffer")
-
             # Compute connected components
             chunks = make_chunks(len(facets) // nproc, len(facets))
             run_unordered(pool, connected_components_chunk, chunks)
@@ -407,36 +402,9 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
 
             tick("connected components (pass #2 - reduce)")
 
-            # Initialize point map
-            facets = shared["facets"]
-            newpoints = {
-                (point_index, tag): None
-                for ifacet, tag in enumerate(tags)
-                for point_index in l3unpack_from(facets, ifacet * l3size)
-            }
-            # Number newpoint
-            for index, point in enumerate(newpoints):
-                newpoints[point] = index
-            tick(f"point map ({len(newpoints)} points)")
-
-            # Rebuild point list
-            points = shared["points"]
-            f3struct = struct.Struct("fff")
-            f3size = f3struct.size
-            f3unpack_from = f3struct.unpack_from
-
-            [f3unpack_from(points, point_index * f3size) for point_index, tag in newpoints]
-            tick("new points")
-
-            # If necessary, rebuild uvmap
-            # TODO
-
-            # Update point indices in facets
-            [
-                tuple(newpoints[point_index, tag] for point_index in facet)
-                for facet, tag in zip(l3struct.iter_unpack(facets), tags)
-            ]
-            tick("separate components")
+            # Write output buffer
+            out_tags_view = memoryview(out_tags).cast("l")
+            out_tags_view[::] = memoryview(tags).cast("b").cast("l")
 
 
     finally:
@@ -447,7 +415,7 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
 # *****************************************************************************
 
 if __name__ == "__main__":
-    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_ADJACENTS)
+    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_TAGS)
 
     # Clean (remove references to foreign objects)
     PYTHON = None
@@ -456,4 +424,4 @@ if __name__ == "__main__":
     NORMALS = None
     AREAS = None
     SHOWTIME = None
-    OUT_ADJACENTS = None
+    OUT_TAGS = None
