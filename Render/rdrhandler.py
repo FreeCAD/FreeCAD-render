@@ -478,6 +478,7 @@ class RendererHandler:
                 export_directory=self.object_directory,
                 relative_path=True,
                 skip_meshing=self.skip_meshing,
+                name = view.Source.Label
             )
 
             duration = time.time() - tm0

@@ -54,6 +54,7 @@ import Mesh
 
 from Render.constants import PKGDIR, PARAMS
 from Render.rendermesh_mp import vector3d
+from Render.utils import warn
 
 
 # ===========================================================================
@@ -82,6 +83,7 @@ class RenderMesh:
         export_directory=None,
         relative_path=True,
         skip_meshing=False,
+        name="",
     ):
         """Initialize RenderMesh.
 
@@ -117,6 +119,8 @@ class RenderMesh:
         if not mesh:
             raise ValueError()
 
+        self.name = name
+
         # Initialize
         self.__vnormals = []
         self.__uvmap = []
@@ -143,6 +147,15 @@ class RenderMesh:
             if python:
                 self.multiprocessing = True
                 self.python = python
+
+        # Sanity check
+        if not facets:
+            warn("Object", self.name, "Warning - Empty mesh (no facet)")
+            return
+        if mesh.hasNonManifolds():
+            msg = "Warning - Mesh has non-manifolds (removal may occur)"
+            warn("Object", self.name, msg)
+            mesh.removeNonManifolds()
 
         # Uvmap
         if compute_uvmap:
@@ -1287,13 +1300,13 @@ class RenderMesh:
             tm0 = time.time()
 
         # Prepare parameters
-        points = np.array(self.__points)
-        normals = np.array(self.__normals)
-        areas = np.array(self.__areas)
-        facets = np.array(self.__facets)
+        points = np.array(self.__points, dtype="f4")
+        normals = np.array(self.__normals, dtype="f4")
+        areas = np.array(self.__areas, dtype="f4")
+        facets = np.array(self.__facets, dtype="i4")
         triangles = np.take(points, facets, axis=0)
         indices = facets.ravel(order="F")
-        nb_points, _ = points.shape
+        nb_points, *_ = points.shape
 
         if debug:
             print("init", time.time() - tm0)
