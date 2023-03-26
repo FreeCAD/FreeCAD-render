@@ -182,7 +182,6 @@ def _connected_facets(
 def connected_components(adjacents, offset=0, node_ids=None):
     node_ids = node_ids or range(len(adjacents))
     tags = {i:None for i in node_ids}
-    print("tags len", len(tags))
     tag = None
 
     iterator = zip(
@@ -365,7 +364,7 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
             chunks = make_chunks(len(facets) // nproc, len(facets))
             run_unordered(pool, connected_components_chunk, chunks)
 
-            tick("connected components (map)")
+            tick("connected components (pass #1 - map)")
 
             # TODO Isolate in a function
             subcomponents = collections.defaultdict(list)
@@ -396,17 +395,48 @@ def main(python, points, facets, normals, areas, showtime, out_adjacents):
                 subcomponents[tag].append(ifacet)
                 subadjacency[tag].extend(subtags)
 
-            tick("connected components (reduce)")
+            tick("connected components (pass #1 - reduce)")
 
             final_tags = connected_components(subadjacency, node_ids=subadjacency.keys())
-            tick("connected components (subadj)")
+            tick("connected components (pass #2 - map)")
 
-            # Update tags
+            # Update and write tags
             for i in range(len(tags)):
                 tags[i] = final_tags[tags[i]]
-            tick("Updated tags (subadj)")
 
 
+            tick("connected components (pass #2 - reduce)")
+
+            # Initialize point map
+            facets = shared["facets"]
+            newpoints = {
+                (point_index, tag): None
+                for ifacet, tag in enumerate(tags)
+                for point_index in l3unpack_from(facets, ifacet * l3size)
+            }
+            # Number newpoint
+            for index, point in enumerate(newpoints):
+                newpoints[point] = index
+            tick(f"point map ({len(newpoints)} points)")
+
+            # Rebuild point list
+            points = shared["points"]
+            f3struct = struct.Struct("fff")
+            f3size = f3struct.size
+            f3unpack_from = f3struct.unpack_from
+
+            [f3unpack_from(points, point_index * f3size) for point_index, tag in newpoints]
+            tick("new points")
+
+            # If necessary, rebuild uvmap
+            # TODO
+
+            # Update point indices in facets
+            [
+                tuple(newpoints[point_index, tag] for point_index in facet)
+                for facet, tag in zip(l3struct.iter_unpack(facets), tags)
+            ]
+            tick("separate components")
 
 
     finally:
