@@ -24,6 +24,7 @@
 
 import sys
 import os
+import gc
 
 try:
     import numpy as np
@@ -42,9 +43,6 @@ from vector3d import (
     barycenter,
 )
 from vector2d import fdiv as fdiv2
-
-# TODO
-assert sys.version_info >= (3, 8), "MP requires Python 3.8 or higher"
 
 
 # Vocabulary:
@@ -382,6 +380,8 @@ def compute_uvmap_np(chunk):
 
 def init(shared):
     """Initialize pool of processes."""
+    gc.disable()
+
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
     SHARED_POINTS = shared["points"]
@@ -527,6 +527,7 @@ def main(
     nproc = os.cpu_count()
 
     try:
+        gc.disable()
         # Compute facets colors and center of gravity
         shared = {
             "points": ctx.RawArray("f", SharedWrapper(points, 3)),
@@ -590,7 +591,7 @@ def main(
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-        del shared
+        gc.enable()
 
     return colored_points_len
 
@@ -653,10 +654,3 @@ if __name__ == "__main__":
     OUT_FACETS = None
     OUT_UVMAP = None
     BASE_MATRICES = None
-    del PYTHON
-    del POINTS
-    del FACETS
-    del NORMALS
-    del AREAS
-    del SHOWTIME
-    del BASE_MATRICES

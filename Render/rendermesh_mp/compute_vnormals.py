@@ -229,6 +229,8 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
+            gc.disable()
+
             # Compute weighted normals (n per vertex)
             chunks = make_chunks(chunk_size, len(facets))
             data = pool.imap_unordered(compute_weighted_normals, chunks)
@@ -256,7 +258,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-        del shared
+        gc.enable()
 
 
 # *****************************************************************************
