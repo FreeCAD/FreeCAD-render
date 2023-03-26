@@ -121,7 +121,8 @@ def compute_adjacents(chunk):
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
-        for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
+        for a in itertools.islice(itertools.chain(adj, (-1, -1, -1)), 0, 3)
+        # for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
     ]
 
 
