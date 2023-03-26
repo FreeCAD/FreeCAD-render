@@ -1601,8 +1601,10 @@ class RenderMesh:
         # Final
         return tags
 
-    def connected_components(self, split_angle=radians(30)):
+    def _connected_components_sp(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
+
+        Single process version
 
         Args:
             split_angle -- the angle that breaks adjacency
@@ -1627,7 +1629,81 @@ class RenderMesh:
                 starting_point, adjacents, tags, tag, split_angle_cos
             )
 
-        return tags, tag
+        return tags
+
+    def _connected_components_mp(self, split_angle=radians(30)):
+        """Get all connected components of facets in the mesh.
+
+        Multiprocess version
+
+        Args:
+            split_angle -- the angle that breaks adjacency
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        # TODO Use split_angle
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "adjacency.py")  # TODO
+
+        # Init output buffer
+        tags_buf = bytearray(self.count_facets * struct.calcsize("l"))
+
+        # Run
+        res = runpy.run_path(
+            path,
+            init_globals={
+                "POINTS": self.__points,
+                "FACETS": self.__facets,
+                "NORMALS": self.__normals,
+                "AREAS": self.__areas,
+                "PYTHON": self.python,
+                "SHOWTIME": PARAMS.GetBool("Debug"),
+                "OUT_TAGS": tags_buf,
+            },
+            run_name="__main__",
+        )
+
+        # Update properties
+        tags_mv = memoryview(tags_buf).cast("l")
+        tags = tags_mv.tolist()
+        assert len(tags) == self.count_facets
+
+        return tags
+
+    def connected_components(self, split_angle=radians(30)):
+        """Get all connected components of facets in the mesh.
+
+        Single process version
+
+        Args:
+            split_angle -- the angle that breaks adjacency
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        if self.multiprocessing:
+            App.Console.PrintLog(
+                "[Render][Object] Compute connected components (mp)\n"
+            )
+            func = self._connected_components_mp
+        elif USE_NUMPY:
+            App.Console.PrintLog(
+                "[Render][Object] Compute connected components (sp)\n"
+            )
+            func = self._connected_components_sp  # TODO
+        else:
+            App.Console.PrintLog(
+                "[Render][Object] Compute connected components (sp)\n"
+            )
+            func = self._connected_components_sp
+
+        return func(split_angle)
+
 
     def separate_connected_components(self, split_angle=radians(30)):
         """Operate a separation into the mesh between connected components.
@@ -1638,9 +1714,9 @@ class RenderMesh:
             split_angle -- angle threshold, above which 2 adjacents facets
                 are considered as non-connected (in radians)
         """
-        tags, _ = self.connected_components(split_angle)
+        tags = self.connected_components(split_angle)
 
-        print("unique tags", len(set(tags)))  # TODO
+        # print("unique tags", len(set(tags)))  # TODO
 
         points = self.__points
         facets = self.__facets
