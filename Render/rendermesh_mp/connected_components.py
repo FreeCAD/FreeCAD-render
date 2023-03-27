@@ -180,15 +180,19 @@ def _connected_facets(
     return tags
 
 
-def connected_components(adjacents, offset=0, node_ids=None):
-    node_ids = node_ids or range(len(adjacents))
-    tags = {i:None for i in node_ids}
+def connected_components(adjacents, offset=0, shared=None):
+    tags = [None] * len(adjacents)
     tag = None
 
-    iterator = zip(
-        itertools.count(offset), (x for x, y in tags.items() if y is None)
-    )
-    for tag, starting_point in iterator:
+    iterator = (x for x, y in enumerate(tags) if y is None)
+    shared_current_tag = shared["current_tag"] if shared else SHARED_CURRENT_TAG
+
+    for starting_point in iterator:
+
+        with shared_current_tag:
+            tag = shared_current_tag.value
+            shared_current_tag.value += 1
+
         tags = _connected_facets(
             starting_point,
             adjacents,
@@ -217,7 +221,7 @@ def connected_components_chunk(chunk):
 
     tags = connected_components(adjacents, offset=start)
 
-    SHARED_TAGS[start:stop] = list(tags.values())
+    SHARED_TAGS[start:stop] = list(tags)
 
     # TODO
     # Reset unnecessary adj
@@ -259,6 +263,9 @@ def init(shared):
 
     global SHARED_TAGS
     SHARED_TAGS = shared["tags"]
+
+    global SHARED_CURRENT_TAG
+    SHARED_CURRENT_TAG = shared["current_tag"]
 
 
 # *****************************************************************************
@@ -349,6 +356,7 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             "adjacency": ctx.RawArray("l", len(facets) * 3),
             "tags": ctx.RawArray("l", len(facets)),
             "split_angle": ctx.RawValue("f", split_angle),
+            "current_tag": ctx.Value("l", 0),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -366,11 +374,12 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
 
             tick("connected components (pass #1 - map)")
 
-            # TODO Isolate in a function
-            subcomponents = collections.defaultdict(list)
-            subadjacency = collections.defaultdict(list)
             tags = shared["tags"]
             adjacency = shared["adjacency"]
+
+            maxtag = shared["current_tag"].value
+            subcomponents = [[] for i in range(maxtag)]
+            subadjacency = [[] for i in range(maxtag)]
 
             l3struct = struct.Struct("lll")
             l3size = l3struct.size
@@ -397,7 +406,7 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
 
             tick("connected components (pass #1 - reduce)")
 
-            final_tags = connected_components(subadjacency, node_ids=subadjacency.keys())
+            final_tags = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
 
             # Update and write tags
