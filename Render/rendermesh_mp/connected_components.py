@@ -221,14 +221,25 @@ def connected_components_chunk(chunk):
 
     tags = connected_components(adjacents, offset=start)
 
+    # Write tags buffer
     SHARED_TAGS[start:stop] = list(tags)
 
-    # TODO
-    # Reset unnecessary adj
-    # for i in range(start,stop):
-    # if start <= SHARED_ADJACENCY[i] < stop:
-    # SHARED_ADJACENCY[i] = -1
-    # print("tag ", tag - start)  # Debug
+    # Write adjacency buffer
+    adjacents2 = {
+        (SHARED_TAGS[ifacet], f)
+        for ifacet in range(start, stop)
+        for f in l3unpack_from(SHARED_ADJACENCY, ifacet * l3size)
+        if 0 <= f < start or f > stop
+    }
+    adjacents2 = list(itertools.chain.from_iterable(adjacents2))
+
+    shared_current_adj = SHARED_CURRENT_ADJ
+    with shared_current_adj:
+        offset = shared_current_adj.value
+        shared_current_adj.value += len(adjacents2)
+        print(shared_current_adj.value)
+
+    SHARED_ADJACENCY2[offset: offset + len(adjacents2)] = adjacents2
 
 
 
@@ -261,11 +272,17 @@ def init(shared):
     global SHARED_ADJACENCY
     SHARED_ADJACENCY = shared["adjacency"]
 
+    global SHARED_ADJACENCY2
+    SHARED_ADJACENCY2 = shared["adjacency2"]
+
     global SHARED_TAGS
     SHARED_TAGS = shared["tags"]
 
     global SHARED_CURRENT_TAG
     SHARED_CURRENT_TAG = shared["current_tag"]
+
+    global SHARED_CURRENT_ADJ
+    SHARED_CURRENT_ADJ = shared["current_adj"]
 
 
 # *****************************************************************************
@@ -354,9 +371,11 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             "areas": ctx.RawArray("f", areas),
             # max 3 adjacents/facet
             "adjacency": ctx.RawArray("l", len(facets) * 3),
+            "adjacency2": ctx.RawArray("l", len(facets) * 2 * 3),  # 2nd pass
             "tags": ctx.RawArray("l", len(facets)),
             "split_angle": ctx.RawValue("f", split_angle),
             "current_tag": ctx.Value("l", 0),
+            "current_adj": ctx.Value("l", 0),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -381,28 +400,40 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             subcomponents = [[] for i in range(maxtag)]
             subadjacency = [[] for i in range(maxtag)]
 
-            l3struct = struct.Struct("lll")
-            l3size = l3struct.size
-            l3unpack_from = l3struct.unpack_from
+            # l3struct = struct.Struct("lll")
+            # l3size = l3struct.size
+            # l3unpack_from = l3struct.unpack_from
 
-            iterator = (
-                (
-                    tag,
-                    ifacet,
-                    [
-                        tags[ifacet2]
-                        for ifacet2 in l3unpack_from(
-                            adjacency, ifacet * l3size
-                        )
-                        if ifacet2 >= 0 and tags[ifacet2] != tag
-                    ],
-                )
-                for ifacet, tag in enumerate(tags)
-            )
+            # iterator = (
+                # (
+                    # tag,
+                    # ifacet,
+                    # [
+                        # tags[ifacet2]
+                        # for ifacet2 in l3unpack_from(
+                            # adjacency, ifacet * l3size
+                        # )
+                        # if ifacet2 >= 0 and tags[ifacet2] != tag
+                    # ],
+                # )
+                # for ifacet, tag in enumerate(tags)
+            # )
 
-            for tag, ifacet, subtags in iterator:
+            for ifacet, tag in enumerate(tags):
                 subcomponents[tag].append(ifacet)
-                subadjacency[tag].extend(subtags)
+
+            l2struct = struct.Struct("ll")
+            l2size = l2struct.size
+            l2unpack_from = l2struct.unpack_from
+
+            iterator = itertools.takewhile(
+                lambda x: x != (0,0),
+                l2struct.iter_unpack(shared["adjacency2"])
+            )
+            iterator = ((tag, tags[ifacet]) for tag, ifacet in iterator)
+            iterator = ((tag, other_tag) for tag, other_tag in iterator if tag != other_tag)
+            for tag, other_tag in iterator:
+                subadjacency[tag].append(other_tag)
 
             tick("connected components (pass #1 - reduce)")
 
