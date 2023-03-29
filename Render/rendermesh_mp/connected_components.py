@@ -185,10 +185,11 @@ def connected_components(adjacents, offset=0, shared=None):
     tag = None
 
     iterator = (x for x, y in enumerate(tags) if y is None)
-    shared_current_tag = shared["current_tag"] if shared else SHARED_CURRENT_TAG
+    shared_current_tag = (
+        shared["current_tag"] if shared else SHARED_CURRENT_TAG
+    )
 
     for starting_point in iterator:
-
         with shared_current_tag:
             tag = shared_current_tag.value
             shared_current_tag.value += 1
@@ -237,10 +238,8 @@ def connected_components_chunk(chunk):
     with shared_current_adj:
         offset = shared_current_adj.value
         shared_current_adj.value += len(adjacents2)
-        print(shared_current_adj.value)
 
-    SHARED_ADJACENCY2[offset: offset + len(adjacents2)] = adjacents2
-
+    SHARED_ADJACENCY2[offset : offset + len(adjacents2)] = adjacents2
 
 
 # *****************************************************************************
@@ -288,7 +287,9 @@ def init(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, split_angle, showtime, out_tags):
+def main(
+    python, points, facets, normals, areas, split_angle, showtime, out_tags
+):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -393,6 +394,7 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
 
             tick("connected components (pass #1 - map)")
 
+            # Update subcomponents
             tags = shared["tags"]
             adjacency = shared["adjacency"]
 
@@ -400,38 +402,24 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             subcomponents = [[] for i in range(maxtag)]
             subadjacency = [[] for i in range(maxtag)]
 
-            # l3struct = struct.Struct("lll")
-            # l3size = l3struct.size
-            # l3unpack_from = l3struct.unpack_from
-
-            # iterator = (
-                # (
-                    # tag,
-                    # ifacet,
-                    # [
-                        # tags[ifacet2]
-                        # for ifacet2 in l3unpack_from(
-                            # adjacency, ifacet * l3size
-                        # )
-                        # if ifacet2 >= 0 and tags[ifacet2] != tag
-                    # ],
-                # )
-                # for ifacet, tag in enumerate(tags)
-            # )
-
             for ifacet, tag in enumerate(tags):
                 subcomponents[tag].append(ifacet)
 
+            # Update adjacents
             l2struct = struct.Struct("ll")
             l2size = l2struct.size
             l2unpack_from = l2struct.unpack_from
 
             iterator = itertools.takewhile(
-                lambda x: x != (0,0),
-                l2struct.iter_unpack(shared["adjacency2"])
+                lambda x: x != (0, 0),
+                l2struct.iter_unpack(shared["adjacency2"]),
             )
             iterator = ((tag, tags[ifacet]) for tag, ifacet in iterator)
-            iterator = ((tag, other_tag) for tag, other_tag in iterator if tag != other_tag)
+            iterator = (
+                (tag, other_tag)
+                for tag, other_tag in iterator
+                if tag != other_tag
+            )
             for tag, other_tag in iterator:
                 subadjacency[tag].append(other_tag)
 
@@ -444,13 +432,13 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             for i in range(len(tags)):
                 tags[i] = final_tags[tags[i]]
 
-
             tick("connected components (pass #2 - reduce)")
 
             # Write output buffer
             out_tags_view = memoryview(out_tags).cast("l")
             out_tags_view[::] = memoryview(tags).cast("b").cast("l")
 
+            tick("connected components - write outputs")
 
     finally:
         os.chdir(save_dir)
@@ -460,7 +448,9 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
 # *****************************************************************************
 
 if __name__ == "__main__":
-    main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
+    main(
+        PYTHON, POINTS, FACETS, NORMALS, AREAS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS
+    )
 
     # Clean (remove references to foreign objects)
     PYTHON = None
