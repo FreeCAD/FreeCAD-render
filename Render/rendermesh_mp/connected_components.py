@@ -44,6 +44,7 @@ def getfacet(idx):
     return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
 
+@functools.lru_cache(20000)
 def getnormal(idx):
     """Get a normal from its index in the shared memory."""
     idx *= 3
@@ -56,9 +57,18 @@ def getnormal(idx):
 
 # *****************************************************************************
 
+# TODO
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
+    # # TODO
+    # prof = cProfile.Profile()
+    # prof.enable()
     # Init
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
@@ -93,6 +103,7 @@ def compute_adjacents(chunk):
             itertools.starmap(append, iterator)
         )  # Sorry, we use side effect (faster)...
 
+
     @functools.lru_cache(stop - start)
     def getfacet_as_set(ifacet):
         return set(l3unpack_from(SHARED_FACETS, ifacet * l3size))
@@ -124,6 +135,15 @@ def compute_adjacents(chunk):
         for a in itertools.islice(itertools.chain(adj, (-1, -1, -1)), 0, 3)
         # for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
     ]
+
+    # # TODO
+    # prof.disable()
+    # sec = io.StringIO()
+    # sortby = SortKey.CUMULATIVE
+    # pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+    # pstat.print_stats()
+    # lines = sec.getvalue().splitlines()
+    # print("\n".join(lines[:20]))
 
 
 # *****************************************************************************
