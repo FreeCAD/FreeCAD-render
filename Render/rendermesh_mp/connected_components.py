@@ -115,7 +115,7 @@ def compute_adjacents(chunk):
     iterator = (
         (adjacents[facet_idx], other_idx)
         for facet_idx, facet in enumerate(FACETS_AS_SETS[start: stop])
-        for other_idx in chain(FACETS_PER_POINT[p] for p in facet)
+        for other_idx in set(chain(FACETS_PER_POINT[p] for p in facet))
         if len(facet & FACETS_AS_SETS[other_idx]) == 2
         and dot(getnormal(facet_idx + start), getnormal(other_idx))
         >= split_angle_cos
