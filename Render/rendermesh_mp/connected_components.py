@@ -83,20 +83,19 @@ def compute_adjacents(chunk):
     l3unpack_from = l3struct.unpack_from
     l3iter_unpack = l3struct.iter_unpack
 
+    global FACETS_AS_SETS
+    if FACETS_AS_SETS is None:
+        FACETS_AS_SETS = [set(facet) for facet in l3iter_unpack(SHARED_FACETS)]
+
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
         # For each point, compute facets that contain this point as a vertex
         FACETS_PER_POINT = [[] for _ in range(count_points)]
-        l3struct = struct.Struct("lll")
-        l3size = l3struct.size
-        l3unpack_from = l3struct.unpack_from
 
         iterator = (
             (FACETS_PER_POINT[point_index], facet_index)
-            for facet_index in range(count_facets)
-            for point_index in l3unpack_from(
-                SHARED_FACETS, facet_index * l3size
-            )
+            for facet_index, facet in enumerate(l3iter_unpack(SHARED_FACETS))
+            for point_index in facet
         )
 
         append = list.append
@@ -104,17 +103,12 @@ def compute_adjacents(chunk):
             itertools.starmap(append, iterator)
         )  # Sorry, we use side effect (faster)...
 
-    global FACETS_AS_SETS
-    if FACETS_AS_SETS is None:
-        FACETS_AS_SETS = [set(facet) for facet in l3iter_unpack(SHARED_FACETS)]
-
-
     # Compute adjacency for the chunk
     # Warning: facet_idx in [0, stop - start], other_idx in [0, count_facets]
     chain = itertools.chain.from_iterable
     iterator = (
         (adjacents[facet_idx], other_idx)
-        for facet_idx, facet in enumerate(FACETS_AS_SETS[start: stop])
+        for facet_idx, facet in enumerate(FACETS_AS_SETS[start:stop])
         for other_idx in set(chain(FACETS_PER_POINT[p] for p in facet))
         if len(facet & FACETS_AS_SETS[other_idx]) == 2
         and dot(getnormal(facet_idx + start), getnormal(other_idx))
@@ -131,7 +125,9 @@ def compute_adjacents(chunk):
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
-        for a in itertools.islice(itertools.chain(set(adj), (-1, -1, -1)), 0, 3)
+        for a in itertools.islice(
+            itertools.chain(set(adj), (-1, -1, -1)), 0, 3
+        )
     ]
 
     # # TODO
