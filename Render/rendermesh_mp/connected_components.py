@@ -81,6 +81,7 @@ def compute_adjacents(chunk):
     l3struct = struct.Struct("lll")
     l3size = l3struct.size
     l3unpack_from = l3struct.unpack_from
+    l3iter_unpack = l3struct.iter_unpack
 
     global FACETS_PER_POINT
     if FACETS_PER_POINT is None:
@@ -103,28 +104,26 @@ def compute_adjacents(chunk):
             itertools.starmap(append, iterator)
         )  # Sorry, we use side effect (faster)...
 
+    global FACETS_AS_SETS
+    if FACETS_AS_SETS is None:
+        FACETS_AS_SETS = [set(facet) for facet in l3iter_unpack(SHARED_FACETS)]
 
-    @functools.lru_cache(stop - start)
-    def getfacet_as_set(ifacet):
-        return set(l3unpack_from(SHARED_FACETS, ifacet * l3size))
 
     # Compute adjacency for the chunk
     # Warning: facet_idx in [0, stop - start], other_idx in [0, count_facets]
     chain = itertools.chain.from_iterable
     iterator = (
         (adjacents[facet_idx], other_idx)
-        for facet_idx, facet in enumerate(
-            map(getfacet_as_set, range(start, stop))
-        )
+        for facet_idx, facet in enumerate(FACETS_AS_SETS[start: stop])
         for other_idx in chain(FACETS_PER_POINT[p] for p in facet)
-        if len(facet & getfacet_as_set(other_idx)) == 2
+        if len(facet & FACETS_AS_SETS[other_idx]) == 2
         and dot(getnormal(facet_idx + start), getnormal(other_idx))
         >= split_angle_cos
     )
 
-    adjacents = [set() for _ in range(stop - start)]
+    adjacents = [[] for _ in range(stop - start)]
 
-    add = set.add
+    add = list.append
     any(
         itertools.starmap(add, iterator)
     )  # Sorry, we use side effect (faster)...
@@ -132,8 +131,7 @@ def compute_adjacents(chunk):
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
-        for a in itertools.islice(itertools.chain(adj, (-1, -1, -1)), 0, 3)
-        # for a, _ in itertools.zip_longest(adj, range(3), fillvalue=-1)
+        for a in itertools.islice(itertools.chain(set(adj), (-1, -1, -1)), 0, 3)
     ]
 
     # # TODO
@@ -287,6 +285,9 @@ def init(shared):
 
     global FACETS_PER_POINT
     FACETS_PER_POINT = None
+
+    global FACETS_AS_SETS
+    FACETS_AS_SETS = None
 
     global SHARED_ADJACENCY
     SHARED_ADJACENCY = shared["adjacency"]
