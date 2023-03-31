@@ -145,7 +145,6 @@ def compute_adjacents(chunk):
     # lines = sec.getvalue().splitlines()
     # print("\n".join(lines[:20]))
 
-
 # *****************************************************************************
 
 
@@ -401,6 +400,31 @@ def main(
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
+
+            # Compute edges
+            l3struct = struct.Struct("lll")
+            l3iter_unpack = l3struct.iter_unpack
+            l2struct = struct.Struct("ll")
+            l2pack = l2struct.pack
+            qstruct = struct.Struct("q")
+            qunpack = qstruct.unpack
+            edges = (
+                (edge, ifacet)
+                for ifacet, facet in enumerate(l3iter_unpack(shared["facets"]))
+                for edge in itertools.combinations(sorted(facet), 2)
+            )
+            edges_facets = collections.defaultdict(list)
+            for edge, ifacet in edges:
+                edges_facets[edge].append(ifacet)
+            tick("edges facets")
+            iterator = (
+                pair
+                for l in edges_facets.values()
+                for pair in itertools.permutations(l, 2)
+            )
+            print(len(edges_facets))  # TODO
+
+
 
             # Compute adjacency
             chunks = make_chunks(chunk_size, len(facets))
