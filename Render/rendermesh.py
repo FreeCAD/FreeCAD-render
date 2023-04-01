@@ -61,7 +61,7 @@ import Mesh
 
 from Render.constants import PKGDIR, PARAMS
 from Render.rendermesh_mp import vector3d
-from Render.utils import warn
+from Render.utils import warn, debug
 
 
 # ===========================================================================
@@ -159,6 +159,7 @@ class RenderMesh:
         if not facets:
             warn("Object", self.name, "Warning - Empty mesh (no facet)")
             return
+
         if mesh.hasNonManifolds():
             msg = "Warning - Mesh has non-manifolds (removal may occur)"
             warn("Object", self.name, msg)
@@ -166,14 +167,14 @@ class RenderMesh:
 
         # Uvmap
         if compute_uvmap:
-            msg = f"[Render][Object] Uv map '{uvmap_projection}'\n"
-            App.Console.PrintLog(msg)
+            msg = f"Uv map '{uvmap_projection}'\n"
+            debug("Object", self.name, msg)
             self.compute_uvmap(uvmap_projection)
             assert self.has_uvmap()
 
         # Autosmooth
         if autosmooth:
-            App.Console.PrintLog("[Render][Object] Autosmooth\n")
+            debug("Object", self.name, "Autosmooth")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
             self.__autosmooth = True
@@ -426,9 +427,7 @@ class RenderMesh:
         )
 
         tm1 = time.time() - tm0
-        App.Console.PrintLog(
-            f"[Render][OBJ file] Write OBJ file ({mode}): {tm1}\n"
-        )
+        debug("Object", self.name, f"Write OBJ file ({mode}): {tm1}")
 
     def _write_objfile_sp(
         self,
@@ -961,7 +960,7 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
-        App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
+        debug("Object", self.name, f"Uvmap ending: {time.time() - tm0}")
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
@@ -1082,15 +1081,16 @@ class RenderMesh:
         instance)
         """
         if self.multiprocessing:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
+            msg = "Compute uvmap (mp)"
             func = self._compute_uvmap_cube_mp
         elif USE_NUMPY:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (np)\n")
+            msg = "Compute uvmap (np)"
             func = self._compute_uvmap_cube_np
         else:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
+            msg = "Compute uvmap (sp)"
             func = self._compute_uvmap_cube_sp
 
+        debug("Object", self.name, msg)
         func()
         assert self.has_uvmap()
 
@@ -1205,8 +1205,8 @@ class RenderMesh:
 
     def _compute_uvmap_cube_np(self):
         """Compute UV map for cubic case - numpy version."""
-        debug = PARAMS.GetBool("Debug")
-        if debug:
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
             time0 = time.time()
 
         # Set common parameters
@@ -1282,7 +1282,7 @@ class RenderMesh:
         self.__points = new_points.tolist()
         self.__uvmap = uvs.tolist()
 
-        if debug:
+        if debug_flag:
             print("numpy", time.time() - time0)
 
     ##########################################################################
@@ -1292,21 +1292,16 @@ class RenderMesh:
     def compute_vnormals(self):
         """Compute vertex normals - entry point."""
         if self.multiprocessing:
-            App.Console.PrintLog(
-                "[Render][Object] Compute vertex normals (mp)\n"
-            )
+            msg = "Compute vertex normals (mp)"
             func = self._compute_vnormals_mp
         elif USE_NUMPY:
-            App.Console.PrintLog(
-                "[Render][Object] Compute vertex normals (np)\n"
-            )
+            msg = "Compute vertex normals (np)"
             func = self._compute_vnormals_np
         else:
-            App.Console.PrintLog(
-                "[Render][Object] Compute vertex normals (sp)\n"
-            )
+            msg = "Compute vertex normals (sp)"
             func = self._compute_vnormals_sp
 
+        debug("Object", self.name, msg)
         func()
 
     def _compute_vnormals_np(self):
@@ -1314,8 +1309,8 @@ class RenderMesh:
 
         Refresh self._normals. We use an area & angle weighting algorithm."
         """
-        debug = PARAMS.GetBool("Debug")
-        if debug:
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
             print("compute vnormals Numpy")
             tm0 = time.time()
 
@@ -1328,7 +1323,7 @@ class RenderMesh:
         indices = facets.ravel(order="F")
         nb_points, *_ = points.shape
 
-        if debug:
+        if debug_flag:
             print("init", time.time() - tm0)
 
         def _safe_normalize(vect_array):
@@ -1364,7 +1359,7 @@ class RenderMesh:
         # Debug
         # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
         vertex_angles = np.concatenate((angles0, angles1, angles2))
-        if debug:
+        if debug_flag:
             print("angles", time.time() - tm0)
 
         # Compute weighted normals for each vertex of the triangles
@@ -1375,7 +1370,7 @@ class RenderMesh:
         vertex_normals = np.concatenate((normals, normals, normals), axis=0)
         weighted_normals = vertex_normals * weights
 
-        if debug:
+        if debug_flag:
             print("vertex weighted normals", time.time() - tm0)
 
         # Weighted sum of normals
@@ -1390,7 +1385,7 @@ class RenderMesh:
 
         self.__vnormals = point_normals.tolist()
 
-        if debug:
+        if debug_flag:
             print(time.time() - tm0)
 
     def _compute_vnormals_sp(self):
@@ -1656,21 +1651,16 @@ class RenderMesh:
             the number of components
         """
         if self.multiprocessing:
-            App.Console.PrintLog(
-                "[Render][Object] Compute connected components (mp)\n"
-            )
+            msg = "Compute connected components (mp)"
             func = self._connected_components_mp
         elif USE_NUMPY:
-            App.Console.PrintLog(
-                "[Render][Object] Compute connected components (sp)\n"
-            )
+            msg = "Compute connected components (sp)"
             func = self._connected_components_sp  # TODO
         else:
-            App.Console.PrintLog(
-                "[Render][Object] Compute connected components (sp)\n"
-            )
+            msg = "Compute connected components (sp)"
             func = self._connected_components_sp
 
+        debug("Object", self.name, msg)
         return func(split_angle)
 
 
