@@ -1153,42 +1153,55 @@ class RenderMesh:
         points_per_facet = 3
         maxpoints = facets_count * color_count * points_per_facet
 
-        points_buf = bytearray(maxpoints * struct.calcsize("fff"))
-        facets_buf = bytearray(len(facets) * struct.calcsize("lll"))
-        uvmap_buf = bytearray(maxpoints * struct.calcsize("ff"))
+        points_buf = mp.RawArray("f", maxpoints * 3)
+        facets_buf = mp.RawArray("l", len(facets) * 3)
+        uvmap_buf = mp.RawArray("f", maxpoints * 2)
+        point_count = mp.RawValue("l")
 
-        # Run
-        res = runpy.run_path(
-            path,
-            init_globals={
-                "PYTHON": self.python,
-                "POINTS": self.__points,
-                "FACETS": self.__facets,
-                "NORMALS": self.__normals,
-                "AREAS": self.__areas,
-                "SHOWTIME": PARAMS.GetBool("Debug"),
-                "OUT_POINTS": points_buf,
-                "OUT_FACETS": facets_buf,
-                "OUT_UVMAP": uvmap_buf,
-            },
-            run_name="__main__",
-        )
+        # Init script globals
+        init_globals={
+            "PYTHON": self.python,
+            "POINTS": self.__points,
+            "FACETS": self.__facets,
+            "NORMALS": self.__normals,
+            "AREAS": self.__areas,
+            "SHOWTIME": PARAMS.GetBool("Debug"),
+            "OUT_POINTS": points_buf,
+            "OUT_FACETS": facets_buf,
+            "OUT_UVMAP": uvmap_buf,
+            "OUT_POINT_COUNT": point_count,
+        }
 
-        point_count = res["POINT_COUNT"]
+        # Run script
+        self._run_path_in_process(path, init_globals)
 
-        points_mv = memoryview(
-            points_buf[: point_count * struct.calcsize("fff")]
-        )
-        points_mv = points_mv.cast("f", [point_count, 3])
-        self.__points = points_mv.tolist()
+        # TODO
+        def grouper(iterable, n, *, incomplete="strict", fillvalue=None):
+            "Collect data into non-overlapping fixed-length chunks or blocks"
+            # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
+            # grouper('ABCDEFG', 3, incomplete='strict') --> ABC DEF ValueError
+            # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
+            args = [iter(iterable)] * n
+            if incomplete == 'fill':
+                return zip_longest(*args, fillvalue=fillvalue)
+            if incomplete == 'strict':
+                return zip(*args, strict=True)
+            if incomplete == 'ignore':
+                return zip(*args)
+            else:
+                raise ValueError('Expected fill, strict, or ignore')
 
-        facets_mv = memoryview(facets_buf)
-        facets_mv = facets_mv.cast("l", [facets_count, 3])
-        self.__facets = facets_mv.tolist()
+        # Get outputs
+        point_count = point_count.value
 
-        uvmap_mv = memoryview(uvmap_buf[: point_count * struct.calcsize("ff")])
-        uvmap_mv = uvmap_mv.cast("f", [point_count, 2])
-        self.__uvmap = uvmap_mv.tolist()
+        self.__points = list(grouper(points_buf[: point_count * 3], 3))
+        self.__facets = list(grouper(facets_buf, 3))
+        self.__uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
+
+        points_buf = None
+        facets_buf = None
+        uvmap_buf = None
+
 
     def _compute_uvmap_cube_np(self):
         """Compute UV map for cubic case - numpy version."""
