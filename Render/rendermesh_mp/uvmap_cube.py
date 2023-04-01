@@ -578,14 +578,12 @@ def main(
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
             run_unordered(pool, compute_uvmap, chunks)
-            out_uvmap[:colored_points_len] = shared["uvmap"]
+            out_uvmap[:len(shared["uvmap"])] = shared["uvmap"]
             tick("uv map")
 
             # Recompute point list
-            newpoints = [points[i] for i, _ in colored_points]
-            out_points[:colored_points_len] = b"".join(
-                struct.pack("fff", *p) for p in newpoints
-            )
+            newpoints = [coord for i, _ in colored_points for coord in points[i]]
+            out_points[:colored_points_len * 3] = newpoints
             tick("new point list")
 
     finally:
@@ -593,45 +591,14 @@ def main(
         sys.stdin = save_stdin
         gc.enable()
 
-    return colored_points_len
+    OUT_POINT_COUNT.value = colored_points_len
 
 
 # *****************************************************************************
 
 if __name__ == "__main__":
-    # Get variables
     # pylint: disable=used-before-assignment
-    try:
-        PYTHON
-    except NameError:
-        PYTHON = ""
-
-    try:
-        POINTS
-    except NameError:
-        POINTS = []
-
-    try:
-        FACETS
-    except NameError:
-        FACETS = []
-
-    try:
-        NORMALS
-    except NameError:
-        NORMALS = []
-
-    try:
-        AREAS
-    except NameError:
-        AREAS = []
-
-    try:
-        SHOWTIME
-    except NameError:
-        SHOWTIME = False
-
-    POINT_COUNT = main(
+    main(
         PYTHON,
         POINTS,
         FACETS,
