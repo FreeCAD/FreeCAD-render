@@ -41,8 +41,6 @@ import shutil
 import copy
 import struct
 import operator
-import multiprocessing as mp
-mp.set_start_method("spawn")
 
 try:
     import numpy as np
@@ -1666,44 +1664,20 @@ class RenderMesh:
         tags_buf = bytearray(self.count_facets * struct.calcsize("l"))
 
         # Run
-        # res = runpy.run_path(
-            # path,
-            # init_globals={
-                # "POINTS": self.__points,
-                # "FACETS": self.__facets,
-                # "NORMALS": self.__normals,
-                # "AREAS": self.__areas,
-                # "SPLIT_ANGLE": split_angle,
-                # "PYTHON": self.python,
-                # "SHOWTIME": PARAMS.GetBool("Debug"),
-                # "OUT_TAGS": tags_buf,
-            # },
-            # run_name="__main__",
-        # )
-
-        init_globals={
-            "POINTS": self.__points,
-            "FACETS": self.__facets,
-            "NORMALS": self.__normals,
-            "AREAS": self.__areas,
-            "SPLIT_ANGLE": float(split_angle),
-            "PYTHON": self.python,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_TAGS": tags_buf,
-        }
-        args = (path, )
-        kwargs = {"init_globals": init_globals, "run_name": "__main__"}
-
-        mp.set_executable(self.python)
-
-        process = mp.Process(
-            target=runpy.run_path,
-            args=args,
-            kwargs=kwargs,
-            name="render"
+        res = runpy.run_path(
+            path,
+            init_globals={
+                "POINTS": self.__points,
+                "FACETS": self.__facets,
+                "NORMALS": self.__normals,
+                "AREAS": self.__areas,
+                "SPLIT_ANGLE": split_angle,
+                "PYTHON": self.python,
+                "SHOWTIME": PARAMS.GetBool("Debug"),
+                "OUT_TAGS": tags_buf,
+            },
+            run_name="__main__",
         )
-        process.start()
-        process.join()
 
         # Update properties
         tags_mv = memoryview(tags_buf).cast("l")
