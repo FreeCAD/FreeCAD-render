@@ -164,6 +164,7 @@ class RenderMesh:
             msg = "Warning - Mesh has non-manifolds (removal may occur)"
             warn("Object", self.name, msg)
             mesh.removeNonManifolds()
+        print("\n")  # hasNonManifolds message lacks CR
 
         # Uvmap
         if compute_uvmap:
