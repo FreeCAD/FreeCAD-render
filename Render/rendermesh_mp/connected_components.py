@@ -76,7 +76,6 @@ def compute_adjacents(chunk):
 
     split_angle = SHARED_SPLIT_ANGLE.value
     split_angle_cos = cos(split_angle)
-    print("split angle", split_angle, split_angle_cos)  # TODO
     dot = vector3d.dot
 
     l3struct = struct.Struct("lll")
@@ -448,14 +447,10 @@ def main(
 
             # Update and write tags
             for i in range(len(tags)):
-                tags[i] = final_tags[tags[i]]
+                out_tags[i] = final_tags[tags[i]]
 
-            tick("connected components (pass #2 - reduce)")
+            tick("connected components (pass #2 - reduce & write)")
 
-            # Write output buffer
-            out_tags[::] = tags
-
-            tick("connected components - write outputs")
 
     finally:
         os.chdir(save_dir)
