@@ -822,9 +822,6 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    if PARAMS.GetBool("EnableMultiprocessing"):
-        run_concurrent = False  # runpy is not compatible with multithread...
-
     if run_concurrent:
         App.Console.PrintLog(
             "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
