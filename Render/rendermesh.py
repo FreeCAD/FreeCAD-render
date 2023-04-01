@@ -1620,23 +1620,10 @@ class RenderMesh:
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_TAGS": tags_buf,
         }
-        args = (path, )
-        kwargs = {"init_globals": init_globals, "run_name": "__main__"}
-
-        mp.set_executable(self.python)
-
-        process = mp.Process(
-            target=runpy.run_path,
-            args=args,
-            kwargs=kwargs,
-            name="render"
-        )
-        process.start()
-        process.join()
+        self._run_path_in_process(path, init_globals)
 
         # Update properties
         tags = list(tags_buf[::])
-        assert len(tags) == self.count_facets
 
         return tags
 
@@ -1713,6 +1700,30 @@ class RenderMesh:
             tuple(newpoints[point_index, tag] for point_index in facet)
             for facet, tag in zip(facets, tags)
         ]
+
+    def _run_path_in_process(self, path, init_globals):
+        """Run a path in a dedicated process.
+
+        This method is able to launch a multiprocess script, like
+        runpy.run_path. However it solves the lack of thread safety of
+        'runpy.run_path', by embedding run_path in a dedicated process.
+        Please note 'self.python' must have been set. After
+        being started, the process is awaited (joined).
+        """
+        args = (path, )
+        kwargs = {"init_globals": init_globals, "run_name": "__main__"}
+
+        mp.set_executable(self.python)
+
+        process = mp.Process(
+            target=runpy.run_path,
+            args=args,
+            kwargs=kwargs,
+            name="render"
+        )
+        process.start()
+        process.join()
+
 
 
 # ===========================================================================
