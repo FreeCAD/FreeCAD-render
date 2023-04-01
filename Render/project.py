@@ -52,6 +52,7 @@ from Render.utils import (
     fcdcolor2rgba,
 )
 from Render.view import View
+from Render.groundplane import create_groundplane_view
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
 
@@ -271,26 +272,6 @@ class Project(FeatureBase):
                     break
         return bbox
 
-    def write_groundplane(self, renderer):
-        """Generate a ground plane rendering string for the scene.
-
-        Args:
-        ----------
-        renderer -- the renderer handler
-
-        Returns
-        -------
-        The rendering string for the ground plane
-        """
-        bbox = self.get_bounding_box()
-        result = ""
-        if bbox.isValid():
-            zpos = self.fpo.GroundPlaneZ
-            color = fcdcolor2rgba(self.fpo.GroundPlaneColor)
-            factor = self.fpo.GroundPlaneSizeFactor
-            result = renderer.get_groundplane_string(bbox, zpos, color, factor)
-        return result
-
     def add_views(self, objs):
         """Add objects as new views to the project.
 
@@ -460,10 +441,6 @@ class Project(FeatureBase):
         # Get objects rendering strings (including lights, cameras...)
         objstrings = self._get_objstrings(renderer)
 
-        # Add a ground plane if required
-        if getattr(self.fpo, "GroundPlane", False):
-            objstrings.append(self.write_groundplane(renderer))
-
         # Instantiate template: merge all strings (cam, objects, ground
         # plane...) into rendering template
         instantiated = _instantiate_template(template, objstrings, defaultcam)
@@ -574,6 +551,10 @@ class Project(FeatureBase):
             if App.GuiUp
             else self.all_views()
         )
+
+        # Add a ground plane if required
+        if getattr(self.fpo, "GroundPlane", False):
+            views.append(create_groundplane_view(self))
 
         # If DelayedBuild is false, we rely on views' ViewResult precomputed
         # values.
