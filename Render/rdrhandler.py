@@ -27,7 +27,6 @@ RendererHandler is a simplified and unified accessor to renderers plugins.
 Among important things, RendererHandler:
 - allows to get a rendering string for a given object
 - allows to run a renderer onto a scene
-- generates a ground plane on-the-fly, if needed
 
 Caveat about units:
 Please note that RendererHandler converts distance units from FreeCAD internals
@@ -332,57 +331,6 @@ class RendererHandler:
 
         # Fallback/default: render it as an 'object'
         return RendererHandler._render_object(self, name, view)
-
-    def get_groundplane_string(self, bbox, zpos, color, sizefactor):
-        """Get a rendering string for a ground plane.
-
-        The resulting ground plane is a horizontal plane at 'zpos' vertical
-        position.
-        The X and Y coordinates are computed from a scene bounding box.
-
-        Args:
-        bbox -- Bounding box for the scene (FreeCAD.BoundBox)
-        zpos -- Z position of the ground plane (float)
-        color -- Color of the ground plane (rgb tuple)
-
-        Returns:
-        A rendering string
-        """
-        margin = bbox.DiagonalLength / 2 * sizefactor
-        verts2d = (
-            (bbox.XMin - margin, bbox.YMin - margin),
-            (bbox.XMax + margin, bbox.YMin - margin),
-            (bbox.XMax + margin, bbox.YMax + margin),
-            (bbox.XMin - margin, bbox.YMax + margin),
-        )
-        vertices = [
-            App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
-        ]  # Clamp to avoid huge dimensions...
-        mesh = Mesh.Mesh()
-        mesh.addFacet(vertices[0], vertices[1], vertices[2])
-        mesh.addFacet(vertices[0], vertices[2], vertices[3])
-        mesh = RenderMesh(
-            mesh,
-            project_directory=self.project_directory,
-            export_directory=self.object_directory,
-        )
-
-        mat = rendermaterial.get_rendering_material(None, "", color)
-
-        # Rescale to meters
-        mesh.transformation.scale = SCALE
-
-        # Keyword arguments
-        general_data = self._get_general_data()
-        kwargs = {}
-        kwargs.update(general_data)
-
-        # Call to plugin
-        res = self.renderer_module.write_mesh(
-            "ground_plane", mesh, mat, **kwargs
-        )
-
-        return res
 
     def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""

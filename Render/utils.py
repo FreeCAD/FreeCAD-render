@@ -130,6 +130,7 @@ def reload(module_name=None):
             "Render.project",
             "Render.taskpanels",
             "Render.help",
+            "Render.groundplane",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",
