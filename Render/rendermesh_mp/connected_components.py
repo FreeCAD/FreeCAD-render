@@ -31,7 +31,7 @@ import time
 import struct
 import gc
 import collections
-from math import radians, cos
+from math import cos, hypot, isclose
 
 sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
@@ -76,6 +76,7 @@ def compute_adjacents(chunk):
 
     split_angle = SHARED_SPLIT_ANGLE.value
     split_angle_cos = cos(split_angle)
+    print("split angle", split_angle, split_angle_cos)  # TODO
     dot = vector3d.dot
 
     l3struct = struct.Struct("lll")
@@ -452,8 +453,7 @@ def main(
             tick("connected components (pass #2 - reduce)")
 
             # Write output buffer
-            out_tags_view = memoryview(out_tags).cast("l")
-            out_tags_view[::] = memoryview(tags).cast("b").cast("l")
+            out_tags[::] = tags
 
             tick("connected components - write outputs")
 

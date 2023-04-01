@@ -42,7 +42,12 @@ import copy
 import struct
 import operator
 import multiprocessing as mp
-mp.set_start_method("spawn")
+
+try:
+    mp.set_start_method("spawn")
+except RuntimeError:
+    # Already set...
+    pass
 
 try:
     import numpy as np
@@ -1646,13 +1651,13 @@ class RenderMesh:
 
         return tags
 
-    def _connected_components_mp(self, split_angle=radians(30)):
+    def _connected_components_mp(self, split_angle):
         """Get all connected components of facets in the mesh.
 
         Multiprocess version
 
         Args:
-            split_angle -- the angle that breaks adjacency
+            split_angle -- the angle that breaks adjacency (radians)
 
         Returns:
             a list of tags. Each tag gives the component of the corresponding
@@ -1664,6 +1669,7 @@ class RenderMesh:
 
         # Init output buffer
         tags_buf = bytearray(self.count_facets * struct.calcsize("l"))
+        tags_buf = mp.RawArray("l", self.count_facets)
 
         # Run
         # res = runpy.run_path(
@@ -1680,13 +1686,12 @@ class RenderMesh:
             # },
             # run_name="__main__",
         # )
-
         init_globals={
             "POINTS": self.__points,
             "FACETS": self.__facets,
             "NORMALS": self.__normals,
             "AREAS": self.__areas,
-            "SPLIT_ANGLE": float(split_angle),
+            "SPLIT_ANGLE": split_angle,
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_TAGS": tags_buf,
@@ -1706,7 +1711,8 @@ class RenderMesh:
         process.join()
 
         # Update properties
-        tags_mv = memoryview(tags_buf).cast("l")
+        # tags_mv = memoryview(tags_buf).cast("l") # TODO
+        tags_mv = memoryview(tags_buf).cast("b").cast("l")
         tags = tags_mv.tolist()
         assert len(tags) == self.count_facets
 

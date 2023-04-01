@@ -411,7 +411,7 @@ class RendererHandler:
 
         autosmooth = getattr(view, "AutoSmooth", False)
         try:
-            autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
+            autosmooth_angle = float(view.AutoSmoothAngle.getValueAs("rad"))
         except AttributeError:
             autosmooth_angle = 0
 
