@@ -562,17 +562,17 @@ class RenderMesh:
             (self.facets, "f"),
         ]
 
-        # Run
-        runpy.run_path(
-            path,
-            init_globals={
-                "inlist": inlist,
-                "mask": mask,
-                "objfile": objfile,
-                "python": self.python,
-            },
-            run_name="__main__",
-        )
+        # Init script globals
+        init_globals={
+            "inlist": inlist,
+            "mask": mask,
+            "objfile": objfile,
+            "python": self.python,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
+
 
     @staticmethod
     def _write_mtl(name, mtlcontent, mtlfile=None):
@@ -1431,25 +1431,24 @@ class RenderMesh:
         path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
 
         # Init output buffer
-        vnormals_buf = bytearray(self.count_points * struct.calcsize("fff"))
+        vnormals_buf = mp.RawArray("f", self.count_points * 3)
 
-        # Run
-        res = runpy.run_path(
-            path,
-            init_globals={
-                "POINTS": self.__points,
-                "FACETS": self.__facets,
-                "NORMALS": self.__normals,
-                "AREAS": self.__areas,
-                "PYTHON": self.python,
-                "SHOWTIME": PARAMS.GetBool("Debug"),
-                "OUT_VNORMALS": vnormals_buf,
-            },
-            run_name="__main__",
-        )
+        # Init script globals
+        init_globals={
+            "POINTS": self.__points,
+            "FACETS": self.__facets,
+            "NORMALS": self.__normals,
+            "AREAS": self.__areas,
+            "PYTHON": self.python,
+            "SHOWTIME": PARAMS.GetBool("Debug"),
+            "OUT_VNORMALS": vnormals_buf,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
 
         # Update properties
-        vnormals_mv = memoryview(vnormals_buf).cast("f", [self.count_points, 3])
+        vnormals_mv = memoryview(vnormals_buf).cast("b").cast("f", [self.count_points, 3])
         self.__vnormals = vnormals_mv.tolist()
 
     def _adjacent_facets(self):
@@ -1610,6 +1609,7 @@ class RenderMesh:
         # Init output buffer
         tags_buf = mp.RawArray("l", self.count_facets)
 
+        # Init script globals
         init_globals={
             "POINTS": self.__points,
             "FACETS": self.__facets,
@@ -1620,6 +1620,8 @@ class RenderMesh:
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_TAGS": tags_buf,
         }
+
+        # Run script
         self._run_path_in_process(path, init_globals)
 
         # Update properties
