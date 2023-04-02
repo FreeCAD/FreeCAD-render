@@ -233,7 +233,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             "facets": facets,
             "normals": normals,
             "areas": areas,
-            "vnormals": ctx.RawArray("f", len(points)),
+            "vnormals": out_vnormals,
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -262,7 +262,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             tick("normalize")
 
             # Write output buffer
-            out_vnormals[::] = shared["vnormals"]
+            # out_vnormals[::] = shared["vnormals"]
             tick("write buffer")
 
     finally:
