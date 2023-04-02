@@ -61,7 +61,7 @@ import Mesh
 
 from Render.constants import PKGDIR, PARAMS
 from Render.rendermesh_mp import vector3d
-from Render.utils import warn, debug, grouper
+from Render.utils import warn, debug, grouper, SharedWrapper
 
 
 # ===========================================================================
@@ -1425,21 +1425,6 @@ class RenderMesh:
 
         # Init output buffer
         vnormals_buf = mp.RawArray("f", self.count_points * 3)
-
-        # TODO
-        class SharedWrapper:
-            """A wrapper for shared objects containing tuples."""
-
-            def __init__(self, seq, tuple_length):
-                self.seq = seq
-                self.tuple_length = tuple_length
-
-            def __len__(self):
-                return len(self.seq) * self.tuple_length
-
-            def __iter__(self):
-                seq = self.seq
-                return it.chain.from_iterable(seq)
 
         # Init script globals
         init_globals={
