@@ -115,6 +115,16 @@ def normalize(chunk):
     vnormals[::] = memoryview(result).cast("b")
 
 
+def normalize_np(chunk):
+
+    start, stop = chunk
+    vnormals = np.asarray(SHARED_VNORMALS[start*3:stop*3], dtype="f4")
+    vnormals = np.reshape(vnormals,[stop-start, 3])
+
+    magnitudes = np.sqrt((vnormals**2).sum(-1))
+    magnitudes = np.expand_dims(magnitudes, axis=1)
+    vnormals = np.divide(vnormals, magnitudes, where=magnitudes != 0.0)
+
 
 # *****************************************************************************
 
@@ -159,8 +169,8 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
     tm0 = time.time()
     if showtime:
         msg = (
-            f"start vnormal computation: {len(points)} points, "
-            f"{len(facets)} facets"
+            f"start vnormal computation: {len(points) // 3} points, "
+            f"{len(facets) // 3} facets"
         )
         print(msg)
 
@@ -219,11 +229,11 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 
     try:
         shared = {
-            "points": ctx.RawArray("f", SharedWrapper(points, 3)),
-            "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
-            "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
-            "areas": ctx.RawArray("f", areas),
-            "vnormals": ctx.RawArray("f", len(points) * 3)
+            "points": points,
+            "facets": facets,
+            "normals": normals,
+            "areas": areas,
+            "vnormals": ctx.RawArray("f", len(points)),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -232,7 +242,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             gc.disable()
 
             # Compute weighted normals (n per vertex)
-            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(chunk_size, len(facets) // 3)
             data = pool.imap_unordered(compute_weighted_normals, chunks)
 
             # Reduce weighted normals (one per vertex)
@@ -247,8 +257,8 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             tick("reduced weighted normals")
 
             # Normalize
-            chunks = make_chunks(chunk_size, len(points))
-            run_unordered(pool, normalize, chunks)
+            chunks = make_chunks(chunk_size, len(points) // 3)
+            run_unordered(pool, normalize_np, chunks)
             tick("normalize")
 
             # Write output buffer

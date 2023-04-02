@@ -164,7 +164,6 @@ class RenderMesh:
             msg = "Warning - Mesh has non-manifolds (removal may occur)"
             warn("Object", self.name, msg)
             mesh.removeNonManifolds()
-        print("\n")  # hasNonManifolds message lacks CR
 
         # Uvmap
         if compute_uvmap:
@@ -1427,12 +1426,27 @@ class RenderMesh:
         # Init output buffer
         vnormals_buf = mp.RawArray("f", self.count_points * 3)
 
+        # TODO
+        class SharedWrapper:
+            """A wrapper for shared objects containing tuples."""
+
+            def __init__(self, seq, tuple_length):
+                self.seq = seq
+                self.tuple_length = tuple_length
+
+            def __len__(self):
+                return len(self.seq) * self.tuple_length
+
+            def __iter__(self):
+                seq = self.seq
+                return it.chain.from_iterable(seq)
+
         # Init script globals
         init_globals={
-            "POINTS": self.__points,
-            "FACETS": self.__facets,
-            "NORMALS": self.__normals,
-            "AREAS": self.__areas,
+            "POINTS": mp.RawArray("f", SharedWrapper(self.__points, 3)),
+            "FACETS": mp.RawArray("l", SharedWrapper(self.__facets, 3)),
+            "NORMALS": mp.RawArray("f", SharedWrapper(self.__normals, 3)),
+            "AREAS": mp.RawArray("f", self.__areas),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_VNORMALS": vnormals_buf,
