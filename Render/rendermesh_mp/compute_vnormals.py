@@ -198,20 +198,6 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
         for _ in imap:
             pass
 
-    class SharedWrapper:
-        """A wrapper for shared objects containing tuples."""
-
-        def __init__(self, seq, tuple_length):
-            self.seq = seq
-            self.tuple_length = tuple_length
-
-        def __len__(self):
-            return len(self.seq) * self.tuple_length
-
-        def __iter__(self):
-            seq = self.seq
-            return itertools.chain.from_iterable(seq)
-
     # Set working directory
     save_dir = os.getcwd()
     os.chdir(os.path.dirname(__file__))
@@ -258,7 +244,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 
             # Normalize
             chunks = make_chunks(chunk_size, len(points) // 3)
-            run_unordered(pool, normalize_np, chunks)
+            run_unordered(pool, normalize_np if USE_NUMPY else normalize, chunks)
             tick("normalize")
 
             # Write output buffer

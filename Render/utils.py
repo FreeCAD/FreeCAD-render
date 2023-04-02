@@ -280,10 +280,25 @@ def grouper(iterable, number, *, incomplete="strict", fillvalue=None):
     # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
     args = [iter(iterable)] * number
     if incomplete == 'fill':
-        return zip_longest(*args, fillvalue=fillvalue)
+        return itertools.zip_longest(*args, fillvalue=fillvalue)
     if incomplete == 'strict':
         return zip(*args, strict=True)
     if incomplete == 'ignore':
         return zip(*args)
     else:
         raise ValueError('Expected fill, strict, or ignore')
+
+
+class SharedWrapper:
+    """A wrapper for shared objects containing tuples."""
+
+    def __init__(self, seq, tuple_length):
+        self.seq = seq
+        self.tuple_length = tuple_length
+
+    def __len__(self):
+        return len(self.seq) * self.tuple_length
+
+    def __iter__(self):
+        seq = self.seq
+        return itertools.chain.from_iterable(seq)
