@@ -96,6 +96,72 @@ def compute_weighted_normals(chunk):
     return normals
 
 
+def compute_weighted_normals_np(chunk):
+    """Compute weighted normals for each point (numpy version)."""
+    start, stop = chunk
+
+    points = np.asarray(SHARED_POINTS, dtype="f4")
+    points = np.reshape(points, [len(points) // 3, 3])
+
+    facets = np.asarray(SHARED_FACETS, dtype="i4")
+    facets = np.reshape(facets, [len(facets) // 3, 3])
+    facets = facets[start:stop, ...]
+
+    areas = np.asarray(SHARED_AREAS, dtype="f4")
+    areas = areas[start:stop, ...]
+
+    normals = np.asarray(SHARED_NORMALS, dtype="f4")
+    normals = np.reshape(normals, [len(normals) // 3, 3])
+    normals = normals[start:stop, ...]
+
+    triangles = np.take(points, facets, axis=0)
+    indices = facets.ravel(order="F")
+
+    def _safe_normalize(vect_array):
+        """Safely normalize an array of vectors."""
+        magnitudes = np.sqrt((vect_array**2).sum(-1))
+        magnitudes = np.expand_dims(magnitudes, axis=1)
+        return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
+
+    def _angles(i, j, k):
+        """Compute triangle vertex angles."""
+        # Compute normalized vectors
+        vec1 = triangles[::, j, ::] - triangles[::, i, ::]
+        vec1 = _safe_normalize(vec1)
+
+        vec2 = triangles[::, k, ::] - triangles[::, i, ::]
+        vec2 = _safe_normalize(vec2)
+
+        # Compute dot products
+        # (Clip to avoid precision issues)
+        dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
+
+        # Compute arccos of dot products
+        angles = np.arccos(dots)
+        return angles
+
+    # Compute vertex angles
+    # Reminder:
+    # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
+    # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
+    # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
+    angles0 = _angles(0, 1, 2)
+    angles1 = _angles(1, 0, 2)
+    angles2 = np.pi - angles1 - angles0
+    # Debug
+    # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
+    vertex_angles = np.concatenate((angles0, angles1, angles2))
+
+    # Compute weighted normals for each vertex of the triangles
+    vertex_areas = np.concatenate((areas, areas, areas))
+    weights = vertex_areas * vertex_angles
+    weights = np.expand_dims(weights, axis=1)
+
+    vertex_normals = np.concatenate((normals, normals, normals), axis=0)
+    weighted_normals = vertex_normals * weights
+
+    return indices, weighted_normals
+
 # *****************************************************************************
 
 def normalize(chunk):
@@ -229,27 +295,39 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 
             # Compute weighted normals (n per vertex)
             chunks = make_chunks(chunk_size, len(facets) // 3)
-            data = pool.imap_unordered(compute_weighted_normals, chunks)
+            func = compute_weighted_normals_np if USE_NUMPY else compute_weighted_normals
+            data = pool.imap_unordered(func, chunks)
 
             # Reduce weighted normals (one per vertex)
             vnorms = shared["vnormals"]
-            wstruct = struct.Struct("lfff")
-            for chunk in data:
-                for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
-                    offset = point_index * 3
-                    vnorms[offset] += weighted_vnorm[0]
-                    vnorms[offset + 1] += weighted_vnorm[1]
-                    vnorms[offset + 2] += weighted_vnorm[2]
-            tick("reduced weighted normals")
+            if not USE_NUMPY:
+                wstruct = struct.Struct("lfff")
+                for chunk in data:
+                    for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
+                        offset = point_index * 3
+                        vnorms[offset] += weighted_vnorm[0]
+                        vnorms[offset + 1] += weighted_vnorm[1]
+                        vnorms[offset + 2] += weighted_vnorm[2]
+            else:
+                indices, normals = zip(*data)
+                indices = np.concatenate(indices)
+                normals = np.concatenate(normals)
+                normals = np.column_stack(
+                    (
+                        np.bincount(indices, normals[..., 0]),
+                        np.bincount(indices, normals[..., 1]),
+                        np.bincount(indices, normals[..., 2]),
+                    )
+                )
+                vnorms[:normals.size] = list(normals.flat)
+
+            tick("reduce weighted normals")
 
             # Normalize
             chunks = make_chunks(chunk_size, len(points) // 3)
-            run_unordered(pool, normalize_np if USE_NUMPY else normalize, chunks)
+            func = normalize_np if USE_NUMPY else normalize
+            run_unordered(pool, func, chunks)
             tick("normalize")
-
-            # Write output buffer
-            # out_vnormals[::] = shared["vnormals"]
-            tick("write buffer")
 
     finally:
         os.chdir(save_dir)
