@@ -200,6 +200,7 @@ class RendererHandler:
                 or obj.isDerivedFrom("App::Link")
                 or obj.isDerivedFrom("App::Part")
                 or obj.isDerivedFrom("Mesh::Feature")
+                or obj.isDerivedFrom("App::LinkGroup")
                 or (
                     obj.isDerivedFrom("App::FeaturePython")
                     and getproxyattr(obj, "type", "")
