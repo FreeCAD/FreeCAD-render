@@ -92,6 +92,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
     obj_is_app_part = obj.isDerivedFrom("App::Part")
+    obj_is_applinkgroup = obj.isDerivedFrom("App::LinkGroup")
     obj_type = getproxyattr(obj, "Type", "")
 
     mat = (
@@ -116,6 +117,13 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Link (array)
     elif obj_is_applink and obj.ElementCount:
         debug("Object", label, "'Link (array)' detected")
+        renderables = _get_rends_from_elementlist(
+            obj, name, mat, mesher, **kwargs
+        )
+
+    # LinkGroup
+    elif obj_is_applinkgroup:
+        debug("Object", label, "'LinkGroup' detected")
         renderables = _get_rends_from_elementlist(
             obj, name, mat, mesher, **kwargs
         )
@@ -216,18 +224,25 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     elements = itertools.compress(obj.ElementList, obj.VisibilityList)
 
     for element in elements:
-        assert element.isDerivedFrom("App::LinkElement")
+        if element.isDerivedFrom("App::LinkElement"):
+            elem_object = element.LinkedObject
+            elem_placement = element.LinkPlacement
+        else:
+            elem_object = element
+            elem_placement = element.Placement
         elem_name = f"{name}_{element.Name}"
+
+        # Compute rends and placements
         base_rends = get_renderables(
-            element.LinkedObject, elem_name, material, mesher, **kwargs
+            elem_object, elem_name, material, mesher, **kwargs
         )
-        element_plc_matrix = element.LinkPlacement.toMatrix()
+        element_plc_matrix = elem_placement.toMatrix()
         linkedobject_plc_inverse_matrix = (
-            element.LinkedObject.Placement.inverse().toMatrix()
+            elem_object.Placement.inverse().toMatrix()
         )
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
-            if not obj.LinkTransform:
+            if not getattr(obj, "LinkTransform", False):
                 new_mesh.transformation.apply_placement(
                     linkedobject_plc_inverse_matrix
                 )
@@ -247,8 +262,8 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
 
     Parameters:
     obj -- the App::Link object
-    name -- the name assigned to the Link Array object for rendering
-    material -- the material for the Link Array object
+    name -- the name assigned to the Link object for rendering
+    material -- the material for the Link object
     mesher -- a callable object which converts a shape into a mesh
 
     Returns:
