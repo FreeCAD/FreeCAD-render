@@ -1520,44 +1520,48 @@ class RenderMesh:
         # Compute edges (assume triangles)
         facets = np.asarray(self.__facets)
         facets.sort(axis=1)
-        # TODO
+
         indices = np.arange(len(facets))
         indices = np.tile(indices, 3)
-        # indices = np.expand_dims(indices, axis=1)
-        # Facet index is index modulo len(facets)
 
         edges1 = np.rec.fromarrays((facets[..., 0], facets[..., 1]))
         edges2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
         edges3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
         edges = np.concatenate((edges1, edges2, edges3))
 
+        if debug_flag:
+            print("edges", time.time() - tm0)
+
         argsort_edges = edges.argsort()
         sorted_facet_indices = indices[argsort_edges]
         sorted_edges = edges[argsort_edges]
 
         if debug_flag:
-            print("edges", time.time() - tm0)
+            print("edges sorted", time.time() - tm0)
 
-        # Search left
-        indices_left = np.searchsorted(sorted_edges, edges, side="left")
+
+        # Searches
+        unique_edges, unique_indices, unique_counts = np.unique(
+            sorted_edges, return_index=True, return_counts=True
+        )
+        unique_indices_left = np.searchsorted(unique_edges, edges, side="left")
+        indices_left = unique_indices[unique_indices_left]
+        indices_count = unique_counts[unique_indices_left]
+        indices_right = indices_left + indices_count - 1
+        assert np.max(indices_count) <= 2  # We assume only 2 neighbours per edge
         indices_left = sorted_facet_indices[indices_left]
+        indices_right = sorted_facet_indices[indices_right]
+
         pairs_left = np.rec.fromarrays((indices, indices_left), names="x,y")
         condition_left = np.not_equal(pairs_left.x, pairs_left.y)
         pairs_left = np.compress(condition_left, pairs_left)
 
-        if debug_flag:
-            print("left", time.time() - tm0)
-
-        # Search right
-        indices_right = np.searchsorted(sorted_edges, edges, side="right")
-        indices_right -= 1
-        indices_right = sorted_facet_indices[indices_right]
         pairs_right = np.rec.fromarrays((indices, indices_right), names="x,y")
         condition_right = np.not_equal(pairs_right.x, pairs_right.y)
         pairs_right = np.compress(condition_right, pairs_right)
 
         if debug_flag:
-            print("right", time.time() - tm0)
+            print("searches", time.time() - tm0)
 
         # Concatenate
         pairs = np.concatenate((pairs_left, pairs_right))
