@@ -1461,6 +1461,12 @@ class RenderMesh:
         Returns a list of sets of facet indices (adjacency list).
         Single process version.
         """
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print()
+            print(f"compute adjacency - {self.count_facets} facets")
+            tm0 = time.time()
+
         # For each point, compute facets that contain this point as a vertex
         iterator = (
             (facet_index, point_index)
@@ -1493,6 +1499,9 @@ class RenderMesh:
 
         functools.reduce(reduce_adj, iterator, None)
 
+        if debug_flag:
+            print("adjacency", time.time() - tm0)
+
         return adjacents
 
     def _adjacent_facets_np(self):
@@ -1504,50 +1513,62 @@ class RenderMesh:
         debug_flag = PARAMS.GetBool("Debug")
         if debug_flag:
             print()
-            print("compute adjacency Numpy")
+            print(f"compute adjacency Numpy - {self.count_facets} facets")
             tm0 = time.time()
+            np.set_printoptions(edgeitems=600)
 
         # Compute edges (assume triangles)
         facets = np.asarray(self.__facets)
         facets.sort(axis=1)
+        # TODO
         indices = np.arange(len(facets))
-        indices = np.expand_dims(indices, axis=1)
-        edges1 = np.hstack(
-            (facets[..., 0, np.newaxis], facets[..., 1, np.newaxis], indices)
-        )
-        edges2 = np.hstack(
-            (facets[..., 0, np.newaxis], facets[..., 2, np.newaxis], indices)
-        )
-        edges3 = np.hstack(
-            (facets[..., 1, np.newaxis], facets[..., 2, np.newaxis], indices)
-        )
-        edges = np.concatenate((edges1, edges2, edges3), axis=0)
-        edges_edges, edges_facets = np.hsplit(edges, [2,])  # Rename
-        print(edges_edges, edges_facets)
-        edges_edges.dtype = [("x",np.int64), ("y",np.int64)]
-        edges_edges = edges_edges.flatten()
-        edges_unique, edges_map, edges_count = np.unique(edges_edges, return_index=True, return_counts=True, axis=0)
-        print(max(edges_count))
+        indices = np.tile(indices, 3)
+        # indices = np.expand_dims(indices, axis=1)
+        # Facet index is index modulo len(facets)
+
+        edges1 = np.rec.fromarrays((facets[..., 0], facets[..., 1]))
+        edges2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
+        edges3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
+        edges = np.concatenate((edges1, edges2, edges3))
+
+        argsort_edges = edges.argsort()
+        sorted_facet_indices = indices[argsort_edges]
+        sorted_edges = edges[argsort_edges]
+
         if debug_flag:
-            print("edges unique", time.time() - tm0)
+            print("edges", time.time() - tm0)
 
-        # Join facets to foreign edges
-        indices = np.searchsorted(edges_unique, edges_edges)
-        map0 = edges_map.take(indices)
-        print(map0)
+        # Search left
+        indices_left = np.searchsorted(sorted_edges, edges, side="left")
+        indices_left = sorted_facet_indices[indices_left]
+        pairs_left = np.rec.fromarrays((indices, indices_left), names="x,y")
+        condition_left = np.not_equal(pairs_left.x, pairs_left.y)
+        pairs_left = np.compress(condition_left, pairs_left)
+
         if debug_flag:
-            print("autojoin edges", time.time() - tm0)
+            print("left", time.time() - tm0)
 
+        # Search right
+        indices_right = np.searchsorted(sorted_edges, edges, side="right")
+        indices_right -= 1
+        indices_right = sorted_facet_indices[indices_right]
+        pairs_right = np.rec.fromarrays((indices, indices_right), names="x,y")
+        condition_right = np.not_equal(pairs_right.x, pairs_right.y)
+        pairs_right = np.compress(condition_right, pairs_right)
 
-        # edges.dtype=[('x', np.int64), ('y', np.int64), ('z', np.int64)]
-        # edges = edges.flatten()
+        if debug_flag:
+            print("right", time.time() - tm0)
 
-        # Get adjacent pairs
-        # edges.sort()
-        # sorted1 = np.searchsorted(edges, edges1)
+        # Concatenate
+        pairs = np.concatenate((pairs_left, pairs_right))
+        adjacency = [set() for _ in range(self.count_facets)]
+        for x, y in pairs:
+            adjacency[x].add(y)
 
+        if debug_flag:
+            print("adjacency", time.time() - tm0)
 
-
+        return adjacency
 
 
     def connected_facets(
