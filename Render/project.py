@@ -37,6 +37,11 @@ import concurrent.futures
 import time
 import tracemalloc
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
@@ -803,6 +808,12 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
+    # Create profile object (debug)
+    debug_flag = PARAMS.GetBool("Debug")
+    if debug_flag:
+        prof = cProfile.Profile()
+        prof.enable()
+
     if run_concurrent:
         App.Console.PrintLog(
             "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
@@ -823,4 +834,17 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
     App.Console.PrintLog(
         f"[Render][Objstrings] ENDED - TIME: {time.time() - time0}\n"
     )
+
+    # Profile statistics (debug)
+    if debug_flag:
+        prof.disable()
+        sec = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+        pstat.print_stats()
+        lines = sec.getvalue().splitlines()
+        print("\n".join(lines[:20]))
+        # print(sec.getvalue())
+
+
     return objstrings
