@@ -47,11 +47,6 @@ from importlib import import_module
 from types import SimpleNamespace
 import time
 
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
 import FreeCAD as App
 import MeshPart
 import Mesh
@@ -351,12 +346,6 @@ class RendererHandler:
 
         Returns: a rendering string, obtained from the renderer module
         """
-        # Create profile object (debug)
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
-            prof = cProfile.Profile()
-            prof.enable()
-
         autosmooth = getattr(view, "AutoSmooth", False)
         try:
             autosmooth_angle = float(view.AutoSmoothAngle.getValueAs("rad"))
@@ -381,6 +370,8 @@ class RendererHandler:
 
             Returns a RenderMesh.
             """
+            debug_flag = PARAMS.GetBool("Debug")
+
             # Skip meshing?
             if self.skip_meshing:
                 # We just need placement, and an empty mesh
@@ -508,18 +499,6 @@ class RendererHandler:
             )
             for r in rends
         ]
-
-        # Profile statistics (debug)
-        if debug_flag:
-            prof.disable()
-            sec = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-            pstat.print_stats()
-            lines = sec.getvalue().splitlines()
-            print("\n".join(lines[:20]))
-            # print(sec.getvalue())
-
 
         return "".join(res)
 
