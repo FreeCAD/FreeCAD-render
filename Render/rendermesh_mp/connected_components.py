@@ -33,6 +33,13 @@ import gc
 import collections
 from math import cos, hypot, isclose
 
+try:
+    import numpy as np
+
+    USE_NUMPY = True
+except ModuleNotFoundError:
+    USE_NUMPY = False
+
 sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
 import vector3d
@@ -66,10 +73,6 @@ from pstats import SortKey
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
-    # # TODO
-    # prof = cProfile.Profile()
-    # prof.enable()
-    # Init
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
@@ -128,14 +131,100 @@ def compute_adjacents(chunk):
         )
     ]
 
-    # # TODO
-    # prof.disable()
-    # sec = io.StringIO()
-    # sortby = SortKey.CUMULATIVE
-    # pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-    # pstat.print_stats()
-    # lines = sec.getvalue().splitlines()
-    # print("\n".join(lines[:20]))
+
+def compute_adjacents_np(chunk):
+    """Compute adjacency lists for a chunk of facets.
+
+    Numpy version"""
+    start, stop = chunk
+    count_facets = len(SHARED_FACETS) // 3
+    count_points = len(SHARED_POINTS) // 3
+
+    split_angle = SHARED_SPLIT_ANGLE.value
+    split_angle_cos = cos(split_angle)
+
+    # Prepare globals
+    global NP_READY
+    if not NP_READY:
+        facets = np.array(SHARED_FACETS)
+        facets.shape = [count_facets, 3]
+        facets.sort(axis=1)
+
+        indices = np.arange(len(facets))
+        indices = np.tile(indices, 3)
+
+        global EDGES1, EDGES2, EDGES3
+        EDGES1 = np.rec.fromarrays((facets[..., 0], facets[..., 1]))
+        EDGES2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
+        EDGES3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
+        edges = np.concatenate((EDGES1, EDGES2, EDGES3))
+
+        global SORTED_FACET_INDICES
+        argsort_edges = edges.argsort()
+        sorted_edges = edges[argsort_edges]
+        SORTED_FACET_INDICES = indices[argsort_edges]
+
+        # Searches
+        global UNIQUE_EDGES, UNIQUE_INDICES, UNIQUE_COUNTS
+        UNIQUE_EDGES, UNIQUE_INDICES, UNIQUE_COUNTS = np.unique(
+            sorted_edges, return_index=True, return_counts=True
+        )
+
+        NP_READY = True
+
+    # Work on chunk
+    indices_chunk = np.arange(start, stop)
+    indices_chunk = np.tile(indices_chunk, 3)
+    edges_chunk = np.concatenate((
+        EDGES1[start:stop], EDGES2[start:stop], EDGES3[start:stop]
+    ))
+
+    unique_indices_left = np.searchsorted(UNIQUE_EDGES, edges_chunk, side="left")
+    indices_left = UNIQUE_INDICES[unique_indices_left]
+    indices_count = UNIQUE_COUNTS[unique_indices_left]
+    indices_right = indices_left + indices_count - 1
+    maxindices = np.max(indices_count)
+    if not maxindices <= 2:  # We assume only 2 neighbours per edge
+        msg = (
+            "Warning - More than 2 neighbours per edge "
+            f"(found {maxindices})"
+            " - Truncation may occur"
+        )
+        print(msg)
+    indices_left = SORTED_FACET_INDICES[indices_left]
+    indices_right = SORTED_FACET_INDICES[indices_right]
+
+    pairs_left = np.rec.fromarrays((indices_chunk, indices_left), names="x,y")
+    condition_left = np.not_equal(pairs_left.x, pairs_left.y)
+    pairs_left = np.compress(condition_left, pairs_left)
+
+    pairs_right = np.rec.fromarrays((indices_chunk, indices_right), names="x,y")
+    condition_right = np.not_equal(pairs_right.x, pairs_right.y)
+    pairs_right = np.compress(condition_right, pairs_right)
+
+    # Concatenate
+    pairs = np.concatenate((pairs_left, pairs_right))
+
+    # Filter with angle
+    normals = np.array(SHARED_NORMALS)  # We assume normalized normals
+    normals.shape = [count_facets, 3]
+    x_normals, y_normals = normals[pairs["x"]], normals[pairs["y"]]
+    dotprod = np.einsum("ij,ij->i", x_normals, y_normals)
+    condition_angle = dotprod >= split_angle_cos
+    pairs = np.compress(condition_angle, pairs)
+
+    # Write buffer
+    adjacents = [list() for _ in range(stop - start)]
+    for x, y in pairs:
+        adjacents[x - start].append(y)
+
+    SHARED_ADJACENCY[start * 3 : stop * 3] = [
+        a
+        for adj in adjacents
+        for a in itertools.islice(
+            itertools.chain(set(adj), (-1, -1, -1)), 0, 3
+        )
+    ]
 
 
 # *****************************************************************************
@@ -283,6 +372,9 @@ def init(shared):
     global FACETS_AS_SETS
     FACETS_AS_SETS = None
 
+    global NP_READY
+    NP_READY = False
+
     global SHARED_ADJACENCY
     SHARED_ADJACENCY = shared["adjacency"]
 
@@ -378,9 +470,13 @@ def main(
 
             # Compute adjacency
             chunks = make_chunks(chunk_size, len(facets) // 3)
-            run_unordered(pool, compute_adjacents, chunks)
+            if USE_NUMPY:
+                func, tickmsg = compute_adjacents_np, "adjacency (np)"
+            else:
+                func, tickmsg = compute_adjacents, "adjacency"
+            run_unordered(pool, func, chunks)
 
-            tick("adjacency")
+            tick(tickmsg)
 
             # Compute connected components
             chunks = make_chunks(len(facets) // nproc, len(facets) // 3)
