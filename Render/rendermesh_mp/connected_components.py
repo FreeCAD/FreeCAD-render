@@ -131,7 +131,6 @@ def compute_adjacents(chunk):
         )
     ]
 
-
 def compute_adjacents_np(chunk):
     """Compute adjacency lists for a chunk of facets.
 
@@ -146,6 +145,7 @@ def compute_adjacents_np(chunk):
     # Prepare globals
     global NP_READY
     if not NP_READY:
+        print("initialize np")
         facets = np.array(SHARED_FACETS)
         facets.shape = [count_facets, 3]
         facets.sort(axis=1)
@@ -158,10 +158,16 @@ def compute_adjacents_np(chunk):
         EDGES2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
         EDGES3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
         edges = np.concatenate((EDGES1, EDGES2, EDGES3))
+        print(f"{len(edges)} total edges")
 
         global SORTED_FACET_INDICES
-        argsort_edges = edges.argsort()
-        sorted_edges = edges[argsort_edges]
+        shared_edges = np.array(SHARED_EDGES_NP)
+        shared_edges.shape = [count_facets * 3, 3]
+        sorted_edges, argsort_edges = np.hsplit(shared_edges, np.array([2,]))
+        sorted_edges.dtype = np.dtype([("x", np.int64), ("y", np.int64)])
+        sorted_edges = sorted_edges.squeeze()
+        argsort_edges = argsort_edges.squeeze()
+
         SORTED_FACET_INDICES = indices[argsort_edges]
 
         # Searches
@@ -169,6 +175,7 @@ def compute_adjacents_np(chunk):
         UNIQUE_EDGES, UNIQUE_INDICES, UNIQUE_COUNTS = np.unique(
             sorted_edges, return_index=True, return_counts=True
         )
+        print(f"end initialize np - {len(UNIQUE_EDGES)} unique edges")
 
         NP_READY = True
 
@@ -225,6 +232,27 @@ def compute_adjacents_np(chunk):
             itertools.chain(set(adj), (-1, -1, -1)), 0, 3
         )
     ]
+
+# *****************************************************************************
+
+def sort_edges_np(chunk):
+    # TODO Docstring
+    # TODO do edge calculation once
+    start, stop = chunk
+    count_facets = len(SHARED_FACETS) // 3
+    facets = np.array(SHARED_FACETS)
+    facets.shape = [count_facets, 3]
+    facets.sort(axis=1)
+
+    indices = np.arange(len(facets))
+
+    edges1 = np.rec.fromarrays((facets[..., 0], facets[..., 1], indices))
+    edges2 = np.rec.fromarrays((facets[..., 0], facets[..., 2], indices + len(facets)))
+    edges3 = np.rec.fromarrays((facets[..., 1], facets[..., 2], indices + 2 * len(facets)))
+    edges = np.concatenate((edges1, edges2, edges3))
+
+    return np.sort(edges[start:stop])
+
 
 
 # *****************************************************************************
@@ -390,6 +418,10 @@ def init(shared):
     global SHARED_CURRENT_ADJ
     SHARED_CURRENT_ADJ = shared["current_adj"]
 
+    if USE_NUMPY:
+        global SHARED_EDGES_NP
+        SHARED_EDGES_NP = shared["edges_np"]
+
 
 # *****************************************************************************
 
@@ -450,6 +482,8 @@ def main(
     chunk_size = 20000
     nproc = os.cpu_count()
 
+    count_facets = len(facets) // 3
+
     try:
         shared = {
             "points": points,
@@ -458,18 +492,46 @@ def main(
             "areas": areas,
             "split_angle": split_angle,
             # max 3 adjacents/facet
-            "adjacency": ctx.RawArray("l", len(facets)),
-            "adjacency2": ctx.RawArray("l", len(facets) * 2),  # 2nd pass
+            "adjacency": ctx.RawArray("l", count_facets * 3),
+            "adjacency2": ctx.RawArray("l", count_facets * 3 * 2),  # 2nd pass
             "tags": out_tags,
             "current_tag": ctx.Value("l", 0),
             "current_adj": ctx.Value("l", 0),
         }
+        if USE_NUMPY:  # Numpy only
+            shared["edges_np"] = ctx.RawArray("l", count_facets * 3 * 3)
         tick("prepare shared")
+
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
             # Compute adjacency
-            chunks = make_chunks(chunk_size, len(facets) // 3)
+            if USE_NUMPY:
+                def new_merge(a, b):
+                    if len(a) < len(b):
+                        b, a = a, b
+                    c = np.empty(len(a) + len(b), dtype=a.dtype)
+                    b_indices = np.arange(len(b)) + np.searchsorted(a, b)
+                    a_indices = np.ones(len(c), dtype=bool)
+                    a_indices[b_indices] = False
+                    c[b_indices] = b
+                    c[a_indices] = a
+                    return c
+
+                chunks = make_chunks(count_facets * 3 // nproc, count_facets * 3)
+                futures = pool.imap_unordered(sort_edges_np, chunks)
+                res = None
+                for future in futures:
+                    if res is None:
+                        res = future
+                    else:
+                        res = new_merge(res, future)
+                res.dtype = np.dtype(np.int64)
+                shared["edges_np"][:] = list(res.flat)
+
+                tick("prepare edges (np)")
+
+            chunks = make_chunks(chunk_size, count_facets)
             if USE_NUMPY:
                 func, tickmsg = compute_adjacents_np, "adjacency (np)"
             else:
@@ -479,7 +541,7 @@ def main(
             tick(tickmsg)
 
             # Compute connected components
-            chunks = make_chunks(len(facets) // nproc, len(facets) // 3)
+            chunks = make_chunks(count_facets // nproc, count_facets)
             run_unordered(pool, connected_components_chunk, chunks)
 
             tick("connected components (pass #1 - map)")
