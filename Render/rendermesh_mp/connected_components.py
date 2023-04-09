@@ -323,8 +323,9 @@ def main(
     tm0 = time.time()
     if showtime:
         msg = (
-            f"start adjacency computation: {len(points)} points, "
-            f"{len(facets)} facets"
+            "\n"
+            f"start adjacency computation: {len(points) // 3} points, "
+            f"{len(facets) // 3} facets"
         )
         print(msg)
 
@@ -383,15 +384,15 @@ def main(
 
     try:
         shared = {
-            "points": ctx.RawArray("f", SharedWrapper(points, 3)),
-            "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
-            "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
-            "areas": ctx.RawArray("f", areas),
+            "points": points,
+            "facets": facets,
+            "normals": normals,
+            "areas": areas,
+            "split_angle": split_angle,
             # max 3 adjacents/facet
-            "adjacency": ctx.RawArray("l", len(facets) * 3),
-            "adjacency2": ctx.RawArray("l", len(facets) * 2 * 3),  # 2nd pass
-            "tags": ctx.RawArray("l", len(facets)),
-            "split_angle": ctx.RawValue("f", split_angle),
+            "adjacency": ctx.RawArray("l", len(facets)),
+            "adjacency2": ctx.RawArray("l", len(facets) * 2),  # 2nd pass
+            "tags": out_tags,
             "current_tag": ctx.Value("l", 0),
             "current_adj": ctx.Value("l", 0),
         }
@@ -400,13 +401,13 @@ def main(
             tick("start pool")
 
             # Compute adjacency
-            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(chunk_size, len(facets) // 3)
             run_unordered(pool, compute_adjacents, chunks)
 
             tick("adjacency")
 
             # Compute connected components
-            chunks = make_chunks(len(facets) // nproc, len(facets))
+            chunks = make_chunks(len(facets) // nproc, len(facets) // 3)
             run_unordered(pool, connected_components_chunk, chunks)
 
             tick("connected components (pass #1 - map)")

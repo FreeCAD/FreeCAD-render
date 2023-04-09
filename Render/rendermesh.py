@@ -1696,11 +1696,11 @@ class RenderMesh:
 
         # Init script globals
         init_globals={
-            "POINTS": self.__points,
-            "FACETS": self.__facets,
-            "NORMALS": self.__normals,
-            "AREAS": self.__areas,
-            "SPLIT_ANGLE": split_angle,
+            "POINTS": mp.RawArray("f", SharedWrapper(self.__points, 3)),
+            "FACETS": mp.RawArray("l", SharedWrapper(self.__facets, 3)),
+            "NORMALS": mp.RawArray("f", SharedWrapper(self.__normals, 3)),
+            "AREAS": mp.RawArray("f", self.__areas),
+            "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_TAGS": tags_buf,
