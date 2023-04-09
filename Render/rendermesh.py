@@ -160,11 +160,6 @@ class RenderMesh:
             warn("Object", self.name, "Warning - Empty mesh (no facet)")
             return
 
-        if mesh.hasNonManifolds():
-            msg = "Warning - Mesh has non-manifolds (removal may occur)"
-            warn("Object", self.name, msg)
-            mesh.removeNonManifolds()
-
         # Uvmap
         if compute_uvmap:
             msg = f"Uv map '{uvmap_projection}'"
