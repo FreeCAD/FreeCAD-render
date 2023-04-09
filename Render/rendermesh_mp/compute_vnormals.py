@@ -237,6 +237,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
         msg = (
             f"start vnormal computation: {len(points) // 3} points, "
             f"{len(facets) // 3} facets"
+            " (use numpy)" if USE_NUMPY else ""
         )
         print(msg)
 
