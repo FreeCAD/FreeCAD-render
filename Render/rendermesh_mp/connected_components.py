@@ -338,32 +338,10 @@ def main(
             for i in range(0, length, chunk_size)
         )
 
-    def grouper(iterable, number, fillvalue=None, count=None):
-        "Collect data into fixed-length chunks or blocks"
-        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-        args = [iter(iterable)] * number
-        res = itertools.zip_longest(*args, fillvalue=fillvalue)
-        res = itertools.islice(res, count)
-        return res
-
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
         for _ in imap:
             pass
-
-    class SharedWrapper:
-        """A wrapper for shared objects containing tuples."""
-
-        def __init__(self, seq, tuple_length):
-            self.seq = seq
-            self.tuple_length = tuple_length
-
-        def __len__(self):
-            return len(self.seq) * self.tuple_length
-
-        def __iter__(self):
-            seq = self.seq
-            return itertools.chain.from_iterable(seq)
 
     # Set working directory
     save_dir = os.getcwd()
