@@ -167,7 +167,7 @@ class RenderMesh:
 
         # Uvmap
         if compute_uvmap:
-            msg = f"Uv map '{uvmap_projection}'\n"
+            msg = f"Uv map '{uvmap_projection}'"
             debug("Object", self.name, msg)
             self.compute_uvmap(uvmap_projection)
             assert self.has_uvmap()
@@ -1548,7 +1548,14 @@ class RenderMesh:
         indices_left = unique_indices[unique_indices_left]
         indices_count = unique_counts[unique_indices_left]
         indices_right = indices_left + indices_count - 1
-        assert np.max(indices_count) <= 2  # We assume only 2 neighbours per edge
+        maxindices = np.max(indices_count)
+        if not maxindices <= 2:  # We assume only 2 neighbours per edge
+            msg = (
+                "Warning - More than 2 neighbours per edge "
+                f"(found {maxindices})"
+                " - Truncation may occur"
+            )
+            warn("Object", self.name, msg)
         indices_left = sorted_facet_indices[indices_left]
         indices_right = sorted_facet_indices[indices_right]
 
