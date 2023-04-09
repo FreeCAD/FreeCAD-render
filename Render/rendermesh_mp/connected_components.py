@@ -83,18 +83,16 @@ def compute_adjacents(chunk):
     l3unpack_from = l3struct.unpack_from
     l3iter_unpack = l3struct.iter_unpack
 
-    global FACETS_AS_SETS
-    if FACETS_AS_SETS is None:
-        FACETS_AS_SETS = [set(facet) for facet in l3iter_unpack(SHARED_FACETS)]
-
     global FACETS_PER_POINT
+    global UNPACKED_FACETS
     if FACETS_PER_POINT is None:
+        UNPACKED_FACETS = list(l3iter_unpack(SHARED_FACETS))
         # For each point, compute facets that contain this point as a vertex
         FACETS_PER_POINT = [[] for _ in range(count_points)]
 
         iterator = (
             (FACETS_PER_POINT[point_index], facet_index)
-            for facet_index, facet in enumerate(l3iter_unpack(SHARED_FACETS))
+            for facet_index, facet in enumerate(UNPACKED_FACETS)
             for point_index in facet
         )
 
@@ -108,9 +106,9 @@ def compute_adjacents(chunk):
     chain = itertools.chain.from_iterable
     iterator = (
         (adjacents[facet_idx], other_idx)
-        for facet_idx, facet in enumerate(FACETS_AS_SETS[start:stop])
+        for facet_idx, facet in enumerate(UNPACKED_FACETS[start:stop])
         for other_idx in set(chain(FACETS_PER_POINT[p] for p in facet))
-        if len(facet & FACETS_AS_SETS[other_idx]) == 2
+        if len(set(facet) & set(UNPACKED_FACETS[other_idx])) == 2
         and dot(getnormal(facet_idx + start), getnormal(other_idx))
         >= split_angle_cos
     )
