@@ -53,9 +53,10 @@ except RuntimeError:
 class RenderMeshMultiprocessingMixin:
     """A mixin class to add multiprocessing capabilities to RenderMesh."""
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """Initialize mixin."""
         self.python = _find_python()
+        super().__init__(*args, **kwargs)
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - multiprocessing version.
@@ -70,7 +71,7 @@ class RenderMeshMultiprocessingMixin:
         path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
 
         # Init output buffers
-        facets = self.__facets
+        facets = self.facets
         facets_count = len(facets)
         color_count = 6
         points_per_facet = 3
@@ -84,10 +85,10 @@ class RenderMeshMultiprocessingMixin:
         # Init script globals
         init_globals = {
             "PYTHON": self.python,
-            "POINTS": self.__points,
-            "FACETS": self.__facets,
-            "NORMALS": self.__normals,
-            "AREAS": self.__areas,
+            "POINTS": self.points,
+            "FACETS": self.facets,
+            "NORMALS": self.normals,
+            "AREAS": self.areas,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_POINTS": points_buf,
             "OUT_FACETS": facets_buf,

@@ -79,9 +79,9 @@ def create_rendermesh(
     Capabilities are added as mixins.
     """
     if multiprocessing_enabled(mesh):
-        base = (RenderMeshBase, RenderMeshMultiprocessingMixin)
+        base = (RenderMeshMultiprocessingMixin, RenderMeshBase)
     elif numpy_enabled():
-        base = (RenderMeshBase, RenderMeshNumpyMixin)
+        base = (RenderMeshNumpyMixin, RenderMeshBase)
     else:
         base = (RenderMeshBase,)
 
