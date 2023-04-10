@@ -547,7 +547,10 @@ def multiprocessing_enabled(mesh):
 
 def numpy_enabled():
     """Check if multiprocessing can be enabled."""
-    conditions = ("np" in globals(),)
+    conditions = (
+        "np" in globals(),
+        PARAMS.GetBool("EnableNumpy"),
+    )
     return all(conditions)
 
 

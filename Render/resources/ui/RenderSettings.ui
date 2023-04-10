@@ -198,49 +198,6 @@
       <bool>false</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_17">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_23">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use FreeCAD materials directory &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(not recommended)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_3">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>UseFCDMaterials</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>DryRun</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_18">
         <property name="text">
@@ -261,10 +218,23 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_24">
+      <item row="1" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_3">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable multiprocessing &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>UseFCDMaterials</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
       </item>
@@ -281,6 +251,56 @@
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_23">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use FreeCAD materials directory &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(not recommended)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>DryRun</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_24">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable multiprocessing &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_5">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>EnableNumpy</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable Numpy if available &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
       </item>
