@@ -179,17 +179,7 @@ def compute_adjacents_np(chunk):
         EDGES1[start:stop], EDGES2[start:stop], EDGES3[start:stop]
     ))
 
-    edges_chunk_order = edges_chunk.view(dtype=np.int64).reshape([len(edges_chunk),2])
-    emin, emax = edges_chunk_order.min(axis=0), edges_chunk_order.max(axis=0)
-    emin = np.rec.array(tuple(emin.tolist()))
-    emax = np.rec.array(tuple(emax.tolist()))
-    low = np.searchsorted(UNIQUE_EDGES, emin, side="left")
-    high = np.searchsorted(UNIQUE_EDGES, emax, side="right")
-
-    unique_indices_left = np.searchsorted(UNIQUE_EDGES[low:high], edges_chunk, side="left")
-    unique_indices_left += low
-
-    # unique_indices_left = np.searchsorted(UNIQUE_EDGES, edges_chunk, side="left")
+    unique_indices_left = np.searchsorted(UNIQUE_EDGES, edges_chunk, side="left")
     indices_left = UNIQUE_INDICES[unique_indices_left]
     indices_count = UNIQUE_COUNTS[unique_indices_left]
     indices_right = indices_left + indices_count - 1
