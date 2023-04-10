@@ -53,7 +53,7 @@ import Mesh
 
 from Render.utils import translate, debug, getproxyattr, clamp
 from Render.constants import PARAMS
-from Render.rendermesh import RenderMesh
+from Render.rendermesh import create_rendermesh
 from Render import renderables
 from Render import rendermaterial
 
@@ -378,13 +378,14 @@ class RendererHandler:
                 debug("Object", view.Source.Label, "Skip meshing")
                 mesh = Mesh.Mesh()
                 mesh.Placement = shape.Placement
-                return RenderMesh(
+                rendermesh = create_rendermesh(
                     mesh,
                     project_directory=self.project_directory,
                     export_directory=self.object_directory,
                     relative_path=True,
                     skip_meshing=self.skip_meshing,
                 )
+                return rendermesh
 
             # Log
             debug("Object", view.Source.Label, "Begin meshing")
@@ -407,7 +408,7 @@ class RendererHandler:
                 )
                 mesh.Placement = shape_plc
 
-            mesh = RenderMesh(
+            mesh = create_rendermesh(
                 mesh,
                 autosmooth,
                 autosmooth_angle,
