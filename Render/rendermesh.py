@@ -311,10 +311,25 @@ class RenderMeshBase:
         """Get a collection of the mesh facets."""
         return self.__facets
 
+    @facets.setter
+    def facets(self, value):
+        """Set the mesh facets."""
+        self.__facets = value
+
     @property
     def count_facets(self):
         """Get the number of facets."""
         return len(self.__facets)
+
+    @property
+    def uvmap(self):
+        """Get the uvmap."""
+        return self.__uvmap
+
+    @uvmap.setter
+    def uvmap(self, value):
+        """Set the uvmap."""
+        self.__uvmap = value
 
     @property
     def normals(self):
@@ -328,8 +343,13 @@ class RenderMeshBase:
 
     @property
     def vnormals(self):
-        """Get the vertex normals (if computed)."""
+        """Get the vertex normals."""
         return self.__vnormals
+
+    @vnormals.setter
+    def vnormals(self, value):
+        """Set the vertex normals."""
+        self.__vnormals = value
 
     @property
     def autosmooth(self):
@@ -918,11 +938,6 @@ class RenderMeshBase:
         functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
         return functions[index]()
 
-    @property
-    def uvmap(self):
-        """Get mesh uv map."""
-        return self.__uvmap
-
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
 
@@ -1088,33 +1103,14 @@ class RenderMeshBase:
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube(self):
-        """Compute UV map for cubic case.
-
-        We isolate submeshes by cube face in order to avoid trouble when
-        one edge belongs to several cube faces (cf. simple cube case, for
-        instance)
-        """
-        if self.multiprocessing:
-            msg = "Compute uvmap (mp)"
-            func = self._compute_uvmap_cube_mp
-        elif USE_NUMPY:
-            msg = "Compute uvmap (np)"
-            func = self._compute_uvmap_cube_np
-        else:
-            msg = "Compute uvmap (sp)"
-            func = self._compute_uvmap_cube_sp
-
-        debug("Object", self.name, msg)
-        func()
-        assert self.has_uvmap()
-
-    def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
 
         We isolate submeshes by cube face in order to avoid trouble when
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        debug("Object", self.name, "Compute uvmap (sp)")
+
         # Isolate submeshes by cube face
         face_facets = ([], [], [], [], [], [])
         for facet in self.__originalmesh.Facets:
@@ -1169,10 +1165,10 @@ class RenderMeshBase:
         v3d_angles = vector3d.angles
         add = vector3d.add
         safe_normalize = vector3d.safe_normalize
-        points = self.__points
-        normals = self.__normals
-        areas = self.__areas
-        facets = self.__facets
+        points = self.points
+        normals = self.normals
+        areas = self.areas
+        facets = self.facets
 
         vnorms = [(0, 0, 0)] * self.count_points
 
@@ -1202,29 +1198,12 @@ class RenderMeshBase:
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
-        Entry point.
-        """
-        if USE_NUMPY:
-            msg = "compute adjacency lists (np)"
-            func = self._adjacent_facets_np
-        else:
-            msg = "compute adjacency lists (sp)"
-            func = self._adjacent_facets_sp
-
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
-            print("\n" + msg + f" - {self.count_facets} facets")
-
-        return func()
-
-    def _adjacent_facets_sp(self):
-        """Compute the adjacent facets for each facet of the mesh.
-
-        Returns a list of sets of facet indices (adjacency list).
         Single process version.
         """
         debug_flag = PARAMS.GetBool("Debug")
         if debug_flag:
+            print()
+            print(f"compute adjacency lists (sp) - {self.count_facets} facets")
             tm0 = time.time()
 
         # For each point, compute facets that contain this point as a vertex
@@ -1334,7 +1313,7 @@ class RenderMeshBase:
         # Final
         return tags
 
-    def _connected_components_sp(self, split_angle=radians(30)):
+    def connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
 
         Single process version
@@ -1347,6 +1326,8 @@ class RenderMeshBase:
                 facet
             the number of components
         """
+        debug("Object", self.name, "Compute connected components (sp)")
+
         split_angle_cos = cos(split_angle)
 
         adjacents = self._adjacent_facets()
@@ -1363,32 +1344,6 @@ class RenderMeshBase:
             )
 
         return tags
-
-    def connected_components(self, split_angle):
-        """Get all connected components of facets in the mesh.
-
-        Single process version
-
-        Args:
-            split_angle -- the angle that breaks adjacency (radians)
-
-        Returns:
-            a list of tags. Each tag gives the component of the corresponding
-                facet
-            the number of components
-        """
-        if self.multiprocessing:
-            msg = "Compute connected components (mp)"
-            func = self._connected_components_mp
-        elif USE_NUMPY:
-            msg = "Compute connected components (sp)"
-            func = self._connected_components_sp
-        else:
-            msg = "Compute connected components (sp)"
-            func = self._connected_components_sp
-
-        debug("Object", self.name, msg)
-        return func(split_angle)
 
     def separate_connected_components(self, split_angle=radians(30)):
         """Operate a separation into the mesh between connected components.
@@ -1684,13 +1639,15 @@ def _compute_uv_from_unitcube(point, face):
 class RenderMeshMultiprocessingMixin:
     """A mixin class to add multiprocessing capabilities to RenderMesh."""
 
-    def _compute_uvmap_cube_mp(self):
+    def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - multiprocessing version.
 
         We isolate submeshes by cube face in order to avoid trouble when
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        debug("Object", self.name, "Compute uvmap (mp)")
+
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
 
@@ -1769,7 +1726,7 @@ class RenderMeshMultiprocessingMixin:
         )
         self.__vnormals = vnormals_mv.tolist()
 
-    def _connected_components_mp(self, split_angle):
+    def connected_components(self, split_angle):
         """Get all connected components of facets in the mesh.
 
         Multiprocess version
@@ -1782,6 +1739,8 @@ class RenderMeshMultiprocessingMixin:
                 facet
             the number of components
         """
+        debug("Object", self.name, "Compute connected components (mp)")
+
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
 
@@ -1908,8 +1867,11 @@ class RenderMeshMultiprocessingMixin:
 class RenderMeshNumpyMixin:
     """A mixin class to add Numpy use capabilities to RenderMesh."""
 
-    def _compute_uvmap_cube_np(self):
+    def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - numpy version."""
+
+        debug("Object", self.name, "Compute uvmap (np)")
+
         debug_flag = PARAMS.GetBool("Debug")
         if debug_flag:
             time0 = time.time()
@@ -2075,7 +2037,7 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print(time.time() - tm0)
 
-    def _adjacent_facets_np(self):
+    def _adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
@@ -2084,7 +2046,7 @@ class RenderMeshNumpyMixin:
         debug_flag = PARAMS.GetBool("Debug")
         if debug_flag:
             print()
-            print(f"compute adjacency Numpy - {self.count_facets} facets")
+            print(f"compute adjacency lists (np) - {self.count_facets} facets")
             tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
