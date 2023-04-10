@@ -63,11 +63,44 @@ except ModuleNotFoundError:
 
 
 # ===========================================================================
+#                             RenderMesh factory
+# ===========================================================================
+
+
+def create_rendermesh(
+        mesh,
+        autosmooth=True,
+        split_angle=radians(30),
+        compute_uvmap=False,
+        uvmap_projection=None,
+        project_directory=None,
+        export_directory=None,
+        relative_path=True,
+        skip_meshing=False,
+        name="",
+):
+    RenderMesh = type("RenderMesh", (RenderMeshBase,), {})
+    instance = RenderMesh(
+        mesh,
+        autosmooth,
+        split_angle,
+        compute_uvmap,
+        uvmap_projection,
+        project_directory,
+        export_directory,
+        relative_path,
+        skip_meshing,
+        name="",
+    )
+    return instance
+
+
+# ===========================================================================
 #                               RenderMesh
 # ===========================================================================
 
 
-class RenderMesh:
+class RenderMeshBase:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
     RenderMesh is based on Mesh.Mesh.
@@ -297,7 +330,7 @@ class RenderMesh:
             The name of file that the function wrote.
         """
         # Normalize arguments
-        filetype = RenderMesh.ExportType(filetype)
+        filetype = RenderMeshBase.ExportType(filetype)
 
         # Compute target file
         if filename is None:
@@ -324,7 +357,7 @@ class RenderMesh:
             return res
 
         # Switch to specialized write function
-        if filetype == RenderMesh.ExportType.OBJ:
+        if filetype == RenderMeshBase.ExportType.OBJ:
             mtlfile = kwargs.get("mtlfile")
             mtlname = kwargs.get("mtlname")
             mtlcontent = kwargs.get("mtlcontent")
@@ -338,13 +371,13 @@ class RenderMesh:
                 uv_rotate,
                 uv_scale,
             )
-        elif filetype == RenderMesh.ExportType.PLY:
+        elif filetype == RenderMeshBase.ExportType.PLY:
             self._write_plyfile(
                 name, filename, uv_translate, uv_rotate, uv_scale
             )
-        elif filetype == RenderMesh.ExportType.CYCLES:
+        elif filetype == RenderMeshBase.ExportType.CYCLES:
             self._write_cyclesfile(name, filename)
-        elif filetype == RenderMesh.ExportType.POVRAY:
+        elif filetype == RenderMeshBase.ExportType.POVRAY:
             self._write_povfile(name, filename)
         else:
             raise ValueError(f"Unknown mesh file type '{filetype}'")
@@ -397,7 +430,7 @@ class RenderMesh:
                 mtlfile, _ = os.path.splitext(objfile)
                 mtlfile += ".mtl"
             # Write mtl file
-            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
+            mtlfilename = RenderMeshBase._write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -2101,10 +2134,10 @@ def _pos_atan2(p_x, p_y):
 
 
 _EXPORT_EXTENSIONS = {
-    RenderMesh.ExportType.OBJ: ".obj",
-    RenderMesh.ExportType.PLY: ".ply",
-    RenderMesh.ExportType.CYCLES: ".xml",
-    RenderMesh.ExportType.POVRAY: ".inc",
+    RenderMeshBase.ExportType.OBJ: ".obj",
+    RenderMeshBase.ExportType.PLY: ".ply",
+    RenderMeshBase.ExportType.CYCLES: ".xml",
+    RenderMeshBase.ExportType.POVRAY: ".inc",
 }
 
 
