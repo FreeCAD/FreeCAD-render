@@ -39,9 +39,14 @@ from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import runpy
 import shutil
 import copy
-import struct
-import operator
 import multiprocessing as mp
+
+import FreeCAD as App
+import Mesh
+
+from Render.constants import PKGDIR, PARAMS
+from Render.rendermesh_mp import vector3d
+from Render.utils import warn, debug, grouper, SharedWrapper
 
 try:
     mp.set_start_method("spawn")
@@ -55,13 +60,6 @@ try:
     USE_NUMPY = True
 except ModuleNotFoundError:
     USE_NUMPY = False
-
-import FreeCAD as App
-import Mesh
-
-from Render.constants import PKGDIR, PARAMS
-from Render.rendermesh_mp import vector3d
-from Render.utils import warn, debug, grouper, SharedWrapper
 
 
 # ===========================================================================
@@ -557,7 +555,7 @@ class RenderMesh:
         ]
 
         # Init script globals
-        init_globals={
+        init_globals = {
             "inlist": inlist,
             "mask": mask,
             "objfile": objfile,
@@ -566,7 +564,6 @@ class RenderMesh:
 
         # Run script
         self._run_path_in_process(path, init_globals)
-
 
     @staticmethod
     def _write_mtl(name, mtlcontent, mtlfile=None):
@@ -1154,7 +1151,7 @@ class RenderMesh:
         point_count = mp.RawValue("l")
 
         # Init script globals
-        init_globals={
+        init_globals = {
             "PYTHON": self.python,
             "POINTS": self.__points,
             "FACETS": self.__facets,
@@ -1170,7 +1167,6 @@ class RenderMesh:
         # Run script
         self._run_path_in_process(path, init_globals)
 
-        # TODO
         # Get outputs
         point_count = point_count.value
 
@@ -1181,7 +1177,6 @@ class RenderMesh:
         points_buf = None
         facets_buf = None
         uvmap_buf = None
-
 
     def _compute_uvmap_cube_np(self):
         """Compute UV map for cubic case - numpy version."""
@@ -1301,12 +1296,11 @@ class RenderMesh:
         facets = np.array(self.__facets, dtype="i4")
         triangles = np.take(points, facets, axis=0)
         indices = facets.ravel(order="F")
-        nb_points, *_ = points.shape
 
         if debug_flag:
             print("init", time.time() - tm0)
 
-        def _safe_normalize(vect_array):
+        def _safe_normalize_np(vect_array):
             """Safely normalize an array of vectors."""
             magnitudes = np.sqrt((vect_array**2).sum(-1))
             magnitudes = np.expand_dims(magnitudes, axis=1)
@@ -1316,10 +1310,10 @@ class RenderMesh:
             """Compute triangle vertex angles."""
             # Compute normalized vectors
             vec1 = triangles[::, j, ::] - triangles[::, i, ::]
-            vec1 = _safe_normalize(vec1)
+            vec1 = _safe_normalize_np(vec1)
 
             vec2 = triangles[::, k, ::] - triangles[::, i, ::]
-            vec2 = _safe_normalize(vec2)
+            vec2 = _safe_normalize_np(vec2)
 
             # Compute dot products
             # (Clip to avoid precision issues)
@@ -1361,7 +1355,7 @@ class RenderMesh:
                 np.bincount(indices, weighted_normals[..., 2]),
             )
         )
-        point_normals = _safe_normalize(point_normals)
+        point_normals = _safe_normalize_np(point_normals)
 
         self.__vnormals = point_normals.tolist()
 
@@ -1422,7 +1416,7 @@ class RenderMesh:
         vnormals_buf = mp.RawArray("f", self.count_points * 3)
 
         # Init script globals
-        init_globals={
+        init_globals = {
             "POINTS": mp.RawArray("f", SharedWrapper(self.__points, 3)),
             "FACETS": mp.RawArray("l", SharedWrapper(self.__facets, 3)),
             "NORMALS": mp.RawArray("f", SharedWrapper(self.__normals, 3)),
@@ -1436,17 +1430,29 @@ class RenderMesh:
         self._run_path_in_process(path, init_globals)
 
         # Update properties
-        vnormals_mv = memoryview(vnormals_buf).cast("b").cast("f", [self.count_points, 3])
+        vnormals_mv = (
+            memoryview(vnormals_buf)
+            .cast("b")
+            .cast("f", [self.count_points, 3])
+        )
         self.__vnormals = vnormals_mv.tolist()
 
     def _adjacent_facets(self):
-        # TODO Docstring
+        """Compute the adjacent facets for each facet of the mesh.
+
+        Returns a list of sets of facet indices (adjacency list).
+        Entry point.
+        """
         if USE_NUMPY:
-            msg = "Compute adjacency lists (np)"
+            msg = "compute adjacency lists (np)"
             func = self._adjacent_facets_np
         else:
-            msg = "Compute adjacency lists (sp)"
+            msg = "compute adjacency lists (sp)"
             func = self._adjacent_facets_sp
+
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print("\n" + msg + f" - {self.count_facets} facets")
 
         return func()
 
@@ -1458,8 +1464,6 @@ class RenderMesh:
         """
         debug_flag = PARAMS.GetBool("Debug")
         if debug_flag:
-            print()
-            print(f"compute adjacency - {self.count_facets} facets")
             tm0 = time.time()
 
         # For each point, compute facets that contain this point as a vertex
@@ -1534,7 +1538,6 @@ class RenderMesh:
         if debug_flag:
             print("edges sorted", time.time() - tm0)
 
-
         # Searches
         unique_edges, unique_indices, unique_counts = np.unique(
             sorted_edges, return_index=True, return_counts=True
@@ -1544,7 +1547,7 @@ class RenderMesh:
         indices_count = unique_counts[unique_indices_left]
         indices_right = indices_left + indices_count - 1
         maxindices = np.max(indices_count)
-        if not maxindices <= 2:  # We assume only 2 neighbours per edge
+        if maxindices > 2:  # We assume only 2 neighbours per edge
             msg = (
                 "Warning - More than 2 neighbours per edge "
                 f"(found {maxindices})"
@@ -1568,14 +1571,13 @@ class RenderMesh:
         # Concatenate
         pairs = np.concatenate((pairs_left, pairs_right))
         adjacency = [set() for _ in range(self.count_facets)]
-        for x, y in pairs:
-            adjacency[x].add(y)
+        for index, value in pairs:
+            adjacency[index].add(value)
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
 
         return adjacency
-
 
     def connected_facets(
         self,
@@ -1697,7 +1699,7 @@ class RenderMesh:
         tags_buf = mp.RawArray("l", self.count_facets)
 
         # Init script globals
-        init_globals={
+        init_globals = {
             "POINTS": mp.RawArray("f", SharedWrapper(self.__points, 3)),
             "FACETS": mp.RawArray("l", SharedWrapper(self.__facets, 3)),
             "NORMALS": mp.RawArray("f", SharedWrapper(self.__normals, 3)),
@@ -1734,14 +1736,13 @@ class RenderMesh:
             func = self._connected_components_mp
         elif USE_NUMPY:
             msg = "Compute connected components (sp)"
-            func = self._connected_components_sp  # TODO
+            func = self._connected_components_sp
         else:
             msg = "Compute connected components (sp)"
             func = self._connected_components_sp
 
         debug("Object", self.name, msg)
         return func(split_angle)
-
 
     def separate_connected_components(self, split_angle=radians(30)):
         """Operate a separation into the mesh between connected components.
@@ -1753,8 +1754,6 @@ class RenderMesh:
                 are considered as non-connected (in radians)
         """
         tags = self.connected_components(split_angle)
-
-        # print("unique tags", len(set(tags)))  # TODO
 
         points = self.__points
         facets = self.__facets
@@ -1794,20 +1793,16 @@ class RenderMesh:
         Please note 'self.python' must have been set. After
         being started, the process is awaited (joined).
         """
-        args = (path, )
+        args = (path,)
         kwargs = {"init_globals": init_globals, "run_name": "__main__"}
 
         mp.set_executable(self.python)
 
         process = mp.Process(
-            target=runpy.run_path,
-            args=args,
-            kwargs=kwargs,
-            name="render"
+            target=runpy.run_path, args=args, kwargs=kwargs, name="render"
         )
         process.start()
         process.join()
-
 
 
 # ===========================================================================
