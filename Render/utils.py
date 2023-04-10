@@ -141,6 +141,7 @@ def reload(module_name=None):
             "Render.renderers.utils.sunlight",
             "Render.renderers.utils.misc",
             "Render.rendermesh_mp.vector3d",
+            "Render.rendermesh_mixins",
             "Render",
         )
         if not module_name
