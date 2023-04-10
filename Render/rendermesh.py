@@ -68,37 +68,59 @@ except ModuleNotFoundError:
 
 
 def create_rendermesh(
-        mesh,
-        autosmooth=True,
-        split_angle=radians(30),
-        compute_uvmap=False,
-        uvmap_projection=None,
-        project_directory=None,
-        export_directory=None,
-        relative_path=True,
-        skip_meshing=False,
-        name="",
+    mesh,
+    autosmooth=True,
+    split_angle=radians(30),
+    compute_uvmap=False,
+    uvmap_projection=None,
+    project_directory=None,
+    export_directory=None,
+    relative_path=True,
+    skip_meshing=False,
+    name="",
 ):
-    # TODO Docstring
+    """Create a RenderMesh object, adapted to context.
 
+    According to context, the returned RenderMesh may have the following
+    capabilities:
+    - multiprocessing
+    - numpy use (in single process)
+    - plain (no numpy, no multiprocessing)
+
+    Capabilities are added as mixins.
+    """
     # Multiprocessing preparation (if required)
     multiprocessing = False
     python = _find_python()
-    if all((
-        PARAMS.GetBool("EnableMultiprocessing"),
-        mesh.CountPoints >= 2000,
-        python,
-    )):
+    if all(
+        (
+            PARAMS.GetBool("EnableMultiprocessing"),
+            mesh.CountPoints >= 2000,
+            python,
+        )
+    ):
         multiprocessing = True
 
-
     if multiprocessing:
-        RenderMesh = type("RenderMesh", (RM_MultiprocessMixin, RenderMeshBase,), {})
+        RenderMesh = type(
+            "RenderMesh",
+            (
+                RenderMeshMultiprocessingMixin,
+                RenderMeshBase,
+            ),
+            {},
+        )
     elif USE_NUMPY:
-        RenderMesh = type("RenderMesh", (RM_NumpyMixin, RenderMeshBase,), {})
+        RenderMesh = type(
+            "RenderMesh",
+            (
+                RenderMeshNumpyMixin,
+                RenderMeshBase,
+            ),
+            {},
+        )
     else:
         RenderMesh = type("RenderMesh", (RenderMeshBase,), {})
-
 
     instance = RenderMesh(
         mesh,
@@ -110,7 +132,7 @@ def create_rendermesh(
         export_directory,
         relative_path,
         skip_meshing,
-        name="",
+        name,
     )
     return instance
 
@@ -466,7 +488,9 @@ class RenderMeshBase:
                 mtlfile, _ = os.path.splitext(objfile)
                 mtlfile += ".mtl"
             # Write mtl file
-            mtlfilename = RenderMeshBase._write_mtl(mtlname, mtlcontent, mtlfile)
+            mtlfilename = RenderMeshBase._write_mtl(
+                mtlname, mtlcontent, mtlfile
+            )
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -562,77 +586,6 @@ class RenderMeshBase:
 
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
-
-    def _write_objfile_mp(
-        self,
-        name,
-        objfile,
-        uv_transformation,
-        mtlfilename=None,
-        mtlname=None,
-    ):
-        """Write an OBJ file from a mesh - multi process version.
-
-        See write_objfile for more details.
-        """
-        # Initialize
-        path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
-
-        # Header
-        header = ["# Written by FreeCAD-Render\n"]
-
-        # Mtl
-        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
-
-        # UV
-        if self.has_uvmap():
-            # Translate, rotate, scale (optionally)
-            uvs = self.uvtransform(*uv_transformation)
-        else:
-            uvs = []
-
-        # Vertex normals
-        if self.has_vnormals():
-            norms = self.__vnormals
-        else:
-            norms = []
-
-        # Object name
-        objname = [f"o {name}\n"]
-        if mtlname is not None:
-            objname.append(f"usemtl {mtlname}\n")
-        objname.append("\n")
-
-        # Faces
-        if self.has_vnormals() and self.has_uvmap():
-            mask = " {0}/{0}/{0}"
-        elif not self.has_vnormals() and self.has_uvmap():
-            mask = " {0}/{0}"
-        elif self.has_vnormals() and not self.has_uvmap():
-            mask = " {0}//{0}"
-        else:
-            mask = " {}"
-
-        inlist = [
-            (header, "s"),
-            (mtl, "s"),
-            (self.points, "v"),
-            (uvs, "vt"),
-            (norms, "vn"),
-            (objname, "s"),
-            (self.facets, "f"),
-        ]
-
-        # Init script globals
-        init_globals = {
-            "inlist": inlist,
-            "mask": mask,
-            "objfile": objfile,
-            "python": self.python,
-        }
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
 
     @staticmethod
     def _write_mtl(name, mtlcontent, mtlfile=None):
@@ -1202,21 +1155,6 @@ class RenderMeshBase:
     ##########################################################################
 
     def compute_vnormals(self):
-        """Compute vertex normals - entry point."""
-        if self.multiprocessing:
-            msg = "Compute vertex normals (mp)"
-            func = self._compute_vnormals_mp
-        elif USE_NUMPY:
-            msg = "Compute vertex normals (np)"
-            func = self._compute_vnormals_np
-        else:
-            msg = "Compute vertex normals (sp)"
-            func = self._compute_vnormals_sp
-
-        debug("Object", self.name, msg)
-        func()
-
-    def _compute_vnormals_sp(self):
         """Compute vertex normals (single process).
 
         Refresh self._normals. We use an area & angle weighting algorithm."
@@ -1224,6 +1162,8 @@ class RenderMeshBase:
         # See here
         # http://www.bytehazard.com/articles/wnormals.html
         # (and look at script wnormals100.ms)
+
+        debug("Object", self.name, "Compute vertex normals (sp)")
 
         fmul = vector3d.fmul
         v3d_angles = vector3d.angles
@@ -1490,6 +1430,7 @@ class RenderMeshBase:
             for facet, tag in zip(facets, tags)
         ]
 
+
 # ===========================================================================
 #                               RenderTransformation
 # ===========================================================================
@@ -1739,7 +1680,10 @@ def _compute_uv_from_unitcube(point, face):
 #                           Multiprocess mixin
 # ===========================================================================
 
-class RM_MultiprocessMixin:
+
+class RenderMeshMultiprocessingMixin:
+    """A mixin class to add multiprocessing capabilities to RenderMesh."""
+
     def _compute_uvmap_cube_mp(self):
         """Compute UV map for cubic case - multiprocessing version.
 
@@ -1782,19 +1726,21 @@ class RM_MultiprocessMixin:
         # Get outputs
         point_count = point_count.value
 
-        self.__points = list(grouper(points_buf[: point_count * 3], 3))
-        self.__facets = list(grouper(facets_buf, 3))
-        self.__uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
+        self.points = list(grouper(points_buf[: point_count * 3], 3))
+        self.facets = list(grouper(facets_buf, 3))
+        self.uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
 
         points_buf = None
         facets_buf = None
         uvmap_buf = None
 
-    def _compute_vnormals_mp(self):
+    def compute_vnormals(self):
         """Compute vertex normals (single process).
 
         Refresh self._normals. We use an area & angle weighting algorithm."
         """
+        debug("Object", self.name, "Compute vertex normals (mp)")
+
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
 
@@ -1862,6 +1808,77 @@ class RM_MultiprocessMixin:
 
         return tags
 
+    def _write_objfile_mp(
+        self,
+        name,
+        objfile,
+        uv_transformation,
+        mtlfilename=None,
+        mtlname=None,
+    ):
+        """Write an OBJ file from a mesh - multi process version.
+
+        See write_objfile for more details.
+        """
+        # Initialize
+        path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
+
+        # Header
+        header = ["# Written by FreeCAD-Render\n"]
+
+        # Mtl
+        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
+
+        # UV
+        if self.has_uvmap():
+            # Translate, rotate, scale (optionally)
+            uvs = self.uvtransform(*uv_transformation)
+        else:
+            uvs = []
+
+        # Vertex normals
+        if self.has_vnormals():
+            norms = self.__vnormals
+        else:
+            norms = []
+
+        # Object name
+        objname = [f"o {name}\n"]
+        if mtlname is not None:
+            objname.append(f"usemtl {mtlname}\n")
+        objname.append("\n")
+
+        # Faces
+        if self.has_vnormals() and self.has_uvmap():
+            mask = " {0}/{0}/{0}"
+        elif not self.has_vnormals() and self.has_uvmap():
+            mask = " {0}/{0}"
+        elif self.has_vnormals() and not self.has_uvmap():
+            mask = " {0}//{0}"
+        else:
+            mask = " {}"
+
+        inlist = [
+            (header, "s"),
+            (mtl, "s"),
+            (self.points, "v"),
+            (uvs, "vt"),
+            (norms, "vn"),
+            (objname, "s"),
+            (self.facets, "f"),
+        ]
+
+        # Init script globals
+        init_globals = {
+            "inlist": inlist,
+            "mask": mask,
+            "objfile": objfile,
+            "python": self.python,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
+
     def _run_path_in_process(self, path, init_globals):
         """Run a path in a dedicated process.
 
@@ -1882,11 +1899,14 @@ class RM_MultiprocessMixin:
         process.start()
         process.join()
 
+
 # ===========================================================================
 #                           Numpy mixin
 # ===========================================================================
 
-class RM_NumpyMixin:
+
+class RenderMeshNumpyMixin:
+    """A mixin class to add Numpy use capabilities to RenderMesh."""
 
     def _compute_uvmap_cube_np(self):
         """Compute UV map for cubic case - numpy version."""
@@ -1963,18 +1983,20 @@ class RM_NumpyMixin:
         uvs /= 1000  # Scale
 
         # Update attributes
-        self.__facets = new_facets.tolist()
-        self.__points = new_points.tolist()
-        self.__uvmap = uvs.tolist()
+        self.facets = new_facets.tolist()
+        self.points = new_points.tolist()
+        self.uvmap = uvs.tolist()
 
         if debug_flag:
             print("numpy", time.time() - time0)
 
-    def _compute_vnormals_np(self):
+    def compute_vnormals(self):
         """Compute vertex normals (numpy version).
 
         Refresh self._normals. We use an area & angle weighting algorithm."
         """
+        debug("Object", self.name, "Compute vertex normals (np)")
+
         debug_flag = PARAMS.GetBool("Debug")
         if debug_flag:
             print("compute vnormals Numpy")
@@ -2048,7 +2070,7 @@ class RM_NumpyMixin:
         )
         point_normals = _safe_normalize_np(point_normals)
 
-        self.__vnormals = point_normals.tolist()
+        self.vnormals = point_normals.tolist()
 
         if debug_flag:
             print(time.time() - tm0)
