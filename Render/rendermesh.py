@@ -36,9 +36,7 @@ import itertools as it
 import functools
 import time
 from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
-import shutil
 import copy
-import multiprocessing as mp
 
 import FreeCAD as App
 import Mesh
@@ -46,24 +44,12 @@ import Mesh
 from Render.rendermesh_mixins import (
     RenderMeshMultiprocessingMixin,
     RenderMeshNumpyMixin,
+    multiprocessing_enabled,
+    numpy_enabled,
 )
 from Render.constants import PARAMS
 from Render.rendermesh_mp import vector3d
 from Render.utils import warn, debug
-
-try:
-    mp.set_start_method("spawn")
-except RuntimeError:
-    # Already set...
-    pass
-
-try:
-    import numpy as np
-
-    USE_NUMPY = True
-except ModuleNotFoundError:
-    USE_NUMPY = False
-
 
 # ===========================================================================
 #                             RenderMesh factory
@@ -92,38 +78,14 @@ def create_rendermesh(
 
     Capabilities are added as mixins.
     """
-    # Multiprocessing preparation (if required)
-    multiprocessing = False
-    python = _find_python()
-    if all(
-        (
-            PARAMS.GetBool("EnableMultiprocessing"),
-            mesh.CountPoints >= 2000,
-            python,
-        )
-    ):
-        multiprocessing = True
-
-    if multiprocessing:
-        RenderMesh = type(
-            "RenderMesh",
-            (
-                RenderMeshMultiprocessingMixin,
-                RenderMeshBase,
-            ),
-            {},
-        )
-    elif USE_NUMPY:
-        RenderMesh = type(
-            "RenderMesh",
-            (
-                RenderMeshNumpyMixin,
-                RenderMeshBase,
-            ),
-            {},
-        )
+    if multiprocessing_enabled(mesh):
+        base = (RenderMeshBase, RenderMeshMultiprocessingMixin)
+    elif numpy_enabled():
+        base = (RenderMeshBase, RenderMeshNumpyMixin)
     else:
-        RenderMesh = type("RenderMesh", (RenderMeshBase,), {})
+        base = (RenderMeshBase,)
+
+    RenderMesh = type("RenderMesh", base, {})
 
     instance = RenderMesh(
         mesh,
@@ -137,6 +99,7 @@ def create_rendermesh(
         skip_meshing,
         name,
     )
+
     return instance
 
 
@@ -183,6 +146,8 @@ class RenderMeshBase:
             relative_path -- flag to control whether returned path is relative
                 or absolute to project_directory
         """
+        super().__init__()
+
         # Directories, for write methods
         self.export_directory = _check_directory(export_directory)
         self.project_directory = _check_directory(project_directory)
@@ -219,18 +184,6 @@ class RenderMeshBase:
         self.__facets = facets
         self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
-
-        # TODO
-        # Multiprocessing preparation (if required)
-        self.multiprocessing = False
-        if (
-            PARAMS.GetBool("EnableMultiprocessing")
-            and self.count_points >= 2000
-        ):
-            python = _find_python()
-            if python:
-                self.multiprocessing = True
-                self.python = python
 
         # Sanity check
         if not facets:
@@ -496,12 +449,6 @@ class RenderMeshBase:
         """
         tm0 = time.time()
 
-        # Select routine (single or multi processing)
-        if self.multiprocessing:
-            func, mode = self._write_objfile_mp, "mp"
-        else:
-            func, mode = self._write_objfile_sp, "sp"
-
         # Mtl
         if mtlcontent is not None:
             # Material name
@@ -527,7 +474,7 @@ class RenderMeshBase:
         uv_transformation = (uv_translate, uv_rotate, uv_scale)
 
         # Call main routine (single or multi process)
-        func(
+        self._write_objfile_helper(
             name,
             objfile,
             uv_transformation,
@@ -536,9 +483,9 @@ class RenderMeshBase:
         )
 
         tm1 = time.time() - tm0
-        debug("Object", self.name, f"Write OBJ file ({mode}): {tm1}")
+        debug("Object", self.name, f"Write OBJ file: {tm1}")
 
-    def _write_objfile_sp(
+    def _write_objfile_helper(
         self,
         name,
         objfile,
@@ -1689,21 +1636,6 @@ _EXPORT_EXTENSIONS = {
     RenderMeshBase.ExportType.CYCLES: ".xml",
     RenderMeshBase.ExportType.POVRAY: ".inc",
 }
-
-
-def _find_python():
-    """Find Python executable."""
-    python = shutil.which("pythonw")
-    if python:
-        python = os.path.abspath(python)
-        return python
-
-    python = shutil.which("python")
-    if python:
-        python = os.path.abspath(python)
-        return python
-
-    return None
 
 
 def _check_directory(directory):

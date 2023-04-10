@@ -20,19 +20,30 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""RenderMesh mixins, to add various capabilities to RenderMesh base."""
+"""RenderMesh mixins, to add various capabilities to RenderMesh base.
+
+Capabilities are added by overloading base class methods.
+"""
 
 import runpy
+import multiprocessing as mp
+import shutil
+import os
+import time
+
+try:
+    import numpy as np
+except ModuleNotFoundError:
+    pass
 
 from Render.constants import PKGDIR, PARAMS
 from Render.utils import warn, debug, grouper, SharedWrapper
 
 try:
-    import numpy as np
-
-    USE_NUMPY = True
-except ModuleNotFoundError:
-    USE_NUMPY = False
+    mp.set_start_method("spawn")
+except RuntimeError:
+    # Already set...
+    pass
 
 # ===========================================================================
 #                           Multiprocess mixin
@@ -41,6 +52,10 @@ except ModuleNotFoundError:
 
 class RenderMeshMultiprocessingMixin:
     """A mixin class to add multiprocessing capabilities to RenderMesh."""
+
+    def __init__(self):
+        """Initialize mixin."""
+        self.python = _find_python()
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - multiprocessing version.
@@ -170,7 +185,7 @@ class RenderMeshMultiprocessingMixin:
 
         return tags
 
-    def _write_objfile_mp(
+    def _write_objfile_helper(
         self,
         name,
         objfile,
@@ -515,3 +530,37 @@ class RenderMeshNumpyMixin:
             print("adjacency", time.time() - tm0)
 
         return adjacency
+
+# ===========================================================================
+#                               Helpers
+# ===========================================================================
+
+def multiprocessing_enabled(mesh):
+    """Check if multiprocessing can be enabled."""
+    conditions = (
+        PARAMS.GetBool("EnableMultiprocessing"),
+        mesh.CountPoints >= 2000,
+        _find_python(),
+    )
+    return all(conditions)
+
+
+def numpy_enabled():
+    """Check if multiprocessing can be enabled."""
+    conditions = ("np" in globals(),)
+    return all(conditions)
+
+
+def _find_python():
+    """Find Python executable."""
+    python = shutil.which("pythonw")
+    if python:
+        python = os.path.abspath(python)
+        return python
+
+    python = shutil.which("python")
+    if python:
+        python = os.path.abspath(python)
+        return python
+
+    return None
