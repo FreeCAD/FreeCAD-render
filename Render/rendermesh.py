@@ -79,7 +79,27 @@ def create_rendermesh(
         skip_meshing=False,
         name="",
 ):
-    RenderMesh = type("RenderMesh", (RenderMeshBase,), {})
+    # TODO Docstring
+
+    # Multiprocessing preparation (if required)
+    multiprocessing = False
+    python = _find_python()
+    if all((
+        PARAMS.GetBool("EnableMultiprocessing"),
+        mesh.CountPoints >= 2000,
+        python,
+    )):
+        multiprocessing = True
+
+
+    if multiprocessing:
+        RenderMesh = type("RenderMesh", (RM_MultiprocessMixin, RenderMeshBase,), {})
+    elif USE_NUMPY:
+        RenderMesh = type("RenderMesh", (RM_NumpyMixin, RenderMeshBase,), {})
+    else:
+        RenderMesh = type("RenderMesh", (RenderMeshBase,), {})
+
+
     instance = RenderMesh(
         mesh,
         autosmooth,
@@ -96,7 +116,7 @@ def create_rendermesh(
 
 
 # ===========================================================================
-#                               RenderMesh
+#                               RenderMeshBase
 # ===========================================================================
 
 
@@ -175,6 +195,7 @@ class RenderMeshBase:
         self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
 
+        # TODO
         # Multiprocessing preparation (if required)
         self.multiprocessing = False
         if (
@@ -253,6 +274,11 @@ class RenderMeshBase:
         """Get a collection of the mesh points."""
         return self.__points
 
+    @points.setter
+    def points(self, value):
+        """Set the mesh points."""
+        self.__points = value
+
     @property
     def count_points(self):
         """Get the number of points."""
@@ -267,6 +293,16 @@ class RenderMeshBase:
     def count_facets(self):
         """Get the number of facets."""
         return len(self.__facets)
+
+    @property
+    def normals(self):
+        """Get the facet normals."""
+        return self.__normals
+
+    @property
+    def areas(self):
+        """Get the facets areas."""
+        return self.__areas
 
     @property
     def vnormals(self):
@@ -1161,138 +1197,6 @@ class RenderMeshBase:
         self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
 
-    def _compute_uvmap_cube_mp(self):
-        """Compute UV map for cubic case - multiprocessing version.
-
-        We isolate submeshes by cube face in order to avoid trouble when
-        one edge belongs to several cube faces (cf. simple cube case, for
-        instance)
-        """
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
-
-        # Init output buffers
-        facets = self.__facets
-        facets_count = len(facets)
-        color_count = 6
-        points_per_facet = 3
-        maxpoints = facets_count * color_count * points_per_facet
-
-        points_buf = mp.RawArray("f", maxpoints * 3)
-        facets_buf = mp.RawArray("l", len(facets) * 3)
-        uvmap_buf = mp.RawArray("f", maxpoints * 2)
-        point_count = mp.RawValue("l")
-
-        # Init script globals
-        init_globals = {
-            "PYTHON": self.python,
-            "POINTS": self.__points,
-            "FACETS": self.__facets,
-            "NORMALS": self.__normals,
-            "AREAS": self.__areas,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_POINTS": points_buf,
-            "OUT_FACETS": facets_buf,
-            "OUT_UVMAP": uvmap_buf,
-            "OUT_POINT_COUNT": point_count,
-        }
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
-
-        # Get outputs
-        point_count = point_count.value
-
-        self.__points = list(grouper(points_buf[: point_count * 3], 3))
-        self.__facets = list(grouper(facets_buf, 3))
-        self.__uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
-
-        points_buf = None
-        facets_buf = None
-        uvmap_buf = None
-
-    def _compute_uvmap_cube_np(self):
-        """Compute UV map for cubic case - numpy version."""
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
-            time0 = time.time()
-
-        # Set common parameters
-        count_facets = self.count_facets
-        normals = np.array(self.__normals)
-        facets = np.array(self.facets)
-        assert facets.shape[1] == 3
-        points = np.array(self.points)
-        areas = np.array(self.__areas)
-        triangles = np.take(points, facets, axis=0)
-
-        # Compute facet colors
-        # Color is made of 2 terms:
-        # First term: max of absolute coordinates of normals
-        # Second term: sign of corresponding coordinate
-        first_term = np.abs(normals)
-        first_term = np.argmax(first_term, axis=1)  # Maximal coordinate
-        first_term = np.expand_dims(first_term, axis=1)
-        second_term = np.less(normals, np.zeros((count_facets, 3))).astype(int)
-        second_term = np.take_along_axis(second_term, first_term, axis=1)
-        facet_colors = first_term * 2 + second_term
-        facet_colors = facet_colors.ravel()
-
-        # Compute center of gravity (triangle cogs weighted by triangle areas)
-        weighted_triangle_cogs = (
-            np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
-        )
-        cog = np.sum(weighted_triangle_cogs, axis=0) / np.sum(areas)
-
-        # Update point list
-        # Unfold facet points, joining with facet colors
-        # Make them unique --> colored points
-        tshape = triangles.shape
-        unfolded_points = triangles.reshape(tshape[0] * tshape[1], tshape[2])
-        unfolded_point_colors = np.expand_dims(facet_colors.repeat(3), axis=1)
-        unfolded_colored_points = np.hstack(
-            (unfolded_points, unfolded_point_colors)
-        )
-        colored_points, new_facets = np.unique(
-            unfolded_colored_points, return_inverse=True, axis=0
-        )
-
-        # Save new points and facets
-        new_facets = new_facets.reshape(count_facets, 3)
-        new_points = colored_points[::, 0:3]
-
-        # Compute uvmap
-        # Center points to center of gravity.
-        # Apply linear transformation to point coordinates.
-        # The transformation depends on the point color.
-        centered_points = new_points - cog
-        point_colors = colored_points[::, 3].astype(np.int64)
-        base_matrices = np.array(
-            [
-                [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
-                [[0.0, -1.0, 0.0], [0.0, 0.0, 1.0]],
-                [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
-                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
-            ]
-        )
-        uvs = np.matmul(
-            base_matrices.take(point_colors, axis=0),
-            np.expand_dims(centered_points, axis=2),
-            axes=[(1, 2), (1, 2), (1, 2)],
-        )
-        uvs = uvs.squeeze(axis=2)
-        uvs /= 1000  # Scale
-
-        # Update attributes
-        self.__facets = new_facets.tolist()
-        self.__points = new_points.tolist()
-        self.__uvmap = uvs.tolist()
-
-        if debug_flag:
-            print("numpy", time.time() - time0)
-
     ##########################################################################
     #                       Vertex Normals manipulations                     #
     ##########################################################################
@@ -1311,89 +1215,6 @@ class RenderMeshBase:
 
         debug("Object", self.name, msg)
         func()
-
-    def _compute_vnormals_np(self):
-        """Compute vertex normals (numpy version).
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
-            print("compute vnormals Numpy")
-            tm0 = time.time()
-
-        # Prepare parameters
-        points = np.array(self.__points, dtype="f4")
-        normals = np.array(self.__normals, dtype="f4")
-        areas = np.array(self.__areas, dtype="f4")
-        facets = np.array(self.__facets, dtype="i4")
-        triangles = np.take(points, facets, axis=0)
-        indices = facets.ravel(order="F")
-
-        if debug_flag:
-            print("init", time.time() - tm0)
-
-        def _safe_normalize_np(vect_array):
-            """Safely normalize an array of vectors."""
-            magnitudes = np.sqrt((vect_array**2).sum(-1))
-            magnitudes = np.expand_dims(magnitudes, axis=1)
-            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
-
-        def _angles(i, j, k):
-            """Compute triangle vertex angles."""
-            # Compute normalized vectors
-            vec1 = triangles[::, j, ::] - triangles[::, i, ::]
-            vec1 = _safe_normalize_np(vec1)
-
-            vec2 = triangles[::, k, ::] - triangles[::, i, ::]
-            vec2 = _safe_normalize_np(vec2)
-
-            # Compute dot products
-            # (Clip to avoid precision issues)
-            dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
-
-            # Compute arccos of dot products
-            angles = np.arccos(dots)
-            return angles
-
-        # Reminder:
-        # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
-        # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
-        # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
-        angles0 = _angles(0, 1, 2)
-        angles1 = _angles(1, 0, 2)
-        angles2 = np.pi - angles1 - angles0
-        # Debug
-        # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
-        vertex_angles = np.concatenate((angles0, angles1, angles2))
-        if debug_flag:
-            print("angles", time.time() - tm0)
-
-        # Compute weighted normals for each vertex of the triangles
-        vertex_areas = np.concatenate((areas, areas, areas))
-        weights = vertex_areas * vertex_angles
-        weights = np.expand_dims(weights, axis=1)
-
-        vertex_normals = np.concatenate((normals, normals, normals), axis=0)
-        weighted_normals = vertex_normals * weights
-
-        if debug_flag:
-            print("vertex weighted normals", time.time() - tm0)
-
-        # Weighted sum of normals
-        point_normals = np.column_stack(
-            (
-                np.bincount(indices, weighted_normals[..., 0]),
-                np.bincount(indices, weighted_normals[..., 1]),
-                np.bincount(indices, weighted_normals[..., 2]),
-            )
-        )
-        point_normals = _safe_normalize_np(point_normals)
-
-        self.__vnormals = point_normals.tolist()
-
-        if debug_flag:
-            print(time.time() - tm0)
 
     def _compute_vnormals_sp(self):
         """Compute vertex normals (single process).
@@ -1436,39 +1257,6 @@ class RenderMeshBase:
         vnorms = [safe_normalize(n) for n in vnorms]
 
         self.__vnormals = vnorms
-
-    def _compute_vnormals_mp(self):
-        """Compute vertex normals (single process).
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
-
-        # Init output buffer
-        vnormals_buf = mp.RawArray("f", self.count_points * 3)
-
-        # Init script globals
-        init_globals = {
-            "POINTS": mp.RawArray("f", SharedWrapper(self.__points, 3)),
-            "FACETS": mp.RawArray("l", SharedWrapper(self.__facets, 3)),
-            "NORMALS": mp.RawArray("f", SharedWrapper(self.__normals, 3)),
-            "AREAS": mp.RawArray("f", self.__areas),
-            "PYTHON": self.python,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_VNORMALS": vnormals_buf,
-        }
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
-
-        # Update properties
-        vnormals_mv = (
-            memoryview(vnormals_buf)
-            .cast("b")
-            .cast("f", [self.count_points, 3])
-        )
-        self.__vnormals = vnormals_mv.tolist()
 
     def _adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
@@ -1535,82 +1323,6 @@ class RenderMeshBase:
             print("adjacency", time.time() - tm0)
 
         return adjacents
-
-    def _adjacent_facets_np(self):
-        """Compute the adjacent facets for each facet of the mesh.
-
-        Returns a list of sets of facet indices (adjacency list).
-        Numpy version
-        """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
-            print()
-            print(f"compute adjacency Numpy - {self.count_facets} facets")
-            tm0 = time.time()
-            np.set_printoptions(edgeitems=600)
-
-        # Compute edges (assume triangles)
-        facets = np.asarray(self.__facets)
-        facets.sort(axis=1)
-
-        indices = np.arange(len(facets))
-        indices = np.tile(indices, 3)
-
-        edges1 = np.rec.fromarrays((facets[..., 0], facets[..., 1]))
-        edges2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
-        edges3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
-        edges = np.concatenate((edges1, edges2, edges3))
-
-        if debug_flag:
-            print("edges", time.time() - tm0)
-
-        argsort_edges = edges.argsort()
-        sorted_facet_indices = indices[argsort_edges]
-        sorted_edges = edges[argsort_edges]
-
-        if debug_flag:
-            print("edges sorted", time.time() - tm0)
-
-        # Searches
-        unique_edges, unique_indices, unique_counts = np.unique(
-            sorted_edges, return_index=True, return_counts=True
-        )
-        unique_indices_left = np.searchsorted(unique_edges, edges, side="left")
-        indices_left = unique_indices[unique_indices_left]
-        indices_count = unique_counts[unique_indices_left]
-        indices_right = indices_left + indices_count - 1
-        maxindices = np.max(indices_count)
-        if maxindices > 2:  # We assume only 2 neighbours per edge
-            msg = (
-                "Warning - More than 2 neighbours per edge "
-                f"(found {maxindices})"
-                " - Truncation may occur"
-            )
-            warn("Object", self.name, msg)
-        indices_left = sorted_facet_indices[indices_left]
-        indices_right = sorted_facet_indices[indices_right]
-
-        pairs_left = np.rec.fromarrays((indices, indices_left), names="x,y")
-        condition_left = np.not_equal(pairs_left.x, pairs_left.y)
-        pairs_left = np.compress(condition_left, pairs_left)
-
-        pairs_right = np.rec.fromarrays((indices, indices_right), names="x,y")
-        condition_right = np.not_equal(pairs_right.x, pairs_right.y)
-        pairs_right = np.compress(condition_right, pairs_right)
-
-        if debug_flag:
-            print("searches", time.time() - tm0)
-
-        # Concatenate
-        pairs = np.concatenate((pairs_left, pairs_right))
-        adjacency = [set() for _ in range(self.count_facets)]
-        for index, value in pairs:
-            adjacency[index].add(value)
-
-        if debug_flag:
-            print("adjacency", time.time() - tm0)
-
-        return adjacency
 
     def connected_facets(
         self,
@@ -1712,45 +1424,6 @@ class RenderMeshBase:
 
         return tags
 
-    def _connected_components_mp(self, split_angle):
-        """Get all connected components of facets in the mesh.
-
-        Multiprocess version
-
-        Args:
-            split_angle -- the angle that breaks adjacency (radians)
-
-        Returns:
-            a list of tags. Each tag gives the component of the corresponding
-                facet
-            the number of components
-        """
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
-
-        # Init output buffer
-        tags_buf = mp.RawArray("l", self.count_facets)
-
-        # Init script globals
-        init_globals = {
-            "POINTS": mp.RawArray("f", SharedWrapper(self.__points, 3)),
-            "FACETS": mp.RawArray("l", SharedWrapper(self.__facets, 3)),
-            "NORMALS": mp.RawArray("f", SharedWrapper(self.__normals, 3)),
-            "AREAS": mp.RawArray("f", self.__areas),
-            "SPLIT_ANGLE": mp.RawValue("f", split_angle),
-            "PYTHON": self.python,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_TAGS": tags_buf,
-        }
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
-
-        # Update properties
-        tags = list(tags_buf[::])
-
-        return tags
-
     def connected_components(self, split_angle):
         """Get all connected components of facets in the mesh.
 
@@ -1816,27 +1489,6 @@ class RenderMeshBase:
             tuple(newpoints[point_index, tag] for point_index in facet)
             for facet, tag in zip(facets, tags)
         ]
-
-    def _run_path_in_process(self, path, init_globals):
-        """Run a path in a dedicated process.
-
-        This method is able to launch a multiprocess script, like
-        runpy.run_path. However it solves the lack of thread safety of
-        'runpy.run_path', by embedding run_path in a dedicated process.
-        Please note 'self.python' must have been set. After
-        being started, the process is awaited (joined).
-        """
-        args = (path,)
-        kwargs = {"init_globals": init_globals, "run_name": "__main__"}
-
-        mp.set_executable(self.python)
-
-        process = mp.Process(
-            target=runpy.run_path, args=args, kwargs=kwargs, name="render"
-        )
-        process.start()
-        process.join()
-
 
 # ===========================================================================
 #                               RenderTransformation
@@ -2081,6 +1733,401 @@ def _compute_uv_from_unitcube(point, face):
     # res = (pt0, -pt1)
     method = _UC_MAP[face]
     return method(point)
+
+
+# ===========================================================================
+#                           Multiprocess mixin
+# ===========================================================================
+
+class RM_MultiprocessMixin:
+    def _compute_uvmap_cube_mp(self):
+        """Compute UV map for cubic case - multiprocessing version.
+
+        We isolate submeshes by cube face in order to avoid trouble when
+        one edge belongs to several cube faces (cf. simple cube case, for
+        instance)
+        """
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
+
+        # Init output buffers
+        facets = self.__facets
+        facets_count = len(facets)
+        color_count = 6
+        points_per_facet = 3
+        maxpoints = facets_count * color_count * points_per_facet
+
+        points_buf = mp.RawArray("f", maxpoints * 3)
+        facets_buf = mp.RawArray("l", len(facets) * 3)
+        uvmap_buf = mp.RawArray("f", maxpoints * 2)
+        point_count = mp.RawValue("l")
+
+        # Init script globals
+        init_globals = {
+            "PYTHON": self.python,
+            "POINTS": self.__points,
+            "FACETS": self.__facets,
+            "NORMALS": self.__normals,
+            "AREAS": self.__areas,
+            "SHOWTIME": PARAMS.GetBool("Debug"),
+            "OUT_POINTS": points_buf,
+            "OUT_FACETS": facets_buf,
+            "OUT_UVMAP": uvmap_buf,
+            "OUT_POINT_COUNT": point_count,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
+
+        # Get outputs
+        point_count = point_count.value
+
+        self.__points = list(grouper(points_buf[: point_count * 3], 3))
+        self.__facets = list(grouper(facets_buf, 3))
+        self.__uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
+
+        points_buf = None
+        facets_buf = None
+        uvmap_buf = None
+
+    def _compute_vnormals_mp(self):
+        """Compute vertex normals (single process).
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
+
+        # Init output buffer
+        vnormals_buf = mp.RawArray("f", self.count_points * 3)
+
+        # Init script globals
+        init_globals = {
+            "POINTS": mp.RawArray("f", SharedWrapper(self.points, 3)),
+            "FACETS": mp.RawArray("l", SharedWrapper(self.facets, 3)),
+            "NORMALS": mp.RawArray("f", SharedWrapper(self.normals, 3)),
+            "AREAS": mp.RawArray("f", self.areas),
+            "PYTHON": self.python,
+            "SHOWTIME": PARAMS.GetBool("Debug"),
+            "OUT_VNORMALS": vnormals_buf,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
+
+        # Update properties
+        vnormals_mv = (
+            memoryview(vnormals_buf)
+            .cast("b")
+            .cast("f", [self.count_points, 3])
+        )
+        self.__vnormals = vnormals_mv.tolist()
+
+    def _connected_components_mp(self, split_angle):
+        """Get all connected components of facets in the mesh.
+
+        Multiprocess version
+
+        Args:
+            split_angle -- the angle that breaks adjacency (radians)
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
+
+        # Init output buffer
+        tags_buf = mp.RawArray("l", self.count_facets)
+
+        # Init script globals
+        init_globals = {
+            "POINTS": mp.RawArray("f", SharedWrapper(self.points, 3)),
+            "FACETS": mp.RawArray("l", SharedWrapper(self.facets, 3)),
+            "NORMALS": mp.RawArray("f", SharedWrapper(self.normals, 3)),
+            "AREAS": mp.RawArray("f", self.areas),
+            "SPLIT_ANGLE": mp.RawValue("f", split_angle),
+            "PYTHON": self.python,
+            "SHOWTIME": PARAMS.GetBool("Debug"),
+            "OUT_TAGS": tags_buf,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
+
+        # Update properties
+        tags = list(tags_buf[::])
+
+        return tags
+
+    def _run_path_in_process(self, path, init_globals):
+        """Run a path in a dedicated process.
+
+        This method is able to launch a multiprocess script, like
+        runpy.run_path. However it solves the lack of thread safety of
+        'runpy.run_path', by embedding run_path in a dedicated process.
+        Please note 'self.python' must have been set. After
+        being started, the process is awaited (joined).
+        """
+        args = (path,)
+        kwargs = {"init_globals": init_globals, "run_name": "__main__"}
+
+        mp.set_executable(self.python)
+
+        process = mp.Process(
+            target=runpy.run_path, args=args, kwargs=kwargs, name="render"
+        )
+        process.start()
+        process.join()
+
+# ===========================================================================
+#                           Numpy mixin
+# ===========================================================================
+
+class RM_NumpyMixin:
+
+    def _compute_uvmap_cube_np(self):
+        """Compute UV map for cubic case - numpy version."""
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            time0 = time.time()
+
+        # Set common parameters
+        count_facets = self.count_facets
+        normals = np.array(self.normals)
+        facets = np.array(self.facets)
+        assert facets.shape[1] == 3
+        points = np.array(self.points)
+        areas = np.array(self.areas)
+        triangles = np.take(points, facets, axis=0)
+
+        # Compute facet colors
+        # Color is made of 2 terms:
+        # First term: max of absolute coordinates of normals
+        # Second term: sign of corresponding coordinate
+        first_term = np.abs(normals)
+        first_term = np.argmax(first_term, axis=1)  # Maximal coordinate
+        first_term = np.expand_dims(first_term, axis=1)
+        second_term = np.less(normals, np.zeros((count_facets, 3))).astype(int)
+        second_term = np.take_along_axis(second_term, first_term, axis=1)
+        facet_colors = first_term * 2 + second_term
+        facet_colors = facet_colors.ravel()
+
+        # Compute center of gravity (triangle cogs weighted by triangle areas)
+        weighted_triangle_cogs = (
+            np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
+        )
+        cog = np.sum(weighted_triangle_cogs, axis=0) / np.sum(areas)
+
+        # Update point list
+        # Unfold facet points, joining with facet colors
+        # Make them unique --> colored points
+        tshape = triangles.shape
+        unfolded_points = triangles.reshape(tshape[0] * tshape[1], tshape[2])
+        unfolded_point_colors = np.expand_dims(facet_colors.repeat(3), axis=1)
+        unfolded_colored_points = np.hstack(
+            (unfolded_points, unfolded_point_colors)
+        )
+        colored_points, new_facets = np.unique(
+            unfolded_colored_points, return_inverse=True, axis=0
+        )
+
+        # Save new points and facets
+        new_facets = new_facets.reshape(count_facets, 3)
+        new_points = colored_points[::, 0:3]
+
+        # Compute uvmap
+        # Center points to center of gravity.
+        # Apply linear transformation to point coordinates.
+        # The transformation depends on the point color.
+        centered_points = new_points - cog
+        point_colors = colored_points[::, 3].astype(np.int64)
+        base_matrices = np.array(
+            [
+                [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+                [[0.0, -1.0, 0.0], [0.0, 0.0, 1.0]],
+                [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
+            ]
+        )
+        uvs = np.matmul(
+            base_matrices.take(point_colors, axis=0),
+            np.expand_dims(centered_points, axis=2),
+            axes=[(1, 2), (1, 2), (1, 2)],
+        )
+        uvs = uvs.squeeze(axis=2)
+        uvs /= 1000  # Scale
+
+        # Update attributes
+        self.__facets = new_facets.tolist()
+        self.__points = new_points.tolist()
+        self.__uvmap = uvs.tolist()
+
+        if debug_flag:
+            print("numpy", time.time() - time0)
+
+    def _compute_vnormals_np(self):
+        """Compute vertex normals (numpy version).
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print("compute vnormals Numpy")
+            tm0 = time.time()
+
+        # Prepare parameters
+        points = np.array(self.points, dtype="f4")
+        normals = np.array(self.normals, dtype="f4")
+        areas = np.array(self.areas, dtype="f4")
+        facets = np.array(self.facets, dtype="i4")
+        triangles = np.take(points, facets, axis=0)
+        indices = facets.ravel(order="F")
+
+        if debug_flag:
+            print("init", time.time() - tm0)
+
+        def _safe_normalize_np(vect_array):
+            """Safely normalize an array of vectors."""
+            magnitudes = np.sqrt((vect_array**2).sum(-1))
+            magnitudes = np.expand_dims(magnitudes, axis=1)
+            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
+
+        def _angles(i, j, k):
+            """Compute triangle vertex angles."""
+            # Compute normalized vectors
+            vec1 = triangles[::, j, ::] - triangles[::, i, ::]
+            vec1 = _safe_normalize_np(vec1)
+
+            vec2 = triangles[::, k, ::] - triangles[::, i, ::]
+            vec2 = _safe_normalize_np(vec2)
+
+            # Compute dot products
+            # (Clip to avoid precision issues)
+            dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
+
+            # Compute arccos of dot products
+            angles = np.arccos(dots)
+            return angles
+
+        # Reminder:
+        # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
+        # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
+        # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
+        angles0 = _angles(0, 1, 2)
+        angles1 = _angles(1, 0, 2)
+        angles2 = np.pi - angles1 - angles0
+        # Debug
+        # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
+        vertex_angles = np.concatenate((angles0, angles1, angles2))
+        if debug_flag:
+            print("angles", time.time() - tm0)
+
+        # Compute weighted normals for each vertex of the triangles
+        vertex_areas = np.concatenate((areas, areas, areas))
+        weights = vertex_areas * vertex_angles
+        weights = np.expand_dims(weights, axis=1)
+
+        vertex_normals = np.concatenate((normals, normals, normals), axis=0)
+        weighted_normals = vertex_normals * weights
+
+        if debug_flag:
+            print("vertex weighted normals", time.time() - tm0)
+
+        # Weighted sum of normals
+        point_normals = np.column_stack(
+            (
+                np.bincount(indices, weighted_normals[..., 0]),
+                np.bincount(indices, weighted_normals[..., 1]),
+                np.bincount(indices, weighted_normals[..., 2]),
+            )
+        )
+        point_normals = _safe_normalize_np(point_normals)
+
+        self.__vnormals = point_normals.tolist()
+
+        if debug_flag:
+            print(time.time() - tm0)
+
+    def _adjacent_facets_np(self):
+        """Compute the adjacent facets for each facet of the mesh.
+
+        Returns a list of sets of facet indices (adjacency list).
+        Numpy version
+        """
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print()
+            print(f"compute adjacency Numpy - {self.count_facets} facets")
+            tm0 = time.time()
+            np.set_printoptions(edgeitems=600)
+
+        # Compute edges (assume triangles)
+        facets = np.asarray(self.facets)
+        facets.sort(axis=1)
+
+        indices = np.arange(len(facets))
+        indices = np.tile(indices, 3)
+
+        edges1 = np.rec.fromarrays((facets[..., 0], facets[..., 1]))
+        edges2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
+        edges3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
+        edges = np.concatenate((edges1, edges2, edges3))
+
+        if debug_flag:
+            print("edges", time.time() - tm0)
+
+        argsort_edges = edges.argsort()
+        sorted_facet_indices = indices[argsort_edges]
+        sorted_edges = edges[argsort_edges]
+
+        if debug_flag:
+            print("edges sorted", time.time() - tm0)
+
+        # Searches
+        unique_edges, unique_indices, unique_counts = np.unique(
+            sorted_edges, return_index=True, return_counts=True
+        )
+        unique_indices_left = np.searchsorted(unique_edges, edges, side="left")
+        indices_left = unique_indices[unique_indices_left]
+        indices_count = unique_counts[unique_indices_left]
+        indices_right = indices_left + indices_count - 1
+        maxindices = np.max(indices_count)
+        if maxindices > 2:  # We assume only 2 neighbours per edge
+            msg = (
+                "Warning - More than 2 neighbours per edge "
+                f"(found {maxindices})"
+                " - Truncation may occur"
+            )
+            warn("Object", self.name, msg)
+        indices_left = sorted_facet_indices[indices_left]
+        indices_right = sorted_facet_indices[indices_right]
+
+        pairs_left = np.rec.fromarrays((indices, indices_left), names="x,y")
+        condition_left = np.not_equal(pairs_left.x, pairs_left.y)
+        pairs_left = np.compress(condition_left, pairs_left)
+
+        pairs_right = np.rec.fromarrays((indices, indices_right), names="x,y")
+        condition_right = np.not_equal(pairs_right.x, pairs_right.y)
+        pairs_right = np.compress(condition_right, pairs_right)
+
+        if debug_flag:
+            print("searches", time.time() - tm0)
+
+        # Concatenate
+        pairs = np.concatenate((pairs_left, pairs_right))
+        adjacency = [set() for _ in range(self.count_facets)]
+        for index, value in pairs:
+            adjacency[index].add(value)
+
+        if debug_flag:
+            print("adjacency", time.time() - tm0)
+
+        return adjacency
 
 
 # ===========================================================================
