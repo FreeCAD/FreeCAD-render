@@ -807,7 +807,7 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
             "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
         )
         time0 = time.time()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [executor.submit(get_rdr_string, view) for view in views]
             objstrings = [
                 f.result() for f in concurrent.futures.as_completed(futures)
