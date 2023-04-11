@@ -45,7 +45,7 @@ import FreeCAD as App
 from Render.imageviewer import display_image
 
 
-class Worker(QObject):
+class RendererWorker(QObject):
     """Worker class to run renderer.
 
     This class embeds the treatment to be executed to run renderer in separate
@@ -55,18 +55,22 @@ class Worker(QObject):
     finished = Signal(int)
     result_ready = Signal(str)  # Triggered when result is ready for display
 
-    def __init__(self, cmd, img, cwd):
+    def __init__(self, cmd, img, cwd, open_after_render):
         """Initialize worker.
 
         Args:
             cmd -- command to execute (str)
             img -- path to resulting image (the renderer output) (str)
             cwd -- directory where to execute subprocess
+            open_after_render -- flag to make GUI open rendered image (bool)
         """
         super().__init__()
         self.cmd = cmd
         self.img = img
         self.cwd = cwd
+        if open_after_render:
+            self.result_ready.connect(display_image)
+
 
     def run(self):
         """Run worker.
@@ -119,28 +123,24 @@ class Worker(QObject):
 class RendererExecutorGui(QObject):
     """A class to execute a rendering engine in Graphical User Interface mode.
 
-    This class is designed to run a renderer in a separate thread, keeping GUI
+    This class is designed to run a worker in a separate thread, keeping GUI
     responsive.  Meanwhile, stdout/stderr are piped to FreeCAD console, in such
-    a way it is possible to follow the evolution of the rendering.  To achieve
-    that, renderer is executed in a separate thread, using **QThread**.
+    a way it is possible to follow the evolution of the work.  To achieve
+    that, worker is executed in a separate thread, using **QThread**.
     Nota: in this class, it is assumed that Qt GUI is up, so it is not tested
     anywhere.
     """
 
-    def __init__(self, cmd, img, open_after_render, cwd=None):
+    def __init__(self, worker):
         """Initialize executor.
 
         Args:
-            cmd -- command to execute (str)
-            img -- path to resulting image (the renderer output) (str)
-            open_after_render -- flag to display after render (bool)
-            cwd -- directory where to execute subprocess
+            worker -- the worker to run
         """
         super().__init__(QCoreApplication.instance())
         self.thread = QThread()
-        self.worker = Worker(cmd, img, cwd)
+        self.worker = worker
         self.thread.setObjectName("fcd-renderexec")
-        self.open_after_render = bool(open_after_render)
 
     def start(self):
         """Start executor."""
@@ -154,9 +154,6 @@ class RendererExecutorGui(QObject):
         self.worker.finished.connect(self.thread.exit)
         self.thread.finished.connect(self.thread.deleteLater)
         # self.thread.finished.connect(lambda: print("Thread finished")) # Dbg
-
-        if self.open_after_render:
-            self.worker.result_ready.connect(display_image)
 
         # Start the thread
         self.thread.start()
@@ -182,19 +179,14 @@ class RendererExecutorCli(threading.Thread):
     that, renderer is executed in a separate thread, using **Python threads**.
     """
 
-    def __init__(self, cmd, img, open_after_render, cwd=None):
+    def __init__(self, worker):
         """Initialize executor.
 
         Args:
-            cmd -- command to execute (str)
-            img -- path to resulting image (the renderer output) (str)
-            open_after_render -- flag to display after render.
-              IGNORED IN CLI (bool)
-            cwd -- directory where to execute subprocess
+            worker -- the worker to run
         """
         super().__init__()
-        self.worker = Worker(cmd, img, cwd)
-        self.open_after_render = bool(open_after_render)
+        self.worker = worker
 
     def run(self):
         """Run thread.

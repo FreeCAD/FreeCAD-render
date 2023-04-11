@@ -49,7 +49,7 @@ import FreeCADGui as Gui
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
-from Render.rdrexecutor import RendererExecutor
+from Render.rdrexecutor import RendererExecutor, RendererWorker
 from Render.utils import (
     translate,
     set_last_cmd,
@@ -496,9 +496,10 @@ class Project(FeatureBase):
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor(
-            cmd, img, self.fpo.OpenAfterRender, os.path.dirname(fpath)
+        rdr_worker = RendererWorker(
+            cmd, img, os.path.dirname(fpath), self.fpo.OpenAfterRender
         )
+        rdr_executor = RendererExecutor(rdr_worker)
         rdr_executor.start()
         if wait_for_completion:
             # Useful in console mode...
