@@ -146,8 +146,6 @@ class RenderMeshBase:
             relative_path -- flag to control whether returned path is relative
                 or absolute to project_directory
         """
-        super().__init__()
-
         # Directories, for write methods
         self.export_directory = _check_directory(export_directory)
         self.project_directory = _check_directory(project_directory)
