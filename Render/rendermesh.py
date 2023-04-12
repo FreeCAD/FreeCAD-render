@@ -199,9 +199,6 @@ class RenderMeshBase:
             debug("Object", self.name, "Autosmooth")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
-            self.__autosmooth = True
-        else:
-            self.__autosmooth = False
 
     def __del__(self):
         """Finalize RenderMesh.
@@ -303,11 +300,6 @@ class RenderMeshBase:
     def vnormals(self, value):
         """Set the vertex normals."""
         self.__vnormals = value
-
-    @property
-    def autosmooth(self):
-        """Get the smoothness state of the mesh (boolean)."""
-        return self.__autosmooth
 
     def has_uvmap(self):
         """Check if object has a uv map."""
