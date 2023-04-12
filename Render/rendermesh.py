@@ -185,7 +185,6 @@ class RenderMeshBase:
 
         # Sanity check
         if not facets:
-            warn("Object", self.name, "Warning - Empty mesh (no facet)")
             return
 
         # Uvmap
