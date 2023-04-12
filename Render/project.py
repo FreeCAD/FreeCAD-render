@@ -49,7 +49,7 @@ import FreeCADGui as Gui
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
-from Render.rdrexecutor import RendererExecutor, RendererWorker
+from Render.rdrexecutor import RendererExecutor, RendererWorker, ExporterWorker
 from Render.utils import (
     translate,
     set_last_cmd,
@@ -489,7 +489,7 @@ class Project(FeatureBase):
             # Memcheck statistics (debug)
             if memcheck_flag:
                 snapshot2 = tracemalloc.take_snapshot()
-                top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+                top_stats = snapshot2.compare_to(snapshot1, "lineno")
                 print("[ Memory check - Top 10 differences ]")
                 for stat in top_stats[:10]:
                     print(stat)
@@ -508,7 +508,7 @@ class Project(FeatureBase):
         # Memcheck statistics (debug)
         if memcheck_flag:
             snapshot2 = tracemalloc.take_snapshot()
-            top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+            top_stats = snapshot2.compare_to(snapshot1, "lineno")
             print("[ Memory check - Top 10 differences ]")
             for stat in top_stats[:10]:
                 print(stat)
@@ -569,7 +569,13 @@ class Project(FeatureBase):
 
         # Otherwise, we have to compute strings
         get_rdr_string = renderer.get_rendering_string
-        objstrings = _get_objstrings_helper(get_rdr_string, views)
+        exporter_worker = ExporterWorker(
+            _get_objstrings_helper, (get_rdr_string, views)
+        )
+        rdr_executor = RendererExecutor(exporter_worker)
+        rdr_executor.start()
+        rdr_executor.join()
+        objstrings = exporter_worker.result()
 
         return objstrings
 
@@ -804,7 +810,7 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
+def _get_objstrings_helper(get_rdr_string, views):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
@@ -815,22 +821,11 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
         prof = cProfile.Profile()
         prof.enable()
 
-    if run_concurrent:
-        App.Console.PrintLog(
-            "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
-        )
-        time0 = time.time()
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = [executor.submit(get_rdr_string, view) for view in views]
-            objstrings = [
-                f.result() for f in concurrent.futures.as_completed(futures)
-            ]
-    else:
-        App.Console.PrintLog(
-            "[Render][Objstrings] STARTING - SEQUENTIAL MODE\n"
-        )
-        time0 = time.time()
-        objstrings = [get_rdr_string(v) for v in views]
+    App.Console.PrintLog("[Render][Objstrings] STARTING\n")
+    time0 = time.time()
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        objstrings = executor.map(get_rdr_string, views)
 
     App.Console.PrintLog(
         f"[Render][Objstrings] ENDED - TIME: {time.time() - time0}\n"
@@ -846,6 +841,5 @@ def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
         lines = sec.getvalue().splitlines()
         print("\n".join(lines[:20]))
         # print(sec.getvalue())
-
 
     return objstrings
