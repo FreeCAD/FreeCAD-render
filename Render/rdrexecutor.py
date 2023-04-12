@@ -71,7 +71,6 @@ class RendererWorker(QObject):
         if open_after_render:
             self.result_ready.connect(display_image)
 
-
     def run(self):
         """Run worker.
 
@@ -118,6 +117,51 @@ class RendererWorker(QObject):
 
             # Terminate (for Qt)
             self.finished.emit(rcode)
+
+
+class ExporterWorker(QObject):
+    """Worker class to run renderer.
+
+    This class embeds the treatment to be executed to run renderer in separate
+    thread.
+    """
+
+    finished = Signal(int)
+
+    def __init__(self, func, args):
+        """Initialize worker.
+
+        Args:
+            func -- function to run (callable)
+            args -- arguments to pass (tuple)
+        """
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.lock = threading.Lock()
+        self.res = None
+
+    def run(self):
+        """Run worker.
+
+        This method represents the thread activity. It is not intended to be
+        called directly, but via thread's run() method.
+        """
+        res = self.func(*self.args)
+        with self.lock:
+            self.res = res
+
+        # Terminate (for Qt)
+        self.finished.emit(0)
+
+    def result(self):
+        """Return result.
+
+        Worker must have been joined before, otherwise behaviour is undefined.
+        """
+        with self.lock:
+            res = self.res
+        return res
 
 
 class RendererExecutorGui(QObject):
