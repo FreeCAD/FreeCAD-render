@@ -35,6 +35,7 @@ import tempfile
 import itertools as it
 import functools
 import time
+import collections
 from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import copy
 
@@ -50,6 +51,13 @@ from Render.rendermesh_mixins import (
 from Render.constants import PARAMS
 from Render.rendermesh_mp import vector3d
 from Render.utils import debug
+
+
+RenderMeshDirs = collections.namedtuple(
+    "RenderMeshDirs",
+    ("export_directory", "project_directory", "relative_path"),
+)
+
 
 # ===========================================================================
 #                             RenderMesh factory
@@ -78,6 +86,7 @@ def create_rendermesh(
 
     Capabilities are added as mixins.
     """
+    # Construct class
     if multiprocessing_enabled(mesh):
         base = (RenderMeshMultiprocessingMixin, RenderMeshBase)
     elif numpy_enabled():
@@ -87,17 +96,22 @@ def create_rendermesh(
 
     RenderMesh = type("RenderMesh", base, {})
 
+    # Directories, for write methods
+    export_directory = _check_directory(export_directory)
+    project_directory = _check_directory(project_directory)
+    relative_path = bool(relative_path)
+    dirs = RenderMeshDirs(project_directory, export_directory, relative_path)
+
+    # Instantiate
     instance = RenderMesh(
         mesh,
+        name,
         autosmooth,
         split_angle,
         compute_uvmap,
         uvmap_projection,
-        project_directory,
-        export_directory,
-        relative_path,
         skip_meshing,
-        name,
+        dirs,
     )
 
     return instance
@@ -121,15 +135,13 @@ class RenderMeshBase:
     def __init__(
         self,
         mesh,
-        autosmooth=True,
-        split_angle=radians(30),
-        compute_uvmap=False,
-        uvmap_projection=None,
-        project_directory=None,
-        export_directory=None,
-        relative_path=True,
-        skip_meshing=False,
-        name="",
+        name,
+        autosmooth,
+        split_angle,
+        compute_uvmap,
+        uvmap_projection,
+        skip_meshing,
+        dirs,
     ):
         """Initialize RenderMesh.
 
@@ -146,10 +158,8 @@ class RenderMeshBase:
             relative_path -- flag to control whether returned path is relative
                 or absolute to project_directory
         """
-        # Directories, for write methods
-        self.export_directory = _check_directory(export_directory)
-        self.project_directory = _check_directory(project_directory)
-        self.relative_path = bool(relative_path)
+        # Directories
+        self.dirs = dirs
 
         # We initialize self transformation
         self.__transformation = _Transformation(mesh.Placement)
@@ -358,8 +368,8 @@ class RenderMeshBase:
         # Compute target file
         if filename is None:
             export_directory = (
-                self.export_directory
-                if self.export_directory is not None
+                self.dirs.export_directory
+                if self.dirs.export_directory is not None
                 else App.ActiveDocument.TransientDir
             )
             extension = _EXPORT_EXTENSIONS[filetype]
@@ -367,8 +377,8 @@ class RenderMeshBase:
             filename = os.path.join(export_directory, basename)
 
         # Relative/absolute path
-        if self.relative_path and self.project_directory:
-            res = os.path.relpath(filename, self.project_directory)
+        if self.dirs.relative_path and self.dirs.project_directory:
+            res = os.path.relpath(filename, self.dirs.project_directory)
         else:
             res = filename
 
@@ -667,14 +677,10 @@ class RenderMeshBase:
 
         Returns: the name of file that the function wrote.
         """
-        # TODO Stop rounding
-        _rnd = functools.partial(
-            round, ndigits=8
-        )  # Round to 8 digits (helper)
 
         def _write_point(pnt):
             """Write a point."""
-            return f"{_rnd(pnt[0])} {_rnd(pnt[1])} {_rnd(pnt[2])}"
+            return f"{pnt[0]} {pnt[1]} {pnt[2]}"
 
         points = [_write_point(p) for p in self.points]
         points = "  ".join(points)
