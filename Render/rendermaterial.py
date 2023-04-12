@@ -538,7 +538,9 @@ class MaterialValues:
         self._textures = []
         self._texobjects = {}
         self._write_functions = WriteFunctions(
-            write_texture_fun, write_value_fun, write_texref_fun,
+            write_texture_fun,
+            write_value_fun,
+            write_texref_fun,
         )
         self._directories = Directories(project_directory, object_directory)
         # To avoid duplicate materials (Appleseed)

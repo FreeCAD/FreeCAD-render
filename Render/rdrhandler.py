@@ -51,7 +51,7 @@ import FreeCAD as App
 import MeshPart
 import Mesh
 
-from Render.utils import translate, debug, getproxyattr, clamp
+from Render.utils import translate, debug, getproxyattr
 from Render.constants import PARAMS
 from Render.rendermesh import create_rendermesh
 from Render import renderables
@@ -266,14 +266,14 @@ class RendererHandler:
             properties = src.PropertiesList
         except AttributeError:
             return {}
-        else:
-            rdrname = self.renderer_name
-            res = {
-                p[len(rdrname) :]: src.getPropertyByName(p)
-                for p in properties
-                if p.startswith(rdrname)
-            }
-            return res
+
+        rdrname = self.renderer_name
+        res = {
+            p[len(rdrname) :]: src.getPropertyByName(p)
+            for p in properties
+            if p.startswith(rdrname)
+        }
+        return res
 
     def _get_general_data(self):
         """Get general data for keyword arguments."""
@@ -418,7 +418,7 @@ class RendererHandler:
                 export_directory=self.object_directory,
                 relative_path=True,
                 skip_meshing=self.skip_meshing,
-                name = view.Source.Label
+                name=view.Source.Label,
             )
 
             duration = time.time() - tm0
