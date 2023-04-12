@@ -821,14 +821,14 @@ def _get_objstrings_helper(get_rdr_string, views):
         prof = cProfile.Profile()
         prof.enable()
 
-    App.Console.PrintLog("[Render][Objstrings] STARTING\n")
+    App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
     time0 = time.time()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         objstrings = executor.map(get_rdr_string, views)
 
-    App.Console.PrintLog(
-        f"[Render][Objstrings] ENDED - TIME: {time.time() - time0}\n"
+    App.Console.PrintMessage(
+        f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
     )
 
     # Profile statistics (debug)
