@@ -452,9 +452,8 @@ class RendererHandler:
                 uvprojection=uvproj,
             )
             renderables.check_renderables(rends)
-        except (TypeError, ValueError) as err:
-            # 'get_renderables' will raise TypeError if unable to render
-            # or ValueError if the result is malformed
+        except renderables.RenderableError as err:
+            # 'get_renderables' will raise RenderableError if unable to render
             # In this case, we pass with a warning
             msg = (
                 translate(
@@ -475,9 +474,7 @@ class RendererHandler:
                     framestack.name,
                 )
             )
-            if not PARAMS.GetBool("Debug"):
-                return ""
-            raise err
+            return ""
 
         # Rescale to meters
         for rend in rends:

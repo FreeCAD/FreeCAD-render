@@ -175,27 +175,36 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         if not ignore_unknown:
             ascendants = ", ".join(obj.getAllDerivedFrom())
             msg = translate("Render", f"Unhandled object type ({ascendants})")
-            raise TypeError(msg)
+            raise RenderableError(msg)
         debug("Object", label, "Not renderable")
 
     return renderables
 
 
+class RenderableError(Exception):
+    """An error in renderable."""
+
+    def __init__(self, message):
+        super().__init__(message)
+
+
 def check_renderables(renderables):
     """Assert compliance of a list of renderables.
 
-    If an error is detected (malformed renderable), a ValueError is raised.
+    If an error is detected (malformed renderable), a RenderableError is raised.
     """
     if not renderables:
-        raise ValueError(translate("Render", "Nothing to render"))
+        raise RenderableError(translate("Render", "Nothing to render"))
     for renderable in renderables:
         mesh = renderable.mesh
         if mesh.skip_meshing:
             continue
         if not mesh:
-            raise ValueError(translate("Render", "Cannot find mesh data"))
+            raise RenderableError(translate("Render", "Cannot find mesh data"))
         if not mesh.count_points or not mesh.count_facets:
-            raise ValueError(translate("Render", "Mesh topology is empty"))
+            raise RenderableError(
+                translate("Render", "Mesh topology is empty")
+            )
 
 
 # ===========================================================================
