@@ -476,10 +476,13 @@ class RenderMeshNumpyMixin:
         indices = np.arange(len(facets))
         indices = np.tile(indices, 3)
 
-        edges1 = np.rec.fromarrays((facets[..., 0], facets[..., 1]))
-        edges2 = np.rec.fromarrays((facets[..., 0], facets[..., 2]))
-        edges3 = np.rec.fromarrays((facets[..., 1], facets[..., 2]))
-        edges = np.concatenate((edges1, edges2, edges3))
+        edges = np.concatenate(
+            (
+                np.rec.fromarrays((facets[..., 0], facets[..., 1])),
+                np.rec.fromarrays((facets[..., 0], facets[..., 2])),
+                np.rec.fromarrays((facets[..., 1], facets[..., 2])),
+            )
+        )
 
         if debug_flag:
             print("edges", time.time() - tm0)
@@ -532,9 +535,11 @@ class RenderMeshNumpyMixin:
 
         return adjacency
 
+
 # ===========================================================================
 #                               Helpers
 # ===========================================================================
+
 
 def multiprocessing_enabled(mesh):
     """Check if multiprocessing can be enabled."""

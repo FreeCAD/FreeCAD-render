@@ -191,7 +191,8 @@ class RenderableError(Exception):
 def check_renderables(renderables):
     """Assert compliance of a list of renderables.
 
-    If an error is detected (malformed renderable), a RenderableError is raised.
+    If an error is detected (malformed renderable), a RenderableError is
+    raised.
     """
     if not renderables:
         raise RenderableError(translate("Render", "Nothing to render"))

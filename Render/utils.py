@@ -279,12 +279,12 @@ def grouper(iterable, number, *, incomplete="ignore", fillvalue=None):
     # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
     # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
     args = [iter(iterable)] * number
-    if incomplete == 'fill':
+    if incomplete == "fill":
         return itertools.zip_longest(*args, fillvalue=fillvalue)
-    if incomplete == 'ignore':
+    if incomplete == "ignore":
         return zip(*args)
-    else:
-        raise ValueError('Expected fill or ignore')
+
+    raise ValueError("Expected fill or ignore")
 
 
 class SharedWrapper:

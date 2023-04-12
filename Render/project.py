@@ -54,7 +54,6 @@ from Render.utils import (
     translate,
     set_last_cmd,
     clear_report_view,
-    fcdcolor2rgba,
 )
 from Render.view import View
 from Render.groundplane import create_groundplane_view

@@ -49,7 +49,7 @@ from Render.rendermesh_mixins import (
 )
 from Render.constants import PARAMS
 from Render.rendermesh_mp import vector3d
-from Render.utils import warn, debug
+from Render.utils import debug
 
 # ===========================================================================
 #                             RenderMesh factory
