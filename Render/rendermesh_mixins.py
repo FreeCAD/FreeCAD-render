@@ -143,7 +143,7 @@ class RenderMeshMultiprocessingMixin:
             .cast("b")
             .cast("f", [self.count_points, 3])
         )
-        self.__vnormals = vnormals_mv.tolist()
+        self.vnormals = vnormals_mv.tolist()
 
     def connected_components(self, split_angle):
         """Get all connected components of facets in the mesh.
@@ -216,7 +216,7 @@ class RenderMeshMultiprocessingMixin:
 
         # Vertex normals
         if self.has_vnormals():
-            norms = self.__vnormals
+            norms = self.vnormals
         else:
             norms = []
 
