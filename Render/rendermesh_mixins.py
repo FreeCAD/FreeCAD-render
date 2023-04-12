@@ -524,10 +524,10 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("searches", time.time() - tm0)
 
-        # Concatenate
-        pairs = np.concatenate((pairs_left, pairs_right))
+        # Build adjacency lists
         adjacency = [set() for _ in range(self.count_facets)]
-        for index, value in pairs:
+
+        for index, value in np.concatenate((pairs_left, pairs_right)):
             adjacency[index].add(value)
 
         if debug_flag:
