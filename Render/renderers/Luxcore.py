@@ -420,7 +420,6 @@ def _write_texture(**kwargs):
     texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
     gamma = 2.2 if proptype == "RGB" else 1.0
     filename = os.path.relpath(propvalue.file, project_directory)
-    print(project_directory)  # TODO
     rotation = float(propvalue.rotation)
     scale = 1 / float(propvalue.scale)
     trans_u = float(propvalue.translation_u)

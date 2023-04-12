@@ -36,28 +36,79 @@ import itertools as it
 import functools
 import time
 from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
-import runpy
-import shutil
 import copy
-
-import cProfile
-import pstats
-import io
-from pstats import SortKey
 
 import FreeCAD as App
 import Mesh
 
-from Render.constants import PKGDIR, PARAMS
+from Render.rendermesh_mixins import (
+    RenderMeshMultiprocessingMixin,
+    RenderMeshNumpyMixin,
+    multiprocessing_enabled,
+    numpy_enabled,
+)
+from Render.constants import PARAMS
 from Render.rendermesh_mp import vector3d
+from Render.utils import debug
+
+# ===========================================================================
+#                             RenderMesh factory
+# ===========================================================================
+
+
+def create_rendermesh(
+    mesh,
+    autosmooth=True,
+    split_angle=radians(30),
+    compute_uvmap=False,
+    uvmap_projection=None,
+    project_directory=None,
+    export_directory=None,
+    relative_path=True,
+    skip_meshing=False,
+    name="",
+):
+    """Create a RenderMesh object, adapted to context.
+
+    According to context, the returned RenderMesh may have the following
+    capabilities:
+    - multiprocessing
+    - numpy use (in single process)
+    - plain (no numpy, no multiprocessing)
+
+    Capabilities are added as mixins.
+    """
+    if multiprocessing_enabled(mesh):
+        base = (RenderMeshMultiprocessingMixin, RenderMeshBase)
+    elif numpy_enabled():
+        base = (RenderMeshNumpyMixin, RenderMeshBase)
+    else:
+        base = (RenderMeshBase,)
+
+    RenderMesh = type("RenderMesh", base, {})
+
+    instance = RenderMesh(
+        mesh,
+        autosmooth,
+        split_angle,
+        compute_uvmap,
+        uvmap_projection,
+        project_directory,
+        export_directory,
+        relative_path,
+        skip_meshing,
+        name,
+    )
+
+    return instance
 
 
 # ===========================================================================
-#                               RenderMesh
+#                               RenderMeshBase
 # ===========================================================================
 
 
-class RenderMesh:
+class RenderMeshBase:
     """An extended version of FreeCAD Mesh, designed for rendering.
 
     RenderMesh is based on Mesh.Mesh.
@@ -78,6 +129,7 @@ class RenderMesh:
         export_directory=None,
         relative_path=True,
         skip_meshing=False,
+        name="",
     ):
         """Initialize RenderMesh.
 
@@ -109,15 +161,11 @@ class RenderMesh:
             self.__facets = []
             return
 
-        # Create profile object (debug)
-        self.debug = PARAMS.GetBool("Debug")
-        if self.debug:
-            prof = cProfile.Profile()
-            prof.enable()
-
         # Check mandatory input
         if not mesh:
             raise ValueError()
+
+        self.name = name
 
         # Initialize
         self.__vnormals = []
@@ -125,7 +173,7 @@ class RenderMesh:
 
         # First we make a copy of the mesh, we separate mesh and
         # placement and we set the mesh at its origin (null placement)
-        self.__originalmesh = mesh.copy()
+        self.__originalmesh = mesh
         self.__originalmesh.Placement = App.Base.Placement()
 
         # Then we store the topology in internal structures
@@ -135,41 +183,43 @@ class RenderMesh:
         self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
         self.__areas = [f.Area for f in self.__originalmesh.Facets]
 
-        # Multiprocessing preparation (if required)
-        self.multiprocessing = False
-        if (
-            PARAMS.GetBool("EnableMultiprocessing")
-            and self.count_points >= 2000
-        ):
-            python = _find_python()
-            if python:
-                self.multiprocessing = True
-                self.python = python
+        # Sanity check
+        if not facets:
+            return
 
         # Uvmap
         if compute_uvmap:
-            msg = f"[Render][Object] Uv map '{uvmap_projection}'\n"
-            App.Console.PrintLog(msg)
+            msg = f"Uv map '{uvmap_projection}'"
+            debug("Object", self.name, msg)
             self.compute_uvmap(uvmap_projection)
             assert self.has_uvmap()
 
         # Autosmooth
         if autosmooth:
-            App.Console.PrintLog(f"[Render][Object] Autosmooth\n")
+            debug("Object", self.name, "Autosmooth")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
             self.__autosmooth = True
         else:
             self.__autosmooth = False
 
-        # Profile statistics (debug)
-        if self.debug:
-            prof.disable()
-            sec = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-            pstat.print_stats()
-            print(sec.getvalue())
+    def __del__(self):
+        """Finalize RenderMesh.
+
+        In particular, we clear and del the original Mesh.Mesh object (copy),
+        to avoid memory leaks.
+        """
+        # Clean original mesh
+        self.__originalmesh.clear()
+        self.__originalmesh = None
+
+        # # Debug memory:
+        # import gc
+        # import reprlib
+        # myrepr = reprlib.Repr()
+        # myrepr.maxdict = 50
+        # for e in gc.get_referrers(self.__points):
+        # print(myrepr.repr(e))
 
     ##########################################################################
     #                               Copy                                     #
@@ -199,6 +249,11 @@ class RenderMesh:
         """Get a collection of the mesh points."""
         return self.__points
 
+    @points.setter
+    def points(self, value):
+        """Set the mesh points."""
+        self.__points = value
+
     @property
     def count_points(self):
         """Get the number of points."""
@@ -209,15 +264,45 @@ class RenderMesh:
         """Get a collection of the mesh facets."""
         return self.__facets
 
+    @facets.setter
+    def facets(self, value):
+        """Set the mesh facets."""
+        self.__facets = value
+
     @property
     def count_facets(self):
         """Get the number of facets."""
         return len(self.__facets)
 
     @property
+    def uvmap(self):
+        """Get the uvmap."""
+        return self.__uvmap
+
+    @uvmap.setter
+    def uvmap(self, value):
+        """Set the uvmap."""
+        self.__uvmap = value
+
+    @property
+    def normals(self):
+        """Get the facet normals."""
+        return self.__normals
+
+    @property
+    def areas(self):
+        """Get the facets areas."""
+        return self.__areas
+
+    @property
     def vnormals(self):
-        """Get the vertex normals (if computed)."""
+        """Get the vertex normals."""
         return self.__vnormals
+
+    @vnormals.setter
+    def vnormals(self, value):
+        """Set the vertex normals."""
+        self.__vnormals = value
 
     @property
     def autosmooth(self):
@@ -276,7 +361,7 @@ class RenderMesh:
             The name of file that the function wrote.
         """
         # Normalize arguments
-        filetype = RenderMesh.ExportType(filetype)
+        filetype = RenderMeshBase.ExportType(filetype)
 
         # Compute target file
         if filename is None:
@@ -303,7 +388,7 @@ class RenderMesh:
             return res
 
         # Switch to specialized write function
-        if filetype == RenderMesh.ExportType.OBJ:
+        if filetype == RenderMeshBase.ExportType.OBJ:
             mtlfile = kwargs.get("mtlfile")
             mtlname = kwargs.get("mtlname")
             mtlcontent = kwargs.get("mtlcontent")
@@ -317,18 +402,14 @@ class RenderMesh:
                 uv_rotate,
                 uv_scale,
             )
-        elif filetype == RenderMesh.ExportType.PLY:
+        elif filetype == RenderMeshBase.ExportType.PLY:
             self._write_plyfile(
                 name, filename, uv_translate, uv_rotate, uv_scale
             )
-        elif filetype == RenderMesh.ExportType.CYCLES:
-            self._write_cyclesfile(
-                name, filename, uv_translate, uv_rotate, uv_scale
-            )
-        elif filetype == RenderMesh.ExportType.POVRAY:
-            self._write_povfile(
-                name, filename, uv_translate, uv_rotate, uv_scale
-            )
+        elif filetype == RenderMeshBase.ExportType.CYCLES:
+            self._write_cyclesfile(name, filename)
+        elif filetype == RenderMeshBase.ExportType.POVRAY:
+            self._write_povfile(name, filename)
         else:
             raise ValueError(f"Unknown mesh file type '{filetype}'")
 
@@ -365,12 +446,6 @@ class RenderMesh:
         """
         tm0 = time.time()
 
-        # Select routine (single or multi processing)
-        if self.multiprocessing:
-            func, mode = self._write_objfile_mp, "mp"
-        else:
-            func, mode = self._write_objfile_sp, "sp"
-
         # Mtl
         if mtlcontent is not None:
             # Material name
@@ -380,7 +455,9 @@ class RenderMesh:
                 mtlfile, _ = os.path.splitext(objfile)
                 mtlfile += ".mtl"
             # Write mtl file
-            mtlfilename = RenderMesh._write_mtl(mtlname, mtlcontent, mtlfile)
+            mtlfilename = RenderMeshBase._write_mtl(
+                mtlname, mtlcontent, mtlfile
+            )
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -394,7 +471,7 @@ class RenderMesh:
         uv_transformation = (uv_translate, uv_rotate, uv_scale)
 
         # Call main routine (single or multi process)
-        objfile = func(
+        self._write_objfile_helper(
             name,
             objfile,
             uv_transformation,
@@ -403,11 +480,9 @@ class RenderMesh:
         )
 
         tm1 = time.time() - tm0
-        App.Console.PrintLog(
-            f"[Render][OBJ file] Write OBJ file ({mode}): {tm1}\n"
-        )
+        debug("Object", self.name, f"Write OBJ file: {tm1}")
 
-    def _write_objfile_sp(
+    def _write_objfile_helper(
         self,
         name,
         objfile,
@@ -478,78 +553,6 @@ class RenderMesh:
 
         with open(objfile, "w", encoding="utf-8") as f:
             f.writelines(res)
-
-    def _write_objfile_mp(
-        self,
-        name,
-        objfile,
-        uv_transformation,
-        mtlfilename=None,
-        mtlname=None,
-    ):
-        """Write an OBJ file from a mesh - multi process version.
-
-        See write_objfile for more details.
-        """
-        # Initialize
-        path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
-
-        # Header
-        header = ["# Written by FreeCAD-Render\n"]
-
-        # Mtl
-        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
-
-        # UV
-        if self.has_uvmap():
-            # Translate, rotate, scale (optionally)
-            uvs = self.uvtransform(*uv_transformation)
-        else:
-            uvs = []
-
-        # Vertex normals
-        if self.has_vnormals():
-            norms = self.__vnormals
-        else:
-            norms = []
-
-        # Object name
-        objname = [f"o {name}\n"]
-        if mtlname is not None:
-            objname.append(f"usemtl {mtlname}\n")
-        objname.append("\n")
-
-        # Faces
-        if self.has_vnormals() and self.has_uvmap():
-            mask = " {0}/{0}/{0}"
-        elif not self.has_vnormals() and self.has_uvmap():
-            mask = " {0}/{0}"
-        elif self.has_vnormals() and not self.has_uvmap():
-            mask = " {0}//{0}"
-        else:
-            mask = " {}"
-
-        inlist = [
-            (header, "s"),
-            (mtl, "s"),
-            (self.points, "v"),
-            (uvs, "vt"),
-            (norms, "vn"),
-            (objname, "s"),
-            (self.facets, "f"),
-        ]
-
-        # Run
-        runpy.run_path(
-            path,
-            init_globals={
-                "inlist": inlist,
-                "mask": mask,
-                "objfile": objfile,
-                "python": self.python,
-            },
-            run_name="__main__",
-        )
 
     @staticmethod
     def _write_mtl(name, mtlcontent, mtlfile=None):
@@ -658,9 +661,6 @@ class RenderMesh:
         self,
         name,
         cyclesfile=None,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
     ):
         """Write a Cycles file from a mesh.
 
@@ -700,6 +700,7 @@ class RenderMesh:
 
         snippet_obj = f"""\
 <?xml version="1.0" ?>
+<!-- {name} -->
 <cycles>
 <mesh
     P="{points}"
@@ -717,9 +718,6 @@ class RenderMesh:
         self,
         name,
         povfile=None,
-        uv_translate=(0.0, 0.0),
-        uv_rotate=0.0,
-        uv_scale=1.0,
     ):
         """Write an Povray file from a mesh.
 
@@ -887,11 +885,6 @@ class RenderMesh:
         functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
         return functions[index]()
 
-    @property
-    def uvmap(self):
-        """Get mesh uv map."""
-        return self.__uvmap
-
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
 
@@ -943,7 +936,7 @@ class RenderMesh:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
-        App.Console.PrintLog(f"[Render][Uvmap] Ending: {time.time() - tm0}\n")
+        debug("Object", self.name, f"Uvmap ending: {time.time() - tm0}")
 
     def _compute_uvmap_cylinder(self):
         """Compute UV map for cylindric case.
@@ -999,8 +992,8 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
-        self.__areas = [f.Area for f in mesh.Facets]
+        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
 
     def _compute_uvmap_sphere(self):
@@ -1052,34 +1045,19 @@ class RenderMesh:
         points, facets = tuple(mesh.Topology)
         self.__points = [tuple(p) for p in points]
         self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
-        self.__areas = [f.Area for f in mesh.Facets]
+        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
 
     def _compute_uvmap_cube(self):
-        """Compute UV map for cubic case.
-
-        We isolate submeshes by cube face in order to avoid trouble when
-        one edge belongs to several cube faces (cf. simple cube case, for
-        instance)
-        """
-        if self.multiprocessing:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (mp)\n")
-            func = self._compute_uvmap_cube_mp
-        else:
-            App.Console.PrintLog("[Render][Uvmap] Compute uvmap (sp)\n")
-            func = self._compute_uvmap_cube_sp
-
-        func()
-        assert self.has_uvmap()
-
-    def _compute_uvmap_cube_sp(self):
         """Compute UV map for cubic case - single process version.
 
         We isolate submeshes by cube face in order to avoid trouble when
         one edge belongs to several cube faces (cf. simple cube case, for
         instance)
         """
+        debug("Object", self.name, "Compute uvmap (sp)")
+
         # Isolate submeshes by cube face
         face_facets = ([], [], [], [], [], [])
         for facet in self.__originalmesh.Facets:
@@ -1099,7 +1077,6 @@ class RenderMesh:
             # Compute uvmap of the submesh
             facemesh_uvmap = [
                 _compute_uv_from_unitcube((p.Vector - cog) / 1000, cubeface)
-                # pylint: disable=not-an-iterable
                 for p in facemesh.Points
             ]
             # Add submesh and uvmap
@@ -1111,53 +1088,16 @@ class RenderMesh:
         points = [tuple(p) for p in points]
         self.__points = points
         self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in mesh.Facets]
-        self.__areas = [f.Area for f in mesh.Facets]
+        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.__areas = [f.Area for f in iter(mesh.Facets)]
         self.__uvmap = uvmap
-
-    def _compute_uvmap_cube_mp(self):
-        """Compute UV map for cubic case - multiprocessing version.
-
-        We isolate submeshes by cube face in order to avoid trouble when
-        one edge belongs to several cube faces (cf. simple cube case, for
-        instance)
-        """
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
-
-        # Run
-        res = runpy.run_path(
-            path,
-            init_globals={
-                "POINTS": self.__points,
-                "FACETS": self.__facets,
-                "NORMALS": self.__normals,
-                "AREAS": self.__areas,
-                "UVMAP": self.__uvmap,
-                "PYTHON": self.python,
-                "SHOWTIME": self.debug,
-            },
-            run_name="__main__",
-        )
-        self.__points = res["POINTS"]
-        self.__facets = res["FACETS"]
-        self.__uvmap = res["UVMAP"]
-
-        # Clean
-        del res["POINTS"]
-        del res["FACETS"]
-        del res["NORMALS"]
-        del res["AREAS"]
-        del res["UVMAP"]
-        del res["PYTHON"]
-        del res["SHOWTIME"]
 
     ##########################################################################
     #                       Vertex Normals manipulations                     #
     ##########################################################################
 
     def compute_vnormals(self):
-        """Compute vertex normals.
+        """Compute vertex normals (single process).
 
         Refresh self._normals. We use an area & angle weighting algorithm."
         """
@@ -1165,28 +1105,89 @@ class RenderMesh:
         # http://www.bytehazard.com/articles/wnormals.html
         # (and look at script wnormals100.ms)
 
-        # TODO Optimize
+        debug("Object", self.name, "Compute vertex normals (sp)")
+
         fmul = vector3d.fmul
         v3d_angles = vector3d.angles
         add = vector3d.add
         safe_normalize = vector3d.safe_normalize
-        points = self.__points
-        normals = self.__normals
-        areas = self.__areas
+        points = self.points
+        normals = self.normals
+        areas = self.areas
+        facets = self.facets
 
         vnorms = [(0, 0, 0)] * self.count_points
-        for index, facet in enumerate(self.__facets):
-            normal = normals[index]
-            area = areas[index]
-            angles = v3d_angles(points[i] for i in facet)
-            for point_index, angle in zip(facet, angles):
-                weighted_vnorm = fmul(normal, angle * area)
-                vnorms[point_index] = add(vnorms[point_index], weighted_vnorm)
+
+        it_facets = (
+            (facet, normal, area, v3d_angles(points[i] for i in facet))
+            for facet, normal, area in zip(facets, normals, areas)
+        )
+        it_points = (
+            (point_index, fmul(normal, angle * area))
+            for facet, normal, area, angles in it_facets
+            for point_index, angle in zip(facet, angles)
+        )
+
+        def vnorm_reducer(rolling, new):
+            point_index, weighted_vnorm = new
+            rolling[point_index] = add(rolling[point_index], weighted_vnorm)
+            return rolling
+
+        vnorms = functools.reduce(vnorm_reducer, it_points, vnorms)
 
         # Normalize
         vnorms = [safe_normalize(n) for n in vnorms]
 
         self.__vnormals = vnorms
+
+    def _adjacent_facets(self):
+        """Compute the adjacent facets for each facet of the mesh.
+
+        Returns a list of sets of facet indices (adjacency list).
+        Single process version.
+        """
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print()
+            print(f"compute adjacency lists (sp) - {self.count_facets} facets")
+            tm0 = time.time()
+
+        # For each point, compute facets that contain this point as a vertex
+        iterator = (
+            (facet_index, point_index)
+            for facet_index, facet in enumerate(self.__facets)
+            for point_index in facet
+        )
+
+        def fpp_reducer(_, new):
+            facet_index, point_index = new
+            facets_per_point[point_index].append(facet_index)
+
+        facets_per_point = [[] for _ in range(self.count_points)]
+        functools.reduce(fpp_reducer, iterator, None)
+
+        # Compute adjacency
+        facets = [set(f) for f in self.__facets]
+        iterator = (
+            (facet_idx, other_idx)
+            for facet_idx, facet in enumerate(facets)
+            for point_idx in facet
+            for other_idx in facets_per_point[point_idx]
+            if len(facet & facets[other_idx]) == 2
+        )
+
+        adjacents = [set() for _ in range(self.count_facets)]
+
+        def reduce_adj(_, new):
+            facet_index, other_index = new
+            adjacents[facet_index].add(other_index)
+
+        functools.reduce(reduce_adj, iterator, None)
+
+        if debug_flag:
+            print("adjacency", time.time() - tm0)
+
+        return adjacents
 
     def connected_facets(
         self,
@@ -1258,47 +1259,10 @@ class RenderMesh:
         # Final
         return tags
 
-    def adjacent_facets(self, split_angle_cos="-inf"):
-        """Compute the adjacent facets for each facet of the mesh.
-        Returns a list of sets of facet indices.
-        """
-        # For each point, compute facets that contain this point as a vertex
-        iterator = (
-            (facet_index, point_index)
-            for facet_index, facet in enumerate(self.__facets)
-            for point_index in facet
-        )
-
-        def fpp_reducer(rolling, new):
-            facet_index, point_index = new
-            facets_per_point[point_index].append(facet_index)
-
-        facets_per_point = [list() for _ in range(self.count_points)]
-        functools.reduce(fpp_reducer, iterator, None)
-
-        # Compute adjacency
-        normals = self.__normals
-        facets = [set(f) for f in self.__facets]
-        iterator = (
-            (facet_idx, other_idx)
-            for facet_idx, facet in enumerate(facets)
-            for point_idx in facet
-            for other_idx in facets_per_point[point_idx]
-            if len(facet & facets[other_idx]) == 2
-        )
-
-        adjacents = [set() for _ in range(self.count_facets)]
-
-        def reduce_adj(rolling, new):
-            facet_index, other_index = new
-            adjacents[facet_index].add(other_index)
-
-        functools.reduce(reduce_adj, iterator, None)
-
-        return adjacents
-
     def connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
+
+        Single process version
 
         Args:
             split_angle -- the angle that breaks adjacency
@@ -1308,9 +1272,11 @@ class RenderMesh:
                 facet
             the number of components
         """
+        debug("Object", self.name, "Compute connected components (sp)")
+
         split_angle_cos = cos(split_angle)
 
-        adjacents = self.adjacent_facets()
+        adjacents = self._adjacent_facets()
 
         tags = [None] * self.count_facets
         tag = None
@@ -1323,7 +1289,7 @@ class RenderMesh:
                 starting_point, adjacents, tags, tag, split_angle_cos
             )
 
-        return tags, tag
+        return tags
 
     def separate_connected_components(self, split_angle=radians(30)):
         """Operate a separation into the mesh between connected components.
@@ -1334,7 +1300,7 @@ class RenderMesh:
             split_angle -- angle threshold, above which 2 adjacents facets
                 are considered as non-connected (in radians)
         """
-        tags, _ = self.connected_components(split_angle)
+        tags = self.connected_components(split_angle)
 
         points = self.__points
         facets = self.__facets
@@ -1662,26 +1628,11 @@ def _pos_atan2(p_x, p_y):
 
 
 _EXPORT_EXTENSIONS = {
-    RenderMesh.ExportType.OBJ: ".obj",
-    RenderMesh.ExportType.PLY: ".ply",
-    RenderMesh.ExportType.CYCLES: ".xml",
-    RenderMesh.ExportType.POVRAY: ".inc",
+    RenderMeshBase.ExportType.OBJ: ".obj",
+    RenderMeshBase.ExportType.PLY: ".ply",
+    RenderMeshBase.ExportType.CYCLES: ".xml",
+    RenderMeshBase.ExportType.POVRAY: ".inc",
 }
-
-
-def _find_python():
-    """Find Python executable."""
-    python = shutil.which("pythonw")
-    if python:
-        python = os.path.abspath(python)
-        return python
-
-    python = shutil.which("python")
-    if python:
-        python = os.path.abspath(python)
-        return python
-
-    return None
 
 
 def _check_directory(directory):

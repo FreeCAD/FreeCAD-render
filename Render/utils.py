@@ -130,6 +130,7 @@ def reload(module_name=None):
             "Render.project",
             "Render.taskpanels",
             "Render.help",
+            "Render.groundplane",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",
@@ -140,6 +141,7 @@ def reload(module_name=None):
             "Render.renderers.utils.sunlight",
             "Render.renderers.utils.misc",
             "Render.rendermesh_mp.vector3d",
+            "Render.rendermesh_mixins",
             "Render",
         )
         if not module_name
@@ -207,6 +209,29 @@ set_debug_on = functools.partial(set_debug, state=True)
 set_debug_off = functools.partial(set_debug, state=False)
 
 
+def set_memcheck(state):
+    """Set memory checking parameter on/off.
+
+    Warning: debug purpose only. /!\\
+
+    Args:
+        state -- state to set memory checking (boolean)
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    state = bool(state)
+    params.SetBool("Memcheck", state)
+    msg = (
+        "[Render][Debug] Memcheck is on\n"
+        if state
+        else "[Render][Debug] Memcheck is off\n"
+    )
+    App.Console.PrintMessage(msg)
+
+
+set_memcheck_on = functools.partial(set_memcheck, state=True)
+set_memcheck_off = functools.partial(set_memcheck, state=False)
+
+
 def last_cmd():
     """Return last executed renderer command (debug purpose)."""
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
@@ -246,3 +271,32 @@ def clear_report_view():
         return
 
     text_widget.clear()
+
+
+def grouper(iterable, number, *, incomplete="ignore", fillvalue=None):
+    "Collect data into non-overlapping fixed-length chunks or blocks"
+    # From Python documentation (itertools module)
+    # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
+    # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
+    args = [iter(iterable)] * number
+    if incomplete == "fill":
+        return itertools.zip_longest(*args, fillvalue=fillvalue)
+    if incomplete == "ignore":
+        return zip(*args)
+
+    raise ValueError("Expected fill or ignore")
+
+
+class SharedWrapper:
+    """A wrapper for shared objects containing tuples."""
+
+    def __init__(self, seq, tuple_length):
+        self.seq = seq
+        self.tuple_length = tuple_length
+
+    def __len__(self):
+        return len(self.seq) * self.tuple_length
+
+    def __iter__(self):
+        seq = self.seq
+        return itertools.chain.from_iterable(seq)

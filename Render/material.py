@@ -330,7 +330,6 @@ def _import_textures(material, matcard_dict, basepath=None):
 
     # Process texture data: create textures
     for texname, params in texdata.items():  # Iterate on textures
-
         # Add texture
         try:
             texture = tih.add_texture_to_material(texname, params)
@@ -415,7 +414,6 @@ class _TextureImportHelper:
         texdata = {}
         otherdata = {}
         for key, value in self.matcard_dict.items():
-
             if not key.startswith(self.TEXPREFIX):
                 # Other material data (not texture...), put in otherdata
                 otherdata[key] = value

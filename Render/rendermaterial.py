@@ -482,6 +482,12 @@ class RenderMaterial:
         )
 
 
+Directories = collections.namedtuple("Directories", "project object")
+WriteFunctions = collections.namedtuple(
+    "WriteFunctions", "texture value texref"
+)
+
+
 class MaterialValues:
     """Material values wrapper.
 
@@ -531,11 +537,12 @@ class MaterialValues:
         self._values = {}
         self._textures = []
         self._texobjects = {}
-        self._write_texture = write_texture_fun
-        self._write_value = write_value_fun
-        self._write_texref = write_texref_fun
-        self._project_directory = project_directory
-        self._object_directory = object_directory
+        self._write_functions = WriteFunctions(
+            write_texture_fun,
+            write_value_fun,
+            write_texref_fun,
+        )
+        self._directories = Directories(project_directory, object_directory)
         # To avoid duplicate materials (Appleseed)
         self._unique_matname = (
             f"{objname}.{uuid.uuid1()}"
@@ -555,7 +562,7 @@ class MaterialValues:
             # Is it a texture?
             if hasattr(propvalue, "is_texture"):
                 # Compute texture
-                texname, texture = write_texture_fun(
+                texname, texture = self._write_functions.texture(
                     objname=objname,
                     propname=propkey,
                     proptype=proptype,
@@ -563,12 +570,12 @@ class MaterialValues:
                     shadertype=material.shadertype,
                     parent_shadertype=self.parent_shadertype,
                     unique_matname=self._unique_matname,
-                    project_directory=self._project_directory,
-                    object_directory=self._object_directory,
+                    project_directory=self._directories.project,
+                    object_directory=self._directories.object,
                 )
                 # Add texture SDL to internal list of textures
                 self._textures.append(texture)
-                value = write_texref_fun(
+                value = self._write_functions.texref(
                     objname=objname,
                     texname=texname,
                     propname=propkey,
@@ -690,9 +697,9 @@ class MaterialValues:
         return MaterialValues(
             self.objname,
             self.material.getmixedsubmat(submat),
-            self._write_texture,
-            self._write_value,
-            self._write_texref,
+            self._write_functions.texture,
+            self._write_functions.value,
+            self._write_functions.texref,
             parent_shadertype=self.shadertype,
             inherited_unique_name=p_inherited_unique_name,
         )

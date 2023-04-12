@@ -35,6 +35,12 @@ import re
 from collections import namedtuple
 import concurrent.futures
 import time
+import tracemalloc
+
+import cProfile
+import pstats
+import io
+from pstats import SortKey
 
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
@@ -43,14 +49,14 @@ import FreeCADGui as Gui
 
 from Render.constants import TEMPLATEDIR, PARAMS, FCDVERSION
 from Render.rdrhandler import RendererHandler, RendererNotFoundError
-from Render.rdrexecutor import RendererExecutor
+from Render.rdrexecutor import RendererExecutor, RendererWorker, ExporterWorker
 from Render.utils import (
     translate,
     set_last_cmd,
     clear_report_view,
-    fcdcolor2rgba,
 )
 from Render.view import View
+from Render.groundplane import create_groundplane_view
 from Render.camera import DEFAULT_CAMERA_STRING, get_cam_from_coin_string
 from Render.base import FeatureBase, Prop, ViewProviderBase, CtxMenuItem
 
@@ -270,26 +276,6 @@ class Project(FeatureBase):
                     break
         return bbox
 
-    def write_groundplane(self, renderer):
-        """Generate a ground plane rendering string for the scene.
-
-        Args:
-        ----------
-        renderer -- the renderer handler
-
-        Returns
-        -------
-        The rendering string for the ground plane
-        """
-        bbox = self.get_bounding_box()
-        result = ""
-        if bbox.isValid():
-            zpos = self.fpo.GroundPlaneZ
-            color = fcdcolor2rgba(self.fpo.GroundPlaneColor)
-            factor = self.fpo.GroundPlaneSizeFactor
-            result = renderer.get_groundplane_string(bbox, zpos, color, factor)
-        return result
-
     def add_views(self, objs):
         """Add objects as new views to the project.
 
@@ -402,6 +388,13 @@ class Project(FeatureBase):
         Returns:
             Output file path
         """
+        # Create memcheck object (debug)
+        memcheck_flag = PARAMS.GetBool("Memcheck")
+        if memcheck_flag:
+            tracemalloc.start()
+            snapshot1 = tracemalloc.take_snapshot()
+
+        # Normalize arguments
         wait_for_completion = bool(wait_for_completion)
 
         # Check project parameters
@@ -452,10 +445,6 @@ class Project(FeatureBase):
         # Get objects rendering strings (including lights, cameras...)
         objstrings = self._get_objstrings(renderer)
 
-        # Add a ground plane if required
-        if getattr(self.fpo, "GroundPlane", False):
-            objstrings.append(self.write_groundplane(renderer))
-
         # Instantiate template: merge all strings (cam, objects, ground
         # plane...) into rendering template
         instantiated = _instantiate_template(template, objstrings, defaultcam)
@@ -496,16 +485,32 @@ class Project(FeatureBase):
             # Debug purpose only
             App.Console.PrintWarning("*** DRY RUN ***\n")
             App.Console.PrintMessage(cmd)
+            # Memcheck statistics (debug)
+            if memcheck_flag:
+                snapshot2 = tracemalloc.take_snapshot()
+                top_stats = snapshot2.compare_to(snapshot1, "lineno")
+                print("[ Memory check - Top 10 differences ]")
+                for stat in top_stats[:10]:
+                    print(stat)
             return None
 
         # Execute renderer
-        rdr_executor = RendererExecutor(
-            cmd, img, self.fpo.OpenAfterRender, os.path.dirname(fpath)
+        rdr_worker = RendererWorker(
+            cmd, img, os.path.dirname(fpath), self.fpo.OpenAfterRender
         )
+        rdr_executor = RendererExecutor(rdr_worker)
         rdr_executor.start()
         if wait_for_completion:
             # Useful in console mode...
             rdr_executor.join()
+
+        # Memcheck statistics (debug)
+        if memcheck_flag:
+            snapshot2 = tracemalloc.take_snapshot()
+            top_stats = snapshot2.compare_to(snapshot1, "lineno")
+            print("[ Memory check - Top 10 differences ]")
+            for stat in top_stats[:10]:
+                print(stat)
 
         # And eventually return result path
         return img
@@ -552,6 +557,10 @@ class Project(FeatureBase):
             else self.all_views()
         )
 
+        # Add a ground plane if required
+        if getattr(self.fpo, "GroundPlane", False):
+            views.append(create_groundplane_view(self))
+
         # If DelayedBuild is false, we rely on views' ViewResult precomputed
         # values.
         if not self.fpo.DelayedBuild:
@@ -559,7 +568,13 @@ class Project(FeatureBase):
 
         # Otherwise, we have to compute strings
         get_rdr_string = renderer.get_rendering_string
-        objstrings = _get_objstrings_helper(get_rdr_string, views)
+        exporter_worker = ExporterWorker(
+            _get_objstrings_helper, (get_rdr_string, views)
+        )
+        rdr_executor = RendererExecutor(exporter_worker)
+        rdr_executor.start()
+        rdr_executor.join()
+        objstrings = exporter_worker.result()
 
         return objstrings
 
@@ -794,32 +809,36 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views, run_concurrent=True):
+def _get_objstrings_helper(get_rdr_string, views):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    if PARAMS.GetBool("EnableMultiprocessing"):
-        run_concurrent = False  # runpy is not compatible with multithread...
+    # Create profile object (debug)
+    debug_flag = PARAMS.GetBool("Debug")
+    if debug_flag:
+        prof = cProfile.Profile()
+        prof.enable()
 
-    if run_concurrent:
-        App.Console.PrintLog(
-            "[Render][Objstrings] STARTING - CONCURRENT MODE\n"
-        )
-        time0 = time.time()
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = [executor.submit(get_rdr_string, view) for view in views]
-            objstrings = [
-                f.result() for f in concurrent.futures.as_completed(futures)
-            ]
-    else:
-        App.Console.PrintLog(
-            "[Render][Objstrings] STARTING - SEQUENTIAL MODE\n"
-        )
-        time0 = time.time()
-        objstrings = [get_rdr_string(v) for v in views]
+    App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
+    time0 = time.time()
 
-    App.Console.PrintLog(
-        f"[Render][Objstrings] ENDED - TIME: {time.time() - time0}\n"
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        objstrings = executor.map(get_rdr_string, views)
+
+    App.Console.PrintMessage(
+        f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
     )
+
+    # Profile statistics (debug)
+    if debug_flag:
+        prof.disable()
+        sec = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
+        pstat.print_stats()
+        lines = sec.getvalue().splitlines()
+        print("\n".join(lines[:20]))
+        # print(sec.getvalue())
+
     return objstrings

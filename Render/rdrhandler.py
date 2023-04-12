@@ -27,7 +27,6 @@ RendererHandler is a simplified and unified accessor to renderers plugins.
 Among important things, RendererHandler:
 - allows to get a rendering string for a given object
 - allows to run a renderer onto a scene
-- generates a ground plane on-the-fly, if needed
 
 Caveat about units:
 Please note that RendererHandler converts distance units from FreeCAD internals
@@ -46,14 +45,15 @@ import traceback
 import enum
 from importlib import import_module
 from types import SimpleNamespace
+import time
 
 import FreeCAD as App
 import MeshPart
 import Mesh
 
-from Render.utils import translate, debug, getproxyattr, clamp
+from Render.utils import translate, debug, getproxyattr
 from Render.constants import PARAMS
-from Render.rendermesh import RenderMesh
+from Render.rendermesh import create_rendermesh
 from Render import renderables
 from Render import rendermaterial
 
@@ -266,14 +266,14 @@ class RendererHandler:
             properties = src.PropertiesList
         except AttributeError:
             return {}
-        else:
-            rdrname = self.renderer_name
-            res = {
-                p[len(rdrname) :]: src.getPropertyByName(p)
-                for p in properties
-                if p.startswith(rdrname)
-            }
-            return res
+
+        rdrname = self.renderer_name
+        res = {
+            p[len(rdrname) :]: src.getPropertyByName(p)
+            for p in properties
+            if p.startswith(rdrname)
+        }
+        return res
 
     def _get_general_data(self):
         """Get general data for keyword arguments."""
@@ -294,6 +294,7 @@ class RendererHandler:
         Returns: a rendering string in the format of the external renderer
         for the supplied 'view'
         """
+        # Alias parameters
         source = view.Source
         name = str(source.Name)
 
@@ -326,57 +327,6 @@ class RendererHandler:
         # Fallback/default: render it as an 'object'
         return RendererHandler._render_object(self, name, view)
 
-    def get_groundplane_string(self, bbox, zpos, color, sizefactor):
-        """Get a rendering string for a ground plane.
-
-        The resulting ground plane is a horizontal plane at 'zpos' vertical
-        position.
-        The X and Y coordinates are computed from a scene bounding box.
-
-        Args:
-        bbox -- Bounding box for the scene (FreeCAD.BoundBox)
-        zpos -- Z position of the ground plane (float)
-        color -- Color of the ground plane (rgb tuple)
-
-        Returns:
-        A rendering string
-        """
-        margin = bbox.DiagonalLength / 2 * sizefactor
-        verts2d = (
-            (bbox.XMin - margin, bbox.YMin - margin),
-            (bbox.XMax + margin, bbox.YMin - margin),
-            (bbox.XMax + margin, bbox.YMax + margin),
-            (bbox.XMin - margin, bbox.YMax + margin),
-        )
-        vertices = [
-            App.Vector(clamp(v[0]), clamp(v[1]), zpos) for v in verts2d
-        ]  # Clamp to avoid huge dimensions...
-        mesh = Mesh.Mesh()
-        mesh.addFacet(vertices[0], vertices[1], vertices[2])
-        mesh.addFacet(vertices[0], vertices[2], vertices[3])
-        mesh = RenderMesh(
-            mesh,
-            project_directory=self.project_directory,
-            export_directory=self.object_directory,
-        )
-
-        mat = rendermaterial.get_rendering_material(None, "", color)
-
-        # Rescale to meters
-        mesh.transformation.scale = SCALE
-
-        # Keyword arguments
-        general_data = self._get_general_data()
-        kwargs = {}
-        kwargs.update(general_data)
-
-        # Call to plugin
-        res = self.renderer_module.write_mesh(
-            "ground_plane", mesh, mat, **kwargs
-        )
-
-        return res
-
     def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""
         return self._render_camera(
@@ -398,7 +348,7 @@ class RendererHandler:
         """
         autosmooth = getattr(view, "AutoSmooth", False)
         try:
-            autosmooth_angle = view.AutoSmoothAngle.getValueAs("rad")
+            autosmooth_angle = float(view.AutoSmoothAngle.getValueAs("rad"))
         except AttributeError:
             autosmooth_angle = 0
 
@@ -420,19 +370,26 @@ class RendererHandler:
 
             Returns a RenderMesh.
             """
+            debug_flag = PARAMS.GetBool("Debug")
+
             # Skip meshing?
             if self.skip_meshing:
                 # We just need placement, and an empty mesh
                 debug("Object", view.Source.Label, "Skip meshing")
                 mesh = Mesh.Mesh()
                 mesh.Placement = shape.Placement
-                return RenderMesh(
+                rendermesh = create_rendermesh(
                     mesh,
                     project_directory=self.project_directory,
                     export_directory=self.object_directory,
                     relative_path=True,
                     skip_meshing=self.skip_meshing,
                 )
+                return rendermesh
+
+            # Log
+            debug("Object", view.Source.Label, "Begin meshing")
+            tm0 = time.time()
 
             # Standard case
             if is_already_a_mesh:
@@ -451,7 +408,7 @@ class RendererHandler:
                 )
                 mesh.Placement = shape_plc
 
-            mesh = RenderMesh(
+            mesh = create_rendermesh(
                 mesh,
                 autosmooth,
                 autosmooth_angle,
@@ -461,7 +418,14 @@ class RendererHandler:
                 export_directory=self.object_directory,
                 relative_path=True,
                 skip_meshing=self.skip_meshing,
+                name=view.Source.Label,
             )
+
+            duration = time.time() - tm0
+            msg = f"End meshing ({duration}s)"
+            debug("Object", view.Source.Label, msg)
+            if debug_flag:
+                print(msg)
 
             return mesh
 
@@ -488,9 +452,8 @@ class RendererHandler:
                 uvprojection=uvproj,
             )
             renderables.check_renderables(rends)
-        except (TypeError, ValueError) as err:
-            # 'get_renderables' will raise TypeError if unable to render
-            # or ValueError if the result is malformed
+        except renderables.RenderableError as err:
+            # 'get_renderables' will raise RenderableError if unable to render
             # In this case, we pass with a warning
             msg = (
                 translate(
@@ -511,10 +474,7 @@ class RendererHandler:
                     framestack.name,
                 )
             )
-            if not PARAMS.GetBool("Debug"):
-                return ""
-            else:
-                raise err
+            return ""
 
         # Rescale to meters
         for rend in rends:
@@ -537,6 +497,7 @@ class RendererHandler:
             )
             for r in rends
         ]
+
         return "".join(res)
 
     def _render_camera(self, name, view):
