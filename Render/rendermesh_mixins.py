@@ -286,6 +286,8 @@ class RenderMeshMultiprocessingMixin:
 class RenderMeshNumpyMixin:
     """A mixin class to add Numpy use capabilities to RenderMesh."""
 
+    # pylint: disable=too-few-public-methods
+
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - numpy version."""
 
