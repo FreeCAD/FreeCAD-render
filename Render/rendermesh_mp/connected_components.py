@@ -512,7 +512,7 @@ def main(
 
             # Update and write tags
             for index, tag in enumerate(tags):
-                out_tags[index] = final_tags[tag]
+                out_tags[index] = final_tags[tags]
 
             tick("connected components (pass #2 - reduce & write)")
 
