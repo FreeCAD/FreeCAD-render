@@ -109,10 +109,11 @@ def _intersect_unitcube_face(direction):
 
 
 def colorize(chunk):
+    """Attribute color to facets in chunk."""
     if USE_NUMPY:
         return colorize_np(chunk)
-    else:
-        return colorize_std(chunk)
+
+    return colorize_std(chunk)
 
 
 def colorize_std(chunk):
@@ -161,10 +162,10 @@ def colorize_std(chunk):
 
 
 def colorize_np(chunk):
+    """Attribute color to facets in chunk - numpy version."""
     # Set common parameters
     start, stop = chunk
 
-    count_facets = len(SHARED_FACETS) // 3
 
     normals = SHARED_NORMALS_NP[start:stop,]
 
@@ -211,17 +212,6 @@ def update_facets(chunk):
     """
     # Inputs
     start, stop = chunk
-
-    # Point map
-    global SHARED_POINT_MAP
-    if SHARED_POINT_MAP is None:
-        length = SHARED_COLORED_POINTS_LEN.value
-        iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
-        iterator = zip(*iterator)
-        SHARED_POINT_MAP = {
-            colored_point: index
-            for index, colored_point in enumerate(iterator)
-        }
 
     # Aliases
     point_map = SHARED_POINT_MAP
@@ -299,8 +289,8 @@ def compute_uvmap(chunk):
     """
     if USE_NUMPY:
         return compute_uvmap_np(chunk)
-    else:
-        return compute_uvmap_std(chunk)
+
+    return compute_uvmap_std(chunk)
 
 
 def compute_uvmap_std(chunk):
@@ -408,7 +398,13 @@ def init(shared):
     SHARED_COLORED_POINTS_LEN = shared["colored_points_len"]
 
     global SHARED_POINT_MAP
-    SHARED_POINT_MAP = None
+    length = SHARED_COLORED_POINTS_LEN.value
+    iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
+    iterator = zip(*iterator)
+    SHARED_POINT_MAP = {
+        colored_point: index
+        for index, colored_point in enumerate(iterator)
+    }
 
     global SHARED_UVMAP
     SHARED_UVMAP = shared["uvmap"]
@@ -459,6 +455,7 @@ def main(
     out_points,
     out_facets,
     out_uvmap,
+    out_point_count,
 ):
     """Entry point for __main__.
 
@@ -471,7 +468,6 @@ def main(
     import multiprocessing as mp
     import itertools
     import time
-    import struct
 
     tm0 = time.time()
     if showtime:
@@ -593,7 +589,7 @@ def main(
         sys.stdin = save_stdin
         gc.enable()
 
-    OUT_POINT_COUNT.value = colored_points_len
+    out_point_count.value = colored_points_len
 
 
 # *****************************************************************************
@@ -610,6 +606,7 @@ if __name__ == "__main__":
         OUT_POINTS,
         OUT_FACETS,
         OUT_UVMAP,
+        OUT_POINT_COUNT,
     )
 
     # Clean
@@ -622,4 +619,5 @@ if __name__ == "__main__":
     OUT_POINTS = None
     OUT_FACETS = None
     OUT_UVMAP = None
+    OUT_POINT_COUNT = None
     BASE_MATRICES = None
