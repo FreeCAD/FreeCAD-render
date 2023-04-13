@@ -578,12 +578,14 @@ def main(
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
             run_unordered(pool, compute_uvmap, chunks)
-            out_uvmap[:len(shared["uvmap"])] = shared["uvmap"]
+            out_uvmap[: len(shared["uvmap"])] = shared["uvmap"]
             tick("uv map")
 
             # Recompute point list
-            newpoints = [coord for i, _ in colored_points for coord in points[i]]
-            out_points[:colored_points_len * 3] = newpoints
+            newpoints = [
+                coord for i, _ in colored_points for coord in points[i]
+            ]
+            out_points[: colored_points_len * 3] = newpoints
             tick("new point list")
 
     finally:

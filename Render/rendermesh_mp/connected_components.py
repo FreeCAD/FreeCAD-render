@@ -26,12 +26,9 @@ import sys
 import os
 import functools
 import itertools
-import operator
-import time
 import struct
 import gc
-import collections
-from math import cos, hypot, isclose
+from math import cos
 
 try:
     import numpy as np
@@ -64,17 +61,10 @@ def getnormal(idx):
 
 # *****************************************************************************
 
-# TODO
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
 
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
     start, stop = chunk
-    count_facets = len(SHARED_FACETS) // 3
     count_points = len(SHARED_POINTS) // 3
 
     split_angle = SHARED_SPLIT_ANGLE.value
@@ -82,10 +72,9 @@ def compute_adjacents(chunk):
     dot = vector3d.dot
 
     l3struct = struct.Struct("lll")
-    l3size = l3struct.size
-    l3unpack_from = l3struct.unpack_from
     l3iter_unpack = l3struct.iter_unpack
 
+    # pylint: disable=global-variable-undefined
     global FACETS_PER_POINT
     global UNPACKED_FACETS
     if FACETS_PER_POINT is None:
@@ -106,6 +95,7 @@ def compute_adjacents(chunk):
 
     # Compute adjacency for the chunk
     # Warning: facet_idx in [0, stop - start], other_idx in [0, count_facets]
+    adjacents = [[] for _ in range(stop - start)]
     chain = itertools.chain.from_iterable
     iterator = (
         (adjacents[facet_idx], other_idx)
@@ -116,7 +106,6 @@ def compute_adjacents(chunk):
         >= split_angle_cos
     )
 
-    adjacents = [[] for _ in range(stop - start)]
 
     add = list.append
     any(
@@ -136,12 +125,11 @@ def compute_adjacents_np(chunk):
     """Compute adjacency lists for a chunk of facets.
 
     Numpy version"""
+    # pylint: disable=global-variable-undefined
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
-    count_points = len(SHARED_POINTS) // 3
 
-    split_angle = SHARED_SPLIT_ANGLE.value
-    split_angle_cos = cos(split_angle)
+    split_angle_cos = cos(SHARED_SPLIT_ANGLE.value)
 
     # Prepare globals
     global NP_READY
@@ -175,48 +163,48 @@ def compute_adjacents_np(chunk):
     # Work on chunk
     indices_chunk = np.arange(start, stop)
     indices_chunk = np.tile(indices_chunk, 3)
-    edges_chunk = np.concatenate((
-        EDGES1[start:stop], EDGES2[start:stop], EDGES3[start:stop]
-    ))
+    edges_chunk = np.concatenate(
+        (EDGES1[start:stop], EDGES2[start:stop], EDGES3[start:stop])
+    )
 
-    unique_indices_left = np.searchsorted(UNIQUE_EDGES, edges_chunk, side="left")
+    unique_indices_left = np.searchsorted(
+        UNIQUE_EDGES, edges_chunk, side="left"
+    )
     indices_left = UNIQUE_INDICES[unique_indices_left]
     indices_count = UNIQUE_COUNTS[unique_indices_left]
     indices_right = indices_left + indices_count - 1
     maxindices = np.max(indices_count)
-    if not maxindices <= 2:  # We assume only 2 neighbours per edge
+    if maxindices > 2:  # We assume only 2 neighbours per edge
+        # Nota: maybe we could loop from left to right and concatenate
+        # all results...
         msg = (
             "Warning - More than 2 neighbours per edge "
             f"(found {maxindices})"
             " - Truncation may occur"
         )
         print(msg)
-    indices_left = SORTED_FACET_INDICES[indices_left]
-    indices_right = SORTED_FACET_INDICES[indices_right]
 
-    pairs_left = np.rec.fromarrays((indices_chunk, indices_left), names="x,y")
-    condition_left = np.not_equal(pairs_left.x, pairs_left.y)
-    pairs_left = np.compress(condition_left, pairs_left)
+    def pairs_from_indices(inds):
+        inds = SORTED_FACET_INDICES[inds]
+        pairs = np.rec.fromarrays((indices_chunk, inds), names="x,y")
+        condition = np.not_equal(pairs.x, pairs.y)
+        return np.compress(condition, pairs)
 
-    pairs_right = np.rec.fromarrays((indices_chunk, indices_right), names="x,y")
-    condition_right = np.not_equal(pairs_right.x, pairs_right.y)
-    pairs_right = np.compress(condition_right, pairs_right)
-
-    # Concatenate
-    pairs = np.concatenate((pairs_left, pairs_right))
+    # Compute pairs from left and right indices, and concatenate
+    pairs = np.concatenate(
+        (pairs_from_indices(indices_left), pairs_from_indices(indices_right))
+    )
 
     # Filter with angle
     normals = np.array(SHARED_NORMALS)  # We assume normalized normals
     normals.shape = [count_facets, 3]
-    x_normals, y_normals = normals[pairs["x"]], normals[pairs["y"]]
-    dotprod = np.einsum("ij,ij->i", x_normals, y_normals)
-    condition_angle = dotprod >= split_angle_cos
-    pairs = np.compress(condition_angle, pairs)
+    dotprod = np.einsum("ij,ij->i", normals[pairs["x"]], normals[pairs["y"]])
+    pairs = np.compress(dotprod >= split_angle_cos, pairs)
 
     # Write buffer
-    adjacents = [list() for _ in range(stop - start)]
-    for x, y in pairs:
-        adjacents[x - start].append(y)
+    adjacents = [[] for _ in range(stop - start)]
+    for index, value in pairs:
+        adjacents[index - start].append(value)
 
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
@@ -281,7 +269,16 @@ def _connected_facets(
     return tags
 
 
-def connected_components(adjacents, offset=0, shared=None):
+def connected_components(adjacents, shared=None):
+    """Get all connected components of the submesh delimited by adjacents.
+
+    This function is called both by subprocess (pass #1) and by main process
+    (pass #2).
+
+    Returns:
+    A list of tags (scalar) corresponding to the graph vertices of adjacency.
+    """
+
     tags = [None] * len(adjacents)
     tag = None
 
@@ -321,7 +318,7 @@ def connected_components_chunk(chunk):
         for ifacet in range(start, stop)
     ]
 
-    tags = connected_components(adjacents, offset=start)
+    tags = connected_components(adjacents)
 
     # Write tags buffer
     SHARED_TAGS[start:stop] = list(tags)
@@ -406,9 +403,7 @@ def main(
     # pylint: disable=import-outside-toplevel
     # pylint: disable=too-many-locals
     import multiprocessing as mp
-    import itertools
     import time
-    import struct
 
     tm0 = time.time()
     if showtime:
@@ -486,7 +481,6 @@ def main(
 
             # Update subcomponents
             tags = shared["tags"]
-            adjacency = shared["adjacency"]
 
             maxtag = shared["current_tag"].value
             subcomponents = [[] for i in range(maxtag)]
@@ -497,8 +491,6 @@ def main(
 
             # Update adjacents
             l2struct = struct.Struct("ll")
-            l2size = l2struct.size
-            l2unpack_from = l2struct.unpack_from
 
             iterator = itertools.takewhile(
                 lambda x: x != (0, 0),
@@ -519,11 +511,10 @@ def main(
             tick("connected components (pass #2 - map)")
 
             # Update and write tags
-            for i in range(len(tags)):
-                out_tags[i] = final_tags[tags[i]]
+            for index, tag in enumerate(tags):
+                out_tags[index] = final_tags[tags]
 
             tick("connected components (pass #2 - reduce & write)")
-
 
     finally:
         os.chdir(save_dir)
@@ -533,6 +524,7 @@ def main(
 # *****************************************************************************
 
 if __name__ == "__main__":
+    # pylint: disable=used-before-assignment
     main(
         PYTHON, POINTS, FACETS, NORMALS, AREAS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS
     )
