@@ -23,7 +23,6 @@
 """Vector 2D manipulation helpers."""
 
 from math import sqrt
-from operator import mul as op_mul, sub as op_sub
 
 
 def add(vec1, vec2):
