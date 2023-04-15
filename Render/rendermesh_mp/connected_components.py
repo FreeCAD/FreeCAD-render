@@ -465,8 +465,8 @@ def main(
 
             # Compute adjacency
             chunks = make_chunks(chunk_size, len(facets) // 3)
-            if USE_NUMPY:
-                func, tickmsg = compute_adjacents_np, "adjacency (np)"
+            if USE_NUMPY and len(points) // 3 < 500000:
+                func, tickmsg = compute_adjacents_np, "adjacency (mp/np)"
             else:
                 func, tickmsg = compute_adjacents, "adjacency"
             run_unordered(pool, func, chunks)
