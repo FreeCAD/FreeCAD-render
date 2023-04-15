@@ -154,11 +154,7 @@ def colorize_std(chunk):
     centroid = add_n(*barys)
     area = sum(areas)
 
-    # TODO Use slicing?
-    for ifacet, color in zip(range(start, stop), colors):
-        SHARED_FACET_COLORS[ifacet] = color
-
-    # SHARED_FACET_COLORS[start:stop] = list(colors)
+    SHARED_FACET_COLORS[start:stop] = list(colors)
 
     return centroid, area
 
@@ -231,7 +227,6 @@ def update_facets(chunk):
     facets = SHARED_FACETS
     colors = SHARED_FACET_COLORS
 
-    # TODO (re)try slicing
     for ifacet in range(start, stop):
         color = colors[ifacet]
         index = ifacet * 3
