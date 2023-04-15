@@ -23,7 +23,6 @@
 """Vector 3D manipulation helpers."""
 
 from math import sqrt, acos, pi, copysign
-from operator import mul as op_mul, sub as op_sub
 import sys
 
 
@@ -126,23 +125,16 @@ def vector(point0, point1):
 
 def angles(triangle):
     """Compute angles of a triangle, in radians."""
-    point0, point1, point2 = triangle
+    point_0, point_1, point_2 = triangle
 
     # Reminder:
     # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
     # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
     # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
 
-    # TODO Optimize (list comp...)
-    angle0 = vect_angle(vector(point0, point1), vector(point0, point2))
-    angle1 = vect_angle(vector(point1, point0), vector(point1, point2))
+    angle0 = vect_angle(vector(point_0, point_1), vector(point_0, point_2))
+    angle1 = vect_angle(vector(point_1, point_0), vector(point_1, point_2))
     angle2 = pi - angle0 - angle1
-    # angle2 = vect_angle(vector(point2, point0), vector(point2, point1))
-    # # TODO Debug
-    # assert angle0 >= 0.0
-    # assert angle1 >= 0.0
-    # assert angle2 >= 0.0
-    # print(angle0 + angle1 + angle2)
     return angle0, angle1, angle2
 
 
