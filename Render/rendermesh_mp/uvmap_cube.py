@@ -158,6 +158,8 @@ def colorize_std(chunk):
     for ifacet, color in zip(range(start, stop), colors):
         SHARED_FACET_COLORS[ifacet] = color
 
+    # SHARED_FACET_COLORS[start:stop] = list(colors)
+
     return centroid, area
 
 
@@ -165,7 +167,6 @@ def colorize_np(chunk):
     """Attribute color to facets in chunk - numpy version."""
     # Set common parameters
     start, stop = chunk
-
 
     normals = SHARED_NORMALS_NP[start:stop,]
 
@@ -212,6 +213,18 @@ def update_facets(chunk):
     """
     # Inputs
     start, stop = chunk
+
+    # Point map
+    # pylint: disable=global-variable-undefined
+    global SHARED_POINT_MAP
+    if SHARED_POINT_MAP is None:
+        length = SHARED_COLORED_POINTS_LEN.value
+        iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
+        iterator = zip(*iterator)
+        SHARED_POINT_MAP = {
+            colored_point: index
+            for index, colored_point in enumerate(iterator)
+        }
 
     # Aliases
     point_map = SHARED_POINT_MAP
@@ -398,13 +411,7 @@ def init(shared):
     SHARED_COLORED_POINTS_LEN = shared["colored_points_len"]
 
     global SHARED_POINT_MAP
-    length = SHARED_COLORED_POINTS_LEN.value
-    iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
-    iterator = zip(*iterator)
-    SHARED_POINT_MAP = {
-        colored_point: index
-        for index, colored_point in enumerate(iterator)
-    }
+    SHARED_POINT_MAP = None
 
     global SHARED_UVMAP
     SHARED_UVMAP = shared["uvmap"]
@@ -453,9 +460,9 @@ def main(
     areas,
     showtime,
     out_points,
+    out_point_count,
     out_facets,
     out_uvmap,
-    out_point_count,
 ):
     """Entry point for __main__.
 
@@ -604,9 +611,9 @@ if __name__ == "__main__":
         AREAS,
         SHOWTIME,
         OUT_POINTS,
+        OUT_POINT_COUNT,
         OUT_FACETS,
         OUT_UVMAP,
-        OUT_POINT_COUNT,
     )
 
     # Clean
@@ -617,6 +624,7 @@ if __name__ == "__main__":
     AREAS = None
     SHOWTIME = None
     OUT_POINTS = None
+    OUT_POINT_COUNT = None
     OUT_FACETS = None
     OUT_UVMAP = None
     OUT_POINT_COUNT = None
