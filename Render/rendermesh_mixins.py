@@ -498,16 +498,18 @@ class RenderMeshNumpyMixin:
         hashes = fullhashes % hashtable_size
         # print("all edges", all_edges)
 
-
         # Build hash table
         hashtable = [[] for _ in itertools.repeat(None, hashtable_size)]
         append = list.append
+
         def reduce_hashes(rolling, new):
             index, hashkey = new
             append(rolling[hashkey], index)
             return rolling
 
-        hashtable = functools.reduce(reduce_hashes, enumerate(hashes), hashtable)
+        hashtable = functools.reduce(
+            reduce_hashes, enumerate(hashes), hashtable
+        )
         # # DEBUG
         # print("max", max(len(s) for s in hashtable))
         # print("average", sum(len(s) for s in hashtable if len(s) > 0) / len(hashtable))
@@ -526,11 +528,15 @@ class RenderMeshNumpyMixin:
         pairs = np.concatenate(pairs)
 
         # Filter same hash
-        same_hash = np.equal(fullhashes[pairs[..., 0]], fullhashes[pairs[..., 1]])
+        same_hash = np.equal(
+            fullhashes[pairs[..., 0]], fullhashes[pairs[..., 1]]
+        )
         pairs = np.compress(same_hash, pairs, axis=0)
 
         # Transpose to facet pairs
-        facet_pairs = np.stack((indices[pairs[..., 0]], indices[pairs[...,1]]), axis=-1)
+        facet_pairs = np.stack(
+            (indices[pairs[..., 0]], indices[pairs[..., 1]]), axis=-1
+        )
 
         if debug_flag:
             print("all pairs", time.time() - tm0)
@@ -538,10 +544,12 @@ class RenderMeshNumpyMixin:
         # Build adjacency lists
         adjacency = [set() for _ in range(self.count_facets)]
         add = set.add
+
         def reduce_pairs(rolling, new):
             index, value = new
             add(rolling[index], value)
             return rolling
+
         adjacency = functools.reduce(reduce_pairs, facet_pairs, adjacency)
 
         if debug_flag:
@@ -593,9 +601,9 @@ def _find_python():
 # Code by David Eppstein, UC Irvine, 28 Feb 2002
 # http://code.activestate.com/recipes/117119/
 
+
 def gen_primes():
-    """ Generate an infinite sequence of prime numbers.
-    """
+    """Generate an infinite sequence of prime numbers."""
     # Maps composites to primes witnessing their compositeness.
     # This is memory efficient, as the sieve is not "run forward"
     # indefinitely, but only as long as required by the current
