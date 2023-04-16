@@ -461,7 +461,7 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print(time.time() - tm0)
 
-    def _adjacent_facets1(self):
+    def _adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
@@ -544,89 +544,6 @@ class RenderMeshNumpyMixin:
             add(rolling[index], value)
             return rolling
         adjacency = functools.reduce(reduce_pairs, facet_pairs, adjacency)
-
-        if debug_flag:
-            print("adjacency", time.time() - tm0)
-
-        return adjacency
-
-
-    def _adjacent_facets(self):
-        return self._adjacent_facets2
-
-    def _adjacent_facets2(self):
-        """Compute the adjacent facets for each facet of the mesh.
-
-        Returns a list of sets of facet indices (adjacency list).
-        Numpy version
-        """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
-            print()
-            print(f"compute adjacency lists (np) - {self.count_facets} facets")
-            tm0 = time.time()
-            np.set_printoptions(edgeitems=600)
-
-        # Compute edges (assume triangles)
-        facets = np.asarray(self.facets)
-        facets.sort(axis=1)
-
-        indices = np.arange(len(facets))
-        indices = np.tile(indices, 3)
-
-        edges = np.concatenate(
-            (
-                np.rec.fromarrays((facets[..., 0], facets[..., 1])),
-                np.rec.fromarrays((facets[..., 0], facets[..., 2])),
-                np.rec.fromarrays((facets[..., 1], facets[..., 2])),
-            )
-        )
-
-        if debug_flag:
-            print("edges", time.time() - tm0)
-
-        argsort_edges = edges.argsort()
-        sorted_facet_indices = indices[argsort_edges]
-        sorted_edges = edges[argsort_edges]
-
-        if debug_flag:
-            print("edges sorted", time.time() - tm0)
-
-        # Searches
-        unique_edges, unique_indices, unique_counts = np.unique(
-            sorted_edges, return_index=True, return_counts=True
-        )
-        unique_indices_left = np.searchsorted(unique_edges, edges, side="left")
-        indices_left = unique_indices[unique_indices_left]
-        indices_count = unique_counts[unique_indices_left]
-        indices_right = indices_left + indices_count - 1
-        maxindices = np.max(indices_count)
-        if maxindices > 2:  # We assume only 2 neighbours per edge
-            msg = (
-                "Warning - More than 2 neighbours per edge "
-                f"(found {maxindices})"
-                " - Truncation may occur"
-            )
-            warn("Object", self.name, msg)
-        indices_left = sorted_facet_indices[indices_left]
-        indices_right = sorted_facet_indices[indices_right]
-
-        pairs_left = np.rec.fromarrays((indices, indices_left), names="x,y")
-        condition_left = np.not_equal(pairs_left.x, pairs_left.y)
-        pairs_left = np.compress(condition_left, pairs_left)
-
-        pairs_right = np.rec.fromarrays((indices, indices_right), names="x,y")
-        condition_right = np.not_equal(pairs_right.x, pairs_right.y)
-        pairs_right = np.compress(condition_right, pairs_right)
-
-        if debug_flag:
-            print("searches", time.time() - tm0)
-
-        # Build adjacency lists
-        adjacency = [set() for _ in range(self.count_facets)]
-
-        for index, value in np.concatenate((pairs_left, pairs_right)):
-            adjacency[index].add(value)
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
