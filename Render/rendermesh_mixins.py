@@ -481,20 +481,19 @@ class RenderMeshNumpyMixin:
         indices = np.arange(len(facets))
         indices = np.tile(indices, 3)
 
-        all_edges = np.concatenate(
-            (
-                np.rec.fromarrays((facets[..., 0], facets[..., 1])),
-                np.rec.fromarrays((facets[..., 0], facets[..., 2])),
-                np.rec.fromarrays((facets[..., 1], facets[..., 2])),
-            )
+        all_edges_left = np.concatenate(
+            (facets[..., 0], facets[..., 0], facets[..., 1])
         )
-        all_edges.dtype = [("x", np.int64), ("y", np.int64)]
+        all_edges_right = np.concatenate(
+            (facets[..., 1], facets[..., 2], facets[..., 2])
+        )
 
+        # Compute hash table
         hashtable_size = int(len(facets) * 1.3)
 
         fullhashes = np.bitwise_or(
-            np.left_shift(all_edges["x"], 32),
-            all_edges["y"],
+            np.left_shift(all_edges_left, 32),
+            all_edges_right,
         )
         hashes = fullhashes % hashtable_size
         # print("all edges", all_edges)
