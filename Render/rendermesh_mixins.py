@@ -461,7 +461,7 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print(time.time() - tm0)
 
-    def _adjacent_facets(self):
+    def _adjacent_facets1(self):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
@@ -479,23 +479,24 @@ class RenderMeshNumpyMixin:
         facets.sort(axis=1)
 
         indices = np.arange(len(facets))
+        indices = np.tile(indices, 3)
 
         all_edges = np.concatenate(
             (
-                np.rec.fromarrays((facets[..., 0], facets[..., 1], indices)),
-                np.rec.fromarrays((facets[..., 0], facets[..., 2], indices)),
-                np.rec.fromarrays((facets[..., 1], facets[..., 2], indices)),
+                np.rec.fromarrays((facets[..., 0], facets[..., 1])),
+                np.rec.fromarrays((facets[..., 0], facets[..., 2])),
+                np.rec.fromarrays((facets[..., 1], facets[..., 2])),
             )
         )
-        all_edges.dtype = [("x", np.int64), ("y", np.int64), ("facet", np.int64)]
+        all_edges.dtype = [("x", np.int64), ("y", np.int64)]
 
         hashtable_size = int(len(facets) * 1.3)
-        hashes = np.bitwise_or(
+
+        fullhashes = np.bitwise_or(
             np.left_shift(all_edges["x"], 32),
             all_edges["y"],
         )
-        all_edges = rfn.rec_append_fields(all_edges, "fullhash", hashes, dtypes=np.int64)
-        hashes %= hashtable_size
+        hashes = fullhashes % hashtable_size
         # print("all edges", all_edges)
 
 
@@ -508,127 +509,50 @@ class RenderMeshNumpyMixin:
             return rolling
 
         hashtable = functools.reduce(reduce_hashes, enumerate(hashes), hashtable)
-
-        # DEBUG
-        print("max", max(len(s) for s in hashtable))
-        print("average", sum(len(s) for s in hashtable if len(s) > 0) / len(hashtable))
-        print("null", len([s for s in hashtable if len(s) > 0]))
+        # # DEBUG
+        # print("max", max(len(s) for s in hashtable))
+        # print("average", sum(len(s) for s in hashtable if len(s) > 0) / len(hashtable))
+        # print("null", len([s for s in hashtable if len(s) == 0]))
 
         if debug_flag:
-            print("edges", time.time() - tm0)
+            print(f"hash table ({hashtable_size} entries)", time.time() - tm0)
 
-        def process_bucket(bucket):
-            if len(bucket) == 0:
-                return []
-            # Get records
-            bucket_edges = all_edges[bucket]
-            unique_edges, unique_indices, unique_counts = np.unique(
-                bucket_edges["fullhash"],
-                return_index=True,
-                return_counts= True,
-            )
-            # Construct pairs
-            list_of_pairs = []
-            for index, count in zip(unique_indices, unique_counts):
-                edges = bucket_edges[index:index+count]
-                pairs = np.meshgrid(edges["facet"], edges["facet"], indexing="xy")
-                pairs = np.array(pairs).T.reshape(-1, 2)
-                notequal = np.not_equal(pairs[..., 0], pairs[..., 1])
-                pairs = np.compress(notequal, pairs, axis=0)
-                list_of_pairs.append(pairs)
-            bucket_pairs = np.concatenate(list_of_pairs)
-            return bucket_pairs.tolist()
+        # (Edge) pair concatenation
+        pairs = (
+            np.array(list(itertools.permutations(bucket, 2)))
+            for bucket in hashtable
+            if len(bucket) > 0
+        )
+        pairs = [p for p in pairs if p.size > 0]
+        pairs = np.concatenate(pairs)
 
+        # Filter same hash
+        same_hash = np.equal(fullhashes[pairs[..., 0]], fullhashes[pairs[..., 1]])
+        pairs = np.compress(same_hash, pairs, axis=0)
 
-            # # Transform to numpy
-            # print(bucket)
-            # bucket = np.array(bucket)
-            # print(bucket)
-            # Separate by edge
-            # np.unique(bucket
-            # subset = collections.defaultdict(list)
-            # for x, y, facet, hashkey in bucket:
-                # subset[hashkey].append(facet)
+        # Transpose to facet pairs
+        facet_pairs = np.stack((indices[pairs[..., 0]], indices[pairs[...,1]]), axis=-1)
 
-            # # Treat each edge
-
-        def get_adjacents_old(subset):
-            assert subset
-            subindices = np.array(subset)
-            subindices = subindices // 3
-            subindices = np.unique(subindices)
-            print(subindices)
-
-            edges = np.concatenate(
-                (
-                    np.rec.fromarrays((facets[subindices, 0], facets[subindices, 1])),
-                    np.rec.fromarrays((facets[subindices, 0], facets[subindices, 2])),
-                    np.rec.fromarrays((facets[subindices, 1], facets[subindices, 2])),
-                )
-            )
-            tiled_indices = np.tile(subindices, 3)
-            print(edges)
-
-            argsort_edges = edges.argsort()
-            sorted_facet_indices = tiled_indices[argsort_edges]
-            sorted_edges = edges[argsort_edges]
-
-            if debug_flag:
-                print("edges sorted", time.time() - tm0)
-
-            # Searches
-            unique_edges, unique_indices, unique_counts = np.unique(
-                sorted_edges, return_index=True, return_counts=True
-            )
-            unique_indices_left = np.searchsorted(unique_edges, edges, side="left")
-            indices_left = unique_indices[unique_indices_left]
-            indices_count = unique_counts[unique_indices_left]
-            indices_right = indices_left + indices_count - 1
-            maxindices = np.max(indices_count)
-            if maxindices > 2:  # We assume only 2 neighbours per edge
-                msg = (
-                    "Warning - More than 2 neighbours per edge "
-                    f"(found {maxindices})"
-                    " - Truncation may occur"
-                )
-                warn("Object", self.name, msg)
-            indices_left = sorted_facet_indices[indices_left]
-            indices_right = sorted_facet_indices[indices_right]
-            print("indices left", indices_left)
-
-            pairs_left = np.rec.fromarrays((tiled_indices, indices_left), names="x,y")
-            condition_left = np.not_equal(pairs_left.x, pairs_left.y)
-            pairs_left = np.compress(condition_left, pairs_left)
-
-            pairs_right = np.rec.fromarrays((tiled_indices, indices_right), names="x,y")
-            condition_right = np.not_equal(pairs_right.x, pairs_right.y)
-            pairs_right = np.compress(condition_right, pairs_right)
-
-            if debug_flag:
-                print("searches", time.time() - tm0)
-
-            res = np.concatenate((pairs_left, pairs_right))
-            print("res", res)
-            return res
-
-        # Pairs
-        all_pairs = list(itertools.chain(p for bucket in hashtable for p in process_bucket(bucket)))
-        print(all_pairs)
         if debug_flag:
             print("all pairs", time.time() - tm0)
 
-
         # Build adjacency lists
         adjacency = [set() for _ in range(self.count_facets)]
-
-        for index, value in all_pairs:
-            adjacency[index].add(value)
+        add = set.add
+        def reduce_pairs(rolling, new):
+            index, value = new
+            add(rolling[index], value)
+            return rolling
+        adjacency = functools.reduce(reduce_pairs, facet_pairs, adjacency)
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
 
         return adjacency
 
+
+    def _adjacent_facets(self):
+        return self._adjacent_facets2
 
     def _adjacent_facets2(self):
         """Compute the adjacent facets for each facet of the mesh.
@@ -747,3 +671,42 @@ def _find_python():
         return python
 
     return None
+
+
+# Sieve of Eratosthenes
+# Code by David Eppstein, UC Irvine, 28 Feb 2002
+# http://code.activestate.com/recipes/117119/
+
+def gen_primes():
+    """ Generate an infinite sequence of prime numbers.
+    """
+    # Maps composites to primes witnessing their compositeness.
+    # This is memory efficient, as the sieve is not "run forward"
+    # indefinitely, but only as long as required by the current
+    # number being tested.
+    #
+    D = {}
+
+    # The running integer that's checked for primeness
+    q = 2
+
+    while True:
+        if q not in D:
+            # q is a new prime.
+            # Yield it and mark its first multiple that isn't
+            # already marked in previous iterations
+            #
+            yield q
+            D[q * q] = [q]
+        else:
+            # q is composite. D[q] is the list of primes that
+            # divide it. Since we've reached q, we no longer
+            # need it in the map, but we'll mark the next
+            # multiples of its witnesses to prepare for larger
+            # numbers
+            #
+            for p in D[q]:
+                D.setdefault(p + q, []).append(p)
+            del D[q]
+
+        q += 1
