@@ -815,12 +815,6 @@ def _get_objstrings_helper(get_rdr_string, views):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    # Create profile object (debug)
-    debug_flag = PARAMS.GetBool("Debug")
-    if debug_flag:
-        prof = cProfile.Profile()
-        prof.enable()
-
     App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
     time0 = time.time()
 
@@ -830,16 +824,5 @@ def _get_objstrings_helper(get_rdr_string, views):
     App.Console.PrintMessage(
         f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
     )
-
-    # Profile statistics (debug)
-    if debug_flag:
-        prof.disable()
-        sec = io.StringIO()
-        sortby = SortKey.CUMULATIVE
-        pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-        pstat.print_stats()
-        lines = sec.getvalue().splitlines()
-        print("\n".join(lines[:20]))
-        # print(sec.getvalue())
 
     return objstrings
