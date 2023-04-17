@@ -519,23 +519,32 @@ class RenderMeshNumpyMixin:
             print(f"hash table ({hashtable_size} entries)", time.time() - tm0)
 
         # (Edge) pair concatenation
+        # pairs = (
+            # np.array(list(itertools.permutations(bucket, 2)))
+            # for bucket in hashtable
+            # if len(bucket) > 0
+        # )
+        # pairs = [p for p in pairs if p.size > 0]
         pairs = (
-            np.array(list(itertools.permutations(bucket, 2)))
+            itertools.permutations(bucket, 2)
             for bucket in hashtable
-            if len(bucket) > 0
+            if len(bucket)
         )
-        pairs = [p for p in pairs if p.size > 0]
-        pairs = np.concatenate(pairs)
+        pairs = itertools.chain.from_iterable(pairs)
+        pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
+
+        if debug_flag:
+            print("all pairs - unfiltered", time.time() - tm0)
 
         # Filter same hash
         same_hash = np.equal(
-            fullhashes[pairs[..., 0]], fullhashes[pairs[..., 1]]
+            fullhashes[pairs['x']], fullhashes[pairs['y']]
         )
         pairs = np.compress(same_hash, pairs, axis=0)
 
         # Transpose to facet pairs
         facet_pairs = np.stack(
-            (indices[pairs[..., 0]], indices[pairs[..., 1]]), axis=-1
+            (indices[pairs['x']], indices[pairs['y']]), axis=-1
         )
 
         if debug_flag:
