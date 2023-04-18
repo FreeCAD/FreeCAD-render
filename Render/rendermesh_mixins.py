@@ -489,19 +489,13 @@ class RenderMeshNumpyMixin:
             (facets[..., 1], facets[..., 2], facets[..., 2])
         )
 
-        # Compute hash table
-        hashtable_size = int(len(facets) * 1.3)
-
-        fullhashes = np.bitwise_or(
+        hashes = np.bitwise_or(
             np.left_shift(all_edges_left, 32),
             all_edges_right,
         )
-        hashes = fullhashes  # TODO
-        hashes = np.core.records.fromarrays(
-            (hashes, np.arange(len(fullhashes))),
-            dtype=[("hash", np.int64), ("index", np.int64)]
-        )
-        hashes.sort(order="hash")
+        hashes_indices = np.argsort(hashes)
+        hashes = hashes[hashes_indices]
+        hashes = np.stack((hashes, hashes_indices), axis=-1)
 
         # Compute hashtable
         itget0 = operator.itemgetter(0)
@@ -509,35 +503,20 @@ class RenderMeshNumpyMixin:
             itertools.permutations((f for _, f in v), 2)
             for k, v in itertools.groupby(hashes.tolist(), key=itget0)
         )
-        # print(hashtable)
         if debug_flag:
-            print(f"hash table ({hashtable_size} entries)", time.time() - tm0)
+            print(f"hash table", time.time() - tm0)
 
         # Compute pairs
         pairs = itertools.chain.from_iterable(hashtable)
         pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
-        print(len(pairs))
 
         if debug_flag:
             print("all pairs", time.time() - tm0)
-
-        # TODO
-        # # Filter same hash
-        # same_hash = np.equal(
-            # fullhashes[pairs['x']], fullhashes[pairs['y']]
-        # )
-        # pairs = np.compress(same_hash, pairs, axis=0)
-        # print(len(pairs))
 
         # Build adjacency lists
         facet_pairs = np.stack(
             (indices[pairs['x']], indices[pairs['y']]), axis=-1
         )
-        # facet_pairs = np.core.records.fromarrays(
-            # (indices[pairs['x']], indices[pairs['y']]),
-            # dtype=[("x", np.int64), ("y", np.int64)]
-        # )
-        # facet_pairs.sort(order="x")
 
         # https://stackoverflow.com/questions/38277143/sort-2d-numpy-array-lexicographically
         facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
@@ -551,31 +530,6 @@ class RenderMeshNumpyMixin:
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
-
-
-
-        # TODO
-        # Transpose to facet pairs
-        # facet_pairs = np.stack(
-            # (indices[pairs['x']], indices[pairs['y']]), axis=-1
-        # )
-
-        # if debug_flag:
-            # print("all pairs", time.time() - tm0)
-
-        # Build adjacency lists
-        # adjacency = [set() for _ in range(self.count_facets)]
-        # add = set.add
-
-        # def reduce_pairs(rolling, new):
-            # index, value = new
-            # add(rolling[index], value)
-            # return rolling
-
-        # adjacency = functools.reduce(reduce_pairs, facet_pairs, adjacency)
-
-        # if debug_flag:
-            # print("adjacency", time.time() - tm0)
 
         return adjacency
 
