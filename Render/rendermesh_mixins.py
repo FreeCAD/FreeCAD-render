@@ -496,7 +496,7 @@ class RenderMeshNumpyMixin:
             np.left_shift(all_edges_left, 32),
             all_edges_right,
         )
-        hashes = fullhashes % hashtable_size
+        hashes = fullhashes  # TODO
         hashes = np.core.records.fromarrays(
             (hashes, np.arange(len(fullhashes))),
             dtype=[("hash", np.int64), ("index", np.int64)]
@@ -521,12 +521,13 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("all pairs - unfiltered", time.time() - tm0)
 
-        # Filter same hash
-        same_hash = np.equal(
-            fullhashes[pairs['x']], fullhashes[pairs['y']]
-        )
-        pairs = np.compress(same_hash, pairs, axis=0)
-        print(len(pairs))
+        # TODO
+        # # Filter same hash
+        # same_hash = np.equal(
+            # fullhashes[pairs['x']], fullhashes[pairs['y']]
+        # )
+        # pairs = np.compress(same_hash, pairs, axis=0)
+        # print(len(pairs))
 
         # Transpose to facet pairs
         facet_pairs = np.stack(
