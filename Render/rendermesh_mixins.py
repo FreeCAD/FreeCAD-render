@@ -32,6 +32,7 @@ import os
 import time
 import itertools
 import functools
+import operator
 
 try:
     import numpy as np
@@ -496,42 +497,26 @@ class RenderMeshNumpyMixin:
             all_edges_right,
         )
         hashes = fullhashes % hashtable_size
-        # print("all edges", all_edges)
-
-        # Build hash table
-        hashtable = [[] for _ in itertools.repeat(None, hashtable_size)]
-        append = list.append
-
-        def reduce_hashes(rolling, new):
-            index, hashkey = new
-            append(rolling[hashkey], index)
-            return rolling
-
-        hashtable = functools.reduce(
-            reduce_hashes, enumerate(hashes), hashtable
+        hashes = np.core.records.fromarrays(
+            (hashes, np.arange(len(fullhashes))),
+            dtype=[("hash", np.int64), ("index", np.int64)]
         )
-        # # DEBUG
-        # print("max", max(len(s) for s in hashtable))
-        # print("average", sum(len(s) for s in hashtable if len(s) > 0) / len(hashtable))
-        # print("null", len([s for s in hashtable if len(s) == 0]))
+        hashes.sort(order="hash")
 
+        # Compute hashtable
+        itget0 = operator.itemgetter(0)
+        hashtable = (
+            itertools.permutations((f for _, f in v), 2)
+            for k, v in itertools.groupby(hashes.tolist(), key=itget0)
+        )
+        # print(hashtable)
         if debug_flag:
             print(f"hash table ({hashtable_size} entries)", time.time() - tm0)
 
-        # (Edge) pair concatenation
-        # pairs = (
-            # np.array(list(itertools.permutations(bucket, 2)))
-            # for bucket in hashtable
-            # if len(bucket) > 0
-        # )
-        # pairs = [p for p in pairs if p.size > 0]
-        pairs = (
-            itertools.permutations(bucket, 2)
-            for bucket in hashtable
-            if len(bucket)
-        )
-        pairs = itertools.chain.from_iterable(pairs)
+        # Compute pairs (unfiltered)
+        pairs = itertools.chain.from_iterable(hashtable)
         pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
+        print(len(pairs))
 
         if debug_flag:
             print("all pairs - unfiltered", time.time() - tm0)
@@ -541,6 +526,7 @@ class RenderMeshNumpyMixin:
             fullhashes[pairs['x']], fullhashes[pairs['y']]
         )
         pairs = np.compress(same_hash, pairs, axis=0)
+        print(len(pairs))
 
         # Transpose to facet pairs
         facet_pairs = np.stack(
