@@ -478,6 +478,8 @@ class RenderMeshNumpyMixin:
         # Compute edges (assume triangles)
         facets = np.asarray(self.facets)
         facets.sort(axis=1)
+        if debug_flag:
+            print(f"hashes", time.time() - tm0)
 
         indices = np.arange(len(facets))
         indices = np.tile(indices, 3)
@@ -496,16 +498,19 @@ class RenderMeshNumpyMixin:
         hashes_indices = np.argsort(hashes)
         hashes = hashes[hashes_indices]
         hashes = np.stack((hashes, hashes_indices), axis=-1)
+        if debug_flag:
+            print(f"hashes", time.time() - tm0)
+
 
         # Compute hashtable
         itget0 = operator.itemgetter(0)
+        itget1 = operator.itemgetter(1)
+        permutations = itertools.permutations
+        groupby = itertools.groupby
         hashtable = (
-            itertools.permutations((f for _, f in v), 2)
-            for k, v in itertools.groupby(hashes.tolist(), key=itget0)
+            permutations(map(itget1, v), 2)
+            for v in map(itget1, groupby(hashes, key=itget0))
         )
-        if debug_flag:
-            print(f"hash table", time.time() - tm0)
-
         # Compute pairs
         pairs = itertools.chain.from_iterable(hashtable)
         pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
@@ -518,15 +523,16 @@ class RenderMeshNumpyMixin:
             (indices[pairs['x']], indices[pairs['y']]), axis=-1
         )
 
-        # https://stackoverflow.com/questions/38277143/sort-2d-numpy-array-lexicographically
+        # https://stackoverflow.com/questions/
+        # 38277143/sort-2d-numpy-array-lexicographically
         facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
         if debug_flag:
             print("sorted pairs", time.time() - tm0)
 
-        adjacency = [
-            {f for _, f in v}
-            for k, v in itertools.groupby(facet_pairs.tolist(), key=itget0)
-        ]
+        adjacency = {
+            k: list(map(itget1, v))
+            for k, v in groupby(facet_pairs, key=itget0)
+        }
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
