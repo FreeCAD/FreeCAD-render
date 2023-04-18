@@ -513,13 +513,13 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print(f"hash table ({hashtable_size} entries)", time.time() - tm0)
 
-        # Compute pairs (unfiltered)
+        # Compute pairs
         pairs = itertools.chain.from_iterable(hashtable)
         pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
         print(len(pairs))
 
         if debug_flag:
-            print("all pairs - unfiltered", time.time() - tm0)
+            print("all pairs", time.time() - tm0)
 
         # TODO
         # # Filter same hash
@@ -529,27 +529,53 @@ class RenderMeshNumpyMixin:
         # pairs = np.compress(same_hash, pairs, axis=0)
         # print(len(pairs))
 
-        # Transpose to facet pairs
+        # Build adjacency lists
         facet_pairs = np.stack(
             (indices[pairs['x']], indices[pairs['y']]), axis=-1
         )
+        # facet_pairs = np.core.records.fromarrays(
+            # (indices[pairs['x']], indices[pairs['y']]),
+            # dtype=[("x", np.int64), ("y", np.int64)]
+        # )
+        # facet_pairs.sort(order="x")
 
+        # https://stackoverflow.com/questions/38277143/sort-2d-numpy-array-lexicographically
+        facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
         if debug_flag:
-            print("all pairs", time.time() - tm0)
+            print("sorted pairs", time.time() - tm0)
 
-        # Build adjacency lists
-        adjacency = [set() for _ in range(self.count_facets)]
-        add = set.add
-
-        def reduce_pairs(rolling, new):
-            index, value = new
-            add(rolling[index], value)
-            return rolling
-
-        adjacency = functools.reduce(reduce_pairs, facet_pairs, adjacency)
+        adjacency = [
+            {f for _, f in v}
+            for k, v in itertools.groupby(facet_pairs.tolist(), key=itget0)
+        ]
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
+
+
+
+        # TODO
+        # Transpose to facet pairs
+        # facet_pairs = np.stack(
+            # (indices[pairs['x']], indices[pairs['y']]), axis=-1
+        # )
+
+        # if debug_flag:
+            # print("all pairs", time.time() - tm0)
+
+        # Build adjacency lists
+        # adjacency = [set() for _ in range(self.count_facets)]
+        # add = set.add
+
+        # def reduce_pairs(rolling, new):
+            # index, value = new
+            # add(rolling[index], value)
+            # return rolling
+
+        # adjacency = functools.reduce(reduce_pairs, facet_pairs, adjacency)
+
+        # if debug_flag:
+            # print("adjacency", time.time() - tm0)
 
         return adjacency
 
