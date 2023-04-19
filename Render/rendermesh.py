@@ -55,7 +55,7 @@ from Render.utils import debug
 
 RenderMeshDirs = collections.namedtuple(
     "RenderMeshDirs",
-    ("export_directory", "project_directory", "relative_path"),
+    ("project_directory", "export_directory", "relative_path"),
 )
 
 
