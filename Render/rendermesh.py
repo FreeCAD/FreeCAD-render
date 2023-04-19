@@ -167,8 +167,8 @@ class RenderMeshBase:
         # Skip meshing?
         self.skip_meshing = bool(skip_meshing)
         if self.skip_meshing:
-            self.__points = []
-            self.__facets = []
+            self._points = []
+            self._facets = []
             return
 
         # Check mandatory input
@@ -178,8 +178,8 @@ class RenderMeshBase:
         self.name = name
 
         # Initialize
-        self.__vnormals = []
-        self.__uvmap = []
+        self._vnormals = []
+        self._uvmap = []
 
         # First we make a copy of the mesh, we separate mesh and
         # placement and we set the mesh at its origin (null placement)
@@ -187,14 +187,11 @@ class RenderMeshBase:
         self.__originalmesh.Placement = App.Base.Placement()
 
         # Then we store the topology in internal structures
-        points, facets = self.__originalmesh.Topology
-        self.__points = [tuple(p) for p in points]
-        self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
-        self.__areas = [f.Area for f in self.__originalmesh.Facets]
+        self._points = self._facets = self._normals = self._areas = None
+        self._setup_internals()
 
         # Sanity check
-        if not facets:
+        if not self.facets:
             return
 
         # Uvmap
@@ -209,6 +206,17 @@ class RenderMeshBase:
             debug("Object", self.name, "Autosmooth")
             self.separate_connected_components(split_angle)
             self.compute_vnormals()
+
+    def _setup_internals(self):
+        """Initialize internal variables.
+
+        (to be overriden by mixins)
+        """
+        points, facets = self.__originalmesh.Topology
+        self._points = [tuple(p) for p in points]
+        self._facets = facets
+        self._normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
+        self._areas = [f.Area for f in self.__originalmesh.Facets]
 
     def __del__(self):
         """Finalize RenderMesh.
@@ -254,70 +262,70 @@ class RenderMeshBase:
     @property
     def points(self):
         """Get a collection of the mesh points."""
-        return self.__points
+        return self._points
 
     @points.setter
     def points(self, value):
         """Set the mesh points."""
-        self.__points = value
+        self._points = value
 
     @property
     def count_points(self):
         """Get the number of points."""
-        return len(self.__points)
+        return len(self._points)
 
     @property
     def facets(self):
         """Get a collection of the mesh facets."""
-        return self.__facets
+        return self._facets
 
     @facets.setter
     def facets(self, value):
         """Set the mesh facets."""
-        self.__facets = value
+        self._facets = value
 
     @property
     def count_facets(self):
         """Get the number of facets."""
-        return len(self.__facets)
+        return len(self._facets)
 
     @property
     def uvmap(self):
         """Get the uvmap."""
-        return self.__uvmap
+        return self._uvmap
 
     @uvmap.setter
     def uvmap(self, value):
         """Set the uvmap."""
-        self.__uvmap = value
+        self._uvmap = value
 
     @property
     def normals(self):
         """Get the facet normals."""
-        return self.__normals
+        return self._normals
 
     @property
     def areas(self):
         """Get the facets areas."""
-        return self.__areas
+        return self._areas
 
     @property
     def vnormals(self):
         """Get the vertex normals."""
-        return self.__vnormals
+        return self._vnormals
 
     @vnormals.setter
     def vnormals(self, value):
         """Set the vertex normals."""
-        self.__vnormals = value
+        self._vnormals = value
 
     def has_uvmap(self):
         """Check if object has a uv map."""
-        return bool(self.__uvmap)
+        return bool(self._uvmap)
 
     def has_vnormals(self):
         """Check if object has a vertex normals."""
-        return bool(self.__vnormals)
+        return bool(self._vnormals)
 
     ##########################################################################
     #                               Write functions                          #
@@ -519,7 +527,7 @@ class RenderMeshBase:
 
         # Vertex normals
         if self.has_vnormals():
-            norms = self.__vnormals
+            norms = self.vnormals
             fmtn = functools.partial(str.format, "vn {} {} {}\n")
             norms = (fmtn(*n) for n in norms)
             norms = it.chain(["# Vertex normals\n"], norms, ["\n"])
@@ -889,8 +897,8 @@ class RenderMeshBase:
         (used in Cycles)
         """
         return [
-            self.__uvmap[vertex_index]
-            for triangle in self.__facets
+            self.uvmap[vertex_index]
+            for triangle in self.facets
             for vertex_index in triangle
         ]
 
@@ -920,10 +928,10 @@ class RenderMeshBase:
         """Compute UV map for this mesh."""
         # Warning:
         # The computation should ensure consistency on the following data:
-        # - self.__points
-        # - self.__facets
-        # - self.__normals
-        # - self.__areas
+        # - self._points
+        # - self._facets
+        # - self._normals
+        # - self._areas
         projection = "Cubic" if projection is None else projection
         tm0 = time.time()
         if projection == "Cubic":
@@ -988,11 +996,11 @@ class RenderMeshBase:
         # Replace previous values with newly computed ones
         points, facets = tuple(mesh.Topology)
         points = [tuple(p) for p in points]
-        self.__points = points
-        self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
-        self.__areas = [f.Area for f in iter(mesh.Facets)]
-        self.__uvmap = uvmap
+        self.points = points
+        self.facets = facets
+        self.normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.areas = [f.Area for f in iter(mesh.Facets)]
+        self.uvmap = uvmap
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
@@ -1041,11 +1049,11 @@ class RenderMeshBase:
 
         # Replace previous values with newly computed ones
         points, facets = tuple(mesh.Topology)
-        self.__points = [tuple(p) for p in points]
-        self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
-        self.__areas = [f.Area for f in iter(mesh.Facets)]
-        self.__uvmap = uvmap
+        self.points = [tuple(p) for p in points]
+        self.facets = facets
+        self.normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.areas = [f.Area for f in iter(mesh.Facets)]
+        self.uvmap = uvmap
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - single process version.
@@ -1084,11 +1092,11 @@ class RenderMeshBase:
         # Replace previous values with newly computed ones
         points, facets = tuple(mesh.Topology)
         points = [tuple(p) for p in points]
-        self.__points = points
-        self.__facets = facets
-        self.__normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
-        self.__areas = [f.Area for f in iter(mesh.Facets)]
-        self.__uvmap = uvmap
+        self.points = points
+        self.facets = facets
+        self.normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
+        self.areas = [f.Area for f in iter(mesh.Facets)]
+        self.uvmap = uvmap
 
     ##########################################################################
     #                       Vertex Normals manipulations                     #
@@ -1136,7 +1144,7 @@ class RenderMeshBase:
         # Normalize
         vnorms = [safe_normalize(n) for n in vnorms]
 
-        self.__vnormals = vnorms
+        self.vnormals = vnorms
 
     def _adjacent_facets(self):
         """Compute the adjacent facets for each facet of the mesh.
@@ -1153,7 +1161,7 @@ class RenderMeshBase:
         # For each point, compute facets that contain this point as a vertex
         iterator = (
             (facet_index, point_index)
-            for facet_index, facet in enumerate(self.__facets)
+            for facet_index, facet in enumerate(self.facets)
             for point_index in facet
         )
 
@@ -1165,7 +1173,7 @@ class RenderMeshBase:
         functools.reduce(fpp_reducer, iterator, None)
 
         # Compute adjacency
-        facets = [set(f) for f in self.__facets]
+        facets = [set(f) for f in self.facets]
         iterator = (
             (facet_idx, other_idx)
             for facet_idx, facet in enumerate(facets)
@@ -1206,18 +1214,18 @@ class RenderMeshBase:
                 with (integer)
             adjacents -- adjacency lists (one list per facet)
             tags -- the tags that have already been set (list, same size as
-                self.__facets)
+                self._facets)
             new_tag -- the tag to use to mark the component
             split_angle_cos -- the cos of the angle that breaks adjacency
 
         Returns:
-            A list of tags (same size as self.__facets). The elements tagged
+            A list of tags (same size as self._facets). The elements tagged
             with 'new_tag' are the computed connected component.
         """
         # Init
         split_angle_cos = float(split_angle_cos)
         dot = vector3d.dot
-        normals = self.__normals
+        normals = self.normals
 
         # Create and init stack
         stack = [starting_facet_index]
@@ -1300,8 +1308,8 @@ class RenderMeshBase:
         """
         tags = self.connected_components(split_angle)
 
-        points = self.__points
-        facets = self.__facets
+        points = self.points
+        facets = self.facets
 
         # Initialize the map
         newpoints = {
@@ -1315,16 +1323,16 @@ class RenderMeshBase:
             newpoints[point] = index
 
         # Rebuild point list
-        self.__points = [points[point_index] for point_index, tag in newpoints]
+        self.points = [points[point_index] for point_index, tag in newpoints]
 
         # If necessary, rebuild uvmap
-        if self.__uvmap:
-            self.__uvmap = [
-                self.__uvmap[point_index] for point_index, tag in newpoints
+        if self.uvmap:
+            self.uvmap = [
+                self.uvmap[point_index] for point_index, tag in newpoints
             ]
 
         # Update point indices in facets
-        self.__facets = [
+        self.facets = [
             tuple(newpoints[point_index, tag] for point_index in facet)
             for facet, tag in zip(facets, tags)
         ]
