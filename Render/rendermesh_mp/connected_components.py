@@ -215,6 +215,8 @@ def compute_adjacents_np_old(chunk):
         )
     ]
 
+bitwise_or = np.bitwise_or
+left_shift = np.left_shift
 
 def compute_hashes_np(chunk):
     """Compute hash keys for chunk
@@ -223,8 +225,8 @@ def compute_hashes_np(chunk):
     """
     # pylint: disable=global-variable-undefined
     start, stop = chunk
-    hashes = np.bitwise_or(
-        np.left_shift(ALL_EDGES_LEFT[start:stop], 32),
+    hashes = bitwise_or(
+        left_shift(ALL_EDGES_LEFT[start:stop], 32),
         ALL_EDGES_RIGHT[start:stop],
     )
     SHARED_HASHES_NP[start:stop] = hashes
@@ -238,10 +240,8 @@ groupby = itertools.groupby
 def build_pairs_np(chunk):
     start, stop = chunk
 
-    shared_hashes = np.array(SHARED_HASHES_NP, copy=False)
-    shared_hashes_indices = np.array(SHARED_HASHES_INDICES_NP, copy=False)
     hashes = np.stack(
-        (shared_hashes[start:stop], shared_hashes_indices[start:stop]),
+        (SHARED_HASHES_NP[start:stop], SHARED_HASHES_INDICES_NP[start:stop]),
         axis=-1,
     )
 
@@ -268,37 +268,30 @@ def build_pairs_np(chunk):
         curval = SHARED_CURRENT_PAIR.value
 
         length = len(facet_pairs)
-        pair_slice = SHARED_PAIRS_NP[ curval * 2 : (curval + length) * 2 ]
+        pair_slice = SHARED_PAIRS_NP[curval:(curval + length)]
 
-        if len(pair_slice) < facet_pairs.size:
-            length = len(pair_slice) // 2
+        if len(pair_slice) < len(facet_pairs):
+            length = len(pair_slice)
             print("Warning: redundancy in adjacency - truncation", length)
             facet_pairs = facet_pairs[0:length]
 
-        SHARED_PAIRS_NP[ curval * 2 : (curval + length) * 2 ] = facet_pairs.flatten()
+        SHARED_PAIRS_NP[curval:curval + length] = facet_pairs
         SHARED_CURRENT_PAIR.value = curval + length
 
+starmap = itertools.starmap
 
 def compute_adjacents_np(chunk):
     start, stop = chunk
 
-    # Prepare globals
-    global NP_READY
-    if not NP_READY:
-        global pairs
-        pairs = np.array(SHARED_PAIRS_NP, copy=False)
-        pairs.shape = [-1, 2]
-        NP_READY = True
+    pairs = SHARED_PAIRS_NP[start:stop]
 
     # Truncate to 3 adjacents...
-    adjacency = {
-        k: (list(map(itget1, v)) + [-1, -1, -1])[0:3]
-        for k, v in groupby(pairs[start:stop], key=itget0)
-    }
+    adjacency = (
+        (k, (list(map(itget1, v)) + [-1, -1, -1])[0:3])
+        for k, v in groupby(pairs, key=itget0)
+    )
 
-    # print(adjacency)
-    for key, value in adjacency.items():
-        SHARED_ADJACENCY[key * 3 :key * 3 +3] = value
+    any(starmap(set_item_adj, adjacency))
 
 
 # *****************************************************************************
@@ -475,13 +468,14 @@ def init(shared):
 
     if USE_NUMPY:
         global SHARED_HASHES_NP
-        SHARED_HASHES_NP = shared["hashes"]
+        SHARED_HASHES_NP = np.array(shared["hashes"], copy=False)
 
         global SHARED_HASHES_INDICES_NP
-        SHARED_HASHES_INDICES_NP = shared["hashes_indices"]
+        SHARED_HASHES_INDICES_NP = np.array(shared["hashes_indices"], copy=False)
 
         global SHARED_PAIRS_NP
-        SHARED_PAIRS_NP = shared["pairs"]
+        SHARED_PAIRS_NP = np.array(shared["pairs"], copy=False)
+        SHARED_PAIRS_NP.shape = [-1, 2]
 
         global SHARED_CURRENT_PAIR
         SHARED_CURRENT_PAIR = shared["current_pair"]
@@ -504,6 +498,14 @@ def init(shared):
         ALL_EDGES_RIGHT = np.concatenate(
             (facets[..., 1], facets[..., 2], facets[..., 2])
         )
+
+        global SHARED_ADJACENCY_NP
+        SHARED_ADJACENCY_NP = np.array(SHARED_ADJACENCY, copy=False)
+        SHARED_ADJACENCY_NP.shape = [-1, 3]
+
+        global set_item_adj
+        set_item_adj = functools.partial(operator.setitem, SHARED_ADJACENCY_NP)
+
 
 
 # *****************************************************************************
