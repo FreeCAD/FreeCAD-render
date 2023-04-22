@@ -348,9 +348,6 @@ def init(shared):
     global SHARED_NORMALS
     SHARED_NORMALS = shared["normals"]
 
-    global SHARED_AREAS
-    SHARED_AREAS = shared["areas"]
-
     global SHARED_SPLIT_ANGLE
     SHARED_SPLIT_ANGLE = shared["split_angle"]
 
@@ -429,7 +426,7 @@ def init(shared):
 
 
 def main(
-    python, points, facets, normals, areas, split_angle, showtime, out_tags
+    python, points, facets, normals, split_angle, showtime, out_tags
 ):
     """Entry point for __main__.
 
@@ -504,7 +501,6 @@ def main(
             "points": points,
             "facets": facets,
             "normals": normals,
-            "areas": areas,
             "split_angle": split_angle,
             # max 3 adjacents/facet
             "adjacency": ctx.RawArray("l", count_facets * 3),
@@ -620,7 +616,7 @@ def main(
 if __name__ == "__main__":
     # pylint: disable=used-before-assignment
     main(
-        PYTHON, POINTS, FACETS, NORMALS, AREAS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS
+        PYTHON, POINTS, FACETS, NORMALS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS
     )
 
     # Clean (remove references to foreign objects)
@@ -628,7 +624,6 @@ if __name__ == "__main__":
     POINTS = None
     FACETS = None
     NORMALS = None
-    AREAS = None
     SPLIT_ANGLE = None
     SHOWTIME = None
     OUT_TAGS = None
