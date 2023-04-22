@@ -229,6 +229,11 @@ def compute_hashes_np(chunk):
     )
     SHARED_HASHES_NP[start:stop] = hashes
 
+itget0 = operator.itemgetter(0)
+itget1 = operator.itemgetter(1)
+permutations = itertools.permutations
+groupby = itertools.groupby
+
 
 def build_pairs_np(chunk):
     start, stop = chunk
@@ -241,10 +246,6 @@ def build_pairs_np(chunk):
     )
 
     # Compute hashtable
-    itget0 = operator.itemgetter(0)
-    itget1 = operator.itemgetter(1)
-    permutations = itertools.permutations
-    groupby = itertools.groupby
     hashtable = (
         permutations(map(itget1, v), 2)
         for v in map(itget1, groupby(hashes, key=itget0))
@@ -255,7 +256,6 @@ def build_pairs_np(chunk):
     pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
     # Build adjacency lists
-    # TODO
     facet_pairs = np.stack(
         (INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1
     )
@@ -287,12 +287,8 @@ def compute_adjacents_np(chunk):
     if not NP_READY:
         global pairs
         pairs = np.array(SHARED_PAIRS_NP, copy=False)
-        pairs.shape = [len(pairs) // 2, 2]
+        pairs.shape = [-1, 2]
         NP_READY = True
-
-    itget0 = operator.itemgetter(0)
-    itget1 = operator.itemgetter(1)
-    groupby = itertools.groupby
 
     # Truncate to 3 adjacents...
     adjacency = {
