@@ -219,6 +219,7 @@ bitwise_or = np.bitwise_or
 left_shift = np.left_shift
 
 def compute_hashes_np(chunk):
+
     """Compute hash keys for chunk
 
     Numpy version
@@ -260,8 +261,14 @@ def build_pairs_np(chunk):
         (INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1
     )
 
-    # TODO Filter angle
-
+    # Filter angle
+    split_angle_cos = cos(SHARED_SPLIT_ANGLE.value)
+    dotprod = np.einsum(
+        "ij,ij->i",
+        SHARED_NORMALS_NP[facet_pairs[...,0]],
+        SHARED_NORMALS_NP[facet_pairs[...,1]]
+    )
+    facet_pairs = np.compress(dotprod >= split_angle_cos, facet_pairs, axis=0)
 
     # Write pairs
     with SHARED_CURRENT_PAIR:
@@ -506,7 +513,9 @@ def init(shared):
         global set_item_adj
         set_item_adj = functools.partial(operator.setitem, SHARED_ADJACENCY_NP)
 
-
+        global SHARED_NORMALS_NP
+        SHARED_NORMALS_NP = np.array(SHARED_NORMALS, copy=False)
+        SHARED_NORMALS_NP.shape = [-1, 3]
 
 # *****************************************************************************
 
