@@ -495,6 +495,8 @@ class RenderMeshNumpyMixin:
             np.left_shift(all_edges_left, 32),
             all_edges_right,
         )
+
+        # Sort hashes
         hashes_indices = np.argsort(hashes)
         hashes = hashes[hashes_indices]
         hashes = np.stack((hashes, hashes_indices), axis=-1)
@@ -516,7 +518,7 @@ class RenderMeshNumpyMixin:
         pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
 
         if debug_flag:
-            print("all pairs", time.time() - tm0)
+            print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
         facet_pairs = np.stack(

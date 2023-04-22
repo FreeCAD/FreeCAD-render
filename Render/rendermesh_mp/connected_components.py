@@ -26,6 +26,7 @@ import sys
 import os
 import functools
 import itertools
+import operator
 import struct
 import gc
 from math import cos
@@ -106,7 +107,6 @@ def compute_adjacents(chunk):
         >= split_angle_cos
     )
 
-
     add = list.append
     any(
         itertools.starmap(add, iterator)
@@ -121,10 +121,11 @@ def compute_adjacents(chunk):
     ]
 
 
-def compute_adjacents_np(chunk):
+def compute_adjacents_np_old(chunk):
     """Compute adjacency lists for a chunk of facets.
 
-    Numpy version"""
+    Numpy version
+    """
     # pylint: disable=global-variable-undefined
     start, stop = chunk
     count_facets = len(SHARED_FACETS) // 3
@@ -213,6 +214,95 @@ def compute_adjacents_np(chunk):
             itertools.chain(set(adj), (-1, -1, -1)), 0, 3
         )
     ]
+
+
+def compute_hashes_np(chunk):
+    """Compute hash keys for chunk
+
+    Numpy version
+    """
+    # pylint: disable=global-variable-undefined
+    start, stop = chunk
+    hashes = np.bitwise_or(
+        np.left_shift(ALL_EDGES_LEFT[start:stop], 32),
+        ALL_EDGES_RIGHT[start:stop],
+    )
+    SHARED_HASHES_NP[start:stop] = hashes
+
+
+def build_pairs_np(chunk):
+    start, stop = chunk
+
+    shared_hashes = np.array(SHARED_HASHES_NP, copy=False)
+    shared_hashes_indices = np.array(SHARED_HASHES_INDICES_NP, copy=False)
+    hashes = np.stack(
+        (shared_hashes[start:stop], shared_hashes_indices[start:stop]),
+        axis=-1,
+    )
+
+    # Compute hashtable
+    itget0 = operator.itemgetter(0)
+    itget1 = operator.itemgetter(1)
+    permutations = itertools.permutations
+    groupby = itertools.groupby
+    hashtable = (
+        permutations(map(itget1, v), 2)
+        for v in map(itget1, groupby(hashes, key=itget0))
+    )
+
+    # Compute pairs
+    pairs = itertools.chain.from_iterable(hashtable)
+    pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
+
+    # Build adjacency lists
+    # TODO
+    facet_pairs = np.stack(
+        (INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1
+    )
+
+    # TODO Filter angle
+
+
+    # Write pairs
+    with SHARED_CURRENT_PAIR:
+        curval = SHARED_CURRENT_PAIR.value
+
+        length = len(facet_pairs)
+        pair_slice = SHARED_PAIRS_NP[ curval * 2 : (curval + length) * 2 ]
+
+        if len(pair_slice) < facet_pairs.size:
+            length = len(pair_slice) // 2
+            print("Warning: redundancy in adjacency - truncation", length)
+            facet_pairs = facet_pairs[0:length]
+
+        SHARED_PAIRS_NP[ curval * 2 : (curval + length) * 2 ] = facet_pairs.flatten()
+        SHARED_CURRENT_PAIR.value = curval + length
+
+
+def compute_adjacents_np(chunk):
+    start, stop = chunk
+
+    # Prepare globals
+    global NP_READY
+    if not NP_READY:
+        global pairs
+        pairs = np.array(SHARED_PAIRS_NP, copy=False)
+        pairs.shape = [len(pairs) // 2, 2]
+        NP_READY = True
+
+    itget0 = operator.itemgetter(0)
+    itget1 = operator.itemgetter(1)
+    groupby = itertools.groupby
+
+    # Truncate to 3 adjacents...
+    adjacency = {
+        k: (list(map(itget1, v)) + [-1, -1, -1])[0:3]
+        for k, v in groupby(pairs[start:stop], key=itget0)
+    }
+
+    # print(adjacency)
+    for key, value in adjacency.items():
+        SHARED_ADJACENCY[key * 3 :key * 3 +3] = value
 
 
 # *****************************************************************************
@@ -387,6 +477,38 @@ def init(shared):
     global SHARED_CURRENT_ADJ
     SHARED_CURRENT_ADJ = shared["current_adj"]
 
+    if USE_NUMPY:
+        global SHARED_HASHES_NP
+        SHARED_HASHES_NP = shared["hashes"]
+
+        global SHARED_HASHES_INDICES_NP
+        SHARED_HASHES_INDICES_NP = shared["hashes_indices"]
+
+        global SHARED_PAIRS_NP
+        SHARED_PAIRS_NP = shared["pairs"]
+
+        global SHARED_CURRENT_PAIR
+        SHARED_CURRENT_PAIR = shared["current_pair"]
+
+        count_facets = len(SHARED_FACETS) // 3
+
+        facets = np.array(SHARED_FACETS)
+        facets.shape = [count_facets, 3]
+        facets.sort(axis=1)
+
+        global INDICES_NP
+        INDICES_NP = np.arange(len(facets))
+        INDICES_NP = np.tile(INDICES_NP, 3)
+
+        global ALL_EDGES_LEFT
+        ALL_EDGES_LEFT = np.concatenate(
+            (facets[..., 0], facets[..., 0], facets[..., 1])
+        )
+        global ALL_EDGES_RIGHT
+        ALL_EDGES_RIGHT = np.concatenate(
+            (facets[..., 1], facets[..., 2], facets[..., 2])
+        )
+
 
 # *****************************************************************************
 
@@ -404,6 +526,7 @@ def main(
     # pylint: disable=too-many-locals
     import multiprocessing as mp
     import time
+    from numpy.lib import recfunctions as rfn
 
     tm0 = time.time()
     if showtime:
@@ -425,6 +548,23 @@ def main(
             for i in range(0, length, chunk_size)
         )
 
+    def make_chunks_aligned(chunk_size, length, values):
+
+        def align(index):
+            if index == 0 or index >= len(values):
+                return index
+            eq_start = functools.partial(operator.eq, values[index][0])
+            iterator = itertools.dropwhile(
+                lambda x: eq_start(x[1][0]),
+                enumerate(values[index:], index)
+            )
+            return next(iterator)[0]
+        return (
+            (align(start), align(stop))
+            for start, stop in make_chunks(chunk_size, length)
+        )
+
+
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
         for _ in imap:
@@ -445,6 +585,8 @@ def main(
     chunk_size = 20000
     nproc = os.cpu_count()
 
+    count_facets = len(facets) // 3
+
     try:
         shared = {
             "points": points,
@@ -453,25 +595,66 @@ def main(
             "areas": areas,
             "split_angle": split_angle,
             # max 3 adjacents/facet
-            "adjacency": ctx.RawArray("l", len(facets)),
-            "adjacency2": ctx.RawArray("l", len(facets) * 2),  # 2nd pass
+            "adjacency": ctx.RawArray("l", count_facets * 3),
+            "adjacency2": ctx.RawArray("l", count_facets * 3 * 2),  # 2nd pass
             "tags": out_tags,
             "current_tag": ctx.Value("l", 0),
             "current_adj": ctx.Value("l", 0),
         }
+        if USE_NUMPY:
+            shared["hashes"] = ctx.RawArray("l", count_facets * 3)
+            shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
+            shared["pairs"] = ctx.RawArray(
+                "l", int(count_facets * 1.2) * 3 * 2
+            )
+            shared["current_pair"] = ctx.Value("l", 0)
+
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
             # Compute adjacency
-            chunks = make_chunks(chunk_size, len(facets) // 3)
-            if USE_NUMPY and len(points) // 3 < 500000:
-                func, tickmsg = compute_adjacents_np, "adjacency (mp/np)"
-            else:
-                func, tickmsg = compute_adjacents, "adjacency"
-            run_unordered(pool, func, chunks)
+            if USE_NUMPY:
+                count_edges = count_facets * 3
+                chunks = make_chunks(chunk_size, count_edges)
+                run_unordered(pool, compute_hashes_np, chunks)
+                tick("hashes (mp/np)")
 
-            tick(tickmsg)
+                # Sort hashes
+                hashes = np.array(shared["hashes"])
+                hashes_indices = np.argsort(hashes)
+                hashes = hashes[hashes_indices]
+                shared["hashes"][:] = hashes
+                shared["hashes_indices"][:] = hashes_indices
+                tick("sorted hashes (mp/np)")
+
+                # Build pairs
+                chunks = make_chunks(chunk_size, count_edges)
+                run_unordered(pool, build_pairs_np, chunks)
+                current_pair = shared["current_pair"].value
+                tick(f"pairs ({current_pair}) (mp/np)")
+
+                # Sort pairs
+                facet_pairs = np.array(shared["pairs"], copy=False)
+                facet_pairs = np.core.records.array(
+                    facet_pairs,
+                    dtype=[("x", np.int64), ("y", np.int64)],
+                )
+                facet_pairs = np.resize(facet_pairs, (current_pair,))
+                facet_pairs.sort()
+                flat_pairs = rfn.structured_to_unstructured(facet_pairs).flatten()
+                shared["pairs"][:current_pair * 2] = flat_pairs
+                tick("sorted pairs (mp/np)")
+
+                # Compute adjacency
+                chunks = make_chunks_aligned(chunk_size, len(facet_pairs), facet_pairs)
+                run_unordered(pool, compute_adjacents_np, chunks)
+                tick("adjacency (mp/np)")
+            else:
+                chunks = make_chunks(chunk_size, count_facets)
+                func, tickmsg = compute_adjacents, "adjacency"
+                run_unordered(pool, func, chunks)
+                tick(tickmsg)
 
             # Compute connected components
             chunks = make_chunks(len(facets) // nproc, len(facets) // 3)
@@ -492,8 +675,9 @@ def main(
             # Update adjacents
             l2struct = struct.Struct("ll")
 
+            not_zero = functools.partial(operator.ne, (0, 0))
             iterator = itertools.takewhile(
-                lambda x: x != (0, 0),
+                not_zero,
                 l2struct.iter_unpack(shared["adjacency2"]),
             )
             iterator = ((tag, tags[ifacet]) for tag, ifacet in iterator)
