@@ -635,15 +635,11 @@ def main(
                 tick(f"pairs ({current_pair}) (mp/np)")
 
                 # Sort pairs
-                facet_pairs = np.array(shared["pairs"], copy=False)
-                facet_pairs = np.core.records.array(
-                    facet_pairs,
-                    dtype=[("x", np.int64), ("y", np.int64)],
-                )
-                facet_pairs = np.resize(facet_pairs, (current_pair,))
-                facet_pairs.sort()
-                flat_pairs = rfn.structured_to_unstructured(facet_pairs).flatten()
-                shared["pairs"][:current_pair * 2] = flat_pairs
+                facet_pairs = np.array(shared["pairs"])
+                facet_pairs.reshape(-1, 2)
+                facet_pairs.resize((current_pair, 2))
+                facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
+                shared["pairs"][:current_pair * 2] = facet_pairs.flatten()
                 tick("sorted pairs (mp/np)")
 
                 # Compute adjacency
