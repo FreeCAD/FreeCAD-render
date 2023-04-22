@@ -31,8 +31,12 @@ import struct
 import gc
 from math import cos
 
+from itertools import permutations, groupby, starmap
+
+
 try:
     import numpy as np
+    from numpy import bitwise_or, left_shift
 
     USE_NUMPY = True
 except ModuleNotFoundError:
@@ -215,16 +219,13 @@ def compute_adjacents_np_old(chunk):
         )
     ]
 
-bitwise_or = np.bitwise_or
-left_shift = np.left_shift
+
 
 def compute_hashes_np(chunk):
-
     """Compute hash keys for chunk
 
     Numpy version
     """
-    # pylint: disable=global-variable-undefined
     start, stop = chunk
     hashes = bitwise_or(
         left_shift(ALL_EDGES_LEFT[start:stop], 32),
@@ -232,13 +233,13 @@ def compute_hashes_np(chunk):
     )
     SHARED_HASHES_NP[start:stop] = hashes
 
+
 itget0 = operator.itemgetter(0)
 itget1 = operator.itemgetter(1)
-permutations = itertools.permutations
-groupby = itertools.groupby
 
 
 def build_pairs_np(chunk):
+    """Build adjacent pairs, numpy-aided."""
     start, stop = chunk
 
     hashes = np.stack(
@@ -265,8 +266,8 @@ def build_pairs_np(chunk):
     split_angle_cos = cos(SHARED_SPLIT_ANGLE.value)
     dotprod = np.einsum(
         "ij,ij->i",
-        SHARED_NORMALS_NP[facet_pairs[...,0]],
-        SHARED_NORMALS_NP[facet_pairs[...,1]]
+        SHARED_NORMALS_NP[facet_pairs[..., 0]],
+        SHARED_NORMALS_NP[facet_pairs[..., 1]],
     )
     facet_pairs = np.compress(dotprod >= split_angle_cos, facet_pairs, axis=0)
 
@@ -275,19 +276,19 @@ def build_pairs_np(chunk):
         curval = SHARED_CURRENT_PAIR.value
 
         length = len(facet_pairs)
-        pair_slice = SHARED_PAIRS_NP[curval:(curval + length)]
+        pair_slice = SHARED_PAIRS_NP[curval : (curval + length)]
 
         if len(pair_slice) < len(facet_pairs):
             length = len(pair_slice)
             print("Warning: redundancy in adjacency - truncation", length)
             facet_pairs = facet_pairs[0:length]
 
-        SHARED_PAIRS_NP[curval:curval + length] = facet_pairs
+        SHARED_PAIRS_NP[curval : curval + length] = facet_pairs
         SHARED_CURRENT_PAIR.value = curval + length
 
-starmap = itertools.starmap
 
 def compute_adjacents_np(chunk):
+    """Compute adjacency lists - numpy version."""
     start, stop = chunk
 
     pairs = SHARED_PAIRS_NP[start:stop]
@@ -478,7 +479,9 @@ def init(shared):
         SHARED_HASHES_NP = np.array(shared["hashes"], copy=False)
 
         global SHARED_HASHES_INDICES_NP
-        SHARED_HASHES_INDICES_NP = np.array(shared["hashes_indices"], copy=False)
+        SHARED_HASHES_INDICES_NP = np.array(
+            shared["hashes_indices"], copy=False
+        )
 
         global SHARED_PAIRS_NP
         SHARED_PAIRS_NP = np.array(shared["pairs"], copy=False)
@@ -517,6 +520,7 @@ def init(shared):
         SHARED_NORMALS_NP = np.array(SHARED_NORMALS, copy=False)
         SHARED_NORMALS_NP.shape = [-1, 3]
 
+
 # *****************************************************************************
 
 
@@ -533,7 +537,6 @@ def main(
     # pylint: disable=too-many-locals
     import multiprocessing as mp
     import time
-    from numpy.lib import recfunctions as rfn
 
     tm0 = time.time()
     if showtime:
@@ -556,21 +559,19 @@ def main(
         )
 
     def make_chunks_aligned(chunk_size, length, values):
-
         def align(index):
             if index == 0 or index >= len(values):
                 return index
             eq_start = functools.partial(operator.eq, values[index][0])
             iterator = itertools.dropwhile(
-                lambda x: eq_start(x[1][0]),
-                enumerate(values[index:], index)
+                lambda x: eq_start(x[1][0]), enumerate(values[index:], index)
             )
             return next(iterator)[0]
+
         return (
             (align(start), align(stop))
             for start, stop in make_chunks(chunk_size, length)
         )
-
 
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
@@ -646,11 +647,13 @@ def main(
                 facet_pairs.reshape(-1, 2)
                 facet_pairs.resize((current_pair, 2))
                 facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
-                shared["pairs"][:current_pair * 2] = facet_pairs.flatten()
+                shared["pairs"][: current_pair * 2] = facet_pairs.flatten()
                 tick("sorted pairs (mp/np)")
 
                 # Compute adjacency
-                chunks = make_chunks_aligned(chunk_size, len(facet_pairs), facet_pairs)
+                chunks = make_chunks_aligned(
+                    chunk_size, len(facet_pairs), facet_pairs
+                )
                 run_unordered(pool, compute_adjacents_np, chunks)
                 tick("adjacency (mp/np)")
             else:
