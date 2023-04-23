@@ -414,11 +414,11 @@ def init(shared):
     if USE_NUMPY:
         global SHARED_NORMALS_NP
         SHARED_NORMALS_NP = np.ctypeslib.as_array(SHARED_NORMALS)
-        SHARED_NORMALS_NP.shape = (len(SHARED_NORMALS) // 3, 3)
+        SHARED_NORMALS_NP.shape = (-1, 3)
 
         global SHARED_FACETS_NP
         SHARED_FACETS_NP = np.ctypeslib.as_array(SHARED_FACETS)
-        SHARED_FACETS_NP.shape = (len(SHARED_FACETS) // 3, 3)
+        SHARED_FACETS_NP.shape = (-1, 3)
 
         global SHARED_AREAS_NP
         SHARED_AREAS_NP = np.ctypeslib.as_array(SHARED_AREAS)
@@ -524,14 +524,16 @@ def main(
     chunk_size = 20000
     nproc = os.cpu_count()
 
+    count_facets = len(facets) // 3
+
     try:
         gc.disable()
         # Compute facets colors and center of gravity
         shared = {
-            "points": ctx.RawArray("f", SharedWrapper(points, 3)),
-            "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
-            "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
-            "areas": ctx.RawArray("f", areas),
+            "points": points,
+            "facets": facets,
+            "normals": normals,
+            "areas": areas,
             "cog": ctx.RawArray("f", 3),
             "facet_colors": ctx.RawArray("B", len(facets)),
             "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
@@ -541,7 +543,7 @@ def main(
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
-            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(chunk_size, count_facets)
             data = pool.imap_unordered(colorize, chunks)
 
             centroids, area_sums = zip(*data)
@@ -554,11 +556,9 @@ def main(
             tick("colorize")
 
             # Update points
-            colored_points = {
-                (ipoint, color)
-                for facet, color in zip(facets, shared["facet_colors"])
-                for ipoint in facet
-            }
+            fcol = shared["facet_colors"]
+            tiled_fcol = itertools.chain.from_iterable(zip(fcol, fcol, fcol))
+            colored_points = set(zip(facets, tiled_fcol))
             colored_points_len = len(colored_points)
             tick(f"new points ({colored_points_len} pts)")
 
@@ -568,7 +568,7 @@ def main(
             shared["colored_points_len"].value = len(wrapper)
 
             # Update facets
-            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(chunk_size, count_facets)
             run_unordered(pool, update_facets, chunks)
             out_facets[::] = shared["facets"]
             tick("update facets")
@@ -581,7 +581,7 @@ def main(
 
             # Recompute point list
             newpoints = [
-                coord for i, _ in colored_points for coord in points[i]
+                coord for i, _ in colored_points for coord in points[3 * i : 3 * i + 3]
             ]
             out_points[: colored_points_len * 3] = newpoints
             tick("new point list")

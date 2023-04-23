@@ -89,16 +89,20 @@ class RenderMeshMultiprocessingMixin:
         # Init script globals
         init_globals = {
             "PYTHON": self.python,
-            "POINTS": self.points,
-            "FACETS": self.facets,
-            "NORMALS": self.normals,
-            "AREAS": self.areas,
+            "POINTS": mp.RawArray("f", self.count_points * 3),
+            "FACETS": mp.RawArray("l", self.count_facets * 3),
+            "NORMALS": mp.RawArray("f", self.count_facets * 3),
+            "AREAS": mp.RawArray("f", self.count_facets),
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_POINTS": points_buf,
             "OUT_FACETS": facets_buf,
             "OUT_UVMAP": uvmap_buf,
             "OUT_POINT_COUNT": point_count,
         }
+        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
+        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
+        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
+        init_globals["AREAS"][:] = self.areas
 
         # Run script
         self._run_path_in_process(path, init_globals)
