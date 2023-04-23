@@ -36,24 +36,15 @@ from collections import namedtuple
 import concurrent.futures
 import time
 import tracemalloc
+import traceback
 
 import cProfile
 import pstats
 import io
 from pstats import SortKey
 
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
-from PySide.QtGui import QFileDialog, QMessageBox
-from PySide.QtCore import QT_TRANSLATE_NOOP
+from PySide.QtGui import QFileDialog, QMessageBox, QApplication
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
 import FreeCAD as App
 import FreeCADGui as Gui
 
@@ -825,14 +816,25 @@ def _get_objstrings_helper(get_rdr_string, views):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
-    time0 = time.time()
+    try:
+        if App.GuiUp:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        objstrings = executor.map(get_rdr_string, views)
+        App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
+        time0 = time.time()
 
-    App.Console.PrintMessage(
-        f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
-    )
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            objstrings = executor.map(get_rdr_string, views)
+
+        App.Console.PrintMessage(
+            f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
+        )
+    except Exception as exc:
+        App.Console.PrintError("[Render][Objstrings] /!\ EXPORT ERROR /!\\\n")
+        objstrings = []
+        traceback.print_exception(exc)
+    finally:
+        if App.GuiUp:
+            QApplication.restoreOverrideCursor()
 
     return objstrings

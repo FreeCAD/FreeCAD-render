@@ -172,13 +172,16 @@ class RenderMeshMultiprocessingMixin:
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            tm0 = time.time()
+
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
 
         # Init output buffer
         tags_buf = mp.RawArray("l", self.count_facets)
 
-        tm0 = time.time()
 
         # Init script globals
         init_globals = {
@@ -194,7 +197,8 @@ class RenderMeshMultiprocessingMixin:
         init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
         init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
 
-        print("init connected", time.time() - tm0)
+        if debug_flag:
+            print("init connected", time.time() - tm0)
 
         # Run script
         self._run_path_in_process(path, init_globals)
