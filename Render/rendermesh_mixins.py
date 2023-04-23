@@ -30,9 +30,13 @@ import multiprocessing as mp
 import shutil
 import os
 import time
+import itertools
+import functools
+import operator
 
 try:
     import numpy as np
+    from numpy.lib import recfunctions as rfn
 except ModuleNotFoundError:
     pass
 
@@ -85,16 +89,20 @@ class RenderMeshMultiprocessingMixin:
         # Init script globals
         init_globals = {
             "PYTHON": self.python,
-            "POINTS": self.points,
-            "FACETS": self.facets,
-            "NORMALS": self.normals,
-            "AREAS": self.areas,
+            "POINTS": mp.RawArray("f", self.count_points * 3),
+            "FACETS": mp.RawArray("l", self.count_facets * 3),
+            "NORMALS": mp.RawArray("f", self.count_facets * 3),
+            "AREAS": mp.RawArray("f", self.count_facets),
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_POINTS": points_buf,
             "OUT_FACETS": facets_buf,
             "OUT_UVMAP": uvmap_buf,
             "OUT_POINT_COUNT": point_count,
         }
+        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
+        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
+        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
+        init_globals["AREAS"][:] = self.areas
 
         # Run script
         self._run_path_in_process(path, init_globals)
@@ -125,14 +133,18 @@ class RenderMeshMultiprocessingMixin:
 
         # Init script globals
         init_globals = {
-            "POINTS": mp.RawArray("f", SharedWrapper(self.points, 3)),
-            "FACETS": mp.RawArray("l", SharedWrapper(self.facets, 3)),
-            "NORMALS": mp.RawArray("f", SharedWrapper(self.normals, 3)),
-            "AREAS": mp.RawArray("f", self.areas),
+            "POINTS": mp.RawArray("f", self.count_points * 3),
+            "FACETS": mp.RawArray("l", self.count_facets * 3),
+            "NORMALS": mp.RawArray("f", self.count_facets * 3),
+            "AREAS": mp.RawArray("f", self.count_facets),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_VNORMALS": vnormals_buf,
         }
+        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
+        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
+        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
+        init_globals["AREAS"][:] = self.areas
 
         # Run script
         self._run_path_in_process(path, init_globals)
@@ -160,23 +172,33 @@ class RenderMeshMultiprocessingMixin:
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            tm0 = time.time()
+
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
 
         # Init output buffer
         tags_buf = mp.RawArray("l", self.count_facets)
 
+
         # Init script globals
         init_globals = {
-            "POINTS": mp.RawArray("f", SharedWrapper(self.points, 3)),
-            "FACETS": mp.RawArray("l", SharedWrapper(self.facets, 3)),
-            "NORMALS": mp.RawArray("f", SharedWrapper(self.normals, 3)),
-            "AREAS": mp.RawArray("f", self.areas),
+            "POINTS": mp.RawArray("f", self.count_points * 3),
+            "FACETS": mp.RawArray("l", self.count_facets * 3),
+            "NORMALS": mp.RawArray("f", self.count_facets * 3),
             "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_TAGS": tags_buf,
         }
+        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
+        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
+        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
+
+        if debug_flag:
+            print("init connected", time.time() - tm0)
 
         # Run script
         self._run_path_in_process(path, init_globals)
@@ -285,6 +307,8 @@ class RenderMeshMultiprocessingMixin:
 
 class RenderMeshNumpyMixin:
     """A mixin class to add Numpy use capabilities to RenderMesh."""
+
+    # pylint: disable=too-few-public-methods
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - numpy version."""
@@ -472,63 +496,63 @@ class RenderMeshNumpyMixin:
         # Compute edges (assume triangles)
         facets = np.asarray(self.facets)
         facets.sort(axis=1)
+        if debug_flag:
+            print(f"hashes", time.time() - tm0)
 
         indices = np.arange(len(facets))
         indices = np.tile(indices, 3)
 
-        edges = np.concatenate(
-            (
-                np.rec.fromarrays((facets[..., 0], facets[..., 1])),
-                np.rec.fromarrays((facets[..., 0], facets[..., 2])),
-                np.rec.fromarrays((facets[..., 1], facets[..., 2])),
-            )
+        all_edges_left = np.concatenate(
+            (facets[..., 0], facets[..., 0], facets[..., 1])
+        )
+        all_edges_right = np.concatenate(
+            (facets[..., 1], facets[..., 2], facets[..., 2])
         )
 
-        if debug_flag:
-            print("edges", time.time() - tm0)
-
-        argsort_edges = edges.argsort()
-        sorted_facet_indices = indices[argsort_edges]
-        sorted_edges = edges[argsort_edges]
-
-        if debug_flag:
-            print("edges sorted", time.time() - tm0)
-
-        # Searches
-        unique_edges, unique_indices, unique_counts = np.unique(
-            sorted_edges, return_index=True, return_counts=True
+        hashes = np.bitwise_or(
+            np.left_shift(all_edges_left, 32),
+            all_edges_right,
         )
-        unique_indices_left = np.searchsorted(unique_edges, edges, side="left")
-        indices_left = unique_indices[unique_indices_left]
-        indices_count = unique_counts[unique_indices_left]
-        indices_right = indices_left + indices_count - 1
-        maxindices = np.max(indices_count)
-        if maxindices > 2:  # We assume only 2 neighbours per edge
-            msg = (
-                "Warning - More than 2 neighbours per edge "
-                f"(found {maxindices})"
-                " - Truncation may occur"
-            )
-            warn("Object", self.name, msg)
-        indices_left = sorted_facet_indices[indices_left]
-        indices_right = sorted_facet_indices[indices_right]
 
-        pairs_left = np.rec.fromarrays((indices, indices_left), names="x,y")
-        condition_left = np.not_equal(pairs_left.x, pairs_left.y)
-        pairs_left = np.compress(condition_left, pairs_left)
+        # Sort hashes
+        hashes_indices = np.argsort(hashes)
+        hashes = hashes[hashes_indices]
+        hashes = np.stack((hashes, hashes_indices), axis=-1)
+        if debug_flag:
+            print(f"hashes", time.time() - tm0)
 
-        pairs_right = np.rec.fromarrays((indices, indices_right), names="x,y")
-        condition_right = np.not_equal(pairs_right.x, pairs_right.y)
-        pairs_right = np.compress(condition_right, pairs_right)
+
+        # Compute hashtable
+        itget0 = operator.itemgetter(0)
+        itget1 = operator.itemgetter(1)
+        permutations = itertools.permutations
+        groupby = itertools.groupby
+        hashtable = (
+            permutations(map(itget1, v), 2)
+            for v in map(itget1, groupby(hashes, key=itget0))
+        )
+        # Compute pairs
+        pairs = itertools.chain.from_iterable(hashtable)
+        pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
 
         if debug_flag:
-            print("searches", time.time() - tm0)
+            print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
-        adjacency = [set() for _ in range(self.count_facets)]
+        facet_pairs = np.stack(
+            (indices[pairs['x']], indices[pairs['y']]), axis=-1
+        )
 
-        for index, value in np.concatenate((pairs_left, pairs_right)):
-            adjacency[index].add(value)
+        # https://stackoverflow.com/questions/
+        # 38277143/sort-2d-numpy-array-lexicographically
+        facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
+        if debug_flag:
+            print("sorted pairs", time.time() - tm0)
+
+        adjacency = {
+            k: list(map(itget1, v))
+            for k, v in groupby(facet_pairs, key=itget0)
+        }
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
@@ -573,3 +597,42 @@ def _find_python():
         return python
 
     return None
+
+
+# Sieve of Eratosthenes
+# Code by David Eppstein, UC Irvine, 28 Feb 2002
+# http://code.activestate.com/recipes/117119/
+
+
+def gen_primes():
+    """Generate an infinite sequence of prime numbers."""
+    # Maps composites to primes witnessing their compositeness.
+    # This is memory efficient, as the sieve is not "run forward"
+    # indefinitely, but only as long as required by the current
+    # number being tested.
+    #
+    D = {}
+
+    # The running integer that's checked for primeness
+    q = 2
+
+    while True:
+        if q not in D:
+            # q is a new prime.
+            # Yield it and mark its first multiple that isn't
+            # already marked in previous iterations
+            #
+            yield q
+            D[q * q] = [q]
+        else:
+            # q is composite. D[q] is the list of primes that
+            # divide it. Since we've reached q, we no longer
+            # need it in the map, but we'll mark the next
+            # multiples of its witnesses to prepare for larger
+            # numbers
+            #
+            for p in D[q]:
+                D.setdefault(p + q, []).append(p)
+            del D[q]
+
+        q += 1

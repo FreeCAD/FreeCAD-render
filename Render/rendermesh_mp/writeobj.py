@@ -28,6 +28,7 @@ It is a helper for Rendermesh._write_objfile_mp.
 import multiprocessing as mp
 import functools
 
+
 # Init
 def init(*args):
     """Initialize pool."""
@@ -76,7 +77,6 @@ def func_s(val):
 if __name__ == "__main__":
     import os
     import sys
-    import shutil
     import itertools
 
     # Get variables
@@ -95,6 +95,11 @@ if __name__ == "__main__":
         objfile
     except NameError:
         objfile = "tmp.obj"  # pylint: disable=invalid-name
+
+    try:
+        python
+    except NameError:
+        python = None  # pylint: disable=invalid-name
 
     assert python, "No Python executable provided."
 

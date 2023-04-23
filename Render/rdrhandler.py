@@ -51,7 +51,7 @@ import FreeCAD as App
 import MeshPart
 import Mesh
 
-from Render.utils import translate, debug, getproxyattr
+from Render.utils import translate, debug, message, getproxyattr
 from Render.constants import PARAMS
 from Render.rendermesh import create_rendermesh
 from Render import renderables
@@ -297,6 +297,7 @@ class RendererHandler:
         # Alias parameters
         source = view.Source
         name = str(source.Name)
+        msg = translate("Render", "Exporting")
 
         # Render Workbench objects
         try:
@@ -308,6 +309,7 @@ class RendererHandler:
         except AttributeError:
             pass
         else:
+            message("Objstrings", name, msg)
             return method(self, name, view)
 
         # ArchTexture PointLight (or everything that looks like)
@@ -322,9 +324,11 @@ class RendererHandler:
         except (AttributeError, TypeError):
             pass
         else:
+            message("Objstrings", name, msg)
             return RendererHandler._render_pointlight(self, name, view)
 
         # Fallback/default: render it as an 'object'
+        message("Objstrings", name, msg)
         return RendererHandler._render_object(self, name, view)
 
     def get_camsource_string(self, camsource, project):

@@ -109,10 +109,11 @@ def _intersect_unitcube_face(direction):
 
 
 def colorize(chunk):
+    """Attribute color to facets in chunk."""
     if USE_NUMPY:
         return colorize_np(chunk)
-    else:
-        return colorize_std(chunk)
+
+    return colorize_std(chunk)
 
 
 def colorize_std(chunk):
@@ -153,18 +154,15 @@ def colorize_std(chunk):
     centroid = add_n(*barys)
     area = sum(areas)
 
-    # TODO Use slicing?
-    for ifacet, color in zip(range(start, stop), colors):
-        SHARED_FACET_COLORS[ifacet] = color
+    SHARED_FACET_COLORS[start:stop] = list(colors)
 
     return centroid, area
 
 
 def colorize_np(chunk):
+    """Attribute color to facets in chunk - numpy version."""
     # Set common parameters
     start, stop = chunk
-
-    count_facets = len(SHARED_FACETS) // 3
 
     normals = SHARED_NORMALS_NP[start:stop,]
 
@@ -213,6 +211,7 @@ def update_facets(chunk):
     start, stop = chunk
 
     # Point map
+    # pylint: disable=global-variable-undefined
     global SHARED_POINT_MAP
     if SHARED_POINT_MAP is None:
         length = SHARED_COLORED_POINTS_LEN.value
@@ -228,7 +227,6 @@ def update_facets(chunk):
     facets = SHARED_FACETS
     colors = SHARED_FACET_COLORS
 
-    # TODO (re)try slicing
     for ifacet in range(start, stop):
         color = colors[ifacet]
         index = ifacet * 3
@@ -299,8 +297,8 @@ def compute_uvmap(chunk):
     """
     if USE_NUMPY:
         return compute_uvmap_np(chunk)
-    else:
-        return compute_uvmap_std(chunk)
+
+    return compute_uvmap_std(chunk)
 
 
 def compute_uvmap_std(chunk):
@@ -416,11 +414,11 @@ def init(shared):
     if USE_NUMPY:
         global SHARED_NORMALS_NP
         SHARED_NORMALS_NP = np.ctypeslib.as_array(SHARED_NORMALS)
-        SHARED_NORMALS_NP.shape = (len(SHARED_NORMALS) // 3, 3)
+        SHARED_NORMALS_NP.shape = (-1, 3)
 
         global SHARED_FACETS_NP
         SHARED_FACETS_NP = np.ctypeslib.as_array(SHARED_FACETS)
-        SHARED_FACETS_NP.shape = (len(SHARED_FACETS) // 3, 3)
+        SHARED_FACETS_NP.shape = (-1, 3)
 
         global SHARED_AREAS_NP
         SHARED_AREAS_NP = np.ctypeslib.as_array(SHARED_AREAS)
@@ -457,6 +455,7 @@ def main(
     areas,
     showtime,
     out_points,
+    out_point_count,
     out_facets,
     out_uvmap,
 ):
@@ -471,7 +470,6 @@ def main(
     import multiprocessing as mp
     import itertools
     import time
-    import struct
 
     tm0 = time.time()
     if showtime:
@@ -526,14 +524,16 @@ def main(
     chunk_size = 20000
     nproc = os.cpu_count()
 
+    count_facets = len(facets) // 3
+
     try:
         gc.disable()
         # Compute facets colors and center of gravity
         shared = {
-            "points": ctx.RawArray("f", SharedWrapper(points, 3)),
-            "facets": ctx.RawArray("l", SharedWrapper(facets, 3)),
-            "normals": ctx.RawArray("f", SharedWrapper(normals, 3)),
-            "areas": ctx.RawArray("f", areas),
+            "points": points,
+            "facets": facets,
+            "normals": normals,
+            "areas": areas,
             "cog": ctx.RawArray("f", 3),
             "facet_colors": ctx.RawArray("B", len(facets)),
             "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
@@ -543,7 +543,7 @@ def main(
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
-            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(chunk_size, count_facets)
             data = pool.imap_unordered(colorize, chunks)
 
             centroids, area_sums = zip(*data)
@@ -556,11 +556,9 @@ def main(
             tick("colorize")
 
             # Update points
-            colored_points = {
-                (ipoint, color)
-                for facet, color in zip(facets, shared["facet_colors"])
-                for ipoint in facet
-            }
+            fcol = shared["facet_colors"]
+            tiled_fcol = itertools.chain.from_iterable(zip(fcol, fcol, fcol))
+            colored_points = set(zip(facets, tiled_fcol))
             colored_points_len = len(colored_points)
             tick(f"new points ({colored_points_len} pts)")
 
@@ -570,7 +568,7 @@ def main(
             shared["colored_points_len"].value = len(wrapper)
 
             # Update facets
-            chunks = make_chunks(chunk_size, len(facets))
+            chunks = make_chunks(chunk_size, count_facets)
             run_unordered(pool, update_facets, chunks)
             out_facets[::] = shared["facets"]
             tick("update facets")
@@ -578,12 +576,14 @@ def main(
             # Compute uvmap
             chunks = make_chunks(chunk_size, len(colored_points))
             run_unordered(pool, compute_uvmap, chunks)
-            out_uvmap[:len(shared["uvmap"])] = shared["uvmap"]
+            out_uvmap[: len(shared["uvmap"])] = shared["uvmap"]
             tick("uv map")
 
             # Recompute point list
-            newpoints = [coord for i, _ in colored_points for coord in points[i]]
-            out_points[:colored_points_len * 3] = newpoints
+            newpoints = [
+                coord for i, _ in colored_points for coord in points[3 * i : 3 * i + 3]
+            ]
+            out_points[: colored_points_len * 3] = newpoints
             tick("new point list")
 
     finally:
@@ -591,7 +591,7 @@ def main(
         sys.stdin = save_stdin
         gc.enable()
 
-    OUT_POINT_COUNT.value = colored_points_len
+    out_point_count.value = colored_points_len
 
 
 # *****************************************************************************
@@ -606,6 +606,7 @@ if __name__ == "__main__":
         AREAS,
         SHOWTIME,
         OUT_POINTS,
+        OUT_POINT_COUNT,
         OUT_FACETS,
         OUT_UVMAP,
     )
@@ -618,6 +619,8 @@ if __name__ == "__main__":
     AREAS = None
     SHOWTIME = None
     OUT_POINTS = None
+    OUT_POINT_COUNT = None
     OUT_FACETS = None
     OUT_UVMAP = None
+    OUT_POINT_COUNT = None
     BASE_MATRICES = None

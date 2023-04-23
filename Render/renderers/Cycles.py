@@ -93,7 +93,7 @@ def write_mesh(name, mesh, material, **kwargs):
     ]
     trans = "  ".join(trans)
 
-    interpolation = "smooth" if mesh.autosmooth else "flat"
+    interpolation = "smooth" if mesh.has_vnormals() else "flat"
 
     snippet_obj = f"""
 <transform matrix="{trans}">

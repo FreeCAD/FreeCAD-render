@@ -147,12 +147,17 @@ class ExporterWorker(QObject):
         This method represents the thread activity. It is not intended to be
         called directly, but via thread's run() method.
         """
-        res = self.func(*self.args)
-        with self.lock:
-            self.res = res
-
-        # Terminate (for Qt)
-        self.finished.emit(0)
+        try:
+            res = self.func(*self.args)
+        except Exception as exc:
+            App.Console.PrintError("[Render][Objstrings] /!\ EXPORT ERROR /!\\\n")
+            raise exc
+        else:
+            with self.lock:
+                self.res = res
+        finally:
+            # Terminate (for Qt)
+            self.finished.emit(0)
 
     def result(self):
         """Return result.

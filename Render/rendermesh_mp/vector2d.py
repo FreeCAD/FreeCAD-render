@@ -23,7 +23,7 @@
 """Vector 2D manipulation helpers."""
 
 from math import sqrt
-from operator import mul as op_mul, sub as op_sub
+
 
 def add(vec1, vec2):
     """Add 2 vectors."""
@@ -31,11 +31,13 @@ def add(vec1, vec2):
     vec2_x, vec2_y = vec2
     return vec1_x + vec2_x, vec1_y + vec2_y
 
+
 def sub(vec1, vec2):
     """Substract 2 vectors."""
     vec1_x, vec1_y = vec1
     vec2_x, vec2_y = vec2
     return vec1_x - vec2_x, vec1_y - vec2_y
+
 
 def fmul(vec, flt):
     """Multiply a vector by a float."""

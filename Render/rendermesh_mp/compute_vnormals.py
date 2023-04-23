@@ -39,7 +39,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 from vector3d import (
     fmul,
     angles,
-    add,
     safe_normalize,
 )
 
@@ -75,13 +74,13 @@ def getarea(idx):
 
 # *****************************************************************************
 
+
 def compute_weighted_normals(chunk):
     """Compute weighted normals for each point."""
     start, stop = chunk
 
     it_facets = (
-        (getfacet(i), getnormal(i), getarea(i))
-        for i in range(start, stop)
+        (getfacet(i), getnormal(i), getarea(i)) for i in range(start, stop)
     )
 
     it_facets = (
@@ -137,8 +136,7 @@ def compute_weighted_normals_np(chunk):
         dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
 
         # Compute arccos of dot products
-        angles = np.arccos(dots)
-        return angles
+        return np.arccos(dots)
 
     # Compute vertex angles
     # Reminder:
@@ -162,10 +160,12 @@ def compute_weighted_normals_np(chunk):
 
     return indices, weighted_normals
 
+
 # *****************************************************************************
 
+
 def normalize(chunk):
-    """Normalize normal vectors"""
+    """Normalize normal vectors."""
     start, stop = chunk
 
     fmt = "fff"
@@ -174,18 +174,22 @@ def normalize(chunk):
     f3iter_unpack = f3struct.iter_unpack
     f3itemsize = struct.calcsize(fmt)
 
-    vnormals = memoryview(SHARED_VNORMALS).cast("b")[start * f3itemsize: stop * f3itemsize]
+    vnormals = memoryview(SHARED_VNORMALS).cast("b")[
+        start * f3itemsize : stop * f3itemsize
+    ]
 
-    result = b"".join(f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals))
+    result = b"".join(
+        f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals)
+    )
 
     vnormals[::] = memoryview(result).cast("b")
 
 
 def normalize_np(chunk):
-
+    """Normalize normal vectors - Numpy version."""
     start, stop = chunk
-    vnormals = np.asarray(SHARED_VNORMALS[start*3:stop*3], dtype="f4")
-    vnormals = np.reshape(vnormals,[stop-start, 3])
+    vnormals = np.asarray(SHARED_VNORMALS[start * 3 : stop * 3], dtype="f4")
+    vnormals = np.reshape(vnormals, [stop - start, 3])
 
     magnitudes = np.sqrt((vnormals**2).sum(-1))
     magnitudes = np.expand_dims(magnitudes, axis=1)
@@ -215,6 +219,7 @@ def init(shared):
     global SHARED_VNORMALS
     SHARED_VNORMALS = shared["vnormals"]
 
+
 # *****************************************************************************
 
 
@@ -228,16 +233,16 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
     # pylint: disable=import-outside-toplevel
     # pylint: disable=too-many-locals
     import multiprocessing as mp
-    import itertools
     import time
-    import struct
 
     tm0 = time.time()
     if showtime:
         msg = (
             f"start vnormal computation: {len(points) // 3} points, "
             f"{len(facets) // 3} facets"
-            " (use numpy)" if USE_NUMPY else ""
+            " (use numpy)"
+            if USE_NUMPY
+            else ""
         )
         print(msg)
 
@@ -251,14 +256,6 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             (i, min(i + chunk_size, length))
             for i in range(0, length, chunk_size)
         )
-
-    def grouper(iterable, number, fillvalue=None, count=None):
-        "Collect data into fixed-length chunks or blocks"
-        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-        args = [iter(iterable)] * number
-        res = itertools.zip_longest(*args, fillvalue=fillvalue)
-        res = itertools.islice(res, count)
-        return res
 
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
@@ -296,7 +293,11 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 
             # Compute weighted normals (n per vertex)
             chunks = make_chunks(chunk_size, len(facets) // 3)
-            func = compute_weighted_normals_np if USE_NUMPY else compute_weighted_normals
+            func = (
+                compute_weighted_normals_np
+                if USE_NUMPY
+                else compute_weighted_normals
+            )
             data = pool.imap_unordered(func, chunks)
 
             # Reduce weighted normals (one per vertex)
@@ -304,7 +305,9 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
             if not USE_NUMPY:
                 wstruct = struct.Struct("lfff")
                 for chunk in data:
-                    for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
+                    for point_index, *weighted_vnorm in wstruct.iter_unpack(
+                        chunk
+                    ):
                         offset = point_index * 3
                         vnorms[offset] += weighted_vnorm[0]
                         vnorms[offset + 1] += weighted_vnorm[1]
@@ -320,7 +323,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
                         np.bincount(indices, normals[..., 2]),
                     )
                 )
-                vnorms[:normals.size] = list(normals.flat)
+                vnorms[: normals.size] = list(normals.flat)
 
             tick("reduce weighted normals")
 
@@ -339,6 +342,7 @@ def main(python, points, facets, normals, areas, showtime, out_vnormals):
 # *****************************************************************************
 
 if __name__ == "__main__":
+    # pylint: disable=used-before-assignment
     main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SHOWTIME, OUT_VNORMALS)
 
     # Clean (remove references to foreign objects)

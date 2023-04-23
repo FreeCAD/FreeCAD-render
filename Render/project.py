@@ -36,14 +36,15 @@ from collections import namedtuple
 import concurrent.futures
 import time
 import tracemalloc
+import traceback
 
 import cProfile
 import pstats
 import io
 from pstats import SortKey
 
-from PySide.QtGui import QFileDialog, QMessageBox
-from PySide.QtCore import QT_TRANSLATE_NOOP
+from PySide.QtGui import QFileDialog, QMessageBox, QApplication
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
 import FreeCAD as App
 import FreeCADGui as Gui
 
@@ -815,31 +816,25 @@ def _get_objstrings_helper(get_rdr_string, views):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    # Create profile object (debug)
-    debug_flag = PARAMS.GetBool("Debug")
-    if debug_flag:
-        prof = cProfile.Profile()
-        prof.enable()
+    try:
+        if App.GuiUp:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
 
-    App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
-    time0 = time.time()
+        App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
+        time0 = time.time()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        objstrings = executor.map(get_rdr_string, views)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            objstrings = executor.map(get_rdr_string, views)
 
-    App.Console.PrintMessage(
-        f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
-    )
-
-    # Profile statistics (debug)
-    if debug_flag:
-        prof.disable()
-        sec = io.StringIO()
-        sortby = SortKey.CUMULATIVE
-        pstat = pstats.Stats(prof, stream=sec).sort_stats(sortby)
-        pstat.print_stats()
-        lines = sec.getvalue().splitlines()
-        print("\n".join(lines[:20]))
-        # print(sec.getvalue())
+        App.Console.PrintMessage(
+            f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
+        )
+    except Exception as exc:
+        App.Console.PrintError("[Render][Objstrings] /!\ EXPORT ERROR /!\\\n")
+        objstrings = []
+        traceback.print_exception(exc)
+    finally:
+        if App.GuiUp:
+            QApplication.restoreOverrideCursor()
 
     return objstrings
