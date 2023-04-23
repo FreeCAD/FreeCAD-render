@@ -977,20 +977,14 @@ def render(
         args += '"batch" '
     args += params.GetString("OspParameters", "")
     args += f" --resolution {width}x{height} "
-    args += " --camera 1 "
     if output_file:
         args += "  --image " + outfile_for_osp
     if spp:
         args += f"  --accumLimit {spp} --spp 1 "
     if denoise:
         args += " --denoiser "
-        if not batch:
-            wrn = (
-                "[Render][Ospray] WARNING - Ospray denoiser cannot be set from"
-                " FreeCAD when Ospray is run in GUI mode. Please set denoiser "
-                "manually in Ospray GUI or use Ospray in Batch mode.\n"
-            )
-            App.Console.PrintWarning(wrn)
+        if spp:
+            args += " --denoiseFinalFrame "
 
     if not rpath:
         App.Console.PrintError(
@@ -1051,7 +1045,20 @@ def _render_keep1cam(scene_graph):
             # reinsert in front
             world_children.insert(0, cam)
     # Nota: camera must be in front of world children, otherwise import
-    # fails (bug, I think)
+    # fails (ospray bug?)
+
+    # Add camera index
+    scene_graph["camera"] = {
+        "cameraIdx": 1,
+        "cameraToWorld": {
+            "affine": [0.0, 0.0, 0.0],
+            "linear": {
+                "x": [1.0, 0.0, 0.0],
+                "y": [0.0, 1.0, 0.0],
+                "z": [0.0, 0.0, 1.0],
+            }
+        }
+    }
 
 
 def _new_object_file_path(basename, extension, **kwargs):
