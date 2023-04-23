@@ -42,6 +42,16 @@ import pstats
 import io
 from pstats import SortKey
 
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
+import cProfile
+import pstats
+import io
+from pstats import SortKey
+
 from PySide.QtGui import QFileDialog, QMessageBox
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
@@ -396,6 +406,7 @@ class Project(FeatureBase):
 
         # Normalize arguments
         wait_for_completion = bool(wait_for_completion)
+        skip_meshing = bool(skip_meshing)
 
         # Check project parameters
         if self.fpo.RenderHeight <= 0 or self.fpo.RenderWidth <= 0:
