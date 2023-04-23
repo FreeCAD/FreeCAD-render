@@ -950,12 +950,12 @@ def render(
     # name)
     # Nota: as a consequence, we cannot take user choice for output file into
     # account
-    outfile_for_osp = os.path.join(tempfile.gettempdir(), "ospray_out")
+    outfile_for_osp = os.path.join(App.getUserCachePath(), "ospray_out")
     if not batch:
-        outfile_actual = f"{outfile_for_osp}.0000.png"  # The file osp'll use
+        outfile_actual = f"{outfile_for_osp}.00000.png"  # The file osp'll use
     else:
         outfile_actual = (
-            f"{outfile_for_osp}.Camera_1.00001.png"  # The file osp'll use
+            f"{outfile_for_osp}.Camera_1.00000.png"  # The file osp'll use
         )
     # We remove the outfile before writing, otherwise ospray will choose
     # another file
@@ -979,6 +979,8 @@ def render(
     args += f" --resolution {width}x{height} "
     if output_file:
         args += "  --image " + outfile_for_osp
+        if not batch:
+            args+= "  --saveImageOnExit"
     if spp:
         args += f"  --accumLimit {spp} --spp 1 "
     if denoise:
