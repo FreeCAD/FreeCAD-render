@@ -226,28 +226,6 @@ class Project(FeatureBase):
             ),
             False,
         ),
-        # Luxcore
-        "LuxcoreEngine": Prop(
-            "App::PropertyEnumeration",
-            chr(127) + "Specifics",
-            QT_TRANSLATE_NOOP(
-                "App::Property",
-                "The render engine Luxcore will use (Luxcore only).\n"
-                "Please see Luxcore documentation for more details.",
-            ),
-            (
-                "PATHCPU",
-                "TILEPATHCPU",
-                "BIDIRCPU",
-                "RTPATHCPU",
-                "PATHOCL",
-                "RTPATHOCL",
-                "TILEPATHOCL",
-                "BIDIRVMCPU",
-                "LIGHTCPU",
-            ),
-            0,
-        ),
     }
 
     ON_CHANGED = {
