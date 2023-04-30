@@ -586,17 +586,14 @@ def numpy_enabled():
 
 def _find_python():
     """Find Python executable."""
-    python = shutil.which("pythonw")
-    if python:
-        python = os.path.abspath(python)
-        return python
+    def which(appname):
+        app = shutil.which(appname)
+        return os.path.abspath(app) if app else None
 
-    python = shutil.which("python")
-    if python:
-        python = os.path.abspath(python)
-        return python
-
-    return None
+    if not PARAMS.GetBool("Debug"):
+        return which("pythonw") or which("python")
+    else:
+        return which("python")
 
 
 # Sieve of Eratosthenes
