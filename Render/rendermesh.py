@@ -380,6 +380,9 @@ class RenderMeshBase:
         Returns:
             The name of file that the function wrote.
         """
+        # Log message
+        debug("Object", self.name, "Write mesh file")
+
         # Normalize arguments
         filetype = RenderMeshBase.ExportType(filetype)
 
@@ -521,7 +524,7 @@ class RenderMeshBase:
         mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
 
         # Vertices
-        fmtv = functools.partial(str.format, "v {} {} {}\n")
+        fmtv = functools.partial(str.format, "v {:g} {:g} {:g}\n")
         verts = (fmtv(*v) for v in self.points)
         verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
@@ -529,7 +532,7 @@ class RenderMeshBase:
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(*uv_transformation)
-            fmtuv = functools.partial(str.format, "vt {} {}\n")
+            fmtuv = functools.partial(str.format, "vt {:g} {:g}\n")
             uvs = (fmtuv(*t) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
         else:
@@ -538,7 +541,7 @@ class RenderMeshBase:
         # Vertex normals
         if self.has_vnormals():
             norms = self.vnormals
-            fmtn = functools.partial(str.format, "vn {} {} {}\n")
+            fmtn = functools.partial(str.format, "vn {:g} {:g} {:g}\n")
             norms = (fmtn(*n) for n in norms)
             norms = it.chain(["# Vertex normals\n"], norms, ["\n"])
         else:
@@ -656,14 +659,14 @@ class RenderMeshBase:
         ]
 
         # Body - Vertices (and vertex normals and uv)
-        fmt3 = functools.partial(str.format, "{} {} {}")
+        fmt3 = functools.partial(str.format, "{:g} {:g} {:g}")
         verts = [iter(fmt3(*v) for v in self.points)]
         if self.has_vnormals():
             verts += [iter(fmt3(*v) for v in self.vnormals)]
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
-            fmt2 = functools.partial(str.format, "{} {}")
+            fmt2 = functools.partial(str.format, "{:g} {:g}")
             verts += [iter(fmt2(*v) for v in uvs)]
         verts += [it.repeat("\n")]
         verts = (" ".join(v) for v in zip(*verts))
@@ -698,7 +701,7 @@ class RenderMeshBase:
 
         def _write_point(pnt):
             """Write a point."""
-            return f"{pnt[0]} {pnt[1]} {pnt[2]}"
+            return f"{pnt[0]:g} {pnt[1]:g} {pnt[2]:g}"
 
         points = [_write_point(p) for p in self.points]
         points = "  ".join(points)
@@ -708,7 +711,7 @@ class RenderMeshBase:
         nverts = "  ".join(nverts)
 
         if self.has_uvmap():
-            uvs = [f"{px} {py}" for px, py in self.uvmap_per_vertex()]
+            uvs = [f"{px:g} {py:g}" for px, py in self.uvmap_per_vertex()]
             uvs = "  ".join(uvs)
             uv_statement = f'    UV="{uvs}"\n'
         else:
@@ -749,7 +752,7 @@ class RenderMeshBase:
         Returns: the name of file that the function wrote.
         """
         # Triangles
-        vrts = [f"<{x},{y},{z}>" for x, y, z in self.points]
+        vrts = [f"<{x:g},{y:g},{z:g}>" for x, y, z in self.points]
         inds = [f"<{i},{j},{k}>" for i, j, k in self.facets]
 
         vertices = "\n        ".join(vrts)
@@ -759,7 +762,7 @@ class RenderMeshBase:
 
         # UV map
         if self.has_uvmap():
-            uv_vectors = [f"<{tx},{ty}>" for tx, ty in self.uvmap]
+            uv_vectors = [f"<{tx:g},{ty:g}>" for tx, ty in self.uvmap]
             len_uv_vectors = len(uv_vectors)
             uv_vectors = "\n        ".join(uv_vectors)
             snippet_uv_vects = f"""\
@@ -772,7 +775,7 @@ class RenderMeshBase:
 
         # Normals
         if self.has_vnormals():
-            nrms = [f"<{nx},{ny},{nz}>" for nx, ny, nz in self.vnormals]
+            nrms = [f"<{nx:g},{ny:g},{nz:g}>" for nx, ny, nz in self.vnormals]
             normals = "\n        ".join(nrms)
             len_normals = len(nrms)
             snippet_normals = f"""\

@@ -35,9 +35,9 @@ def init(*args):
     # pylint: disable=global-variable-undefined
     # pylint: disable=invalid-name
     global fmt_v, fmt_vt, fmt_vn, fmt_f, join_f, mask_f
-    fmt_v = functools.partial(str.format, "v {} {} {}\n")
-    fmt_vt = functools.partial(str.format, "vt {} {}\n")
-    fmt_vn = functools.partial(str.format, "vn {} {} {}\n")
+    fmt_v = functools.partial(str.format, "v {:g} {:g} {:g}\n")
+    fmt_vt = functools.partial(str.format, "vt {:g} {:g}\n")
+    fmt_vn = functools.partial(str.format, "vn {:g} {:g} {:g}\n")
     mask_f, *_ = args
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
