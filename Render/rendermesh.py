@@ -304,10 +304,20 @@ class RenderMeshBase:
         """Get the facet normals."""
         return self._normals
 
+    @normals.setter
+    def normals(self, value):
+        """Get the facet normals."""
+        self._normals = value
+
     @property
     def areas(self):
         """Get the facets areas."""
         return self._areas
+
+    @areas.setter
+    def areas(self, value):
+        """Get the facet normals."""
+        self._areas = value
 
     @property
     def vnormals(self):
