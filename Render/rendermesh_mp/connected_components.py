@@ -442,7 +442,7 @@ def main(
     tm0 = time.time()
     if showtime:
         msg = (
-            "\n"
+            "\nCONNECTED COMPONENTS\n"
             f"start adjacency computation: {len(points) // 3} points, "
             f"{len(facets) // 3} facets"
         )

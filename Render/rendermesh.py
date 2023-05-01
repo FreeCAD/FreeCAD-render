@@ -183,8 +183,8 @@ class RenderMeshBase:
 
         # First we make a copy of the mesh, we separate mesh and
         # placement and we set the mesh at its origin (null placement)
-        self.__originalmesh = mesh
-        self.__originalmesh.Placement = App.Base.Placement()
+        self._originalmesh = mesh
+        self._originalmesh.Placement = App.Base.Placement()
 
         # Then we store the topology in internal structures
         self._points = self._facets = self._normals = self._areas = None
@@ -212,11 +212,11 @@ class RenderMeshBase:
 
         (to be overriden by mixins)
         """
-        points, facets = self.__originalmesh.Topology
+        points, facets = self._originalmesh.Topology
         self._points = [tuple(p) for p in points]
         self._facets = facets
-        self._normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
-        self._areas = [f.Area for f in self.__originalmesh.Facets]
+        self._normals = [tuple(f.Normal) for f in self._originalmesh.Facets]
+        self._areas = [f.Area for f in self._originalmesh.Facets]
 
     def __del__(self):
         """Finalize RenderMesh.
@@ -225,8 +225,8 @@ class RenderMeshBase:
         to avoid memory leaks.
         """
         # Clean original mesh
-        self.__originalmesh.clear()
-        self.__originalmesh = None
+        self._originalmesh.clear()
+        self._originalmesh = None
 
         # # Debug memory:
         # import gc
@@ -243,7 +243,7 @@ class RenderMeshBase:
     def copy(self):
         """Creates a copy of this mesh."""
         # Caveat: this is a shallow copy!
-        # In particular, we don't copy the __originalmesh (Mesh.Mesh)
+        # In particular, we don't copy the _originalmesh (Mesh.Mesh)
         # So we point on the same object, which should not be modified
         new_mesh = copy.copy(self)
         # pylint: disable=protected-access, unused-private-member
@@ -673,7 +673,7 @@ class RenderMeshBase:
 
         # Body - Faces
         fmtf = functools.partial(str.format, "3 {} {} {}\n")
-        faces = (fmtf(*v) for v in self.facets)
+        faces = (fmtf(*v) for v in iter(self.facets))
 
         # Concat and write
         res = it.chain(header, verts, faces)
@@ -932,7 +932,7 @@ class RenderMeshBase:
             sum2 += area
             return sum1, sum2
 
-        facets = ((f.Points, f.Area) for f in self.__originalmesh.Facets)
+        facets = ((f.Points, f.Area) for f in self._originalmesh.Facets)
         sum1, sum2 = functools.reduce(reducer, facets, ((0.0, 0.0, 0.0), 0.0))
         cog = App.Vector(sum1) / sum2
         return cog
@@ -968,7 +968,7 @@ class RenderMeshBase:
         # z-normal facets
         regular, seam, znormal = [], [], []
         z_vector = App.Base.Vector(0.0, 0.0, 1.0)
-        for facet in self.__originalmesh.Facets:
+        for facet in self._originalmesh.Facets:
             if _is_facet_normal_to_vector(facet, z_vector):
                 znormal.append(facet)
             elif _facet_overlap_seam(facet):
@@ -1021,7 +1021,7 @@ class RenderMeshBase:
         # - facets not on seam (regular)
         # - facets on seam (seam)
         regular, seam = [], []
-        for facet in self.__originalmesh.Facets:
+        for facet in self._originalmesh.Facets:
             if _facet_overlap_seam(facet):
                 seam.append(facet)
             else:
@@ -1031,7 +1031,7 @@ class RenderMeshBase:
         mesh = Mesh.Mesh()
         uvmap = []
         try:
-            origin = self.__originalmesh.CenterOfGravity
+            origin = self._originalmesh.CenterOfGravity
         except AttributeError:
             origin = self.center_of_gravity()
 
@@ -1079,7 +1079,7 @@ class RenderMeshBase:
 
         # Isolate submeshes by cube face
         face_facets = ([], [], [], [], [], [])
-        for facet in self.__originalmesh.Facets:
+        for facet in self._originalmesh.Facets:
             cubeface = _intersect_unitcube_face(facet.Normal)
             # Add facet to corresponding submesh
             face_facets[cubeface].append(facet)
@@ -1088,7 +1088,7 @@ class RenderMeshBase:
         uvmap = []
         mesh = Mesh.Mesh()
         try:
-            cog = self.__originalmesh.CenterOfGravity
+            cog = self._originalmesh.CenterOfGravity
         except AttributeError:
             cog = self.center_of_gravity()
         for cubeface, facets in enumerate(face_facets):

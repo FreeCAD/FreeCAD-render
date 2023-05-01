@@ -62,6 +62,69 @@ class RenderMeshMultiprocessingMixin:
         self.python = _find_python()
         super().__init__(*args, **kwargs)
 
+    def _setup_internals(self):
+
+        mesh = self._originalmesh
+        points, facets = mesh.Topology
+        facets2 = mesh.Facets
+        count_points = mesh.CountPoints
+        count_facets = mesh.CountFacets
+
+        self._points = SharedArray("f", count_points, 3, points)
+        # TODO
+        # self._points = mp.RawArray("f", count_points * 3)
+        # self._points[:] = list(itertools.chain.from_iterable(points)) 
+
+        self._facets = SharedArray("l", count_facets, 3, facets)
+        # TODO
+        # self._facets = mp.RawArray("l", count_facets * 3)
+        # self._facets[:] = list(itertools.chain.from_iterable(facets))
+
+        self._normals = SharedArray("f", count_facets, 3, [f.Normal for f in facets2])
+        # TODO
+        # self._normals = mp.RawArray("f", count_facets * 3)
+        # self._normals[:] = [c for f in facets2 for c in f.Normal]  # TODO use map + operator
+
+        self._areas = mp.RawArray("f", count_facets)
+        self._areas[:] = [f.Area for f in facets2]
+        # TODO
+        # self._points = [tuple(p) for p in points]
+        # self._facets = facets
+        # self._normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
+        # self._areas = [f.Area for f in self.__originalmesh.Facets]
+
+    @property
+    def points(self):
+        return self._points
+
+    @points.setter
+    def points(self, value):
+        self._points[:] = value
+
+    @property
+    def count_points(self):
+        return len(self._points)
+
+    @property
+    def facets(self):
+        return self._facets
+
+    @property
+    def count_facets(self):
+        return len(self._facets)
+
+    @property
+    def normals(self):
+        return self._normals
+
+    @property
+    def areas(self):
+        return self._areas
+
+    @property
+    def vnormals(self):
+        return self._vnormals
+
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - multiprocessing version.
 
@@ -76,33 +139,28 @@ class RenderMeshMultiprocessingMixin:
 
         # Init output buffers
         facets = self.facets
-        facets_count = len(facets)
         color_count = 6
         points_per_facet = 3
-        maxpoints = facets_count * color_count * points_per_facet
+        maxpoints = self.count_facets * color_count * points_per_facet
 
         points_buf = mp.RawArray("f", maxpoints * 3)
-        facets_buf = mp.RawArray("l", len(facets) * 3)
+        facets_buf = mp.RawArray("l", self.count_facets * 3)
         uvmap_buf = mp.RawArray("f", maxpoints * 2)
         point_count = mp.RawValue("l")
 
         # Init script globals
         init_globals = {
             "PYTHON": self.python,
-            "POINTS": mp.RawArray("f", self.count_points * 3),
-            "FACETS": mp.RawArray("l", self.count_facets * 3),
-            "NORMALS": mp.RawArray("f", self.count_facets * 3),
-            "AREAS": mp.RawArray("f", self.count_facets),
+            "POINTS": self._points.array,
+            "FACETS": self._facets.array,
+            "NORMALS": self._normals.array,
+            "AREAS": self._areas,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_POINTS": points_buf,
             "OUT_FACETS": facets_buf,
             "OUT_UVMAP": uvmap_buf,
             "OUT_POINT_COUNT": point_count,
         }
-        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
-        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
-        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
-        init_globals["AREAS"][:] = self.areas
 
         # Run script
         self._run_path_in_process(path, init_globals)
@@ -110,52 +168,13 @@ class RenderMeshMultiprocessingMixin:
         # Get outputs
         point_count = point_count.value
 
-        self.points = list(grouper(points_buf[: point_count * 3], 3))
-        self.facets = list(grouper(facets_buf, 3))
-        self.uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
+        self._points.array = points_buf[: point_count * 3]
+        self._facets.array = facets_buf
+        self.uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))  # TODO
 
         points_buf = None
         facets_buf = None
         uvmap_buf = None
-
-    def compute_vnormals(self):
-        """Compute vertex normals (single process).
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        debug("Object", self.name, "Compute vertex normals (mp)")
-
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
-
-        # Init output buffer
-        vnormals_buf = mp.RawArray("f", self.count_points * 3)
-
-        # Init script globals
-        init_globals = {
-            "POINTS": mp.RawArray("f", self.count_points * 3),
-            "FACETS": mp.RawArray("l", self.count_facets * 3),
-            "NORMALS": mp.RawArray("f", self.count_facets * 3),
-            "AREAS": mp.RawArray("f", self.count_facets),
-            "PYTHON": self.python,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_VNORMALS": vnormals_buf,
-        }
-        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
-        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
-        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
-        init_globals["AREAS"][:] = self.areas
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
-
-        # Update properties
-        vnormals_mv = (
-            memoryview(vnormals_buf)
-            .cast("b")
-            .cast("f", [self.count_points, 3])
-        )
-        self.vnormals = vnormals_mv.tolist()
 
     def connected_components(self, split_angle):
         """Get all connected components of facets in the mesh.
@@ -185,17 +204,14 @@ class RenderMeshMultiprocessingMixin:
 
         # Init script globals
         init_globals = {
-            "POINTS": mp.RawArray("f", self.count_points * 3),
-            "FACETS": mp.RawArray("l", self.count_facets * 3),
-            "NORMALS": mp.RawArray("f", self.count_facets * 3),
+            "POINTS": self._points.array,
+            "FACETS": self._facets.array,
+            "NORMALS": self._normals.array,
             "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
             "OUT_TAGS": tags_buf,
         }
-        init_globals["POINTS"][:] = list(itertools.chain.from_iterable(self.points))
-        init_globals["FACETS"][:] = list(itertools.chain.from_iterable(self.facets))
-        init_globals["NORMALS"][:] = list(itertools.chain.from_iterable(self.normals))
 
         if debug_flag:
             print("init connected", time.time() - tm0)
@@ -203,10 +219,44 @@ class RenderMeshMultiprocessingMixin:
         # Run script
         self._run_path_in_process(path, init_globals)
 
-        # Update properties
-        tags = list(tags_buf[::])
+        return tags_buf
 
-        return tags
+    def compute_vnormals(self):
+        """Compute vertex normals (single process).
+
+        Refresh self._normals. We use an area & angle weighting algorithm."
+        """
+        debug("Object", self.name, "Compute vertex normals (mp)")
+
+        # Init variables
+        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
+
+        # Init output buffer
+        vnormals_buf = mp.RawArray("f", self.count_points * 3)
+
+        # Init script globals
+        init_globals = {
+            "POINTS": self._points.array,
+            "FACETS": self._facets.array,
+            "NORMALS": self._normals.array,
+            "AREAS": self._areas,
+            "PYTHON": self.python,
+            "SHOWTIME": PARAMS.GetBool("Debug"),
+            "OUT_VNORMALS": vnormals_buf,
+        }
+
+        # Run script
+        self._run_path_in_process(path, init_globals)
+
+        # Update properties
+        # TODO
+        # vnormals_mv = (
+            # memoryview(vnormals_buf)
+            # .cast("b")
+            # .cast("f", [self.count_points, 3])
+        # )
+        # self.vnormals = vnormals_mv.tolist()
+        self._vnormals = vnormals_buf[:self.count_points * 3]
 
     def _write_objfile_helper(
         self,
@@ -298,6 +348,45 @@ class RenderMeshMultiprocessingMixin:
         )
         process.start()
         process.join()
+
+
+class SharedArray():
+    def __init__(self, typecode, length, width, initializer):
+        self._rawarray = mp.RawArray(typecode, length * width) 
+        self._width = width
+        self._rawarray[:] = list(itertools.chain.from_iterable(initializer))
+
+    def __iter__(self):
+        iters = [iter(self._rawarray)] * self.width
+        return zip(*iters)
+
+    def __getitem__(self, key):
+        width = self.width
+        return tuple(self._rawarray[key * width : (key + 1) * width])
+
+    def __setitem__(self, key, value):
+        width = self.width
+        if isinstance(key, slice):
+            key = slice(key.start * width, key.stop * width, key.step * width)
+            self._rawarray.__setitem__(key, itertools.chain.from_iterable(value))
+            return
+        self._rawarray.__setitem__(key * width, value)
+
+    def __len__(self):
+        return len(self._rawarray) // self.width
+
+    @property
+    def width(self):
+        return self._width
+
+    @property
+    def array(self):
+        return self._rawarray
+
+    @array.setter
+    def array(self, value):
+        self._rawarray = value
+
 
 
 # ===========================================================================
