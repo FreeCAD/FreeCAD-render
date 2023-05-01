@@ -1320,6 +1320,8 @@ class RenderMeshBase:
                 are considered as non-connected (in radians)
         """
         tags = self.connected_components(split_angle)
+        
+        print("distinct tags", len(set(tags)))  # TODO
 
         points = self.points
         facets = self.facets
@@ -1330,6 +1332,7 @@ class RenderMeshBase:
             for facet, tag in zip(facets, tags)
             for point_index in facet
         }
+        print(len(newpoints), "points")  # TODO
 
         # Number newpoint
         for index, point in enumerate(newpoints):

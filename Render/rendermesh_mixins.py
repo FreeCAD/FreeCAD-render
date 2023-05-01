@@ -70,28 +70,17 @@ class RenderMeshMultiprocessingMixin:
         count_points = mesh.CountPoints
         count_facets = mesh.CountFacets
 
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print(f"{count_points} points, {count_facets} facets")
+
         self._points = SharedArray("f", count_points, 3, points)
-        # TODO
-        # self._points = mp.RawArray("f", count_points * 3)
-        # self._points[:] = list(itertools.chain.from_iterable(points)) 
-
         self._facets = SharedArray("l", count_facets, 3, facets)
-        # TODO
-        # self._facets = mp.RawArray("l", count_facets * 3)
-        # self._facets[:] = list(itertools.chain.from_iterable(facets))
-
         self._normals = SharedArray("f", count_facets, 3, [f.Normal for f in facets2])
-        # TODO
-        # self._normals = mp.RawArray("f", count_facets * 3)
-        # self._normals[:] = [c for f in facets2 for c in f.Normal]  # TODO use map + operator
-
         self._areas = mp.RawArray("f", count_facets)
         self._areas[:] = [f.Area for f in facets2]
-        # TODO
-        # self._points = [tuple(p) for p in points]
-        # self._facets = facets
-        # self._normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
-        # self._areas = [f.Area for f in self.__originalmesh.Facets]
+
+        self._vnormals = SharedArray("f", 0, 3)
 
     @property
     def points(self):
@@ -99,7 +88,7 @@ class RenderMeshMultiprocessingMixin:
 
     @points.setter
     def points(self, value):
-        self._points[:] = value
+        self._points = SharedArray("f", len(value), 3, value)
 
     @property
     def count_points(self):
@@ -108,6 +97,10 @@ class RenderMeshMultiprocessingMixin:
     @property
     def facets(self):
         return self._facets
+
+    @facets.setter
+    def facets(self, value):
+        self._facets = SharedArray("l", len(value), 3, value)
 
     @property
     def count_facets(self):
@@ -124,6 +117,11 @@ class RenderMeshMultiprocessingMixin:
     @property
     def vnormals(self):
         return self._vnormals
+
+    @vnormals.setter
+    def vnormals(self, value):
+        self._vnormals = SharedArray("f", len(value), 3, value)
+
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - multiprocessing version.
@@ -201,6 +199,8 @@ class RenderMeshMultiprocessingMixin:
         # Init output buffer
         tags_buf = mp.RawArray("l", self.count_facets)
 
+        if debug_flag:
+            print(f"Connected components: {self.count_points} points")
 
         # Init script globals
         init_globals = {
@@ -219,6 +219,8 @@ class RenderMeshMultiprocessingMixin:
         # Run script
         self._run_path_in_process(path, init_globals)
 
+
+        print("tags", len(set(tags_buf)))  # TODO
         return tags_buf
 
     def compute_vnormals(self):
@@ -249,14 +251,7 @@ class RenderMeshMultiprocessingMixin:
         self._run_path_in_process(path, init_globals)
 
         # Update properties
-        # TODO
-        # vnormals_mv = (
-            # memoryview(vnormals_buf)
-            # .cast("b")
-            # .cast("f", [self.count_points, 3])
-        # )
-        # self.vnormals = vnormals_mv.tolist()
-        self._vnormals = vnormals_buf[:self.count_points * 3]
+        self._vnormals.array = vnormals_buf[:self.count_points * 3]
 
     def _write_objfile_helper(
         self,
@@ -351,10 +346,11 @@ class RenderMeshMultiprocessingMixin:
 
 
 class SharedArray():
-    def __init__(self, typecode, length, width, initializer):
+    def __init__(self, typecode, length, width, initializer=None):
         self._rawarray = mp.RawArray(typecode, length * width) 
         self._width = width
-        self._rawarray[:] = list(itertools.chain.from_iterable(initializer))
+        if initializer:
+            self._rawarray[:] = list(itertools.chain.from_iterable(initializer))
 
     def __iter__(self):
         iters = [iter(self._rawarray)] * self.width
@@ -367,8 +363,11 @@ class SharedArray():
     def __setitem__(self, key, value):
         width = self.width
         if isinstance(key, slice):
-            key = slice(key.start * width, key.stop * width, key.step * width)
-            self._rawarray.__setitem__(key, itertools.chain.from_iterable(value))
+            def scale(arg):
+                return arg * width if arg else None
+            key = slice(scale(key.start),  scale(key.stop), scale(key.step))
+            value = list(itertools.chain.from_iterable(value))
+            self._rawarray.__setitem__(key, value)
             return
         self._rawarray.__setitem__(key * width, value)
 
