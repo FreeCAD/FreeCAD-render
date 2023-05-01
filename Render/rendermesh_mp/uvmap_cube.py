@@ -25,6 +25,7 @@
 import sys
 import os
 import gc
+import traceback
 
 try:
     import numpy as np
@@ -471,11 +472,14 @@ def main(
     import itertools
     import time
 
+    count_facets = len(facets) // 3
+    count_points = len(points) // 3
+
     tm0 = time.time()
     if showtime:
         msg = (
-            f"start uv computation: {len(points)} points, "
-            f"{len(facets)} facets"
+            f"start uv computation: {count_points} points, "
+            f"{count_facets} facets"
         )
         print(msg)
 
@@ -524,8 +528,6 @@ def main(
     chunk_size = 20000
     nproc = os.cpu_count()
 
-    count_facets = len(facets) // 3
-
     try:
         gc.disable()
         # Compute facets colors and center of gravity
@@ -535,10 +537,10 @@ def main(
             "normals": normals,
             "areas": areas,
             "cog": ctx.RawArray("f", 3),
-            "facet_colors": ctx.RawArray("B", len(facets)),
-            "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
+            "facet_colors": ctx.RawArray("B", count_facets),
+            "colored_points": ctx.RawArray("L", count_points * 2 * 6),
             "colored_points_len": ctx.RawValue("l"),
-            "uvmap": ctx.RawArray("f", len(points) * 2 * 6),
+            "uvmap": ctx.RawArray("f", count_points * 2 * 6),
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -585,7 +587,10 @@ def main(
             ]
             out_points[: colored_points_len * 3] = newpoints
             tick("new point list")
-
+    except Exception as exc:
+        print(traceback.format_exc())
+        input("Press Enter to continue...")
+        raise exc
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
