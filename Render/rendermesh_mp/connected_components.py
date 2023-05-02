@@ -39,8 +39,8 @@ try:
     import numpy as np
     from numpy import bitwise_or, left_shift
 
-    # USE_NUMPY = True
-    USE_NUMPY = False  # TODO
+    USE_NUMPY = True
+    # USE_NUMPY = False  # TODO
 except ModuleNotFoundError:
     USE_NUMPY = False
 
@@ -158,9 +158,12 @@ def build_pairs_np(chunk):
 
     # Compute hashtable
     hashtable = (
-        permutations(map(itget1, v), 2)
+        tuple(permutations(map(itget1, v), 2))  # TODO
         for v in map(itget1, groupby(hashes, key=itget0))
     )
+    hashtable = list(hashtable)  # TODO
+    # print(hashtable)
+    # print(len(hashtable), max(len(c) for c in hashtable))   # TODO
 
     # Compute pairs
     pairs = itertools.chain.from_iterable(hashtable)
@@ -189,11 +192,12 @@ def build_pairs_np(chunk):
 
         if len(pair_slice) < len(facet_pairs):
             length = len(pair_slice)
-            print("Warning: redundancy in adjacency - truncation", length)
+            print("Warning: redundancy in adjacency - truncation", length, "/", len(facet_pairs))
             facet_pairs = facet_pairs[0:length]
 
         SHARED_PAIRS_NP[curval : curval + length] = facet_pairs
         SHARED_CURRENT_PAIR.value = curval + length
+
 
 
 def compute_adjacents_np(chunk):
@@ -481,8 +485,9 @@ def main(
 
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
-        for _ in imap:
-            pass
+        result = [r for r in imap]
+        if any(result):
+            print("Not null result")
 
     # Set working directory
     save_dir = os.getcwd()
@@ -528,10 +533,13 @@ def main(
 
             # Compute adjacency
             if USE_NUMPY:
+                print(facets[0:99])
+                # Compute edges (with unique key: "hash")
                 count_edges = count_facets * 3
                 chunks = make_chunks(chunk_size, count_edges)
                 run_unordered(pool, compute_hashes_np, chunks)
                 tick("hashes (mp/np)")
+                print(list(shared["hashes"])[0:33])  # TODO
 
                 # Sort hashes
                 hashes = np.array(shared["hashes"])
@@ -540,12 +548,43 @@ def main(
                 shared["hashes"][:] = hashes
                 shared["hashes_indices"][:] = hashes_indices
                 tick("sorted hashes (mp/np)")
+                print(list(shared["hashes"])[0:33])  # TODO
+                print(list(shared["hashes_indices"])[0:33])  # TODO
+                # print(list(hashes))  # TODO
 
                 # Build pairs
                 chunks = make_chunks(chunk_size, count_edges)
                 run_unordered(pool, build_pairs_np, chunks)
                 current_pair = shared["current_pair"].value
                 tick(f"pairs ({current_pair}) (mp/np)")
+
+                # TODO
+                # Check symmetry
+                facet_pairs = np.array(shared["pairs"])
+                facet_pairs = facet_pairs.reshape(-1, 2)
+                facet_pairs.resize((current_pair, 2))
+                # facet_pairs.dtype = [("x", np.int32), ("y", np.int32)]
+                reverse_pairs = np.array(np.flip(facet_pairs, axis=1))
+                dt = [("x", np.int32), ("y", np.int32)]
+                facet_pairs.dtype = dt
+                reverse_pairs.dtype = dt
+                notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs))
+                print(np.argwhere(notisin), len(np.argwhere(notisin)))
+
+                # error = 0
+                # step = len(facet_pairs) // 100
+                # for i in range(len(facet_pairs)):
+                    # if i % step == 0:
+                        # print(i // step, "%")
+                    # p = facet_pairs[i]
+                    # p2 = [[p[1], p[0]]]
+                    # pair = np.array(p2)
+                    # # pair.dtype = [("x", np.int32), ("y", np.int32)]
+                    # if not any(np.equal(facet_pairs, pair).all(1)) and error < 100:
+                        # print("Error:", p, p2)
+                        # error +=1
+                input("Pairs check: press Enter to continue...")
+
 
                 # Sort pairs
                 facet_pairs = np.array(shared["pairs"])
@@ -568,10 +607,12 @@ def main(
 
             # TODO
             adj = shared["adjacency"]
+            error = 0
             for ifacet in range(0, count_facets):
                 for f in adj[ifacet*3 : ifacet*3+3]:
-                    if f!=-1 and not ifacet in adj[f*3:f*3+3]:
-                        print("ERROR", ifacet, f)
+                    if f!=-1 and not ifacet in adj[f*3:f*3+3] and error < 100:
+                        print("ERROR 1", ifacet, f)
+                        error += 1
 
 
             # Compute connected components
@@ -614,10 +655,12 @@ def main(
 
             # print("subadj pass#2", subadjacency)  # TODO
             # TODO
+            error = 0
             for ifacet, adjs in enumerate(subadjacency):
                 for f in adjs:
-                    if not ifacet in subadjacency[f]:
+                    if not ifacet in subadjacency[f] and error < 100:
                         print("ERROR", ifacet, f)
+                        error += 1
 
             final_tags = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
