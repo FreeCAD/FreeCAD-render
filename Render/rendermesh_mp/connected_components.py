@@ -29,6 +29,7 @@ import itertools
 import operator
 import struct
 import gc
+import traceback
 from math import cos
 
 from itertools import permutations, groupby, starmap
@@ -38,7 +39,8 @@ try:
     import numpy as np
     from numpy import bitwise_or, left_shift
 
-    USE_NUMPY = True
+    # USE_NUMPY = True
+    USE_NUMPY = False  # TODO
 except ModuleNotFoundError:
     USE_NUMPY = False
 
@@ -123,6 +125,9 @@ def compute_adjacents(chunk):
             itertools.chain(set(adj), (-1, -1, -1)), 0, 3
         )
     ]
+
+
+# *****************************************************************************
 
 
 def compute_hashes_np(chunk):
@@ -319,7 +324,7 @@ def connected_components_chunk(chunk):
         (SHARED_TAGS[ifacet], f)
         for ifacet in range(start, stop)
         for f in l3unpack_from(SHARED_ADJACENCY, ifacet * l3size)
-        if 0 <= f < start or f > stop
+        if 0 <= f < start or f >= stop
     }
     adjacents2 = list(itertools.chain.from_iterable(adjacents2))
 
@@ -327,8 +332,8 @@ def connected_components_chunk(chunk):
     with shared_current_adj:
         offset = shared_current_adj.value
         shared_current_adj.value += len(adjacents2)
+        SHARED_ADJACENCY2[offset : offset + len(adjacents2)] = adjacents2
 
-    SHARED_ADJACENCY2[offset : offset + len(adjacents2)] = adjacents2
 
 
 # *****************************************************************************
@@ -558,11 +563,19 @@ def main(
                 tick("adjacency (mp/np)")
             else:
                 chunks = make_chunks(chunk_size, count_facets)
-                func, tickmsg = compute_adjacents, "adjacency"
-                run_unordered(pool, func, chunks)
-                tick(tickmsg)
+                run_unordered(pool, compute_adjacents, chunks)
+                tick("adjacency")
+
+            # TODO
+            adj = shared["adjacency"]
+            for ifacet in range(0, count_facets):
+                for f in adj[ifacet*3 : ifacet*3+3]:
+                    if f!=-1 and not ifacet in adj[f*3:f*3+3]:
+                        print("ERROR", ifacet, f)
+
 
             # Compute connected components
+            # Compute also pass#2 adjacency lists ("adjacency2")
             chunks = make_chunks(len(facets) // nproc, len(facets) // 3)
             run_unordered(pool, connected_components_chunk, chunks)
 
@@ -577,12 +590,13 @@ def main(
 
             for ifacet, tag in enumerate(tags):
                 subcomponents[tag].append(ifacet)
+            # print(set(tags))  # TODO
 
             # Update adjacents
             l2struct = struct.Struct("ll")
-
             not_zero = functools.partial(operator.ne, (0, 0))
-            iterator = itertools.takewhile(
+            # print(list(l2struct.iter_unpack(shared["adjacency2"]))[0:500])  # TODO
+            iterator = filter(
                 not_zero,
                 l2struct.iter_unpack(shared["adjacency2"]),
             )
@@ -597,15 +611,30 @@ def main(
 
             tick("connected components (pass #1 - reduce)")
 
+
+            # print("subadj pass#2", subadjacency)  # TODO
+            # TODO
+            for ifacet, adjs in enumerate(subadjacency):
+                for f in adjs:
+                    if not ifacet in subadjacency[f]:
+                        print("ERROR", ifacet, f)
+
             final_tags = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
+            # print(set(final_tags))  # TODO
+            print(len(set(final_tags)))
 
             # Update and write tags
             for index, tag in enumerate(tags):
                 out_tags[index] = final_tags[tag]
 
             tick("connected components (pass #2 - reduce & write)")
+            input("Press Enter to continue...")
 
+    except Exception as exc:
+        print(traceback.format_exc())
+        input("Press Enter to continue...")
+        raise exc
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin

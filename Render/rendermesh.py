@@ -1321,7 +1321,8 @@ class RenderMeshBase:
         """
         tags = self.connected_components(split_angle)
         
-        print("distinct tags", len(set(tags)))  # TODO
+        unique_tags = set(tags)
+        print("distinct tags", len(unique_tags))  # TODO
 
         points = self.points
         facets = self.facets
