@@ -629,7 +629,7 @@ pigment {{
 
 
 VALSNIPPETS = {
-    "RGB": "color red {val.r}  green {val.g}  blue {val.b}",
+    "RGB": "color red {val[0]}  green {val[1]}  blue {val[2]}",
     "float": "{val}",
     "node": "",
     "RGBA": "{val.r} {val.g} {val.b} {val.a}",

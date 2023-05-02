@@ -948,7 +948,7 @@ def _write_value_osl(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        return ("", f"{val.r:.8} {val.g:.8} {val.b:.8}")
+        return ("", f"{val[0]:.8} {val[1]:.8} {val[2]:.8}")
     if proptype == "float":
         return ("", f"{val:.8}")
 
