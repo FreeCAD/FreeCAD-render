@@ -973,7 +973,7 @@ def _write_value_internal(**kwargs):
     if proptype == "RGB":
         value = (
             _color_name(matname),
-            f"{val.r:.8} {val.g:.8} {val.b:.8}",
+            f"{val[0]:.8} {val[1]:.8} {val[2]:.8}",
         )
     elif proptype == "float":
         value = f"{val:.8}"
