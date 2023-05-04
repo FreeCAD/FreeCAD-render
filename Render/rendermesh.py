@@ -204,8 +204,7 @@ class RenderMeshBase:
         # Autosmooth
         if autosmooth:
             debug("Object", self.name, "Autosmooth")
-            self.separate_connected_components(split_angle)
-            self.compute_vnormals()
+            self.autosmooth(split_angle)
 
     def _setup_internals(self):
         """Initialize internal variables.
@@ -1100,6 +1099,15 @@ class RenderMeshBase:
     ##########################################################################
     #                       Vertex Normals manipulations                     #
     ##########################################################################
+
+    def autosmooth(self, split_angle=radians(30)):
+        """Smooth mesh, using vertex normals.
+
+        Args:
+            split_angle -- the angle that breaks adjacency (in radians).
+        """
+        self.separate_connected_components(split_angle)
+        self.compute_vnormals()
 
     def compute_vnormals(self):
         """Compute vertex normals (single process).
