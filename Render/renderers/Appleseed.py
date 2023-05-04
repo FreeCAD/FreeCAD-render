@@ -1306,6 +1306,9 @@ def render(
                 tile_param = et.Element("parameter", name="tile_size")
                 frame.append(tile_param)
             tile_param.set("value", "32 32")
+        # Use adaptive sampler for denoising
+        root = set_config_param(root, "final", None, "pixel_renderer", "")
+        root = set_config_param(root, "final", None, "tile_renderer", "adaptive")
 
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)
