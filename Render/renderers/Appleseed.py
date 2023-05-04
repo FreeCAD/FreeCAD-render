@@ -281,7 +281,7 @@ def write_imagelight(name, image, **kwargs):
     snippet = """
         <scene_texture name="{n}_tex" model="disk_texture_2d">
             <parameter name="filename" value="{f}" />
-            <parameter name="color_space" value="srgb" />
+            <parameter name="color_space" value="linear_rgb" />
         </scene_texture>
         <scene_texture_instance name="{n}_tex_ins" texture="{n}_tex">
         </scene_texture_instance>
