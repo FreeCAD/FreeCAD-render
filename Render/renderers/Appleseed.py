@@ -281,7 +281,7 @@ def write_imagelight(name, image, **kwargs):
     snippet = """
         <scene_texture name="{n}_tex" model="disk_texture_2d">
             <parameter name="filename" value="{f}" />
-            <parameter name="color_space" value="srgb" />
+            <parameter name="color_space" value="linear_rgb" />
         </scene_texture>
         <scene_texture_instance name="{n}_tex_ins" texture="{n}_tex">
         </scene_texture_instance>
@@ -1306,6 +1306,9 @@ def render(
                 tile_param = et.Element("parameter", name="tile_size")
                 frame.append(tile_param)
             tile_param.set("value", "32 32")
+        # Use adaptive sampler for denoising
+        root = set_config_param(root, "final", None, "pixel_renderer", "")
+        root = set_config_param(root, "final", None, "tile_renderer", "adaptive")
 
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)

@@ -470,7 +470,7 @@ def write_imagelight(name, image, **kwargs):
   ],
   "extensions": {{
     "BIT_scene_background" : {{
-      "background-uri": "{f}",
+      "background-uri": {f},
       "rotation": [0, 0.7071067811865475, 0, 0.7071067811865475 ]
     }}
   }}
@@ -484,7 +484,7 @@ def write_imagelight(name, image, **kwargs):
     image_relpath = os.path.relpath(image, os.path.dirname(gltf_file))
 
     with open(gltf_file, "w", encoding="utf-8") as f:
-        f.write(gltf_snippet.format(f=image_relpath))
+        f.write(gltf_snippet.format(f=json.dumps(image_relpath)))
 
     gltf_file = os.path.basename(gltf_file)
     snippet = f"""
