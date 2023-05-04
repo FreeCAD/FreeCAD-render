@@ -258,6 +258,7 @@ def write_imagelight(name, image, **kwargs):
 scene.lights.{n}.type = infinite
 scene.lights.{n}.transformation = -1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
 scene.lights.{n}.file = "{f}"
+scene.lights.{n}.gamma = 1.0
 """
     return dedent(snippet).format(n=name, f=image)
 
