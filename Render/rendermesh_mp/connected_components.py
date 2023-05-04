@@ -194,7 +194,6 @@ def compute_adjacents_np(chunk):
     start, stop = chunk
 
     # Get pairs
-    # TODO Do it once and for all
     shm_name = bytearray(SHARED_PAIRS_SHM_NAME).rstrip(b"\0").decode()
     shm = shared_memory.SharedMemory(name=shm_name, create=False)
     pairs = np.frombuffer(shm.buf, dtype=np.int32)
@@ -671,7 +670,7 @@ def main(python, points, facets, normals, split_angle, showtime, out_tags):
 
             tick("connected components (pass #2 - reduce & write)")
 
-            input("Press Enter to continue...")  # Debug
+            # input("Press Enter to continue...")  # Debug
 
     except Exception as exc:
         print(traceback.format_exc())
