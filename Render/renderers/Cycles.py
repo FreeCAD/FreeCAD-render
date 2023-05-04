@@ -341,6 +341,7 @@ def write_imagelight(name, image, **kwargs):
     <environment_texture
         name= "{name}_tex"
         filename = "{filename}"
+        colorspace = "__builtin_raw"
     />
     <connect from="{name}_tex color" to="{name}_bg color" />
     <connect from="{name}_bg background" to="output surface" />
