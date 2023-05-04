@@ -108,21 +108,16 @@ def compute_adjacents(chunk):
         for facet_idx, facet in enumerate(UNPACKED_FACETS[start:stop])
         for other_idx in set(chain(FACETS_PER_POINT[p] for p in facet))
         if len(set(facet) & set(UNPACKED_FACETS[other_idx])) == 2
-        and dot(getnormal(facet_idx + start), getnormal(other_idx))
-        >= split_angle_cos
+        and dot(getnormal(facet_idx + start), getnormal(other_idx)) >= split_angle_cos
     )
 
     add = list.append
-    any(
-        itertools.starmap(add, iterator)
-    )  # Sorry, we use side effect (faster)...
+    any(itertools.starmap(add, iterator))  # Sorry, we use side effect (faster)...
 
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
-        for a in itertools.islice(
-            itertools.chain(set(adj), (-1, -1, -1)), 0, 3
-        )
+        for a in itertools.islice(itertools.chain(set(adj), (-1, -1, -1)), 0, 3)
     ]
 
 
@@ -167,9 +162,7 @@ def build_pairs_np(chunk):
     pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
     # Build adjacency lists
-    facet_pairs = np.stack(
-        (INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1
-    )
+    facet_pairs = np.stack((INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1)
 
     # Filter angle
     split_angle_cos = cos(SHARED_SPLIT_ANGLE.value)
@@ -196,17 +189,16 @@ def build_pairs_np(chunk):
     return name, np_buffer.shape
 
 
-
 def compute_adjacents_np(chunk):
     """Compute adjacency lists - numpy version."""
     start, stop = chunk
 
     # Get pairs
     # TODO Do it once and for all
-    shm_name = bytearray(SHARED_PAIRS_SHM_NAME).rstrip(b'\0').decode()
+    shm_name = bytearray(SHARED_PAIRS_SHM_NAME).rstrip(b"\0").decode()
     shm = shared_memory.SharedMemory(name=shm_name, create=False)
     pairs = np.frombuffer(shm.buf, dtype=np.int32)
-    pairs.shape = (-1,2)
+    pairs.shape = (-1, 2)
 
     pairs = pairs[start:stop]
 
@@ -287,9 +279,7 @@ def connected_components(adjacents, shared=None):
     tag = None
 
     iterator = (x for x, y in enumerate(tags) if y is None)
-    shared_current_tag = (
-        shared["current_tag"] if shared else SHARED_CURRENT_TAG
-    )
+    shared_current_tag = shared["current_tag"] if shared else SHARED_CURRENT_TAG
 
     for starting_point in iterator:
         with shared_current_tag:
@@ -343,7 +333,6 @@ def connected_components_chunk(chunk):
         SHARED_ADJACENCY2[offset : offset + len(adjacents2)] = adjacents2
 
 
-
 # *****************************************************************************
 
 
@@ -393,17 +382,11 @@ def init(shared):
         SHARED_HASHES_NP = np.array(shared["hashes"], copy=False)
 
         global SHARED_HASHES_INDICES_NP
-        SHARED_HASHES_INDICES_NP = np.array(
-            shared["hashes_indices"], copy=False
-        )
-
-        global SHARED_PAIRS_NP
-        SHARED_PAIRS_NP = np.array(shared["pairs"], copy=False)
-        SHARED_PAIRS_NP.shape = [-1, 2]
+        SHARED_HASHES_INDICES_NP = np.array(shared["hashes_indices"], copy=False)
 
         count_facets = len(SHARED_FACETS) // 3  # TODO Remove
 
-        facets = np.array(SHARED_FACETS)
+        facets = np.array(SHARED_FACETS, copy=True)
         facets.shape = [-1, 3]
         facets.sort(axis=1)
 
@@ -441,9 +424,7 @@ def init(shared):
 # *****************************************************************************
 
 
-def main(
-    python, points, facets, normals, split_angle, showtime, out_tags
-):
+def main(python, points, facets, normals, split_angle, showtime, out_tags):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -470,10 +451,7 @@ def main(
             print(msg, time.time() - tm0)
 
     def make_chunks(chunk_size, length):
-        return (
-            (i, min(i + chunk_size, length))
-            for i in range(0, length, chunk_size)
-        )
+        return ((i, min(i + chunk_size, length)) for i in range(0, length, chunk_size))
 
     def make_chunks_aligned(chunk_size, length, values):
         def align(index):
@@ -529,9 +507,9 @@ def main(
         if USE_NUMPY:
             shared["hashes"] = ctx.RawArray("q", count_facets * 3)
             shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
-            shared["pairs"] = ctx.RawArray(
-                "l", int(count_facets * 1.2) * 3 * 2
-            )  # TODO Remove
+            # shared["pairs"] = ctx.RawArray(
+            # "l", int(count_facets * 1.2) * 3 * 2
+            # )  # TODO Remove
             shared["current_pair"] = ctx.Value("l", 0)  # TODO Remove
             shared["pairs_shm_name"] = ctx.RawArray("b", 256)
 
@@ -543,10 +521,10 @@ def main(
             if USE_NUMPY:
                 # # Debug
                 # print(
-                    # np.sort(
-                        # np.frombuffer(facets, dtype=np.int32).reshape([-1,3]),
-                        # axis=1,
-                    # )
+                # np.sort(
+                # np.frombuffer(facets, dtype=np.int32).reshape([-1,3]),
+                # axis=1,
+                # )
                 # )
 
                 # Compute edges (with unique key: "hash")
@@ -570,7 +548,7 @@ def main(
                     (shared_memory.SharedMemory(name=n, create=False), s)
                     for n, s in imap
                 ]
-                
+
                 np_bufs = [
                     np.ndarray(shape, dtype=np.int32, buffer=shm.buf)
                     for shm, shape in results
@@ -582,7 +560,7 @@ def main(
                     shm.close()
                     shm.unlink()
                 tick(f"pairs ({len(facet_pairs)}) (mp/np)")
-                
+
                 # Sort pairs
                 facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
 
@@ -594,22 +572,20 @@ def main(
                 # reverse_pairs.dtype = dt
                 # notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs2))
                 # print(
-                    # "check symmetry (ok if empty)",
-                    # np.argwhere(notisin),
-                    # len(np.argwhere(notisin))
+                # "check symmetry (ok if empty)",
+                # np.argwhere(notisin),
+                # len(np.argwhere(notisin))
                 # )
 
                 # Create shared object for adjacency
                 shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
                 buf_np = np.ndarray(
-                    facet_pairs.shape,
-                    dtype=facet_pairs.dtype,
-                    buffer=shm.buf
+                    facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
                 )
                 buf_np[:] = facet_pairs[:]
                 name = str.encode(shm.name)
                 assert len(name) < 255
-                shared["pairs_shm_name"][:len(name)] = name
+                shared["pairs_shm_name"][: len(name)] = name
                 tick("sorted pairs (mp/np)")
 
                 # Initialize adjacency
@@ -621,9 +597,7 @@ def main(
                 adj[:] = -1
 
                 # Compute adjacency
-                chunks = make_chunks_aligned(
-                    chunk_size, len(facet_pairs), facet_pairs
-                )
+                chunks = make_chunks_aligned(chunk_size, len(facet_pairs), facet_pairs)
                 run_unordered(pool, compute_adjacents_np, chunks)
                 tick("adjacency (mp/np)")
             else:
@@ -636,11 +610,15 @@ def main(
             # adj = shared["adjacency"]
             # error = 0
             # for ifacet in range(0, count_facets):
-                # for f in adj[ifacet*3 : ifacet*3+3]:
-                    # if f!=-1 and not ifacet in adj[f*3:f*3+3] and error < 100:
-                        # print("ERROR #1:", ifacet, f, list(adj[ifacet*3: ifacet*3+3]))
-                        # error += 1
-
+            # for f in adj[ifacet*3 : ifacet*3+3]:
+            # if f!=-1 and not ifacet in adj[f*3:f*3+3] and error < 100:
+            # print(
+            # "ERROR #1:",
+            # ifacet,
+            # f,
+            # list(adj[ifacet*3: ifacet*3+3])
+            # )
+            # error += 1
 
             # Compute connected components
             # Compute also pass#2 adjacency lists ("adjacency2")
@@ -668,24 +646,21 @@ def main(
             )
             iterator = ((tag, tags[ifacet]) for tag, ifacet in iterator)
             iterator = (
-                (tag, other_tag)
-                for tag, other_tag in iterator
-                if tag != other_tag
+                (tag, other_tag) for tag, other_tag in iterator if tag != other_tag
             )
             for tag, other_tag in iterator:
                 subadjacency[tag].append(other_tag)
 
             tick("connected components (pass #1 - reduce)")
 
-
             # # Debug
             # # Check symmetry in adjacency pass#2
             # error = 0
             # for ifacet, adjs in enumerate(subadjacency):
-                # for f in adjs:
-                    # if not ifacet in subadjacency[f] and error < 100:
-                        # print("ERROR", ifacet, f)
-                        # error += 1
+            # for f in adjs:
+            # if not ifacet in subadjacency[f] and error < 100:
+            # print("ERROR", ifacet, f)
+            # error += 1
 
             final_tags = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
@@ -696,9 +671,11 @@ def main(
 
             tick("connected components (pass #2 - reduce & write)")
 
+            input("Press Enter to continue...")  # Debug
+
     except Exception as exc:
         print(traceback.format_exc())
-        # input("Press Enter to continue...")  # Debug
+        input("Press Enter to continue...")  # Debug
         raise exc
     finally:
         os.chdir(save_dir)
@@ -709,9 +686,7 @@ def main(
 
 if __name__ == "__main__":
     # pylint: disable=used-before-assignment
-    main(
-        PYTHON, POINTS, FACETS, NORMALS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS
-    )
+    main(PYTHON, POINTS, FACETS, NORMALS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
 
     # Clean (remove references to foreign objects)
     PYTHON = None
