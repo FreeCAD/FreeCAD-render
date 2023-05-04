@@ -592,14 +592,14 @@ class RenderMeshNumpyMixin:
         )
 
         hashes = np.bitwise_or(
-            np.left_shift(all_edges_left, 32),
+            np.left_shift(all_edges_left, 32, dtype=np.int64),
             all_edges_right,
         )
 
         # Sort hashes
         hashes_indices = np.argsort(hashes)
         hashes = hashes[hashes_indices]
-        hashes = np.stack((hashes, hashes_indices), axis=-1)
+        hashes = np.stack((hashes, hashes_indices % len(facets)), axis=-1)
         if debug_flag:
             print(f"hashes", time.time() - tm0)
 
