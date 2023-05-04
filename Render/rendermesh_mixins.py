@@ -63,7 +63,6 @@ class RenderMeshMultiprocessingMixin:
         super().__init__(*args, **kwargs)
 
     def _setup_internals(self):
-
         mesh = self._originalmesh
         points, facets = mesh.Topology
         facets2 = mesh.Facets
@@ -121,7 +120,6 @@ class RenderMeshMultiprocessingMixin:
     @vnormals.setter
     def vnormals(self, value):
         self._vnormals = SharedArray("f", len(value), 3, value)
-
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - multiprocessing version.
@@ -219,7 +217,6 @@ class RenderMeshMultiprocessingMixin:
         # Run script
         self._run_path_in_process(path, init_globals)
 
-
         print("tags", len(set(tags_buf)))  # TODO
         return tags_buf
 
@@ -251,7 +248,7 @@ class RenderMeshMultiprocessingMixin:
         self._run_path_in_process(path, init_globals)
 
         # Update properties
-        self._vnormals.array = vnormals_buf[:self.count_points * 3]
+        self._vnormals.array = vnormals_buf[: self.count_points * 3]
 
     def _write_objfile_helper(
         self,
@@ -345,9 +342,9 @@ class RenderMeshMultiprocessingMixin:
         process.join()
 
 
-class SharedArray():
+class SharedArray:
     def __init__(self, typecode, length, width, initializer=None):
-        self._rawarray = mp.RawArray(typecode, length * width) 
+        self._rawarray = mp.RawArray(typecode, length * width)
         self._width = width
         if initializer:
             self._rawarray[:] = list(itertools.chain.from_iterable(initializer))
@@ -363,9 +360,11 @@ class SharedArray():
     def __setitem__(self, key, value):
         width = self.width
         if isinstance(key, slice):
+
             def scale(arg):
                 return arg * width if arg else None
-            key = slice(scale(key.start),  scale(key.stop), scale(key.step))
+
+            key = slice(scale(key.start), scale(key.stop), scale(key.step))
             value = list(itertools.chain.from_iterable(value))
             self._rawarray.__setitem__(key, value)
             return
@@ -385,7 +384,6 @@ class SharedArray():
     @array.setter
     def array(self, value):
         self._rawarray = value
-
 
 
 # ===========================================================================
@@ -429,9 +427,7 @@ class RenderMeshNumpyMixin:
         facet_colors = facet_colors.ravel()
 
         # Compute center of gravity (triangle cogs weighted by triangle areas)
-        weighted_triangle_cogs = (
-            np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
-        )
+        weighted_triangle_cogs = np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
         cog = np.sum(weighted_triangle_cogs, axis=0) / np.sum(areas)
 
         # Update point list
@@ -440,9 +436,7 @@ class RenderMeshNumpyMixin:
         tshape = triangles.shape
         unfolded_points = triangles.reshape(tshape[0] * tshape[1], tshape[2])
         unfolded_point_colors = np.expand_dims(facet_colors.repeat(3), axis=1)
-        unfolded_colored_points = np.hstack(
-            (unfolded_points, unfolded_point_colors)
-        )
+        unfolded_colored_points = np.hstack((unfolded_points, unfolded_point_colors))
         colored_points, new_facets = np.unique(
             unfolded_colored_points, return_inverse=True, axis=0
         )
@@ -609,7 +603,6 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print(f"hashes", time.time() - tm0)
 
-
         # Compute hashtable
         itget0 = operator.itemgetter(0)
         itget1 = operator.itemgetter(1)
@@ -621,15 +614,13 @@ class RenderMeshNumpyMixin:
         )
         # Compute pairs
         pairs = itertools.chain.from_iterable(hashtable)
-        pairs = np.fromiter(pairs, dtype=[('x', np.int64), ('y', np.int64)])
+        pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
         if debug_flag:
             print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
-        facet_pairs = np.stack(
-            (indices[pairs['x']], indices[pairs['y']]), axis=-1
-        )
+        facet_pairs = np.stack((indices[pairs["x"]], indices[pairs["y"]]), axis=-1)
 
         # https://stackoverflow.com/questions/
         # 38277143/sort-2d-numpy-array-lexicographically
@@ -638,8 +629,7 @@ class RenderMeshNumpyMixin:
             print("sorted pairs", time.time() - tm0)
 
         adjacency = {
-            k: list(map(itget1, v))
-            for k, v in groupby(facet_pairs, key=itget0)
+            k: list(map(itget1, v)) for k, v in groupby(facet_pairs, key=itget0)
         }
 
         if debug_flag:
@@ -674,6 +664,7 @@ def numpy_enabled():
 
 def _find_python():
     """Find Python executable."""
+
     def which(appname):
         app = shutil.which(appname)
         return os.path.abspath(app) if app else None
