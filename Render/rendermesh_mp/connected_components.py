@@ -670,7 +670,52 @@ def main(python, points, facets, normals, split_angle, showtime, out_tags):
 
             tick("connected components (pass #2 - reduce & write)")
 
-            # input("Press Enter to continue...")  # Debug
+            # TODO
+            unique_tags = set(out_tags)
+            print("distinct tags", len(unique_tags))
+
+            # Recompute points
+            l3struct = struct.Struct("lll")
+            l3iter_unpack = l3struct.iter_unpack
+            newpoints = {
+                (point_index, tag): None
+                for facet, tag in zip(l3iter_unpack(facets), tags)
+                for point_index in facet
+            }
+
+            # Number newpoint
+            for index, point in enumerate(newpoints):
+                newpoints[point] = index
+
+            # Rebuild point list
+            # TODO Parallelize
+            point_list = [
+                c
+                for point_index, tag in newpoints
+                for c in points[3 * point_index:3 * point_index + 3]
+            ]
+            points = mp.RawArray("f", len(newpoints) * 3)
+            points[:] = point_list
+            shared["points"] = points
+            tick(f"new points ({len(newpoints)})")
+
+            # TODO
+            # If necessary, rebuild uvmap
+            # if self.uvmap:
+                # self.uvmap = [self.uvmap[point_index] for point_index, tag in newpoints]
+
+            # Update point indices in facets
+            facet_list = [
+                newpoints[point_index, tag] 
+                for facet, tag in zip(l3iter_unpack(facets), tags)
+                for point_index in facet
+            ]
+            facets = mp.RawArray("l", len(facet_list))
+            facets[:] = facet_list
+            shared["facets"] = facets
+            tick(f"updated facets")
+
+            input("Press Enter to continue...")  # Debug
 
     except Exception as exc:
         print(traceback.format_exc())
@@ -684,16 +729,19 @@ def main(python, points, facets, normals, split_angle, showtime, out_tags):
 # *****************************************************************************
 
 if __name__ == "__main__":
-    # pylint: disable=used-before-assignment
-    main(PYTHON, POINTS, FACETS, NORMALS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
+    try:
+        # pylint: disable=used-before-assignment
+        main(PYTHON, POINTS, FACETS, NORMALS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
 
-    # Clean (remove references to foreign objects)
-    PYTHON = None
-    POINTS = None
-    FACETS = None
-    NORMALS = None
-    SPLIT_ANGLE = None
-    SHOWTIME = None
-    OUT_TAGS = None
-    CONNECTION.send("ok")
-    CONNECTION.recv()
+        # Clean (remove references to foreign objects)
+        PYTHON = None
+        POINTS = None
+        FACETS = None
+        NORMALS = None
+        SPLIT_ANGLE = None
+        SHOWTIME = None
+        OUT_TAGS = None
+        CONNECTION.send("ok")
+        CONNECTION.recv()
+    except Exception:
+        pass
