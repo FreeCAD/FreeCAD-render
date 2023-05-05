@@ -695,6 +695,5 @@ if __name__ == "__main__":
     SPLIT_ANGLE = None
     SHOWTIME = None
     OUT_TAGS = None
-    READY_EV.set()
-    TERMINATE_EV.wait()
-    
+    CONNECTION.send("ok")
+    CONNECTION.recv()

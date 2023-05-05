@@ -331,14 +331,11 @@ class RenderMeshMultiprocessingMixin:
         being started, the process is awaited (joined).
         """
         # Synchro objects
-        ready_ev = mp.Event()  # For the subprocess to notify data are ready
-        ready_ev.clear()
-        terminate_ev = mp.Event() # For the main process to notify sub to end
-        terminate_ev.clear()
+        from multiprocessing import connection
+        main_conn, sub_conn = connection.Pipe()
 
         args = (path,)
-        init_globals["READY_EV"] = ready_ev
-        init_globals["TERMINATE_EV"] = terminate_ev
+        init_globals["CONNECTION"] = sub_conn
         kwargs = {"init_globals": init_globals, "run_name": "__main__"}
 
         mp.set_executable(self.python)
@@ -348,10 +345,11 @@ class RenderMeshMultiprocessingMixin:
             target=runpy.run_path, args=args, kwargs=kwargs, name="render"
         )
         process.start()
-        ready_ev.wait(120)
-        # Here we can retrieve data from subprocess
-        time.sleep(5)
-        terminate_ev.set()
+        result = connection.wait([main_conn, process.sentinel], 60)
+        if process.sentinel not in result:
+            msg = main_conn.recv()
+            print("retrieve sub process data", msg)
+            main_conn.send("terminate")
         process.join()
 
 
