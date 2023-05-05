@@ -32,7 +32,7 @@ At the moment, the following rendering engines are supported:
 * [LuxCoreRender](https://luxcorerender.org/)
 * [Appleseed](https://appleseedhq.net)
 * [Blender Cycles](https://www.cycles-renderer.org/)
-* [Intel Ospray Studio](http://www.ospray.org/ospray_studio) (experimental)
+* [Intel Ospray Studio](http://www.ospray.org/ospray_studio)
 * [Pbrt v4](https://www.pbrt.org) (experimental)
 * LuxRender (deprecated in favor of LuxCoreRender)
 
