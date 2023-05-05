@@ -978,7 +978,7 @@ def render(
     args += params.GetString("OspParameters", "")
     args += f" --resolution {width}x{height} "
     if output_file:
-        args += "  --image " + outfile_for_osp
+        args += f'  --image "{outfile_for_osp}"'
         if not batch:
             args+= "  --saveImageOnExit"
     if spp:
