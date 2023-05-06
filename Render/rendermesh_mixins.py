@@ -180,18 +180,13 @@ class RenderMeshMultiprocessingMixin:
         facets_buf = None
         uvmap_buf = None
 
-    def connected_components(self, split_angle):
-        """Get all connected components of facets in the mesh.
+    def autosmooth(self, split_angle):
+        """Smooth mesh, computing vertex normals.
 
         Multiprocess version
 
         Args:
             split_angle -- the angle that breaks adjacency (radians)
-
-        Returns:
-            a list of tags. Each tag gives the component of the corresponding
-                facet
-            the number of components
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
@@ -226,38 +221,6 @@ class RenderMeshMultiprocessingMixin:
         # Run script (return points, facets, vnormals)
         result = self._run_path_in_process(path, init_globals, return_types="flf")
         self.points._array, self.facets._array, self.vnormals._array = result
-
-        return tags_buf
-
-    def compute_vnormals(self):
-        """Compute vertex normals (single process).
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        debug("Object", self.name, "Compute vertex normals (mp)")
-
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
-
-        # Init output buffer
-        vnormals_buf = mp.RawArray("f", self.count_points * 3)
-
-        # Init script globals
-        init_globals = {
-            "POINTS": self._points.array,
-            "FACETS": self._facets.array,
-            "NORMALS": self._normals.array,
-            "AREAS": self._areas,
-            "PYTHON": self.python,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_VNORMALS": vnormals_buf,
-        }
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
-
-        # Update properties
-        self._vnormals.array = vnormals_buf[: self.count_points * 3]
 
     def _write_objfile_helper(
         self,
