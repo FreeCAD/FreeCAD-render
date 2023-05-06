@@ -119,9 +119,18 @@ class RenderMeshMultiprocessingMixin:
     def normals(self):
         return self._normals
 
+    @normals.setter
+    def normals(self, value):
+        self._normals = SharedArray("f", len(value), 3, value)
+
     @property
     def areas(self):
         return self._areas
+
+    @areas.setter
+    def areas(self, value):
+        self._areas = mp.RawArray("f", len(value))
+        self._areas[:] = value
 
     @property
     def uvmap(self):
