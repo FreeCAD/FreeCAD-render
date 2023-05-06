@@ -214,7 +214,7 @@ class RenderMeshMultiprocessingMixin:
             tm0 = time.time()
 
         # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
+        path = os.path.join(PKGDIR, "rendermesh_mp", "autosmooth.py")
 
         # Init output buffer
         tags_buf = mp.RawArray("l", self.count_facets)
