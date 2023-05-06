@@ -327,6 +327,9 @@ class RenderMeshMultiprocessingMixin:
             arrays = [array.array(t, s.buf) for s, t in zip(shms, return_types)]
             self.points._array, self.facets._array, self.vnormals._array = arrays
             main_conn.send("terminate")
+            for shm in shms:
+                shm.close()
+                shm.unlink()
         else:
             if return_types is not None:
                 warn("Object", self.name, "No return from mp module")
