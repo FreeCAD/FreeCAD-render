@@ -240,7 +240,9 @@ class RenderMeshMultiprocessingMixin:
 
         # Run script (return points, facets, vnormals, uvmap)
         result = self._run_path_in_process(path, init_globals, return_types="flfl")
-        self.points._array, self.facets._array, self.vnormals._array, self.uvmap._array = result
+        self.points._array, self.facets._array, self.vnormals._array, *optional = result
+        if optional:
+            self.uvmap._array = optional
 
     def _write_objfile_helper(
         self,

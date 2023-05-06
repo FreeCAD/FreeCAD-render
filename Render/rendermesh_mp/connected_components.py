@@ -943,8 +943,12 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
             # Write output buffers (points, facets, uvmap, vnormals)
             def create_shm(obj):
                 memv = memoryview(obj)
-                shm =shared_memory.SharedMemory(create=True, size=memv.nbytes)
-                shm.buf[:] = memv.tobytes()
+                size = memv.nbytes
+                if size > 0:
+                    shm =shared_memory.SharedMemory(create=True, size=size)
+                    shm.buf[:] = memv.tobytes()
+                else:
+                    shm = None
                 return shm
             points_shm = create_shm(points)
             facets_shm = create_shm(facets)
@@ -953,11 +957,12 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
 
             tick("write output buffers")
 
-        output = (
-            points_shm.name, facets_shm.name, vnormals_shm.name, uvmap_shm.name
-        )
+        output = [points_shm.name, facets_shm.name, vnormals_shm.name]
+        if uvmap_shm:
+            output.append(uvmap_shm.name)
         CONNECTION.send(output)
         CONNECTION.recv()
+        tick("send output buffers")
 
         input("Press Enter to continue...")  # Debug
 
