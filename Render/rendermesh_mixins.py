@@ -87,6 +87,8 @@ class RenderMeshMultiprocessingMixin:
         self._areas = mp.RawArray("f", count_facets)
         self._areas[:] = [f.Area for f in facets2]
 
+        self._uvmap = SharedArray("f", 0, 2)
+
         self._vnormals = SharedArray("f", 0, 3)
 
     @property
@@ -120,6 +122,14 @@ class RenderMeshMultiprocessingMixin:
     @property
     def areas(self):
         return self._areas
+
+    @property
+    def uvmap(self):
+        return self._uvmap
+
+    @uvmap.setter
+    def uvmap(self, value):
+        self._uvmap = SharedArray("f", len(value), 2, value)
 
     @property
     def vnormals(self):
@@ -209,6 +219,7 @@ class RenderMeshMultiprocessingMixin:
             "FACETS": self._facets.array,
             "NORMALS": self._normals.array,
             "AREAS": self._areas,
+            "UVMAP": self._uvmap.array,
             "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
@@ -218,9 +229,9 @@ class RenderMeshMultiprocessingMixin:
         if debug_flag:
             print("init connected", time.time() - tm0)
 
-        # Run script (return points, facets, vnormals)
-        result = self._run_path_in_process(path, init_globals, return_types="flf")
-        self.points._array, self.facets._array, self.vnormals._array = result
+        # Run script (return points, facets, vnormals, uvmap)
+        result = self._run_path_in_process(path, init_globals, return_types="flfl")
+        self.points._array, self.facets._array, self.vnormals._array, self.uvmap._array = result
 
     def _write_objfile_helper(
         self,
@@ -325,7 +336,6 @@ class RenderMeshMultiprocessingMixin:
             msg = main_conn.recv()
             shms = [shared_memory.SharedMemory(name) for name in msg]
             arrays = [array.array(t, s.buf) for s, t in zip(shms, return_types)]
-            self.points._array, self.facets._array, self.vnormals._array = arrays
             main_conn.send("terminate")
             for shm in shms:
                 shm.close()

@@ -30,6 +30,7 @@ import operator
 import struct
 import gc
 import traceback
+import array
 from math import cos
 from itertools import permutations, groupby, starmap
 from multiprocessing import shared_memory
@@ -587,7 +588,7 @@ def reinit(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, split_angle, showtime, out_tags):
+def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, out_tags):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -866,10 +867,16 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             shared["points"] = points
             tick(f"new points ({len(newpoints)})")
 
-            # TODO
             # If necessary, rebuild uvmap
-            # if self.uvmap:
-                # self.uvmap = [self.uvmap[point_index] for point_index, tag in newpoints]
+            if uvmap:
+                uvmap_list = [
+                    c 
+                    for point_index, tag in newpoints
+                    for c in uvmap[point_index * 2: point_index * 2 +2 ]
+                ]
+                uvmap = mp.RawArray("f", len(newpoints) *2)
+                uvmap[:] = uvmap_list
+            tick(f"rebuild uvmap ({uvmap})")
 
             # Update point indices in facets
             facet_list = [
@@ -942,11 +949,14 @@ def main(python, points, facets, normals, areas, split_angle, showtime, out_tags
             points_shm = create_shm(points)
             facets_shm = create_shm(facets)
             vnormals_shm = create_shm(vnorms)
-            # TODO Uvmap
+            uvmap_shm = create_shm(uvmap)
 
             tick("write output buffers")
 
-        CONNECTION.send((points_shm.name, facets_shm.name, vnormals_shm.name))
+        output = (
+            points_shm.name, facets_shm.name, vnormals_shm.name, uvmap_shm.name
+        )
+        CONNECTION.send(output)
         CONNECTION.recv()
 
         input("Press Enter to continue...")  # Debug
@@ -966,7 +976,7 @@ if __name__ == "__main__":
     try:
         # pylint: disable=used-before-assignment
         # TODO Remove OUT_TAGS
-        main(PYTHON, POINTS, FACETS, NORMALS, AREAS, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
+        main(PYTHON, POINTS, FACETS, NORMALS, AREAS, UVMAP, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
 
         # Clean (remove references to foreign objects)
         PYTHON = None
@@ -974,6 +984,7 @@ if __name__ == "__main__":
         FACETS = None
         NORMALS = None
         AREAS = None
+        UVMAP = None
         SPLIT_ANGLE = None
         SHOWTIME = None
         OUT_TAGS = None
