@@ -33,6 +33,7 @@ import time
 import itertools
 import functools
 import operator
+import array
 
 try:
     import numpy as np
@@ -40,8 +41,15 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 from Render.constants import PKGDIR, PARAMS
 from Render.utils import warn, debug, grouper, SharedWrapper
+
+try:
+    from multiprocessing import shared_memory
+except ModuleNotFoundError:
+    pass  # TODO
+    
 
 try:
     mp.set_start_method("spawn")
@@ -205,6 +213,7 @@ class RenderMeshMultiprocessingMixin:
             "POINTS": self._points.array,
             "FACETS": self._facets.array,
             "NORMALS": self._normals.array,
+            "AREAS": self._areas,
             "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
@@ -214,10 +223,10 @@ class RenderMeshMultiprocessingMixin:
         if debug_flag:
             print("init connected", time.time() - tm0)
 
-        # Run script
-        self._run_path_in_process(path, init_globals)
+        # Run script (return points, facets, vnormals)
+        result = self._run_path_in_process(path, init_globals, return_types="flf")
+        self.points._array, self.facets._array, self.vnormals._array = result
 
-        print("tags", len(set(tags_buf)))  # TODO
         return tags_buf
 
     def compute_vnormals(self):
@@ -321,7 +330,7 @@ class RenderMeshMultiprocessingMixin:
         # Run script
         self._run_path_in_process(path, init_globals)
 
-    def _run_path_in_process(self, path, init_globals):
+    def _run_path_in_process(self, path, init_globals, return_types=None):
         """Run a path in a dedicated process.
 
         This method is able to launch a multiprocess script, like
@@ -330,8 +339,9 @@ class RenderMeshMultiprocessingMixin:
         Please note 'self.python' must have been set. After
         being started, the process is awaited (joined).
         """
+        debug_flag = PARAMS.GetBool("Debug")
         # Synchro objects
-        from multiprocessing import connection
+        from multiprocessing import connection  # TODO
         main_conn, sub_conn = connection.Pipe()
 
         args = (path,)
@@ -340,17 +350,27 @@ class RenderMeshMultiprocessingMixin:
 
         mp.set_executable(self.python)
 
-
         process = mp.Process(
             target=runpy.run_path, args=args, kwargs=kwargs, name="render"
         )
         process.start()
-        result = connection.wait([main_conn, process.sentinel], 60)
-        if process.sentinel not in result:
+        sentinel = process.sentinel
+        result = connection.wait([main_conn, sentinel], 60)
+        # Retrieve outputs
+        arrays = None
+        if result and sentinel not in result:
             msg = main_conn.recv()
-            print("retrieve sub process data", msg)
+            shms = [shared_memory.SharedMemory(name) for name in msg]
+            arrays = [array.array(t, s.buf) for s, t in zip(shms, return_types)]
+            self.points._array, self.facets._array, self.vnormals._array = arrays
             main_conn.send("terminate")
+        else:
+            if return_types is not None:
+                warn("Object", self.name, "No return from mp module")
+
         process.join()
+
+        return arrays
 
 
 class SharedArray:
