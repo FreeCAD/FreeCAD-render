@@ -378,17 +378,17 @@ def compute_weighted_normals_np(chunk):
 
     # TODO
     points = np.asarray(SHARED_POINTS, dtype="f4")
-    points = np.reshape(points, [len(points) // 3, 3])
+    points = np.reshape(points, [-1, 3])
 
     facets = np.asarray(SHARED_FACETS, dtype="i4")
-    facets = np.reshape(facets, [len(facets) // 3, 3])
+    facets = np.reshape(facets, [-1, 3])
     facets = facets[start:stop, ...]
 
     areas = np.asarray(SHARED_AREAS, dtype="f4")
     areas = areas[start:stop, ...]
 
     normals = np.asarray(SHARED_NORMALS, dtype="f4")
-    normals = np.reshape(normals, [len(normals) // 3, 3])
+    normals = np.reshape(normals, [-1, 3])
     normals = normals[start:stop, ...]
 
     triangles = np.take(points, facets, axis=0)
