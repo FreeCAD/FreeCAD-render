@@ -53,17 +53,11 @@ from vector3d import (
     safe_normalize,
 )
 
+
 def getpoint(idx):
     """Get a point from its index in the shared memory."""
     idx *= 3
     return SHARED_POINTS[idx], SHARED_POINTS[idx + 1], SHARED_POINTS[idx + 2]
-
-
-
-def getfacet(idx):
-    """Get a facet from its index in the shared memory."""
-    idx *= 3
-    return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
 
 
 @functools.lru_cache(20000)
@@ -75,10 +69,6 @@ def getnormal(idx):
         SHARED_NORMALS[idx + 1],
         SHARED_NORMALS[idx + 2],
     )
-
-def getarea(idx):
-    """Get a normal from its index in the shared memory."""
-    return SHARED_AREAS[idx]
 
 
 
@@ -350,16 +340,45 @@ def connected_components_chunk(chunk):
 
 
 # *****************************************************************************
+def slice2d(sliceable, start, stop, group_by_n):
+    """Emulate 2D slicing.
+    
+    Roughly equivalent to sliceable[start, stop] if shape of sliceable
+    is (..., group_by_n).
+    """
+    sliceable = sliceable[start * group_by_n : stop * group_by_n] 
+    iters = [iter(sliceable)] * group_by_n
+    return zip(*iters)
 
+# TODO
+def getfacet(idx):
+    """Get a facet from its index in the shared memory."""
+    idx *= 3
+    return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
+
+def getarea(idx):
+    """Get a normal from its index in the shared memory."""
+    return SHARED_AREAS[idx]
 
 def compute_weighted_normals(chunk):
     """Compute weighted normals for each point."""
     start, stop = chunk
 
+    it_facets = zip(
+        slice2d(SHARED_FACETS, start, stop, 3),
+        slice2d(SHARED_NORMALS, start, stop, 3),
+        SHARED_AREAS[start:stop]
+    )
+    # TODO:
+    it_facets = list(it_facets)
+    print(len(it_facets))
+
+    # TODO Replace
     it_facets = (
         (getfacet(i), getnormal(i), getarea(i)) for i in range(start, stop)
     )
 
+    # TODO
     it_facets = (
         (facet, normal, area, angles(tuple(getpoint(i) for i in facet)))
         for facet, normal, area in it_facets
