@@ -216,9 +216,6 @@ class RenderMeshMultiprocessingMixin:
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "autosmooth.py")
 
-        # Init output buffer
-        tags_buf = mp.RawArray("l", self.count_facets)
-
         if debug_flag:
             print(f"Connected components: {self.count_points} points")
 
@@ -232,7 +229,6 @@ class RenderMeshMultiprocessingMixin:
             "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_TAGS": tags_buf,
         }
 
         if debug_flag:

@@ -588,7 +588,7 @@ def reinit(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, out_tags):
+def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -665,16 +665,13 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
             # max 3 adjacents/facet
             "adjacency": ctx.RawArray("l", count_facets * 3),
             "adjacency2": ctx.RawArray("l", count_facets * 3 * 2),  # 2nd pass
-            "tags": out_tags,
+            "tags": ctx.RawArray("l", count_facets),
             "current_tag": ctx.Value("l", 0),
             "current_adj": ctx.Value("l", 0),
         }
         if USE_NUMPY:
             shared["hashes"] = ctx.RawArray("q", count_facets * 3)
             shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
-            # shared["pairs"] = ctx.RawArray(
-            # "l", int(count_facets * 1.2) * 3 * 2
-            # )  # TODO Remove
             shared["current_pair"] = ctx.Value("l", 0)  # TODO Remove
             shared["pairs_shm_name"] = ctx.RawArray("b", 256)
 
@@ -793,13 +790,13 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
             tick("connected components (pass #1 - map)")
 
             # Update subcomponents
-            tags = shared["tags"]
+            tags_pass1 = shared["tags"]
 
             maxtag = shared["current_tag"].value
             subcomponents = [[] for i in range(maxtag)]
             subadjacency = [[] for i in range(maxtag)]
 
-            for ifacet, tag in enumerate(tags):
+            for ifacet, tag in enumerate(tags_pass1):
                 subcomponents[tag].append(ifacet)
 
             # Update adjacents
@@ -809,7 +806,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
                 not_zero,
                 l2struct.iter_unpack(shared["adjacency2"]),
             )
-            iterator = ((tag, tags[ifacet]) for tag, ifacet in iterator)
+            iterator = ((tag, tags_pass1[ifacet]) for tag, ifacet in iterator)
             iterator = (
                 (tag, other_tag) for tag, other_tag in iterator if tag != other_tag
             )
@@ -827,20 +824,20 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
             # print("ERROR", ifacet, f)
             # error += 1
 
-            final_tags = connected_components(subadjacency, shared=shared)
+            tags_pass2 = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
 
             # Update and write tags
-            for index, tag in enumerate(tags):
-                out_tags[index] = final_tags[tag]
+            tags = shared["tags"]
+            for index, tag in enumerate(tags_pass1):
+                tags[index] = tags_pass2[tag]
 
             tick("connected components (pass #2 - reduce & write)")
 
             # Recompute Points & Facets
 
             # TODO
-            unique_tags = set(out_tags)
-            print("distinct tags", len(unique_tags))
+            print("distinct tags", len(set(tags)))
 
             # Recompute points
             l3struct = struct.Struct("lll")
@@ -884,6 +881,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
                 for facet, tag in zip(l3iter_unpack(facets), tags)
                 for point_index in facet
             ]
+            assert len(facet_list) // 3 == count_facets
             facets = mp.RawArray("l", len(facet_list))
             facets[:] = facet_list
             shared["facets"] = facets
@@ -980,8 +978,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, o
 if __name__ == "__main__":
     try:
         # pylint: disable=used-before-assignment
-        # TODO Remove OUT_TAGS
-        main(PYTHON, POINTS, FACETS, NORMALS, AREAS, UVMAP, SPLIT_ANGLE, SHOWTIME, OUT_TAGS)
+        main(PYTHON, POINTS, FACETS, NORMALS, AREAS, UVMAP, SPLIT_ANGLE, SHOWTIME)
 
         # Clean (remove references to foreign objects)
         PYTHON = None
@@ -992,6 +989,5 @@ if __name__ == "__main__":
         UVMAP = None
         SPLIT_ANGLE = None
         SHOWTIME = None
-        OUT_TAGS = None
     except Exception:
         pass
