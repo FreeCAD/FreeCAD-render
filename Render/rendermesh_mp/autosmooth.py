@@ -40,7 +40,7 @@ try:
     import numpy as np
     from numpy import bitwise_or, left_shift
 
-    USE_NUMPY = True
+    USE_NUMPY = False
 except ModuleNotFoundError:
     USE_NUMPY = False
 
@@ -350,15 +350,6 @@ def slice2d(sliceable, start, stop, group_by_n):
     iters = [iter(sliceable)] * group_by_n
     return zip(*iters)
 
-# TODO
-def getfacet(idx):
-    """Get a facet from its index in the shared memory."""
-    idx *= 3
-    return SHARED_FACETS[idx], SHARED_FACETS[idx + 1], SHARED_FACETS[idx + 2]
-
-def getarea(idx):
-    """Get a normal from its index in the shared memory."""
-    return SHARED_AREAS[idx]
 
 def compute_weighted_normals(chunk):
     """Compute weighted normals for each point."""
@@ -369,15 +360,6 @@ def compute_weighted_normals(chunk):
         slice2d(SHARED_NORMALS, start, stop, 3),
         SHARED_AREAS[start:stop]
     )
-    # TODO:
-    it_facets = list(it_facets)
-    print(len(it_facets))
-
-    # TODO Replace
-    it_facets = (
-        (getfacet(i), getnormal(i), getarea(i)) for i in range(start, stop)
-    )
-
     # TODO
     it_facets = (
         (facet, normal, area, angles(tuple(getpoint(i) for i in facet)))
@@ -909,6 +891,8 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
             facets = mp.RawArray("l", len(facet_list))
             facets[:] = facet_list
             shared["facets"] = facets
+            # TODO
+            # shared["facets"][:] = facet_list
             tick(f"updated facets")
 
 
