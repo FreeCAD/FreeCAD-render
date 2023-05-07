@@ -40,7 +40,7 @@ try:
     import numpy as np
     from numpy import bitwise_or, left_shift
 
-    USE_NUMPY = False
+    USE_NUMPY = True
 except ModuleNotFoundError:
     USE_NUMPY = False
 
@@ -52,12 +52,6 @@ from vector3d import (
     angles,
     safe_normalize,
 )
-
-
-def getpoint(idx):
-    """Get a point from its index in the shared memory."""
-    idx *= 3
-    return SHARED_POINTS[idx], SHARED_POINTS[idx + 1], SHARED_POINTS[idx + 2]
 
 
 @functools.lru_cache(20000)
@@ -364,15 +358,6 @@ def compute_weighted_normals(chunk):
         (facet, normal, area, tuple(SHARED_POINTS[i*3 : i*3 + 3] for i in facet))
         for facet, normal, area in it_facets
     )
-    # TODO
-    # it_facets = (
-        # (facet, normal, area, angles(tuple(getpoint(i) for i in facet)))
-        # for facet, normal, area in it_facets
-    # )
-    # it_facets = (
-        # (facet, normal, area, angles(tuple(tuple(SHARED_POINTS[i*3:i*3 +3]) for i in facet)))
-        # for facet, normal, area in it_facets
-    # )
     it_facets = (
         (facet, normal, area, angles(triangle))
         for facet, normal, area, triangle in it_facets
