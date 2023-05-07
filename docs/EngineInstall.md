@@ -46,7 +46,7 @@ page](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone).
 *Cycles Standalone* usually requires compilation from sources, as no
 precompiled binaries are generally available in standard environments. Sources
 and compilation instructions can be found
-[here](https://developer.blender.org/diffusion/C/).
+[here](https://projects.blender.org/blender/cycles/src/branch/main/BUILDING.md).
 
 As an alternative, in the (fairly rare) case you already compile Blender by
 yourself, you can enable `WITH_CYCLES_STANDALONE` and
