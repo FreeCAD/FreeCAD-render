@@ -459,7 +459,7 @@ def normalize(chunk):
 def normalize_np(chunk):
     """Normalize normal vectors - Numpy version."""
     start, stop = chunk
-    shared_vnormals = SHARED["vnormals"]
+    shared_vnormals = SHARED_VNORMALS
     vnormals = np.asarray(shared_vnormals[start * 3 : stop * 3], dtype="f4")
     vnormals = np.reshape(vnormals, [stop - start, 3])
 
@@ -601,7 +601,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
     tm0 = time.time()
     if showtime:
         msg = (
-            "\nCONNECTED COMPONENTS\n"
+            "\nAUTOSMOOTH\n"
             f"start adjacency computation: {len(points) // 3} points, "
             f"{len(facets) // 3} facets"
         )
@@ -672,7 +672,10 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
             shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
             shared["current_pair"] = ctx.Value("l", 0)  # TODO Remove
             shared["pairs_shm_name"] = ctx.RawArray("b", 256)
-
+        del points
+        del facets
+        del normals
+        del areas
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
@@ -782,7 +785,8 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
 
             # Compute connected components
             # Compute also pass#2 adjacency lists ("adjacency2")
-            chunks = make_chunks(len(facets) // nproc, len(facets) // 3)
+            len_facets = len(shared["facets"])
+            chunks = make_chunks(len_facets // nproc, len_facets // 3)
             run_unordered(pool, connected_components_chunk, chunks)
 
             tick("connected components (pass #1 - map)")
@@ -842,7 +846,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
             l3iter_unpack = l3struct.iter_unpack
             newpoints = {
                 (point_index, tag): None
-                for facet, tag in zip(l3iter_unpack(facets), tags)
+                for facet, tag in zip(l3iter_unpack(shared["facets"]), tags)
                 for point_index in facet
             }
 
@@ -855,11 +859,10 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
             point_list = [
                 c
                 for point_index, tag in newpoints
-                for c in points[3 * point_index:3 * point_index + 3]
+                for c in shared["points"][3 * point_index:3 * point_index + 3]
             ]
-            points = mp.RawArray("f", len(newpoints) * 3)
-            points[:] = point_list
-            shared["points"] = points
+            shared["points"] = mp.RawArray("f", len(newpoints) * 3)
+            shared["points"][:] = point_list
             tick(f"new points ({len(newpoints)})")
 
             # If necessary, rebuild uvmap
@@ -876,28 +879,25 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
             # Update point indices in facets
             facet_list = [
                 newpoints[point_index, tag] 
-                for facet, tag in zip(l3iter_unpack(facets), tags)
+                for facet, tag in zip(l3iter_unpack(shared["facets"]), tags)
                 for point_index in facet
             ]
-            assert len(facet_list) // 3 == count_facets
-            facets = mp.RawArray("l", len(facet_list))
-            facets[:] = facet_list
-            shared["facets"] = facets
-            # TODO
-            # shared["facets"][:] = facet_list
+            shared["facets"][:] = facet_list
+            print("len facets", len(shared["facets"]) // 3)
+
             tick(f"updated facets")
 
 
         # Vertex Normals Computation
 
-        shared["vnormals"] = mp.RawArray("f", len(points))
+        shared["vnormals"] = mp.RawArray("f", len(shared["points"]))
 
         # TODO We have to restart pool
-        with ctx.Pool(nproc, init, (shared,)) as pool:
+        with ctx.Pool(nproc, reinit, (shared,)) as pool:
             tick("start pool")
 
             # Compute weighted normals (n per vertex)
-            chunks = make_chunks(chunk_size, len(facets) // 3)
+            chunks = make_chunks(chunk_size, len(shared["facets"]) // 3)
             func = (
                 compute_weighted_normals_np
                 if USE_NUMPY
@@ -933,7 +933,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
             tick("reduce weighted normals")
 
             # Normalize
-            chunks = make_chunks(chunk_size, len(points) // 3)
+            chunks = make_chunks(chunk_size, len(shared["points"]) // 3)
             func = normalize_np if USE_NUMPY else normalize
             run_unordered(pool, func, chunks)
             tick("normalize")
@@ -948,16 +948,24 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
                 else:
                     shm = None
                 return shm
-            points_shm = create_shm(points)
-            facets_shm = create_shm(facets)
-            vnormals_shm = create_shm(vnorms)
+            points_shm = create_shm(shared["points"])
+            facets_shm = create_shm(shared["facets"])
+            vnormals_shm = create_shm(shared["vnormals"])
             uvmap_shm = create_shm(uvmap)
 
             tick("write output buffers")
 
-        output = [points_shm.name, facets_shm.name, vnormals_shm.name]
+        # We build the output
+        # We have to pass the requested size, as the OS may round 
+        # the shared memory block to whole pages
+        output = [
+            (points_shm.name, points_shm.size),
+            (facets_shm.name, facets_shm.size),
+            (vnormals_shm.name, vnormals_shm.size),
+        ]
         if uvmap_shm:
-            output.append(uvmap_shm.name)
+            print("append uvmap")
+            output.append((uvmap_shm.name, uvmap_shm.size))
         CONNECTION.send(output)
         CONNECTION.recv()
         tick("send output buffers")
