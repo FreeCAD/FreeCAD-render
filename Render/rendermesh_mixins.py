@@ -235,10 +235,16 @@ class RenderMeshMultiprocessingMixin:
             print("init connected", time.time() - tm0)
 
         # Run script (return points, facets, vnormals, uvmap)
-        result = self._run_path_in_process(path, init_globals, return_types="flfl")
-        self.points._array, self.facets._array, self.vnormals._array, *optional = result
+        result = self._run_path_in_process(path, init_globals, return_types="flff")
+        self._points.array, self._facets.array, self._vnormals.array, *optional = result
+
         if optional:
-            self.uvmap._array = optional
+            print("update uvmap")
+            self._uvmap.array = optional[0]
+
+        if debug_flag:
+            print(f"#points {self.count_points},  #facets {self.count_facets}")
+            print("has vnormals", self.has_vnormals(), "has uvmap", self.has_uvmap())
 
     def _write_objfile_helper(
         self,
@@ -337,14 +343,19 @@ class RenderMeshMultiprocessingMixin:
         process.start()
         sentinel = process.sentinel
         result = connection.wait([main_conn, sentinel], 60)
-        # Retrieve outputs
+        # Retrieve outputs (into arrays)
         arrays = None
         if result and sentinel not in result:
             msg = main_conn.recv()
-            shms = [shared_memory.SharedMemory(name) for name in msg]
-            arrays = [array.array(t, s.buf) for s, t in zip(shms, return_types)]
+            shms = [
+                (shared_memory.SharedMemory(name), size)
+                for name, size in msg
+            ]
+            buffers = [shm.buf[0:size] for shm, size in shms]
+            arrays = [array.array(t, b.cast(t)) for b, t in zip(buffers, return_types)]
             main_conn.send("terminate")
-            for shm in shms:
+            buffers = None  # Otherwise we cannot close shared memory...
+            for shm, _ in shms:
                 shm.close()
                 shm.unlink()
         else:
