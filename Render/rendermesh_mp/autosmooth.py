@@ -612,7 +612,7 @@ def reinit(shared):
 # *****************************************************************************
 
 
-def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, connection):
+def main(python, points, facets, normals, areas, uvmap, split_angle, showtime):
     """Entry point for __main__.
 
     This code executes in main process.
@@ -905,7 +905,10 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, c
                 for facet, tag in zip(l3iter_unpack(facets), tags)
                 for point_index in facet
             ]
-            shared["facets"][:] = facet_list
+            assert len(facet_list) // 3 == count_facets
+            facets = mp.RawArray("l", len(facet_list))
+            facets[:] = facet_list
+            shared["facets"] = facets
             tick(f"updated facets")
 
 
@@ -979,8 +982,8 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, c
         output = [points_shm.name, facets_shm.name, vnormals_shm.name]
         if uvmap_shm:
             output.append(uvmap_shm.name)
-        connection.send(output)
-        connection.recv()
+        CONNECTION.send(output)
+        CONNECTION.recv()
         tick("send output buffers")
 
         input("Press Enter to continue...")  # Debug
@@ -999,7 +1002,7 @@ def main(python, points, facets, normals, areas, uvmap, split_angle, showtime, c
 if __name__ == "__main__":
     try:
         # pylint: disable=used-before-assignment
-        main(PYTHON, POINTS, FACETS, NORMALS, AREAS, UVMAP, SPLIT_ANGLE, SHOWTIME, CONNECTION)
+        main(PYTHON, POINTS, FACETS, NORMALS, AREAS, UVMAP, SPLIT_ANGLE, SHOWTIME)
 
         # Clean (remove references to foreign objects)
         PYTHON = None
