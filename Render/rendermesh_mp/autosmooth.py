@@ -58,12 +58,7 @@ from vector3d import (
 def getnormal(idx):
     """Get a normal from its index in the shared memory."""
     idx *= 3
-    return (
-        SHARED_NORMALS[idx],
-        SHARED_NORMALS[idx + 1],
-        SHARED_NORMALS[idx + 2],
-    )
-
+    return SHARED_NORMALS[idx:idx+3]
 
 
 # *****************************************************************************
