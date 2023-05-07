@@ -47,6 +47,11 @@ except ModuleNotFoundError:
 sys.path.insert(0, os.path.dirname(__file__))
 # pylint: disable=wrong-import-position
 import vector3d
+from vector3d import (
+    fmul,
+    angles,
+    safe_normalize,
+)
 
 def getpoint(idx):
     """Get a point from its index in the shared memory."""
