@@ -360,10 +360,22 @@ def compute_weighted_normals(chunk):
         slice2d(SHARED_NORMALS, start, stop, 3),
         SHARED_AREAS[start:stop]
     )
-    # TODO
     it_facets = (
-        (facet, normal, area, angles(tuple(getpoint(i) for i in facet)))
+        (facet, normal, area, tuple(SHARED_POINTS[i*3 : i*3 + 3] for i in facet))
         for facet, normal, area in it_facets
+    )
+    # TODO
+    # it_facets = (
+        # (facet, normal, area, angles(tuple(getpoint(i) for i in facet)))
+        # for facet, normal, area in it_facets
+    # )
+    # it_facets = (
+        # (facet, normal, area, angles(tuple(tuple(SHARED_POINTS[i*3:i*3 +3]) for i in facet)))
+        # for facet, normal, area in it_facets
+    # )
+    it_facets = (
+        (facet, normal, area, angles(triangle))
+        for facet, normal, area, triangle in it_facets
     )
     normals = b"".join(
         struct.pack("lfff", point_index, *fmul(normal, angle * area))
