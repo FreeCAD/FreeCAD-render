@@ -333,6 +333,7 @@ class RenderMeshMultiprocessingMixin:
 
         args = (path,)
         init_globals["CONNECTION"] = sub_conn
+        init_globals["ENABLE_NUMPY"] = PARAMS.GetBool("EnableNumpy")
         kwargs = {"init_globals": init_globals, "run_name": "__main__"}
 
         mp.set_executable(self.python)
