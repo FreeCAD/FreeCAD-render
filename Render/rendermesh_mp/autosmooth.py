@@ -34,6 +34,7 @@ import array
 from math import cos
 from itertools import permutations, groupby, starmap
 from multiprocessing import shared_memory
+import multiprocessing as mp
 
 
 try:
@@ -445,8 +446,7 @@ def normalize(chunk):
     f3iter_unpack = f3struct.iter_unpack
     f3itemsize = struct.calcsize(fmt)
 
-    # vnormals = memoryview(SHARED_VNORMALS).cast("b")[  # TODO
-    vnormals = memoryview(SHARED["vnormals"]).cast("b")[
+    vnormals = memoryview(SHARED_VNORMALS).cast("b")[
         start * f3itemsize : stop * f3itemsize
     ]
 
@@ -472,7 +472,6 @@ def normalize_np(chunk):
 
 def init(shared):
     """Initialize pool of processes."""
-    gc.disable()
 
     # pylint: disable=global-variable-undefined
     global SHARED
@@ -516,6 +515,9 @@ def init(shared):
 
     global SHARED_CURRENT_ADJ
     SHARED_CURRENT_ADJ = shared["current_adj"]
+
+    global SHARED_VNORMALS
+    SHARED_VNORMALS = None  # Not known at initialisation...
 
     if USE_NUMPY:
         global SHARED_HASHES_NP
@@ -561,6 +563,31 @@ def init(shared):
         SHARED_NORMALS_NP.shape = [-1, 3]
 
 
+def update_globals(shms):
+    # We just have to update points and vnormals
+    # Other globals may have changed in place (facets)
+    # or may not have changed at all (normals)
+    shm_points_name, shm_points_size, shm_vnormals_name, shm_vnormals_size = shms
+
+    # We have to define the shared mems as globals
+    # Otherwise they'll be garbage collected at the end of
+    # the function, with bad results...
+    global POINTS_SHM
+    POINTS_SHM = shared_memory.SharedMemory(shm_points_name)
+
+    global VNORMALS_SHM
+    VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
+
+    global SHARED_POINTS
+    SHARED_POINTS = POINTS_SHM.buf[0:shm_points_size].cast("f")
+
+    global SHARED_VNORMALS
+    SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
+
+    return mp.current_process().pid
+
+
+# TODO
 def reinit(shared):
     """Reinitialize global data."""
     gc.disable()
@@ -637,40 +664,24 @@ def main(
         if any(result):
             print("Not null result")
 
-    def create_shm(arg):
+    def create_shm(obj, empty=False):
         """Create a SharedMemory object from the argument.
 
-        If the argument supports buffer protocol, the shared memory object
-        is created with the adequate size and filled with the argument
-        content.
-        If the argument is an int, it is interpreted as a size and the
-        shared memory object is created accordingly (empty)
+        The argument must support buffer protocol.
+        The shared memory is created with the adequate size to host the
+        argument.
+        If empty==False (default), the shared memory is initialized with the
+        argument content. Otherwise it is kept uninitialized
         """
-        # arg supports buffer protocol?
-        try:
-            memv = memoryview(arg)
-        except TypeError:
-            pass
-        else:
-            size = memv.nbytes
-            if size > 0:
-                shm = shared_memory.SharedMemory(create=True, size=size)
+        memv = memoryview(obj)
+        size = memv.nbytes
+        if size > 0:
+            shm = shared_memory.SharedMemory(create=True, size=size)
+            if not empty:
                 shm.buf[:] = memv.tobytes()
-            else:
-                shm = None
-            return shm
-
-        # arg is an int?
-        try:
-            size = int(arg)
-        except TypeError:
-            pass
         else:
-            return shared_memory.SharedMemory(create=True, size=size)
-        
-        msg = "Argument should support buffer protocol or be an integer"
-        raise TypeError(msg)
-
+            shm = None
+        return shm
 
     # Set working directory
     save_dir = os.getcwd()
@@ -910,7 +921,7 @@ def main(
                 ]
                 uvmap = mp.RawArray("f", len(newpoints) * 2)
                 uvmap[:] = uvmap_list
-            tick(f"rebuild uvmap ({uvmap})")
+            tick(f"rebuild uvmap")
 
             # Update point indices in facets
             facet_list = [
@@ -923,15 +934,32 @@ def main(
 
             tick(f"updated facets")
 
-        # Vertex Normals Computation
+            # Vertex Normals Computation
 
-        shared["vnormals"] = mp.RawArray("f", len(shared["points"]))
+            shared["vnormals"] = mp.RawArray("f", len(shared["points"]))
 
-        # TODO We have to restart pool
-        with ctx.Pool(nproc, reinit, (shared,)) as pool:
-            tick("start pool")
+            # Write output buffers (points, facets, uvmap, vnormals)
+            points_shm = create_shm(shared["points"])
+            facets_shm = create_shm(shared["facets"])
+            uvmap_shm = create_shm(uvmap)
+            # vnormals same size as points, but empty at the moment
+            vnormals_shm = create_shm(shared["points"], empty=True)
+
+            tick("write output buffers (points, facets, uvmap)")
+
+            # Update globals in subprocesses
+            pids = {p.pid for p in mp.active_children()}
+            shared_mems = (
+                points_shm.name,
+                points_shm.size,
+                vnormals_shm.name,
+                vnormals_shm.size,
+            )
+            result = set(pool.map(update_globals, [shared_mems] * nproc))
+            assert result == pids
 
             # Compute weighted normals (n per vertex)
+            # Here, we'll update points and vnormals in processes
             chunks = make_chunks(chunk_size, len(shared["facets"]) // 3)
             func = (
                 compute_weighted_normals_np if USE_NUMPY else compute_weighted_normals
@@ -939,7 +967,7 @@ def main(
             data = pool.imap_unordered(func, chunks)
 
             # Reduce weighted normals (one per vertex)
-            vnorms = shared["vnormals"]
+            vnorms = vnormals_shm.buf.cast("f")
             if not USE_NUMPY:
                 wstruct = struct.Struct("lfff")
                 for chunk in data:
@@ -959,8 +987,8 @@ def main(
                         np.bincount(indices, normals[..., 2]),
                     )
                 )
-                vnorms[: normals.size] = list(normals.flat)
-
+                vnorms[:] = array.array("f", normals.flat)
+            vnorms = None  # Otherwise, hanging pointer to the shared mem...
             tick("reduce weighted normals")
 
             # Normalize
@@ -969,34 +997,32 @@ def main(
             run_unordered(pool, func, chunks)
             tick("normalize")
 
-            # Write output buffers (points, facets, uvmap, vnormals)
-            points_shm = create_shm(shared["points"])
-            facets_shm = create_shm(shared["facets"])
-            vnormals_shm = create_shm(shared["vnormals"])
-            uvmap_shm = create_shm(uvmap)
+            # We build the output
+            # We have to pass the requested size, as the OS may round
+            # the shared memory block to whole pages
+            output = [
+                (points_shm.name, points_shm.size),
+                (facets_shm.name, facets_shm.size),
+                (vnormals_shm.name, vnormals_shm.size),
+            ]
+            if uvmap_shm:
+                print("append uvmap")
+                output.append((uvmap_shm.name, uvmap_shm.size))
+            connection.send(output)
+            connection.recv()
 
-            tick("write output buffers")
+            points_shm.close()
+            facets_shm.close()
+            vnormals_shm.close()
+            if uvmap_shm:
+                uvmap_shm.close()
 
-        # We build the output
-        # We have to pass the requested size, as the OS may round
-        # the shared memory block to whole pages
-        output = [
-            (points_shm.name, points_shm.size),
-            (facets_shm.name, facets_shm.size),
-            (vnormals_shm.name, vnormals_shm.size),
-        ]
-        if uvmap_shm:
-            print("append uvmap")
-            output.append((uvmap_shm.name, uvmap_shm.size))
-        connection.send(output)
-        connection.recv()
-        tick("send output buffers")
+            tick("send output buffers")
 
-        input("Press Enter to continue...")  # Debug
+            input("Press Enter to continue...")  # Debug
 
     except Exception as exc:
         print(traceback.format_exc())
-        input("Press Enter to continue...")  # Debug
         raise exc
     finally:
         os.chdir(save_dir)
@@ -1029,5 +1055,7 @@ if __name__ == "__main__":
         UVMAP = None
         SPLIT_ANGLE = None
         SHOWTIME = None
+        CONNECTION = None
     except Exception:
+        input("Press Enter to continue...")  # Debug
         pass
