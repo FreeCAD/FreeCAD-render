@@ -637,6 +637,41 @@ def main(
         if any(result):
             print("Not null result")
 
+    def create_shm(arg):
+        """Create a SharedMemory object from the argument.
+
+        If the argument supports buffer protocol, the shared memory object
+        is created with the adequate size and filled with the argument
+        content.
+        If the argument is an int, it is interpreted as a size and the
+        shared memory object is created accordingly (empty)
+        """
+        # arg supports buffer protocol?
+        try:
+            memv = memoryview(arg)
+        except TypeError:
+            pass
+        else:
+            size = memv.nbytes
+            if size > 0:
+                shm = shared_memory.SharedMemory(create=True, size=size)
+                shm.buf[:] = memv.tobytes()
+            else:
+                shm = None
+            return shm
+
+        # arg is an int?
+        try:
+            size = int(arg)
+        except TypeError:
+            pass
+        else:
+            return shared_memory.SharedMemory(create=True, size=size)
+        
+        msg = "Argument should support buffer protocol or be an integer"
+        raise TypeError(msg)
+
+
     # Set working directory
     save_dir = os.getcwd()
     os.chdir(os.path.dirname(__file__))
@@ -935,16 +970,6 @@ def main(
             tick("normalize")
 
             # Write output buffers (points, facets, uvmap, vnormals)
-            def create_shm(obj):
-                memv = memoryview(obj)
-                size = memv.nbytes
-                if size > 0:
-                    shm = shared_memory.SharedMemory(create=True, size=size)
-                    shm.buf[:] = memv.tobytes()
-                else:
-                    shm = None
-                return shm
-
             points_shm = create_shm(shared["points"])
             facets_shm = create_shm(shared["facets"])
             vnormals_shm = create_shm(shared["vnormals"])
