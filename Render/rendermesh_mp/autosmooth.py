@@ -68,33 +68,18 @@ def getnormal(idx):
 def compute_adjacents(chunk):
     """Compute adjacency lists for a chunk of facets."""
     start, stop = chunk
-    count_points = len(SHARED_POINTS) // 3
+    # count_points = len(SHARED_POINTS) // 3
 
     split_angle = SHARED_SPLIT_ANGLE.value
     split_angle_cos = cos(split_angle)
     dot = vector3d.dot
 
-    l3struct = struct.Struct("lll")
-    l3iter_unpack = l3struct.iter_unpack
+    # l3struct = struct.Struct("lll")
+    # l3iter_unpack = l3struct.iter_unpack
 
     # pylint: disable=global-variable-undefined
     global FACETS_PER_POINT
     global UNPACKED_FACETS
-    if FACETS_PER_POINT is None:
-        UNPACKED_FACETS = list(l3iter_unpack(SHARED_FACETS))
-        # For each point, compute facets that contain this point as a vertex
-        FACETS_PER_POINT = [[] for _ in range(count_points)]
-
-        iterator = (
-            (FACETS_PER_POINT[point_index], facet_index)
-            for facet_index, facet in enumerate(UNPACKED_FACETS)
-            for point_index in facet
-        )
-
-        append = list.append
-        any(
-            itertools.starmap(append, iterator)
-        )  # Sorry, we use side effect (faster)...
 
     # Compute adjacency for the chunk
     # Warning: facet_idx in [0, stop - start], other_idx in [0, count_facets]
@@ -472,11 +457,9 @@ def normalize_np(chunk):
 
 def init(shared):
     """Initialize pool of processes."""
+    gc.disable()
 
     # pylint: disable=global-variable-undefined
-    global SHARED
-    SHARED = shared
-
     global SHARED_POINTS
     SHARED_POINTS = shared["points"]
 
@@ -491,9 +474,6 @@ def init(shared):
 
     global SHARED_SPLIT_ANGLE
     SHARED_SPLIT_ANGLE = shared["split_angle"]
-
-    global FACETS_PER_POINT
-    FACETS_PER_POINT = None
 
     global FACETS_AS_SETS
     FACETS_AS_SETS = None
@@ -519,7 +499,10 @@ def init(shared):
     global SHARED_VNORMALS
     SHARED_VNORMALS = None  # Not known at initialisation...
 
-    if USE_NUMPY:
+    global USE_NUMPY
+    use_numpy = USE_NUMPY and shared["enable_numpy"]
+
+    if use_numpy:
         global SHARED_HASHES_NP
         SHARED_HASHES_NP = np.array(shared["hashes"], copy=False)
 
@@ -561,6 +544,28 @@ def init(shared):
         global SHARED_NORMALS_NP
         SHARED_NORMALS_NP = np.array(SHARED_NORMALS, copy=False)
         SHARED_NORMALS_NP.shape = [-1, 3]
+    else:
+        # Needed for adjacency
+        global FACETS_PER_POINT
+        global UNPACKED_FACETS
+
+        count_points = len(SHARED_POINTS) // 3
+        l3struct = struct.Struct("lll")
+        l3iter_unpack = l3struct.iter_unpack
+        UNPACKED_FACETS = list(l3iter_unpack(SHARED_FACETS))
+        # For each point, compute facets that contain this point as a vertex
+        FACETS_PER_POINT = [[] for _ in range(count_points)]
+
+        iterator = (
+            (FACETS_PER_POINT[point_index], facet_index)
+            for facet_index, facet in enumerate(UNPACKED_FACETS)
+            for point_index in facet
+        )
+
+        append = list.append
+        any(
+            itertools.starmap(append, iterator)
+        )  # Sorry, we use side effect (faster)...
 
 
 def update_globals(shms):
@@ -587,33 +592,20 @@ def update_globals(shms):
     return mp.current_process().pid
 
 
-# TODO
-def reinit(shared):
-    """Reinitialize global data."""
-    gc.disable()
-
-    # pylint: disable=global-variable-undefined
-    global SHARED_POINTS
-    SHARED_POINTS = shared["points"]
-
-    global SHARED_FACETS
-    SHARED_FACETS = shared["facets"]
-
-    global SHARED_NORMALS
-    SHARED_NORMALS = shared["normals"]
-
-    global SHARED_AREAS
-    SHARED_AREAS = shared["areas"]
-
-    global SHARED_VNORMALS
-    SHARED_VNORMALS = shared["vnormals"]
-
-
 # *****************************************************************************
 
 
 def main(
-    python, points, facets, normals, areas, uvmap, split_angle, showtime, connection
+    python,
+    points,
+    facets,
+    normals,
+    areas,
+    uvmap,
+    split_angle,
+    showtime,
+    connection,
+    enable_numpy,
 ):
     """Entry point for __main__.
 
@@ -700,6 +692,9 @@ def main(
 
     count_facets = len(facets) // 3
 
+    global USE_NUMPY
+    use_numpy = USE_NUMPY and enable_numpy
+
     try:
         shared = {
             "points": points,
@@ -713,8 +708,9 @@ def main(
             "tags": ctx.RawArray("l", count_facets),
             "current_tag": ctx.Value("l", 0),
             "current_adj": ctx.Value("l", 0),
+            "enable_numpy": enable_numpy,
         }
-        if USE_NUMPY:
+        if use_numpy:
             shared["hashes"] = ctx.RawArray("q", count_facets * 3)
             shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
             shared["current_pair"] = ctx.Value("l", 0)  # TODO Remove
@@ -728,7 +724,7 @@ def main(
             tick("start pool")
 
             # Compute adjacency
-            if USE_NUMPY:
+            if use_numpy:
                 # # Debug
                 # print(
                 # np.sort(
@@ -962,13 +958,13 @@ def main(
             # Here, we'll update points and vnormals in processes
             chunks = make_chunks(chunk_size, len(shared["facets"]) // 3)
             func = (
-                compute_weighted_normals_np if USE_NUMPY else compute_weighted_normals
+                compute_weighted_normals_np if use_numpy else compute_weighted_normals
             )
             data = pool.imap_unordered(func, chunks)
 
             # Reduce weighted normals (one per vertex)
             vnorms = vnormals_shm.buf.cast("f")
-            if not USE_NUMPY:
+            if not use_numpy:
                 wstruct = struct.Struct("lfff")
                 for chunk in data:
                     for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
@@ -993,7 +989,7 @@ def main(
 
             # Normalize
             chunks = make_chunks(chunk_size, len(shared["points"]) // 3)
-            func = normalize_np if USE_NUMPY else normalize
+            func = normalize_np if use_numpy else normalize
             run_unordered(pool, func, chunks)
             tick("normalize")
 
@@ -1023,6 +1019,7 @@ def main(
 
     except Exception as exc:
         print(traceback.format_exc())
+        input("Press Enter to continue...")  # Debug
         raise exc
     finally:
         os.chdir(save_dir)
@@ -1044,6 +1041,7 @@ if __name__ == "__main__":
             SPLIT_ANGLE,
             SHOWTIME,
             CONNECTION,
+            ENABLE_NUMPY,
         )
 
         # Clean (remove references to foreign objects)
@@ -1056,6 +1054,7 @@ if __name__ == "__main__":
         SPLIT_ANGLE = None
         SHOWTIME = None
         CONNECTION = None
+        ENABLE_NUMPY = None
     except Exception:
         input("Press Enter to continue...")  # Debug
         pass
