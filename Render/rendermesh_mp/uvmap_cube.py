@@ -412,6 +412,9 @@ def init(shared):
     global SHARED_UVMAP
     SHARED_UVMAP = shared["uvmap"]
 
+    global USE_NUMPY
+    USE_NUMPY = USE_NUMPY and shared["enable_numpy"]
+
     if USE_NUMPY:
         global SHARED_NORMALS_NP
         SHARED_NORMALS_NP = np.ctypeslib.as_array(SHARED_NORMALS)
@@ -455,6 +458,7 @@ def main(
     normals,
     areas,
     showtime,
+    enable_numpy,
     out_points,
     out_point_count,
     out_facets,
@@ -541,6 +545,7 @@ def main(
             "colored_points": ctx.RawArray("L", count_points * 2 * 6),
             "colored_points_len": ctx.RawValue("l"),
             "uvmap": ctx.RawArray("f", count_points * 2 * 6),
+            "enable_numpy": enable_numpy,
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -610,6 +615,7 @@ if __name__ == "__main__":
         NORMALS,
         AREAS,
         SHOWTIME,
+        ENABLE_NUMPY,
         OUT_POINTS,
         OUT_POINT_COUNT,
         OUT_FACETS,
@@ -623,6 +629,7 @@ if __name__ == "__main__":
     NORMALS = None
     AREAS = None
     SHOWTIME = None
+    ENABLE_NUMPY = None
     OUT_POINTS = None
     OUT_POINT_COUNT = None
     OUT_FACETS = None
