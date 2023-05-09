@@ -78,6 +78,7 @@ def compute_adjacents(chunk):
     # l3iter_unpack = l3struct.iter_unpack
 
     # pylint: disable=global-variable-undefined
+    # pylint: disable=global-variable-not-assigned
     global FACETS_PER_POINT
     global UNPACKED_FACETS
 
@@ -164,6 +165,7 @@ def build_pairs_np(chunk):
     # We must keep a handle of shm, otherwise it is automatically closed
     # when the function exits
     # https://stackoverflow.com/questions/74193377/filenotfounderror-when-passing-a-shared-memory-to-a-new-process
+    # pylint: disable=global-variable-not-assigned
     global SHARED_MEMS
     SHARED_MEMS.append(shm)
 
@@ -355,7 +357,6 @@ def compute_weighted_normals_np(chunk):
     """Compute weighted normals for each point (numpy version)."""
     start, stop = chunk
 
-    # TODO
     points = np.asarray(SHARED_POINTS, dtype="f4")
     points = np.reshape(points, [-1, 3])
 
@@ -499,7 +500,6 @@ def init(shared):
     global SHARED_VNORMALS
     SHARED_VNORMALS = None  # Not known at initialisation...
 
-    global USE_NUMPY
     use_numpy = USE_NUMPY and shared["enable_numpy"]
 
     if use_numpy:
@@ -508,8 +508,6 @@ def init(shared):
 
         global SHARED_HASHES_INDICES_NP
         SHARED_HASHES_INDICES_NP = np.array(shared["hashes_indices"], copy=False)
-
-        count_facets = len(SHARED_FACETS) // 3  # TODO Remove
 
         facets = np.array(SHARED_FACETS, copy=True)
         facets.shape = [-1, 3]
@@ -569,10 +567,13 @@ def init(shared):
 
 
 def update_globals(shms):
+    """Update global variables for subprocesses."""
     # We just have to update points and vnormals
     # Other globals may have changed in place (facets)
     # or may not have changed at all (normals)
     shm_points_name, shm_points_size, shm_vnormals_name, shm_vnormals_size = shms
+
+    # pylint: disable=global-variable-undefined
 
     # We have to define the shared mems as globals
     # Otherwise they'll be garbage collected at the end of
@@ -615,7 +616,6 @@ def main(
     """
     # pylint: disable=import-outside-toplevel
     # pylint: disable=too-many-locals
-    import multiprocessing as mp
     import time
     import logging
 
@@ -653,7 +653,7 @@ def main(
 
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
-        result = [r for r in imap]
+        result = list(imap)
         if any(result):
             print("Not null result")
 
@@ -687,7 +687,7 @@ def main(
     # Set executable
     ctx = mp.get_context("spawn")
     ctx.set_executable(python)
-    
+
     # Logging
     logger = mp.log_to_stderr()
     logger.setLevel(logging.DEBUG)
@@ -697,7 +697,6 @@ def main(
 
     count_facets = len(facets) // 3
 
-    global USE_NUMPY
     use_numpy = USE_NUMPY and enable_numpy
 
     try:
@@ -718,7 +717,6 @@ def main(
         if use_numpy:
             shared["hashes"] = ctx.RawArray("q", count_facets * 3)
             shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
-            shared["current_pair"] = ctx.Value("l", 0)  # TODO Remove
             shared["pairs_shm_name"] = ctx.RawArray("b", 256)
         del points
         del facets
@@ -884,10 +882,9 @@ def main(
 
             tick("connected components (pass #2 - reduce & write)")
 
-            # Recompute Points & Facets
-
-            # TODO
             print("distinct tags", len(set(tags)))
+
+            # Recompute Points & Facets
 
             # Recompute points
             l3struct = struct.Struct("lll")
@@ -922,7 +919,7 @@ def main(
                 ]
                 uvmap = mp.RawArray("f", len(newpoints) * 2)
                 uvmap[:] = uvmap_list
-            tick(f"rebuild uvmap")
+            tick("rebuild uvmap")
 
             # Update point indices in facets
             facet_list = [
@@ -933,7 +930,7 @@ def main(
             shared["facets"][:] = facet_list
             print("len facets", len(shared["facets"]) // 3)
 
-            tick(f"updated facets")
+            tick("updated facets")
 
             # Vertex Normals Computation
 
@@ -1034,32 +1031,28 @@ def main(
 # *****************************************************************************
 
 if __name__ == "__main__":
-    try:
-        # pylint: disable=used-before-assignment
-        main(
-            PYTHON,
-            POINTS,
-            FACETS,
-            NORMALS,
-            AREAS,
-            UVMAP,
-            SPLIT_ANGLE,
-            SHOWTIME,
-            CONNECTION,
-            ENABLE_NUMPY,
-        )
+    # pylint: disable=used-before-assignment
+    main(
+        PYTHON,
+        POINTS,
+        FACETS,
+        NORMALS,
+        AREAS,
+        UVMAP,
+        SPLIT_ANGLE,
+        SHOWTIME,
+        CONNECTION,
+        ENABLE_NUMPY,
+    )
 
-        # Clean (remove references to foreign objects)
-        PYTHON = None
-        POINTS = None
-        FACETS = None
-        NORMALS = None
-        AREAS = None
-        UVMAP = None
-        SPLIT_ANGLE = None
-        SHOWTIME = None
-        CONNECTION = None
-        ENABLE_NUMPY = None
-    except Exception:
-        input("Press Enter to continue...")  # Debug
-        pass
+    # Clean (remove references to foreign objects)
+    PYTHON = None
+    POINTS = None
+    FACETS = None
+    NORMALS = None
+    AREAS = None
+    UVMAP = None
+    SPLIT_ANGLE = None
+    SHOWTIME = None
+    CONNECTION = None
+    ENABLE_NUMPY = None
