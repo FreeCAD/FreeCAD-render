@@ -617,6 +617,7 @@ def main(
     # pylint: disable=too-many-locals
     import multiprocessing as mp
     import time
+    import logging
 
     tm0 = time.time()
     if showtime:
@@ -686,6 +687,10 @@ def main(
     # Set executable
     ctx = mp.get_context("spawn")
     ctx.set_executable(python)
+    
+    # Logging
+    logger = mp.log_to_stderr()
+    logger.setLevel(logging.DEBUG)
 
     chunk_size = 20000
     nproc = os.cpu_count()
@@ -1015,7 +1020,7 @@ def main(
 
             tick("send output buffers")
 
-            input("Press Enter to continue...")  # Debug
+            # input("Press Enter to continue...")  # Debug
 
     except Exception as exc:
         print(traceback.format_exc())
