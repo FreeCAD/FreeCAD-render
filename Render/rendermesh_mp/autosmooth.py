@@ -192,6 +192,7 @@ def compute_adjacents_np(chunk):
     )
 
     any(starmap(set_item_adj, adjacency))
+    pairs = None
 
 
 # *****************************************************************************
@@ -690,7 +691,7 @@ def main(
 
     # Logging
     logger = mp.log_to_stderr()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.WARNING)
 
     chunk_size = 20000
     nproc = os.cpu_count()
