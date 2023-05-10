@@ -104,6 +104,30 @@ def compute_adjacents(chunk):
     ]
 
 
+def check_adjacency_symmetry(shared, count_facets):
+    """Check the symmetry of adjacency lists."""
+    adj = shared["adjacency"]
+    error = 0
+    for ifacet in range(0, count_facets):
+        for f in adj[ifacet*3 : ifacet*3+3]:
+            if f!=-1 and not ifacet in adj[f*3:f*3+3] and error < 100:
+                print(
+                    "ERROR #1:",
+                    ifacet,
+                    f,
+                    list(adj[ifacet*3: ifacet*3+3])
+                )
+                error += 1
+
+def check_adjacency_symmetry2(subadjacency):
+    """Check symmetry in adjacency - pass 2."""
+    error = 0
+    for ifacet, adjs in enumerate(subadjacency):
+        for f in adjs:
+            if not ifacet in subadjacency[f] and error < 100:
+                print("ERROR", ifacet, f)
+                error += 1
+
 # *****************************************************************************
 
 
@@ -173,6 +197,20 @@ def build_pairs_np(chunk):
     return name, np_buffer.shape
 
 
+def check_pairs_symmetry(facet_pairs):
+    """Check the symmetry of the pairs - debug purpose."""
+    reverse_pairs = np.array(np.flip(facet_pairs, axis=1), copy=True)
+    facet_pairs2 = np.array(facet_pairs, copy=True)
+    dt = [("x", np.int64), ("y", np.int64)]
+    facet_pairs2.dtype = dt
+    reverse_pairs.dtype = dt
+    notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs2))
+    print(
+        "check symmetry (ok if empty)",
+        np.argwhere(notisin),
+        len(np.argwhere(notisin))
+    )
+
 def compute_adjacents_np(chunk):
     """Compute adjacency lists - numpy version."""
     start, stop = chunk
@@ -180,7 +218,7 @@ def compute_adjacents_np(chunk):
     # Get pairs
     shm_name = bytearray(SHARED_PAIRS_SHM_NAME).rstrip(b"\0").decode()
     shm = shared_memory.SharedMemory(name=shm_name, create=False)
-    pairs = np.frombuffer(shm.buf, dtype=np.int32)
+    pairs = np.frombuffer(shm.buf, dtype=np.int64)
     pairs.shape = (-1, 2)
 
     pairs = pairs[start:stop]
@@ -760,7 +798,7 @@ def main(
                 ]
 
                 np_bufs = [
-                    np.ndarray(shape, dtype=np.int32, buffer=shm.buf)
+                    np.ndarray(shape, dtype=np.int64, buffer=shm.buf)
                     for shm, shape in results
                 ]
                 facet_pairs = np.concatenate(np_bufs)
@@ -775,17 +813,7 @@ def main(
                 facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
 
                 # # Check symmetry in pairs (debug)
-                # reverse_pairs = np.array(np.flip(facet_pairs, axis=1), copy=True)
-                # facet_pairs2 = np.array(facet_pairs, copy=True)
-                # dt = [("x", np.int32), ("y", np.int32)]
-                # facet_pairs2.dtype = dt
-                # reverse_pairs.dtype = dt
-                # notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs2))
-                # print(
-                # "check symmetry (ok if empty)",
-                # np.argwhere(notisin),
-                # len(np.argwhere(notisin))
-                # )
+                # check_pairs_symmetry(facet_pairs)
 
                 # Create shared object for adjacency
                 shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
@@ -802,7 +830,7 @@ def main(
                 adj = np.ndarray(
                     buffer=shared["adjacency"],
                     shape=(count_facets * 3,),
-                    dtype=np.int32,
+                    dtype=np.int64,
                 )
                 adj[:] = -1
 
@@ -815,20 +843,8 @@ def main(
                 run_unordered(pool, compute_adjacents, chunks)
                 tick("adjacency")
 
-            # # Debug
-            # # Check symmetry in adjacency
-            # adj = shared["adjacency"]
-            # error = 0
-            # for ifacet in range(0, count_facets):
-            # for f in adj[ifacet*3 : ifacet*3+3]:
-            # if f!=-1 and not ifacet in adj[f*3:f*3+3] and error < 100:
-            # print(
-            # "ERROR #1:",
-            # ifacet,
-            # f,
-            # list(adj[ifacet*3: ifacet*3+3])
-            # )
-            # error += 1
+            # # Check symmetry in adjacency (debug)
+            # check_adjacency_symmetry(shared, count_facets)
 
             # Compute connected components
             # Compute also pass#2 adjacency lists ("adjacency2")
@@ -864,14 +880,8 @@ def main(
 
             tick("connected components (pass #1 - reduce)")
 
-            # # Debug
-            # # Check symmetry in adjacency pass#2
-            # error = 0
-            # for ifacet, adjs in enumerate(subadjacency):
-            # for f in adjs:
-            # if not ifacet in subadjacency[f] and error < 100:
-            # print("ERROR", ifacet, f)
-            # error += 1
+            # Debug
+            check_adjacency_symmetry2(subadjacency)
 
             tags_pass2 = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
