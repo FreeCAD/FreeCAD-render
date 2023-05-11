@@ -166,7 +166,7 @@ def build_pairs_np(chunk):
 
     # Compute pairs
     pairs = itertools.chain.from_iterable(hashtable)
-    pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
+    pairs = np.fromiter(pairs, dtype=[("x", np.int32), ("y", np.int32)])
 
     # Build adjacency lists
     facet_pairs = np.stack((INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1)
@@ -201,7 +201,7 @@ def check_pairs_symmetry(facet_pairs):
     """Check the symmetry of the pairs - debug purpose."""
     reverse_pairs = np.array(np.flip(facet_pairs, axis=1), copy=True)
     facet_pairs2 = np.array(facet_pairs, copy=True)
-    dt = [("x", np.int64), ("y", np.int64)]
+    dt = [("x", np.int32), ("y", np.int32)]
     facet_pairs2.dtype = dt
     reverse_pairs.dtype = dt
     notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs2))
@@ -218,7 +218,7 @@ def compute_adjacents_np(chunk):
     # Get pairs
     shm_name = bytearray(SHARED_PAIRS_SHM_NAME).rstrip(b"\0").decode()
     shm = shared_memory.SharedMemory(name=shm_name, create=False)
-    pairs = np.frombuffer(shm.buf, dtype=np.int64)
+    pairs = np.frombuffer(shm.buf, dtype=np.int32)
     pairs.shape = (-1, 2)
 
     pairs = pairs[start:stop]
@@ -556,7 +556,7 @@ def init(shared):
         SHARED_MEMS = []
 
         global INDICES_NP
-        INDICES_NP = np.arange(len(facets))
+        INDICES_NP = np.arange(len(facets), dtype=np.int32)
         INDICES_NP = np.tile(INDICES_NP, 3)
 
         global ALL_EDGES_LEFT
@@ -798,7 +798,7 @@ def main(
                 ]
 
                 np_bufs = [
-                    np.ndarray(shape, dtype=np.int64, buffer=shm.buf)
+                    np.ndarray(shape, dtype=np.int32, buffer=shm.buf)
                     for shm, shape in results
                 ]
                 facet_pairs = np.concatenate(np_bufs)
@@ -830,7 +830,7 @@ def main(
                 adj = np.ndarray(
                     buffer=shared["adjacency"],
                     shape=(count_facets * 3,),
-                    dtype=np.int64,
+                    dtype=np.int32,
                 )
                 adj[:] = -1
 
