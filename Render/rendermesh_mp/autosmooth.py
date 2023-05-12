@@ -228,8 +228,6 @@ def compute_adjacents_np(chunk):
         for k, v in groupby(pairs, key=itget0)
     )
     adjacency = list(adjacency)
-    assert all(a != [0,0,0] for f,a in adjacency)  # TODO
-    print(adjacency)  # TODO
 
     any(starmap(set_item_adj, adjacency))
     pairs = None
@@ -759,7 +757,7 @@ def main(
         }
         if use_numpy:
             shared["hashes"] = ctx.RawArray("q", count_facets * 3)
-            shared["hashes_indices"] = ctx.RawArray("l", count_facets * 3)
+            shared["hashes_indices"] = ctx.RawArray("q", count_facets * 3)
             shared["pairs_shm_name"] = ctx.RawArray("b", 256)
         del points
         del facets
