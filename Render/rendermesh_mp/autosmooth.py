@@ -107,17 +107,15 @@ def compute_adjacents(chunk):
 def check_adjacency_symmetry(shared, count_facets):
     """Check the symmetry of adjacency lists."""
     adj = shared["adjacency"]
-    error = 0
-    for ifacet in range(0, count_facets):
-        for f in adj[ifacet*3 : ifacet*3+3]:
-            if f!=-1 and not ifacet in adj[f*3:f*3+3] and error < 100:
-                print(
-                    "ERROR #1:",
-                    ifacet,
-                    f,
-                    list(adj[ifacet*3: ifacet*3+3])
-                )
-                error += 1
+    errors = [
+        (ifacet, f, list(adj[ifacet*3: ifacet*3+3]))
+        for ifacet in range(0, count_facets)
+        for f in adj[ifacet*3 : ifacet*3+3]
+        if f!=-1 and not ifacet in adj[f*3:f*3+3]
+    ]
+    print(len(errors))
+    print(errors[:100])
+
 
 def check_adjacency_symmetry2(subadjacency):
     """Check symmetry in adjacency - pass 2."""
@@ -166,7 +164,7 @@ def build_pairs_np(chunk):
 
     # Compute pairs
     pairs = itertools.chain.from_iterable(hashtable)
-    pairs = np.fromiter(pairs, dtype=[("x", np.int32), ("y", np.int32)])
+    pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
     # Build adjacency lists
     facet_pairs = np.stack((INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1)
@@ -206,7 +204,7 @@ def check_pairs_symmetry(facet_pairs):
     reverse_pairs.dtype = dt
     notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs2))
     print(
-        "check symmetry (ok if empty)",
+        f"check symmetry - {len(facet_pairs2)} pairs - (ok if empty):",
         np.argwhere(notisin),
         len(np.argwhere(notisin))
     )
@@ -220,6 +218,7 @@ def compute_adjacents_np(chunk):
     shm = shared_memory.SharedMemory(name=shm_name, create=False)
     pairs = np.frombuffer(shm.buf, dtype=np.int32)
     pairs.shape = (-1, 2)
+    print(len(pairs), start, stop)
 
     pairs = pairs[start:stop]
 
@@ -228,6 +227,9 @@ def compute_adjacents_np(chunk):
         (k, (list(map(itget1, v)) + [-1, -1, -1])[0:3])
         for k, v in groupby(pairs, key=itget0)
     )
+    adjacency = list(adjacency)
+    assert all(a != [0,0,0] for f,a in adjacency)  # TODO
+    print(adjacency)  # TODO
 
     any(starmap(set_item_adj, adjacency))
     pairs = None
@@ -543,12 +545,14 @@ def init(shared):
 
     if use_numpy:
         global SHARED_HASHES_NP
-        SHARED_HASHES_NP = np.array(shared["hashes"], copy=False)
+        SHARED_HASHES_NP = np.array(shared["hashes"], copy=False, dtype=np.int64)
 
         global SHARED_HASHES_INDICES_NP
-        SHARED_HASHES_INDICES_NP = np.array(shared["hashes_indices"], copy=False)
+        SHARED_HASHES_INDICES_NP = np.array(
+            shared["hashes_indices"], copy=False, dtype=np.int64
+        )
 
-        facets = np.array(SHARED_FACETS, copy=True)
+        facets = np.array(SHARED_FACETS, copy=True, dtype=np.int32)
         facets.shape = [-1, 3]
         facets.sort(axis=1)
 
@@ -572,14 +576,14 @@ def init(shared):
         SHARED_PAIRS_SHM_NAME = shared["pairs_shm_name"]
 
         global SHARED_ADJACENCY_NP
-        SHARED_ADJACENCY_NP = np.array(SHARED_ADJACENCY, copy=False)
+        SHARED_ADJACENCY_NP = np.array(SHARED_ADJACENCY, copy=False, dtype=np.int32)
         SHARED_ADJACENCY_NP.shape = [-1, 3]
 
         global set_item_adj
         set_item_adj = functools.partial(operator.setitem, SHARED_ADJACENCY_NP)
 
         global SHARED_NORMALS_NP
-        SHARED_NORMALS_NP = np.array(SHARED_NORMALS, copy=False)
+        SHARED_NORMALS_NP = np.array(SHARED_NORMALS, copy=False, dtype=np.float32)
         SHARED_NORMALS_NP.shape = [-1, 3]
     else:
         # Needed for adjacency
@@ -798,7 +802,7 @@ def main(
                 ]
 
                 np_bufs = [
-                    np.ndarray(shape, dtype=np.int32, buffer=shm.buf)
+                    np.ndarray(shape=shape, dtype=np.int32, buffer=shm.buf)
                     for shm, shape in results
                 ]
                 facet_pairs = np.concatenate(np_bufs)
@@ -812,13 +816,13 @@ def main(
                 # Sort pairs
                 facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
 
-                # # Check symmetry in pairs (debug)
-                # check_pairs_symmetry(facet_pairs)
+                # Check symmetry in pairs (debug)
+                check_pairs_symmetry(facet_pairs)
 
                 # Create shared object for adjacency
                 shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
                 buf_np = np.ndarray(
-                    facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
+                    facet_pairs.shape, dtype=np.int32, buffer=shm.buf
                 )
                 buf_np[:] = facet_pairs[:]
                 name = str.encode(shm.name)
@@ -843,8 +847,8 @@ def main(
                 run_unordered(pool, compute_adjacents, chunks)
                 tick("adjacency")
 
-            # # Check symmetry in adjacency (debug)
-            # check_adjacency_symmetry(shared, count_facets)
+            # Check symmetry in adjacency (debug)
+            check_adjacency_symmetry(shared, count_facets)
 
             # Compute connected components
             # Compute also pass#2 adjacency lists ("adjacency2")
