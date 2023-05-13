@@ -54,6 +54,30 @@ from vector3d import (
     safe_normalize,
 )
 
+NSHM = 0  # Counter on shared_memory objects, for naming purpose
+
+def create_shm(obj, empty=False):
+    """Create a SharedMemory object from the argument.
+
+    The argument must support buffer protocol.
+    The shared memory is created with the adequate size to host the
+    argument.
+    If empty==False (default), the shared memory is initialized with the
+    argument content. Otherwise it is kept uninitialized
+    """
+    global NSHM
+    memv = memoryview(obj)
+    size = memv.nbytes
+    name = "rdr{}_{}".format(mp.current_process().pid, NSHM)
+    NSHM +=1
+    if size > 0:
+        shm = shared_memory.SharedMemory(name=name, create=True, size=size)
+        if not empty:
+            shm.buf[:] = memv.tobytes()
+    else:
+        shm = None
+    return shm
+
 
 @functools.lru_cache(20000)
 def getnormal(idx):
@@ -697,25 +721,6 @@ def main(
         result = list(imap)
         if any(result):
             print("Not null result")
-
-    def create_shm(obj, empty=False):
-        """Create a SharedMemory object from the argument.
-
-        The argument must support buffer protocol.
-        The shared memory is created with the adequate size to host the
-        argument.
-        If empty==False (default), the shared memory is initialized with the
-        argument content. Otherwise it is kept uninitialized
-        """
-        memv = memoryview(obj)
-        size = memv.nbytes
-        if size > 0:
-            shm = shared_memory.SharedMemory(create=True, size=size)
-            if not empty:
-                shm.buf[:] = memv.tobytes()
-        else:
-            shm = None
-        return shm
 
     def close_shm(shm):
         """Close shm (if shm has been created)."""
