@@ -980,7 +980,9 @@ def main(
                 vnormals_shm.size,
             )
             updated_pids = set()
-            if updated_pids != pids:
+            while updated_pids != pids:
+                if updated_pids != set():
+                    print("retry update globals")
                 updated_pids.update(set(pool.map(update_globals, [shared_mems] * nproc)))
 
             # Compute weighted normals (n per vertex)
