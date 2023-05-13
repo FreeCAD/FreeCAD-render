@@ -1018,19 +1018,25 @@ def main(
                 (vnormals_shm.name, vnormals_shm.size),
             ]
             if uvmap_shm:
-                print("append uvmap")
+                print("append uvmap to outputs")
                 output.append((uvmap_shm.name, uvmap_shm.size))
             connection.send(output)
             connection.recv()
+            tick("exchange data")
 
+            # Close
             output = None
             points_shm.close()
+            points_shm.unlink()
             facets_shm.close()
+            facets_shm.unlink()
             vnormals_shm.close()
+            vnormals_shm.unlink()
             if uvmap_shm:
                 uvmap_shm.close()
+                uvmap_shm.unlink()
 
-            tick("send output buffers")
+            tick("close output buffers")
 
             # input("Press Enter to continue...")  # Debug
 

@@ -354,11 +354,10 @@ class RenderMeshMultiprocessingMixin:
             ]
             buffers = [shm.buf[0:size] for shm, size in shms]
             arrays = [array.array(t, b.cast(t)) for b, t in zip(buffers, return_types)]
-            main_conn.send("terminate")
             buffers = None  # Otherwise we cannot close shared memory...
             for shm, _ in shms:
                 shm.close()
-                shm.unlink()
+            main_conn.send("terminate")
         else:
             if return_types is not None:
                 warn("Object", self.name, "No return from mp module")
