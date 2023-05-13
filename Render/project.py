@@ -823,7 +823,9 @@ def _get_objstrings_helper(get_rdr_string, views):
         App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
         time0 = time.time()
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        # max_workers = 1  # Debug
+        max_workers = None
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
             objstrings = executor.map(get_rdr_string, views)
 
         App.Console.PrintMessage(
