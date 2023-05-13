@@ -717,6 +717,12 @@ def main(
             shm = None
         return shm
 
+    def close_shm(shm):
+        """Close shm (if shm has been created)."""
+        if shm:
+            shm.close()
+            shm.unlink()
+
     # Set working directory
     save_dir = os.getcwd()
     os.chdir(os.path.dirname(__file__))
@@ -759,11 +765,10 @@ def main(
             shared["hashes"] = ctx.RawArray("q", count_facets * 3)
             shared["hashes_indices"] = ctx.RawArray("q", count_facets * 3)
             shared["pairs_shm_name"] = ctx.RawArray("b", 256)
-        del points
-        del facets
-        del normals
-        del areas
+        del points, facets, normals, areas
+        facets_shm = points_shm = vnormals_shm = uvmap_shm = None
         tick("prepare shared")
+
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
@@ -1022,21 +1027,9 @@ def main(
                 output.append((uvmap_shm.name, uvmap_shm.size))
             connection.send(output)
             connection.recv()
+            output = None
             tick("exchange data")
 
-            # Close
-            output = None
-            points_shm.close()
-            points_shm.unlink()
-            facets_shm.close()
-            facets_shm.unlink()
-            vnormals_shm.close()
-            vnormals_shm.unlink()
-            if uvmap_shm:
-                uvmap_shm.close()
-                uvmap_shm.unlink()
-
-            tick("close output buffers")
 
             # input("Press Enter to continue...")  # Debug
 
@@ -1045,6 +1038,9 @@ def main(
         input("Press Enter to continue...")  # Debug
         raise exc
     finally:
+        for shm in (facets_shm, points_shm, vnormals_shm, uvmap_shm):
+            close_shm(shm)
+        tick("close output buffers")
         os.chdir(save_dir)
         sys.stdin = save_stdin
 
