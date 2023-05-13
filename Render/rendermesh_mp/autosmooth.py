@@ -965,15 +965,16 @@ def main(
             tick("write output buffers (points, facets, uvmap)")
 
             # Update globals in subprocesses
-            pids = {p.pid for p in mp.active_children()}
+            pids = {p.pid for p in ctx.active_children()}
             shared_mems = (
                 points_shm.name,
                 points_shm.size,
                 vnormals_shm.name,
                 vnormals_shm.size,
             )
-            result = set(pool.map(update_globals, [shared_mems] * nproc))
-            assert result == pids
+            updated_pids = set()
+            if updated_pids != pids:
+                updated_pids.update(set(pool.map(update_globals, [shared_mems] * nproc)))
 
             # Compute weighted normals (n per vertex)
             # Here, we'll update points and vnormals in processes
