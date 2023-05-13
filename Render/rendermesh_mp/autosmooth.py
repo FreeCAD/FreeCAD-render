@@ -396,6 +396,12 @@ def compute_weighted_normals(chunk):
     """Compute weighted normals for each point."""
     start, stop = chunk
 
+    shm_points_name = bytearray(SHARED_POINTS_SHM_NAME).rstrip(b"\0").decode()
+    shm_points_size = SHARED_POINTS_SHM_SIZE.value
+    # TODO
+    POINTS_SHM = shared_memory.SharedMemory(shm_points_name)
+    SHARED_POINTS = POINTS_SHM.buf[0:shm_points_size].cast("f")
+
     it_facets = zip(
         slice2d(SHARED_FACETS, start, stop, 3),
         slice2d(SHARED_NORMALS, start, stop, 3),
@@ -414,6 +420,10 @@ def compute_weighted_normals(chunk):
         for facet, normal, area, angles in it_facets
         for point_index, angle in zip(facet, angles)
     )
+
+    SHARED_POINTS = None
+    POINTS_SHM.close()
+
     return normals
 
 
@@ -506,6 +516,12 @@ def normalize(chunk):
     """Normalize normal vectors."""
     start, stop = chunk
 
+    shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
+    shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
+    # TODO
+    VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
+    SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
+
     fmt = "fff"
     f3struct = struct.Struct(fmt)
     f3pack = f3struct.pack
@@ -519,6 +535,11 @@ def normalize(chunk):
     result = b"".join(f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals))
 
     vnormals[::] = memoryview(result).cast("b")
+
+    SHARED_VNORMALS = None
+    vnormals = None
+    VNORMALS_SHM.close()
+
 
 
 def normalize_np(chunk):
@@ -587,10 +608,6 @@ def init(shared):
 
     global SHARED_CURRENT_ADJ
     SHARED_CURRENT_ADJ = shared["current_adj"]
-
-    # TODO
-    # global SHARED_VNORMALS
-    # SHARED_VNORMALS = None  # Not known at initialisation...
 
     global SHARED_POINTS_SHM_NAME
     SHARED_POINTS_SHM_NAME = shared["points_shm_name"]
@@ -819,19 +836,19 @@ def main(
         facets_shm = points_shm = vnormals_shm = uvmap_shm = None
         tick("prepare shared")
 
+        def shm_set_name(key, name):
+            name = str.encode(name)
+            assert len(name) < 255
+            shared[key][: len(name)] = name
+
+        def shm_set_size(key, size):
+            shared[key].value = size
+
         with ctx.Pool(nproc, init, (shared,)) as pool:
             tick("start pool")
 
             # Compute adjacency
             if use_numpy:
-                # # Debug
-                # print(
-                # np.sort(
-                # np.frombuffer(facets, dtype=np.int32).reshape([-1,3]),
-                # axis=1,
-                # )
-                # )
-
                 # Compute edges (with unique key: "hash")
                 count_edges = count_facets * 3
                 chunks = make_chunks(chunk_size, count_edges)
@@ -879,15 +896,6 @@ def main(
                     facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
                 )
                 buf_np[:] = facet_pairs[:]
-
-                # TODO Move
-                def shm_set_name(key, name):
-                    name = str.encode(name)
-                    assert len(name) < 255
-                    shared[key][: len(name)] = name
-
-                def shm_set_size(key, size):
-                    shared[key].value = size
 
                 shm_set_name("pairs_shm_name", shm.name)
 
@@ -1024,27 +1032,11 @@ def main(
 
             tick("write output buffers (points, facets, uvmap)")
 
-            # TODO Comment
-            print(points_shm.name, vnormals_shm.name)
+            # Names for shared mems
             shm_set_name("points_shm_name", points_shm.name)
             shm_set_size("points_shm_size", points_shm.size)
             shm_set_name("vnormals_shm_name", vnormals_shm.name)
             shm_set_size("vnormals_shm_size", vnormals_shm.size)
-
-            # TODO
-            # # Update globals in subprocesses
-            # pids = {p.pid for p in ctx.active_children()}
-            # shared_mems = (
-                # points_shm.name,
-                # points_shm.size,
-                # vnormals_shm.name,
-                # vnormals_shm.size,
-            # )
-            # updated_pids = set()
-            # while updated_pids != pids:
-                # if updated_pids != set():
-                    # print("retry update globals")
-                # updated_pids.update(set(pool.map(update_globals, [shared_mems] * nproc)))
 
             # Compute weighted normals (n per vertex)
             # Here, we'll update points and vnormals in processes
