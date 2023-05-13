@@ -1035,7 +1035,8 @@ def main(
 
     except Exception as exc:
         print(traceback.format_exc())
-        input("Press Enter to continue...")  # Debug
+        if not sys.stdin.closed:
+            input("Press Enter to continue...\n")  # Debug
         raise exc
     finally:
         for shm in (facets_shm, points_shm, vnormals_shm, uvmap_shm):
