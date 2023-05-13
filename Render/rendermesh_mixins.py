@@ -236,11 +236,14 @@ class RenderMeshMultiprocessingMixin:
 
         # Run script (return points, facets, vnormals, uvmap)
         result = self._run_path_in_process(path, init_globals, return_types="flff")
-        self._points.array, self._facets.array, self._vnormals.array, *optional = result
+        if result:
+            self._points.array, self._facets.array, self._vnormals.array, *optional = result
 
-        if optional:
-            print("update uvmap")
-            self._uvmap.array = optional[0]
+            if optional:
+                print("update uvmap")
+                self._uvmap.array = optional[0]
+        else:
+            warn("Object", self.name, "Multiprocessed Autosmooth failed")
 
         if debug_flag:
             print(f"#points {self.count_points},  #facets {self.count_facets}")
