@@ -811,7 +811,7 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views, multithreaded=False):
+def _get_objstrings_helper(get_rdr_string, views, multithreaded=True):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
