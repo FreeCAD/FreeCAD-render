@@ -204,7 +204,8 @@ def build_pairs_np(chunk):
     facet_pairs = np.compress(dotprod >= split_angle_cos, facet_pairs, axis=0)
 
     # Write shared memory
-    shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
+    # shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)  # TODO
+    shm = create_shm(facet_pairs)
     np_buffer = np.ndarray(facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf)
     np_buffer[:] = facet_pairs[:]  # Copy the original data into shared memory
     name = shm.name
@@ -828,7 +829,8 @@ def main(
                 # check_pairs_symmetry(facet_pairs)
 
                 # Create shared object for adjacency
-                shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
+                # shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
+                shm = create_shm(facet_pairs)
                 buf_np = np.ndarray(
                     facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
                 )
