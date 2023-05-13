@@ -490,7 +490,11 @@ def compute_weighted_normals_np(chunk):
     vertex_normals = np.concatenate((normals, normals, normals), axis=0)
     weighted_normals = vertex_normals * weights
 
-    # TODO Close shms
+    SHARED_POINTS = None
+    points = None
+    SHARED_VNORMALS = None
+    POINTS_SHM.close()
+    VNORMALS_SHM.close()
 
     return indices, weighted_normals
 
@@ -521,25 +525,23 @@ def normalize_np(chunk):
     """Normalize normal vectors - Numpy version."""
     start, stop = chunk
 
-    shm_points_name = bytearray(SHARED_POINTS_SHM_NAME).rstrip(b"\0").decode()
-    shm_points_size = SHARED_POINTS_SHM_SIZE.value
     shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
     shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
     # TODO
-    POINTS_SHM = shared_memory.SharedMemory(shm_points_name)
     VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
-    SHARED_POINTS = POINTS_SHM.buf[0:shm_points_size].cast("f")
     SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
-
-    # vnormals_shm = shared_memory.SharedMemory(SHM_VNORMALS_NAME)
-    # shared_vnormals = vnormals_shm.buf[0:SHM_VNORMALS_SIZE].cast("f")
 
     vnormals = np.asarray(SHARED_VNORMALS[start * 3 : stop * 3], dtype="f4")
     vnormals = np.reshape(vnormals, [-1, 3])
 
     magnitudes = np.sqrt((vnormals**2).sum(-1))
     magnitudes = np.expand_dims(magnitudes, axis=1)
-    vnormals = np.divide(vnormals, magnitudes, where=magnitudes != 0.0)
+    vnormals[:] = np.divide(vnormals, magnitudes, where=magnitudes != 0.0)
+
+    SHARED_VNORMALS = None
+    vnormals = None
+    VNORMALS_SHM.close()
+
 
 
 # *****************************************************************************
