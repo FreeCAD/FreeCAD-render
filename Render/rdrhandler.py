@@ -429,7 +429,7 @@ class RendererHandler:
             msg = f"End meshing ({duration}s)"
             debug("Object", view.Source.Label, msg)
             if debug_flag:
-                print(msg)
+                print(msg + "\n")
 
             return mesh
 
