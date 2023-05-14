@@ -36,6 +36,18 @@ from .utils.misc import fovy_to_fovx
 
 TEMPLATE_FILTER = "Luxcore templates (luxcore_*.cfg)"
 
+ENGINES = [
+    "PATHCPU",
+    "TILEPATHCPU",
+    "BIDIRCPU",
+    "RTPATHCPU",
+    "PATHOCL",
+    "RTPATHOCL",
+    "TILEPATHOCL",
+    "BIDIRVMCPU",
+    "LIGHTCPU",
+]
+
 # ===========================================================================
 #                             Write functions
 # ===========================================================================
@@ -148,7 +160,7 @@ scene.camera.fieldofview = {fov}
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # From LuxCore doc:
     # power is in watts
@@ -575,6 +587,17 @@ def render(
 
     # Complete configuration
     config = pageresult["Configuration"]
+
+    # Get render engine
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    engine = params.GetInt("LuxCoreEngine")
+    engine = ENGINES[engine]
+    config["renderengine.type"] = engine
+    if engine in ["TILEPATHCPU", "TILEPATHOCL", "RTPATHOCL"]:
+        config["sampler.type"] = "TILEPATHSAMPLER"
+    if engine == "RTPATHCPU":
+        config["sampler.type"] = "RTPATHCPUSAMPLER"
+
 
     # General settings
     config["renderengine.seed"] = "1"
