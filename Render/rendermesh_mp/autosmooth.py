@@ -212,6 +212,9 @@ def build_pairs_np(chunk):
     )
     facet_pairs = np.compress(dotprod >= split_angle_cos, facet_pairs, axis=0)
 
+    # Pre-sort pairs
+    facet_pairs.sort(kind="quicksort")
+
     # Write shared memory
     shm = create_shm(facet_pairs)
     np_buffer = np.ndarray(
@@ -596,12 +599,6 @@ def init(shared):
     global SHARED_SPLIT_ANGLE
     SHARED_SPLIT_ANGLE = shared["split_angle"]
 
-    global FACETS_AS_SETS
-    FACETS_AS_SETS = None
-
-    global NP_READY
-    NP_READY = False
-
     global SHARED_ADJACENCY
     SHARED_ADJACENCY = shared["adjacency"]
 
@@ -854,7 +851,6 @@ def main(
                     (shared_memory.SharedMemory(name=n, create=False), s)
                     for n, s in imap
                 ]
-
                 np_bufs = [
                     np.ndarray(shape=shape, dtype=np.int32, buffer=shm.buf)
                     for shm, shape in results
@@ -870,8 +866,7 @@ def main(
                 # Sort pairs
                 facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
 
-                # Check symmetry in pairs (debug)
-                # check_pairs_symmetry(facet_pairs)
+                # check_pairs_symmetry(facet_pairs)  # Debug
 
                 # Create shared object for adjacency
                 shm = create_shm(facet_pairs)
@@ -904,8 +899,7 @@ def main(
                 run_unordered(pool, compute_adjacents, chunks)
                 tick("adjacency")
 
-            # Check symmetry in adjacency (debug)
-            # check_adjacency_symmetry(shared, count_facets)
+            # check_adjacency_symmetry(shared, count_facets)  # Debug
 
             # Compute connected components
             # Compute also pass#2 adjacency lists ("adjacency2")
@@ -943,8 +937,7 @@ def main(
 
             tick("connected components (pass #1 - reduce)")
 
-            # Debug
-            # check_adjacency_symmetry2(subadjacency)
+            # check_adjacency_symmetry2(subadjacency)  # Debug
 
             tags_pass2 = connected_components(subadjacency, shared=shared)
             tick("connected components (pass #2 - map)")
