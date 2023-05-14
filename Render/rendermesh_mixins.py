@@ -33,6 +33,7 @@ import time
 import itertools
 import functools
 import operator
+import array
 
 try:
     import numpy as np
@@ -40,8 +41,15 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 from Render.constants import PKGDIR, PARAMS
 from Render.utils import warn, debug, grouper, SharedWrapper
+
+try:
+    from multiprocessing import shared_memory
+except ModuleNotFoundError:
+    pass  # TODO
+    
 
 try:
     mp.set_start_method("spawn")
@@ -79,6 +87,8 @@ class RenderMeshMultiprocessingMixin:
         self._areas = mp.RawArray("f", count_facets)
         self._areas[:] = [f.Area for f in facets2]
 
+        self._uvmap = SharedArray("f", 0, 2)
+
         self._vnormals = SharedArray("f", 0, 3)
 
     @property
@@ -109,9 +119,26 @@ class RenderMeshMultiprocessingMixin:
     def normals(self):
         return self._normals
 
+    @normals.setter
+    def normals(self, value):
+        self._normals = SharedArray("f", len(value), 3, value)
+
     @property
     def areas(self):
         return self._areas
+
+    @areas.setter
+    def areas(self, value):
+        self._areas = mp.RawArray("f", len(value))
+        self._areas[:] = value
+
+    @property
+    def uvmap(self):
+        return self._uvmap
+
+    @uvmap.setter
+    def uvmap(self, value):
+        self._uvmap = SharedArray("f", len(value), 2, value)
 
     @property
     def vnormals(self):
@@ -172,18 +199,13 @@ class RenderMeshMultiprocessingMixin:
         facets_buf = None
         uvmap_buf = None
 
-    def connected_components(self, split_angle):
-        """Get all connected components of facets in the mesh.
+    def autosmooth(self, split_angle):
+        """Smooth mesh, computing vertex normals.
 
         Multiprocess version
 
         Args:
             split_angle -- the angle that breaks adjacency (radians)
-
-        Returns:
-            a list of tags. Each tag gives the component of the corresponding
-                facet
-            the number of components
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
@@ -192,10 +214,7 @@ class RenderMeshMultiprocessingMixin:
             tm0 = time.time()
 
         # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "connected_components.py")
-
-        # Init output buffer
-        tags_buf = mp.RawArray("l", self.count_facets)
+        path = os.path.join(PKGDIR, "rendermesh_mp", "autosmooth.py")
 
         if debug_flag:
             print(f"Connected components: {self.count_points} points")
@@ -205,50 +224,30 @@ class RenderMeshMultiprocessingMixin:
             "POINTS": self._points.array,
             "FACETS": self._facets.array,
             "NORMALS": self._normals.array,
+            "AREAS": self._areas,
+            "UVMAP": self._uvmap.array,
             "SPLIT_ANGLE": mp.RawValue("f", split_angle),
             "PYTHON": self.python,
             "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_TAGS": tags_buf,
         }
 
         if debug_flag:
             print("init connected", time.time() - tm0)
 
-        # Run script
-        self._run_path_in_process(path, init_globals)
+        # Run script (return points, facets, vnormals, uvmap)
+        result = self._run_path_in_process(path, init_globals, return_types="flff")
+        if result:
+            self._points.array, self._facets.array, self._vnormals.array, *optional = result
 
-        print("tags", len(set(tags_buf)))  # TODO
-        return tags_buf
+            if optional:
+                print("update uvmap")
+                self._uvmap.array = optional[0]
+        else:
+            warn("Object", self.name, "Multiprocessed Autosmooth failed")
 
-    def compute_vnormals(self):
-        """Compute vertex normals (single process).
-
-        Refresh self._normals. We use an area & angle weighting algorithm."
-        """
-        debug("Object", self.name, "Compute vertex normals (mp)")
-
-        # Init variables
-        path = os.path.join(PKGDIR, "rendermesh_mp", "compute_vnormals.py")
-
-        # Init output buffer
-        vnormals_buf = mp.RawArray("f", self.count_points * 3)
-
-        # Init script globals
-        init_globals = {
-            "POINTS": self._points.array,
-            "FACETS": self._facets.array,
-            "NORMALS": self._normals.array,
-            "AREAS": self._areas,
-            "PYTHON": self.python,
-            "SHOWTIME": PARAMS.GetBool("Debug"),
-            "OUT_VNORMALS": vnormals_buf,
-        }
-
-        # Run script
-        self._run_path_in_process(path, init_globals)
-
-        # Update properties
-        self._vnormals.array = vnormals_buf[: self.count_points * 3]
+        if debug_flag:
+            print(f"#points {self.count_points},  #facets {self.count_facets}")
+            print("has vnormals", self.has_vnormals(), "has uvmap", self.has_uvmap())
 
     def _write_objfile_helper(
         self,
@@ -321,7 +320,7 @@ class RenderMeshMultiprocessingMixin:
         # Run script
         self._run_path_in_process(path, init_globals)
 
-    def _run_path_in_process(self, path, init_globals):
+    def _run_path_in_process(self, path, init_globals, return_types=None):
         """Run a path in a dedicated process.
 
         This method is able to launch a multiprocess script, like
@@ -330,7 +329,14 @@ class RenderMeshMultiprocessingMixin:
         Please note 'self.python' must have been set. After
         being started, the process is awaited (joined).
         """
+        debug_flag = PARAMS.GetBool("Debug")
+        # Synchro objects
+        from multiprocessing import connection  # TODO
+        main_conn, sub_conn = connection.Pipe()
+
         args = (path,)
+        init_globals["CONNECTION"] = sub_conn
+        init_globals["ENABLE_NUMPY"] = PARAMS.GetBool("EnableNumpy")
         kwargs = {"init_globals": init_globals, "run_name": "__main__"}
 
         mp.set_executable(self.python)
@@ -339,7 +345,29 @@ class RenderMeshMultiprocessingMixin:
             target=runpy.run_path, args=args, kwargs=kwargs, name="render"
         )
         process.start()
+        sentinel = process.sentinel
+        result = connection.wait([main_conn, sentinel], 60)
+        # Retrieve outputs (into arrays)
+        arrays = None
+        if result and sentinel not in result:
+            msg = main_conn.recv()
+            shms = [
+                (shared_memory.SharedMemory(name), size)
+                for name, size in msg
+            ]
+            buffers = [shm.buf[0:size] for shm, size in shms]
+            arrays = [array.array(t, b.cast(t)) for b, t in zip(buffers, return_types)]
+            buffers = None  # Otherwise we cannot close shared memory...
+            for shm, _ in shms:
+                shm.close()
+            main_conn.send("terminate")
+        else:
+            if return_types is not None:
+                warn("Object", self.name, "No return from mp module")
+
         process.join()
+
+        return arrays
 
 
 class SharedArray:
