@@ -160,7 +160,7 @@ scene.camera.fieldofview = {fov}
     return snippet
 
 
-def write_pointlight(name, pos, color, power):
+def write_pointlight(name, pos, color, power, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
     # From LuxCore doc:
     # power is in watts
