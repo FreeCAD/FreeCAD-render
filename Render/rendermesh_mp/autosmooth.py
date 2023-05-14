@@ -56,6 +56,7 @@ from vector3d import (
 
 NSHM = 0  # Counter on shared_memory objects, for naming purpose
 
+
 def create_shm(obj, empty=False):
     """Create a SharedMemory object from the argument.
 
@@ -65,11 +66,12 @@ def create_shm(obj, empty=False):
     If empty==False (default), the shared memory is initialized with the
     argument content. Otherwise it is kept uninitialized
     """
-    global NSHM
+    global NSHM  # pylint: disable=global-statement
     memv = memoryview(obj)
     size = memv.nbytes
-    name = "rdr{}_{}".format(mp.current_process().pid, NSHM)
-    NSHM +=1
+    nshm = NSHM
+    name = f"rdr{mp.current_process().pid}_{nshm}"
+    NSHM += 1
     if size > 0:
         shm = shared_memory.SharedMemory(name=name, create=True, size=size)
         if not empty:
@@ -98,10 +100,6 @@ def compute_adjacents(chunk):
     split_angle_cos = cos(split_angle)
     dot = vector3d.dot
 
-    # l3struct = struct.Struct("lll")
-    # l3iter_unpack = l3struct.iter_unpack
-
-    # pylint: disable=global-variable-undefined
     # pylint: disable=global-variable-not-assigned
     global FACETS_PER_POINT
     global UNPACKED_FACETS
@@ -115,27 +113,32 @@ def compute_adjacents(chunk):
         for facet_idx, facet in enumerate(UNPACKED_FACETS[start:stop])
         for other_idx in set(chain(FACETS_PER_POINT[p] for p in facet))
         if len(set(facet) & set(UNPACKED_FACETS[other_idx])) == 2
-        and dot(getnormal(facet_idx + start), getnormal(other_idx)) >= split_angle_cos
+        and dot(getnormal(facet_idx + start), getnormal(other_idx))
+        >= split_angle_cos
     )
 
     add = list.append
-    any(itertools.starmap(add, iterator))  # Sorry, we use side effect (faster)...
+    any(
+        itertools.starmap(add, iterator)
+    )  # Sorry, we use side effect (faster)...
 
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
-        for a in itertools.islice(itertools.chain(set(adj), (-1, -1, -1)), 0, 3)
+        for a in itertools.islice(
+            itertools.chain(set(adj), (-1, -1, -1)), 0, 3
+        )
     ]
 
 
 def check_adjacency_symmetry(shared, count_facets):
-    """Check the symmetry of adjacency lists."""
+    """Check the symmetry of adjacency lists (debug purpose)."""
     adj = shared["adjacency"]
     errors = [
-        (ifacet, f, list(adj[ifacet*3: ifacet*3+3]))
+        (ifacet, f, list(adj[ifacet * 3 : ifacet * 3 + 3]))
         for ifacet in range(0, count_facets)
-        for f in adj[ifacet*3 : ifacet*3+3]
-        if f!=-1 and not ifacet in adj[f*3:f*3+3]
+        for f in adj[ifacet * 3 : ifacet * 3 + 3]
+        if f != -1 and not ifacet in adj[f * 3 : f * 3 + 3]
     ]
     errors.sort()
     print(len(errors))
@@ -143,13 +146,14 @@ def check_adjacency_symmetry(shared, count_facets):
 
 
 def check_adjacency_symmetry2(subadjacency):
-    """Check symmetry in adjacency - pass 2."""
+    """Check symmetry in adjacency - pass 2 (debug purpose)."""
     error = 0
     for ifacet, adjs in enumerate(subadjacency):
-        for f in adjs:
-            if not ifacet in subadjacency[f] and error < 100:
-                print("ERROR", ifacet, f)
+        for other_facet in adjs:
+            if not ifacet in subadjacency[other_facet] and error < 100:
+                print("ERROR", ifacet, other_facet)
                 error += 1
+
 
 # *****************************************************************************
 
@@ -192,7 +196,9 @@ def build_pairs_np(chunk):
     pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
     # Build adjacency lists
-    facet_pairs = np.stack((INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1)
+    facet_pairs = np.stack(
+        (INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1
+    )
 
     # Filter angle
     split_angle_cos = cos(SHARED_SPLIT_ANGLE.value)
@@ -204,9 +210,10 @@ def build_pairs_np(chunk):
     facet_pairs = np.compress(dotprod >= split_angle_cos, facet_pairs, axis=0)
 
     # Write shared memory
-    # shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)  # TODO
     shm = create_shm(facet_pairs)
-    np_buffer = np.ndarray(facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf)
+    np_buffer = np.ndarray(
+        facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
+    )
     np_buffer[:] = facet_pairs[:]  # Copy the original data into shared memory
     name = shm.name
 
@@ -225,15 +232,16 @@ def check_pairs_symmetry(facet_pairs):
     """Check the symmetry of the pairs - debug purpose."""
     reverse_pairs = np.array(np.flip(facet_pairs, axis=1), copy=True)
     facet_pairs2 = np.array(facet_pairs, copy=True)
-    dt = [("x", np.int32), ("y", np.int32)]
-    facet_pairs2.dtype = dt
-    reverse_pairs.dtype = dt
+    dtp = [("x", np.int32), ("y", np.int32)]
+    facet_pairs2.dtype = dtp
+    reverse_pairs.dtype = dtp
     notisin = np.logical_not(np.isin(reverse_pairs, facet_pairs2))
     print(
         f"check symmetry - {len(facet_pairs2)} pairs - (ok if empty):",
         np.argwhere(notisin),
-        len(np.argwhere(notisin))
+        len(np.argwhere(notisin)),
     )
+
 
 def compute_adjacents_np(chunk):
     """Compute adjacency lists - numpy version."""
@@ -326,7 +334,9 @@ def connected_components(adjacents, shared=None):
     tag = None
 
     iterator = (x for x, y in enumerate(tags) if y is None)
-    shared_current_tag = shared["current_tag"] if shared else SHARED_CURRENT_TAG
+    shared_current_tag = (
+        shared["current_tag"] if shared else SHARED_CURRENT_TAG
+    )
 
     for starting_point in iterator:
         with shared_current_tag:
@@ -398,9 +408,8 @@ def compute_weighted_normals(chunk):
 
     shm_points_name = bytearray(SHARED_POINTS_SHM_NAME).rstrip(b"\0").decode()
     shm_points_size = SHARED_POINTS_SHM_SIZE.value
-    # TODO
-    POINTS_SHM = shared_memory.SharedMemory(shm_points_name)
-    SHARED_POINTS = POINTS_SHM.buf[0:shm_points_size].cast("f")
+    points_shm = shared_memory.SharedMemory(shm_points_name)
+    shared_points = points_shm.buf[0:shm_points_size].cast("f")
 
     it_facets = zip(
         slice2d(SHARED_FACETS, start, stop, 3),
@@ -408,7 +417,12 @@ def compute_weighted_normals(chunk):
         SHARED_AREAS[start:stop],
     )
     it_facets = (
-        (facet, normal, area, tuple(SHARED_POINTS[i * 3 : i * 3 + 3] for i in facet))
+        (
+            facet,
+            normal,
+            area,
+            tuple(shared_points[i * 3 : i * 3 + 3] for i in facet),
+        )
         for facet, normal, area in it_facets
     )
     it_facets = (
@@ -421,8 +435,8 @@ def compute_weighted_normals(chunk):
         for point_index, angle in zip(facet, angles)
     )
 
-    SHARED_POINTS = None
-    POINTS_SHM.close()
+    shared_points = None
+    points_shm.close()
 
     return normals
 
@@ -433,15 +447,10 @@ def compute_weighted_normals_np(chunk):
 
     shm_points_name = bytearray(SHARED_POINTS_SHM_NAME).rstrip(b"\0").decode()
     shm_points_size = SHARED_POINTS_SHM_SIZE.value
-    shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
-    shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
-    # TODO
-    POINTS_SHM = shared_memory.SharedMemory(shm_points_name)
-    VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
-    SHARED_POINTS = POINTS_SHM.buf[0:shm_points_size].cast("f")
-    SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
+    points_shm = shared_memory.SharedMemory(shm_points_name)
+    shared_points = points_shm.buf[0:shm_points_size].cast("f")
 
-    points = np.asarray(SHARED_POINTS, dtype="f4")
+    points = np.asarray(shared_points, dtype="f4")
     points = np.reshape(points, [-1, 3])
 
     facets = np.asarray(SHARED_FACETS, dtype="i4")
@@ -488,8 +497,6 @@ def compute_weighted_normals_np(chunk):
     angles0 = _angles(0, 1, 2)
     angles1 = _angles(1, 0, 2)
     angles2 = np.pi - angles1 - angles0
-    # Debug
-    # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
     vertex_angles = np.concatenate((angles0, angles1, angles2))
 
     # Compute weighted normals for each vertex of the triangles
@@ -500,11 +507,9 @@ def compute_weighted_normals_np(chunk):
     vertex_normals = np.concatenate((normals, normals, normals), axis=0)
     weighted_normals = vertex_normals * weights
 
-    SHARED_POINTS = None
+    shared_points = None
     points = None
-    SHARED_VNORMALS = None
-    POINTS_SHM.close()
-    VNORMALS_SHM.close()
+    points_shm.close()
 
     return indices, weighted_normals
 
@@ -516,11 +521,12 @@ def normalize(chunk):
     """Normalize normal vectors."""
     start, stop = chunk
 
-    shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
+    shm_vnormals_name = (
+        bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
+    )
     shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
-    # TODO
-    VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
-    SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
+    vnormals_shm = shared_memory.SharedMemory(shm_vnormals_name)
+    shared_vnormals = vnormals_shm.buf[0:shm_vnormals_size].cast("f")
 
     fmt = "fff"
     f3struct = struct.Struct(fmt)
@@ -528,41 +534,42 @@ def normalize(chunk):
     f3iter_unpack = f3struct.iter_unpack
     f3itemsize = struct.calcsize(fmt)
 
-    vnormals = memoryview(SHARED_VNORMALS).cast("b")[
+    vnormals = memoryview(shared_vnormals).cast("b")[
         start * f3itemsize : stop * f3itemsize
     ]
 
-    result = b"".join(f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals))
+    result = b"".join(
+        f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals)
+    )
 
     vnormals[::] = memoryview(result).cast("b")
 
-    SHARED_VNORMALS = None
+    shared_vnormals = None
     vnormals = None
-    VNORMALS_SHM.close()
-
+    vnormals_shm.close()
 
 
 def normalize_np(chunk):
     """Normalize normal vectors - Numpy version."""
     start, stop = chunk
 
-    shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
+    shm_vnormals_name = (
+        bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
+    )
     shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
-    # TODO
-    VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
-    SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
+    vnormals_shm = shared_memory.SharedMemory(shm_vnormals_name)
+    shared_vnormals = vnormals_shm.buf[0:shm_vnormals_size].cast("f")
 
-    vnormals = np.asarray(SHARED_VNORMALS[start * 3 : stop * 3], dtype="f4")
+    vnormals = np.asarray(shared_vnormals[start * 3 : stop * 3], dtype="f4")
     vnormals = np.reshape(vnormals, [-1, 3])
 
     magnitudes = np.sqrt((vnormals**2).sum(-1))
     magnitudes = np.expand_dims(magnitudes, axis=1)
     vnormals[:] = np.divide(vnormals, magnitudes, where=magnitudes != 0.0)
 
-    SHARED_VNORMALS = None
+    shared_vnormals = None
     vnormals = None
-    VNORMALS_SHM.close()
-
+    vnormals_shm.close()
 
 
 # *****************************************************************************
@@ -625,7 +632,9 @@ def init(shared):
 
     if use_numpy:
         global SHARED_HASHES_NP
-        SHARED_HASHES_NP = np.array(shared["hashes"], copy=False, dtype=np.int64)
+        SHARED_HASHES_NP = np.array(
+            shared["hashes"], copy=False, dtype=np.int64
+        )
 
         global SHARED_HASHES_INDICES_NP
         SHARED_HASHES_INDICES_NP = np.array(
@@ -689,33 +698,6 @@ def init(shared):
         )  # Sorry, we use side effect (faster)...
 
 
-def update_globals(shms):
-    """Update global variables for subprocesses."""
-    # We just have to update points and vnormals
-    # Other globals may have changed in place (facets)
-    # or may not have changed at all (normals)
-    shm_points_name, shm_points_size, shm_vnormals_name, shm_vnormals_size = shms
-
-    # pylint: disable=global-variable-undefined
-
-    # We have to define the shared mems as globals
-    # Otherwise they'll be garbage collected at the end of
-    # the function, with bad results...
-    global POINTS_SHM
-    POINTS_SHM = shared_memory.SharedMemory(shm_points_name)
-
-    global VNORMALS_SHM
-    VNORMALS_SHM = shared_memory.SharedMemory(shm_vnormals_name)
-
-    global SHARED_POINTS
-    SHARED_POINTS = POINTS_SHM.buf[0:shm_points_size].cast("f")
-
-    global SHARED_VNORMALS
-    SHARED_VNORMALS = VNORMALS_SHM.buf[0:shm_vnormals_size].cast("f")
-
-    return mp.current_process().pid
-
-
 # *****************************************************************************
 
 
@@ -757,7 +739,10 @@ def main(
             print(msg, time.time() - tm0)
 
     def make_chunks(chunk_size, length):
-        return ((i, min(i + chunk_size, length)) for i in range(0, length, chunk_size))
+        return (
+            (i, min(i + chunk_size, length))
+            for i in range(0, length, chunk_size)
+        )
 
     def make_chunks_aligned(chunk_size, length, values):
         def align(index):
@@ -890,7 +875,6 @@ def main(
                 # check_pairs_symmetry(facet_pairs)
 
                 # Create shared object for adjacency
-                # shm = shared_memory.SharedMemory(create=True, size=facet_pairs.nbytes)
                 shm = create_shm(facet_pairs)
                 buf_np = np.ndarray(
                     facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
@@ -909,7 +893,9 @@ def main(
                 adj[:] = -1
 
                 # Compute adjacency
-                chunks = make_chunks_aligned(chunk_size, len(facet_pairs), facet_pairs)
+                chunks = make_chunks_aligned(
+                    chunk_size, len(facet_pairs), facet_pairs
+                )
                 run_unordered(pool, compute_adjacents_np, chunks)
                 shm.close()
                 shm.unlink()
@@ -949,7 +935,9 @@ def main(
             )
             iterator = ((tag, tags_pass1[ifacet]) for tag, ifacet in iterator)
             iterator = (
-                (tag, other_tag) for tag, other_tag in iterator if tag != other_tag
+                (tag, other_tag)
+                for tag, other_tag in iterator
+                if tag != other_tag
             )
             for tag, other_tag in iterator:
                 subadjacency[tag].append(other_tag)
@@ -991,7 +979,9 @@ def main(
             point_list = [
                 c
                 for point_index, tag in newpoints
-                for c in shared["points"][3 * point_index : 3 * point_index + 3]
+                for c in shared["points"][
+                    3 * point_index : 3 * point_index + 3
+                ]
             ]
             shared["points"] = mp.RawArray("f", len(newpoints) * 3)
             shared["points"][:] = point_list
@@ -1042,7 +1032,9 @@ def main(
             # Here, we'll update points and vnormals in processes
             chunks = make_chunks(chunk_size, len(shared["facets"]) // 3)
             func = (
-                compute_weighted_normals_np if use_numpy else compute_weighted_normals
+                compute_weighted_normals_np
+                if use_numpy
+                else compute_weighted_normals
             )
             data = pool.imap_unordered(func, chunks)
 
@@ -1051,7 +1043,9 @@ def main(
             if not use_numpy:
                 wstruct = struct.Struct("lfff")
                 for chunk in data:
-                    for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
+                    for point_index, *weighted_vnorm in wstruct.iter_unpack(
+                        chunk
+                    ):
                         offset = point_index * 3
                         vnorms[offset] += weighted_vnorm[0]
                         vnorms[offset + 1] += weighted_vnorm[1]
@@ -1092,7 +1086,6 @@ def main(
             connection.recv()
             output = None
             tick("exchange data")
-
 
             # input("Press Enter to continue...")  # Debug
 
