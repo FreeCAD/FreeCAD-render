@@ -56,6 +56,9 @@ from vector3d import (
 
 NSHM = 0  # Counter on shared_memory objects, for naming purpose
 
+l3struct = struct.Struct("lll")
+l3unpack_from = l3struct.unpack_from
+l3iter_unpack = l3struct.iter_unpack
 
 def create_shm(obj, empty=False):
     """Create a SharedMemory object from the argument.
@@ -356,9 +359,7 @@ def connected_components_chunk(chunk):
     """Get all connected components of facets in a submesh."""
     start, stop = chunk
 
-    l3struct = struct.Struct("lll")
     l3size = l3struct.size
-    l3unpack_from = l3struct.unpack_from
 
     adjacents = [
         [
@@ -680,8 +681,6 @@ def init(shared):
         global UNPACKED_FACETS
 
         count_points = len(SHARED_POINTS) // 3
-        l3struct = struct.Struct("lll")
-        l3iter_unpack = l3struct.iter_unpack
         UNPACKED_FACETS = list(l3iter_unpack(SHARED_FACETS))
         # For each point, compute facets that contain this point as a vertex
         FACETS_PER_POINT = [[] for _ in range(count_points)]
@@ -962,11 +961,10 @@ def main(
             # Recompute Points & Facets
 
             # Recompute points
-            l3struct = struct.Struct("lll")
-            l3iter_unpack = l3struct.iter_unpack
+            iter_facets = l3iter_unpack(shared["facets"])
             newpoints = {
                 (point_index, tag): None
-                for facet, tag in zip(l3iter_unpack(shared["facets"]), tags)
+                for facet, tag in zip(iter_facets, tags)
                 for point_index in facet
             }
 
@@ -975,16 +973,16 @@ def main(
                 newpoints[point] = index
 
             # Rebuild point list
-            # TODO Parallelize
+            points = shared["points"]
             point_list = [
                 c
                 for point_index, tag in newpoints
-                for c in shared["points"][
-                    3 * point_index : 3 * point_index + 3
-                ]
+                for c in points[ 3 * point_index : 3 * point_index + 3 ]
             ]
-            shared["points"] = mp.RawArray("f", len(newpoints) * 3)
-            shared["points"][:] = point_list
+            points_array = array.array("f", point_list)
+            points_shm = create_shm(points_array)
+            shm_set_name("points_shm_name", points_shm.name)
+            shm_set_size("points_shm_size", points_shm.size)
             tick(f"new points ({len(newpoints)})")
 
             # If necessary, rebuild uvmap
@@ -994,8 +992,8 @@ def main(
                     for point_index, tag in newpoints
                     for c in uvmap[point_index * 2 : point_index * 2 + 2]
                 ]
-                uvmap = mp.RawArray("f", len(newpoints) * 2)
-                uvmap[:] = uvmap_list
+                uvmap = array.array("f", uvmap_list)
+            uvmap_shm = create_shm(uvmap)
             tick("rebuild uvmap")
 
             # Update point indices in facets
@@ -1005,28 +1003,15 @@ def main(
                 for point_index in facet
             ]
             shared["facets"][:] = facet_list
-            print("len facets", len(shared["facets"]) // 3)
-
-            tick("updated facets")
-
-            # Vertex Normals Computation
-
-            shared["vnormals"] = mp.RawArray("f", len(shared["points"]))
-
-            # Write output buffers (points, facets, uvmap, vnormals)
-            points_shm = create_shm(shared["points"])
             facets_shm = create_shm(shared["facets"])
-            uvmap_shm = create_shm(uvmap)
-            # vnormals same size as points, but empty at the moment
-            vnormals_shm = create_shm(shared["points"], empty=True)
+            tick(f"update facets ({len(shared['facets']) // 3})")
 
-            tick("write output buffers (points, facets, uvmap)")
-
-            # Names for shared mems
-            shm_set_name("points_shm_name", points_shm.name)
-            shm_set_size("points_shm_size", points_shm.size)
+            # Create vnormals buffer
+            # Same size as points, but empty at the moment
+            vnormals_shm = create_shm(points_array, empty=True)
             shm_set_name("vnormals_shm_name", vnormals_shm.name)
             shm_set_size("vnormals_shm_size", vnormals_shm.size)
+
 
             # Compute weighted normals (n per vertex)
             # Here, we'll update points and vnormals in processes
