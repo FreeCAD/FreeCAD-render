@@ -213,7 +213,7 @@ def build_pairs_np(chunk):
     facet_pairs = np.compress(dotprod >= split_angle_cos, facet_pairs, axis=0)
 
     # Pre-sort pairs
-    facet_pairs.sort(kind="quicksort")
+    facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
 
     # Write shared memory
     shm = create_shm(facet_pairs)
