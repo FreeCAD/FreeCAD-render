@@ -811,7 +811,7 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views):
+def _get_objstrings_helper(get_rdr_string, views, multithreaded=True):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
@@ -823,7 +823,8 @@ def _get_objstrings_helper(get_rdr_string, views):
         App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
         time0 = time.time()
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        max_workers = None if multithreaded else 1
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
             objstrings = executor.map(get_rdr_string, views)
 
         App.Console.PrintMessage(

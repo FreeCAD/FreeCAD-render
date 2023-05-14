@@ -183,8 +183,8 @@ class RenderMeshBase:
 
         # First we make a copy of the mesh, we separate mesh and
         # placement and we set the mesh at its origin (null placement)
-        self.__originalmesh = mesh
-        self.__originalmesh.Placement = App.Base.Placement()
+        self._originalmesh = mesh
+        self._originalmesh.Placement = App.Base.Placement()
 
         # Then we store the topology in internal structures
         self._points = self._facets = self._normals = self._areas = None
@@ -204,19 +204,18 @@ class RenderMeshBase:
         # Autosmooth
         if autosmooth:
             debug("Object", self.name, "Autosmooth")
-            self.separate_connected_components(split_angle)
-            self.compute_vnormals()
+            self.autosmooth(split_angle)
 
     def _setup_internals(self):
         """Initialize internal variables.
 
         (to be overriden by mixins)
         """
-        points, facets = self.__originalmesh.Topology
+        points, facets = self._originalmesh.Topology
         self._points = [tuple(p) for p in points]
         self._facets = facets
-        self._normals = [tuple(f.Normal) for f in self.__originalmesh.Facets]
-        self._areas = [f.Area for f in self.__originalmesh.Facets]
+        self._normals = [tuple(f.Normal) for f in self._originalmesh.Facets]
+        self._areas = [f.Area for f in self._originalmesh.Facets]
 
     def __del__(self):
         """Finalize RenderMesh.
@@ -225,8 +224,8 @@ class RenderMeshBase:
         to avoid memory leaks.
         """
         # Clean original mesh
-        self.__originalmesh.clear()
-        self.__originalmesh = None
+        self._originalmesh.clear()
+        self._originalmesh = None
 
         # # Debug memory:
         # import gc
@@ -243,7 +242,7 @@ class RenderMeshBase:
     def copy(self):
         """Creates a copy of this mesh."""
         # Caveat: this is a shallow copy!
-        # In particular, we don't copy the __originalmesh (Mesh.Mesh)
+        # In particular, we don't copy the _originalmesh (Mesh.Mesh)
         # So we point on the same object, which should not be modified
         new_mesh = copy.copy(self)
         # pylint: disable=protected-access, unused-private-member
@@ -380,6 +379,9 @@ class RenderMeshBase:
         Returns:
             The name of file that the function wrote.
         """
+        # Log message
+        debug("Object", self.name, "Write mesh file")
+
         # Normalize arguments
         filetype = RenderMeshBase.ExportType(filetype)
 
@@ -423,9 +425,7 @@ class RenderMeshBase:
                 uv_scale,
             )
         elif filetype == RenderMeshBase.ExportType.PLY:
-            self._write_plyfile(
-                name, filename, uv_translate, uv_rotate, uv_scale
-            )
+            self._write_plyfile(name, filename, uv_translate, uv_rotate, uv_scale)
         elif filetype == RenderMeshBase.ExportType.CYCLES:
             self._write_cyclesfile(name, filename)
         elif filetype == RenderMeshBase.ExportType.POVRAY:
@@ -475,9 +475,7 @@ class RenderMeshBase:
                 mtlfile, _ = os.path.splitext(objfile)
                 mtlfile += ".mtl"
             # Write mtl file
-            mtlfilename = RenderMeshBase._write_mtl(
-                mtlname, mtlcontent, mtlfile
-            )
+            mtlfilename = RenderMeshBase._write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -521,7 +519,7 @@ class RenderMeshBase:
         mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
 
         # Vertices
-        fmtv = functools.partial(str.format, "v {} {} {}\n")
+        fmtv = functools.partial(str.format, "v {:g} {:g} {:g}\n")
         verts = (fmtv(*v) for v in self.points)
         verts = it.chain(["# Vertices\n"], verts, ["\n"])
 
@@ -529,7 +527,7 @@ class RenderMeshBase:
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(*uv_transformation)
-            fmtuv = functools.partial(str.format, "vt {} {}\n")
+            fmtuv = functools.partial(str.format, "vt {:g} {:g}\n")
             uvs = (fmtuv(*t) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
         else:
@@ -538,7 +536,7 @@ class RenderMeshBase:
         # Vertex normals
         if self.has_vnormals():
             norms = self.vnormals
-            fmtn = functools.partial(str.format, "vn {} {} {}\n")
+            fmtn = functools.partial(str.format, "vn {:g} {:g} {:g}\n")
             norms = (fmtn(*n) for n in norms)
             norms = it.chain(["# Vertex normals\n"], norms, ["\n"])
         else:
@@ -563,10 +561,7 @@ class RenderMeshBase:
         fmtf = functools.partial(str.format, mask)
         joinf = functools.partial(str.join, "")
 
-        faces = (
-            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"])
-            for f in self.facets
-        )
+        faces = (joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in self.facets)
         faces = it.chain(["# Faces\n"], faces)
 
         res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
@@ -656,21 +651,21 @@ class RenderMeshBase:
         ]
 
         # Body - Vertices (and vertex normals and uv)
-        fmt3 = functools.partial(str.format, "{} {} {}")
+        fmt3 = functools.partial(str.format, "{:g} {:g} {:g}")
         verts = [iter(fmt3(*v) for v in self.points)]
         if self.has_vnormals():
             verts += [iter(fmt3(*v) for v in self.vnormals)]
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
-            fmt2 = functools.partial(str.format, "{} {}")
+            fmt2 = functools.partial(str.format, "{:g} {:g}")
             verts += [iter(fmt2(*v) for v in uvs)]
         verts += [it.repeat("\n")]
         verts = (" ".join(v) for v in zip(*verts))
 
         # Body - Faces
         fmtf = functools.partial(str.format, "3 {} {} {}\n")
-        faces = (fmtf(*v) for v in self.facets)
+        faces = (fmtf(*v) for v in iter(self.facets))
 
         # Concat and write
         res = it.chain(header, verts, faces)
@@ -698,7 +693,7 @@ class RenderMeshBase:
 
         def _write_point(pnt):
             """Write a point."""
-            return f"{pnt[0]} {pnt[1]} {pnt[2]}"
+            return f"{pnt[0]:g} {pnt[1]:g} {pnt[2]:g}"
 
         points = [_write_point(p) for p in self.points]
         points = "  ".join(points)
@@ -708,7 +703,7 @@ class RenderMeshBase:
         nverts = "  ".join(nverts)
 
         if self.has_uvmap():
-            uvs = [f"{px} {py}" for px, py in self.uvmap_per_vertex()]
+            uvs = [f"{px:g} {py:g}" for px, py in self.uvmap_per_vertex()]
             uvs = "  ".join(uvs)
             uv_statement = f'    UV="{uvs}"\n'
         else:
@@ -749,7 +744,7 @@ class RenderMeshBase:
         Returns: the name of file that the function wrote.
         """
         # Triangles
-        vrts = [f"<{x},{y},{z}>" for x, y, z in self.points]
+        vrts = [f"<{x:g},{y:g},{z:g}>" for x, y, z in self.points]
         inds = [f"<{i},{j},{k}>" for i, j, k in self.facets]
 
         vertices = "\n        ".join(vrts)
@@ -759,7 +754,7 @@ class RenderMeshBase:
 
         # UV map
         if self.has_uvmap():
-            uv_vectors = [f"<{tx},{ty}>" for tx, ty in self.uvmap]
+            uv_vectors = [f"<{tx:g},{ty:g}>" for tx, ty in self.uvmap]
             len_uv_vectors = len(uv_vectors)
             uv_vectors = "\n        ".join(uv_vectors)
             snippet_uv_vects = f"""\
@@ -772,7 +767,7 @@ class RenderMeshBase:
 
         # Normals
         if self.has_vnormals():
-            nrms = [f"<{nx},{ny},{nz}>" for nx, ny, nz in self.vnormals]
+            nrms = [f"<{nx:g},{ny:g},{nz:g}>" for nx, ny, nz in self.vnormals]
             normals = "\n        ".join(nrms)
             len_normals = len(nrms)
             snippet_normals = f"""\
@@ -839,8 +834,7 @@ class RenderMeshBase:
         def _0st():
             """Scale, translate."""
             return (
-                (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
-                for vec in uvmap
+                (vec[0] * scale + trans_x, vec[1] * scale + trans_y) for vec in uvmap
             )
 
         def _r00():
@@ -929,7 +923,7 @@ class RenderMeshBase:
             sum2 += area
             return sum1, sum2
 
-        facets = ((f.Points, f.Area) for f in self.__originalmesh.Facets)
+        facets = ((f.Points, f.Area) for f in self._originalmesh.Facets)
         sum1, sum2 = functools.reduce(reducer, facets, ((0.0, 0.0, 0.0), 0.0))
         cog = App.Vector(sum1) / sum2
         return cog
@@ -965,7 +959,7 @@ class RenderMeshBase:
         # z-normal facets
         regular, seam, znormal = [], [], []
         z_vector = App.Base.Vector(0.0, 0.0, 1.0)
-        for facet in self.__originalmesh.Facets:
+        for facet in self._originalmesh.Facets:
             if _is_facet_normal_to_vector(facet, z_vector):
                 znormal.append(facet)
             elif _facet_overlap_seam(facet):
@@ -981,20 +975,15 @@ class RenderMeshBase:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [
-            (atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
-        ]
+        uvmap += [(atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points]
         mesh.addMesh(regular_mesh)
 
         # Non Z-normal facets (seam)
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
-        avg_radius = (
-            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
-        )
+        avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         uvmap += [
-            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001)
-            for p in points
+            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
         ]
         mesh.addMesh(seam_mesh)
 
@@ -1018,7 +1007,7 @@ class RenderMeshBase:
         # - facets not on seam (regular)
         # - facets on seam (seam)
         regular, seam = [], []
-        for facet in self.__originalmesh.Facets:
+        for facet in self._originalmesh.Facets:
             if _facet_overlap_seam(facet):
                 seam.append(facet)
             else:
@@ -1028,7 +1017,7 @@ class RenderMeshBase:
         mesh = Mesh.Mesh()
         uvmap = []
         try:
-            origin = self.__originalmesh.CenterOfGravity
+            origin = self._originalmesh.CenterOfGravity
         except AttributeError:
             origin = self.center_of_gravity()
 
@@ -1049,8 +1038,7 @@ class RenderMeshBase:
         vectors = [p.Vector - origin for p in list(seam_mesh.Points)]
         uvmap += [
             (
-                (0.5 + _pos_atan2(v.x, v.y) / (2 * pi))
-                * (v.Length / 1000.0 * pi),
+                (0.5 + _pos_atan2(v.x, v.y) / (2 * pi)) * (v.Length / 1000.0 * pi),
                 (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
             )
             for v in vectors
@@ -1076,7 +1064,7 @@ class RenderMeshBase:
 
         # Isolate submeshes by cube face
         face_facets = ([], [], [], [], [], [])
-        for facet in self.__originalmesh.Facets:
+        for facet in self._originalmesh.Facets:
             cubeface = _intersect_unitcube_face(facet.Normal)
             # Add facet to corresponding submesh
             face_facets[cubeface].append(facet)
@@ -1085,7 +1073,7 @@ class RenderMeshBase:
         uvmap = []
         mesh = Mesh.Mesh()
         try:
-            cog = self.__originalmesh.CenterOfGravity
+            cog = self._originalmesh.CenterOfGravity
         except AttributeError:
             cog = self.center_of_gravity()
         for cubeface, facets in enumerate(face_facets):
@@ -1111,6 +1099,15 @@ class RenderMeshBase:
     ##########################################################################
     #                       Vertex Normals manipulations                     #
     ##########################################################################
+
+    def autosmooth(self, split_angle=radians(30)):
+        """Smooth mesh, using vertex normals.
+
+        Args:
+            split_angle -- the angle that breaks adjacency (in radians).
+        """
+        self.separate_connected_components(split_angle)
+        self.compute_vnormals()
 
     def compute_vnormals(self):
         """Compute vertex normals (single process).
@@ -1297,9 +1294,7 @@ class RenderMeshBase:
         tags = [None] * self.count_facets
         tag = None
 
-        iterator = zip(
-            it.count(), (x for x, y in enumerate(tags) if y is None)
-        )
+        iterator = zip(it.count(), (x for x, y in enumerate(tags) if y is None))
         for tag, starting_point in iterator:
             tags = self.connected_facets(
                 starting_point, adjacents, tags, tag, split_angle_cos
@@ -1318,6 +1313,9 @@ class RenderMeshBase:
         """
         tags = self.connected_components(split_angle)
 
+        unique_tags = set(tags)
+        print("distinct tags", len(unique_tags))  # TODO
+
         points = self.points
         facets = self.facets
 
@@ -1327,6 +1325,7 @@ class RenderMeshBase:
             for facet, tag in zip(facets, tags)
             for point_index in facet
         }
+        print(len(newpoints), "points")  # TODO
 
         # Number newpoint
         for index, point in enumerate(newpoints):
@@ -1337,9 +1336,7 @@ class RenderMeshBase:
 
         # If necessary, rebuild uvmap
         if self.uvmap:
-            self.uvmap = [
-                self.uvmap[point_index] for point_index, tag in newpoints
-            ]
+            self.uvmap = [self.uvmap[point_index] for point_index, tag in newpoints]
 
         # Update point indices in facets
         self.facets = [
@@ -1501,23 +1498,15 @@ def _intersect_unitcube_face(direction):
 
     if dabsx >= dabsy and dabsx >= dabsz:
         return (
-            0  # _UnitCubeFaceEnum.XPLUS
-            if dirx >= 0
-            else 1  # _UnitCubeFaceEnum.XMINUS
+            0 if dirx >= 0 else 1  # _UnitCubeFaceEnum.XPLUS  # _UnitCubeFaceEnum.XMINUS
         )
 
     if dabsy >= dabsx and dabsy >= dabsz:
         return (
-            2  # _UnitCubeFaceEnum.YPLUS
-            if diry >= 0
-            else 3  # _UnitCubeFaceEnum.YMINUS
+            2 if diry >= 0 else 3  # _UnitCubeFaceEnum.YPLUS  # _UnitCubeFaceEnum.YMINUS
         )
 
-    return (
-        4  # _UnitCubeFaceEnum.ZPLUS
-        if dirz >= 0
-        else 5  # _UnitCubeFaceEnum.ZMINUS
-    )
+    return 4 if dirz >= 0 else 5  # _UnitCubeFaceEnum.ZPLUS  # _UnitCubeFaceEnum.ZMINUS
 
 
 def _uc_xplus(point):

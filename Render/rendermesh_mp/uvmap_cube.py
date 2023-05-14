@@ -25,6 +25,7 @@
 import sys
 import os
 import gc
+import traceback
 
 try:
     import numpy as np
@@ -411,6 +412,9 @@ def init(shared):
     global SHARED_UVMAP
     SHARED_UVMAP = shared["uvmap"]
 
+    global USE_NUMPY
+    USE_NUMPY = USE_NUMPY and shared["enable_numpy"]
+
     if USE_NUMPY:
         global SHARED_NORMALS_NP
         SHARED_NORMALS_NP = np.ctypeslib.as_array(SHARED_NORMALS)
@@ -454,6 +458,7 @@ def main(
     normals,
     areas,
     showtime,
+    enable_numpy,
     out_points,
     out_point_count,
     out_facets,
@@ -471,11 +476,14 @@ def main(
     import itertools
     import time
 
+    count_facets = len(facets) // 3
+    count_points = len(points) // 3
+
     tm0 = time.time()
     if showtime:
         msg = (
-            f"start uv computation: {len(points)} points, "
-            f"{len(facets)} facets"
+            f"start uv computation: {count_points} points, "
+            f"{count_facets} facets"
         )
         print(msg)
 
@@ -524,8 +532,6 @@ def main(
     chunk_size = 20000
     nproc = os.cpu_count()
 
-    count_facets = len(facets) // 3
-
     try:
         gc.disable()
         # Compute facets colors and center of gravity
@@ -535,10 +541,11 @@ def main(
             "normals": normals,
             "areas": areas,
             "cog": ctx.RawArray("f", 3),
-            "facet_colors": ctx.RawArray("B", len(facets)),
-            "colored_points": ctx.RawArray("L", len(points) * 2 * 6),
+            "facet_colors": ctx.RawArray("B", count_facets),
+            "colored_points": ctx.RawArray("L", count_points * 2 * 6),
             "colored_points_len": ctx.RawValue("l"),
-            "uvmap": ctx.RawArray("f", len(points) * 2 * 6),
+            "uvmap": ctx.RawArray("f", count_points * 2 * 6),
+            "enable_numpy": enable_numpy,
         }
         tick("prepare shared")
         with ctx.Pool(nproc, init, (shared,)) as pool:
@@ -585,7 +592,10 @@ def main(
             ]
             out_points[: colored_points_len * 3] = newpoints
             tick("new point list")
-
+    except Exception as exc:
+        print(traceback.format_exc())
+        input("Press Enter to continue...")
+        raise exc
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
@@ -605,6 +615,7 @@ if __name__ == "__main__":
         NORMALS,
         AREAS,
         SHOWTIME,
+        ENABLE_NUMPY,
         OUT_POINTS,
         OUT_POINT_COUNT,
         OUT_FACETS,
@@ -618,6 +629,7 @@ if __name__ == "__main__":
     NORMALS = None
     AREAS = None
     SHOWTIME = None
+    ENABLE_NUMPY = None
     OUT_POINTS = None
     OUT_POINT_COUNT = None
     OUT_FACETS = None
