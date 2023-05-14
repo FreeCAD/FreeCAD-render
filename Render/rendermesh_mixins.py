@@ -675,7 +675,7 @@ def multiprocessing_enabled(mesh):
     """Check if multiprocessing can be enabled."""
     conditions = (
         PARAMS.GetBool("EnableMultiprocessing"),
-        mesh.CountPoints >= 2000,
+        mesh.CountPoints >= PARAMS.GetInt("MultiprocessingThreshold"),
         _find_python(),
     )
     return all(conditions)
