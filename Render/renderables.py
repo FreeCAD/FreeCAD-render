@@ -545,6 +545,7 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
             mesher(f, _needs_uvmap(material), uvprojection) for f in faces
         ]
         materials = [material] * nfaces
+        colors = map(fcdcolor2rgba, colors)
         renderables = [
             Renderable(*i) for i in zip(names, meshes, materials, colors)
         ]
