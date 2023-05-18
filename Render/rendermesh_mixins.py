@@ -49,7 +49,7 @@ try:
     from multiprocessing import shared_memory
 except ModuleNotFoundError:
     pass  # TODO
-    
+
 
 try:
     mp.set_start_method("spawn")
@@ -264,57 +264,21 @@ class RenderMeshMultiprocessingMixin:
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
-        # Header
-        header = ["# Written by FreeCAD-Render\n"]
-
-        # Mtl
-        mtl = [f"mtllib {mtlfilename}\n\n"] if mtlfilename else []
-
-        # UV
-        if self.has_uvmap():
-            # Translate, rotate, scale (optionally)
-            uvs = self.uvtransform(*uv_transformation)
-        else:
-            uvs = []
-
-        # Vertex normals
-        if self.has_vnormals():
-            norms = self.vnormals
-        else:
-            norms = []
-
-        # Object name
-        objname = [f"o {name}\n"]
-        if mtlname is not None:
-            objname.append(f"usemtl {mtlname}\n")
-        objname.append("\n")
-
-        # Faces
-        if self.has_vnormals() and self.has_uvmap():
-            mask = " {0}/{0}/{0}"
-        elif not self.has_vnormals() and self.has_uvmap():
-            mask = " {0}/{0}"
-        elif self.has_vnormals() and not self.has_uvmap():
-            mask = " {0}//{0}"
-        else:
-            mask = " {}"
-
-        inlist = [
-            (header, "s"),
-            (mtl, "s"),
-            (self.points, "v"),
-            (uvs, "vt"),
-            (norms, "vn"),
-            (objname, "s"),
-            (self.facets, "f"),
-        ]
+        # TODO Update uvmap with rotation?
 
         # Init script globals
         init_globals = {
-            "inlist": inlist,
-            "mask": mask,
-            "objfile": objfile,
-            "python": self.python,
+            "POINTS": self._points.array,
+            "FACETS": self._facets.array,
+            "VNORMALS": self._vnormals.array,
+            "UVMAP": self._uvmap.array,
+            "HAS_VNORMALS": self.has_vnormals(),
+            "HAS_UVMAP": self.has_uvmap(),
+            "MTLFILENAME": mtlfilename,
+            "OBJFILE": objfile,
+            "OBJNAME": name,
+            "MTLNAME": mtlname,
+            "PYTHON": self.python,
         }
 
         # Run script
