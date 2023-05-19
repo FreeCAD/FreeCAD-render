@@ -223,7 +223,7 @@ if __name__ == "__main__":
             pool_args = (mask, shared, smm.address)
             with mp.Pool(NPROC, init, pool_args) as pool:
                 tick("pool started")
-                with open(OBJFILE, "w", encoding="utf-8") as f:
+                with open(OBJFILE, "w+b") as f:
 
                     def write_array(name, format_function, item_number):
                         chunks = make_chunks(chunk_size, item_number)
@@ -233,18 +233,19 @@ if __name__ == "__main__":
                             for n, s in buffers
                         )
                         results = (
-                            shm.buf[0:s].tobytes().decode("utf-8")
+                            shm.buf[0:s].tobytes()
                             for shm, s in results
                         )
-                        f.write(f"# {name}\n")
+                        msg = f"# {name}\n"
+                        f.write(msg.encode())
                         f.writelines(results)
                         tick(name.lower())
 
                     # Write header & mtl
-                    f.write("# Written by FreeCAD-Render\n")
+                    f.write("# Written by FreeCAD-Render\n".encode())
                     if MTLFILENAME:
                         mtl = f"mtllib {MTLFILENAME}\n\n"
-                        f.write(mtl)
+                        f.write(mtl.encode())
 
                     # Write vertices (points)
                     write_array("Vertices", format_points, count_points)
@@ -262,9 +263,9 @@ if __name__ == "__main__":
                         )
 
                     # Write object statement
-                    f.write(f"o {OBJNAME}\n")
+                    f.write(f"o {OBJNAME}\n".encode())
                     if MTLNAME is not None:
-                        f.write(f"usemtl {MTLNAME}\n")
+                        f.write(f"usemtl {MTLNAME}\n".encode())
 
                     # Write facets
                     write_array("Faces", format_facets, count_facets)
