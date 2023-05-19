@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     tm0 = time.time()
     if SHOWTIME:
-        msg = "\nWRITE OBJ\n"
+        msg = "\nWRITE OBJ"
         print(msg)
 
     def tick(msg=""):
@@ -236,7 +236,7 @@ if __name__ == "__main__":
                         results = results.decode("utf-8")
                         f.write(f"# {name}\n")
                         f.write(results)
-                        tick(name)
+                        tick(name.lower())
 
                     # Write header & mtl
                     f.write("# Written by FreeCAD-Render\n")
@@ -250,7 +250,7 @@ if __name__ == "__main__":
                     # Write uv
                     if HAS_UVMAP:
                         write_array(
-                            "Vertex normals", format_uvmap, count_uvmap
+                            "Uv map", format_uvmap, count_uvmap
                         )
 
                     # Write vertex normals

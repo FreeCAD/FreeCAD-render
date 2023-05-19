@@ -343,7 +343,7 @@ class RenderMeshMultiprocessingMixin:
             ]
             buffers = [shm.buf[0:size] for shm, size in shms]
             arrays = [
-                array.array(t, b.cast(t))
+                mp.RawArray(t, b.cast(t))
                 for b, t in zip(buffers, return_types)
             ]
             buffers = None  # Otherwise we cannot close shared memory...
