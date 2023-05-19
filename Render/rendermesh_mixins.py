@@ -83,7 +83,9 @@ class RenderMeshMultiprocessingMixin:
 
         self._points = SharedArray("f", count_points, 3, points)
         self._facets = SharedArray("l", count_facets, 3, facets)
-        self._normals = SharedArray("f", count_facets, 3, [f.Normal for f in facets2])
+        self._normals = SharedArray(
+            "f", count_facets, 3, [f.Normal for f in facets2]
+        )
         self._areas = mp.RawArray("f", count_facets)
         self._areas[:] = [f.Area for f in facets2]
 
@@ -235,9 +237,16 @@ class RenderMeshMultiprocessingMixin:
             print("init connected", time.time() - tm0)
 
         # Run script (return points, facets, vnormals, uvmap)
-        result = self._run_path_in_process(path, init_globals, return_types="flff")
+        result = self._run_path_in_process(
+            path, init_globals, return_types="flff"
+        )
         if result:
-            self._points.array, self._facets.array, self._vnormals.array, *optional = result
+            (
+                self._points.array,
+                self._facets.array,
+                self._vnormals.array,
+                *optional,
+            ) = result
 
             if optional:
                 print("update uvmap")
@@ -247,7 +256,12 @@ class RenderMeshMultiprocessingMixin:
 
         if debug_flag:
             print(f"#points {self.count_points},  #facets {self.count_facets}")
-            print("has vnormals", self.has_vnormals(), "has uvmap", self.has_uvmap())
+            print(
+                "has vnormals",
+                self.has_vnormals(),
+                "has uvmap",
+                self.has_uvmap(),
+            )
 
     def _write_objfile_helper(
         self,
@@ -261,6 +275,9 @@ class RenderMeshMultiprocessingMixin:
 
         See write_objfile for more details.
         """
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            tm0 = time.time()
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
@@ -278,11 +295,16 @@ class RenderMeshMultiprocessingMixin:
             "OBJFILE": objfile,
             "OBJNAME": name,
             "MTLNAME": mtlname,
+            "SHOWTIME": debug_flag,
             "PYTHON": self.python,
         }
 
         # Run script
         self._run_path_in_process(path, init_globals)
+
+        if debug_flag:
+            tm1 = time.time() - tm0
+            print(f"end writing obj file ({tm1})")
 
     def _run_path_in_process(self, path, init_globals, return_types=None):
         """Run a path in a dedicated process.
@@ -296,6 +318,7 @@ class RenderMeshMultiprocessingMixin:
         debug_flag = PARAMS.GetBool("Debug")
         # Synchro objects
         from multiprocessing import connection  # TODO
+
         main_conn, sub_conn = connection.Pipe()
 
         args = (path,)
@@ -316,11 +339,13 @@ class RenderMeshMultiprocessingMixin:
         if result and sentinel not in result:
             msg = main_conn.recv()
             shms = [
-                (shared_memory.SharedMemory(name), size)
-                for name, size in msg
+                (shared_memory.SharedMemory(name), size) for name, size in msg
             ]
             buffers = [shm.buf[0:size] for shm, size in shms]
-            arrays = [array.array(t, b.cast(t)) for b, t in zip(buffers, return_types)]
+            arrays = [
+                array.array(t, b.cast(t))
+                for b, t in zip(buffers, return_types)
+            ]
             buffers = None  # Otherwise we cannot close shared memory...
             for shm, _ in shms:
                 shm.close()
@@ -339,7 +364,9 @@ class SharedArray:
         self._rawarray = mp.RawArray(typecode, length * width)
         self._width = width
         if initializer:
-            self._rawarray[:] = list(itertools.chain.from_iterable(initializer))
+            self._rawarray[:] = list(
+                itertools.chain.from_iterable(initializer)
+            )
 
     def __iter__(self):
         iters = [iter(self._rawarray)] * self.width
@@ -419,7 +446,9 @@ class RenderMeshNumpyMixin:
         facet_colors = facet_colors.ravel()
 
         # Compute center of gravity (triangle cogs weighted by triangle areas)
-        weighted_triangle_cogs = np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
+        weighted_triangle_cogs = (
+            np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
+        )
         cog = np.sum(weighted_triangle_cogs, axis=0) / np.sum(areas)
 
         # Update point list
@@ -428,7 +457,9 @@ class RenderMeshNumpyMixin:
         tshape = triangles.shape
         unfolded_points = triangles.reshape(tshape[0] * tshape[1], tshape[2])
         unfolded_point_colors = np.expand_dims(facet_colors.repeat(3), axis=1)
-        unfolded_colored_points = np.hstack((unfolded_points, unfolded_point_colors))
+        unfolded_colored_points = np.hstack(
+            (unfolded_points, unfolded_point_colors)
+        )
         colored_points, new_facets = np.unique(
             unfolded_colored_points, return_inverse=True, axis=0
         )
@@ -612,7 +643,9 @@ class RenderMeshNumpyMixin:
             print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
-        facet_pairs = np.stack((indices[pairs["x"]], indices[pairs["y"]]), axis=-1)
+        facet_pairs = np.stack(
+            (indices[pairs["x"]], indices[pairs["y"]]), axis=-1
+        )
 
         # https://stackoverflow.com/questions/
         # 38277143/sort-2d-numpy-array-lexicographically
@@ -621,7 +654,8 @@ class RenderMeshNumpyMixin:
             print("sorted pairs", time.time() - tm0)
 
         adjacency = {
-            k: list(map(itget1, v)) for k, v in groupby(facet_pairs, key=itget0)
+            k: list(map(itget1, v))
+            for k, v in groupby(facet_pairs, key=itget0)
         }
 
         if debug_flag:

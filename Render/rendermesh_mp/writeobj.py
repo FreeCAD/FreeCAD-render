@@ -26,7 +26,7 @@ It is a helper for Rendermesh._write_objfile_mp.
 """
 
 import multiprocessing as mp
-from multiprocessing import shared_memory
+from multiprocessing.shared_memory import SharedMemory
 from multiprocessing.managers import SharedMemoryManager
 import functools
 
@@ -130,7 +130,6 @@ def format_chunk(shared_array, group, format_function, chunk):
     return name, len(concat)
 
 
-# TODO can be a partial object
 def format_points(chunk):
     return format_chunk(SHARED_POINTS, 3, func_v, chunk)
 
@@ -152,6 +151,17 @@ if __name__ == "__main__":
     import os
     import sys
     import itertools
+    import time
+
+    tm0 = time.time()
+    if SHOWTIME:
+        msg = "\nWRITE OBJ\n"
+        print(msg)
+
+    def tick(msg=""):
+        """Print the time (debug purpose)."""
+        if SHOWTIME:
+            print(msg, time.time() - tm0)
 
     # Get variables
     # pylint: disable=used-before-assignment
@@ -209,33 +219,24 @@ if __name__ == "__main__":
             mask = " {}"
 
         with SharedMemoryManager() as smm:
-            with mp.Pool(
-                NPROC,
-                init,
-                (
-                    mask,
-                    shared,
-                    smm.address,
-                ),
-            ) as pool:
+            tick("shared memory manager started")
+            pool_args = (mask, shared, smm.address)
+            with mp.Pool(NPROC, init, pool_args) as pool:
+                tick("pool started")
                 with open(OBJFILE, "w", encoding="utf-8") as f:
 
                     def write_array(name, format_function, item_number):
                         chunks = make_chunks(chunk_size, item_number)
-                        buffers = pool.map(format_function, chunks)
+                        buffers = pool.imap(format_function, chunks)
                         results = [
-                            (
-                                shared_memory.SharedMemory(
-                                    name=n, create=False
-                                ),
-                                s,
-                            )
+                            (SharedMemory(name=n, create=False), s)
                             for n, s in buffers
                         ]
                         results = b"".join(shm.buf[0:s] for shm, s in results)
                         results = results.decode("utf-8")
                         f.write(f"# {name}\n")
                         f.write(results)
+                        tick(name)
 
                     # Write header & mtl
                     f.write("# Written by FreeCAD-Render\n")
