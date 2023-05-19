@@ -228,14 +228,16 @@ if __name__ == "__main__":
                     def write_array(name, format_function, item_number):
                         chunks = make_chunks(chunk_size, item_number)
                         buffers = pool.imap(format_function, chunks)
-                        results = [
+                        results = (
                             (SharedMemory(name=n, create=False), s)
                             for n, s in buffers
-                        ]
-                        results = b"".join(shm.buf[0:s] for shm, s in results)
-                        results = results.decode("utf-8")
+                        )
+                        results = (
+                            shm.buf[0:s].tobytes().decode("utf-8")
+                            for shm, s in results
+                        )
                         f.write(f"# {name}\n")
-                        f.write(results)
+                        f.writelines(results)
                         tick(name.lower())
 
                     # Write header & mtl
