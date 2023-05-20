@@ -242,37 +242,37 @@ def update_facets(chunk):
 def _uc_xplus(point):
     """Unit cube - xplus case."""
     _, pt1, pt2 = point
-    return (pt1, pt2)
+    return complex(pt1, pt2)
 
 
 def _uc_xminus(point):
     """Unit cube - xminus case."""
     _, pt1, pt2 = point
-    return (-pt1, pt2)
+    return complex(-pt1, pt2)
 
 
 def _uc_yplus(point):
     """Unit cube - yplus case."""
     pt0, _, pt2 = point
-    return (-pt0, pt2)
+    return complex(-pt0, pt2)
 
 
 def _uc_yminus(point):
     """Unit cube - yminus case."""
     pt0, _, pt2 = point
-    return (pt0, pt2)
+    return complex(pt0, pt2)
 
 
 def _uc_zplus(point):
     """Unit cube - zplus case."""
     pt0, pt1, _ = point
-    return (pt0, pt1)
+    return complex(pt0, pt1)
 
 
 def _uc_zminus(point):
     """Unit cube - zminus case."""
     pt0, pt1, _ = point
-    return (pt0, -pt1)
+    return complex(pt0, -pt1)
 
 
 UC_MAP = (
@@ -320,10 +320,11 @@ def compute_uvmap_std(chunk):
     cog = tuple(SHARED_COG)
 
     uvs = ((UC_MAP[c], getpoint(p)) for p, c in colored_points)
-    uvs = (fdiv2(func(sub(point, cog)), 1000) for func, point in uvs)
+    uvs = (func(sub(point, cog)) / 1000 for func, point in uvs)
 
     for index, uv_ in zip(range(start, stop), uvs):
-        SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv_
+        SHARED_UVMAP[index * 2] = uv_.real
+        SHARED_UVMAP[index * 2 + 1] = uv_.imag
 
 
 if USE_NUMPY:

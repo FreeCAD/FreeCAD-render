@@ -136,7 +136,7 @@ class RenderMeshMultiprocessingMixin:
 
     @property
     def uvmap(self):
-        return self._uvmap
+        return (complex(r, i) for r, i in self._uvmap)
 
     @uvmap.setter
     def uvmap(self, value):
@@ -195,7 +195,7 @@ class RenderMeshMultiprocessingMixin:
 
         self._points.array = points_buf[: point_count * 3]
         self._facets.array = facets_buf
-        self.uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))  # TODO
+        self.uvmap = list(grouper(uvmap_buf[: point_count * 2], 2))
 
         points_buf = None
         facets_buf = None
@@ -281,7 +281,13 @@ class RenderMeshMultiprocessingMixin:
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
-        # TODO Update uvmap with rotation?
+        # Transform uvmap
+        if self.has_uvmap():
+            uvmap = self.uvtransform(*uv_transformation)
+            uvmap = ((c.real, c.imag) for c in uvmap)
+            uvmap = SharedArray("f", self.count_points, 2, uvmap)
+        else:
+            uvmap = None
 
         # Init script globals
         init_globals = {
