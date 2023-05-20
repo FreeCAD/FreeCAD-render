@@ -57,14 +57,14 @@ def init(*args):
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
     fmt_v = b"v %g %g %g\n".__mod__
-    fmt_vt = b"vt %g %g}\n".__mod__
+    fmt_vt = b"vt %g %g\n".__mod__
     fmt_vn = b"vn %g %g %g\n".__mod__
 
 
 # Faces
-def func_f(*val):
+def func_f(val):
     """Write face."""
-    return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"])
+    return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"]).encode("utf-8")
 
 
 def create_shm(obj, empty=False):
