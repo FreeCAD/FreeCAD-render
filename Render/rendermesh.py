@@ -711,7 +711,7 @@ class RenderMeshBase:
         nverts = "  ".join(nverts)
 
         if self.has_uvmap():
-            uvs = [f"{px:g} {py:g}" for px, py in self.uvmap_per_vertex()]
+            uvs = [f"{p.real:g} {p.imag:g}" for p in self.uvmap_per_vertex()]
             uvs = "  ".join(uvs)
             uv_statement = f'    UV="{uvs}"\n'
         else:
@@ -762,7 +762,7 @@ class RenderMeshBase:
 
         # UV map
         if self.has_uvmap():
-            uv_vectors = [f"<{tx:g},{ty:g}>" for tx, ty in self.uvmap]
+            uv_vectors = [f"<{t.real:g},{t.imag:g}>" for t in self.uvmap]
             len_uv_vectors = len(uv_vectors)
             uv_vectors = "\n        ".join(uv_vectors)
             snippet_uv_vects = f"""\
@@ -836,8 +836,9 @@ class RenderMeshBase:
 
         (used in Cycles)
         """
+        uvmap = list(self.uvmap)
         return [
-            self.uvmap[vertex_index]
+            uvmap[vertex_index]
             for triangle in self.facets
             for vertex_index in triangle
         ]
