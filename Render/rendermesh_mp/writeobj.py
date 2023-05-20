@@ -54,11 +54,11 @@ def init(*args):
 
     # pylint: disable=invalid-name
     global fmt_v, fmt_vt, fmt_vn, fmt_f, join_f
-    fmt_v = functools.partial(str.format, "v {:g} {:g} {:g}\n")
-    fmt_vt = functools.partial(str.format, "vt {:g} {:g}\n")
-    fmt_vn = functools.partial(str.format, "vn {:g} {:g} {:g}\n")
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
+    fmt_v = b"v %g %g %g\n".__mod__
+    fmt_vt = b"vt %g %g}\n".__mod__
+    fmt_vn = b"vn %g %g %g\n".__mod__
 
 
 # Faces
@@ -94,9 +94,8 @@ def format_chunk(shared_array, group, format_function, chunk):
     elems = (
         shared_array[group * i : group * i + group] for i in range(start, stop)
     )
-    lines = (format_function(*e) for e in elems)
-    concat = "".join(lines)
-    concat = concat.encode("utf-8")
+    lines = (format_function(tuple(e)) for e in elems)
+    concat = b"".join(lines)
 
     # Write shared memory
     shm = create_shm(concat)
