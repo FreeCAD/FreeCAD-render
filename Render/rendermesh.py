@@ -38,6 +38,7 @@ import time
 import collections
 from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
 import copy
+import cmath
 
 import FreeCAD as App
 import Mesh
@@ -666,7 +667,7 @@ class RenderMeshBase:
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
             fmt2 = functools.partial(str.format, "{:g} {:g}")
-            verts += [iter(fmt2(*v) for v in uvs)]
+            verts += [iter(fmt2(v.real, v.imag) for v in uvs)]
         verts += [it.repeat("\n")]
         verts = (" ".join(v) for v in zip(*verts))
 
@@ -826,82 +827,9 @@ class RenderMeshBase:
 
         rotate = radians(float(rotate))
 
-        def _000():
-            """Nop."""
-            return iter(uvmap)
-
-        def _00t():
-            """Translate."""
-            return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
-
-        def _0s0():
-            """Scale."""
-            return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
-
-        def _0st():
-            """Scale, translate."""
-            return (
-                (vec[0] * scale + trans_x, vec[1] * scale + trans_y)
-                for vec in uvmap
-            )
-
-        def _r00():
-            """Rotate."""
-            cosr = cos(rotate)
-            sinr = sin(rotate)
-            return (
-                (
-                    vec[0] * cosr - vec[1] * sinr,
-                    vec[0] * sinr + vec[1] * cosr,
-                )
-                for vec in uvmap
-            )
-
-        def _r0t():
-            """Rotate, translate."""
-            cosr = cos(rotate)
-            sinr = sin(rotate)
-            return (
-                (
-                    vec[0] * cosr - vec[1] * sinr + trans_x,
-                    vec[0] * sinr + vec[1] * cosr + trans_y,
-                )
-                for vec in uvmap
-            )
-
-        def _rs0():
-            """Rotate, scale."""
-            cosrs = cos(rotate) * scale
-            sinrs = sin(rotate) * scale
-            return (
-                (
-                    vec[0] * cosrs - vec[1] * sinrs,
-                    vec[0] * sinrs + vec[1] * cosrs,
-                )
-                for vec in uvmap
-            )
-
-        def _rst():
-            """Rotate, scale, translate."""
-            cosrs = cos(rotate) * scale
-            sinrs = sin(rotate) * scale
-            return (
-                (
-                    vec[0] * cosrs - vec[1] * sinrs + trans_x,
-                    vec[0] * sinrs + vec[1] * cosrs + trans_y,
-                )
-                for vec in uvmap
-            )
-
-        # Select and return the right function
-        index = (
-            rotate != 0.0,
-            scale != 1.0,
-            trans_x != 0.0 or trans_y != 0.0,
-        )
-        index = sum(it.compress((4, 2, 1), index))
-        functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
-        return functions[index]()
+        factor = cmath.rect(1.0, rotate) * scale
+        trans = complex(trans_x, trans_y)
+        return (vec * factor + trans for vec in uvmap)
 
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
@@ -984,7 +912,7 @@ class RenderMeshBase:
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
-            (atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
+            complex(atan2(p.x, p.y) * avg_radius, p.z) / 1000 for p in points
         ]
         mesh.addMesh(regular_mesh)
 
@@ -995,14 +923,14 @@ class RenderMeshBase:
             sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         )
         uvmap += [
-            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001)
+            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000
             for p in points
         ]
         mesh.addMesh(seam_mesh)
 
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
-        uvmap += [(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)]
+        uvmap += [complex(p.x, p.y) / 1000 for p in list(z_mesh.Points)]
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
@@ -1038,10 +966,10 @@ class RenderMeshBase:
         regular_mesh = Mesh.Mesh(regular)
         vectors = [p.Vector - origin for p in list(regular_mesh.Points)]
         uvmap += [
-            (
-                (0.5 + atan2(v.x, v.y) / (2 * pi)) * (v.Length / 1000.0 * pi),
-                (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
-            )
+            complex(
+                0.5 + atan2(v.x, v.y) / (2 * pi),
+                0.5 + asin(v.z / v.Length) / pi
+            ) * (v.Length / 1000.0 * pi)
             for v in vectors
         ]
         mesh.addMesh(regular_mesh)
@@ -1050,11 +978,10 @@ class RenderMeshBase:
         seam_mesh = Mesh.Mesh(seam)
         vectors = [p.Vector - origin for p in list(seam_mesh.Points)]
         uvmap += [
-            (
-                (0.5 + _pos_atan2(v.x, v.y) / (2 * pi))
-                * (v.Length / 1000.0 * pi),
-                (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
-            )
+            complex(
+                0.5 + _pos_atan2(v.x, v.y) / (2 * pi),
+                0.5 + asin(v.z / v.Length) / pi
+            ) * (v.Length / 1000.0 * pi)
             for v in vectors
         ]
         mesh.addMesh(seam_mesh)
@@ -1537,37 +1464,37 @@ def _intersect_unitcube_face(direction):
 def _uc_xplus(point):
     """Unit cube - xplus case."""
     _, pt1, pt2 = point
-    return (pt1, pt2)
+    return complex(pt1, pt2)
 
 
 def _uc_xminus(point):
     """Unit cube - xminus case."""
     _, pt1, pt2 = point
-    return (-pt1, pt2)
+    return complex(-pt1, pt2)
 
 
 def _uc_yplus(point):
     """Unit cube - yplus case."""
     pt0, _, pt2 = point
-    return (-pt0, pt2)
+    return complex(-pt0, pt2)
 
 
 def _uc_yminus(point):
     """Unit cube - yminus case."""
     pt0, _, pt2 = point
-    return (pt0, pt2)
+    return complex(pt0, pt2)
 
 
 def _uc_zplus(point):
     """Unit cube - zplus case."""
     pt0, pt1, _ = point
-    return (pt0, pt1)
+    return complex(pt0, pt1)
 
 
 def _uc_zminus(point):
     """Unit cube - zminus case."""
     pt0, pt1, _ = point
-    return (pt0, -pt1)
+    return complex(pt0, -pt1)
 
 
 _UC_MAP = (
