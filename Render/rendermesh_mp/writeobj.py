@@ -67,26 +67,6 @@ def func_f(val):
     return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"]).encode("utf-8")
 
 
-def create_shm(obj, empty=False):
-    """Create a SharedMemory object from the argument.
-
-    The argument must support buffer protocol.
-    The shared memory is created with the adequate size to host the
-    argument.
-    If empty==False (default), the shared memory is initialized with the
-    argument content. Otherwise it is kept uninitialized
-    """
-    memv = memoryview(obj)
-    size = memv.nbytes
-    if size > 0:
-        shm = SHARED_SMM.SharedMemory(size)
-        if not empty:
-            shm.buf[:] = memv.tobytes()
-    else:
-        shm = None
-    return shm
-
-
 def format_chunk(shared_array, group, format_function, chunk):
     start, stop = chunk
 
@@ -98,7 +78,8 @@ def format_chunk(shared_array, group, format_function, chunk):
     concat = b"".join(lines)
 
     # Write shared memory
-    shm = create_shm(concat)
+    shm = SHARED_SMM.SharedMemory(len(concat))
+    shm.buf[:] = concat
     name = shm.name
 
     return name, len(concat)
@@ -216,7 +197,7 @@ if __name__ == "__main__":
                         tick(name.lower())
 
                     # Write header & mtl
-                    f.write("# Written by FreeCAD-Render\n".encode("utf-8"))
+                    f.write("# Written by FreeCAD-Render (mp)\n".encode("utf-8"))
                     if MTLFILENAME:
                         mtl = f"mtllib {MTLFILENAME}\n\n"
                         f.write(mtl.encode("utf-8"))
