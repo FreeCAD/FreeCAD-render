@@ -61,26 +61,8 @@ def init(*args):
     join_f = functools.partial(str.join, "")
 
 
-# Vertices
-def func_v(val):
-    """Write vertex."""
-    return fmt_v(*val)
-
-
-# UV map
-def func_vt(val):
-    """Write uv."""
-    return fmt_vt(*val)
-
-
-# Normals
-def func_vn(val):
-    """Write normal."""
-    return fmt_vn(*val)
-
-
 # Faces
-def func_f(val):
+def func_f(*val):
     """Write face."""
     return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"])
 
@@ -112,7 +94,7 @@ def format_chunk(shared_array, group, format_function, chunk):
     elems = (
         shared_array[group * i : group * i + group] for i in range(start, stop)
     )
-    lines = (format_function(e) for e in elems)
+    lines = (format_function(*e) for e in elems)
     concat = "".join(lines)
     concat = concat.encode("utf-8")
 
@@ -124,15 +106,15 @@ def format_chunk(shared_array, group, format_function, chunk):
 
 
 def format_points(chunk):
-    return format_chunk(SHARED_POINTS, 3, func_v, chunk)
+    return format_chunk(SHARED_POINTS, 3, fmt_v, chunk)
 
 
 def format_uvmap(chunk):
-    return format_chunk(SHARED_UVMAP, 2, func_vt, chunk)
+    return format_chunk(SHARED_UVMAP, 2, fmt_vt, chunk)
 
 
 def format_vnormals(chunk):
-    return format_chunk(SHARED_VNORMALS, 3, func_vn, chunk)
+    return format_chunk(SHARED_VNORMALS, 3, fmt_vn, chunk)
 
 
 def format_facets(chunk):
