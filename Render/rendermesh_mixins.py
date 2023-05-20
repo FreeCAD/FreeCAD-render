@@ -482,7 +482,8 @@ class RenderMeshNumpyMixin:
                 [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
                 [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
                 [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
-            ]
+            ],
+            dtype=np.float64
         )
         uvs = np.matmul(
             base_matrices.take(point_colors, axis=0),
@@ -491,6 +492,10 @@ class RenderMeshNumpyMixin:
         )
         uvs = uvs.squeeze(axis=2)
         uvs /= 1000  # Scale
+
+        # Convert to complex
+        uvs.dtype = np.complex128
+        uvs = uvs.squeeze(axis=-1)
 
         # Update attributes
         self.facets = new_facets.tolist()
