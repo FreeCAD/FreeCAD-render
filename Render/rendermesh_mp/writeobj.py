@@ -29,6 +29,7 @@ import multiprocessing as mp
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing.managers import SharedMemoryManager
 import functools
+import operator
 
 
 # Init
@@ -53,18 +54,19 @@ def init(*args):
     SHARED_SMM = SharedMemoryManager(address=smm_address)
 
     # pylint: disable=invalid-name
-    global fmt_v, fmt_vt, fmt_vn, fmt_f, join_f
+    global fmt_v, fmt_vt, fmt_vn, fmt_f, join_f, add1
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
     fmt_v = b"v %g %g %g\n".__mod__
     fmt_vt = b"vt %g %g\n".__mod__
     fmt_vn = b"vn %g %g %g\n".__mod__
+    add1 = functools.partial(operator.add, 1)
 
 
 # Faces
 def func_f(val):
     """Write face."""
-    return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"]).encode("utf-8")
+    return join_f(["f"] + list(map(fmt_f, val)) + ["\n"]).encode("utf-8")
 
 
 def format_chunk(shared_array, group, format_function, chunk):
@@ -98,7 +100,13 @@ def format_vnormals(chunk):
 
 
 def format_facets(chunk):
-    return format_chunk(SHARED_FACETS, 3, func_f, chunk)
+    start, stop = chunk
+    # First, we must increment facet indices, as OBJ format requires indices to
+    # start at 1...
+    incremented_facets = list(map(add1, SHARED_FACETS[start*3:stop*3]))
+    chunk2 = (0, stop - start)
+    # Then we format
+    return format_chunk(incremented_facets, 3, func_f, chunk2)
 
 
 # Main
