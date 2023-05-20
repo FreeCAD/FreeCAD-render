@@ -85,13 +85,6 @@ def func_f(val):
     return join_f(["f"] + [fmt_f(x + 1) for x in val] + ["\n"])
 
 
-# TODO
-# String
-def func_s(val):
-    """Write plain string (nop)."""
-    return val
-
-
 def create_shm(obj, empty=False):
     """Create a SharedMemory object from the argument.
 
@@ -116,10 +109,10 @@ def format_chunk(shared_array, group, format_function, chunk):
     start, stop = chunk
 
     # Format string
-    elems = [
+    elems = (
         shared_array[group * i : group * i + group] for i in range(start, stop)
-    ]
-    lines = [format_function(e) for e in elems]
+    )
+    lines = (format_function(e) for e in elems)
     concat = "".join(lines)
     concat = concat.encode("utf-8")
 
@@ -237,15 +230,15 @@ if __name__ == "__main__":
                             for shm, s in results
                         )
                         msg = f"# {name}\n"
-                        f.write(msg.encode())
+                        f.write(msg.encode("utf-8"))
                         f.writelines(results)
                         tick(name.lower())
 
                     # Write header & mtl
-                    f.write("# Written by FreeCAD-Render\n".encode())
+                    f.write("# Written by FreeCAD-Render\n".encode("utf-8"))
                     if MTLFILENAME:
                         mtl = f"mtllib {MTLFILENAME}\n\n"
-                        f.write(mtl.encode())
+                        f.write(mtl.encode("utf-8"))
 
                     # Write vertices (points)
                     write_array("Vertices", format_points, count_points)
@@ -263,9 +256,9 @@ if __name__ == "__main__":
                         )
 
                     # Write object statement
-                    f.write(f"o {OBJNAME}\n".encode())
+                    f.write(f"o {OBJNAME}\n".encode("utf-8"))
                     if MTLNAME is not None:
-                        f.write(f"usemtl {MTLNAME}\n".encode())
+                        f.write(f"usemtl {MTLNAME}\n".encode("utf-8"))
 
                     # Write facets
                     write_array("Faces", format_facets, count_facets)
