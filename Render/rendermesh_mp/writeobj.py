@@ -113,9 +113,9 @@ def format_facets(chunk):
 if __name__ == "__main__":
     import os
     import sys
-    import itertools
     import time
 
+    # pylint: disable=used-before-assignment
     tm0 = time.time()
     if SHOWTIME:
         msg = "\nWRITE OBJ"
@@ -127,7 +127,6 @@ if __name__ == "__main__":
             print(msg, time.time() - tm0)
 
     # Get variables
-    # pylint: disable=used-before-assignment
     try:
         PYTHON
     except NameError:
@@ -235,3 +234,15 @@ if __name__ == "__main__":
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
+        # Release shared variables
+        POINTS = None
+        FACETS = None
+        VNORMALS = None
+        UVMAP = None
+        SHOWTIME = None
+        OBJFILE = None
+        HAS_VNORMALS = None
+        HAS_UVMAP = None
+        OBJNAME = None
+        MTLFILENAME = None
+        MTLNAME = None

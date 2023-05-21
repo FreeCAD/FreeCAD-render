@@ -43,7 +43,6 @@ from vector3d import (
     fdiv,
     barycenter,
 )
-from vector2d import fdiv as fdiv2
 
 
 # Vocabulary:
@@ -413,6 +412,7 @@ def init(shared):
     global SHARED_UVMAP
     SHARED_UVMAP = shared["uvmap"]
 
+    # pylint: disable=global-statement
     global USE_NUMPY
     USE_NUMPY = USE_NUMPY and shared["enable_numpy"]
 
