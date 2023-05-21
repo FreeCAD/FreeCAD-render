@@ -70,6 +70,7 @@ def func_f(val):
 
 
 def format_chunk(shared_array, group, format_function, chunk):
+    """Format a chunk of data, from an array."""
     start, stop = chunk
 
     # Format string
@@ -88,18 +89,22 @@ def format_chunk(shared_array, group, format_function, chunk):
 
 
 def format_points(chunk):
+    """Format a chunk of points."""
     return format_chunk(SHARED_POINTS, 3, fmt_v, chunk)
 
 
 def format_uvmap(chunk):
+    """Format a chunk of uv."""
     return format_chunk(SHARED_UVMAP, 2, fmt_vt, chunk)
 
 
 def format_vnormals(chunk):
+    """Format a chunk of vertex normals."""
     return format_chunk(SHARED_VNORMALS, 3, fmt_vn, chunk)
 
 
 def format_facets(chunk):
+    """Format a chunk of facets."""
     start, stop = chunk
     # First, we must increment facet indices, as OBJ format requires indices to
     # start at 1...
@@ -118,13 +123,12 @@ if __name__ == "__main__":
     # pylint: disable=used-before-assignment
     tm0 = time.time()
     if SHOWTIME:
-        msg = "\nWRITE OBJ"
-        print(msg)
+        print("\nWRITE OBJ")
 
-    def tick(msg=""):
+    def tick(message=""):
         """Print the time (debug purpose)."""
         if SHOWTIME:
-            print(msg, time.time() - tm0)
+            print(message, time.time() - tm0)
 
     # Get variables
     try:
@@ -150,16 +154,15 @@ if __name__ == "__main__":
     NPROC = os.cpu_count()
 
     def make_chunks(chunk_size, length):
+        """Compute a tuple (start, stop) to define a chunk."""
         return (
             (i, min(i + chunk_size, length))
             for i in range(0, length, chunk_size)
         )
 
-    chunk_size = 20000
-
     # Run
     try:
-        shared = {
+        SHARED = {
             "points": POINTS,
             "facets": FACETS,
             "vnormals": VNORMALS,
@@ -172,23 +175,24 @@ if __name__ == "__main__":
 
         # Mask for facets
         if HAS_VNORMALS and HAS_UVMAP:
-            mask = " {0}/{0}/{0}"
+            MASK = " {0}/{0}/{0}"
         elif not HAS_VNORMALS and HAS_UVMAP:
-            mask = " {0}/{0}"
+            MASK = " {0}/{0}"
         elif HAS_VNORMALS and not HAS_UVMAP:
-            mask = " {0}//{0}"
+            MASK = " {0}//{0}"
         else:
-            mask = " {}"
+            MASK = " {}"
 
         with SharedMemoryManager() as smm:
             tick("shared memory manager started")
-            pool_args = (mask, shared, smm.address)
+            pool_args = (MASK, SHARED, smm.address)
             with mp.Pool(NPROC, init, pool_args) as pool:
                 tick("pool started")
                 with open(OBJFILE, "w+b") as f:
 
                     def write_array(name, format_function, item_number):
-                        chunks = make_chunks(chunk_size, item_number)
+                        """Write an array to disk, using a format."""
+                        chunks = make_chunks(CHUNK_SIZE, item_number)
                         buffers = pool.imap(format_function, chunks)
                         results = (
                             (SharedMemory(name=n, create=False), s)
