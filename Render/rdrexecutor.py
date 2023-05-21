@@ -150,7 +150,9 @@ class ExporterWorker(QObject):
         try:
             res = self.func(*self.args)
         except Exception as exc:
-            App.Console.PrintError("[Render][Objstrings] /!\ EXPORT ERROR /!\\\n")
+            App.Console.PrintError(
+                "[Render][Objstrings] /!\ EXPORT ERROR /!\\\n"
+            )
             raise exc
         else:
             with self.lock:

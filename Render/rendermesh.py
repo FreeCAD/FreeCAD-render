@@ -533,7 +533,7 @@ class RenderMeshBase:
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(*uv_transformation)
             fmtuv = functools.partial(str.format, "vt {:g} {:g}\n")
-            uvs = (fmtuv(*t) for t in uvs)
+            uvs = (fmtuv(t.real, t.imag) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
         else:
             uvs = []
@@ -969,8 +969,9 @@ class RenderMeshBase:
         uvmap += [
             complex(
                 0.5 + atan2(v.x, v.y) / (2 * pi),
-                0.5 + asin(v.z / v.Length) / pi
-            ) * (v.Length / 1000.0 * pi)
+                0.5 + asin(v.z / v.Length) / pi,
+            )
+            * (v.Length / 1000.0 * pi)
             for v in vectors
         ]
         mesh.addMesh(regular_mesh)
@@ -981,8 +982,9 @@ class RenderMeshBase:
         uvmap += [
             complex(
                 0.5 + _pos_atan2(v.x, v.y) / (2 * pi),
-                0.5 + asin(v.z / v.Length) / pi
-            ) * (v.Length / 1000.0 * pi)
+                0.5 + asin(v.z / v.Length) / pi,
+            )
+            * (v.Length / 1000.0 * pi)
             for v in vectors
         ]
         mesh.addMesh(seam_mesh)

@@ -103,7 +103,7 @@ def format_facets(chunk):
     start, stop = chunk
     # First, we must increment facet indices, as OBJ format requires indices to
     # start at 1...
-    incremented_facets = list(map(add1, SHARED_FACETS[start*3:stop*3]))
+    incremented_facets = list(map(add1, SHARED_FACETS[start * 3 : stop * 3]))
     chunk2 = (0, stop - start)
     # Then we format
     return format_chunk(incremented_facets, 3, func_f, chunk2)
@@ -196,8 +196,7 @@ if __name__ == "__main__":
                             for n, s in buffers
                         )
                         results = (
-                            shm.buf[0:s].tobytes()
-                            for shm, s in results
+                            shm.buf[0:s].tobytes() for shm, s in results
                         )
                         msg = f"# {name}\n"
                         f.write(msg.encode("utf-8"))
@@ -205,7 +204,9 @@ if __name__ == "__main__":
                         tick(name.lower())
 
                     # Write header & mtl
-                    f.write("# Written by FreeCAD-Render (mp)\n".encode("utf-8"))
+                    f.write(
+                        "# Written by FreeCAD-Render (mp)\n".encode("utf-8")
+                    )
                     if MTLFILENAME:
                         mtl = f"mtllib {MTLFILENAME}\n\n"
                         f.write(mtl.encode("utf-8"))
@@ -215,9 +216,7 @@ if __name__ == "__main__":
 
                     # Write uv
                     if HAS_UVMAP:
-                        write_array(
-                            "Uv map", format_uvmap, count_uvmap
-                        )
+                        write_array("Uv map", format_uvmap, count_uvmap)
 
                     # Write vertex normals
                     if HAS_VNORMALS:

@@ -589,7 +589,9 @@ def main(
 
             # Recompute point list
             newpoints = [
-                coord for i, _ in colored_points for coord in points[3 * i : 3 * i + 3]
+                coord
+                for i, _ in colored_points
+                for coord in points[3 * i : 3 * i + 3]
             ]
             out_points[: colored_points_len * 3] = newpoints
             tick("new point list")

@@ -27,29 +27,22 @@ Capabilities are added by overloading base class methods.
 
 import runpy
 import multiprocessing as mp
+from multiprocessing import connection, shared_memory
 import shutil
 import os
 import time
 import itertools
-import functools
 import operator
-import array
+import collections
 
 try:
     import numpy as np
-    from numpy.lib import recfunctions as rfn
 except ModuleNotFoundError:
     pass
 
 
 from Render.constants import PKGDIR, PARAMS
-from Render.utils import warn, debug, grouper, SharedWrapper
-
-try:
-    from multiprocessing import shared_memory
-except ModuleNotFoundError:
-    pass  # TODO
-
+from Render.utils import warn, debug, grouper
 
 try:
     mp.set_start_method("spawn")
@@ -71,6 +64,10 @@ class RenderMeshMultiprocessingMixin:
         super().__init__(*args, **kwargs)
 
     def _setup_internals(self):
+        """Set up internal variables.
+
+        To be overidden by mixins if necessary.
+        """
         mesh = self._originalmesh
         points, facets = mesh.Topology
         facets2 = mesh.Facets
@@ -95,59 +92,73 @@ class RenderMeshMultiprocessingMixin:
 
     @property
     def points(self):
+        """Get points."""
         return self._points
 
     @points.setter
     def points(self, value):
+        """Set points."""
         self._points = SharedArray("f", len(value), 3, value)
 
     @property
     def count_points(self):
+        """Get number of points."""
         return len(self._points)
 
     @property
     def facets(self):
+        """Get facets."""
         return self._facets
 
     @facets.setter
     def facets(self, value):
+        """Set facets."""
         self._facets = SharedArray("l", len(value), 3, value)
 
     @property
     def count_facets(self):
+        """Get number of facets."""
         return len(self._facets)
 
     @property
     def normals(self):
+        """Get facet normals."""
         return self._normals
 
     @normals.setter
     def normals(self, value):
+        """Set facet normals."""
         self._normals = SharedArray("f", len(value), 3, value)
 
     @property
     def areas(self):
+        """Get facet areas."""
         return self._areas
 
     @areas.setter
     def areas(self, value):
+        """Set facet areas."""
         self._areas = mp.RawArray("f", len(value))
         self._areas[:] = value
 
     @property
     def uvmap(self):
+        """Get uv map."""
         return (complex(r, i) for r, i in self._uvmap)
 
     @uvmap.setter
     def uvmap(self, value):
+        """Set uv map."""
         self._uvmap = SharedArray("f", len(value), 2, value)
 
     @property
     def vnormals(self):
+        """Get vertex normals."""
         return self._vnormals
 
     @vnormals.setter
     def vnormals(self, value):
+        """Set vertex normals."""
         self._vnormals = SharedArray("f", len(value), 3, value)
 
     def _compute_uvmap_cube(self):
@@ -163,7 +174,6 @@ class RenderMeshMultiprocessingMixin:
         path = os.path.join(PKGDIR, "rendermesh_mp", "uvmap_cube.py")
 
         # Init output buffers
-        facets = self.facets
         color_count = 6
         points_per_facet = 3
         maxpoints = self.count_facets * color_count * points_per_facet
@@ -321,9 +331,7 @@ class RenderMeshMultiprocessingMixin:
         Please note 'self.python' must have been set. After
         being started, the process is awaited (joined).
         """
-        debug_flag = PARAMS.GetBool("Debug")
         # Synchro objects
-        from multiprocessing import connection  # TODO
 
         main_conn, sub_conn = connection.Pipe()
 
@@ -356,9 +364,8 @@ class RenderMeshMultiprocessingMixin:
             for shm, _ in shms:
                 shm.close()
             main_conn.send("terminate")
-        else:
-            if return_types is not None:
-                warn("Object", self.name, "No return from mp module")
+        elif return_types is not None:
+            warn("Object", self.name, "No return from mp module")
 
         process.join()
 
@@ -366,6 +373,7 @@ class RenderMeshMultiprocessingMixin:
 
 
 class SharedArray:
+    """An 2-dimensions array to be shared across multiple processes."""
     def __init__(self, typecode, length, width, initializer=None):
         self._rawarray = mp.RawArray(typecode, length * width)
         self._width = width
@@ -400,10 +408,12 @@ class SharedArray:
 
     @property
     def width(self):
+        """Return array width (2nd dim)."""
         return self._width
 
     @property
     def array(self):
+        """Access to underlying array."""
         return self._rawarray
 
     @array.setter
@@ -489,7 +499,7 @@ class RenderMeshNumpyMixin:
                 [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
                 [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
             ],
-            dtype=np.float64
+            dtype=np.float64,
         )
         uvs = np.matmul(
             base_matrices.take(point_colors, axis=0),
@@ -613,7 +623,7 @@ class RenderMeshNumpyMixin:
         facets = np.asarray(self.facets)
         facets.sort(axis=1)
         if debug_flag:
-            print(f"hashes", time.time() - tm0)
+            print("hashes", time.time() - tm0)
 
         indices = np.arange(len(facets))
         indices = np.tile(indices, 3)
@@ -635,7 +645,7 @@ class RenderMeshNumpyMixin:
         hashes = hashes[hashes_indices]
         hashes = np.stack((hashes, hashes_indices % len(facets)), axis=-1)
         if debug_flag:
-            print(f"hashes", time.time() - tm0)
+            print("sorted hashes", time.time() - tm0)
 
         # Compute hashtable
         itget0 = operator.itemgetter(0)
@@ -646,6 +656,7 @@ class RenderMeshNumpyMixin:
             permutations(map(itget1, v), 2)
             for v in map(itget1, groupby(hashes, key=itget0))
         )
+
         # Compute pairs
         pairs = itertools.chain.from_iterable(hashtable)
         pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
@@ -668,9 +679,19 @@ class RenderMeshNumpyMixin:
             k: list(map(itget1, v))
             for k, v in groupby(facet_pairs, key=itget0)
         }
+        adjacency = collections.defaultdict(list, adjacency)
 
         if debug_flag:
             print("adjacency", time.time() - tm0)
+
+        # Debug (symmetry)
+        # errors = [
+        # i
+        # for i in range(0, self.count_facets)
+        # for j in adjacency[i]
+        # if i not in adjacency[j]
+        # ]
+        # assert not errors
 
         return adjacency
 
@@ -708,44 +729,4 @@ def _find_python():
 
     if not PARAMS.GetBool("Debug"):
         return which("pythonw") or which("python")
-    else:
-        return which("python")
-
-
-# Sieve of Eratosthenes
-# Code by David Eppstein, UC Irvine, 28 Feb 2002
-# http://code.activestate.com/recipes/117119/
-
-
-def gen_primes():
-    """Generate an infinite sequence of prime numbers."""
-    # Maps composites to primes witnessing their compositeness.
-    # This is memory efficient, as the sieve is not "run forward"
-    # indefinitely, but only as long as required by the current
-    # number being tested.
-    #
-    D = {}
-
-    # The running integer that's checked for primeness
-    q = 2
-
-    while True:
-        if q not in D:
-            # q is a new prime.
-            # Yield it and mark its first multiple that isn't
-            # already marked in previous iterations
-            #
-            yield q
-            D[q * q] = [q]
-        else:
-            # q is composite. D[q] is the list of primes that
-            # divide it. Since we've reached q, we no longer
-            # need it in the map, but we'll mark the next
-            # multiples of its witnesses to prepare for larger
-            # numbers
-            #
-            for p in D[q]:
-                D.setdefault(p + q, []).append(p)
-            del D[q]
-
-        q += 1
+    return which("python")

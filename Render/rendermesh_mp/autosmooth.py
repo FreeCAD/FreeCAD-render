@@ -60,6 +60,7 @@ l3struct = struct.Struct("lll")
 l3unpack_from = l3struct.unpack_from
 l3iter_unpack = l3struct.iter_unpack
 
+
 def create_shm(obj, empty=False):
     """Create a SharedMemory object from the argument.
 
@@ -970,7 +971,7 @@ def main(
             point_list = [
                 c
                 for point_index, tag in newpoints
-                for c in points[ 3 * point_index : 3 * point_index + 3 ]
+                for c in points[3 * point_index : 3 * point_index + 3]
             ]
             points_array = array.array("f", point_list)
             points_shm = create_shm(points_array)
@@ -1004,7 +1005,6 @@ def main(
             vnormals_shm = create_shm(points_array, empty=True)
             shm_set_name("vnormals_shm_name", vnormals_shm.name)
             shm_set_size("vnormals_shm_size", vnormals_shm.size)
-
 
             # Compute weighted normals (n per vertex)
             # Here, we'll update points and vnormals in processes
