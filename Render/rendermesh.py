@@ -36,7 +36,7 @@ import itertools as it
 import functools
 import time
 import collections
-from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
+from math import pi, atan2, asin, isclose, radians, cos, hypot
 import copy
 import cmath
 
@@ -182,8 +182,7 @@ class RenderMeshBase:
         self._vnormals = []
         self._uvmap = []
 
-        # First we make a copy of the mesh, we separate mesh and
-        # placement and we set the mesh at its origin (null placement)
+        # We set the mesh at its origin (null placement)
         self._originalmesh = mesh
         self._originalmesh.Placement = App.Base.Placement()
 
@@ -1198,7 +1197,8 @@ class RenderMeshBase:
                     try:
                         successor_normal = normals[successor_index]
                     except IndexError:
-                        # Facet.NeighbourIndices can contain irrelevant index...
+                        # Facet.NeighbourIndices can contain irrelevant
+                        # index...
                         continue
 
                     if dot(current_normal, successor_normal) < split_angle_cos:
@@ -1258,10 +1258,11 @@ class RenderMeshBase:
             split_angle -- angle threshold, above which 2 adjacents facets
                 are considered as non-connected (in radians)
         """
+        debug_flag = PARAMS.GetBool("Debug")
         tags = self.connected_components(split_angle)
 
-        unique_tags = set(tags)
-        print("distinct tags", len(unique_tags))  # TODO
+        if debug_flag:
+            print("distinct tags", len(set(tags)))
 
         points = self.points
         facets = self.facets
@@ -1272,7 +1273,8 @@ class RenderMeshBase:
             for facet, tag in zip(facets, tags)
             for point_index in facet
         }
-        print(len(newpoints), "points")  # TODO
+        if debug_flag:
+            print(len(newpoints), "points")
 
         # Number newpoint
         for index, point in enumerate(newpoints):

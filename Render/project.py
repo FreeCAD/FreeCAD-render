@@ -38,11 +38,6 @@ import time
 import tracemalloc
 import traceback
 
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-
 from PySide.QtGui import QFileDialog, QMessageBox, QApplication
 from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
 import FreeCAD as App
@@ -828,10 +823,12 @@ def _get_objstrings_helper(get_rdr_string, views, multithreaded=True):
             objstrings = executor.map(get_rdr_string, views)
 
         App.Console.PrintMessage(
-            f"[Render][Objstrings] ENDING EXPORT - TIME: {time.time() - time0}\n"
+            "[Render][Objstrings] ENDING EXPORT - TIME: "
+            f"{time.time() - time0}\n"
         )
+    # pylint: disable=broad-exception-caught
     except Exception as exc:
-        App.Console.PrintError("[Render][Objstrings] /!\ EXPORT ERROR /!\\\n")
+        App.Console.PrintError("[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n")
         objstrings = []
         traceback.print_exception(exc)
     finally:
