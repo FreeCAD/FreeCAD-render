@@ -379,7 +379,6 @@ def compute_uvmap_np(chunk):
 
 def init(shared):
     """Initialize pool of processes."""
-    gc.disable()
 
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
@@ -445,8 +444,6 @@ def init(shared):
         global SHARED_UVMAP_NP
         SHARED_UVMAP_NP = np.ctypeslib.as_array(SHARED_UVMAP)
         SHARED_UVMAP_NP.shape = (len(SHARED_UVMAP) // 2, 2)
-
-    sys.setswitchinterval(sys.maxsize)
 
 
 # *****************************************************************************
@@ -534,7 +531,6 @@ def main(
     nproc = os.cpu_count()
 
     try:
-        gc.disable()
         # Compute facets colors and center of gravity
         shared = {
             "points": points,
@@ -602,7 +598,6 @@ def main(
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-        gc.enable()
 
     out_point_count.value = colored_points_len
 
@@ -637,5 +632,4 @@ if __name__ == "__main__":
     OUT_POINT_COUNT = None
     OUT_FACETS = None
     OUT_UVMAP = None
-    OUT_POINT_COUNT = None
     BASE_MATRICES = None

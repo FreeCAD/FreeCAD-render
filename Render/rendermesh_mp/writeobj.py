@@ -62,6 +62,10 @@ def init(*args):
     fmt_vn = b"vn %g %g %g\n".__mod__
     add1 = functools.partial(operator.add, 1)
 
+    global SHMS
+    SHMS = []
+
+
 
 # Faces
 def func_f(val):
@@ -84,6 +88,8 @@ def format_chunk(shared_array, group, format_function, chunk):
     shm = SHARED_SMM.SharedMemory(len(concat))
     shm.buf[:] = concat
     name = shm.name
+    global SHMS
+    SHMS.append(shm)
 
     return name, len(concat)
 
