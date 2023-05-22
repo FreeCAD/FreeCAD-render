@@ -738,6 +738,8 @@ class CoinShapeViewProviderMixin:
         """Complete 'onDelete' method (callback, mixin version)."""
         res = super().on_delete_mixin_cb(feature, subelements)
         # Delete coin representation
+        Gui.setActiveDocument(self.fpo.Document)
+        Gui.activateView("Gui::View3DInventor", False)
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         self.coin.shape.remove_from_scene(scene)
         return res  # If False, the object wouldn't be deleted
