@@ -804,6 +804,8 @@ class CoinLightViewProviderMixin:
             self.coin = SimpleNamespace()
 
         # Create light in scenegraph
+        Gui.setActiveDocument(self.fpo.Document)
+        Gui.activateView("Gui::View3DInventor", False)
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         # pylint: disable=not-callable
         self.coin.light = self.LIGHT_COIN_NODE()
@@ -813,6 +815,8 @@ class CoinLightViewProviderMixin:
         """Complete 'onDelete' method (callback, mixin version)."""
         res = super().on_delete_mixin_cb(feature, subelements)
         # Delete coin representation
+        Gui.setActiveDocument(self.fpo.Document)
+        Gui.activateView("Gui::View3DInventor", False)
         scene = Gui.ActiveDocument.ActiveView.getSceneGraph()
         self.coin.light.remove_from_scene(scene)
         return res  # If False, the object wouldn't be deleted
