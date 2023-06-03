@@ -903,6 +903,7 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
 *Nota: If you want to set color or other aspect parameters of the material, \
 please edit 'Render settings' from material context menu.*"""
         label = QLabel(msg)
+        label.setWordWrap(True)
         label.setTextFormat(Qt.TextFormat.MarkdownText)
         self.form.layout().addWidget(label)
 
