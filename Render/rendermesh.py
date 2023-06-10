@@ -36,8 +36,9 @@ import itertools as it
 import functools
 import time
 import collections
-from math import pi, atan2, asin, isclose, radians, cos, sin, hypot
+from math import pi, atan2, asin, isclose, radians, cos, hypot
 import copy
+import cmath
 
 import FreeCAD as App
 import Mesh
@@ -181,8 +182,7 @@ class RenderMeshBase:
         self._vnormals = []
         self._uvmap = []
 
-        # First we make a copy of the mesh, we separate mesh and
-        # placement and we set the mesh at its origin (null placement)
+        # We set the mesh at its origin (null placement)
         self._originalmesh = mesh
         self._originalmesh.Placement = App.Base.Placement()
 
@@ -425,7 +425,9 @@ class RenderMeshBase:
                 uv_scale,
             )
         elif filetype == RenderMeshBase.ExportType.PLY:
-            self._write_plyfile(name, filename, uv_translate, uv_rotate, uv_scale)
+            self._write_plyfile(
+                name, filename, uv_translate, uv_rotate, uv_scale
+            )
         elif filetype == RenderMeshBase.ExportType.CYCLES:
             self._write_cyclesfile(name, filename)
         elif filetype == RenderMeshBase.ExportType.POVRAY:
@@ -475,7 +477,9 @@ class RenderMeshBase:
                 mtlfile, _ = os.path.splitext(objfile)
                 mtlfile += ".mtl"
             # Write mtl file
-            mtlfilename = RenderMeshBase._write_mtl(mtlname, mtlcontent, mtlfile)
+            mtlfilename = RenderMeshBase._write_mtl(
+                mtlname, mtlcontent, mtlfile
+            )
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -528,7 +532,7 @@ class RenderMeshBase:
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(*uv_transformation)
             fmtuv = functools.partial(str.format, "vt {:g} {:g}\n")
-            uvs = (fmtuv(*t) for t in uvs)
+            uvs = (fmtuv(t.real, t.imag) for t in uvs)
             uvs = it.chain(["# Texture coordinates\n"], uvs, ["\n"])
         else:
             uvs = []
@@ -561,7 +565,10 @@ class RenderMeshBase:
         fmtf = functools.partial(str.format, mask)
         joinf = functools.partial(str.join, "")
 
-        faces = (joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in self.facets)
+        faces = (
+            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"])
+            for f in self.facets
+        )
         faces = it.chain(["# Faces\n"], faces)
 
         res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
@@ -659,7 +666,7 @@ class RenderMeshBase:
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
             fmt2 = functools.partial(str.format, "{:g} {:g}")
-            verts += [iter(fmt2(*v) for v in uvs)]
+            verts += [iter(fmt2(v.real, v.imag) for v in uvs)]
         verts += [it.repeat("\n")]
         verts = (" ".join(v) for v in zip(*verts))
 
@@ -703,7 +710,7 @@ class RenderMeshBase:
         nverts = "  ".join(nverts)
 
         if self.has_uvmap():
-            uvs = [f"{px:g} {py:g}" for px, py in self.uvmap_per_vertex()]
+            uvs = [f"{p.real:g} {p.imag:g}" for p in self.uvmap_per_vertex()]
             uvs = "  ".join(uvs)
             uv_statement = f'    UV="{uvs}"\n'
         else:
@@ -754,7 +761,7 @@ class RenderMeshBase:
 
         # UV map
         if self.has_uvmap():
-            uv_vectors = [f"<{tx:g},{ty:g}>" for tx, ty in self.uvmap]
+            uv_vectors = [f"<{t.real:g},{t.imag:g}>" for t in self.uvmap]
             len_uv_vectors = len(uv_vectors)
             uv_vectors = "\n        ".join(uv_vectors)
             snippet_uv_vects = f"""\
@@ -819,89 +826,18 @@ class RenderMeshBase:
 
         rotate = radians(float(rotate))
 
-        def _000():
-            """Nop."""
-            return iter(uvmap)
-
-        def _00t():
-            """Translate."""
-            return ((vec[0] + trans_x, vec[1] + trans_y) for vec in uvmap)
-
-        def _0s0():
-            """Scale."""
-            return ((vec[0] * scale, vec[1] * scale) for vec in uvmap)
-
-        def _0st():
-            """Scale, translate."""
-            return (
-                (vec[0] * scale + trans_x, vec[1] * scale + trans_y) for vec in uvmap
-            )
-
-        def _r00():
-            """Rotate."""
-            cosr = cos(rotate)
-            sinr = sin(rotate)
-            return (
-                (
-                    vec[0] * cosr - vec[1] * sinr,
-                    vec[0] * sinr + vec[1] * cosr,
-                )
-                for vec in uvmap
-            )
-
-        def _r0t():
-            """Rotate, translate."""
-            cosr = cos(rotate)
-            sinr = sin(rotate)
-            return (
-                (
-                    vec[0] * cosr - vec[1] * sinr + trans_x,
-                    vec[0] * sinr + vec[1] * cosr + trans_y,
-                )
-                for vec in uvmap
-            )
-
-        def _rs0():
-            """Rotate, scale."""
-            cosrs = cos(rotate) * scale
-            sinrs = sin(rotate) * scale
-            return (
-                (
-                    vec[0] * cosrs - vec[1] * sinrs,
-                    vec[0] * sinrs + vec[1] * cosrs,
-                )
-                for vec in uvmap
-            )
-
-        def _rst():
-            """Rotate, scale, translate."""
-            cosrs = cos(rotate) * scale
-            sinrs = sin(rotate) * scale
-            return (
-                (
-                    vec[0] * cosrs - vec[1] * sinrs + trans_x,
-                    vec[0] * sinrs + vec[1] * cosrs + trans_y,
-                )
-                for vec in uvmap
-            )
-
-        # Select and return the right function
-        index = (
-            rotate != 0.0,
-            scale != 1.0,
-            trans_x != 0.0 or trans_y != 0.0,
-        )
-        index = sum(it.compress((4, 2, 1), index))
-        functions = (_000, _00t, _0s0, _0st, _r00, _r0t, _rs0, _rst)
-        return functions[index]()
+        factor = cmath.rect(1.0, rotate) * scale
+        trans = complex(trans_x, trans_y)
+        return (vec * factor + trans for vec in uvmap)
 
     def uvmap_per_vertex(self):
         """Get mesh uv map by vertex.
 
         (used in Cycles)
         """
+        uvmap = list(self.uvmap)
         return [
-            self.uvmap[vertex_index]
+            uvmap[vertex_index]
             for triangle in self.facets
             for vertex_index in triangle
         ]
@@ -975,21 +911,26 @@ class RenderMeshBase:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [(atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points]
+        uvmap += [
+            complex(atan2(p.x, p.y) * avg_radius, p.z) / 1000 for p in points
+        ]
         mesh.addMesh(regular_mesh)
 
         # Non Z-normal facets (seam)
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
-        avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
+        avg_radius = (
+            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
+        )
         uvmap += [
-            (_pos_atan2(p.x, p.y) * avg_radius * 0.001, p.z * 0.001) for p in points
+            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000
+            for p in points
         ]
         mesh.addMesh(seam_mesh)
 
         # Z-normal facets
         z_mesh = Mesh.Mesh(znormal)
-        uvmap += [(p.x / 1000, p.y / 1000) for p in list(z_mesh.Points)]
+        uvmap += [complex(p.x, p.y) / 1000 for p in list(z_mesh.Points)]
         mesh.addMesh(z_mesh)
 
         # Replace previous values with newly computed ones
@@ -1025,10 +966,11 @@ class RenderMeshBase:
         regular_mesh = Mesh.Mesh(regular)
         vectors = [p.Vector - origin for p in list(regular_mesh.Points)]
         uvmap += [
-            (
-                (0.5 + atan2(v.x, v.y) / (2 * pi)) * (v.Length / 1000.0 * pi),
-                (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
+            complex(
+                0.5 + atan2(v.x, v.y) / (2 * pi),
+                0.5 + asin(v.z / v.Length) / pi,
             )
+            * (v.Length / 1000.0 * pi)
             for v in vectors
         ]
         mesh.addMesh(regular_mesh)
@@ -1037,10 +979,11 @@ class RenderMeshBase:
         seam_mesh = Mesh.Mesh(seam)
         vectors = [p.Vector - origin for p in list(seam_mesh.Points)]
         uvmap += [
-            (
-                (0.5 + _pos_atan2(v.x, v.y) / (2 * pi)) * (v.Length / 1000.0 * pi),
-                (0.5 + asin(v.z / v.Length) / pi) * (v.Length / 1000.0 * pi),
+            complex(
+                0.5 + _pos_atan2(v.x, v.y) / (2 * pi),
+                0.5 + asin(v.z / v.Length) / pi,
             )
+            * (v.Length / 1000.0 * pi)
             for v in vectors
         ]
         mesh.addMesh(seam_mesh)
@@ -1254,7 +1197,8 @@ class RenderMeshBase:
                     try:
                         successor_normal = normals[successor_index]
                     except IndexError:
-                        # Facet.NeighbourIndices can contain irrelevant index...
+                        # Facet.NeighbourIndices can contain irrelevant
+                        # index...
                         continue
 
                     if dot(current_normal, successor_normal) < split_angle_cos:
@@ -1295,7 +1239,9 @@ class RenderMeshBase:
         tags = [None] * self.count_facets
         tag = None
 
-        iterator = zip(it.count(), (x for x, y in enumerate(tags) if y is None))
+        iterator = zip(
+            it.count(), (x for x, y in enumerate(tags) if y is None)
+        )
         for tag, starting_point in iterator:
             tags = self.connected_facets(
                 starting_point, adjacents, tags, tag, split_angle_cos
@@ -1312,10 +1258,11 @@ class RenderMeshBase:
             split_angle -- angle threshold, above which 2 adjacents facets
                 are considered as non-connected (in radians)
         """
+        debug_flag = PARAMS.GetBool("Debug")
         tags = self.connected_components(split_angle)
 
-        unique_tags = set(tags)
-        print("distinct tags", len(unique_tags))  # TODO
+        if debug_flag:
+            print("distinct tags", len(set(tags)))
 
         points = self.points
         facets = self.facets
@@ -1326,7 +1273,8 @@ class RenderMeshBase:
             for facet, tag in zip(facets, tags)
             for point_index in facet
         }
-        print(len(newpoints), "points")  # TODO
+        if debug_flag:
+            print(len(newpoints), "points")
 
         # Number newpoint
         for index, point in enumerate(newpoints):
@@ -1337,7 +1285,9 @@ class RenderMeshBase:
 
         # If necessary, rebuild uvmap
         if self.uvmap:
-            self.uvmap = [self.uvmap[point_index] for point_index, tag in newpoints]
+            self.uvmap = [
+                self.uvmap[point_index] for point_index, tag in newpoints
+            ]
 
         # Update point indices in facets
         self.facets = [
@@ -1499,51 +1449,57 @@ def _intersect_unitcube_face(direction):
 
     if dabsx >= dabsy and dabsx >= dabsz:
         return (
-            0 if dirx >= 0 else 1  # _UnitCubeFaceEnum.XPLUS  # _UnitCubeFaceEnum.XMINUS
+            0
+            if dirx >= 0
+            else 1  # _UnitCubeFaceEnum.XPLUS  # _UnitCubeFaceEnum.XMINUS
         )
 
     if dabsy >= dabsx and dabsy >= dabsz:
         return (
-            2 if diry >= 0 else 3  # _UnitCubeFaceEnum.YPLUS  # _UnitCubeFaceEnum.YMINUS
+            2
+            if diry >= 0
+            else 3  # _UnitCubeFaceEnum.YPLUS  # _UnitCubeFaceEnum.YMINUS
         )
 
-    return 4 if dirz >= 0 else 5  # _UnitCubeFaceEnum.ZPLUS  # _UnitCubeFaceEnum.ZMINUS
+    return (
+        4 if dirz >= 0 else 5
+    )  # _UnitCubeFaceEnum.ZPLUS  # _UnitCubeFaceEnum.ZMINUS
 
 
 def _uc_xplus(point):
     """Unit cube - xplus case."""
     _, pt1, pt2 = point
-    return (pt1, pt2)
+    return complex(pt1, pt2)
 
 
 def _uc_xminus(point):
     """Unit cube - xminus case."""
     _, pt1, pt2 = point
-    return (-pt1, pt2)
+    return complex(-pt1, pt2)
 
 
 def _uc_yplus(point):
     """Unit cube - yplus case."""
     pt0, _, pt2 = point
-    return (-pt0, pt2)
+    return complex(-pt0, pt2)
 
 
 def _uc_yminus(point):
     """Unit cube - yminus case."""
     pt0, _, pt2 = point
-    return (pt0, pt2)
+    return complex(pt0, pt2)
 
 
 def _uc_zplus(point):
     """Unit cube - zplus case."""
     pt0, pt1, _ = point
-    return (pt0, pt1)
+    return complex(pt0, pt1)
 
 
 def _uc_zminus(point):
     """Unit cube - zminus case."""
     pt0, pt1, _ = point
-    return (pt0, -pt1)
+    return complex(pt0, -pt1)
 
 
 _UC_MAP = (

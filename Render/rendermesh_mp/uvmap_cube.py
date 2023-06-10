@@ -43,7 +43,6 @@ from vector3d import (
     fdiv,
     barycenter,
 )
-from vector2d import fdiv as fdiv2
 
 
 # Vocabulary:
@@ -242,37 +241,37 @@ def update_facets(chunk):
 def _uc_xplus(point):
     """Unit cube - xplus case."""
     _, pt1, pt2 = point
-    return (pt1, pt2)
+    return complex(pt1, pt2)
 
 
 def _uc_xminus(point):
     """Unit cube - xminus case."""
     _, pt1, pt2 = point
-    return (-pt1, pt2)
+    return complex(-pt1, pt2)
 
 
 def _uc_yplus(point):
     """Unit cube - yplus case."""
     pt0, _, pt2 = point
-    return (-pt0, pt2)
+    return complex(-pt0, pt2)
 
 
 def _uc_yminus(point):
     """Unit cube - yminus case."""
     pt0, _, pt2 = point
-    return (pt0, pt2)
+    return complex(pt0, pt2)
 
 
 def _uc_zplus(point):
     """Unit cube - zplus case."""
     pt0, pt1, _ = point
-    return (pt0, pt1)
+    return complex(pt0, pt1)
 
 
 def _uc_zminus(point):
     """Unit cube - zminus case."""
     pt0, pt1, _ = point
-    return (pt0, -pt1)
+    return complex(pt0, -pt1)
 
 
 UC_MAP = (
@@ -320,10 +319,11 @@ def compute_uvmap_std(chunk):
     cog = tuple(SHARED_COG)
 
     uvs = ((UC_MAP[c], getpoint(p)) for p, c in colored_points)
-    uvs = (fdiv2(func(sub(point, cog)), 1000) for func, point in uvs)
+    uvs = (func(sub(point, cog)) / 1000 for func, point in uvs)
 
     for index, uv_ in zip(range(start, stop), uvs):
-        SHARED_UVMAP[index * 2], SHARED_UVMAP[index * 2 + 1] = uv_
+        SHARED_UVMAP[index * 2] = uv_.real
+        SHARED_UVMAP[index * 2 + 1] = uv_.imag
 
 
 if USE_NUMPY:
@@ -379,7 +379,6 @@ def compute_uvmap_np(chunk):
 
 def init(shared):
     """Initialize pool of processes."""
-    gc.disable()
 
     # pylint: disable=global-variable-undefined
     global SHARED_POINTS
@@ -412,6 +411,7 @@ def init(shared):
     global SHARED_UVMAP
     SHARED_UVMAP = shared["uvmap"]
 
+    # pylint: disable=global-statement
     global USE_NUMPY
     USE_NUMPY = USE_NUMPY and shared["enable_numpy"]
 
@@ -444,8 +444,6 @@ def init(shared):
         global SHARED_UVMAP_NP
         SHARED_UVMAP_NP = np.ctypeslib.as_array(SHARED_UVMAP)
         SHARED_UVMAP_NP.shape = (len(SHARED_UVMAP) // 2, 2)
-
-    sys.setswitchinterval(sys.maxsize)
 
 
 # *****************************************************************************
@@ -533,7 +531,6 @@ def main(
     nproc = os.cpu_count()
 
     try:
-        gc.disable()
         # Compute facets colors and center of gravity
         shared = {
             "points": points,
@@ -588,7 +585,9 @@ def main(
 
             # Recompute point list
             newpoints = [
-                coord for i, _ in colored_points for coord in points[3 * i : 3 * i + 3]
+                coord
+                for i, _ in colored_points
+                for coord in points[3 * i : 3 * i + 3]
             ]
             out_points[: colored_points_len * 3] = newpoints
             tick("new point list")
@@ -599,7 +598,6 @@ def main(
     finally:
         os.chdir(save_dir)
         sys.stdin = save_stdin
-        gc.enable()
 
     out_point_count.value = colored_points_len
 
@@ -634,5 +632,4 @@ if __name__ == "__main__":
     OUT_POINT_COUNT = None
     OUT_FACETS = None
     OUT_UVMAP = None
-    OUT_POINT_COUNT = None
     BASE_MATRICES = None
