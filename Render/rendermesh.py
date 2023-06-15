@@ -165,6 +165,8 @@ class RenderMeshBase:
         # We initialize self transformation
         self.__transformation = _Transformation(mesh.Placement)
 
+        self.name = name
+
         # Skip meshing?
         self.skip_meshing = bool(skip_meshing)
         if self.skip_meshing:
@@ -175,8 +177,6 @@ class RenderMeshBase:
         # Check mandatory input
         if not mesh:
             raise ValueError()
-
-        self.name = name
 
         # Initialize
         self._vnormals = []
@@ -224,8 +224,9 @@ class RenderMeshBase:
         to avoid memory leaks.
         """
         # Clean original mesh
-        self._originalmesh.clear()
-        self._originalmesh = None
+        if hasattr(self, "_originalmesh"):
+            self._originalmesh.clear()
+            self._originalmesh = None
 
         # # Debug memory:
         # import gc
