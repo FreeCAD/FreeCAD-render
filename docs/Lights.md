@@ -53,6 +53,8 @@ for convenience and does not prejudge the final rendering.
 
 Point light is the most basic light, its parameters are simply `Placement`, `Power`,
 `Color`.
+Pov-ray specifics: due to Pov-ray particular implementation, `power` parameter is
+internally clamped to 100 when exporting to this renderer.
 
 ### Area light
 
@@ -87,8 +89,12 @@ opaque rectangle; if `True`, the area will be invisible and will affect the
 scene only by the light it casts.
 
 Please note that the `Power` parameter refers to the power of the whole area,
-and not to the power per unit area. For renderers using a power per unit area
+and not to the power per unit area.
+Renderers specifics :
+- For renderers using a power per unit area
 (like Appleseed), a conversion is made when exporting.
+- Pov-ray: due to Pov-ray particular implementation, `power` parameter is
+internally clamped to 100 when exporting to this renderer.
 
 Orienting an area light in a scene may be quite painful. To alleviate such a
 task, you will find a `Point at...` feature in the context menu of the light
