@@ -11,7 +11,7 @@ global_settings {
     radiosity {
         Rad_Settings(Radiosity_Normal,off,off)
     }
-    assumed_gamma 2.2
+    assumed_gamma 1.0
     subsurface {}
 }
 
