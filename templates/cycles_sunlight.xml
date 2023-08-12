@@ -17,7 +17,7 @@
     <background name="sky_bg_template" />
     <sky_texture
         name="sky_tex_template"
-        type="hosek_wilkie"
+        sky_type="hosek_wilkie"
         turbidity="2.0"
         sun_disc="false"
         sun_direction="0.5663931812853344, -0.21839119110025676, 0.7946722921074382"
