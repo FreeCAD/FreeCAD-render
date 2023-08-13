@@ -64,14 +64,17 @@ Optionally as well, you can set a few renderer-wide parameters:
 ### Ubuntu
 
 #### Povray (difficulty: 0/5)
+##### Install
 Povray is in the repo, so just do it the simple way:
 `sudo apt install povray`
 
+##### Set up
 In workbench settings, enter `/usr/bin/povray` in 'PovRay executable path'.
 
 #### LuxCoreRender - UI only (difficulty: 1/5)
 *Caveat: with this install, you won't be able to run Luxcorerender in batch mode*
  
+##### Install
 Download Luxcore binaries package from website, with this link:
 [Standalone release v2.6](https://github.com/LuxCoreRender/LuxCore/releases/download/luxcorerender_v2.6/luxcorerender-v2.6-linux64.tar.bz2)
 
@@ -79,6 +82,7 @@ Choose a target directory for the application. Let's call it `<appdir>`.
 
 Uncompress the downloaded file to `<appdir>`
 
+##### Set up
 In workbench settings:
 - Leave 'LuxCore command (cli) path' blank.
 - Enter `<appdir>/LuxCore/luxcoreui` in 'LuxCore UI path'
@@ -86,6 +90,7 @@ In workbench settings:
 
 #### LuxCoreRender - UI & batch mode (difficulty: 2/5)
 
+##### Install
 Download Luxcore binaries package from website, with this link:
 [LuxCore API SDK release v2.6](https://github.com/LuxCoreRender/LuxCore/releases/download/luxcorerender_v2.6/luxcorerender-v2.6-linux64-sdk.tar.bz2)
 
@@ -95,8 +100,9 @@ Choose a target directory for the application. We'll call it `<appdir>`.
 Uncompress the downloaded file to `<appdir>`
 
 Copy all the files in `<appdir>/LuxCore-sdk/lib/` to `<appdir>/LuxCore-sdk/bin/`.
-*Very important:* If you miss this step, you'll get to some fatal "cannot open shared object file: No such file or directory" messages...
+*Very important:* If you miss this step, you'll get some fatal "cannot open shared object file: No such file or directory" messages...
 
+##### Set up
 In workbench settings:
 - Enter `<appdir>/LuxCore-sdk/bin/luxcoreconsole` in `LuxCore command (cli) path`
 - Enter `<appdir>/LuxCore-sdk/bin/luxcoreui` in 'LuxCore UI path'
@@ -104,6 +110,7 @@ In workbench settings:
 
 #### Appleseed (difficulty: 1/5)
 
+##### Install
 Download Appleseed binaries package from website, with this link:
 [Appleseed for linux](https://github.com/appleseedhq/appleseed/releases/download/2.1.0-beta/appleseed-2.1.0-beta-0-g015adb503-linux64-gcc74.zip)
 
@@ -115,6 +122,7 @@ Install Python 2.7 library
 `sudo apt install libpython2.7`
 *(Very important)* 
 
+##### Set up
 In workbench settings:
 - Enter `<appdir>/appleseed/bin/appleseed.cli` in `Appleseed command (cli) path`
 - Enter `<appdir>/appleseed/bin/appleseed.studi` in 'Appleseed Studio path'
@@ -122,6 +130,7 @@ In workbench settings:
 
 #### Ospray Studio (difficulty: 1/5)
 
+##### Install
 Download Ospray Studio binaries package from website, with this link:
 [Ospray Studio for Linux](https://github.com/ospray/ospray_studio/releases/download/v0.12.1/ospray_studio-0.12.1.x86_64.linux.tar.gz)
 
@@ -129,17 +138,22 @@ Choose a target directory for the application. We'll call it `<appdir>`.
 
 Uncompress the downloaded file to `<appdir>`
 
+##### Set up
 In workbench settings:
 - Enter `<appdir>/ospray_studio-0.12.1.x86_64.linux/bin/ospStudio" in 'OspStudio executable path'
 
 #### Cycles standalone (difficulty: 5/5)
 Cycles standalone has to be compiled from sources. See https://github.com/blender/cycles
 
-Warning: Installing Cycles standalone can be tricky and time-consuming, see below. You'll be told...
+Warning: Installing Cycles standalone from sources can be tricky and time-consuming, see below. You'll be told...
 
 
 #### Pbrt (difficulty: 4/5)
 Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4
+
+
+### Archlinux
+
 
 
 ### Notes on installing Cycles for Render (standalone version)
