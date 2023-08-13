@@ -37,7 +37,7 @@ At the moment, the following rendering engines are supported:
 * LuxRender (deprecated in favor of LuxCoreRender)
 
 ## Installation
-
+### Workbench
 The Render Workbench is part of the [FreeCAD Addons
 repository](https://github.com/FreeCAD/FreeCAD-addons), and thus can be
 installed from menu `Tools > Addon Manager` in FreeCAD. This is the recommended
@@ -47,8 +47,9 @@ above. Refer to [FreeCAD
 documentation](https://www.freecadweb.org/wiki/How_to_install_additional_workbenches)
 to learn more.
 
+### External rendering engines
 In addition to workbench installation, you will also need to [install and set
-up](./docs/EngineInstall.md) one or more external render engines, among the
+up](./docs/EngineInstall.md) one or more external rendering engines, among the
 supported ones.
 
 ## Usage
