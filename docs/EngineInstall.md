@@ -3,8 +3,8 @@
 
 ## General indications
 
-In order to have Render workbench fully functional, you need one or more
-external rendering engines on your system. This is a 2-step process:
+In order to have Render workbench fully functional, it must have access to one
+or more external rendering engines. To achieve that, there is a 2-step process:
 - install the rendering engine(s) on your system
 - set up this/these external rendering engine(s) in Render workbench.
 
@@ -176,6 +176,72 @@ The following array gathers the recommended packages and the corresponding workb
 | Pbrt  	| AUR  		| `pbrt-v4-git`   	| Pbrt executable path: | `/usr/bin/pbrt`|
 
 
+### Windows
+
+#### Povray
+
+<ins>Install</ins><br>
+Download Povray 3.7 installer: https://www.povray.org/ftp/pub/povray/Official/povwin-3.7-agpl3-setup.exe
+
+Run Povray installer.
+
+
+<ins>Set up</ins><br>
+Look for `pvengine64.exe` on your system. In Render settings, fill 'PovRay executable path' with `<path/to/pvengine64.exe>`
+
+#### LuxCoreRender
+
+<ins>Install</ins><br>
+Download Luxcore binaries package from website, with this link:
+[LuxCore API SDK release v2.6](https://github.com/LuxCoreRender/LuxCore/releases/download/luxcorerender_v2.6/luxcorerender-v2.6-win64-sdk.zip)
+
+Choose a target directory for the application. We'll call it `<appdir>`.
+
+Uncompress the downloaded package file to `<appdir>`
+
+As stated in Download page (https://luxcorerender.org/download/):<br>
+<q>All Windows executables require the Visual C++ Redistributable Packages for
+VS 2017 and Intel C++ redistributable.</q><br>
+Please check your system meets those requirements, or update it accordingly.
+
+<ins>Set up</ins><br>
+In workbench settings:
+- Enter `<appdir>/luxcorerender-v2.6-win64-sdk/bin/luxcoreconsole.exe` in 'LuxCore command (cli) path'
+- Enter `<appdir>/luxcorerender-v2.6-win64-sdk/bin/luxcoreui.exe` in 'LuxCore UI path'
+
+
+#### Appleseed
+
+<ins>Install</ins><br>
+Download Appleseed binaries package from website, with this link:
+[Appleseed for Windows](https://github.com/appleseedhq/appleseed/releases/download/2.1.0-beta/appleseed-2.1.0-beta-0-g015adb503-win64-vc141.zip)
+
+Choose a target directory for the application. We'll call it `<appdir>`.
+
+Uncompress the downloaded package file to `<appdir>`
+
+<ins>Set up</ins><br>
+In workbench settings:
+- Enter `<appdir>/appleseed/bin/appleseed.cli.exe` in 'Appleseed command (cli) path'
+- Enter `<appdir>/appleseed/bin/appleseed.studio.exe` in 'Appleseed Studio path'
+
+#### Ospray Studio
+<ins>Install</ins><br>
+Download Ospray Studio installer: https://github.com/ospray/ospray_studio/releases/download/v0.12.1/ospray_studio-0.12.1.x86_64.windows.msi
+
+Run Ospray Installer
+
+<ins>Set up</ins><br>
+Look for `ospStudio.exe` on your system. In Render settings, fill 'OspStudio executable path' with `<path/to/ospStudio.exe>`
+
+#### Cycles standalone
+Cycles standalone has to be compiled from sources. See https://github.com/blender/cycles
+
+Warning: Installing Cycles standalone from sources can be tricky and time-consuming, see below. You'll be warned...
+
+
+#### Pbrt
+Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4
 
 
 ## Miscellaneous
