@@ -134,7 +134,8 @@ In workbench settings:
 
 #### Cycles standalone (difficulty: 5/5)
 Cycles standalone has to be compiled from sources. See https://github.com/blender/cycles
-Installing Cycles standalone can be tricky and time-consuming, especially with GPU support. You'll be warned...
+
+Warning: Installing Cycles standalone can be tricky and time-consuming, see below. You'll be told...
 
 
 #### Pbrt (difficulty: 4/5)
