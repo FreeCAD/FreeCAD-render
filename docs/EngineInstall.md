@@ -86,7 +86,7 @@ Download Luxcore binaries package from website, with this link:
 
 Choose a target directory for the application. Let's call it `<appdir>`.
 
-Uncompress the downloaded package file to `<appdir>`
+Uncompress the downloaded package file into `<appdir>`
 
 <ins>Set up</ins><br>
 In workbench settings:
@@ -94,7 +94,7 @@ In workbench settings:
 - Enter `<appdir>/LuxCore/luxcoreui` in 'LuxCore UI path'
 
 
-#### LuxCoreRender - UI & batch mode
+#### LuxCoreRender - UI & batch modes
 
 <ins>Install</ins><br>
 Download Luxcore binaries package from website, with this link:
@@ -103,7 +103,7 @@ Download Luxcore binaries package from website, with this link:
 
 Choose a target directory for the application. We'll call it `<appdir>`.
 
-Uncompress the downloaded package file to `<appdir>`
+Uncompress the downloaded package file into `<appdir>`
 
 Copy all the files in `<appdir>/LuxCore-sdk/lib/` to `<appdir>/LuxCore-sdk/bin/`.
 *Very important:* If you miss this step, you'll get some fatal "cannot open shared object file: No such file or directory" messages...
@@ -118,11 +118,11 @@ In workbench settings:
 
 <ins>Install</ins><br>
 Download Appleseed binaries package from website, with this link:
-[Appleseed for linux](https://github.com/appleseedhq/appleseed/releases/download/2.1.0-beta/appleseed-2.1.0-beta-0-g015adb503-linux64-gcc74.zip)
+[Appleseed for Linux](https://github.com/appleseedhq/appleseed/releases/download/2.1.0-beta/appleseed-2.1.0-beta-0-g015adb503-linux64-gcc74.zip)
 
 Choose a target directory for the application. We'll call it `<appdir>`.
 
-Uncompress the downloaded package file to `<appdir>`
+Uncompress the downloaded package file into `<appdir>`
 
 Install Python 2.7 library
 `sudo apt install libpython2.7`
@@ -142,7 +142,7 @@ Download Ospray Studio binaries package from website, with this link:
 
 Choose a target directory for the application. We'll call it `<appdir>`.
 
-Uncompress the downloaded file to `<appdir>`
+Uncompress the downloaded file into `<appdir>`
 
 <ins>Set up</ins><br>
 In workbench settings:
@@ -197,7 +197,7 @@ Download Luxcore binaries package from website, with this link:
 
 Choose a target directory for the application. We'll call it `<appdir>`.
 
-Uncompress the downloaded package file to `<appdir>`
+Uncompress the downloaded package file into `<appdir>`
 
 As stated in Download page (https://luxcorerender.org/download/):<br>
 <q>All Windows executables require the Visual C++ Redistributable Packages for
@@ -218,7 +218,7 @@ Download Appleseed binaries package from website, with this link:
 
 Choose a target directory for the application. We'll call it `<appdir>`.
 
-Uncompress the downloaded package file to `<appdir>`
+Uncompress the downloaded package file into `<appdir>`
 
 <ins>Set up</ins><br>
 In workbench settings:
@@ -235,11 +235,9 @@ Run Ospray Installer
 Look for `ospStudio.exe` on your system. In Render settings, fill 'OspStudio executable path' with `<path/to/ospStudio.exe>`
 
 #### Cycles standalone
-In general case, Cycles standalone has to be compiled from sources. See https://github.com/blender/cycles
+In general case, Cycles standalone has to be compiled from sources, from here://github.com/blender/cycles.
+However, compiling Cycles standalone from sources can be tricky and time-consuming, see below.
 Fortunately, user @MisterMakerNL provides a precompiled version: https://github.com/MisterMakerNL/Cycles-stand-alone-windows-build.
-
-Warning: Installing Cycles standalone from sources can be tricky and time-consuming, see below. You'll be warned...
-
 
 #### Pbrt
 Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4
