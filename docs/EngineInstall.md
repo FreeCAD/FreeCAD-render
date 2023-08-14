@@ -4,9 +4,9 @@
 ## General indications
 
 In order to have Render workbench fully functional, you must give it access to one
-or more external rendering engines. To achieve that, there is a 2-step process:
-- install the rendering engine(s) on your system
-- set up this/these external rendering engine(s) in Render workbench.
+or more external rendering engines. To achieve that, you must follow a 2-step process:
+1. Install the rendering engine(s) on your system.
+2. Set up this/these external rendering engine(s) in Render workbench.
 
 ### Install external rendering engines on your system
 
