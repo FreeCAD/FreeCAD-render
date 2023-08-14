@@ -94,7 +94,7 @@ In workbench settings:
 - Enter `<appdir>/LuxCore/luxcoreui` in 'LuxCore UI path'
 
 
-#### LuxCoreRender - UI & batch modes
+#### LuxCoreRender - Full (UI & batch)
 
 <ins>Install</ins><br>
 Download Luxcore binaries package from website, with this link:
