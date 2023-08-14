@@ -235,8 +235,8 @@ Run Ospray Installer
 Look for `ospStudio.exe` on your system. In Render settings, fill 'OspStudio executable path' with `<path/to/ospStudio.exe>`
 
 #### Cycles standalone
-In general case, Cycles standalone has to be compiled from sources, from here://github.com/blender/cycles.
-However, compiling Cycles standalone from sources can be tricky and time-consuming, see below.
+In general case, Cycles standalone has to be compiled from sources, from here: https://github.com/blender/cycles <br>
+However, compiling Cycles standalone from sources can be tricky and time-consuming, see below. <br>
 Fortunately, user @MisterMakerNL provides a precompiled version: https://github.com/MisterMakerNL/Cycles-stand-alone-windows-build.
 
 #### Pbrt
@@ -279,5 +279,5 @@ Mac OS Big Sur users may also find some valuable instructions [here](https://vec
 
 All the indications above rely on external information that can vary.
 
-Please do not hesitate to open an issue to report errors, dead links, out-of-date info, questions and so on.
+Please do not hesitate to open an issue to report errors, dead links, out-of-date information, questions and so on.
 
