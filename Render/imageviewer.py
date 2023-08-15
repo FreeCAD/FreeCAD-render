@@ -36,6 +36,7 @@ from PySide.QtGui import (
     QSizePolicy,
     QGuiApplication,
     QMenu,
+    QFileDialog,
 )
 from PySide.QtCore import Qt, Slot, QSize, QPoint
 
@@ -96,6 +97,9 @@ class ImageViewer(QWidget):
         zoom_normal_act.triggered.connect(self.normal_size)
 
         menu.addSeparator()
+
+        saveas_act = menu.addAction("Save Image as...")
+        saveas_act.triggered.connect(self.save_image_as)
 
         copy_filename_act = menu.addAction("Copy Image to Clipboard")
         copy_filename_act.triggered.connect(self.copy_image)
@@ -166,6 +170,19 @@ class ImageViewer(QWidget):
     def copy_image(self):
         """Copy embedded image to clipboard (slot)."""
         QGuiApplication.clipboard().setImage(self.imglabel.pixmap().toImage())
+
+    @Slot()
+    def save_image_as(self):
+        """Save embedded image as file (slot)."""
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save F:xile",
+            None,
+            "Images (*.png *.xpm *.jpg)",
+        )
+        pixmap = self.imglabel.pixmap()
+        pixmap.save(filename)
+
 
     @Slot(QPoint)
     def show_context_menu(self, pos):
