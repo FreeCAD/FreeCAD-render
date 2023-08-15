@@ -54,7 +54,7 @@ supported ones.
 
 ## Usage
 
-In quick-start mode, after installation has correctly be done, rendering a
+In quick-start mode, after installation has correctly been done, rendering a
 FreeCAD model is just a 4-steps process:
 1. **Create a rendering project:** Press the button in the toolbar
    corresponding to your renderer <img src=./Render/resources/icons/Appleseed.svg height=32>
