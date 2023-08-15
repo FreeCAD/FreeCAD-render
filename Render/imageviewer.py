@@ -97,6 +97,9 @@ class ImageViewer(QWidget):
 
         menu.addSeparator()
 
+        saveas_act = menu.addAction("Save Image as...")
+        saveas_act.triggered.connect(self.save_image_as)
+
         copy_filename_act = menu.addAction("Copy Image to Clipboard")
         copy_filename_act.triggered.connect(self.copy_image)
 
@@ -166,6 +169,13 @@ class ImageViewer(QWidget):
     def copy_image(self):
         """Copy embedded image to clipboard (slot)."""
         QGuiApplication.clipboard().setImage(self.imglabel.pixmap().toImage())
+
+    @Slot()
+    def save_image_as(self):
+        """Save embedded image as file (slot)."""
+        # TODO
+        # QGuiApplication.clipboard().setImage(self.imglabel.pixmap().toImage())
+
 
     @Slot(QPoint)
     def show_context_menu(self, pos):
