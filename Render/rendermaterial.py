@@ -2,6 +2,7 @@
 # *                                                                         *
 # *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
 # *   Copyright (c) 2022 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -36,12 +37,14 @@ import uuid
 import FreeCAD as App
 
 from Render.utils import (
-    RGBA,
-    str2rgb,
     parse_csv_str,
     debug as ru_debug,
     getproxyattr,
     translate as _tr,
+    RGB,
+    WHITE,
+    SUPERWHITE,
+    CAR_RED,
 )
 from Render.texture import str2imageid, str2imageid_ext
 
@@ -55,7 +58,6 @@ from Render.texture import str2imageid, str2imageid_ext
 # pylint: disable=invalid-name
 P = collections.namedtuple("P", "name type default desc")
 
-WHITE = (0.8, 0.8, 0.8)  # A balanced white for default colors
 
 # IMPORTANT: Please note that, by convention, the first parameter of each
 # material will be used as default color in fallback mechanisms.
@@ -63,7 +65,7 @@ WHITE = (0.8, 0.8, 0.8)  # A balanced white for default colors
 # material, if you modify an existing material or you add a new one...
 STD_MATERIALS_PARAMETERS = {
     "Glass": [
-        P("Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
+        P("Color", "RGB", SUPERWHITE, _tr("Render", "Transmitted color")),
         P("IOR", "float", 1.5, _tr("Render", "Index of refraction")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texscalar", "", _tr("Render", "Normal")),
@@ -93,7 +95,7 @@ STD_MATERIALS_PARAMETERS = {
     ],
     "Mixed": [
         P("Diffuse.Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
-        P("Glass.Color", "RGB", (1, 1, 1), _tr("Render", "Transmitted color")),
+        P("Glass.Color", "RGB", SUPERWHITE, _tr("Render", "Transmitted color")),
         P("Glass.IOR", "float", 1.5, _tr("Render", "Index of refraction")),
         P(
             "Transparency",
@@ -111,13 +113,13 @@ STD_MATERIALS_PARAMETERS = {
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Carpaint": [
-        P("BaseColor", "RGB", (0.8, 0.2, 0.2), _tr("Render", "Base color")),
+        P("BaseColor", "RGB", CAR_RED, _tr("Render", "Base color")),
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texscalar", "", _tr("Render", "Normal")),
         P("Displacement", "texonly", "", _tr("Render", "Displacement")),
     ],
     "Substance_PBR": [
-        P("BaseColor", "RGB", (0.8, 0.8, 0.8), _tr("Render", "Base color")),
+        P("BaseColor", "RGB", WHITE, _tr("Render", "Base color")),
         P("Roughness", "float", 0.0, _tr("Render", "Roughness")),
         P("Metallic", "float", 0.0, _tr("Render", "Metallic")),
         P("Specular", "float", 0.0, _tr("Render", "Specular")),
@@ -156,10 +158,10 @@ def get_rendering_material(material, renderer, default_color):
       the related parameters . This is a backward compatibility fallback
     - Otherwise, a Diffuse material made with default_color is returned
 
-    Pareters:
+    Parameters:
     material -- a FreeCAD material
     renderer -- the targeted renderer (string, case sensitive)
-    default_color -- a RGBA color, to be used as a fallback
+    default_color -- a RGB color, to be used as a fallback
 
     Returns:
     A data object providing some systematic and specific properties for the
@@ -242,18 +244,13 @@ def get_rendering_material(material, renderer, default_color):
 
     # Try with Coin-like parameters (backward compatibility)
     try:
-        diffusecolor = str2rgb(mat["DiffuseColor"])
+        diffusecolor = RGB.from_string(mat["DiffuseColor"])
     except (KeyError, TypeError):
         pass
     else:
         debug("Fallback to Coin-like parameters")
-        color = RGBA(
-            diffusecolor.r,
-            diffusecolor.g,
-            diffusecolor.b,
-            1 - float(mat.get("Transparency", "0")) / 100,
-        )
-        return RenderMaterial.build_fallback(color)
+        diffusecolor.set_transparency(mat.get("Transparency", "0"))
+        return RenderMaterial.build_fallback(diffusecolor)
 
     # Fallback with default_color
     debug("Fallback to default color")
@@ -270,6 +267,9 @@ class RenderMaterial:
 
     Such an object is passed to renderers plugins by the renderer handler,
     to provide them data about a material.
+
+    All colors contained in a RenderMaterial are in linear colorspace. All
+    necessary conversions from FreeCAD colors (srgb) are made here.
     """
 
     # Factory methods (static)
@@ -314,16 +314,9 @@ class RenderMaterial:
     def build_fallback(color):
         """Build fallback material (mixed).
 
-        color -- a RGBA tuple color
+        color -- a RGB color
         """
-        try:
-            _color = ",".join([str(c) for c in color[:3]])
-            _alpha = str(color[3])
-        except IndexError:
-            _color = "0.8, 0.8, 0.8"
-            _alpha = "1.0"
-
-        _rgbcolor = str2rgb(_color)
+        _alpha = color.alpha
 
         # A simpler approach would have been to rely only on mixed material but
         # it leads to a lot of materials definitions in output files which
@@ -332,23 +325,23 @@ class RenderMaterial:
         if float(_alpha) == 1.0:
             # Build diffuse
             shadertype = "Diffuse"
-            values = (("Color", _color, _color, "RGB", _rgbcolor),)
+            values = (("Color", color, color, "RGB", color),)
         elif float(_alpha) == 0.0:
             # Build glass
             shadertype = "Glass"
             values = (
-                ("IOR", "1.5", "1.5", "float", _rgbcolor),
-                ("Color", _color, _color, "RGB", _rgbcolor),
+                ("IOR", "1.5", "1.5", "float", color),
+                ("Color", color, color, "RGB", color),
             )
         else:
             # Build mixed
             shadertype = "Mixed"
             _trsparency = str(1.0 - float(_alpha))
             values = (
-                ("Diffuse.Color", _color, _color, "RGB", _rgbcolor),
-                ("Glass.IOR", "1.5", "1.5", "float", _rgbcolor),
-                ("Glass.Color", _color, _color, "RGB", _rgbcolor),
-                ("Transparency", _trsparency, _trsparency, "float", _rgbcolor),
+                ("Diffuse.Color", color, color, "RGB", color),
+                ("Glass.IOR", "1.5", "1.5", "float", color),
+                ("Glass.Color", color, color, "RGB", color),
+                ("Transparency", _trsparency, _trsparency, "float", color),
             )
 
         return RenderMaterial.build_standard(shadertype, values)
@@ -360,7 +353,7 @@ class RenderMaterial:
         shadertype = str(shadertype)
         self.shadertype = shadertype
         setattr(self, shadertype.lower(), types.SimpleNamespace())
-        self.default_color = RGBA(0.8, 0.8, 0.8, 1.0)
+        self.default_color = WHITE
         self._partypes = {}  # Record parameter types
 
     def __repr__(self):
@@ -760,7 +753,7 @@ def _castrgb(*args):
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
         try:
-            fallback = str2rgb(parsed[2])
+            fallback = RGB.from_string(parsed[2])
         except (IndexError, ValueError):
             fallback = None
         res = RenderTexture(
@@ -776,7 +769,7 @@ def _castrgb(*args):
         return res
 
     # Default (and fallback) case, return color
-    return str2rgb(parsed[0])
+    return RGB.from_string(parsed[0])
 
 
 def _castfloat(*args):

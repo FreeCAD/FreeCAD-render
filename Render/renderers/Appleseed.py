@@ -160,7 +160,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     snippet = """
             <!-- Object '{n}' -->
             <color name="{n}_color">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> {c[0]} {c[1]} {c[2]} </values>
@@ -191,7 +191,7 @@ def write_arealight(
     snippet = """
             <!-- Area light '{n}' -->
             <color name="{n}_color">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="alpha" value="{g}" />
                 <values> {c[0]} {c[1]} {c[2]} </values>
@@ -331,6 +331,7 @@ def _write_material_diffuse(name, matval, write_material=True):
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{matval["color"][0]}" />
             </bsdf>"""
+    print(matval["color"])  # TODO
     snippet_color = SNIPPET_COLOR.format(
         n=_color_name(name), c=matval["color"][1]
     )
@@ -353,6 +354,7 @@ def _write_material_glass(name, matval, write_material=True):
                 <parameter name="volume_parameterization"
                            value="transmittance" />
             </bsdf>"""
+    print(matval["color"])  # TODO
     snippet_color = SNIPPET_COLOR.format(
         n=_color_name(name), c=matval["color"][1]
     )
@@ -645,7 +647,7 @@ OSL_SHADERS = ["Carpaint", "Substance_PBR"]
 
 SNIPPET_COLOR = """
             <color name="{n}">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> {c} </values>
@@ -948,7 +950,8 @@ def _write_value_osl(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        return ("", f"{val[0]:.8} {val[1]:.8} {val[2]:.8}")
+        lcol = val.to_linear()
+        return ("", f"{lcol[0]:.8} {lcol[1]:.8} {lcol[2]:.8}")
     if proptype == "float":
         return ("", f"{val:.8}")
 
@@ -971,9 +974,10 @@ def _write_value_internal(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
+        lcol = val.to_linear()
         value = (
             _color_name(matname),
-            f"{val[0]:.8} {val[1]:.8} {val[2]:.8}",
+            f"{lcol[0]:.8} {lcol[1]:.8} {lcol[2]:.8}",
         )
     elif proptype == "float":
         value = f"{val:.8}"

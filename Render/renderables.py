@@ -44,8 +44,8 @@ from Render.utils import (
     debug,
     warn,
     getproxyattr,
-    RGBA,
-    fcdcolor2rgba,
+    RGB,
+    WHITE,
 )
 from Render.rendermaterial import is_multimat, is_valid_material
 
@@ -395,7 +395,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
             for i in itertools.accumulate([0] + faces_len[:-1])
         ]
     else:
-        colors = [RGBA(0.8, 0.8, 0.8, 1)] * len(subnames)
+        colors = [WHITE] * len(subnames)
 
     # Subobjects materials
     if material is not None:
@@ -457,7 +457,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
     colors = [
-        _boost_tp(RGBA(*m.Color[0:3], 1.0 - m.Transparency), tp_boost)
+        _boost_tp(RGB(*m.Color[0:3], 1.0 - m.Transparency), tp_boost)
         for m in materials
     ]
 
@@ -545,7 +545,7 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
             mesher(f, _needs_uvmap(material), uvprojection) for f in faces
         ]
         materials = [material] * nfaces
-        colors = map(fcdcolor2rgba, colors)
+        colors = map(RGB.from_fcd_rgba, colors)
         renderables = [
             Renderable(*i) for i in zip(names, meshes, materials, colors)
         ]
@@ -595,34 +595,32 @@ def _get_shapecolor(obj, transparency_boost):
 
     # Is there a view object? (console mode, for instance)
     if vobj is None:
-        return RGBA(0.8, 0.8, 0.8, 1.0)
+        return WHITE
 
     # Overridden color for faces?
     try:
         elem_colors = vobj.getElementColors()
-        color = fcdcolor2rgba(elem_colors["Face"])
+        color = RGB.from_fcd_rgba(elem_colors["Face"])
     except (AttributeError, KeyError):
         # Shape color
         try:
             shapecolor = vobj.ShapeColor
             transparency = vobj.Transparency
-            color = RGBA(
-                shapecolor[0],
-                shapecolor[1],
-                shapecolor[2],
-                1.0 - transparency / 100,
-            )
+            color = RGB.from_fcd_rgba(shapecolor, transparency)
         except AttributeError:
-            color = RGBA(0.8, 0.8, 0.8, 1.0)
+            color = WHITE
 
-    return _boost_tp(color, transparency_boost)
+    result = _boost_tp(color, transparency_boost)
+    return result
 
 
 def _boost_tp(color, boost_factor):
     """Get a color with boosted transparency."""
-    transparency = 1 - color[3]
+    transparency = 1.0 - color.alpha
     transparency = math.pow(transparency, 1 / (boost_factor + 1))
-    return RGBA(color[0], color[1], color[2], 1 - transparency)
+    res = color
+    res.alpha = 1.0 - transparency
+    return res
 
 
 def _needs_uvmap(material):
