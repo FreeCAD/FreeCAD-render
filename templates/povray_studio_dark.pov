@@ -21,29 +21,29 @@ sky_sphere {
     pigment {
         gradient y
         color_map {
-            [0.0  color rgb <0.01, 0.01, 0.01>]
-            [0.3  color rgb <0.01, 0.01, 0.01>]
-            [0.7  color rgb <0.01, 0.01, 0.01>]
+            [0.0  color rgb <0.02, 0.02, 0.02>]
+            [0.3  color rgb <0.02, 0.02, 0.02>]
+            [0.7  color rgb <0.02, 0.02, 0.02>]
         }
     }
 }
 light_source {
     <+1e9,+1.5e9,-1e9>
-    color rgb <0.8,0.8,0.8>
+    color rgb <0.1,0.1,0.1>
     parallel
     point_at <0,0,0>
     adaptive 1
 }
 light_source {
     <-1e9,+0.5e9,-1e9>
-    color rgb <0.1,0.1,0.1> shadowless
+    color rgb <0.2,0.2,0.2> shadowless
     parallel
     point_at <0,0,0>
     adaptive 1
 }
 light_source {
     <0e9,0e9,+1e9>
-    color rgb <0.1,0.1,0.1> shadowless
+    color rgb <0.2,0.2,0.2> shadowless
     parallel
     point_at <0,0,0>
     adaptive 1
