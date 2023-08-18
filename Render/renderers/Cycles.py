@@ -1,7 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2019 Yorik van Havre <yorik@uncreated.net>              *
-# *   Copyright (c) 2022 Howefuft <howetuft-at-gmail>                       *
+# *   Copyright (c) 2023 Howefuft <howetuft-at-gmail>                       *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -420,7 +420,7 @@ def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     # snippet = indent(material.passthrough.string, "    ")
     snippet = matval["string"]
-    return snippet.format(n=name, c=matval.default_color)
+    return snippet.format(n=name, c=matval.default_color.to_linear())
 
 
 def _write_material_glass(name, matval, connect_to="output surface"):
@@ -536,9 +536,10 @@ def _write_material_fallback(name, matval):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(matval.default_color.r)
-        grn = float(matval.default_color.g)
-        blu = float(matval.default_color.b)
+        lcol = matval.default_color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
@@ -699,13 +700,15 @@ def _write_value(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        value = f"{_rnd(val[0])} {_rnd(val[1])} {_rnd(val[2])}"
+        lcol = val.to_linear()
+        value = f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])}"
     elif proptype == "float":
         value = f"{_rnd(val)}"
     elif proptype == "node":
         value = ""
     elif proptype == "RGBA":
-        value = f"{_rnd(val.r)} {_rnd(val.g)} {_rnd(val.b)} {_rnd(val.a)}"
+        lcol = val.to_linear()
+        value = f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])} {_rnd(lcol[3])}"
     elif proptype == "texonly":
         value = f"{val}"
     elif proptype == "str":
@@ -745,8 +748,12 @@ def _write_rotation(rot):
 
 
 def _write_color(col):
-    """Write a color."""
-    return f"{_rnd(col[0])} {_rnd(col[1])} {_rnd(col[2])}"
+    """Write a color.
+
+    Args:
+        col -- a utils.RGB color"""
+    lcol = col.to_linear()
+    return f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])}"
 
 
 # ===========================================================================
