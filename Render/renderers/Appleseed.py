@@ -176,7 +176,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
 
     return snippet.format(
         n=name,
-        c=color,
+        c=color.to_linear(),
         p=power * 3,  # guesstimated factor...
         t=_transform(pos),
     )
@@ -231,7 +231,7 @@ def write_arealight(
             </object_instance>"""
     return snippet.format(
         n=name,
-        c=color,
+        c=color.to_linear(),
         u=size_u,
         v=size_v,
         t=_transform(pos.Base),
@@ -599,7 +599,7 @@ def _write_material_pbr(name, matval):
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     snippet = indent(matval["string"], "    ")
-    return snippet.format(n=name, c=matval.default_color)
+    return snippet.format(n=name, c=matval.default_color.to_linear())
 
 
 def _write_material_fallback(name, matval):
@@ -608,18 +608,20 @@ def _write_material_fallback(name, matval):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(matval.material.color.r)
-        grn = float(matval.material.color.g)
-        blu = float(matval.material.color.b)
+        color = matval.material.color
+        lcol = color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1.0, 1.0, 1.0
 
-    color = RGB(red, grn, blu)
+    color = (red, grn, blu)
 
     snippet = (
         SNIPPET_COLOR.format(
-            n=_color_name(name), c=f"{color.r} {color.g} {color.b}"
+            n=_color_name(name), c=f"{color[0]} {color[1]} {color[2]}"
         ),
         f"""
             <!-- Object '{name}' - FALLBACK -->
