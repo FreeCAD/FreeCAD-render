@@ -391,7 +391,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     faces_len = [len(s.Faces) for s in obj.Shape.Solids]
     if obj.ViewObject is not None:  # Gui is up
         colors = [
-            _boost_tp(obj.ViewObject.DiffuseColor[i], transparency_boost)
+            _boost_tp(RGB.from_fcd_rgba(obj.ViewObject.DiffuseColor[i]), transparency_boost)
             for i in itertools.accumulate([0] + faces_len[:-1])
         ]
     else:
@@ -604,8 +604,8 @@ def _get_shapecolor(obj, transparency_boost):
     except (AttributeError, KeyError):
         # Shape color
         try:
-            shapecolor = vobj.ShapeColor
-            transparency = vobj.Transparency
+            shapecolor = vobj.ShapeColor[0:3]  # Only rgb, not alpha
+            transparency = vobj.Transparency  # Alpha is given by transparency
             color = RGB.from_fcd_rgba(shapecolor, transparency)
         except AttributeError:
             color = WHITE

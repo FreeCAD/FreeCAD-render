@@ -61,7 +61,7 @@ class _GroundPlane:
 
         if bbox.isValid():
             zpos = project.fpo.GroundPlaneZ
-            color = RGB.from_fcd_rgba(project.fpo.GroundPlaneColor)
+            color = project.fpo.GroundPlaneColor  # Keep it in FCD format
             sizefactor = project.fpo.GroundPlaneSizeFactor
 
             margin = bbox.DiagonalLength / 2 * sizefactor
