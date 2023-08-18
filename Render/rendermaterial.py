@@ -95,7 +95,12 @@ STD_MATERIALS_PARAMETERS = {
     ],
     "Mixed": [
         P("Diffuse.Color", "RGB", WHITE, _tr("Render", "Diffuse color")),
-        P("Glass.Color", "RGB", SUPERWHITE, _tr("Render", "Transmitted color")),
+        P(
+            "Glass.Color",
+            "RGB",
+            SUPERWHITE,
+            _tr("Render", "Transmitted color"),
+        ),
         P("Glass.IOR", "float", 1.5, _tr("Render", "Index of refraction")),
         P(
             "Transparency",

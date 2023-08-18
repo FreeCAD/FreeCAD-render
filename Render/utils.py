@@ -112,7 +112,10 @@ class RGB:
             color in linear colorspace
         """
         return self._linearRGB(
-            self._red**2.2, self._green**2.2, self._blue**2.2, self._alpha
+            self._red**2.2,
+            self._green**2.2,
+            self._blue**2.2,
+            self._alpha,
         )
 
     def to_srgb(self):
@@ -176,11 +179,13 @@ class RGB:
         rgba = list(color[0:3]) + [1.0 - color[3] / 100]
         return RGB(rgba)
 
+
 WHITE = RGB.from_linear((0.8, 0.8, 0.8))  # A balanced white for default colors
 
 SUPERWHITE = RGB.from_linear((1.0, 1.0, 1.0))
 
 CAR_RED = RGB.from_linear((0.8, 0.2, 0.2))
+
 
 def parse_csv_str(string, delimiter=";"):
     """Parse a csv string, with ";" as default delimiter.
