@@ -708,7 +708,9 @@ def _write_value(**kwargs):
         value = ""
     elif proptype == "RGBA":
         lcol = val.to_linear()
-        value = f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])} {_rnd(lcol[3])}"
+        value = (
+            f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])} {_rnd(lcol[3])}"
+        )
     elif proptype == "texonly":
         value = f"{val}"
     elif proptype == "str":

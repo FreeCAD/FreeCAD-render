@@ -86,7 +86,11 @@ def write_mesh(name, mesh, material, **kwargs):
     # including transfo from FCD coordinates to Appleseed ones
     mesh.transformation.apply_placement(PLACEMENT, left=True)
     transfo_rows = [
-        f"<dummy>{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}</dummy>"
+        (
+            "<dummy>"
+            f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
+            "</dummy>"
+        )
         for r in mesh.transformation.get_matrix_rows()
     ]
 
@@ -331,7 +335,6 @@ def _write_material_diffuse(name, matval, write_material=True):
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{matval["color"][0]}" />
             </bsdf>"""
-    print(matval["color"])  # TODO
     snippet_color = SNIPPET_COLOR.format(
         n=_color_name(name), c=matval["color"][1]
     )
@@ -354,7 +357,6 @@ def _write_material_glass(name, matval, write_material=True):
                 <parameter name="volume_parameterization"
                            value="transmittance" />
             </bsdf>"""
-    print(matval["color"])  # TODO
     snippet_color = SNIPPET_COLOR.format(
         n=_color_name(name), c=matval["color"][1]
     )
@@ -1314,7 +1316,9 @@ def render(
             tile_param.set("value", "32 32")
         # Use adaptive sampler for denoising
         root = set_config_param(root, "final", None, "pixel_renderer", "")
-        root = set_config_param(root, "final", None, "tile_renderer", "adaptive")
+        root = set_config_param(
+            root, "final", None, "tile_renderer", "adaptive"
+        )
 
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)

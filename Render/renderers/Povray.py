@@ -472,7 +472,7 @@ def _write_material_fallback(name, material):
     Fallback material is a simple Diffuse material.
     """
     try:
-        lcol = matval.default_color.to_linear()
+        lcol = material.default_color.to_linear()
         red = float(lcol[0])
         grn = float(lcol[1])
         blu = float(lcol[2])

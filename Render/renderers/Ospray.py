@@ -44,7 +44,6 @@
 import json
 import os
 import os.path
-import tempfile
 from math import degrees, asin, sqrt, atan2, radians
 
 import FreeCAD as App
@@ -265,7 +264,9 @@ def write_pointlight(name, pos, color, power, **kwargs):
         ]
       }},"""
     osp_pos = PLACEMENT.multVec(pos)
-    return snippet.format(n=json.dumps(name), c=color.to_linear(), p=osp_pos, s=power)
+    return snippet.format(
+        n=json.dumps(name), c=color.to_linear(), p=osp_pos, s=power
+    )
 
 
 def write_arealight(
@@ -617,7 +618,6 @@ def _write_material_mixed(name, matval):
 
     transparency = matval.material.mixed.transparency
     assert isinstance(transparency, float)
-    # TODO Could be texture?
 
     snippet_mix = f"""
 # Mixed
@@ -742,7 +742,6 @@ def _write_texture(**kwargs):
     object_directory = kwargs["object_directory"]
 
     # Get texture parameters
-    filename = os.path.basename(propvalue.file)  # TODO
     filename = os.path.relpath(propvalue.file, object_directory)
     scale, rotation = float(propvalue.scale), float(propvalue.rotation)
     translation_u = float(propvalue.translation_u)
@@ -984,7 +983,7 @@ def render(
     if output_file:
         args += f'  --image "{outfile_for_osp}"'
         if not batch:
-            args+= "  --saveImageOnExit"
+            args += "  --saveImageOnExit"
     if spp:
         args += f"  --accumLimit {spp} --spp 1 "
     if denoise:
@@ -1062,8 +1061,8 @@ def _render_keep1cam(scene_graph):
                 "x": [1.0, 0.0, 0.0],
                 "y": [0.0, 1.0, 0.0],
                 "z": [0.0, 0.0, 1.0],
-            }
-        }
+            },
+        },
     }
 
 

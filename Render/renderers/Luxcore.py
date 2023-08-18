@@ -603,7 +603,6 @@ def render(
     if engine == "RTPATHCPU":
         config["sampler.type"] = "RTPATHCPUSAMPLER"
 
-
     # General settings
     config["renderengine.seed"] = "1"
     config["film.width"] = str(width)
