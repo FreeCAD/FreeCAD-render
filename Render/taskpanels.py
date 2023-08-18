@@ -953,6 +953,6 @@ please edit 'Render settings' from material context menu.*"""
         super().accept()
         return True
 
-    def reject(self):  # pylint: disable=no-self-use
+    def reject(self):
         """Respond to user rejection."""
         return True

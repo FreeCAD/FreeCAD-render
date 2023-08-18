@@ -28,7 +28,7 @@ import FreeCAD as App
 import Mesh
 
 from Render.rdrhandler import RenderingTypes
-from Render.utils import RGB, clamp
+from Render.utils import clamp
 
 
 def create_groundplane_view(project):
