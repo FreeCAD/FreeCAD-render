@@ -2,6 +2,7 @@
 
 Sampler "halton" "integer pixelsamples" [32]
 Integrator "path" "integer maxdepth" [6]
+ColorSpace "srgb"
 Film "rgb"
   "integer xresolution" [@@WIDTH@@]
   "integer yresolution" [@@HEIGHT@@]

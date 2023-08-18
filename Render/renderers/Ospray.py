@@ -44,7 +44,6 @@
 import json
 import os
 import os.path
-import tempfile
 from math import degrees, asin, sqrt, atan2, radians
 
 import FreeCAD as App
@@ -265,7 +264,9 @@ def write_pointlight(name, pos, color, power, **kwargs):
         ]
       }},"""
     osp_pos = PLACEMENT.multVec(pos)
-    return snippet.format(n=json.dumps(name), c=color, p=osp_pos, s=power)
+    return snippet.format(
+        n=json.dumps(name), c=color.to_linear(), p=osp_pos, s=power
+    )
 
 
 def write_arealight(
@@ -279,11 +280,12 @@ def write_arealight(
     radiance = power / (size_u * size_v)
     radiance /= 1000  # Magic number
     transparency = 1.0 if transparent else 0.0
+    lcol = color.to_linear()
     mtl = f"""
 # Created by FreeCAD <http://www.freecadweb.org>",
 newmtl material
 type luminous
-color {color[0]} {color[1]} {color[2]}
+color {lcol[0]} {lcol[1]} {lcol[2]}
 intensity {radiance}
 transparency {transparency}
 """
@@ -529,7 +531,7 @@ def _write_material(name, matval):
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     snippet = "\n# Passthrough\n" + matval["string"]
-    return snippet.format(n=name, c=matval.default_color)
+    return snippet.format(n=name, c=matval.default_color.to_linear())
 
 
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
@@ -616,7 +618,6 @@ def _write_material_mixed(name, matval):
 
     transparency = matval.material.mixed.transparency
     assert isinstance(transparency, float)
-    # TODO Could be texture?
 
     snippet_mix = f"""
 # Mixed
@@ -650,9 +651,10 @@ def _write_material_fallback(name, matval):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(matval.material.color.r)
-        grn = float(matval.material.color.g)
-        blu = float(matval.material.color.b)
+        lcol = matval.default_color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
@@ -740,7 +742,6 @@ def _write_texture(**kwargs):
     object_directory = kwargs["object_directory"]
 
     # Get texture parameters
-    filename = os.path.basename(propvalue.file)  # TODO
     filename = os.path.relpath(propvalue.file, object_directory)
     scale, rotation = float(propvalue.scale), float(propvalue.rotation)
     translation_u = float(propvalue.translation_u)
@@ -832,13 +833,15 @@ def _write_value(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        value = f"{field} {val[0]:.8} {val[1]:.8} {val[2]:.8}"
+        lcol = val.to_linear()
+        value = f"{field} {lcol[0]:.8} {lcol[1]:.8} {lcol[2]:.8}"
     elif proptype == "float":
         value = f"{field} {val:.8}"
     elif proptype == "node":
         value = ""
     elif proptype == "RGBA":
-        value = f"{field} {val.r:.8} {val.g:.8} {val.b:.8} {val.a:.8}"
+        lcol = val.to_linear()
+        value = f"{field} {lcol[0]:.8} {lcol[1]:.8} {lcol[2]:.8} {lcol[3]:.8}"
     elif proptype == "str":
         value = f"{field} {val}"
     else:
@@ -980,7 +983,7 @@ def render(
     if output_file:
         args += f'  --image "{outfile_for_osp}"'
         if not batch:
-            args+= "  --saveImageOnExit"
+            args += "  --saveImageOnExit"
     if spp:
         args += f"  --accumLimit {spp} --spp 1 "
     if denoise:
@@ -1058,8 +1061,8 @@ def _render_keep1cam(scene_graph):
                 "x": [1.0, 0.0, 0.0],
                 "y": [0.0, 1.0, 0.0],
                 "z": [0.0, 0.0, 1.0],
-            }
-        }
+            },
+        },
     }
 
 

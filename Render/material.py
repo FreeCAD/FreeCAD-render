@@ -246,7 +246,7 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         self.taskd.form.FieldName.selectAll()
         return True
 
-    def setupContextMenu(self, vobj, menu):  # pylint: disable=no-self-use
+    def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
         # Edit Render Settings
         action = QAction(

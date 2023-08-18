@@ -374,6 +374,7 @@ class RenderMeshMultiprocessingMixin:
 
 class SharedArray:
     """An 2-dimensions array to be shared across multiple processes."""
+
     def __init__(self, typecode, length, width, initializer=None):
         self._rawarray = mp.RawArray(typecode, length * width)
         self._width = width

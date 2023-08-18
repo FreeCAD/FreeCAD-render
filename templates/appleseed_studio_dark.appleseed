@@ -5,7 +5,7 @@
     <scene>
         <!--RaytracingCamera-->
         <color name="environment_radiance">
-            <parameter name="color_space" value="srgb" />
+            <parameter name="color_space" value="linear_rgb" />
             <parameter name="multiplier" value="1.0" />
             <values>0.01 0.01 0.01</values>
         </color>
@@ -21,20 +21,21 @@
         </environment>
         <assembly name="assembly">
             <color name="white">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> 1.0 1.0 1.0 </values>
                 <alpha> 1.0 </alpha>
             </color>
             <color name="grey30">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> 0.3 0.3 0.3 </values>
                 <alpha> 1.0 </alpha>
             </color>
             <light name="__KEY__" model="directional_light">
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="irradiance" value="white" />
                 <parameter name="irradiance_multiplier" value="4.0" />
                 <transform>
@@ -42,6 +43,7 @@
                 </transform>
             </light>
             <light name="__FILL__" model="directional_light">
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="irradiance" value="white" />
                 <parameter name="irradiance_multiplier" value="0.8" />
                 <parameter name="cast_shadows" value="false" />

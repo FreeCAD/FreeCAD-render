@@ -51,7 +51,7 @@ import FreeCAD as App
 import MeshPart
 import Mesh
 
-from Render.utils import translate, debug, message, getproxyattr
+from Render.utils import translate, debug, message, getproxyattr, RGB
 from Render.constants import PARAMS
 from Render.rendermesh import create_rendermesh
 from Render import renderables
@@ -94,6 +94,10 @@ class RendererHandler:
     - a method to get a rendering string from an object's View, taking care of
       selecting the right method in renderer module according to
     view object's type.
+
+    Important: FreeCAD internal colors are in srgb colorspace, whereas
+    renderers expect input colors in linear colorspace. A conversion is
+    necessary.
     """
 
     def __init__(self, rdrname, **kwargs):
@@ -581,7 +585,7 @@ class RendererHandler:
 
         # Get location, color
         location = App.Base.Vector(source.Location)
-        color = source.Color
+        color = RGB(source.Color)
 
         # Rescale
         location.multiply(SCALE)
@@ -617,7 +621,7 @@ class RendererHandler:
         source = view.Source
         placement = App.Base.Placement(source.Placement)
         placement.Base.multiply(SCALE)  # Rescale
-        color = source.Color
+        color = RGB(source.Color)
         power = float(source.Power)
         size_u = float(source.SizeU) * SCALE
         size_v = float(source.SizeV) * SCALE

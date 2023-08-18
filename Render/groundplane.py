@@ -28,7 +28,7 @@ import FreeCAD as App
 import Mesh
 
 from Render.rdrhandler import RenderingTypes
-from Render.utils import fcdcolor2rgba, clamp
+from Render.utils import clamp
 
 
 def create_groundplane_view(project):
@@ -61,7 +61,7 @@ class _GroundPlane:
 
         if bbox.isValid():
             zpos = project.fpo.GroundPlaneZ
-            color = fcdcolor2rgba(project.fpo.GroundPlaneColor)
+            color = project.fpo.GroundPlaneColor  # Keep it in FCD format
             sizefactor = project.fpo.GroundPlaneSizeFactor
 
             margin = bbox.DiagonalLength / 2 * sizefactor

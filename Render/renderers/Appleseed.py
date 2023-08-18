@@ -86,7 +86,11 @@ def write_mesh(name, mesh, material, **kwargs):
     # including transfo from FCD coordinates to Appleseed ones
     mesh.transformation.apply_placement(PLACEMENT, left=True)
     transfo_rows = [
-        f"<dummy>{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}</dummy>"
+        (
+            "<dummy>"
+            f"{r[0]:+15.8f} {r[1]:+15.8f} {r[2]:+15.8f} {r[3]:+15.8f}"
+            "</dummy>"
+        )
         for r in mesh.transformation.get_matrix_rows()
     ]
 
@@ -160,7 +164,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     snippet = """
             <!-- Object '{n}' -->
             <color name="{n}_color">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> {c[0]} {c[1]} {c[2]} </values>
@@ -176,7 +180,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
 
     return snippet.format(
         n=name,
-        c=color,
+        c=color.to_linear(),
         p=power * 3,  # guesstimated factor...
         t=_transform(pos),
     )
@@ -191,7 +195,7 @@ def write_arealight(
     snippet = """
             <!-- Area light '{n}' -->
             <color name="{n}_color">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="alpha" value="{g}" />
                 <values> {c[0]} {c[1]} {c[2]} </values>
@@ -231,7 +235,7 @@ def write_arealight(
             </object_instance>"""
     return snippet.format(
         n=name,
-        c=color,
+        c=color.to_linear(),
         u=size_u,
         v=size_v,
         t=_transform(pos.Base),
@@ -597,7 +601,7 @@ def _write_material_pbr(name, matval):
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     snippet = indent(matval["string"], "    ")
-    return snippet.format(n=name, c=matval.default_color)
+    return snippet.format(n=name, c=matval.default_color.to_linear())
 
 
 def _write_material_fallback(name, matval):
@@ -606,18 +610,20 @@ def _write_material_fallback(name, matval):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(matval.material.color.r)
-        grn = float(matval.material.color.g)
-        blu = float(matval.material.color.b)
+        color = matval.material.color
+        lcol = color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1.0, 1.0, 1.0
 
-    color = RGB(red, grn, blu)
+    color = (red, grn, blu)
 
     snippet = (
         SNIPPET_COLOR.format(
-            n=_color_name(name), c=f"{color.r} {color.g} {color.b}"
+            n=_color_name(name), c=f"{color[0]} {color[1]} {color[2]}"
         ),
         f"""
             <!-- Object '{name}' - FALLBACK -->
@@ -645,7 +651,7 @@ OSL_SHADERS = ["Carpaint", "Substance_PBR"]
 
 SNIPPET_COLOR = """
             <color name="{n}">
-                <parameter name="color_space" value="srgb" />
+                <parameter name="color_space" value="linear_rgb" />
                 <parameter name="multiplier" value="1.0" />
                 <parameter name="wavelength_range" value="400.0 700.0" />
                 <values> {c} </values>
@@ -948,7 +954,8 @@ def _write_value_osl(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        return ("", f"{val[0]:.8} {val[1]:.8} {val[2]:.8}")
+        lcol = val.to_linear()
+        return ("", f"{lcol[0]:.8} {lcol[1]:.8} {lcol[2]:.8}")
     if proptype == "float":
         return ("", f"{val:.8}")
 
@@ -971,9 +978,10 @@ def _write_value_internal(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
+        lcol = val.to_linear()
         value = (
             _color_name(matname),
-            f"{val[0]:.8} {val[1]:.8} {val[2]:.8}",
+            f"{lcol[0]:.8} {lcol[1]:.8} {lcol[2]:.8}",
         )
     elif proptype == "float":
         value = f"{val:.8}"
@@ -1308,7 +1316,9 @@ def render(
             tile_param.set("value", "32 32")
         # Use adaptive sampler for denoising
         root = set_config_param(root, "final", None, "pixel_renderer", "")
-        root = set_config_param(root, "final", None, "tile_renderer", "adaptive")
+        root = set_config_param(
+            root, "final", None, "tile_renderer", "adaptive"
+        )
 
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)
