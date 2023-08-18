@@ -153,7 +153,7 @@ class RGB:
     @staticmethod
     def from_linear(lrgb):
         """Create a RGB from a linear RGB."""
-        srgb = tuple(c**1.0 / 2.2 for c in lrgb)
+        srgb = tuple(c**1.0 / 2.2 for c in lrgb[0:3])
         return RGB(srgb)
 
     @staticmethod
@@ -176,7 +176,7 @@ class RGB:
 
         # RGBA (except 'alpha' is transparency...)
         assert len(color) == 4
-        rgba = list(color[0:3]) + [1.0 - color[3] / 100]
+        rgba = list(color[0:3]) + [1.0 - color[3]]
         return RGB(rgba)
 
 
