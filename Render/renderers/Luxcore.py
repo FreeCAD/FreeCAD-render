@@ -172,7 +172,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
 # Point light '{n}'
 scene.lights.{n}.type = point
 scene.lights.{n}.position = {o.x} {o.y} {o.z}
-scene.lights.{n}.color = {c[0]} {c[1]} {c[2]}
+scene.lights.{n}.color = luxcore 2.2 {c[0]} {c[1]} {c[2]}
 scene.lights.{n}.power = {p}
 scene.lights.{n}.gain = {g} {g} {g}
 scene.lights.{n}.efficency = {e}
@@ -198,7 +198,7 @@ def write_arealight(
     snippet = """
 # Area light '{n}'
 scene.materials.{n}.type = matte
-scene.materials.{n}.emission = {c[0]} {c[1]} {c[2]}
+scene.materials.{n}.emission = luxcore 2.2 {c[0]} {c[1]} {c[2]}
 scene.materials.{n}.emission.gain = {g} {g} {g}
 scene.materials.{n}.emission.power = {p}
 scene.materials.{n}.emission.efficency = {e}
@@ -488,7 +488,7 @@ scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
 
 
 VALSNIPPETS = {
-    "RGB": "{val[0]} {val[1]} {val[2]}",
+    "RGB": "luxcore 2.2 {val[0]} {val[1]} {val[2]}",
     "float": "{val}",
     "node": "",
     "RGBA": "{val.r} {val.g} {val.b} {val.a}",
