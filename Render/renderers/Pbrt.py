@@ -142,7 +142,7 @@ AttributeBegin
 AttributeEnd
 # ~Pointlight '{n}'
 """
-    return snippet.format(n=name, o=pos, c=color, s=power)
+    return snippet.format(n=name, o=pos, c=color.to_linear(), s=power)
 
 
 def write_arealight(
@@ -175,7 +175,7 @@ AttributeBegin
 AttributeEnd
 # ~Arealight '{n}'
 """
-    return snippet.format(n=name, c=color, s=power, p=points)
+    return snippet.format(n=name, c=color.to_linear(), s=power, p=points)
 
 
 def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
@@ -360,9 +360,10 @@ def _write_material_fallback(name, material):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(material.default_color.r)
-        grn = float(material.default_color.g)
-        blu = float(material.default_color.b)
+        lcol = matval.default_color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
@@ -490,6 +491,10 @@ def _write_value(**kwargs):
 
     # Field name
     field = _FIELD_MAPPING.get((shadertype, propname), propname)
+
+    # Color
+    if proptype == "RGB":
+        propvalue = propvalue.to_linear()
 
     # Snippet for values
     snippet = _VALSNIPPETS[proptype]

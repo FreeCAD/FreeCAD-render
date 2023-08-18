@@ -100,6 +100,7 @@ class RGB:
             self._alpha = 1.0
 
     _linearRGB = collections.namedtuple("_linearRGB", "r g b a")
+    _sRGB = collections.namedtuple("_sRGB", "r g b a")
 
     def to_linear(self):
         """Convert color from srgb to linear.
@@ -115,8 +116,12 @@ class RGB:
         )
 
     def to_srgb(self):
-        """Restitute color in sRGB."""
-        return (self._red, self._green, self._blue, self._alpha)
+        """Return color in srgb.
+
+        Returns:
+            color in sRGB colorspace
+        """
+        return self._sRGB(self._red, self._green, self._blue, self._alpha)
 
     @property
     def alpha(self):
