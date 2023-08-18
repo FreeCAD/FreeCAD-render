@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2020 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -178,7 +178,7 @@ scene.lights.{n}.gain = {g} {g} {g}
 scene.lights.{n}.efficency = {e}
 """
     return dedent(snippet).format(
-        n=name, o=pos, c=color, p=power, g=gain, e=efficiency
+        n=name, o=pos, c=color.to_linear(), p=power, g=gain, e=efficiency
     )
 
 
@@ -215,7 +215,7 @@ scene.objects.{n}.transformation = {t}
     return dedent(snippet).format(
         n=name,
         t=trans,
-        c=color,
+        c=color.to_linear(),
         p=power,
         e=efficiency,
         g=gain,
@@ -292,7 +292,7 @@ def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     # snippet = indent(matval["string"], "    ")
     snippet = matval["string"]
-    return snippet.format(n=name, c=matval.default_color)
+    return snippet.format(n=name, c=matval.default_color.to_linear())
 
 
 def _write_material_glass(name, matval):
@@ -377,9 +377,10 @@ def _write_material_fallback(name, matval):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(matval.default_color.r)
-        grn = float(matval.default_color.g)
-        blu = float(matval.default_color.b)
+        lcol = matval.default_color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
@@ -508,6 +509,10 @@ def _write_value(**kwargs):
     # Retrieve parameters
     proptype = kwargs["proptype"]
     propvalue = kwargs["propvalue"]
+
+    # Color
+    if proptype == "RGB":
+        propvalue = propvalue.to_linear()
 
     # Snippets for values
     snippet = VALSNIPPETS[proptype]
