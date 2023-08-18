@@ -1,7 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
-# *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -75,7 +75,7 @@ from Render.constants import (
     FCDMATERIALDIR,
     USERMATERIALDIR,
 )
-from Render.utils import str2rgb, translate, parse_csv_str
+from Render.utils import RGB, translate, parse_csv_str, WHITE
 from Render.rendermaterial import (
     STD_MATERIALS,
     STD_MATERIALS_PARAMETERS,
@@ -720,14 +720,14 @@ class MaterialSettingsTaskPanel:
                 # value is empty, default initialization
                 widget = FloatBox(image_list=teximages)
         elif param.type == "RGB":
-            default_color = (0.8, 0.8, 0.8)  # Default value
+            default_color = WHITE  # Default value
             if parsedvalue:
                 if "Object" in parsedvalue:
                     # Object color
                     option = ColorOption.OBJECT
                     texture = None
                     color = (
-                        str2rgb(parsedvalue[1])
+                        RGB.from_string(parsedvalue[1])
                         if len(parsedvalue) > 1
                         else default_color
                     )
@@ -735,13 +735,13 @@ class MaterialSettingsTaskPanel:
                     # Constant
                     option = ColorOption.CONSTANT
                     texture = None
-                    color = str2rgb(parsedvalue[1])
+                    color = RGB.from_string(parsedvalue[1])
                 elif "Texture" in parsedvalue:
                     # Texture
                     option = ColorOption.TEXTURE
                     texture = str2imageid(parsedvalue[1])
                     color = (
-                        str2rgb(parsedvalue[2])
+                        RGB.from_string(parsedvalue[2])
                         if len(parsedvalue) > 2
                         else default_color
                     )
@@ -749,8 +749,8 @@ class MaterialSettingsTaskPanel:
                     # Constant (fallback)
                     option = ColorOption.CONSTANT
                     texture = None
-                    color = str2rgb(parsedvalue[0])
-                qcolor = QColor.fromRgbF(*color)
+                    color = RGB.from_string(parsedvalue[0])
+                qcolor = QColor.fromRgbF(*color.to_srgb())
                 widget = ColorPickerExt(option, qcolor, teximages, texture)
             else:
                 # value is empty, default initialization
@@ -953,6 +953,6 @@ please edit 'Render settings' from material context menu.*"""
         super().accept()
         return True
 
-    def reject(self):  # pylint: disable=no-self-use
+    def reject(self):
         """Respond to user rejection."""
         return True

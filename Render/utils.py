@@ -74,24 +74,117 @@ def getproxyattr(obj, name, default):
     return res
 
 
-RGB = collections.namedtuple("RGB", "r g b")
-RGBA = collections.namedtuple("RGBA", "r g b a")
+class RGB:
+    """A RGB color, consistent with FreeCAD internals.
 
-
-def str2rgb(string):
-    """Convert a ({r},{g},{b})-like string into RGB object."""
-    float_tuple = map(float, ast.literal_eval(string))
-    return RGB._make(float_tuple)
-
-
-def fcdcolor2rgba(fcdcolor):
-    """Convert a FreeCAD color to RGBA.
-
-    Main difference is 4th component: FreeCAD color stores transparency,
-    whereas, in RGBA, alpha is opacity.
+    Very important: by design, this color is in sRGB colorspace, like colors
+    in FreeCAD.
+    To get a proper input for renderers, one must convert this color to linear.
     """
-    red, green, blue, transparency = fcdcolor
-    return RGBA(red, green, blue, 1.0 - transparency)
+
+    def __init__(self, color):
+        """Initialize RGB.
+
+        Arguments are in sRGB colorspace.
+
+        Args:
+            color -- a tuple containing a RGB(A) in sRGB colorspace
+        """
+        self._red, self._green, self._blue, *remain = color
+        self._red = float(self._red)
+        self._green = float(self._green)
+        self._blue = float(self._blue)
+        if remain:
+            self._alpha = float(remain[0])
+        else:
+            self._alpha = 1.0
+
+    _linearRGB = collections.namedtuple("_linearRGB", "r g b a")
+    _sRGB = collections.namedtuple("_sRGB", "r g b a")
+
+    def to_linear(self):
+        """Convert color from srgb to linear.
+
+        Decode gamma=2.2 correction. This function is useful to convert FCD
+        colors (coded in srgb) to renderers inputs (expected in linear rgb).
+
+        Returns:
+            color in linear colorspace
+        """
+        return self._linearRGB(
+            self._red**2.2,
+            self._green**2.2,
+            self._blue**2.2,
+            self._alpha,
+        )
+
+    def to_srgb(self):
+        """Return color in srgb.
+
+        Returns:
+            color in sRGB colorspace
+        """
+        return self._sRGB(self._red, self._green, self._blue, self._alpha)
+
+    @property
+    def alpha(self):
+        """Get alpha component."""
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha):
+        """Set alpha component."""
+        self._alpha = float(alpha)
+
+    def set_transparency(self, transparency):
+        """Set alpha channel from given transparency."""
+        self._alpha = 1.0 - float(transparency) / 100
+
+    def __str__(self):
+        """String conversion - deactivated."""
+        return f"{self._red},{self._green},{self._blue},{self._alpha}"
+
+    @staticmethod
+    def from_string(string):
+        """Convert a ({r},{g},{b})-like string into RGB object."""
+        float_tuple = map(float, ast.literal_eval(string))
+        return RGB(float_tuple)
+
+    @staticmethod
+    def from_linear(lrgb):
+        """Create a RGB from a linear RGB."""
+        srgb = tuple(c**1.0 / 2.2 for c in lrgb[0:3])
+        return RGB(srgb)
+
+    @staticmethod
+    def from_fcd_rgba(color, transparency=None):
+        """Create a RGB from a FreeCAD RGBA.
+
+        2 important points:
+        - color is in sRGB colorspace
+        - 'a' component is a **transparency** (not an opacity), in [0, 100]
+
+        Args:
+            rgb -- The rgb (in sRGB).
+        """
+        if transparency is not None:
+            # RGB + transparency
+            rgb = list(color)
+            assert len(rgb) == 3
+            rgba = rgb + [1.0 - transparency / 100]
+            return RGB(rgba)
+
+        # RGBA (except 'alpha' is transparency...)
+        assert len(color) == 4
+        rgba = list(color[0:3]) + [1.0 - color[3]]
+        return RGB(rgba)
+
+
+WHITE = RGB.from_linear((0.8, 0.8, 0.8))  # A balanced white for default colors
+
+SUPERWHITE = RGB.from_linear((1.0, 1.0, 1.0))
+
+CAR_RED = RGB.from_linear((0.8, 0.2, 0.2))
 
 
 def parse_csv_str(string, delimiter=";"):

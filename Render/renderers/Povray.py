@@ -145,6 +145,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    color = color.to_linear()
 
     factor = power / 100
 
@@ -177,6 +178,9 @@ def write_arealight(
     rot = pos.Rotation
     axis1 = rot.multVec(App.Vector(size_u, 0.0, 0.0))
     axis2 = rot.multVec(App.Vector(0.0, size_v, 0.0))
+
+    # Prepare color
+    color = color.to_linear()
 
     # Prepare shape points for 'look_like'
     points = [
@@ -472,9 +476,10 @@ def _write_material_fallback(name, material):
     Fallback material is a simple Diffuse material.
     """
     try:
-        red = float(material.default_color.r)
-        grn = float(material.default_color.g)
-        blu = float(material.default_color.b)
+        lcol = material.default_color.to_linear()
+        red = float(lcol[0])
+        grn = float(lcol[1])
+        blu = float(lcol[2])
         assert (0 <= red <= 1) and (0 <= grn <= 1) and (0 <= blu <= 1)
     except (AttributeError, ValueError, TypeError, AssertionError):
         red, grn, blu = 1, 1, 1
@@ -657,6 +662,10 @@ def _write_value(**kwargs):
     propvalue = kwargs["propvalue"]
     shadertype = kwargs["shadertype"]
     parent_shadertype = kwargs["parent_shadertype"]
+
+    # Color conversion
+    if proptype == "RGB":
+        propvalue = propvalue.to_linear()
 
     # Snippets for values
     snippet = VALSNIPPETS[proptype]

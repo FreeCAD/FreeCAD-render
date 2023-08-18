@@ -29,7 +29,7 @@ sky_sphere {
 }
 light_source {
     <+1e9,+1.5e9,-1e9>
-    color rgb <0.8,0.8,0.8>
+    color rgb <0.1,0.1,0.1>
     parallel
     point_at <0,0,0>
     adaptive 1
