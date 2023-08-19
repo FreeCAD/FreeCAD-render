@@ -118,6 +118,23 @@ class RGB:
             self._alpha,
         )
 
+    def to_linear_hex(self):
+        """Convert color from srgb to linear hexadecimal.
+
+        Decode gamma=2.2 correction. This function is useful to convert FCD
+        colors (coded in srgb) to renderers inputs (expected in linear rgb).
+
+        Returns:
+            color in linear colorspace
+        """
+        lcol = self.to_linear()
+        red = int(lcol.r * 255)
+        green = int(lcol.g * 255)
+        blue = int(lcol.b * 255)
+        res = (red << 16) + (green << 8) + blue
+        res = f"{res:06x}"
+        return res
+
     def to_srgb(self):
         """Return color in srgb.
 
