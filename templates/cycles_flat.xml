@@ -6,6 +6,7 @@
     method="branched_path"
     sample_all_lights_direct="true"
     sample_all_lights_indirect="true"
+    use_light_tree="false"
 />
 
 <!-- Camera -->
