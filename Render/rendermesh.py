@@ -172,6 +172,8 @@ class RenderMeshBase:
         if self.skip_meshing:
             self._points = []
             self._facets = []
+            self._vnormals = []
+            self._uvmap = []
             return
 
         # Check mandatory input
