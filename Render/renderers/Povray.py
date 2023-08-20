@@ -218,7 +218,7 @@ light_source {{
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
+def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light.
 
     Since POV-Ray does not provide a built-in Hosek-Wilkie feature, sunsky is
@@ -240,10 +240,9 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
 sky_sphere{{
     pigment{{ gradient y
        color_map{{
-           [0.0 color rgb<1,1,1> ]
-           [0.8 color rgb<0.18,0.28,0.75>]
-           [1.0 color rgb<0.75,0.75,0.75>]}}
-           //[1.0 color rgb<0.15,0.28,0.75>]}}
+           [0.0 color rgb<1,1,1> * {sky_intensity} ]
+           [0.8 color rgb<0.18,0.28,0.75> * {sky_intensity}]
+           [1.0 color rgb<0.75,0.75,0.75> * {sky_intensity}]}}
            scale 2
            translate -1
     }} // end pigment
@@ -252,7 +251,7 @@ sky_sphere{{
 global_settings {{ ambient_light rgb<1, 1, 1> }}
 light_source {{
     <{location.x},{location.z},{location.y}>
-    color rgb <1,1,1>
+    color rgb <1,1,1> * {sun_intensity}
     parallel
     point_at <0,0,0>
     adaptive 1
