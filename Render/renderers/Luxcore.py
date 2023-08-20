@@ -225,7 +225,16 @@ scene.objects.{n}.transformation = {t}
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     gain_preset = kwargs.get("GainPreset", "Mitigated")
     if gain_preset == "Physical":

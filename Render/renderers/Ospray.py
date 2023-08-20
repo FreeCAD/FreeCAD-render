@@ -331,7 +331,16 @@ f 1//1 2//1 3//1 4//1
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We make angle calculations in osp's coordinates system
     # By default, Up is (0,1,0), Right is (1,0,0), and:

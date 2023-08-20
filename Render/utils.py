@@ -170,7 +170,7 @@ class RGB:
     @staticmethod
     def from_linear(lrgb):
         """Create a RGB from a linear RGB."""
-        srgb = tuple(c**(1.0 / 2.2) for c in lrgb[0:3])
+        srgb = tuple(c ** (1.0 / 2.2) for c in lrgb[0:3])
         try:
             alpha = lrgb[3]
         except IndexError:

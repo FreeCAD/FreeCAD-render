@@ -214,7 +214,16 @@ def write_arealight(
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     model = kwargs.get("Model", "Hosek-Wilkie")
     if model == "Nishita":
@@ -223,10 +232,14 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensit
         sky_sub = _write_sunskylight_hosekwilkie
     else:
         raise NotImplementedError(model)
-    return sky_sub(name, direction, turbidity, albedo, sun_intensity, sky_intensity)
+    return sky_sub(
+        name, direction, turbidity, albedo, sun_intensity, sky_intensity
+    )
 
 
-def _write_sunskylight_hosekwilkie(name, direction, turbidity, albedo, sun_intensity, sky_intensity):
+def _write_sunskylight_hosekwilkie(
+    name, direction, turbidity, albedo, sun_intensity, sky_intensity
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
 
@@ -281,7 +294,9 @@ def _write_sunskylight_hosekwilkie(name, direction, turbidity, albedo, sun_inten
     return "".join([snippet_sky, snippet_sun])
 
 
-def _write_sunskylight_nishita(name, direction, turbidity, albedo, sun_intensity, sky_intensity):
+def _write_sunskylight_nishita(
+    name, direction, turbidity, albedo, sun_intensity, sky_intensity
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We use the new improved nishita model (2020)
 

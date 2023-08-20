@@ -246,7 +246,16 @@ def write_arealight(
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # Caution: Take Appleseed system of coordinates into account
     # From documentation: "Appleseed uses a right-handed coordinate system,

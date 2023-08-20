@@ -177,7 +177,16 @@ AttributeEnd
     return snippet.format(n=name, c=color.to_linear(), s=power, p=points)
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # As pbrt does not provide an integrated support for sun-sky lighting
     # (like Hosek-Wilkie e.g.), so we just use an bluish infinite light

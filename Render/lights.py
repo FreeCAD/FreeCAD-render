@@ -303,8 +303,7 @@ class SunskyLight(FeatureBase):
             "Light - Advanced",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Factor to tune sun light intensity. "
-                "Default at 1.0"
+                "Factor to tune sun light intensity. " "Default at 1.0",
             ),
             1.0,
         ),
@@ -315,7 +314,7 @@ class SunskyLight(FeatureBase):
                 "Render",
                 "Factor to tune sky light intensity. "
                 "Default at 1.0. "
-                "WARNING: not supported by Ospray."
+                "WARNING: not supported by Ospray.",
             ),
             1.0,
         ),
