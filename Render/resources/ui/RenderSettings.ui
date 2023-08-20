@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>452</width>
-    <height>1083</height>
+    <width>453</width>
+    <height>1142</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -198,7 +198,87 @@
       <bool>false</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
-      <item row="6" column="1">
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_23">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use FreeCAD materials directory &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(not recommended)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable Numpy if available &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="Gui::PrefCheckBox" name="checkBox_4">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>EnableMultiprocessing</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_25">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Multiprocessing threshold &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(number of points)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_18">
+        <property name="text">
+         <string>Clear report view before each run</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="Gui::PrefCheckBox" name="checkBox_2">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>ClearReport</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="Gui::PrefCheckBox" name="checkBox">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>DryRun</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
        <widget class="Gui::PrefCheckBox" name="checkBox_5">
         <property name="text">
          <string/>
@@ -211,10 +291,22 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_24">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable multiprocessing &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <item row="6" column="1">
+       <widget class="Gui::PrefSpinBox" name="spinBox_3">
+        <property name="maximum">
+         <number>999999999</number>
+        </property>
+        <property name="singleStep">
+         <number>1000</number>
+        </property>
+        <property name="value">
+         <number>50000</number>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>MultiprocessingThreshold</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
         </property>
        </widget>
       </item>
@@ -231,99 +323,27 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_23">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_24">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use FreeCAD materials directory &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(not recommended)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="Gui::PrefCheckBox" name="checkBox_2">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>ClearReport</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable multiprocessing &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QLabel" name="label_17">
+       <widget class="QLabel" name="label_26">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>Do not modify ShapeColor when assigning material</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="Gui::PrefCheckBox" name="checkBox">
+       <widget class="Gui::PrefCheckBox" name="checkBox_6">
         <property name="text">
          <string/>
         </property>
         <property name="prefEntry" stdset="0">
-         <cstring>DryRun</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable Numpy if available &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="label_25">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Multiprocessing threshold &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(number of points)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_18">
-        <property name="text">
-         <string>Clear report view before each run</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="Gui::PrefCheckBox" name="checkBox_4">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>EnableMultiprocessing</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="Gui::PrefSpinBox" name="spinBox_3">
-        <property name="maximum">
-         <number>999999999</number>
-        </property>
-        <property name="singleStep">
-         <number>1000</number>
-        </property>
-        <property name="value">
-         <number>50000</number>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>MultiprocessingThreshold</cstring>
+         <cstring>NoShapecolorImpact</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
