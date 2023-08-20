@@ -294,9 +294,29 @@ class SunskyLight(FeatureBase):
             "Light",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Ground albedo (reflection coefficient of the ground)",
+                "Ground albedo = reflection coefficient of the ground",
             ),
             (0.3, 0.0, 1.0, 0.01),
+        ),
+        "SunIntensity": Prop(
+            "App::PropertyFloat",
+            "Advanced",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Factor to tune sun light intensity. "
+                "Default at 1.0"
+            ),
+            1.0,
+        ),
+        "SkyIntensity": Prop(
+            "App::PropertyFloat",
+            "Advanced",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Factor to tune sky light intensity. "
+                "Default at 1.0"
+            ),
+            1.0,
         ),
         # Cycles
         "CyclesModel": Prop(
