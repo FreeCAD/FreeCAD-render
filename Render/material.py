@@ -44,7 +44,7 @@ from ArchMaterial import (
 
 from Render.texture import Texture
 from Render.taskpanels import MaterialTaskPanel, MaterialSettingsTaskPanel
-from Render.constants import FCDVERSION
+from Render.constants import FCDVERSION, PARAMS
 from Render.utils import translate, warn
 
 
@@ -152,12 +152,16 @@ class Material(_ArchMaterial):
             self.on_changed_counter -= 1
 
     def execute(self, obj):
-        # Prevent applying material color if UseObjectColor is set
+        # Prevent applying material color if object's UseObjectColor is set
         try:
             if strtobool(obj.Material["UseObjectColor"]):
                 return
         except KeyError:
             pass
+        # Prevent applying material color if workbench NoShapecolorImpact is set
+        if PARAMS.GetBool("NoShapecolorImpact"):
+            return
+        # Eventually execute...
         try:
             super().execute(obj)
         except AttributeError as err:
