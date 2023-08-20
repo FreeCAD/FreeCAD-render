@@ -264,7 +264,7 @@ class ViewProviderAreaLight(
 
 
 class SunskyLight(FeatureBase):
-    """A sun+sky light - Hosek-Wilkie."""
+    """A sun+sky light."""
 
     VIEWPROVIDER = "ViewProviderSunskyLight"
 
@@ -314,7 +314,8 @@ class SunskyLight(FeatureBase):
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Factor to tune sky light intensity. "
-                "Default at 1.0"
+                "Default at 1.0. "
+                "WARNING: not supported by Ospray."
             ),
             1.0,
         ),

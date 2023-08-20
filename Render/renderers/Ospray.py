@@ -331,7 +331,7 @@ f 1//1 2//1 3//1 4//1
     return snippet
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
+def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We make angle calculations in osp's coordinates system
     # By default, Up is (0,1,0), Right is (1,0,0), and:
@@ -344,7 +344,14 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     _dir = PLACEMENT.multVec(App.Vector(direction))
     elevation = asin(_dir.y / sqrt(_dir.x**2 + _dir.y**2 + _dir.z**2))
     azimuth = atan2(_dir.x, _dir.z)
-    snippet = """
+    intensity = sun_intensity * 0.05
+    if sky_intensity != 1.0:
+        msg = (
+            "[Render][Ospray] - WARNING: sunsky light - sky intensity "
+            "is not supported (should be kept at 1.0)."
+        )
+        print(msg)
+    snippet = f"""
       {{
         "description": "Lights",
         "name": "lights",
@@ -352,7 +359,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
         "type": "LIGHTS",
         "children": [
           {{
-            "name": {n},
+            "name": {json.dumps(name)},
             "description": "Sunsky light",
             "type": "LIGHT",
             "subType": "sunSky",
@@ -371,7 +378,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
                 "sgOnly": false,
                 "subType": "float",
                 "type": "PARAMETER",
-                "value": 0.05
+                "value": {intensity}
               }},
               {{
                 "description": "color of the light",
@@ -411,7 +418,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
                 "sgOnly": true,
                 "subType": "float",
                 "type": "PARAMETER",
-                "value": {e}
+                "value": {degrees(elevation)}
               }},
               {{
                 "description": "Angle to North",
@@ -419,7 +426,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
                 "sgOnly": true,
                 "subType": "float",
                 "type": "PARAMETER",
-                "value": {a}
+                "value": {degrees(azimuth)}
               }},
               {{
                 "description": "Turbidity",
@@ -427,7 +434,7 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
                 "sgOnly": false,
                 "subType": "float",
                 "type": "PARAMETER",
-                "value": {t}
+                "value": {turbidity}
               }},
               {{
                 "description": "Ground albedo",
@@ -435,19 +442,13 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
                 "sgOnly": false,
                 "subType": "float",
                 "type": "PARAMETER",
-                "value": {g}
+                "value": {albedo}
               }}
             ]
           }}
         ]
       }},"""
-    return snippet.format(
-        n=json.dumps(name),
-        t=turbidity,
-        e=degrees(elevation),
-        a=degrees(azimuth),
-        g=albedo,
-    )
+    return snippet
 
 
 def write_imagelight(name, image, **kwargs):
