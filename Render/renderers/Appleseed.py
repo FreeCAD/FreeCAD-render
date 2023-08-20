@@ -246,7 +246,16 @@ def write_arealight(
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # Caution: Take Appleseed system of coordinates into account
     # From documentation: "Appleseed uses a right-handed coordinate system,
@@ -256,28 +265,32 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
     phi = degrees(atan2(vec.z, vec.x))
     theta = degrees(acos(vec.y / (sqrt(vec.x**2 + vec.y**2 + vec.z**2))))
 
-    snippet = """
-        <environment_edf name="{n}_env_edf" model="hosek_environment_edf">
-            <parameter name="sun_phi" value="{a}" />
-            <parameter name="sun_theta" value="{b}" />
-            <parameter name="turbidity" value="{t}" />
-            <parameter name="ground_albedo" value="{g}" />
-            <parameter name="luminance_multiplier" value="2" />
+    sun_strength = 1.0 * sun_intensity
+    sky_strength = 2.0 * sky_intensity
+
+    snippet = f"""
+        <environment_edf name="{name}_env_edf" model="hosek_environment_edf">
+            <parameter name="sun_phi" value="{phi}" />
+            <parameter name="sun_theta" value="{theta}" />
+            <parameter name="turbidity" value="{turbidity}" />
+            <parameter name="ground_albedo" value="{albedo}" />
+            <parameter name="luminance_multiplier" value="{sky_strength}" />
         </environment_edf>
-        <environment_shader name="{n}_env_shdr" model="edf_environment_shader">
-            <parameter name="environment_edf" value="{n}_env_edf" />
+        <environment_shader name="{name}_env_shdr" model="edf_environment_shader">
+            <parameter name="environment_edf" value="{name}_env_edf" />
         </environment_shader>
-        <environment name="{n}_env" model="generic_environment">
-            <parameter name="environment_edf" value="{n}_env_edf" />
-            <parameter name="environment_shader" value="{n}_env_shdr" />
+        <environment name="{name}_env" model="generic_environment">
+            <parameter name="environment_edf" value="{name}_env_edf" />
+            <parameter name="environment_shader" value="{name}_env_shdr" />
         </environment>
 
-            <!-- Sun_sky light '{n}' -->
-            <light name="{n}" model="sun_light">
-                <parameter name="environment_edf" value="{n}_env_edf" />
-                <parameter name="turbidity" value="{t}" />
+            <!-- Sun_sky light '{name}' -->
+            <light name="{name}" model="sun_light">
+                <parameter name="environment_edf" value="{name}_env_edf" />
+                <parameter name="turbidity" value="{turbidity}" />
+                <parameter name="radiance_multiplier" value="{sun_strength}" />
             </light>"""
-    return snippet.format(n=name, a=phi, b=theta, t=turbidity, g=albedo)
+    return snippet
 
 
 def write_imagelight(name, image, **kwargs):

@@ -50,6 +50,7 @@ from Render.utils import (
     translate,
     set_last_cmd,
     clear_report_view,
+    WHITE,
 )
 from Render.view import View
 from Render.groundplane import create_groundplane_view
@@ -127,7 +128,7 @@ class Project(FeatureBase):
             "App::PropertyColor",
             "Ground Plane",
             QT_TRANSLATE_NOOP("App::Property", "Ground plane color"),
-            (0.8, 0.8, 0.8),
+            WHITE.to_srgb(),
         ),
         "GroundPlaneSizeFactor": Prop(
             "App::PropertyFloat",

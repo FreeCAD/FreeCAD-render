@@ -225,7 +225,16 @@ scene.objects.{n}.transformation = {t}
     )
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
+def write_sunskylight(
+    name,
+    direction,
+    distance,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    **kwargs,
+):
     """Compute a string in renderer SDL to represent a sunsky light."""
     gain_preset = kwargs.get("GainPreset", "Mitigated")
     if gain_preset == "Physical":
@@ -236,6 +245,8 @@ def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
         gain = kwargs.get("CustomGain")
     else:
         raise NotImplementedError(gain_preset)
+    sun_gain = gain * sun_intensity
+    sky_gain = gain * sky_intensity
     snippet = f"""
 # Sunsky light '{name}'
 scene.lights.{name}_sun.type = sun
@@ -245,8 +256,8 @@ scene.lights.{name}_sky.type = sky2
 scene.lights.{name}_sky.turbidity = {turbidity}
 scene.lights.{name}_sky.dir = {direction.x} {direction.y} {direction.z}
 scene.lights.{name}_sky.groundalbedo = {albedo} {albedo} {albedo}
-scene.lights.{name}_sun.gain = {gain} {gain} {gain}
-scene.lights.{name}_sky.gain = {gain} {gain} {gain}
+scene.lights.{name}_sun.gain = {sun_gain} {sun_gain} {sun_gain}
+scene.lights.{name}_sky.gain = {sky_gain} {sky_gain} {sky_gain}
 """
     return snippet
 

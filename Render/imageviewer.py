@@ -183,7 +183,6 @@ class ImageViewer(QWidget):
         pixmap = self.imglabel.pixmap()
         pixmap.save(filename)
 
-
     @Slot(QPoint)
     def show_context_menu(self, pos):
         """Show context menu."""

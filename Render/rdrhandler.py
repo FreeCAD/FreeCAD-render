@@ -29,9 +29,11 @@ Among important things, RendererHandler:
 - allows to run a renderer onto a scene
 
 Caveat about units:
-Please note that RendererHandler converts distance units from FreeCAD internals
+1. Please note that RendererHandler converts distance units from FreeCAD internals
 (millimeters) to standard (meters) before sending objects to renderers, as
 usual renderers expects meters as base unit.
+2. FreeCAD internal colors are in srgb colorspace, whereas renderers expect
+input colors in linear colorspace. A conversion is made.
 """
 
 
@@ -86,8 +88,7 @@ class RenderingTypes(enum.IntEnum):
 class RendererHandler:
     """This class provides simplified access to external renderers modules.
 
-    This class implements a simplified interface to external renderer module
-    (façade design pattern).
+    This class implements a façade design pattern to renderers plugins.
     It requires a valid external renderer name for initialization, and
     provides:
     - a method to run the external renderer on a renderer-format file
@@ -662,6 +663,8 @@ class RendererHandler:
         direction = App.Vector(src.SunDirection)
         turbidity = float(src.Turbidity)
         albedo = float(src.GroundAlbedo)
+        sun_intensity = float(src.SunIntensity)
+        sky_intensity = float(src.SkyIntensity)
         # Distance from the sun:
         distance = App.Units.parseQuantity("151000000 km").Value
 
@@ -684,6 +687,8 @@ class RendererHandler:
             distance,
             turbidity,
             albedo,
+            sun_intensity,
+            sky_intensity,
             **kwargs,
         )
 
