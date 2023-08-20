@@ -177,25 +177,30 @@ AttributeEnd
     return snippet.format(n=name, c=color.to_linear(), s=power, p=points)
 
 
-def write_sunskylight(name, direction, distance, turbidity, albedo, **kwargs):
+def write_sunskylight(name, direction, distance, turbidity, albedo, sun_intensity, sky_intensity, **kwargs):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # As pbrt does not provide an integrated support for sun-sky lighting
     # (like Hosek-Wilkie e.g.), so we just use an bluish infinite light
     # and a white distant light...
     direction = -direction
-    snippet = """# Sun-sky light '{n}'
+
+    sun_scale = 4 * sun_intensity
+    sky_scale = 1.5 * sky_intensity
+    print("sky_scale", sky_scale, sky_intensity)  # TODO
+
+    snippet = f"""# Sun-sky light '{name}'
 AttributeBegin
   LightSource "infinite"
     "rgb L" [0.18 0.28 0.75]
-    "float scale" 1.5
+    "float scale" {sky_scale}
   LightSource "distant"
     "blackbody L" [6500]
-    "float scale" 4
+    "float scale" {sun_scale}
     "point3 from" [0 0 0]
-    "point3 to" [{d.x} {d.y} {d.z}]
+    "point3 to" [{direction.x} {direction.y} {direction.z}]
 AttributeEnd
-# ~Sun-sky light '{n}'\n"""
-    return snippet.format(n=name, d=direction)
+# ~Sun-sky light '{name}'\n"""
+    return snippet
 
 
 def write_imagelight(name, image, **kwargs):
