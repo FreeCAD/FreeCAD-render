@@ -300,7 +300,7 @@ class SunskyLight(FeatureBase):
         ),
         "SunIntensity": Prop(
             "App::PropertyFloat",
-            "Advanced",
+            "Light - Advanced",
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Factor to tune sun light intensity. "
@@ -310,7 +310,7 @@ class SunskyLight(FeatureBase):
         ),
         "SkyIntensity": Prop(
             "App::PropertyFloat",
-            "Advanced",
+            "Light - Advanced",
             QT_TRANSLATE_NOOP(
                 "Render",
                 "Factor to tune sky light intensity. "
