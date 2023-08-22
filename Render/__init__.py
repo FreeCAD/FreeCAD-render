@@ -74,3 +74,4 @@ from Render.utils import (  # noqa: F401
     set_memcheck_off,
 )
 from Render.commands import RENDER_COMMANDS  # noqa: F401
+from Render.prefpage import PreferencesPage  # noqa: F401

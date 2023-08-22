@@ -250,6 +250,7 @@ def reload(module_name=None):
             "Render.project",
             "Render.taskpanels",
             "Render.help",
+            "Render.prefpage",
             "Render.groundplane",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
@@ -434,5 +435,3 @@ def test_renderer(rdrpath, args=["--version"]):
     cmdline = [rdrpath] + args
     completed_process = subprocess.run(cmdline, capture_output=True)
     return completed_process
-
-

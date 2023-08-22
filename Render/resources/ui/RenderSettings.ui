@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>453</width>
-    <height>1142</height>
+    <height>1163</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -690,13 +690,13 @@
       <string>General</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_9">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_8">
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>Default render height</string>
+         <string>Default render width</string>
         </property>
        </widget>
       </item>
@@ -722,45 +722,6 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Default render width</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_3">
-        <property name="toolTip">
-         <string>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>Prefix</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_11">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Prefix</string>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="2">
        <widget class="Gui::PrefSpinBox" name="spinBox">
         <property name="locale">
@@ -777,6 +738,45 @@
         </property>
         <property name="prefEntry" stdset="0">
          <cstring>RenderWidth</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Prefix</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_9">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Default render height</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_3">
+        <property name="toolTip">
+         <string>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>Prefix</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>

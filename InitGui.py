@@ -104,7 +104,7 @@ static char * Render_xpm[] = {
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from FreeCAD import Console
         from FreeCADGui import addIconPath, addPreferencePage, addLanguagePath
-        from Render import RENDER_COMMANDS, TRANSDIR, ICONDIR, PREFPAGE
+        from Render import RENDER_COMMANDS, TRANSDIR, ICONDIR, PreferencesPage
 
         addLanguagePath(TRANSDIR)
         self.appendToolbar(
@@ -114,7 +114,7 @@ static char * Render_xpm[] = {
             QT_TRANSLATE_NOOP("Workbench", "&Render"), RENDER_COMMANDS
         )
         addIconPath(ICONDIR)
-        addPreferencePage(PREFPAGE, "Render")
+        addPreferencePage(PreferencesPage, "Render")
         msg = (
             QT_TRANSLATE_NOOP("Render", "Loading Render module... done") + "\n"
         )
