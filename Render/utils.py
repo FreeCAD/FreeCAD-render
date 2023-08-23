@@ -421,17 +421,3 @@ class SharedWrapper:
     def __iter__(self):
         seq = self.seq
         return itertools.chain.from_iterable(seq)
-
-# TODO
-import subprocess
-
-def test_renderer(rdrpath, args=["--version"]):
-    """Test a renderer setting.
-
-    Run the renderer with the given path to check whether
-    the installation is correct.
-    """
-    args = list(args)
-    cmdline = [rdrpath] + args
-    completed_process = subprocess.run(cmdline, capture_output=True)
-    return completed_process

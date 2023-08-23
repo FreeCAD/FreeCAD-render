@@ -29,6 +29,8 @@ underlying ui file is still used, embedded in the widget, as it is a convenient
 way to describe the layout.
 """
 
+import subprocess
+
 from PySide.QtGui import (
     QWidget,
     QCheckBox,
@@ -36,17 +38,30 @@ from PySide.QtGui import (
     QComboBox,
     QTextEdit,
     QLineEdit,
+    QPushButton,
+    QMessageBox,
+    QStyle,
+    QSpacerItem,
+    QSizePolicy,
 )
+from PySide.QtCore import Slot, QObject
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.constants import PREFPAGE
+from Render.rdrhandler import RendererHandler
+
+
+# ===========================================================================
+#                                Main class
+# ===========================================================================
 
 
 class PreferencesPage(QWidget):
     """A custom widget to display a preferences page.
 
+    This widget is suitable as an input to `FreeCADGui.addPreferencePage`.
     Inspired by FreeCAD/src/Mod/AddonManager/AddonManagerOptions.py (thanks)
     """
 
@@ -55,10 +70,18 @@ class PreferencesPage(QWidget):
 
         Structure of the widget is taken from ui file.
         """
+        # Create layout
         super().__init__(parent)
         page = Gui.PySideUic.loadUi(PREFPAGE, self)
         self.setLayout(page.layout())
         self.setWindowTitle(page.windowTitle())
+
+        # Connect test buttons
+        button = self.findChild(QPushButton, "AppleseedCli_Test")
+        button.clicked.connect(self.test_dispatcher)
+
+        button = self.findChild(QPushButton, "AppleseedStudio_Test")
+        button.clicked.connect(self.test_dispatcher)
 
     def loadSettings(self):  # pylint: disable=invalid-name
         """Load settings to widget (callback).
@@ -66,7 +89,7 @@ class PreferencesPage(QWidget):
         Required function: called by the preferences dialog when it is
         launched, loads the preference data and assigns it to the subwidgets.
 
-        Actual logic is coded in a separate helper, to allow both recursive
+        Actual logic is written in a separate helper, to allow both recursive
         implementation and easier debugging.
         """
         _load_settings_helper(self)
@@ -78,10 +101,30 @@ class PreferencesPage(QWidget):
         is clicked, saves out the preference data by reading it from the
         widget.
 
-        Actual logic is coded in a separate helper, to allow both recursive
+        Actual logic is written in a separate helper, to allow both recursive
         implementation and easier debugging.
         """
         _save_settings_helper(self)
+
+    @Slot()
+    def test_dispatcher(self):
+        """Dispatch test requests (slot).
+
+        Renderer information is extracted from sender widget, which owns them
+        as dynamic properties (see ui file).
+
+        Treatment logic is then written in a separate helper, for debugging
+        purpose.
+        """
+        sender = self.sender()
+        renderer = sender.property("renderer")
+        batch = sender.property("batch")
+        _test_dispatcher_helper(renderer, batch, self)
+
+
+# ===========================================================================
+#                                Helpers
+# ===========================================================================
 
 
 def _load_settings_helper(widget):
@@ -168,3 +211,84 @@ def _save_settings_helper(widget):
     # Recurse over children
     for subwidget in widget.children():
         _save_settings_helper(subwidget)
+
+
+def _show_result(success, informative, detailed, parent):
+    """Show result of test.
+
+    Result is shown in a QMessageBox.
+    """
+    # Create message box
+    msgbox = QMessageBox(parent)
+    msgbox.setWindowTitle("Test Renderer Path")
+
+    # Populate
+    if bool(success):
+        msgbox.setText("SUCCESS")
+        pixmapi = QStyle.SP_DialogApplyButton
+        icon = parent.style().standardIcon(pixmapi)
+        msgbox.setIconPixmap(icon.pixmap(64))
+    else:
+        msgbox.setText("ERROR")
+        pixmapi = QStyle.SP_DialogCancelButton
+        icon = parent.style().standardIcon(pixmapi)
+        msgbox.setIconPixmap(icon.pixmap(64))
+    msgbox.setInformativeText(informative)
+    msgbox.setDetailedText(detailed)
+
+    # Resize
+    hspacer = QSpacerItem(500, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+    layout = msgbox.layout()
+    layout.addItem(hspacer, layout.rowCount(), 0, 1, layout.columnCount())
+
+    # Execute
+    msgbox.exec()
+
+
+def _test_dispatcher_helper(renderer, batch, parent):
+    """Dispatch test request to renderer and run test.
+
+    Args:
+        renderer -- the renderer name (str, as expected by rdrhandler)
+        batch -- flag to run the CLI (True) or GUI (false) favor of
+          the renderer
+        parent -- the parent widget
+    """
+    # Save settings
+    parent.saveSettings()
+
+    # Build renderer handler and get test command line
+    handler = RendererHandler(renderer)
+    cmdline = handler.test_cmdline(batch)
+
+    # Run command
+    try:
+        result = subprocess.run(cmdline, capture_output=True, timeout=5)
+    except FileNotFoundError:
+        _show_result(False, f"File not found ('{cmdline[0]}')", "", parent)
+        return
+
+
+    # Print result
+    msgbox = QMessageBox(parent)
+    informative = (
+        f"File: '{cmdline[0]}'"
+        "\n\n"
+        f"Return code: {result.returncode}"
+    )
+    detailed = f"$> {' '.join(cmdline)}\n\n{result.stderr.decode()}"
+    _show_result(not result.returncode, informative, detailed, parent)
+
+
+# TODO
+def _test_renderer(rdrpath, args=["--version"]):
+    """Test a renderer setting.
+
+    Run the renderer with the given path to check whether
+    the installation is correct.
+    """
+    args = list(args)
+    cmdline = [rdrpath] + args
+    # TODO Add timeout
+    completed_process = subprocess.run(cmdline, capture_output=True)
+    return completed_process

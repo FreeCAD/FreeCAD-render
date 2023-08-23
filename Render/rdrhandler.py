@@ -145,6 +145,18 @@ class RendererHandler:
             RenderingTypes.IMAGELIGHT: RendererHandler._render_imagelight,
         }
 
+    def test_cmdline(self, cli):
+        """Get a test command line.
+
+        This method is used in settings to test the correctness of the path
+        provided.
+
+        Args:
+            cli -- if True, test the command-line flavour of the renderer
+        """
+        return self.renderer_module.test_cmdline(cli)
+
+
     def render(
         self,
         project,
