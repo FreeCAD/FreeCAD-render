@@ -538,6 +538,26 @@ def _write_texref(**kwargs):
 
 
 # ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(batch):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    if not batch:
+        # GUI
+        rpath = params.GetString("LuxCorePath", "")
+    else:
+        # Console
+        rpath = params.GetString("LuxCoreConsolePath", "")
+    return [rpath, "-h"]
+
+
+# ===========================================================================
 #                              Render function
 # ===========================================================================
 
