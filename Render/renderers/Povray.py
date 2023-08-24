@@ -270,7 +270,7 @@ light_source {{
     return snippet
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision

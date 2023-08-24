@@ -262,7 +262,7 @@ scene.lights.{name}_sky.gain = {sky_gain} {sky_gain} {sky_gain}
     return snippet
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
 # Image light '{n}'

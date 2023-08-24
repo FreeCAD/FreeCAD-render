@@ -342,7 +342,6 @@ class RenderMaterial:
             # Build mixed
             shadertype = "Mixed"
             _trsparency = str(1.0 - float(_alpha))
-            print("fallback _trsparency", _trsparency)  # TODO
             values = (
                 ("Diffuse.Color", color, color, "RGB", color),
                 ("Glass.IOR", "1.5", "1.5", "float", color),

@@ -44,7 +44,7 @@ from PySide.QtGui import (
     QSpacerItem,
     QSizePolicy,
 )
-from PySide.QtCore import Slot, QObject
+from PySide.QtCore import Slot
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -91,7 +91,6 @@ class PreferencesPage(QWidget):
         for name in test_buttons:
             button = self.findChild(QPushButton, name)
             button.clicked.connect(self.test_dispatcher)
-
 
     def loadSettings(self):  # pylint: disable=invalid-name
         """Load settings to widget (callback).
@@ -273,24 +272,24 @@ def _test_dispatcher_helper(renderer, batch, parent):
 
     # Run command
     try:
-        result = subprocess.run(cmdline, capture_output=True, timeout=5)
+        result = subprocess.run(
+            cmdline, capture_output=True, check=False, timeout=5
+        )
     except FileNotFoundError:
         _show_result(False, f"File not found ('{cmdline[0]}')", "", parent)
         return
     except PermissionError:
         if cmdline[0]:
-            _show_result(False, f"Permission error ('{cmdline[0]}')", "", parent)
+            _show_result(
+                False, f"Permission error ('{cmdline[0]}')", "", parent
+            )
         else:
             _show_result(False, "Empty path", "", parent)
         return
 
-
     # Print result
-    msgbox = QMessageBox(parent)
     informative = (
-        f"File: '{cmdline[0]}'"
-        "\n\n"
-        f"Return code: {result.returncode}"
+        f"File: '{cmdline[0]}'" "\n\n" f"Return code: {result.returncode}"
     )
     detailed = (
         f"$> {' '.join(cmdline)}\n",
@@ -300,5 +299,5 @@ def _test_dispatcher_helper(renderer, batch, parent):
         "\n",
         f"Return code: {result.returncode}",
     )
-    detailed = ''.join(detailed)
+    detailed = "".join(detailed)
     _show_result(not result.returncode, informative, detailed, parent)

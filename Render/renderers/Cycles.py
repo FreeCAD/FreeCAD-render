@@ -347,7 +347,7 @@ def _write_sunskylight_nishita(
     return "".join([snippet_shader, snippet_sun, snippet_sky])
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: Cycles requires the image file to be in the same directory
     # as the input file
