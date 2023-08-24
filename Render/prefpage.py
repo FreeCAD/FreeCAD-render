@@ -83,6 +83,9 @@ class PreferencesPage(QWidget):
             "Cycles_Test",
             "LuxcoreCli_Test",
             "LuxcoreUi_Test",
+            "Povray_Test",
+            "Ospray_Test",
+            "Pbrt_Test",
         )
 
         for name in test_buttons:
@@ -274,6 +277,12 @@ def _test_dispatcher_helper(renderer, batch, parent):
     except FileNotFoundError:
         _show_result(False, f"File not found ('{cmdline[0]}')", "", parent)
         return
+    except PermissionError:
+        if cmdline[0]:
+            _show_result(False, f"Permission error ('{cmdline[0]}')", "", parent)
+        else:
+            _show_result(False, "Empty path", "", parent)
+        return
 
 
     # Print result
@@ -293,17 +302,3 @@ def _test_dispatcher_helper(renderer, batch, parent):
     )
     detailed = ''.join(detailed)
     _show_result(not result.returncode, informative, detailed, parent)
-
-
-# TODO
-def _test_renderer(rdrpath, args=["--version"]):
-    """Test a renderer setting.
-
-    Run the renderer with the given path to check whether
-    the installation is correct.
-    """
-    args = list(args)
-    cmdline = [rdrpath] + args
-    # TODO Add timeout
-    completed_process = subprocess.run(cmdline, capture_output=True)
-    return completed_process
