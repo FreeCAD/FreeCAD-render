@@ -276,7 +276,14 @@ def _test_dispatcher_helper(renderer, batch, parent):
         "\n\n"
         f"Return code: {result.returncode}"
     )
-    detailed = f"$> {' '.join(cmdline)}\n\n{result.stderr.decode()}"
+    detailed = (
+        f"$> {' '.join(cmdline)}\n",
+        "\n",
+        f"{result.stderr.decode()}\n",
+        "\n",
+        f"Return code: {result.returncode}",
+    )
+    detailed = ''.join(detailed)
     _show_result(not result.returncode, informative, detailed, parent)
 
 
