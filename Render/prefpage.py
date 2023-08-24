@@ -286,6 +286,7 @@ def _test_dispatcher_helper(renderer, batch, parent):
     detailed = (
         f"$> {' '.join(cmdline)}\n",
         "\n",
+        f"{result.stdout.decode()}\n",
         f"{result.stderr.decode()}\n",
         "\n",
         f"Return code: {result.returncode}",

@@ -156,7 +156,6 @@ class RendererHandler:
         """
         return self.renderer_module.test_cmdline(cli)
 
-
     def render(
         self,
         project,
