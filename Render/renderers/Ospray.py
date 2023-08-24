@@ -909,6 +909,21 @@ def _write_texref(**kwargs):
 
 
 # ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(_):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    rpath = params.GetString("OspPath", "")
+    return [rpath, "--help"]
+
+
+# ===========================================================================
 #                              Render function
 # ===========================================================================
 
