@@ -293,7 +293,7 @@ def write_sunskylight(
     return snippet
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
         <scene_texture name="{n}_tex" model="disk_texture_2d">
@@ -1150,6 +1150,26 @@ def _color_name(matname):
     matname -- Material name
     """
     return f"{matname}_color"
+
+
+# ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(batch):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    if not batch:
+        # GUI
+        rpath = params.GetString("AppleseedStudioPath", "")
+    else:
+        # Console
+        rpath = params.GetString("AppleseedCliPath", "")
+    return [rpath, "--help"]
 
 
 # ===========================================================================

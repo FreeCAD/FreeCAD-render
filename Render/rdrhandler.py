@@ -29,9 +29,9 @@ Among important things, RendererHandler:
 - allows to run a renderer onto a scene
 
 Caveat about units:
-1. Please note that RendererHandler converts distance units from FreeCAD internals
-(millimeters) to standard (meters) before sending objects to renderers, as
-usual renderers expects meters as base unit.
+1. Please note that RendererHandler converts distance units from FreeCAD
+internals (millimeters) to standard (meters) before sending objects to
+renderers, as usual renderers expects meters as base unit.
 2. FreeCAD internal colors are in srgb colorspace, whereas renderers expect
 input colors in linear colorspace. A conversion is made.
 """
@@ -144,6 +144,17 @@ class RendererHandler:
             RenderingTypes.SUNSKYLIGHT: RendererHandler._render_sunskylight,
             RenderingTypes.IMAGELIGHT: RendererHandler._render_imagelight,
         }
+
+    def test_cmdline(self, cli):
+        """Get a test command line.
+
+        This method is used in settings to test the correctness of the path
+        provided.
+
+        Args:
+            cli -- if True, test the command-line flavour of the renderer
+        """
+        return self.renderer_module.test_cmdline(cli)
 
     def render(
         self,

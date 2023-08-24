@@ -262,7 +262,7 @@ scene.lights.{name}_sky.gain = {sky_gain} {sky_gain} {sky_gain}
     return snippet
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     snippet = """
 # Image light '{n}'
@@ -535,6 +535,26 @@ def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     texname = kwargs["texname"]
     return texname
+
+
+# ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(batch):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    if not batch:
+        # GUI
+        rpath = params.GetString("LuxCorePath", "")
+    else:
+        # Console
+        rpath = params.GetString("LuxCoreConsolePath", "")
+    return [rpath, "-h"]
 
 
 # ===========================================================================

@@ -170,12 +170,13 @@ class RGB:
     @staticmethod
     def from_linear(lrgb):
         """Create a RGB from a linear RGB."""
-        srgb = tuple(c ** (1.0 / 2.2) for c in lrgb[0:3])
+        srgb = [c ** (1.0 / 2.2) for c in lrgb[0:3]]
         try:
             alpha = lrgb[3]
         except IndexError:
             return RGB(srgb)
-        return RGB(srgb, alpha)
+        srgb.append(alpha)
+        return RGB(srgb)
 
     @staticmethod
     def from_fcd_rgba(color, transparency=None):
@@ -250,6 +251,7 @@ def reload(module_name=None):
             "Render.project",
             "Render.taskpanels",
             "Render.help",
+            "Render.prefpage",
             "Render.groundplane",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",

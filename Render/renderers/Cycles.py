@@ -347,7 +347,7 @@ def _write_sunskylight_nishita(
     return "".join([snippet_shader, snippet_sun, snippet_sky])
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: Cycles requires the image file to be in the same directory
     # as the input file
@@ -774,6 +774,21 @@ def _write_color(col):
         col -- a utils.RGB color"""
     lcol = col.to_linear()
     return f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])}"
+
+
+# ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(_):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    rpath = params.GetString("CyclesPath", "")
+    return [rpath, "--help"]
 
 
 # ===========================================================================

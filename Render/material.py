@@ -158,7 +158,8 @@ class Material(_ArchMaterial):
                 return
         except KeyError:
             pass
-        # Prevent applying material color if workbench NoShapecolorImpact is set
+        # Prevent applying material color if workbench NoShapecolorImpact is
+        # set
         if PARAMS.GetBool("NoShapecolorImpact"):
             return
         # Eventually execute...

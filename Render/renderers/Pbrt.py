@@ -195,7 +195,6 @@ def write_sunskylight(
 
     sun_scale = 4 * sun_intensity
     sky_scale = 1.5 * sky_intensity
-    print("sky_scale", sky_scale, sky_intensity)  # TODO
 
     snippet = f"""# Sun-sky light '{name}'
 AttributeBegin
@@ -212,7 +211,7 @@ AttributeEnd
     return snippet
 
 
-def write_imagelight(name, image, **kwargs):
+def write_imagelight(name, image, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     # Caveat: pbrt just accepts square images...
     snippet = """# Imagelight '{n}'
@@ -581,6 +580,21 @@ def _format_list(inlist, elements_per_line, indentation=6):
     res = [textwrap.indent(i, pad) for i in res]
     res = "\n".join(res)
     return res
+
+
+# ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(_):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    rpath = params.GetString("PbrtPath", "")
+    return [rpath, "--help"]
 
 
 # ===========================================================================

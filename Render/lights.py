@@ -303,7 +303,7 @@ class SunskyLight(FeatureBase):
             "Light - Advanced",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Factor to tune sun light intensity. " "Default at 1.0",
+                "Factor to tune sun light intensity. Default at 1.0",
             ),
             1.0,
         ),

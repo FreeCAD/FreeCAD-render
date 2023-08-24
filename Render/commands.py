@@ -494,6 +494,29 @@ class HelpCommand:
         open_help()
 
 
+class SettingsCommand:
+    """GUI command to Render WB settings."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "settings.svg"),
+            "MenuText": QT_TRANSLATE_NOOP("SettingsCommand", "Render"),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "SettingsCommand",
+                "Open Render workbench settings",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens the settings (preferences) page.
+        """
+        Gui.showPreferences("Render")
+
+
 # ===========================================================================
 #                            Commands initialization
 # ===========================================================================
@@ -575,6 +598,7 @@ def _init_gui_commands():
         separator,
         ("Render", RenderCommand()),
         separator,
+        ("Settings", SettingsCommand()),
         ("Help", HelpCommand()),
     ]
 
