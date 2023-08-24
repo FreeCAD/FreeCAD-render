@@ -584,6 +584,21 @@ def _format_list(inlist, elements_per_line, indentation=6):
 
 
 # ===========================================================================
+#                              Test function
+# ===========================================================================
+
+
+def test_cmdline(_):
+    """Generate a command line for test.
+
+    This function allows to test if renderer settings (path...) are correct
+    """
+    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+    rpath = params.GetString("PbrtPath", "")
+    return [rpath, "--help"]
+
+
+# ===========================================================================
 #                              Render function
 # ===========================================================================
 
