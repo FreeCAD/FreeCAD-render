@@ -142,16 +142,6 @@
       <string>PovRay</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Render parameters</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="Gui::PrefFileChooser" name="fileChooser_3">
         <property name="toolTip">
@@ -165,6 +155,16 @@
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Render parameters</string>
         </property>
        </widget>
       </item>
@@ -194,6 +194,19 @@
         </property>
         <property name="text">
          <string>PovRay executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="Povray_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Povray</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -385,13 +398,13 @@
       <string>Pbrt</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_7">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_21">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_22">
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>Pbrt executable path</string>
+         <string>Render parameters</string>
         </property>
        </widget>
       </item>
@@ -408,13 +421,13 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_22">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_21">
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>Render parameters</string>
+         <string>Pbrt executable path</string>
         </property>
        </widget>
       </item>
@@ -434,6 +447,22 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="Pbrt_Test">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Pbrt</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -446,22 +475,6 @@
       <string>LuxCore</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser">
-        <property name="toolTip">
-         <string>The path to the Luxrender console (luxconsole) executable</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxCoreConsolePath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="1">
        <widget class="Gui::PrefFileChooser" name="fileChooser_2">
         <property name="toolTip">
@@ -478,39 +491,16 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_13">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Render parameters</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>LuxCore UI path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_4">
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser">
         <property name="toolTip">
-         <string>Optional parameters to be passed to Luxrender when rendering</string>
+         <string>The path to the Luxrender console (luxconsole) executable</string>
         </property>
         <property name="locale">
          <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
         </property>
         <property name="prefEntry" stdset="0">
-         <cstring>LuxCoreParameters</cstring>
+         <cstring>LuxCoreConsolePath</cstring>
         </property>
         <property name="prefPath" stdset="0">
          <cstring>Mod/Render</cstring>
@@ -524,6 +514,26 @@
         </property>
         <property name="text">
          <string>LuxCore command (cli) path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>LuxCore UI path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Render parameters</string>
         </property>
        </widget>
       </item>
@@ -592,6 +602,51 @@
         </property>
         <property name="text">
          <string>LuxCore engine</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_4">
+        <property name="toolTip">
+         <string>Optional parameters to be passed to Luxrender when rendering</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxCoreParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="LuxcoreCli_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Luxcore</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QPushButton" name="LuxcoreUi_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Luxcore</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -831,6 +886,22 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_6">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>OspParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_20">
         <property name="locale">
@@ -854,19 +925,16 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_6">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="Ospray_Test">
         <property name="text">
-         <string notr="true"/>
+         <string>Test</string>
         </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>OspParameters</cstring>
+        <property name="renderer" stdset="0">
+         <string notr="true">Ospray</string>
         </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -882,29 +950,6 @@
       <string>Cycles</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_4">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>CyclesPath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_10">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Cycles executable path</string>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="1">
        <widget class="Gui::PrefLineEdit" name="lineEdit_2">
         <property name="locale">
@@ -921,6 +966,29 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_10">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Cycles executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_4">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>CyclesPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_12">
         <property name="locale">
@@ -928,6 +996,19 @@
         </property>
         <property name="text">
          <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="Cycles_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Cycles</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
         </property>
        </widget>
       </item>

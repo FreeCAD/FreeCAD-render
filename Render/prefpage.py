@@ -77,11 +77,18 @@ class PreferencesPage(QWidget):
         self.setWindowTitle(page.windowTitle())
 
         # Connect test buttons
-        button = self.findChild(QPushButton, "AppleseedCli_Test")
-        button.clicked.connect(self.test_dispatcher)
+        test_buttons = (
+            "AppleseedCli_Test",
+            "AppleseedStudio_Test",
+            "Cycles_Test",
+            "LuxcoreCli_Test",
+            "LuxcoreUi_Test",
+        )
 
-        button = self.findChild(QPushButton, "AppleseedStudio_Test")
-        button.clicked.connect(self.test_dispatcher)
+        for name in test_buttons:
+            button = self.findChild(QPushButton, name)
+            button.clicked.connect(self.test_dispatcher)
+
 
     def loadSettings(self):  # pylint: disable=invalid-name
         """Load settings to widget (callback).
