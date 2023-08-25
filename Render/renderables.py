@@ -426,17 +426,17 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
 
 
 def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
-    """Get renderables from an Window object (from Arch workbench).
+    """Get renderables from a Wall object (from Arch workbench).
 
     Parameters:
-        obj -- the Window object
-        name -- the name assigned to the Window object for rendering
-        material -- the material for the Window object (should be a
+        obj -- the Wall object
+        name -- the name assigned to the Wall object for rendering
+        material -- the material for the Wall object (should be a
                     multimaterial)
-        mesher -- a callable object which converts a shape into a mesh
+        mesher -- a callable which converts a shape into a mesh
 
     Returns:
-        A list of renderables for the Window object
+        A list of renderables for the Wall object
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
