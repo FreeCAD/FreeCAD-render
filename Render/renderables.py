@@ -40,9 +40,9 @@ import collections
 import math
 
 try:
-    from freecad.asm3.assembly import AsmBase
+    from freecad.asm3.assembly import AsmBase, AsmConstraintGroup, AsmElementGroup
 except:
-    pass
+    AsmBase = type(None)
 
 from Render.utils import (
     translate,
@@ -97,14 +97,20 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
     obj_is_app_part = obj.isDerivedFrom("App::Part")
+    obj_is_appfeature = obj.isDerivedFrom("App::Feature")
     obj_is_applinkgroup = obj.isDerivedFrom("App::LinkGroup")
-    try:
+    obj_is_docobjectgroup = obj.isDerivedFrom("App::DocumentObjectGroup")
+
+    obj_type = getproxyattr(obj, "Type", "")
+    try:  # Assembly 3 link
         lnk = obj.getLinkedObject()
-        obj_is_asm3 = isinstance(lnk.Proxy, AsmBase)
+        obj_is_asm3_lnk = isinstance(lnk.Proxy, AsmBase)
+    except AttributeError:
+        obj_is_asm3_lnk = False
+    try:  # Assembly 3 plain
+        obj_is_asm3 = isinstance(obj.Proxy, AsmBase)
     except AttributeError:
         obj_is_asm3 = False
-    print("asm:", obj_is_asm3, getattr(obj, "Proxy", None), obj)  # TODO
-    obj_type = getproxyattr(obj, "Type", "")
 
     mat = (
         getattr(obj, "Material", None)
@@ -118,8 +124,24 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     ignore_unknown = bool(kwargs.get("ignore_unknown", False))
     transparency_boost = int(kwargs.get("transparency_boost", 0))
 
+    # Assembly3 link
+    if obj_is_asm3_lnk:
+        debug("Object", label, "'Assembly3 link' detected")
+        obj = obj.getLinkedObject()
+        renderables = _get_rends_from_assembly3(obj, name, mat, mesher, **kwargs)
+
+    # Assembly3
+    elif obj_is_asm3:
+        debug("Object", label, "'Assembly3' detected")
+        renderables = _get_rends_from_assembly3(obj, name, mat, mesher, **kwargs)
+
+    # DocumentObjectGroup
+    elif obj_is_docobjectgroup:
+        debug("Object", label, "'DocumentObjectGroup' detected")
+        renderables = []  # TODO
+
     # Link (plain)
-    if obj_is_applink and not obj.ElementCount:
+    elif obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
         renderables = _get_rends_from_plainapplink(
             obj, name, mat, mesher, **kwargs
@@ -164,11 +186,6 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         debug("Object", label, "'App::Part' detected")
         renderables = _get_rends_from_part(obj, name, mat, mesher, **kwargs)
 
-    # Assembly3
-    elif obj_is_partfeature and obj_is_asm3:
-        debug("Object", label, "'Assembly3' detected")
-        renderables = _get_rends_from_assembly3(obj, name, mat, mesher, **kwargs)
-
     # Plain part feature (including PartDesign::Body)
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
@@ -190,7 +207,8 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         renderables = []
         if not ignore_unknown:
             ascendants = ", ".join(obj.getAllDerivedFrom())
-            msg = translate("Render", f"Unhandled object type ({ascendants})")
+            name = getattr(obj, "FullName", "<no name>")
+            msg = translate("Render", f"Unhandled object type ('{name}': {ascendants})")
             raise RenderableError(msg)
         debug("Object", label, "Not renderable")
 
@@ -229,11 +247,7 @@ def check_renderables(renderables):
 # ===========================================================================
 
 def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
-    """Get renderables from an object containing a list of elements.
-
-    The list of elements must be in the ElementList property of the
-    object.
-    This function is useful for Link Arrays and expanded Arrays
+    """Get renderables from an assembly3 object.
 
     Parameters:
     obj -- the container object
@@ -242,9 +256,21 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
     mesher -- a callable object which converts a shape into a mesh
 
     Returns:
-    A list of renderables for the array object
+    A list of renderables for this object
     """
+    asm3_type = obj.Proxy
+    if isinstance(asm3_type, AsmConstraintGroup) or isinstance(asm3_type, AsmElementGroup):
+        debug("Object", obj.Label, "Skipping (element or constraint group)")
+        return []
+
+    elements = list(itertools.compress(obj.Group, obj.VisibilityList))
+    print(obj.FullName, [e.FullName for e in elements])
     renderables = []
+    for element in elements:
+        renderables += get_renderables(element, element.FullName, material, mesher, **kwargs)
+
+    return renderables
+
     base_plc_matrix = obj.Placement.toMatrix()
     elements = itertools.compress(obj.Group, obj.VisibilityList)
 
