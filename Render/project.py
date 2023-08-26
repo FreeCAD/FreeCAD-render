@@ -565,16 +565,7 @@ class Project(FeatureBase):
             return [v.ViewResult for v in views]
 
         # Otherwise, we have to compute strings
-        get_rdr_string = renderer.get_rendering_string
-        exporter_worker = ExporterWorker(
-            _get_objstrings_helper, (get_rdr_string, views)
-        )
-        rdr_executor = RendererExecutor(exporter_worker)
-        rdr_executor.start()
-        rdr_executor.join()
-        objstrings = exporter_worker.result()
-
-        return objstrings
+        return _get_objstrings_helper(renderer, views)
 
     def _write_instantiated_template_to_file(self, template, directory):
         """Write an instantiated template to a temporary file.
@@ -807,16 +798,32 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
-def _get_objstrings_helper(get_rdr_string, views, multithreaded=True):
+def _get_objstrings_helper(renderer, views):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
     """
+    get_rdr_string = renderer.get_rendering_string
+    exporter_worker = ExporterWorker(
+        _get_objstrings_worker, (get_rdr_string, views)
+    )
+    rdr_executor = RendererExecutor(exporter_worker)
+    rdr_executor.start()
+    rdr_executor.join()
+    objstrings = exporter_worker.result()
+
+    return objstrings
+
+
+def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
+    """Get strings from renderer (worker)."""
     try:
         if App.GuiUp:
             QApplication.setOverrideCursor(Qt.WaitCursor)
 
-        App.Console.PrintMessage("[Render][Objstrings] STARTING EXPORT\n")
+        App.Console.PrintMessage(
+            "[Render][Objstrings] STARTING OBJECTS EXPORT\n"
+        )
         time0 = time.time()
 
         max_workers = None if multithreaded else 1
@@ -824,12 +831,14 @@ def _get_objstrings_helper(get_rdr_string, views, multithreaded=True):
             objstrings = executor.map(get_rdr_string, views)
 
         App.Console.PrintMessage(
-            "[Render][Objstrings] ENDING EXPORT - TIME: "
+            "[Render][Objstrings] ENDING OBJECTS EXPORT - TIME: "
             f"{time.time() - time0}\n"
         )
     # pylint: disable=broad-exception-caught
     except Exception as exc:
-        App.Console.PrintError("[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n")
+        App.Console.PrintError(
+            "[Render][Objstrings] /!\\ OBJECTS EXPORT ERROR /!\\\n"
+        )
         objstrings = []
         traceback.print_exception(exc)
     finally:
