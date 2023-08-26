@@ -33,10 +33,10 @@ import sys
 import os
 import re
 from collections import namedtuple
-import concurrent.futures
 import time
 import tracemalloc
 import traceback
+import asyncio
 
 from PySide.QtGui import QFileDialog, QMessageBox, QApplication
 from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
@@ -798,46 +798,39 @@ def user_select_template(renderer):
     return os.path.relpath(template_path, TEMPLATEDIR)
 
 
+async def _get_one_objstring(get_rdr_string, view):
+    """Compute one objstring."""
+    return get_rdr_string(view)
+
+
+async def _get_objstrings_coro(renderer, views):
+    """Compute objstrings (coroutine)."""
+    get_rdr_string = renderer.get_rendering_string
+    tasks = (_get_one_objstring(get_rdr_string, v) for v in views)
+    res = await asyncio.gather(*tasks)
+    return res
+
+
 def _get_objstrings_helper(renderer, views):
     """Get strings from renderer (helper).
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    get_rdr_string = renderer.get_rendering_string
+    App.Console.PrintMessage("[Render][Objstrings] STARTING OBJECTS EXPORT\n")
+    time0 = time.time()
+
     exporter_worker = ExporterWorker(
-        _get_objstrings_worker, (get_rdr_string, views)
+        asyncio.run, (_get_objstrings_coro(renderer, views),)
     )
     rdr_executor = RendererExecutor(exporter_worker)
-    rdr_executor.start()
-    rdr_executor.join()
-    objstrings = exporter_worker.result()
 
-    return objstrings
-
-
-def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
-    """Get strings from renderer (worker)."""
     try:
         if App.GuiUp:
             QApplication.setOverrideCursor(Qt.WaitCursor)
 
-        App.Console.PrintMessage(
-            "[Render][Objstrings] STARTING OBJECTS EXPORT\n"
-        )
-        time0 = time.time()
-
-        max_workers = None if multithreaded else 1
-        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-            future_to_objstrings = [
-                executor.submit(get_rdr_string, view) for view in views
-            ]
-            futures = concurrent.futures.as_completed(future_to_objstrings)
-            objstrings = [future.result() for future in futures]
-
-        App.Console.PrintMessage(
-            "[Render][Objstrings] ENDING OBJECTS EXPORT - TIME: "
-            f"{time.time() - time0}\n"
-        )
+        rdr_executor.start()
+        rdr_executor.join()
+        objstrings = exporter_worker.result()
     # pylint: disable=broad-exception-caught
     except Exception as exc:
         App.Console.PrintError(
@@ -845,6 +838,11 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
         )
         objstrings = []
         traceback.print_exception(exc)
+    else:
+        App.Console.PrintMessage(
+            "[Render][Objstrings] ENDING OBJECTS EXPORT - TIME: "
+            f"{time.time() - time0}\n"
+        )
     finally:
         if App.GuiUp:
             QApplication.restoreOverrideCursor()
