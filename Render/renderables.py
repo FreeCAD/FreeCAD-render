@@ -39,6 +39,11 @@ import itertools
 import collections
 import math
 
+try:
+    from freecad.asm3.assembly import AsmBase
+except:
+    pass
+
 from Render.utils import (
     translate,
     debug,
@@ -93,6 +98,12 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
     obj_is_app_part = obj.isDerivedFrom("App::Part")
     obj_is_applinkgroup = obj.isDerivedFrom("App::LinkGroup")
+    try:
+        lnk = obj.getLinkedObject()
+        obj_is_asm3 = isinstance(lnk.Proxy, AsmBase)
+    except AttributeError:
+        obj_is_asm3 = False
+    print("asm:", obj_is_asm3, getattr(obj, "Proxy", None), obj)  # TODO
     obj_type = getproxyattr(obj, "Type", "")
 
     mat = (
@@ -152,6 +163,11 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     elif obj_is_app_part:
         debug("Object", label, "'App::Part' detected")
         renderables = _get_rends_from_part(obj, name, mat, mesher, **kwargs)
+
+    # Assembly3
+    elif obj_is_partfeature and obj_is_asm3:
+        debug("Object", label, "'Assembly3' detected")
+        renderables = []  # TODO
 
     # Plain part feature (including PartDesign::Body)
     elif obj_is_partfeature:
@@ -240,7 +256,7 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
         else:
             elem_object = element
             elem_placement = element.Placement
-        elem_name = f"{name}_{element.Name}"
+        elem_name = f"{name}_{element.FullName}"
 
         # Compute rends and placements
         base_rends = get_renderables(
@@ -337,7 +353,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
             )
         ]
 
-    base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
+    base_rends = get_renderables(base, base.FullName, material, mesher, **kwargs)
     obj_plc_matrix = obj.Placement.toMatrix()
     base_inv_plc_matrix = base.Placement.inverse().toMatrix()
     placements = (
@@ -494,7 +510,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
 
     rends = []
     for subobj in obj.Group:
-        subname = f"{name}_{subobj.Name}"
+        subname = f"{name}_{subobj.FullName}"
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
             rends += get_renderables(

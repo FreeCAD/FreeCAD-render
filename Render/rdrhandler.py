@@ -312,7 +312,7 @@ class RendererHandler:
         """
         # Alias parameters
         source = view.Source
-        name = str(source.Name)
+        name = str(source.FullName)
         msg = translate("Render", "Exporting")
 
         # Render Workbench objects
