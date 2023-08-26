@@ -37,9 +37,10 @@ import concurrent.futures
 import time
 import tracemalloc
 import traceback
+import queue
 
 from PySide.QtGui import QFileDialog, QMessageBox, QApplication
-from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt, QThreadPool, QRunnable
 import FreeCAD as App
 import FreeCADGui as Gui
 
@@ -803,32 +804,45 @@ def _get_objstrings_helper(renderer, views):
 
     This helper is convenient for debugging purpose (easier to reload).
     """
-    get_rdr_string = renderer.get_rendering_string
-    exporter_worker = ExporterWorker(
-        _get_objstrings_worker, (get_rdr_string, views)
-    )
-    rdr_executor = RendererExecutor(exporter_worker)
-    rdr_executor.start()
-    rdr_executor.join()
-    objstrings = exporter_worker.result()
+    App.Console.PrintMessage("[Render][Objstrings] STARTING OBJECTS EXPORT\n")
+    time0 = time.time()
 
-    return objstrings
-
-
-def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
-    """Get strings from renderer (worker)."""
     try:
         if App.GuiUp:
             QApplication.setOverrideCursor(Qt.WaitCursor)
+            pool = QThreadPool.globalInstance()
 
-        App.Console.PrintMessage(
-            "[Render][Objstrings] STARTING OBJECTS EXPORT\n"
-        )
-        time0 = time.time()
+            outqueue = queue.SimpleQueue()
 
-        max_workers = None if multithreaded else 1
-        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-            objstrings = executor.map(get_rdr_string, views)
+            class Runnable(QRunnable):
+                """Runnable for objects export."""
+                def __init__(self, get_rdr_string, view, outqueue):
+                    super().__init__()
+                    self.get_rdr_string = get_rdr_string
+                    self.view = view
+                    self.outqueue = outqueue
+
+                def run(self):
+                    res = self.get_rdr_string(self.view)
+                    outqueue.put(res)
+
+            get_rdr_string = renderer.get_rendering_string
+            for view in views:
+                runnable = Runnable(get_rdr_string, view, outqueue)
+                pool.start(runnable)
+            pool.waitForDone()
+            objstrings = []
+            while not outqueue.empty():
+                objstrings.append(outqueue.get())
+        else:
+            get_rdr_string = renderer.get_rendering_string
+            exporter_worker = ExporterWorker(
+                _get_objstrings_console_worker, (get_rdr_string, views)
+            )
+            rdr_executor = RendererExecutor(exporter_worker)
+            rdr_executor.start()
+            rdr_executor.join()
+            objstrings = exporter_worker.result()
 
         App.Console.PrintMessage(
             "[Render][Objstrings] ENDING OBJECTS EXPORT - TIME: "
@@ -844,5 +858,14 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
     finally:
         if App.GuiUp:
             QApplication.restoreOverrideCursor()
+
+    return objstrings
+
+
+def _get_objstrings_console_worker(get_rdr_string, views, multithreaded=True):
+    """Get strings from renderer (worker)."""
+    max_workers = None if multithreaded else 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
+        objstrings = executor.map(get_rdr_string, views)
 
     return objstrings
