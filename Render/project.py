@@ -828,7 +828,11 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
 
         max_workers = None if multithreaded else 1
         with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-            objstrings = executor.map(get_rdr_string, views)
+            future_to_objstrings = [
+                executor.submit(get_rdr_string, view) for view in views
+            ]
+            futures = concurrent.futures.as_completed(future_to_objstrings)
+            objstrings = [future.result() for future in futures]
 
         App.Console.PrintMessage(
             "[Render][Objstrings] ENDING OBJECTS EXPORT - TIME: "
