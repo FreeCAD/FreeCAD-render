@@ -823,6 +823,7 @@ def _get_objstrings_helper(renderer, views):
         asyncio.run, (_get_objstrings_coro(renderer, views),)
     )
     rdr_executor = RendererExecutor(exporter_worker)
+    objstrings = []
 
     try:
         if App.GuiUp:
@@ -836,7 +837,6 @@ def _get_objstrings_helper(renderer, views):
         App.Console.PrintError(
             "[Render][Objstrings] /!\\ OBJECTS EXPORT ERROR /!\\\n"
         )
-        objstrings = []
         traceback.print_exception(exc)
     else:
         App.Console.PrintMessage(
