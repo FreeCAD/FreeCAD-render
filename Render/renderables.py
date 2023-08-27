@@ -264,12 +264,11 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
         return []
 
     elements = list(itertools.compress(obj.Group, obj.VisibilityList))
-    print(obj.FullName, [e.FullName for e in elements])
     renderables = []
     for element in elements:
         renderables += get_renderables(element, element.FullName, material, mesher, **kwargs)
 
-    return renderables
+    return [r for r in renderables if r.mesh.count_facets]
 
     base_plc_matrix = obj.Placement.toMatrix()
     elements = itertools.compress(obj.Group, obj.VisibilityList)
@@ -427,7 +426,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
         return [
             Renderable(
                 name,
-                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
+                mesher(obj.Shape, _needs_uvmap(material), uvprojection, name=name),
                 material,
                 color,
             )
@@ -513,7 +512,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
     meshes = [
-        mesher(s, n, uvprojection)
+        mesher(s, n, uvprojection, name=name)
         for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
     ]
 
@@ -551,7 +550,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
 
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
-    meshes = [mesher(s, n, uvprojection) for s, n in zip(shapes, needs_uvmap)]
+    meshes = [mesher(shape=s, compute_uvmap=n, uvmap_projection=uvprojection, name=n2) for s, n, n2 in zip(shapes, needs_uvmap, names)]
 
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
@@ -630,7 +629,7 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         renderables = [
             Renderable(
                 name,
-                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
+                mesher(obj.Shape, _needs_uvmap(material), uvprojection, name=name),
                 material,
                 color,
             )
@@ -641,7 +640,7 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         nfaces = len(faces)
         names = [f"{name}_face{i}" for i in range(nfaces)]
         meshes = [
-            mesher(f, _needs_uvmap(material), uvprojection) for f in faces
+            mesher(f, _needs_uvmap(material), uvprojection, name=n) for f, n in zip(faces, names)
         ]
         materials = [material] * nfaces
         colors = map(RGB.from_fcd_rgba, colors)
@@ -671,6 +670,7 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
         compute_uvmap=compute_uvmap,
         uvmap_projection=uvprojection,
         is_already_a_mesh=True,
+        name=name,
     )
     color = kwargs["meshcolor"]
     renderables = [Renderable(name, mesh, material, color)]
