@@ -555,7 +555,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
     colors = [
-        _boost_tp(RGB(*m.Color[0:3], 1.0 - m.Transparency), tp_boost)
+        _boost_tp(RGB([*m.Color[0:3], 1.0 - m.Transparency]), tp_boost)
         for m in materials
     ]
 
