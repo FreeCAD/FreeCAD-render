@@ -107,8 +107,8 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
 
     obj_type = getproxyattr(obj, "Type", "")
     try:  # Assembly 3 link
-        lnk = obj.getLinkedObject()
-        obj_is_asm3_lnk = isinstance(lnk.Proxy, AsmBase)
+        lnkobj = obj.getLinkedObject()
+        obj_is_asm3_lnk = isinstance(lnkobj.Proxy, AsmBase)
     except AttributeError:
         obj_is_asm3_lnk = False
     try:  # Assembly 3 plain
@@ -131,8 +131,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Assembly3 link
     if obj_is_asm3_lnk:
         debug("Object", label, "'Assembly3 link' detected")
-        obj = obj.getLinkedObject()
-        renderables = _get_rends_from_assembly3(
+        renderables = _get_rends_from_assembly3_lnk(
             obj, name, mat, mesher, **kwargs
         )
 
@@ -276,12 +275,34 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
         debug("Object", obj.Label, "Skipping (element or constraint group)")
         return []
 
+    debug("Object", obj.Label, "Now Processing")  # TODO
+    obj_plc_matrix = obj.Placement.toMatrix()
+    print(obj_plc_matrix)  # TODO
     elements = list(itertools.compress(obj.Group, obj.VisibilityList))
     renderables = []
     for element in elements:
-        renderables += get_renderables(
+        # Get children renderables
+        base_rends = get_renderables(
             element, element.FullName, material, mesher, **kwargs
         )
+        if not base_rends:
+            # Element not renderable...
+            continue
+
+        # Apply object placement
+        element_plc_matrix = element.Placement.toMatrix()
+        element_plc_inverse_matrix = (
+            element.Placement.inverse().toMatrix()
+        )  # TODO
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            new_mesh.transformation.apply_placement(obj_plc_matrix)
+            new_mesh.transformation.apply_placement(element_plc_matrix)
+            new_mat = _get_material(base_rend, material)
+            new_name = base_rend.name
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
+            renderables.append(new_rend)
 
     return [r for r in renderables if r.mesh.count_facets]
 
@@ -320,6 +341,62 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
             renderables.append(new_rend)
 
     return renderables
+
+def _get_rends_from_assembly3_lnk(obj, name, material, mesher, **kwargs):
+    """Get renderables from an assembly3 object.
+
+    Parameters:
+    obj -- the container object
+    name -- the name assigned to the container object for rendering
+    material -- the material for the container object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for this object
+    """
+    lnk, obj = obj, obj.getLinkedObject()
+    asm3_type = obj.Proxy
+    if isinstance(asm3_type, AsmConstraintGroup) or isinstance(
+        asm3_type, AsmElementGroup
+    ):
+        debug("Object", obj.Label, "Skipping (element or constraint group)")
+        return []
+
+    debug("Object", obj.Label, "Now Processing")  # TODO
+    obj_plc_matrix = obj.Placement.toMatrix()
+    lnk_plc_matrix = lnk.Placement.toMatrix()
+
+    print(obj_plc_matrix)  # TODO
+    print(lnk_plc_matrix)  # TODO
+    elements = list(itertools.compress(obj.Group, obj.VisibilityList))
+    renderables = []
+    for element in elements:
+        # Get children renderables
+        base_rends = get_renderables(
+            element, element.FullName, material, mesher, **kwargs
+        )
+        if not base_rends:
+            # Element not renderable...
+            continue
+
+        # Apply object placement
+        element_plc_matrix = element.Placement.toMatrix()
+        element_plc_inverse_matrix = (
+            element.Placement.inverse().toMatrix()
+        )  # TODO
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            new_mesh.transformation.apply_placement(element_plc_matrix)
+            new_mesh.transformation.apply_placement(obj_plc_matrix)
+            new_mesh.transformation.apply_placement(lnk_plc_matrix)
+            print(element_plc_matrix, obj_plc_matrix, lnk_plc_matrix)  # TODO
+            new_mat = _get_material(base_rend, material)
+            new_name = base_rend.name
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
+            renderables.append(new_rend)
+
+    return [r for r in renderables if r.mesh.count_facets]
 
 
 def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
@@ -599,7 +676,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
 
 
 def _get_rends_from_part(obj, name, material, mesher, **kwargs):
-    """Get renderables from a Part object.
+    """Get renderables from an App::Part object.
 
     Parameters:
         obj -- the Part object (App::Part)
