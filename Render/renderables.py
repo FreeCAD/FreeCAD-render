@@ -131,7 +131,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Assembly3 link
     if obj_is_asm3_lnk:
         debug("Object", label, "'Assembly3 link' detected")
-        renderables = _get_rends_from_assembly3_lnk(
+        renderables = _get_rends_from_assembly3(
             obj, name, mat, mesher, **kwargs
         )
 
@@ -268,6 +268,13 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for this object
     """
+    try:
+        lnk, obj = obj, obj.getLinkedObject()
+    except AttributeError:
+        is_link = False
+    else:
+        is_link = True
+
     asm3_type = obj.Proxy
     if isinstance(asm3_type, AsmConstraintGroup) or isinstance(
         asm3_type, AsmElementGroup
@@ -290,51 +297,8 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             new_mesh.transformation.apply_placement(obj.Placement, left=True)
-            new_mat = _get_material(base_rend, material)
-            new_name = base_rend.name
-            new_color = base_rend.defcolor
-            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
-            renderables.append(new_rend)
-
-    return [r for r in renderables if r.mesh.count_facets]
-
-
-def _get_rends_from_assembly3_lnk(obj, name, material, mesher, **kwargs):
-    """Get renderables from an assembly3 object.
-
-    Parameters:
-    obj -- the container object
-    name -- the name assigned to the container object for rendering
-    material -- the material for the container object
-    mesher -- a callable object which converts a shape into a mesh
-
-    Returns:
-    A list of renderables for this object
-    """
-    lnk, obj = obj, obj.getLinkedObject()
-    asm3_type = obj.Proxy
-    if isinstance(asm3_type, AsmConstraintGroup) or isinstance(
-        asm3_type, AsmElementGroup
-    ):
-        debug("Object", obj.Label, "Skipping (element or constraint group)")
-        return []
-
-    elements = list(itertools.compress(obj.Group, obj.VisibilityList))
-    renderables = []
-    for element in elements:
-        # Get children renderables
-        base_rends = get_renderables(
-            element, element.FullName, material, mesher, **kwargs
-        )
-        if not base_rends:
-            # Element not renderable...
-            continue
-
-        # Apply object placement
-        for base_rend in base_rends:
-            new_mesh = base_rend.mesh.copy()
-            new_mesh.transformation.apply_placement(obj.Placement, left=True)
-            new_mesh.transformation.apply_placement(lnk.Placement, left=True)
+            if is_link:
+                new_mesh.transformation.apply_placement(lnk.Placement, left=True)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
