@@ -290,14 +290,9 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
             continue
 
         # Apply object placement
-        element_plc_matrix = element.Placement.toMatrix()
-        element_plc_inverse_matrix = (
-            element.Placement.inverse().toMatrix()
-        )  # TODO
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
-            new_mesh.transformation.apply_placement(obj_plc_matrix)
-            new_mesh.transformation.apply_placement(element_plc_matrix)
+            new_mesh.transformation.apply_placement(obj.Placement, left=True)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
@@ -380,16 +375,10 @@ def _get_rends_from_assembly3_lnk(obj, name, material, mesher, **kwargs):
             continue
 
         # Apply object placement
-        element_plc_matrix = element.Placement.toMatrix()
-        element_plc_inverse_matrix = (
-            element.Placement.inverse().toMatrix()
-        )  # TODO
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
-            new_mesh.transformation.apply_placement(element_plc_matrix)
-            new_mesh.transformation.apply_placement(obj_plc_matrix)
-            new_mesh.transformation.apply_placement(lnk_plc_matrix)
-            print(element_plc_matrix, obj_plc_matrix, lnk_plc_matrix)  # TODO
+            new_mesh.transformation.apply_placement(obj.Placement, left=True)
+            new_mesh.transformation.apply_placement(lnk.Placement, left=True)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
