@@ -275,9 +275,6 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
         debug("Object", obj.Label, "Skipping (element or constraint group)")
         return []
 
-    debug("Object", obj.Label, "Now Processing")  # TODO
-    obj_plc_matrix = obj.Placement.toMatrix()
-    print(obj_plc_matrix)  # TODO
     elements = list(itertools.compress(obj.Group, obj.VisibilityList))
     renderables = []
     for element in elements:
@@ -286,7 +283,7 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
             element, element.FullName, material, mesher, **kwargs
         )
         if not base_rends:
-            # Element not renderable...
+            # Element is not renderable...
             continue
 
         # Apply object placement
@@ -301,41 +298,6 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
 
     return [r for r in renderables if r.mesh.count_facets]
 
-    base_plc_matrix = obj.Placement.toMatrix()
-    elements = itertools.compress(obj.Group, obj.VisibilityList)
-
-    for element in elements:
-        if element.isDerivedFrom("App::LinkElement"):
-            elem_object = element.LinkedObject
-            elem_placement = element.LinkPlacement
-        else:
-            elem_object = element
-            elem_placement = element.Placement
-        elem_name = f"{name}_{element.FullName}"
-
-        # Compute rends and placements
-        base_rends = get_renderables(
-            elem_object, elem_name, material, mesher, **kwargs
-        )
-        element_plc_matrix = elem_placement.toMatrix()
-        linkedobject_plc_inverse_matrix = (
-            elem_object.Placement.inverse().toMatrix()
-        )
-        for base_rend in base_rends:
-            new_mesh = base_rend.mesh.copy()
-            if not getattr(obj, "LinkTransform", False):
-                new_mesh.transformation.apply_placement(
-                    linkedobject_plc_inverse_matrix
-                )
-            new_mesh.transformation.apply_placement(base_plc_matrix)
-            new_mesh.transformation.apply_placement(element_plc_matrix)
-            new_mat = _get_material(base_rend, material)
-            new_name = base_rend.name
-            new_color = base_rend.defcolor
-            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
-            renderables.append(new_rend)
-
-    return renderables
 
 def _get_rends_from_assembly3_lnk(obj, name, material, mesher, **kwargs):
     """Get renderables from an assembly3 object.
@@ -357,12 +319,6 @@ def _get_rends_from_assembly3_lnk(obj, name, material, mesher, **kwargs):
         debug("Object", obj.Label, "Skipping (element or constraint group)")
         return []
 
-    debug("Object", obj.Label, "Now Processing")  # TODO
-    obj_plc_matrix = obj.Placement.toMatrix()
-    lnk_plc_matrix = lnk.Placement.toMatrix()
-
-    print(obj_plc_matrix)  # TODO
-    print(lnk_plc_matrix)  # TODO
     elements = list(itertools.compress(obj.Group, obj.VisibilityList))
     renderables = []
     for element in elements:
