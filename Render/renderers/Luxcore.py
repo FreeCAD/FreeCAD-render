@@ -646,10 +646,10 @@ def render(
         # In case of batch mode and spp==0, we force to an arbitrary value
         # Otherwise, Luxcore will run forever
         config["batch.haltspp"] = str(32)
-    if denoise:
-        # If denoiser is invoked, must be in "Image view",
-        # otherwise the result is not consistent...
-        config["screen.tool.type"] = "IMAGE_VIEW"
+
+    # Must be in "Image view", otherwise the exported result is not consistent
+    # (size, denoising)...
+    config["screen.tool.type"] = "IMAGE_VIEW"
 
     # config["context.verbose"] = "1"
     # config["screen.refresh.interval"] = "10000"  # milliseconds...
