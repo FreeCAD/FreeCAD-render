@@ -269,11 +269,13 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
     A list of renderables for this object
     """
     try:
-        lnk, obj = obj, obj.getLinkedObject()
+        lnk, obj = obj, obj.LinkedObject
     except AttributeError:
         is_link = False
+        prefix_name = obj.Name
     else:
         is_link = True
+        prefix_name = f"{lnk.Name}_{obj.Name}"
 
     asm3_type = obj.Proxy
     if isinstance(asm3_type, AsmConstraintGroup) or isinstance(
@@ -287,7 +289,7 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
     for element in elements:
         # Get children renderables
         base_rends = get_renderables(
-            element, element.FullName, material, mesher, **kwargs
+            element, element.Name, material, mesher, **kwargs
         )
         if not base_rends:
             # Element is not renderable...
@@ -300,7 +302,7 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
             if is_link:
                 new_mesh.transformation.apply_placement(lnk.Placement, left=True)
             new_mat = _get_material(base_rend, material)
-            new_name = base_rend.name
+            new_name = f"{prefix_name}_{base_rend.name}"
             new_color = base_rend.defcolor
             new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
             renderables.append(new_rend)
@@ -324,6 +326,8 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for the array object
     """
+    # TODO Check left/right apply
+    # TODO Use sheer placement, not matrix
     renderables = []
     base_plc_matrix = obj.Placement.toMatrix()
     elements = itertools.compress(obj.ElementList, obj.VisibilityList)
@@ -335,7 +339,7 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
         else:
             elem_object = element
             elem_placement = element.Placement
-        elem_name = f"{name}_{element.FullName}"
+        elem_name = f"{name}_{element.Name}"
 
         # Compute rends and placements
         base_rends = get_renderables(
@@ -439,7 +443,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
         ]
 
     base_rends = get_renderables(
-        base, base.FullName, material, mesher, **kwargs
+        base, base.Name, material, mesher, **kwargs
     )
     obj_plc_matrix = obj.Placement.toMatrix()
     base_inv_plc_matrix = base.Placement.inverse().toMatrix()
@@ -610,7 +614,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
 
     rends = []
     for subobj in obj.Group:
-        subname = f"{name}_{subobj.FullName}"
+        subname = f"{name}_{subobj.Name}"
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
             rends += get_renderables(
