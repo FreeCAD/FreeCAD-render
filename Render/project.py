@@ -51,6 +51,8 @@ from Render.utils import (
     set_last_cmd,
     clear_report_view,
     WHITE,
+    is_assembly3,
+    is_assembly3_lnk,
 )
 from Render.view import View
 from Render.groundplane import create_groundplane_view
@@ -287,6 +289,7 @@ class Project(FeatureBase):
         objs -- an iterable on FreeCAD objects to add to project
         """
 
+        # Recursive helper
         def add_to_group(objs, group):
             """Add objects as views to a group.
 
@@ -299,6 +302,8 @@ class Project(FeatureBase):
                     hasattr(obj, "Group")
                     and not obj.isDerivedFrom("App::Part")
                     and not obj.isDerivedFrom("PartDesign::Body")
+                    and not is_assembly3(obj)
+                    and not is_assembly3_lnk(obj)
                 ):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
@@ -323,7 +328,7 @@ class Project(FeatureBase):
                     )
                     App.Console.PrintWarning(msg.format(o=obj.Label))
 
-        # add_views starts here
+        # 'add_views' starts here
         add_to_group(iter(objs), self.fpo)
         if not self.fpo.DelayedBuild:
             App.ActiveDocument.recompute()
