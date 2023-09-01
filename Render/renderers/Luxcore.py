@@ -178,7 +178,7 @@ scene.lights.{n}.gain = {g} {g} {g}
 scene.lights.{n}.efficency = {e}
 """
     return dedent(snippet).format(
-        n=name, o=pos, c=color.to_linear(), p=power, g=gain, e=efficiency
+        n=name, o=pos, c=color.to_srgb(), p=power, g=gain, e=efficiency
     )
 
 
@@ -215,7 +215,7 @@ scene.objects.{n}.transformation = {t}
     return dedent(snippet).format(
         n=name,
         t=trans,
-        c=color.to_linear(),
+        c=color.to_srgb(),
         p=power,
         e=efficiency,
         g=gain,
@@ -523,7 +523,7 @@ def _write_value(**kwargs):
 
     # Color
     if proptype == "RGB":
-        propvalue = propvalue.to_linear()
+        propvalue = propvalue.to_srgb()
 
     # Snippets for values
     snippet = VALSNIPPETS[proptype]
