@@ -249,7 +249,9 @@ def _write_material(name, matval):
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     snippet = "# Passthrough\n" + matval["string"] + "\n"
-    return snippet.format(n=name, c=matval.default_color)
+    return snippet.format(
+        n=name, c=matval.default_color.to_linear(precise=True)
+    )
 
 
 def _write_material_glass(name, matval):
