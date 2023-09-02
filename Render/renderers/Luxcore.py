@@ -523,7 +523,7 @@ def _write_value(**kwargs):
 
     # Color
     if proptype == "RGB":
-        propvalue = propvalue.to_srgb()
+        propvalue = propvalue.to_linear(precise=True)
 
     # Snippets for values
     snippet = VALSNIPPETS[proptype]

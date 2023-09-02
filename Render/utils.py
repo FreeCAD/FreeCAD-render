@@ -107,7 +107,7 @@ class RGB:
     _linearRGB = collections.namedtuple("_linearRGB", "r g b a")
     _sRGB = collections.namedtuple("_sRGB", "r g b a")
 
-    def to_linear(self):
+    def to_linear(self, precise=False):
         """Convert color from srgb to linear.
 
         Decode gamma=2.2 correction. This function is useful to convert FCD
@@ -116,12 +116,26 @@ class RGB:
         Returns:
             color in linear colorspace
         """
-        return self._linearRGB(
-            self._red**2.2,
-            self._green**2.2,
-            self._blue**2.2,
-            self._alpha,
-        )
+        def _precise_transform(x):
+            if 0 <= x < 0.04045:
+                return x / 12.92
+            else:
+                return ((x + 0.055) / 1.055)**2.4
+
+        if not precise:
+            return self._linearRGB(
+                self._red**2.2,
+                self._green**2.2,
+                self._blue**2.2,
+                self._alpha,
+            )
+        else:
+            return self._linearRGB(
+                _precise_transform(self._red),
+                _precise_transform(self._green),
+                _precise_transform(self._blue),
+                self._alpha,
+            )
 
     def to_linear_hex(self):
         """Convert color from srgb to linear hexadecimal.
