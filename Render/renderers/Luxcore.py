@@ -656,6 +656,7 @@ def render(
     # config["path.aovs.warmup.spp"] = "2000"
 
     # Pipelines
+    # LuxCore/src/slg/film/filmparse.cpp
     config["film.imagepipelines.0.0.type"] = "NOP"
     if denoise:
         config["film.imagepipelines.0.1.type"] = "INTEL_OIDN"
