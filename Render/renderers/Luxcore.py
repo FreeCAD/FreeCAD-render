@@ -499,7 +499,7 @@ scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
 
 
 VALSNIPPETS = {
-    "RGB": "luxcore 2.2 {val[0]} {val[1]} {val[2]}",
+    "RGB": "nop {val[0]} {val[1]} {val[2]}",
     "float": "{val}",
     "node": "",
     "RGBA": "{val.r} {val.g} {val.b} {val.a}",
@@ -523,7 +523,7 @@ def _write_value(**kwargs):
 
     # Color
     if proptype == "RGB":
-        propvalue = propvalue.to_linear(precise=True)
+        propvalue = propvalue.to_linear()
 
     # Snippets for values
     snippet = VALSNIPPETS[proptype]
@@ -662,7 +662,7 @@ def render(
         config["film.imagepipelines.0.1.type"] = "INTEL_OIDN"
         config["film.imagepipelines.0.1.prefilter.enable"] = "1"
     config["film.imagepipelines.0.99.type"] = "GAMMA_CORRECTION"
-    config["film.imagepipelines.0.99.gamma"] = "2.2"
+    config["film.imagepipelines.0.99.value"] = "1.8"
     config["film.imagepipelines.1.0.type"] = "NOP"
 
     if denoise:
