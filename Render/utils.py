@@ -42,7 +42,7 @@ import FreeCADGui as Gui
 
 try:
     from freecad.asm3.assembly import AsmBase
-except:
+except (ModuleNotFoundError, ImportError):
     AsmBase = type(None)
 
 
@@ -116,11 +116,11 @@ class RGB:
         Returns:
             color in linear colorspace
         """
-        def _precise_transform(x):
-            if 0 <= x < 0.04045:
-                return x / 12.92
-            else:
-                return ((x + 0.055) / 1.055)**2.4
+
+        def _precise_transform(component):
+            if 0 <= component < 0.04045:
+                return component / 12.92
+            return ((component + 0.055) / 1.055) ** 2.4
 
         if not precise:
             return self._linearRGB(
@@ -129,13 +129,12 @@ class RGB:
                 self._blue**2.2,
                 self._alpha,
             )
-        else:
-            return self._linearRGB(
-                _precise_transform(self._red),
-                _precise_transform(self._green),
-                _precise_transform(self._blue),
-                self._alpha,
-            )
+        return self._linearRGB(
+            _precise_transform(self._red),
+            _precise_transform(self._green),
+            _precise_transform(self._blue),
+            self._alpha,
+        )
 
     def to_linear_hex(self):
         """Convert color from srgb to linear hexadecimal.

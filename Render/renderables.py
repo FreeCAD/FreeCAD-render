@@ -45,7 +45,7 @@ try:
         AsmConstraintGroup,
         AsmElementGroup,
     )
-except:
+except (ImportError, ModuleNotFoundError):
     AsmBase = type(None)
 
 from Render.utils import (
@@ -101,7 +101,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
     obj_is_app_part = obj.isDerivedFrom("App::Part")
-    obj_is_appfeature = obj.isDerivedFrom("App::Feature")
+    # obj_is_appfeature = obj.isDerivedFrom("App::Feature")
     obj_is_applinkgroup = obj.isDerivedFrom("App::LinkGroup")
     obj_is_docobjectgroup = obj.isDerivedFrom("App::DocumentObjectGroup")
 
@@ -256,7 +256,7 @@ def check_renderables(renderables):
 # ===========================================================================
 
 
-def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
+def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
     """Get renderables from an assembly3 object.
 
     Parameters:
@@ -278,9 +278,7 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
         prefix_name = f"{lnk.Name}_{obj.Name}"
 
     asm3_type = obj.Proxy
-    if isinstance(asm3_type, AsmConstraintGroup) or isinstance(
-        asm3_type, AsmElementGroup
-    ):
+    if isinstance(asm3_type, (AsmConstraintGroup, AsmElementGroup)):
         debug("Object", obj.Label, "Skipping (element or constraint group)")
         return []
 
@@ -300,7 +298,9 @@ def _get_rends_from_assembly3(obj, name, material, mesher, **kwargs):
             new_mesh = base_rend.mesh.copy()
             new_mesh.transformation.apply_placement(obj.Placement, left=True)
             if is_link:
-                new_mesh.transformation.apply_placement(lnk.Placement, left=True)
+                new_mesh.transformation.apply_placement(
+                    lnk.Placement, left=True
+                )
             new_mat = _get_material(base_rend, material)
             new_name = f"{prefix_name}_{base_rend.name}"
             new_color = base_rend.defcolor
@@ -442,9 +442,7 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
             )
         ]
 
-    base_rends = get_renderables(
-        base, base.Name, material, mesher, **kwargs
-    )
+    base_rends = get_renderables(base, base.Name, material, mesher, **kwargs)
     obj_plc_matrix = obj.Placement.toMatrix()
     base_inv_plc_matrix = base.Placement.inverse().toMatrix()
     placements = (
