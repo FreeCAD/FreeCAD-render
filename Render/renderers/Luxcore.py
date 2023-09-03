@@ -178,7 +178,7 @@ scene.lights.{n}.gain = {g} {g} {g}
 scene.lights.{n}.efficency = {e}
 """
     return dedent(snippet).format(
-        n=name, o=pos, c=color.to_linear(), p=power, g=gain, e=efficiency
+        n=name, o=pos, c=color.to_srgb(), p=power, g=gain, e=efficiency
     )
 
 
@@ -215,7 +215,7 @@ scene.objects.{n}.transformation = {t}
     return dedent(snippet).format(
         n=name,
         t=trans,
-        c=color.to_linear(),
+        c=color.to_srgb(),
         p=power,
         e=efficiency,
         g=gain,
@@ -499,7 +499,7 @@ scene.textures.{texname}.mapping.uvdelta = {trans_u} {trans_v}
 
 
 VALSNIPPETS = {
-    "RGB": "luxcore 2.2 {val[0]} {val[1]} {val[2]}",
+    "RGB": "nop {val[0]} {val[1]} {val[2]}",
     "float": "{val}",
     "node": "",
     "RGBA": "{val.r} {val.g} {val.b} {val.a}",
@@ -646,22 +646,23 @@ def render(
         # In case of batch mode and spp==0, we force to an arbitrary value
         # Otherwise, Luxcore will run forever
         config["batch.haltspp"] = str(32)
-    if denoise:
-        # If denoiser is invoked, must be in "Image view",
-        # otherwise the result is not consistent...
-        config["screen.tool.type"] = "IMAGE_VIEW"
+
+    # Must be in "Image view", otherwise the exported result is not consistent
+    # (size, denoising)...
+    config["screen.tool.type"] = "IMAGE_VIEW"
 
     # config["context.verbose"] = "1"
     # config["screen.refresh.interval"] = "10000"  # milliseconds...
     # config["path.aovs.warmup.spp"] = "2000"
 
     # Pipelines
+    # LuxCore/src/slg/film/filmparse.cpp
     config["film.imagepipelines.0.0.type"] = "NOP"
     if denoise:
         config["film.imagepipelines.0.1.type"] = "INTEL_OIDN"
         config["film.imagepipelines.0.1.prefilter.enable"] = "1"
     config["film.imagepipelines.0.99.type"] = "GAMMA_CORRECTION"
-    config["film.imagepipelines.0.99.gamma"] = "2.2"
+    config["film.imagepipelines.0.99.value"] = "1.8"
     config["film.imagepipelines.1.0.type"] = "NOP"
 
     if denoise:

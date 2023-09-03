@@ -54,6 +54,7 @@ class _GroundPlane:
         """
         # pylint: disable=invalid-name
         self.Name = "__ground_plane__"
+        self.FullName = "__ground_plane__"
         self.Label = "__ground_plane__"
 
         self.Mesh = Mesh.Mesh()

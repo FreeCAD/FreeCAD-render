@@ -39,6 +39,15 @@ import itertools
 import collections
 import math
 
+try:
+    from freecad.asm3.assembly import (
+        AsmBase,
+        AsmConstraintGroup,
+        AsmElementGroup,
+    )
+except (ImportError, ModuleNotFoundError):
+    AsmBase = type(None)
+
 from Render.utils import (
     translate,
     debug,
@@ -92,8 +101,20 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     obj_is_partfeature = obj.isDerivedFrom("Part::Feature")
     obj_is_meshfeature = obj.isDerivedFrom("Mesh::Feature")
     obj_is_app_part = obj.isDerivedFrom("App::Part")
+    # obj_is_appfeature = obj.isDerivedFrom("App::Feature")
     obj_is_applinkgroup = obj.isDerivedFrom("App::LinkGroup")
+    obj_is_docobjectgroup = obj.isDerivedFrom("App::DocumentObjectGroup")
+
     obj_type = getproxyattr(obj, "Type", "")
+    try:  # Assembly 3 link
+        lnkobj = obj.getLinkedObject()
+        obj_is_asm3_lnk = isinstance(lnkobj.Proxy, AsmBase)
+    except AttributeError:
+        obj_is_asm3_lnk = False
+    try:  # Assembly 3 plain
+        obj_is_asm3 = isinstance(obj.Proxy, AsmBase)
+    except AttributeError:
+        obj_is_asm3 = False
 
     mat = (
         getattr(obj, "Material", None)
@@ -107,8 +128,27 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     ignore_unknown = bool(kwargs.get("ignore_unknown", False))
     transparency_boost = int(kwargs.get("transparency_boost", 0))
 
+    # Assembly3 link
+    if obj_is_asm3_lnk:
+        debug("Object", label, "'Assembly3 link' detected")
+        renderables = _get_rends_from_assembly3(
+            obj, name, mat, mesher, **kwargs
+        )
+
+    # Assembly3
+    elif obj_is_asm3:
+        debug("Object", label, "'Assembly3' detected")
+        renderables = _get_rends_from_assembly3(
+            obj, name, mat, mesher, **kwargs
+        )
+
+    # DocumentObjectGroup
+    elif obj_is_docobjectgroup:
+        debug("Object", label, "'DocumentObjectGroup' detected")
+        renderables = []  # TODO
+
     # Link (plain)
-    if obj_is_applink and not obj.ElementCount:
+    elif obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
         renderables = _get_rends_from_plainapplink(
             obj, name, mat, mesher, **kwargs
@@ -174,7 +214,10 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         renderables = []
         if not ignore_unknown:
             ascendants = ", ".join(obj.getAllDerivedFrom())
-            msg = translate("Render", f"Unhandled object type ({ascendants})")
+            name = getattr(obj, "FullName", "<no name>")
+            msg = translate(
+                "Render", f"Unhandled object type ('{name}': {ascendants})"
+            )
             raise RenderableError(msg)
         debug("Object", label, "Not renderable")
 
@@ -213,6 +256,60 @@ def check_renderables(renderables):
 # ===========================================================================
 
 
+def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
+    """Get renderables from an assembly3 object.
+
+    Parameters:
+    obj -- the container object
+    name -- the name assigned to the container object for rendering
+    material -- the material for the container object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for this object
+    """
+    try:
+        lnk, obj = obj, obj.LinkedObject
+    except AttributeError:
+        is_link = False
+        prefix_name = obj.Name
+    else:
+        is_link = True
+        prefix_name = f"{lnk.Name}_{obj.Name}"
+
+    asm3_type = obj.Proxy
+    if isinstance(asm3_type, (AsmConstraintGroup, AsmElementGroup)):
+        debug("Object", obj.Label, "Skipping (element or constraint group)")
+        return []
+
+    elements = list(itertools.compress(obj.Group, obj.VisibilityList))
+    renderables = []
+    for element in elements:
+        # Get children renderables
+        base_rends = get_renderables(
+            element, element.Name, material, mesher, **kwargs
+        )
+        if not base_rends:
+            # Element is not renderable...
+            continue
+
+        # Apply object placement
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            new_mesh.transformation.apply_placement(obj.Placement, left=True)
+            if is_link:
+                new_mesh.transformation.apply_placement(
+                    lnk.Placement, left=True
+                )
+            new_mat = _get_material(base_rend, material)
+            new_name = f"{prefix_name}_{base_rend.name}"
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
+            renderables.append(new_rend)
+
+    return [r for r in renderables if r.mesh.count_facets]
+
+
 def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     """Get renderables from an object containing a list of elements.
 
@@ -229,6 +326,8 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for the array object
     """
+    # TODO Check left/right apply
+    # TODO Use sheer placement, not matrix
     renderables = []
     base_plc_matrix = obj.Placement.toMatrix()
     elements = itertools.compress(obj.ElementList, obj.VisibilityList)
@@ -331,7 +430,13 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
         return [
             Renderable(
                 name,
-                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
+                mesher(
+                    obj.Shape,
+                    _needs_uvmap(material),
+                    uvprojection,
+                    name=name,
+                    label=obj.Label,
+                ),
                 material,
                 color,
             )
@@ -385,6 +490,7 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         window_parts = obj.CloneOf.WindowParts
     subnames = window_parts[0::5]  # Names every 5th item...
     names = [f"{name}_{s.replace(' ', '_')}" for s in subnames]
+    labels = [f"{obj.Label}_{s.replace(' ', '_')}" for s in subnames]
 
     # Subobjects colors
     transparency_boost = kwargs.get("transparency_boost", 0)
@@ -417,8 +523,10 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
     meshes = [
-        mesher(s, n, uvprojection)
-        for s, n in zip(obj.Shape.childShapes(), needs_uvmap)
+        mesher(s, n, uvprojection, name=n2, label=l)
+        for s, n, n2, l in zip(
+            obj.Shape.childShapes(), needs_uvmap, names, labels
+        )
     ]
 
     # Build renderables
@@ -448,6 +556,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
 
     # Subobjects names
     names = [f"{name}_{i}" for i in range(len(shapes))]
+    labels = [f"{obj.Label}_{i}" for i in range(len(shapes))]
 
     # Subobjects materials
     materials = material.Materials
@@ -455,7 +564,16 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
 
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
-    meshes = [mesher(s, n, uvprojection) for s, n in zip(shapes, needs_uvmap)]
+    meshes = [
+        mesher(
+            shape=s,
+            compute_uvmap=n,
+            uvmap_projection=uvprojection,
+            name=n2,
+            label=l,
+        )
+        for s, n, n2, l in zip(shapes, needs_uvmap, names, labels)
+    ]
 
     # Subobjects colors
     tp_boost = kwargs.get("transparency_boost", 0)
@@ -469,7 +587,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
 
 
 def _get_rends_from_part(obj, name, material, mesher, **kwargs):
-    """Get renderables from a Part object.
+    """Get renderables from an App::Part object.
 
     Parameters:
         obj -- the Part object (App::Part)
@@ -534,7 +652,13 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         renderables = [
             Renderable(
                 name,
-                mesher(obj.Shape, _needs_uvmap(material), uvprojection),
+                mesher(
+                    obj.Shape,
+                    _needs_uvmap(material),
+                    uvprojection,
+                    name=name,
+                    label=obj.Label,
+                ),
                 material,
                 color,
             )
@@ -544,8 +668,10 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         faces = obj.Shape.Faces
         nfaces = len(faces)
         names = [f"{name}_face{i}" for i in range(nfaces)]
+        labels = [f"{obj.Label}_face{i}" for i in range(nfaces)]
         meshes = [
-            mesher(f, _needs_uvmap(material), uvprojection) for f in faces
+            mesher(f, _needs_uvmap(material), uvprojection, name=n, label=l)
+            for f, n, l in zip(faces, names, labels)
         ]
         materials = [material] * nfaces
         colors = map(RGB.from_fcd_rgba, colors)
@@ -575,6 +701,8 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
         compute_uvmap=compute_uvmap,
         uvmap_projection=uvprojection,
         is_already_a_mesh=True,
+        name=name,
+        label=obj.Label,
     )
     color = kwargs["meshcolor"]
     renderables = [Renderable(name, mesh, material, color)]

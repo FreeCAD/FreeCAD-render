@@ -181,7 +181,6 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
       "name": "{name}",
       "type": "perspective",
       "perspective": {{
-        "aspectRatio": 1.0,
         "yfov": {fov},
         "znear": 0.0,
         "aspectRatio" : {aratio}
@@ -1003,6 +1002,7 @@ def render(
     args = ""
     if batch:
         args += '"batch" '
+        args += " --camera 1 "
     args += params.GetString("OspParameters", "")
     args += f" --resolution {width}x{height} "
     if output_file:

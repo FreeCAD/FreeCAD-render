@@ -718,7 +718,7 @@ def _write_value(**kwargs):
 
     # Snippets for values
     if proptype == "RGB":
-        lcol = val.to_linear()
+        lcol = val.to_linear(precise=True)
         value = f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])}"
     elif proptype == "float":
         value = f"{_rnd(val)}"

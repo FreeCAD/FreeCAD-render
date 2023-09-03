@@ -64,8 +64,9 @@ mimetypes.init()
 def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
-    # avoid any collision
+    # avoid any collision and we replace '#' with '_'
     name = name + "_"
+    name = name.replace("#", "_")
 
     # Material values
     materialvalues = material.get_material_values(

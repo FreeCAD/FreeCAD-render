@@ -30,6 +30,7 @@ FreeCAD graphical user interface.
 
 import threading
 import shlex
+import traceback
 from subprocess import Popen, PIPE, STDOUT, SubprocessError
 
 from PySide.QtCore import (
@@ -139,7 +140,7 @@ class ExporterWorker(QObject):
         self.func = func
         self.args = args
         self.lock = threading.Lock()
-        self.res = None
+        self.res = []
 
     def run(self):
         """Run worker.
@@ -149,11 +150,11 @@ class ExporterWorker(QObject):
         """
         try:
             res = self.func(*self.args)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             App.Console.PrintError(
                 "[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n"
             )
-            raise exc
+            traceback.print_exception(exc)
         else:
             with self.lock:
                 self.res = res

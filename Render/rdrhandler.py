@@ -312,7 +312,7 @@ class RendererHandler:
         """
         # Alias parameters
         source = view.Source
-        name = str(source.Name)
+        name = str(source.FullName)
         msg = translate("Render", "Exporting")
 
         # Render Workbench objects
@@ -378,6 +378,8 @@ class RendererHandler:
             compute_uvmap=True,
             uvmap_projection=None,
             is_already_a_mesh=False,
+            name=None,
+            label=None,
         ):
             """Mesh a shape.
 
@@ -391,6 +393,8 @@ class RendererHandler:
             Returns a RenderMesh.
             """
             debug_flag = PARAMS.GetBool("Debug")
+            name = name or view.Source.FullName
+            label = label or view.Source.Label
 
             # Skip meshing?
             if self.skip_meshing:
@@ -408,7 +412,8 @@ class RendererHandler:
                 return rendermesh
 
             # Log
-            debug("Object", view.Source.Label, "Begin meshing")
+            fullname = f"'{label}' ('{name}')"
+            debug("Object", fullname, "Begin meshing")
             tm0 = time.time()
 
             # Standard case
@@ -438,16 +443,17 @@ class RendererHandler:
                 export_directory=self.object_directory,
                 relative_path=True,
                 skip_meshing=self.skip_meshing,
-                name=view.Source.Label,
+                name=fullname,
             )
 
             duration = time.time() - tm0
             msg = f"End meshing ({duration}s)"
-            debug("Object", view.Source.Label, msg)
+            debug("Object", fullname, msg)
             if debug_flag:
                 print(msg + "\n")
 
             return mesh
+            # End mesher
 
         source = view.Source
         label = getattr(source, "Label", name)

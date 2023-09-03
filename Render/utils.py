@@ -40,6 +40,11 @@ import PySide2
 import FreeCAD as App
 import FreeCADGui as Gui
 
+try:
+    from freecad.asm3.assembly import AsmBase
+except (ModuleNotFoundError, ImportError):
+    AsmBase = type(None)
+
 
 translate = _translate
 
@@ -102,7 +107,7 @@ class RGB:
     _linearRGB = collections.namedtuple("_linearRGB", "r g b a")
     _sRGB = collections.namedtuple("_sRGB", "r g b a")
 
-    def to_linear(self):
+    def to_linear(self, precise=False):
         """Convert color from srgb to linear.
 
         Decode gamma=2.2 correction. This function is useful to convert FCD
@@ -111,10 +116,23 @@ class RGB:
         Returns:
             color in linear colorspace
         """
+
+        def _precise_transform(component):
+            if 0 <= component < 0.04045:
+                return component / 12.92
+            return ((component + 0.055) / 1.055) ** 2.4
+
+        if not precise:
+            return self._linearRGB(
+                self._red**2.2,
+                self._green**2.2,
+                self._blue**2.2,
+                self._alpha,
+            )
         return self._linearRGB(
-            self._red**2.2,
-            self._green**2.2,
-            self._blue**2.2,
+            _precise_transform(self._red),
+            _precise_transform(self._green),
+            _precise_transform(self._blue),
             self._alpha,
         )
 
@@ -393,6 +411,25 @@ def clear_report_view():
         return
 
     text_widget.clear()
+
+
+def is_assembly3(obj):
+    """Check if an object is an assembly3 object."""
+    try:  # Assembly 3 plain
+        obj_is_asm3 = isinstance(obj.Proxy, AsmBase)
+    except AttributeError:
+        obj_is_asm3 = False
+    return obj_is_asm3
+
+
+def is_assembly3_lnk(obj):
+    """Check if an object is a link to an assembly3 object."""
+    try:  # Assembly 3 link
+        lnkobj = obj.getLinkedObject()
+        obj_is_asm3_lnk = isinstance(lnkobj.Proxy, AsmBase)
+    except AttributeError:
+        obj_is_asm3_lnk = False
+    return obj_is_asm3_lnk
 
 
 def grouper(iterable, number, *, incomplete="ignore", fillvalue=None):
