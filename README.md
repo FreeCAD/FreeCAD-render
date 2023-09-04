@@ -61,9 +61,9 @@ FreeCAD model is just a 4-steps process:
    <img src=./Render/resources/icons/Cycles.svg height=32> <img src=./Render/resources/icons/Luxcore.svg
    height=32> <img src=./Render/resources/icons/Povray.svg height=32> and select a template
    suitable for your renderer \
-   (you may start with a 'standard' flavour, like
-   appleseed_standard.appleseed, cycles_standard.xml, luxcore_standard.cfg or
-   povray_standard.pov)
+   (you may start with a 'studio' flavour, like
+   appleseed_studio_light.appleseed, cycles_studio_light.xml, luxcore_studio_light.cfg or
+   povray_studio_light.pov)
 
 
 2. **Add views of your objects to your rendering project:** Select both the
