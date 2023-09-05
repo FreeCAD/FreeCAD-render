@@ -39,7 +39,12 @@ import itertools
 import collections
 import math
 
+import FreeCAD as App
+
 try:
+    if not App.GuiUp:
+        # assembly3 needs Gui...
+        raise ImportError()
     from freecad.asm3.assembly import (
         AsmBase,
         AsmConstraintGroup,
@@ -47,6 +52,8 @@ try:
     )
 except (ImportError, ModuleNotFoundError):
     AsmBase = type(None)
+    AsmConstraintGroup = type(None)
+    AsmElementGroup = type(None)
 
 from Render.utils import (
     translate,

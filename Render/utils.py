@@ -41,10 +41,12 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 try:
+    if not App.GuiUp:
+        # assembly3 needs Gui...
+        raise ImportError()
     from freecad.asm3.assembly import AsmBase
 except (ModuleNotFoundError, ImportError):
     AsmBase = type(None)
-
 
 translate = _translate
 
