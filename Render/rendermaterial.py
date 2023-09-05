@@ -145,7 +145,7 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 # ===========================================================================
 
 
-def get_rendering_material(material, renderer, default_color):
+def get_rendering_material(meshname, material, renderer, default_color):
     """Get render material (Render.RenderMaterial) from FreeCAD material.
 
     This function implements rendering material logic.
@@ -182,14 +182,14 @@ def get_rendering_material(material, renderer, default_color):
     """
     # Check valid material
     if not is_valid_material(material):
-        ru_debug("Material", "<None>", "Fallback to default material")
+        ru_debug("Material", f"'{meshname}' <None>", "Fallback to default material")
         return RenderMaterial.build_fallback(default_color)
 
     # Initialize
     mat = dict(material.Material)
     renderer = str(renderer)
     name = mat.get("Name", "<Unnamed Material>")
-    debug = functools.partial(ru_debug, "Material", name)
+    debug = functools.partial(ru_debug, "Material", f"'{meshname}' {name}")
 
     debug("Starting material computation")
 
