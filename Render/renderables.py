@@ -738,15 +738,19 @@ def _get_shapecolor(obj, transparency_boost):
     # Overridden color for faces?
     try:
         elem_colors = vobj.getElementColors()
-        color = RGB.from_fcd_rgba(elem_colors["Face"])
+        face_color = elem_colors["Face"]
     except (AttributeError, KeyError):
         # Shape color
         try:
             shapecolor = vobj.ShapeColor[0:3]  # Only rgb, not alpha
             transparency = vobj.Transparency  # Alpha is given by transparency
-            color = RGB.from_fcd_rgba(shapecolor, transparency)
         except AttributeError:
             color = WHITE
+        else:
+            color = RGB.from_fcd_rgba(shapecolor, transparency)
+    else:
+        # Face color
+        color = RGB.from_fcd_rgba(face_color)
 
     result = _boost_tp(color, transparency_boost)
     return result
