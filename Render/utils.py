@@ -226,6 +226,8 @@ WHITE = RGB.from_linear((0.8, 0.8, 0.8))  # A balanced white for default colors
 
 SUPERWHITE = RGB.from_linear((1.0, 1.0, 1.0))
 
+PINK = RGB.from_linear((230 / 255, 0, 126 / 255))
+
 CAR_RED = RGB.from_linear((0.8, 0.2, 0.2))
 
 
