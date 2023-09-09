@@ -395,7 +395,7 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
         new_name = f"{name}_{base_rend.name}"
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
-        new_color = objcolor
+        new_color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0), base_rend.defcolor)
         if not obj.LinkTransform:
             new_mesh.transformation.apply_placement(
                 linkedobj_plc_inverse_matrix
@@ -727,13 +727,15 @@ def _get_material(base_renderable, upper_material):
     )
 
 
-def _get_shapecolor(obj, transparency_boost):
+def _get_shapecolor(obj, transparency_boost, default_color=None):
     """Get shape color (including transparency) from an object."""
+    default_color = default_color or WHITE
+
     vobj = obj.ViewObject
 
     # Is there a view object? (console mode, for instance)
     if vobj is None:
-        return WHITE
+        return default_color
 
     # Overridden color for faces?
     try:
@@ -745,7 +747,7 @@ def _get_shapecolor(obj, transparency_boost):
             shapecolor = vobj.ShapeColor[0:3]  # Only rgb, not alpha
             transparency = vobj.Transparency  # Alpha is given by transparency
         except AttributeError:
-            color = WHITE
+            color = default_color
         else:
             color = RGB.from_fcd_rgba(shapecolor, transparency)
     else:
