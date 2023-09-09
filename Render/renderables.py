@@ -388,8 +388,8 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
     linkedobj = obj.LinkedObject
     objcolor = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
     base_rends = get_renderables(linkedobj, name, material, mesher, **kwargs)
-    link_plc_matrix = obj.LinkPlacement.toMatrix()
-    linkedobj_plc_inverse_matrix = linkedobj.Placement.inverse().toMatrix()
+    link_plc = obj.LinkPlacement
+    linkedobj_plc_inverse = linkedobj.Placement.inverse()
 
     def new_rend(base_rend):
         new_name = f"{name}_{base_rend.name}"
@@ -398,9 +398,9 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
         new_color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0), base_rend.defcolor)
         if not obj.LinkTransform:
             new_mesh.transformation.apply_placement(
-                linkedobj_plc_inverse_matrix, left=True
+                linkedobj_plc_inverse, left=True
             )
-        new_mesh.transformation.apply_placement(link_plc_matrix, left=True)
+        new_mesh.transformation.apply_placement(link_plc, left=True)
         return Renderable(new_name, new_mesh, new_mat, new_color)
 
     return [new_rend(r) for r in base_rends]
