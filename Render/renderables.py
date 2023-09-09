@@ -39,7 +39,12 @@ import itertools
 import collections
 import math
 
+import FreeCAD as App
+
 try:
+    if not App.GuiUp:
+        # assembly3 needs Gui...
+        raise ImportError()
     from freecad.asm3.assembly import (
         AsmBase,
         AsmConstraintGroup,
@@ -47,6 +52,8 @@ try:
     )
 except (ImportError, ModuleNotFoundError):
     AsmBase = type(None)
+    AsmConstraintGroup = type(None)
+    AsmElementGroup = type(None)
 
 from Render.utils import (
     translate,
@@ -381,19 +388,19 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
     linkedobj = obj.LinkedObject
     objcolor = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
     base_rends = get_renderables(linkedobj, name, material, mesher, **kwargs)
-    link_plc_matrix = obj.LinkPlacement.toMatrix()
-    linkedobj_plc_inverse_matrix = linkedobj.Placement.inverse().toMatrix()
+    link_plc = obj.LinkPlacement
+    linkedobj_plc_inverse = linkedobj.Placement.inverse()
 
     def new_rend(base_rend):
         new_name = f"{name}_{base_rend.name}"
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
-        new_color = objcolor
+        new_color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0), base_rend.defcolor)
         if not obj.LinkTransform:
             new_mesh.transformation.apply_placement(
-                linkedobj_plc_inverse_matrix
+                linkedobj_plc_inverse, left=True
             )
-        new_mesh.transformation.apply_placement(link_plc_matrix)
+        new_mesh.transformation.apply_placement(link_plc, left=True)
         return Renderable(new_name, new_mesh, new_mat, new_color)
 
     return [new_rend(r) for r in base_rends]
@@ -612,7 +619,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
 
     rends = []
     for subobj in obj.Group:
-        subname = f"{name}_{subobj.Name}"
+        subname = f"{name}#{subobj.Name}"
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
             rends += get_renderables(
@@ -720,26 +727,32 @@ def _get_material(base_renderable, upper_material):
     )
 
 
-def _get_shapecolor(obj, transparency_boost):
+def _get_shapecolor(obj, transparency_boost, default_color=None):
     """Get shape color (including transparency) from an object."""
+    default_color = default_color or WHITE
+
     vobj = obj.ViewObject
 
     # Is there a view object? (console mode, for instance)
     if vobj is None:
-        return WHITE
+        return default_color
 
     # Overridden color for faces?
     try:
         elem_colors = vobj.getElementColors()
-        color = RGB.from_fcd_rgba(elem_colors["Face"])
+        face_color = elem_colors["Face"]
     except (AttributeError, KeyError):
         # Shape color
         try:
             shapecolor = vobj.ShapeColor[0:3]  # Only rgb, not alpha
             transparency = vobj.Transparency  # Alpha is given by transparency
-            color = RGB.from_fcd_rgba(shapecolor, transparency)
         except AttributeError:
-            color = WHITE
+            color = default_color
+        else:
+            color = RGB.from_fcd_rgba(shapecolor, transparency)
+    else:
+        # Face color
+        color = RGB.from_fcd_rgba(face_color)
 
     result = _boost_tp(color, transparency_boost)
     return result

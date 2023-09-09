@@ -519,7 +519,7 @@ class RendererHandler:
 
         res = [
             write_mesh(
-                r.name, r.mesh, get_mat(r.material, rdrname, r.defcolor)
+                r.name, r.mesh, get_mat(r.name, r.material, rdrname, r.defcolor)
             )
             for r in rends
         ]
