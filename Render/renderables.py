@@ -619,7 +619,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
 
     rends = []
     for subobj in obj.Group:
-        subname = f"{name}_{subobj.Name}"
+        subname = f"{name}#{subobj.Name}"
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
             rends += get_renderables(
