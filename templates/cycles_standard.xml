@@ -10,7 +10,7 @@
 />
 
 <!-- Camera -->
-<camera width="800" height="500" />
+
 <!--RaytracingCamera-->
 
 <!-- Background Shader -->
