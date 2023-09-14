@@ -37,7 +37,7 @@
 <state name="KEY" shader="studio_white">
     <light
         light_type="distant"
-        strength="4.0 4.0 4.0"
+        strength="3.0 3.0 3.0"
         dir="-1 1 -1.5"
         angle="0.3"
         use_mis="true"
