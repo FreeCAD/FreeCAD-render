@@ -972,7 +972,7 @@
          <locale language="English" country="UnitedStates"/>
         </property>
         <property name="text">
-         <string>Cycles executable path</string>
+         <string>Cycles executable (standalone) path</string>
         </property>
        </widget>
       </item>
