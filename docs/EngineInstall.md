@@ -237,9 +237,9 @@ Look for `ospStudio.exe` on your system. In Render settings, fill 'OspStudio exe
 #### Cycles standalone
 In general case, Cycles standalone has to be compiled from sources, from here: https://github.com/blender/cycles <br>
 However, compiling Cycles standalone from sources can be tricky and time-consuming, see below. <br>
-Fortunately, users @MisterMakerNL and @metalex201 provide precompiled versions: 
-https://github.com/MisterMakerNL/Cycles-stand-alone-windows-build. [1.13.4]
-https://github.com/metalex201/Cycles-standalone-windows-build. [4.0.0]
+Fortunately, users @MisterMakerNL and @metalex201 provide precompiled versions: <br>
+https://github.com/MisterMakerNL/Cycles-stand-alone-windows-build. [1.13.4] <br>
+https://github.com/metalex201/Cycles-standalone-windows-build. [4.0.0] 
 
 
 #### Pbrt
