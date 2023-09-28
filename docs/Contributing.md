@@ -24,7 +24,7 @@ ensure that the code complies with
 
 ## Writing a new renderer plugin
 
-You may find [here](../renderers/README.md) some useful guidelines to write a
+You may find [here](../Render/renderers/README.md) some useful guidelines to write a
 new renderer plugin.
 
 ## Translating
