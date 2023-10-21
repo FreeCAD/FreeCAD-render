@@ -39,6 +39,7 @@ import collections
 from math import pi, atan2, asin, isclose, radians, cos, hypot
 import copy
 import cmath
+import uuid
 
 import FreeCAD as App
 import Mesh
@@ -49,7 +50,7 @@ from Render.rendermesh_mixins import (
     multiprocessing_enabled,
     numpy_enabled,
 )
-from Render.constants import PARAMS
+from Render.constants import PARAMS, MAX_FILENAME_LEN
 from Render.rendermesh_mp import vector3d
 from Render.utils import debug
 
@@ -396,7 +397,11 @@ class RenderMeshBase:
                 else App.ActiveDocument.TransientDir
             )
             extension = _EXPORT_EXTENSIONS[filetype]
-            basename = name + extension
+            if len(name) + len(extension) <= MAX_FILENAME_LEN:
+                basename = name
+            else:
+                basename = uuid.uuid4().hex
+            basename += extension
             filename = os.path.join(export_directory, basename)
 
         # Relative/absolute path
