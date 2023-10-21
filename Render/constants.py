@@ -56,3 +56,5 @@ FCDVERSION = int(App.Version()[0]), float(App.Version()[1])
 
 # Workbench parameters
 PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
+
+MAX_FILENAME_LEN = 256

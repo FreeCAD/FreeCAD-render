@@ -105,7 +105,7 @@ def write_mesh(name, mesh, material, **kwargs):
                 <parameter name="filename" value="{filename}" />
             </object>
             <object_instance name="{shortfilename}.instance"
-                             object="{shortfilename}.{shortfilename}" >
+                             object="{shortfilename}.{name}" >
                 <transform>
                     <matrix>
                         {transfo_rows[0]}

@@ -37,7 +37,7 @@
 <state name="KEY" shader="studio_white">
     <light
         light_type="distant"
-        strength="1.5 1.5 1.5"
+        strength="3.0 3.0 3.0"
         dir="-1 1 -1.5"
         angle="0.3"
         use_mis="true"
@@ -46,7 +46,7 @@
 <state name="FILL" shader="studio_white">
     <light
         light_type="distant"
-        strength="0.1"
+        strength="0.1 0.1 0.1"
         dir="1 1 -0.5"
         angle="2"
         use_mis="true"
@@ -56,7 +56,7 @@
 <state name="RIM" shader="studio_white">
     <light
         light_type="distant"
-        strength="20"
+        strength="0.20 0.20 0.20"
         dir="0 -1 0"
         angle="1.57"
         use_mis="true"
