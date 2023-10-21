@@ -605,6 +605,18 @@ def _write_material_fallback(name, matval):
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
+def _write_material_emission(name, matval, connect_to="output surface"):
+    """Compute a string in the renderer SDL for a Emission material."""
+    # https://github.com/blender/cycles/blob/ccc73ccc570a92f59b0cd63f56a688a7782e346d/src/scene/shader_nodes.cpp#L3144
+    return f"""
+<emission
+    name="{name}_bsdf"
+    color="{matval["color"]}"
+    strength="{matval["power"]}"
+/>
+<connect from="{name}_bsdf emission" to="{connect_to}"/>"""
+
+
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
     "Glass": _write_material_glass,
@@ -613,6 +625,7 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
     "Substance_PBR": _write_material_pbr,
+    "Emission": _write_material_emission,
 }
 
 # ===========================================================================
