@@ -131,6 +131,12 @@ STD_MATERIALS_PARAMETERS = {
         P("Bump", "texscalar", "", _tr("Render", "Bump")),
         P("Normal", "texscalar", "", _tr("Render", "Normal")),
     ],
+    "Emission": [
+        P("Color", "RGB", SUPERWHITE, _tr("Render", "Base color")),
+        P("Power", "float", 60.0, _tr("Render", "Power")),
+        P("Bump", "texscalar", "", _tr("Render", "Bump")),
+        P("Normal", "texscalar", "", _tr("Render", "Normal")),
+    ],
 }
 
 # NB: Above 'Mixed' material could be extended with reflectivity in the
