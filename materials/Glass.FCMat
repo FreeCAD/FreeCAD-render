@@ -1,3 +1,6 @@
+; vi: ft=dosini
+; Howetuft
+
 [General]
 ; General name
 Name = RenderGlass
@@ -12,12 +15,7 @@ DiffuseColor = (0.8, 0.8, 0.8)
 SectionColor = (0.8, 0.8, 0.8)
 Transparency = 100
 
-
-
-[Rendering]
+[Render]
 Render.Type = Glass
 Render.Glass.IOR = 1.5
 Render.Glass.Color = (1.0, 1.0, 1.0)
-
-
-; vi: ft=dosini

@@ -1,10 +1,13 @@
+; vi: ft=dosini
+; Howetuft
+
 [General]
 Name = RenderTerrazzo
 Description = Terrazzo lime stone
 ProductURL = https://ambientcg.com/view?id=Terrazzo019M
 UseObjectColor = False
 
-[Rendering]
+[Render]
 Render.Type = Substance_PBR
 Render.Substance_PBR.BaseColor = Texture('Terrazzo', 0);(0.5,0.5,0.5)
 Render.Substance_PBR.Bump = Texture('Terrazzo', 3, 0.001)
@@ -17,4 +20,3 @@ Render.Textures.Terrazzo.Images.1 = Terrazzo019/Terrazzo019M_1K_Roughness.jpg
 Render.Textures.Terrazzo.Images.2 = Terrazzo019/Terrazzo019M_1K_NormalGL.jpg
 Render.Textures.Terrazzo.Images.3 = Terrazzo019/Terrazzo019M_1K_Displacement.jpg
 Render.Textures.Terrazzo.Scale = 0.2
-; vi: ft=dosini
