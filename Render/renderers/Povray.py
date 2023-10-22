@@ -500,6 +500,19 @@ def _write_material_fallback(name, material):
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
+def _write_material_emission(name, matval):  # pylint: disable=unused-argument
+    """Compute a string in the renderer SDL for a Diffuse material."""
+    bump = matval["bump"] if matval.has_bump() else ""
+    normal = matval["normal"] if matval.has_normal() else ""
+    snippet = f"""texture {{
+        {matval["color"]}
+        finish {{ diffuse albedo 1 ambient 1}}
+        {bump}
+        {normal}
+    }}"""
+    return snippet
+
+
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
     "Glass": _write_material_glass,
@@ -508,6 +521,7 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
     "Substance_PBR": _write_material_pbr,
+    "Emission": _write_material_emission,
 }
 
 
