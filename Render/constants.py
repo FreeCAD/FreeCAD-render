@@ -33,7 +33,7 @@ WBDIR = os.path.dirname(PKGDIR)  # Workbench root directory
 RDRDIR = os.path.join(PKGDIR, "renderers")
 ICONDIR = os.path.join(PKGDIR, "resources", "icons")
 TEMPLATEDIR = os.path.join(WBDIR, "templates")
-WBMATERIALDIR = os.path.join(WBDIR, "materials")
+WBMATERIALDIR = os.path.realpath(os.path.join(WBDIR, "materials"))
 FCDMATERIALDIR = os.path.join(
     App.getResourceDir(), "Mod", "Material", "StandardMaterial"
 )

@@ -1,17 +1,16 @@
+; vi: ft=dosini
+; Howetuft
+
 [General]
-; General name
 Name = RenderIron
 Description = Iron Material for Render
 
 [Architectural]
-; 244, 245, 245 (thanks to Physically Based Rendering Encyclopedia)
 Color = (0.77, 0.78, 0.78)
-
-; Description to be updated
 DiffuseColor = (0.77, 0.78, 0.78)
 SectionColor = (0.77, 0.78, 0.78)
 
-[Rendering]
+[Render]
 Render.Type = Disney
 Render.Disney.Anisotropic = 0.0
 Render.Disney.BaseColor = (0.77, 0.78, 0.78)
@@ -42,4 +41,3 @@ Render.Povray.0006 =     metallic 1
 Render.Povray.0007 =     specular 0.60
 Render.Povray.0008 =     roughness 1/20
 Render.Povray.0009 = }
-; vi: ft=dosini
