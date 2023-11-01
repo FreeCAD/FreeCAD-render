@@ -427,6 +427,21 @@ scene.materials.{n}.kd = {r} {g} {b}
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
 
+def _write_material_emission(name, matval):
+    """Compute a string in the renderer SDL for a Emission material."""
+    efficiency = 15
+    gain = 0.001  # Guesstimated!
+    snippet = f"""
+scene.materials.{name}.type = matte
+scene.materials.{name}.emission = {matval["color"]}
+scene.materials.{name}.emission.gain = {gain} {gain} {gain}
+scene.materials.{name}.emission.power = {matval["power"]}
+scene.materials.{name}.emission.efficency = {efficiency}
+scene.materials.{name}.kd = 0.0 0.0 0.0
+"""
+    return snippet
+
+
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
     "Glass": _write_material_glass,
@@ -435,6 +450,7 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
     "Substance_PBR": _write_material_pbr,
+    "Emission": _write_material_emission,
 }
 
 # ===========================================================================
