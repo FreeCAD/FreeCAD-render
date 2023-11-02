@@ -37,7 +37,7 @@ from PySide.QtGui import QAction, QIcon
 from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 
 from Render.utils import translate
-from Render.constants import ICONDIR
+from Render.constants import ICONDIR, FCDVERSION
 from Render.coin import (
     ShapeCoinNode,
     PointLightCoinNode,
@@ -559,13 +559,22 @@ class ViewProviderBase(ViewProviderBaseInterface):
         for prop_name in self._on_update_mapping():
             self.updateData(fpo, prop_name)
 
-    def __getstate__(self):
-        """Provide data representation for object."""
-        return None
+    if FCDVERSION < (0, 22):
+        def __getstate__(self):
+            """Provide data representation for object."""
+            return None
 
-    def __setstate__(self, state):
-        """Restore object state from data representation."""
-        return None
+        def __setstate__(self, state):
+            """Restore object state from data representation."""
+            return None
+    else:
+        def dumps(self):
+            """Provide data representation for object."""
+            return None
+
+        def loads(self, state):
+            """Restore object state from data representation."""
+            return None
 
     def getDisplayModes(self, vobj):
         """Return a list of display modes (callback)."""
