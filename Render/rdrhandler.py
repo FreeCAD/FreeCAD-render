@@ -761,7 +761,7 @@ class RendererHandler:
         kwargs.update(general_data)
 
         return self._call_renderer(
-            "write_imagelight", name, color, power, direction, **kwargs
+            "write_distantlight", name, color, power, direction, **kwargs
         )
 
     def _call_renderer(self, method, *args, **kwargs):
