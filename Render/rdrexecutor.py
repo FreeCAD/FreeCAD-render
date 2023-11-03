@@ -121,9 +121,9 @@ class RendererWorker(QObject):
 
 
 class ExporterWorker(QObject):
-    """Worker class to run renderer.
+    """Worker class to export scene.
 
-    This class embeds the treatment to be executed to run renderer in separate
+    This class embeds the treatment to be executed to export scene in separate
     thread.
     """
 
