@@ -308,7 +308,7 @@ def write_distantlight(
     # avoid any collision
     name = name + "_"
 
-    factor = power / 100
+    factor = power / 5
     color = color.to_linear()
 
     snippet = f"""
