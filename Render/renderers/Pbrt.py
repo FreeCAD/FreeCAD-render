@@ -222,6 +222,21 @@ AttributeEnd
     return snippet.format(n=name, m=image)
 
 
+def write_distantlight(name, color, power, direction, **kwargs):
+    """Compute a string in renderer SDL to represent a point light."""
+    snippet = """# Distant light '{n}'
+AttributeBegin
+  LightSource "distant"
+    "rgb I" [{c[0]} {c[1]} {c[2]}]
+    "float scale" {s}
+    "point3 from" [0 0 0]
+    "point3 to" [{d.x} {d.y} {d.z}]
+AttributeEnd
+# ~Distant light '{n}'
+"""
+    return snippet.format(n=name, d=direction, c=color.to_linear(), s=power)
+
+
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
