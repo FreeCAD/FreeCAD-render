@@ -436,6 +436,15 @@ def is_assembly3_lnk(obj):
     return obj_is_asm3_lnk
 
 
+def is_link_to(obj, fcdtype):
+    """Check if an objet is a link to an object of a given FreeCAD type"""
+    try:
+        lnkobj = obj.getLinkedObject()
+    except AttributeError:
+        return False
+    return lnkobj.isDerivedFrom(fcdtype)
+
+
 def grouper(iterable, number, *, incomplete="ignore", fillvalue=None):
     "Collect data into non-overlapping fixed-length chunks or blocks"
     # From Python documentation (itertools module)
