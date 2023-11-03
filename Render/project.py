@@ -844,11 +844,12 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
             f"{time.time() - time0}\n"
         )
     # pylint: disable=broad-exception-caught
-    except Exception as exc:
+    except Exception:
         App.Console.PrintError(
             "[Render][Objstrings] /!\\ OBJECTS EXPORT ERROR /!\\\n"
         )
-        traceback.print_exception(exc)
+        traceback.print_exc()
+        objstrings = []
     finally:
         if App.GuiUp:
             QApplication.restoreOverrideCursor()
