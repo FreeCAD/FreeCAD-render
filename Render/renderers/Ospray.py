@@ -507,6 +507,66 @@ def write_imagelight(name, image, **kwargs):
     return snippet
 
 
+def write_distantlight(
+    name,
+    color,
+    power,
+    direction,
+    **kwargs,
+):
+    """Compute a string in renderer SDL to represent a distant light."""
+
+    snippet = """
+      {{
+        "name": "lights",
+        "type": "LIGHTS",
+        "subType": "lights",
+        "children": [
+          {{
+            "name": {n},
+            "type": "LIGHT",
+            "subType": "distant",
+            "children": [
+              {{
+                "name": "visible",
+                "description": "whether the light can be seen directly",
+                "sgOnly": false,
+                "subType": "bool",
+                "type": "PARAMETER",
+                "value": true
+              }},
+              {{
+                "name": "intensity",
+                "description": "intensity of the light (a factor)",
+                "sgOnly": false,
+                "subType": "float",
+                "type": "PARAMETER",
+                "value": {s}
+              }},
+              {{
+                "name": "color",
+                "description": "color of the light",
+                "sgOnly": false,
+                "subType": "rgb",
+                "type": "PARAMETER",
+                "value": [{c[0]}, {c[1]}, {c[2]}]
+              }},
+              {{
+                "name": "direction",
+                "subType": "vec3f",
+                "type": "PARAMETER",
+                "value": [{d.x}, {d.y}, {d.z}]
+              }}
+            ]
+          }}
+        ]
+      }},"""
+    osp_dir = PLACEMENT.multVec(direction)
+    return snippet.format(
+        n=json.dumps(name), c=color.to_linear(), d=osp_dir, s=power
+    )
+
+
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
