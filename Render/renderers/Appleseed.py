@@ -316,6 +316,38 @@ def write_imagelight(name, image, **_):
     return snippet.format(n=name, f=image)
 
 
+def write_distantlight(
+    name,
+    color,
+    power,
+    direction,
+    **kwargs,
+):
+    """Compute a string in renderer SDL to represent a distant light."""
+    snippet = """
+            <!-- Object '{n}' -->
+            <color name="{n}_color">
+                <parameter name="color_space" value="linear_rgb" />
+                <parameter name="multiplier" value="1.0" />
+                <parameter name="wavelength_range" value="400.0 700.0" />
+                <values> {c[0]} {c[1]} {c[2]} </values>
+                <alpha> 1.0 </alpha>
+            </color>
+            <light name="{n}" model="directional_light">
+                <parameter name="color_space" value="linear_rgb" />
+                <parameter name="irradiance" value="{n}_color" />
+                <parameter name="irradiance_multiplier" value="{p}" />
+                <transform>
+                  <look_at origin="0 0 0" target="{t[0]} {t[1]} {t[2]}" up="0 1 0"/>
+                </transform>
+            </light>
+"""
+    return snippet.format(
+        n=name,
+        c=color.to_linear(),
+        p=power,
+        t=_transform(direction),
+    )
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
