@@ -368,6 +368,8 @@ class FeatureBase(FeatureBaseInterface):
             msg = msg.format(d=cls.__name__, v=cls.VIEWPROVIDER)
             trace = sys.exc_info()[2]
             raise ValueError(msg).with_traceback(trace) from original_exc
+            # Hint: have you declared object and its ViewProvider in
+            # __init__.py?
 
         if fpo.ViewObject:
             viewp = viewp_class(fpo.ViewObject)

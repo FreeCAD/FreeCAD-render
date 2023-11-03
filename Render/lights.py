@@ -406,3 +406,59 @@ class ViewProviderImageLight(ViewProviderBase):
     """
 
     ICON = "ImageLight.svg"
+
+
+# ===========================================================================
+#                           Distant Light object
+# ===========================================================================
+
+
+class DistantLight(FeatureBase):
+    """An distant light."""
+
+    VIEWPROVIDER = "ViewProviderDistantLight"
+
+    PROPERTIES = {
+        "Color": Prop(
+            "App::PropertyColor",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Color of light"),
+            (1.0, 1.0, 1.0),
+        ),
+        "Power": Prop(
+            "App::PropertyFloat",
+            "Light",
+            QT_TRANSLATE_NOOP("Render", "Rendering power"),
+            60.0,
+        ),
+        "Direction": Prop(
+            "App::PropertyVector",
+            "Light",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Direction of light from light's point of view "
+            ),
+            (1, 1, -1),
+        ),
+    }
+
+    RENDERING_TYPE = RenderingTypes.DISTANTLIGHT
+
+
+class ViewProviderDistantLight(
+    CoinDirectionalLightViewProviderMixin, ViewProviderBase
+):
+    """View Provider of DistantLight class."""
+
+    ICON = "DistantLight.svg"
+
+    DISPLAY_MODES = ["Shaded", "Wireframe"]
+
+    ON_UPDATE = {"Direction": "_update_direction"}
+
+    def _update_direction(self, fpo):
+        """Update sunsky light direction."""
+        direction = fpo.Direction
+        self.coin.light.set_direction(direction)
+
+

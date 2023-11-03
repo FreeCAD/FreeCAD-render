@@ -53,6 +53,8 @@ from Render.lights import (  # noqa: F401
     ViewProviderSunskyLight,
     ImageLight,
     ViewProviderImageLight,
+    DistantLight,
+    ViewProviderDistantLight,
 )
 from Render.texture import Texture, ViewProviderTexture  # noqa: F401
 from Render.material import (  # noqa: F401
