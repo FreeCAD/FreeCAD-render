@@ -10,7 +10,7 @@ or more external rendering engines. To achieve that, you must follow a 2-step pr
 
 We are aware that installation, particularly the set up of a rendering engine, can be
 a daunting and even dissuasive step.
-Therefore, if you encounter any difficulty, **please do not hesitate to report it as an issue** in order
+Therefore, if you encounter any difficulty, **please do not hesitate to report an issue** in order
 for us to help you and also to improve the process for other users. 
 
 
