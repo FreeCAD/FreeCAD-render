@@ -675,6 +675,16 @@ ns 2
 """
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
+def _write_material_emission(name, matval):
+    """Compute a string in the renderer SDL for a Emission material."""
+    snippet = f"""
+# Emission ('{name}')
+type luminous
+{matval["color"]}
+{matval["power"]}
+transparency 0.0
+"""
+    return snippet
 
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
@@ -684,6 +694,7 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
     "Substance_PBR": _write_material_pbr,
+    "Emission": _write_material_emission,
 }
 
 
@@ -721,6 +732,7 @@ _FIELD_MAPPING = {
     ("Mixed", "displacement"): None,
     ("glass", "color"): "transmissionColor",
     ("diffuse", "color"): "baseColor",
+    ("Emission", "power"): "intensity",
     ("Passthrough", "string"): "",
     ("Passthrough", "renderer"): "",
 }

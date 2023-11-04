@@ -650,6 +650,52 @@ def _write_material_fallback(name, matval):
     return "".join(snippet)
 
 
+def _write_material_emission(name, matval, write_material=True):
+    """Compute a string in the renderer SDL for a Diffuse material."""
+    snippet_edf = f"""
+            <edf name="{name}_edf" model="diffuse_edf">
+                <parameter name="radiance" value="{matval["color"][0]}" />
+                <parameter name="radiance_multiplier" value="{matval["power"]}" />
+                <parameter name="exposure" value="0.0" />
+                <parameter name="cast_indirect_light" value="true" />
+                <parameter name="importance_multiplier" value="1.0" />
+                <parameter name="light_near_start" value="0.0" />
+            </edf>
+            <material name="{name}_mat" model="generic_material">
+                <parameter name="edf" value="{name}_edf" />
+                <parameter name="bump_amplitude" value="1.0" />
+                <parameter name="bump_offset" value="2.0" />
+                <parameter name="displacement_method" value="bump" />
+                <parameter name="normal_map_up" value="z" />
+                <parameter name="alpha_map" value="1" />
+                <parameter name="shade_alpha_cutouts" value="false" />
+            </material>"""
+    snippet_color = SNIPPET_COLOR.format(
+        n=_color_name(name), c=matval["color"][1]
+    )
+    snippet = [snippet_color, snippet_edf]
+    if write_material:
+        snippet_material = _snippet_material(name, matval)
+        snippet_tex = matval.write_textures()
+        snippet += [snippet_tex, snippet_material]
+    return "".join(snippet)
+
+    # TODO Remove
+    snippet_bsdf = f"""
+            <bsdf name="{name}_bsdf" model="lambertian_brdf">
+                <parameter name="reflectance" value="{matval["color"][0]}" />
+            </bsdf>"""
+    snippet_color = SNIPPET_COLOR.format(
+        n=_color_name(name), c=matval["color"][1]
+    )
+    snippet = [snippet_color, snippet_bsdf]
+    if write_material:
+        snippet_material = _snippet_material(name, matval)
+        snippet_tex = matval.write_textures()
+        snippet += [snippet_tex, snippet_material]
+    return "".join(snippet)
+
+
 MATERIALS = {
     "Passthrough": _write_material_passthrough,
     "Glass": _write_material_glass,
@@ -658,6 +704,7 @@ MATERIALS = {
     "Mixed": _write_material_mixed,
     "Carpaint": _write_material_carpaint,
     "Substance_PBR": _write_material_pbr,
+    "Emission": _write_material_emission,
 }
 
 OSL_SHADERS = ["Carpaint", "Substance_PBR"]
@@ -696,8 +743,13 @@ def _snippet_material(name, matval):
     elif matval.has_normal():
         disp_method = "normal"
         disp_map = matval["normal"]
+    elif matval.shadertype == "Emission":
+        return f"""
+            <material name="{name}" model="generic_material">
+                <parameter name="edf" value="{name}_edf" />
+            </material>"""
     else:
-        # No bump, no normal: return simple material
+        # No bump, no normal, no emission: return simple material
         return f"""
             <material name="{name}" model="generic_material">
                 <parameter name="bsdf" value="{name}_bsdf" />
