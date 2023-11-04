@@ -235,12 +235,14 @@ Run Ospray Installer
 Look for `ospStudio.exe` on your system. In Render settings, fill 'OspStudio executable path' with `<path/to/ospStudio.exe>`
 
 #### Cycles standalone
-In general case, Cycles standalone has to be compiled from sources, from here: https://github.com/blender/cycles <br>
-However, compiling Cycles standalone from sources can be tricky and time-consuming, see below. <br>
-Fortunately, users @MisterMakerNL and @metalex201 provide precompiled versions: <br>
+Users @MisterMakerNL and @metalex201 provide precompiled versions, many thanks to them: <br>
+https://github.com/metalex201/Cycles-standalone-windows-build. [4.0.0] <br>
 https://github.com/MisterMakerNL/Cycles-stand-alone-windows-build. [1.13.4] <br>
-https://github.com/metalex201/Cycles-standalone-windows-build. [4.0.0] 
 
+Download the repository as a zip, unzip to a target directory and enter the path to binary to 'Cycles (standalone) executable path' field.
+
+In other cases, for instance for those who like challenges, Cycles standalone can be compiled from sources, from here: https://github.com/blender/cycles <br>
+Compiling Cycles standalone from sources can be tricky and time-consuming; it is recommended to stick to precompiled versions - you'll be warned. <br> 
 
 #### Pbrt
 Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4
