@@ -753,6 +753,7 @@ class RendererHandler:
         color = RGB(src.Color)
         power = float(src.Power)
         direction = App.Vector(src.Direction)
+        angle = src.Angle.getValueAs("°")
 
         specifics = self._get_renderer_specifics(view)
         general_data = self._get_general_data()
@@ -761,7 +762,7 @@ class RendererHandler:
         kwargs.update(general_data)
 
         return self._call_renderer(
-            "write_distantlight", name, color, power, direction, **kwargs
+            "write_distantlight", name, color, power, direction, angle, **kwargs
         )
 
     def _call_renderer(self, method, *args, **kwargs):
