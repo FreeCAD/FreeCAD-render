@@ -8,6 +8,11 @@ or more external rendering engines. To achieve that, you must follow a 2-step pr
 1. Install the rendering engine(s) on your system.
 2. Set up this/these external rendering engine(s) in Render workbench.
 
+We are aware that installation, particularly the set up of a rendering engine, can be
+a daunting and even dissuasive step.
+Therefore, if you encounter any difficulty, **please do not hesitate to report it as an issue** in order
+for us to help you and improve the process for other users. 
+
 ### Install external rendering engines on your system
 
 To use Render Workbench, you must first install one of the supported rendering
@@ -29,6 +34,9 @@ However, you will find below some indications for a few platforms.
 After installing, it is recommended to make sure your rendering engine is fully
 functional: test scenes are usually provided with the renderer for that
 purpose, please refer to its documentation.
+
+You'll also find a 'Test' button on the settings screen for each renderer,
+so you can make sure that the settings you've entered for a renderer make sense for Render Workbench. 
 
 
 ### Set up external rendering engines in the workbench
