@@ -440,6 +440,17 @@ class DistantLight(FeatureBase):
             ),
             (-1, 1, -1),
         ),
+        "Angle": Prop(
+            "App::PropertyAngle",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "Render",
+                "Half angle of the light source. Must be > 0 for soft shadows. "
+                "Not all renderers support this parameter, please refer to "
+                "your renderer's documentation."
+            ),
+            0,
+        ),
     }
 
     RENDERING_TYPE = RenderingTypes.DISTANTLIGHT
