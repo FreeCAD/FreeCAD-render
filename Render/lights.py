@@ -429,7 +429,7 @@ class DistantLight(FeatureBase):
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP("Render", "Rendering power"),
-            60.0,
+            5.0,
         ),
         "Direction": Prop(
             "App::PropertyVector",
@@ -438,7 +438,7 @@ class DistantLight(FeatureBase):
                 "Render",
                 "Direction of light from light's point of view "
             ),
-            (1, 1, -1),
+            (-1, 1, -1),
         ),
     }
 
