@@ -512,6 +512,7 @@ def write_distantlight(
     color,
     power,
     direction,
+    angle,
     **kwargs,
 ):
     """Compute a string in renderer SDL to represent a distant light."""
@@ -552,6 +553,12 @@ def write_distantlight(
                 "value": [{c[0]}, {c[1]}, {c[2]}]
               }},
               {{
+                "name": "angularDiameter",
+                "subType": "float",
+                "type": "PARAMETER",
+                "value": {a}
+              }},
+              {{
                 "name": "direction",
                 "subType": "vec3f",
                 "type": "PARAMETER",
@@ -563,7 +570,7 @@ def write_distantlight(
       }},"""
     osp_dir = PLACEMENT.multVec(direction)
     return snippet.format(
-        n=json.dumps(name), c=color.to_linear(), d=osp_dir, s=power
+        n=json.dumps(name), c=color.to_linear(), d=osp_dir, s=power, a=angle
     )
 
 

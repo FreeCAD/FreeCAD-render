@@ -445,7 +445,8 @@ class DistantLight(FeatureBase):
             chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "Render",
-                "Half angle of the light source. Must be > 0 for soft shadows. "
+                "Apparent size of the light source, as an angle. "
+                "Must be > 0 for soft shadows.\n"
                 "Not all renderers support this parameter, please refer to "
                 "your renderer's documentation."
             ),

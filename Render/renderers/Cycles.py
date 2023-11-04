@@ -380,8 +380,8 @@ def write_distantlight(
 ):
     """Compute a string in renderer SDL to represent a distant light."""
     strength = _write_float(power)
-    # For Cycles, angle must the full angle, in radians, so we have to convert
-    angle = radians(angle / 2)
+    # For Cycles, angle must be in radians, so we have to convert
+    angle = radians(angle)
     angle = _write_float(angle)
 
     snippet = f"""

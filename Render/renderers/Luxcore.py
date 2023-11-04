@@ -286,6 +286,7 @@ scene.lights.{name}.direction = {direction.x} {direction.y} {direction.z}
 scene.lights.{name}.gain = {power} {power} {power}
 """
     else:
+        angle /= 2.
         snippet = f"""
 # Distant light '{name}'
 scene.lights.{name}.type = distant
