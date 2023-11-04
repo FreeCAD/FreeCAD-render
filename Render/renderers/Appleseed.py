@@ -321,9 +321,11 @@ def write_distantlight(
     color,
     power,
     direction,
+    angle,
     **kwargs,
 ):
     """Compute a string in renderer SDL to represent a distant light."""
+    # Nota: 'angle' is not suppported by Appleseed
     snippet = """
             <!-- Object '{n}' -->
             <color name="{n}_color">
