@@ -317,7 +317,7 @@ ready-to-use binaries for many platforms, along with excellent rendering feature
 
 ### Bugs & Errors
 
-All the indications above rely on external information that can vary.
+Most of the indications above rely on external information that can vary.
 
 Please do not hesitate to open an issue to report errors, dead links, out-of-date information, questions and so on.
 
