@@ -222,8 +222,9 @@ AttributeEnd
     return snippet.format(n=name, m=image)
 
 
-def write_distantlight(name, color, power, direction, **kwargs):
+def write_distantlight(name, color, power, direction, angle, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
+    # Nota: angle is not supported by pbrt
     snippet = """# Distant light '{n}'
 AttributeBegin
   LightSource "distant"
