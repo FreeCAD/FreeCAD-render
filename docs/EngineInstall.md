@@ -13,7 +13,11 @@ a daunting and even dissuasive step.
 Therefore, if you encounter any difficulty, **please do not hesitate to report it as an issue** in order
 for us to help you and also to improve the process for other users. 
 
-### Install external rendering engines on your system
+
+
+### Step 1: Install external rendering engines on your system
+
+<details>
 
 To use Render Workbench, you must first install one of the supported rendering
 engines on your system.
@@ -38,9 +42,12 @@ purpose, please refer to its documentation.
 You'll also find a 'Test' button on the settings screen for each renderer,
 so you can make sure that the settings you've entered for a renderer make sense for Render Workbench. 
 
+</details>
 
-### Set up external rendering engines in the workbench
 
+### Step 2: Set up external rendering engines in the workbench
+
+<details>
 Once you have a rendering engine installed on your system, you have to set it
 up in the workbench.
 
@@ -71,10 +78,14 @@ Optionally as well, you can set a few renderer-wide parameters:
 
 [comment]: # (We should add a small script to test installation...)
 
+</details>
 
 ## Per-platform indications
 
+
 ### Ubuntu
+
+<details>
 
 #### Povray
 <ins>Install</ins><br>
@@ -165,8 +176,12 @@ Warning: Installing Cycles standalone from sources can be tricky and time-consum
 #### Pbrt
 Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4
 
+</details>
+
 
 ### Archlinux
+
+<details>
 
 In Archlinux, all renderers have been packaged, either in official repositories or in AUR.
 
@@ -183,8 +198,13 @@ The following array gathers the recommended packages and the corresponding workb
 | Cycles  	| AUR  		| `cycles-standalone`	| Cycles executable path: | `/usr/bin/cycles`|
 | Pbrt  	| AUR  		| `pbrt-v4-git`   	| Pbrt executable path: | `/usr/bin/pbrt`|
 
+</details>
+
+
 
 ### Windows
+
+<details>
 
 #### Povray
 
@@ -255,16 +275,12 @@ Compiling Cycles standalone from sources can be tricky and time-consuming; it is
 #### Pbrt
 Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4
 
+</details>
 
 ## Miscellaneous
 
 ### Notes on installing Cycles for Render (standalone version)
-
-*Caveat: Installing Cycles Standalone can be tricky and time-consuming —
-especially on Microsoft Windows platform. If you have no taste for poorly
-documented installation procedures or if you have no time to waste, you
-should rather consider using Appleseed or LuxCoreRender, which both provide
-ready-to-use binaries, along with excellent rendering features.*
+<details>
 
 To use Cycles renderer with Render workbench, you need a standalone version of
 Cycles, named *Cycles Standalone*. This version is distinct from the one
@@ -272,9 +288,15 @@ embedded in Blender. You will find some more information about *Cycles
 Standalone* in the dedicated Blender [wiki
 page](https://wiki.blender.org/wiki/Source/Render/Cycles/Standalone).
 
-*Cycles Standalone* usually requires compilation from sources, as no
-precompiled binaries are generally available in standard environments. Sources
-and compilation instructions can be found
+No precompiled binaries are provided by Blender team in standard environments.
+
+In several environments, however, you'll be able to find such binaries,
+on the initiatives of advanced users (thanks to them!): see per-platform instructions above.
+
+Mac OS Big Sur users may also find some valuable instructions [here](https://vectronic.io/posts/building-freecad-on-macos-big-sur/#install-cycles-standalone).
+
+In other cases, *Cycles Standalone* may require compilation from sources.
+Sources and compilation instructions can be found
 [here](https://projects.blender.org/blender/cycles/src/branch/main/BUILDING.md).
 
 As an alternative, in the (fairly rare) case you already compile Blender by
@@ -283,10 +305,15 @@ yourself, you can enable `WITH_CYCLES_STANDALONE` and
 `CMAKE_EXE_LINKER_FLAGS`) before your build process. You will then get a
 separate 'cycles' executable compiled together with Blender.
 
-Arch Linux users may avoid all this hassle by using the [package](https://aur.archlinux.org/packages/cycles-standalone/)
-available in AUR.
+*Caveat: Compiling Cycles Standalone can be tricky and time-consuming.
+If you don't have access to binaries, but if you have no taste for poorly
+documented installation procedures or if you have no time to waste, you
+should rather consider using Appleseed, LuxCoreRender or Ospray, which both provide
+ready-to-use binaries for many platforms, along with excellent rendering features.*
 
-Mac OS Big Sur users may also find some valuable instructions [here](https://vectronic.io/posts/building-freecad-on-macos-big-sur/#install-cycles-standalone).
+
+
+</details>
 
 ### Bugs & Errors
 
@@ -294,3 +321,4 @@ All the indications above rely on external information that can vary.
 
 Please do not hesitate to open an issue to report errors, dead links, out-of-date information, questions and so on.
 
+</details>
