@@ -188,7 +188,9 @@ def get_rendering_material(meshname, material, renderer, default_color):
     """
     # Check valid material
     if not is_valid_material(material):
-        ru_debug("Material", f"'{meshname}' <None>", "Fallback to default material")
+        ru_debug(
+            "Material", f"'{meshname}' <None>", "Fallback to default material"
+        )
         return RenderMaterial.build_fallback(default_color)
 
     # Initialize

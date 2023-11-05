@@ -395,7 +395,9 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
         new_name = f"{name}_{base_rend.name}"
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
-        new_color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0), base_rend.defcolor)
+        new_color = _get_shapecolor(
+            obj, kwargs.get("transparency_boost", 0), base_rend.defcolor
+        )
         if not obj.LinkTransform:
             new_mesh.transformation.apply_placement(
                 linkedobj_plc_inverse, left=True

@@ -435,8 +435,7 @@ class DistantLight(FeatureBase):
             "App::PropertyVector",
             "Light",
             QT_TRANSLATE_NOOP(
-                "Render",
-                "Direction of light from light's point of view "
+                "Render", "Direction of light from light's point of view "
             ),
             (-1, 1, -1),
         ),
@@ -448,7 +447,7 @@ class DistantLight(FeatureBase):
                 "Apparent size of the light source, as an angle. "
                 "Must be > 0 for soft shadows.\n"
                 "Not all renderers support this parameter, please refer to "
-                "your renderer's documentation."
+                "your renderer's documentation.",
             ),
             0,
         ),
@@ -472,5 +471,3 @@ class ViewProviderDistantLight(
         """Update sunsky light direction."""
         direction = fpo.Direction
         self.coin.light.set_direction(direction)
-
-

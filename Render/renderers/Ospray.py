@@ -742,6 +742,7 @@ ns 2
 """
     return snippet.format(n=name, r=red, g=grn, b=blu)
 
+
 def _write_material_emission(name, matval):
     """Compute a string in the renderer SDL for a Emission material."""
     snippet = f"""
@@ -752,6 +753,7 @@ type luminous
 transparency 0.0
 """
     return snippet
+
 
 MATERIALS = {
     "Passthrough": _write_material_passthrough,

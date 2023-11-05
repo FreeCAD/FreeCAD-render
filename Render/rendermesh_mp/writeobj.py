@@ -66,7 +66,6 @@ def init(*args):
     SHMS = []
 
 
-
 # Faces
 def func_f(val):
     """Write face."""

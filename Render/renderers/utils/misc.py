@@ -24,6 +24,7 @@
 
 from math import radians, degrees, tan, atan
 
+
 def fovy_to_fovx(fovy, width, height):
     """Convert vertical field of view (fovy) to horizontal (fovx).
 
