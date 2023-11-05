@@ -1346,8 +1346,12 @@ def render(
         if res:
             default_cam = res[-1]  # Take last match
             snippet = '<parameter name="camera" value="{}" />'
+            pattern = (
+                r"<parameter\s+name\s*=\s*\"camera\""
+                r"\s+value\s*=\s*\"(.*?)\"\s*/>"
+            )
             template = re.sub(
-                r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
+                pattern,
                 snippet.format(default_cam),
                 template,
             )
@@ -1361,6 +1365,29 @@ def render(
             template = template.replace(res[0], snippet.format(width, height))
         return template
 
+    def set_denoiser(root):
+        # Nota: only final can denoise (only generic_frame_renderer, actually)
+        # see code in (look for denoise):
+        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/generic/genericframerenderer.cpp
+        # versus code in
+        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/progressive/progressiveframerenderer.cpp
+        for frame in root.iterfind("./output/frame"):
+            denoise_param = frame.find("./parameter[@name='denoiser']")
+            if not denoise_param:
+                denoise_param = et.Element("parameter", name="denoiser")
+                frame.append(denoise_param)
+            denoise_param.set("value", "on")
+            tile_param = frame.find("./parameter[@name='tile_size']")
+            if not tile_param:
+                tile_param = et.Element("parameter", name="tile_size")
+                frame.append(tile_param)
+            tile_param.set("value", "32 32")
+        # Use adaptive sampler for denoising
+        root = set_config_param(root, "final", None, "pixel_renderer", "")
+        root = set_config_param(
+            root, "final", None, "tile_renderer", "adaptive"
+        )
+        return root
 
     # Here starts render
 
@@ -1417,27 +1444,7 @@ def render(
 
     # Denoiser
     if denoise:
-        # Nota: only final can denoise (only generic_frame_renderer, actually)
-        # see code in (look for denoise):
-        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/generic/genericframerenderer.cpp
-        # versus code in
-        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/progressive/progressiveframerenderer.cpp
-        for frame in root.iterfind("./output/frame"):
-            denoise_param = frame.find("./parameter[@name='denoiser']")
-            if not denoise_param:
-                denoise_param = et.Element("parameter", name="denoiser")
-                frame.append(denoise_param)
-            denoise_param.set("value", "on")
-            tile_param = frame.find("./parameter[@name='tile_size']")
-            if not tile_param:
-                tile_param = et.Element("parameter", name="tile_size")
-                frame.append(tile_param)
-            tile_param.set("value", "32 32")
-        # Use adaptive sampler for denoising
-        root = set_config_param(root, "final", None, "pixel_renderer", "")
-        root = set_config_param(
-            root, "final", None, "tile_renderer", "adaptive"
-        )
+        set_denoiser(root)
 
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)

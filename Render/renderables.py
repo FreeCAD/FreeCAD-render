@@ -333,36 +333,32 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for the array object
     """
-    # TODO Use sheer placement, not matrix
     renderables = []
-    base_plc_matrix = obj.Placement.toMatrix()
+    base_plc = obj.Placement
     elements = itertools.compress(obj.ElementList, obj.VisibilityList)
 
     for element in elements:
         if element.isDerivedFrom("App::LinkElement"):
             elem_object = element.LinkedObject
-            elem_placement = element.LinkPlacement
+            elem_plc = element.LinkPlacement
         else:
             elem_object = element
-            elem_placement = element.Placement
+            elem_plc = element.Placement
         elem_name = f"{name}_{element.Name}"
 
         # Compute rends and placements
         base_rends = get_renderables(
             elem_object, elem_name, material, mesher, **kwargs
         )
-        element_plc_matrix = elem_placement.toMatrix()
-        linkedobject_plc_inverse_matrix = (
-            elem_object.Placement.inverse().toMatrix()
-        )
+        linkedobject_plc_inverse = elem_object.Placement.inverse()
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not getattr(obj, "LinkTransform", False):
                 new_mesh.transformation.apply_placement(
-                    linkedobject_plc_inverse_matrix
+                        linkedobject_plc_inverse
                 )
-            new_mesh.transformation.apply_placement(base_plc_matrix)
-            new_mesh.transformation.apply_placement(element_plc_matrix)
+            new_mesh.transformation.apply_placement(base_plc)
+            new_mesh.transformation.apply_placement(elem_plc)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
