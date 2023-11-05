@@ -78,6 +78,7 @@ class RenderingTypes(enum.IntEnum):
     AREALIGHT = 3
     SUNSKYLIGHT = 4
     IMAGELIGHT = 5
+    DISTANTLIGHT = 6
 
 
 # ===========================================================================
@@ -143,6 +144,7 @@ class RendererHandler:
             RenderingTypes.AREALIGHT: RendererHandler._render_arealight,
             RenderingTypes.SUNSKYLIGHT: RendererHandler._render_sunskylight,
             RenderingTypes.IMAGELIGHT: RendererHandler._render_imagelight,
+            RenderingTypes.DISTANTLIGHT: RendererHandler._render_distantlight,
         }
 
     def test_cmdline(self, cli):
@@ -226,6 +228,7 @@ class RendererHandler:
                         "AreaLight",
                         "SunskyLight",
                         "ImageLight",
+                        "DistantLight",
                     ]
                 )
                 or (
@@ -731,6 +734,36 @@ class RendererHandler:
         kwargs.update(general_data)
 
         return self._call_renderer("write_imagelight", name, image, **kwargs)
+
+    def _render_distantlight(self, name, view):
+        """Get a rendering string for an distant light object.
+
+        This method follows EAFP idiom and will raise exceptions if something
+        goes wrong (missing attribute, inconsistent data...).
+
+        Parameters:
+        name -- the name of the image light
+        view -- the view of the image light (contains the light data)
+
+        Returns: a rendering string, obtained from the renderer module
+        """
+        debug("ImageLight", name, "Processing")
+        src = view.Source
+
+        color = RGB(src.Color)
+        power = float(src.Power)
+        direction = App.Vector(src.Direction)
+        angle = src.Angle.getValueAs("°")
+
+        specifics = self._get_renderer_specifics(view)
+        general_data = self._get_general_data()
+        kwargs = {}
+        kwargs.update(specifics)
+        kwargs.update(general_data)
+
+        return self._call_renderer(
+            "write_distantlight", name, color, power, direction, angle, **kwargs
+        )
 
     def _call_renderer(self, method, *args, **kwargs):
         """Call a render method of the renderer module.

@@ -274,6 +274,31 @@ scene.lights.{n}.gamma = 1.0
     return dedent(snippet).format(n=name, f=image)
 
 
+def write_distantlight(name, color, power, direction, angle, **args):
+    """Compute a string in renderer SDL to represent an image-based light."""
+    color = color.to_srgb()
+    if angle <= 0:
+        snippet = f"""
+# Distant light '{name}'
+scene.lights.{name}.type = sharpdistant
+scene.lights.{name}.color = luxcore 2.2 {color[0]} {color[1]} {color[2]}
+scene.lights.{name}.direction = {direction.x} {direction.y} {direction.z}
+scene.lights.{name}.gain = {power} {power} {power}
+"""
+    else:
+        angle /= 2.
+        snippet = f"""
+# Distant light '{name}'
+scene.lights.{name}.type = distant
+scene.lights.{name}.color = luxcore 2.2 {color[0]} {color[1]} {color[2]}
+scene.lights.{name}.direction = {direction.x} {direction.y} {direction.z}
+scene.lights.{name}.gain = {power} {power} {power}
+scene.lights.{name}.theta = {angle}
+"""
+
+    return dedent(snippet)
+
+
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
