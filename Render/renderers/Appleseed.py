@@ -1372,21 +1372,22 @@ def render(
     with open(input_file, "r", encoding="utf-8") as f:
         template = f.read()
 
-    # Gather cameras, environment_edf, environment_shader, environment elements
+    # Move blocks in order to gather cameras, environment_edf,
+    # environment_shader, environment elements
     # in scene block (keeping only one environment element)
-    template = move_elements(template, "camera", "scene")
-    template = move_elements(template, "environment_edf", "scene")
-    template = move_elements(template, "environment_shader", "scene")
-    template = move_elements(template, "environment", "scene", True)
-    template = move_elements(
-        template, "scene_texture", "scene", replace="texture"
+    moves = (
+        ("camera", "scene", False, None),
+        ("environment_edf", "scene", False, None),
+        ("environment_shader", "scene", False, None),
+        ("environment", "scene", True, None),
+        ("scene_texture", "scene", False, "texture"),
+        ("scene_texture_instance", "scene", False, "texture"),
+        ("search_path", "search_paths", True, None),
     )
-    template = move_elements(
-        template, "scene_texture_instance", "scene", replace="texture_instance"
-    )
-    template = move_elements(template, "search_path", "search_paths", True)
+    for move in moves:
+        template = move_elements(template, *move)
 
-    # Change image size
+    # Set image size
     template = set_image_size(template)
 
     # Define default camera
