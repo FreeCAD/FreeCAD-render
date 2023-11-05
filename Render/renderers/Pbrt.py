@@ -228,7 +228,7 @@ def write_distantlight(name, color, power, direction, angle, **kwargs):
     snippet = """# Distant light '{n}'
 AttributeBegin
   LightSource "distant"
-    "rgb I" [{c[0]} {c[1]} {c[2]}]
+    "rgb L" [{c[0]} {c[1]} {c[2]}]
     "float scale" {s}
     "point3 from" [0 0 0]
     "point3 to" [{d.x} {d.y} {d.z}]
