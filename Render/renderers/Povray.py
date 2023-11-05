@@ -304,6 +304,7 @@ def write_distantlight(
     angle,
     **kwargs,
 ):
+    # pylint: disable=unused-argument
     """Compute a string in renderer SDL to represent a distant light."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision

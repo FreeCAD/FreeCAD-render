@@ -577,8 +577,12 @@ class ViewProviderBase(ViewProviderBaseInterface):
             """Provide data representation for object."""
             return None
 
-        def loads(self, state):
-            """Restore object state from data representation."""
+        def loads(self, _):
+            """Restore object state from data representation.
+
+            Args:
+                state -- previous state to restore object to
+            """
             return None
 
     def getDisplayModes(self, vobj):

@@ -333,7 +333,6 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for the array object
     """
-    # TODO Check left/right apply
     # TODO Use sheer placement, not matrix
     renderables = []
     base_plc_matrix = obj.Placement.toMatrix()
@@ -386,7 +385,6 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
     A list of renderables for the object
     """
     linkedobj = obj.LinkedObject
-    objcolor = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
     base_rends = get_renderables(linkedobj, name, material, mesher, **kwargs)
     link_plc = obj.LinkPlacement
     linkedobj_plc_inverse = linkedobj.Placement.inverse()

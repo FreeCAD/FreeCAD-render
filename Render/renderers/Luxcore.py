@@ -274,7 +274,7 @@ scene.lights.{n}.gamma = 1.0
     return dedent(snippet).format(n=name, f=image)
 
 
-def write_distantlight(name, color, power, direction, angle, **args):
+def write_distantlight(name, color, power, direction, angle, **_):
     """Compute a string in renderer SDL to represent an image-based light."""
     color = color.to_srgb()
     if angle <= 0:

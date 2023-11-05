@@ -513,7 +513,7 @@ def write_distantlight(
     power,
     direction,
     angle,
-    **kwargs,
+    **_,
 ):
     """Compute a string in renderer SDL to represent a distant light."""
 

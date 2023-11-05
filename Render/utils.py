@@ -436,12 +436,22 @@ def is_assembly3_lnk(obj):
     return obj_is_asm3_lnk
 
 
-def is_link_to(obj, fcdtype):
-    """Check if an objet is a link to an object of a given FreeCAD type"""
+def is_derived_or_link_asm3(obj):
+    """Check if an object is an assembly3 or a link to an assembly3 object."""
+    return is_assembly3(obj) or is_assembly3_lnk(obj)
+
+
+def is_derived_or_link(obj, fcdtype):
+    """Check if an objet is derived from or a link to a given FreeCAD type"""
+    # Is derived from
+    if obj.isDerivedFrom(fcdtype):
+        return True
+
+    # Is link to
     try:
         lnkobj = obj.getLinkedObject()
     except AttributeError:
-        return False
+        return False  # Not a link
     return lnkobj.isDerivedFrom(fcdtype)
 
 
