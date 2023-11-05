@@ -522,7 +522,9 @@ class RendererHandler:
 
         res = [
             write_mesh(
-                r.name, r.mesh, get_mat(r.name, r.material, rdrname, r.defcolor)
+                r.name,
+                r.mesh,
+                get_mat(r.name, r.material, rdrname, r.defcolor),
             )
             for r in rends
         ]
@@ -762,7 +764,13 @@ class RendererHandler:
         kwargs.update(general_data)
 
         return self._call_renderer(
-            "write_distantlight", name, color, power, direction, angle, **kwargs
+            "write_distantlight",
+            name,
+            color,
+            power,
+            direction,
+            angle,
+            **kwargs,
         )
 
     def _call_renderer(self, method, *args, **kwargs):
