@@ -1283,7 +1283,7 @@ def render(
     """
 
     def move_elements(
-        element_tag, destination, template, keep_one=False, replace=None
+        template, element_tag, destination, keep_one=False, replace=None
     ):
         """Move elements into another (root) element.
 
@@ -1340,6 +1340,28 @@ def render(
 
         return root
 
+    def define_default_camera(template):
+        """Define a default camera in the template file."""
+        res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
+        if res:
+            default_cam = res[-1]  # Take last match
+            snippet = '<parameter name="camera" value="{}" />'
+            template = re.sub(
+                r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
+                snippet.format(default_cam),
+                template,
+            )
+        return template
+
+    def set_image_size(template):
+        """Set image size parameters in template."""
+        res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
+        if res:
+            snippet = '<parameter name="resolution" value="{} {}"/>'
+            template = template.replace(res[0], snippet.format(width, height))
+        return template
+
+
     # Here starts render
 
     # Make various adjustments on file:
@@ -1352,34 +1374,23 @@ def render(
 
     # Gather cameras, environment_edf, environment_shader, environment elements
     # in scene block (keeping only one environment element)
-    template = move_elements("camera", "scene", template)
-    template = move_elements("environment_edf", "scene", template)
-    template = move_elements("environment_shader", "scene", template)
-    template = move_elements("environment", "scene", template, True)
+    template = move_elements(template, "camera", "scene")
+    template = move_elements(template, "environment_edf", "scene")
+    template = move_elements(template, "environment_shader", "scene")
+    template = move_elements(template, "environment", "scene", True)
     template = move_elements(
-        "scene_texture", "scene", template, replace="texture"
+        template, "scene_texture", "scene", replace="texture"
     )
     template = move_elements(
-        "scene_texture_instance", "scene", template, replace="texture_instance"
+        template, "scene_texture_instance", "scene", replace="texture_instance"
     )
-    template = move_elements("search_path", "search_paths", template, True)
+    template = move_elements(template, "search_path", "search_paths", True)
 
     # Change image size
-    res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
-    if res:
-        snippet = '<parameter name="resolution" value="{} {}"/>'
-        template = template.replace(res[0], snippet.format(width, height))
+    template = set_image_size(template)
 
     # Define default camera
-    res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
-    if res:
-        default_cam = res[-1]  # Take last match
-        snippet = '<parameter name="camera" value="{}" />'
-        template = re.sub(
-            r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
-            snippet.format(default_cam),
-            template,
-        )
+    template = define_default_camera(template)
 
     # xml root element
     root = et.fromstring(template)
