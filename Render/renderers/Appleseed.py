@@ -324,6 +324,7 @@ def write_distantlight(
     angle,
     **kwargs,
 ):
+    # pylint: disable=unused-argument
     """Compute a string in renderer SDL to represent a distant light."""
     # Nota: 'angle' is not suppported by Appleseed
     snippet = """
@@ -710,21 +711,6 @@ def _write_material_emission(name, matval, write_material=True):
         n=_color_name(name), c=matval["color"][1]
     )
     snippet = [snippet_color, snippet_edf]
-    if write_material:
-        snippet_material = _snippet_material(name, matval)
-        snippet_tex = matval.write_textures()
-        snippet += [snippet_tex, snippet_material]
-    return "".join(snippet)
-
-    # TODO Remove
-    snippet_bsdf = f"""
-            <bsdf name="{name}_bsdf" model="lambertian_brdf">
-                <parameter name="reflectance" value="{matval["color"][0]}" />
-            </bsdf>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["color"][1]
-    )
-    snippet = [snippet_color, snippet_bsdf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
         snippet_tex = matval.write_textures()

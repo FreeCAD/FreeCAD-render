@@ -253,7 +253,9 @@ def get_rendering_material(meshname, material, renderer, default_color):
     else:
         # Found usable father
         debug(f"Retrieve father material '{father_name}'")
-        return get_rendering_material(father, renderer, default_color)
+        return get_rendering_material(
+            meshname, father, renderer, default_color
+        )
 
     # Try with Coin-like parameters (backward compatibility)
     try:
