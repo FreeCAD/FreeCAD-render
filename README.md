@@ -82,6 +82,7 @@ FreeCAD model is just a 4-steps process:
 
 <br /> **...and you should get a first rendering of your model.** <br />
 
+You can also find a short tutorial on how to get started here: https://www.youtube.com/watch?v=8wsOnwjKG9M
 
 ## More features
 
