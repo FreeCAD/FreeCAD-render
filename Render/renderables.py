@@ -38,9 +38,11 @@ Renderables
 import itertools
 import collections
 import math
+import os.path
 
 import FreeCAD as App
 
+# Assembly3
 try:
     if not App.GuiUp:
         # assembly3 needs Gui...
@@ -54,6 +56,12 @@ except (ImportError, ModuleNotFoundError):
     AsmBase = type(None)
     AsmConstraintGroup = type(None)
     AsmElementGroup = type(None)
+
+# A2plus
+try:
+    from a2plib import isA2pPart
+except (ImportError, ModuleNotFoundError):
+    isA2pPart = lambda _: False
 
 from Render.utils import (
     translate,
@@ -128,6 +136,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         if upper_material is None
         else upper_material
     )
+    print(obj.Name, type(obj), "Material before filter", mat, obj.PropertiesList)  # TODO
     mat = mat if is_valid_material(mat) or is_multimat(mat) else None
     del upper_material  # Should not be used after this point...
 
@@ -135,8 +144,15 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     ignore_unknown = bool(kwargs.get("ignore_unknown", False))
     transparency_boost = int(kwargs.get("transparency_boost", 0))
 
+    # A2plus Part
+    if isA2pPart(obj):
+        debug("Object", label, "'A2plus Part detected'")
+        renderables = _get_rends_from_a2plus(
+            obj, name, mat, mesher, **kwargs
+        )
+
     # Assembly3 link
-    if obj_is_asm3_lnk:
+    elif obj_is_asm3_lnk:
         debug("Object", label, "'Assembly3 link' detected")
         renderables = _get_rends_from_assembly3(
             obj, name, mat, mesher, **kwargs
@@ -261,6 +277,97 @@ def check_renderables(renderables):
 # ===========================================================================
 #                              Locals (helpers)
 # ===========================================================================
+
+# TODO
+from Render.rdrexecutor import ExporterWorker
+from PySide2.QtCore import QCoreApplication, QMetaObject, Qt, QEventLoop
+import time
+
+a2p_subdocs = set()
+
+
+def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
+    """Get renderables from an A2plus object.
+
+    Parameters:
+    obj -- the container object
+    name -- the name assigned to the container object for rendering
+    material -- the material for the container object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for this object
+    """
+    def open_subdoc(*args):
+        path, *_ = args
+        doc = App.openDocument(path, hidden=True)
+        print("doc = App.openDocument('%s')" % path)
+        return doc
+
+    objdir = os.path.dirname(obj.Document.FileName)
+    subdoc_path = os.path.join(objdir, obj.sourceFile)
+
+    try:
+        subdoc = _exec_in_mainthread(open_subdoc, (subdoc_path,))
+    except OSError:  # TODO Manage exception in worker
+        warn("Could not find file '%s' - Falling back to part feature" % subdoc_path)
+        return _get_rends_from_partfeature(obj, name, material, mesher, **kwargs)
+
+    debug("Object", name, "A2P - Processing '%s'" % subdoc.Name)
+
+    a2p_subdocs.add(subdoc.Name)
+
+    rends = []
+
+    # Only first level objects
+    for subobj in [d for d in subdoc.Objects if not d.InList]:
+        # TODO Naming
+        # TODO Apply placement
+        subname = subobj.Name
+        kwargs["ignore_unknown"] = True
+        base_rends = get_renderables(subobj, subname, material, mesher, **kwargs)
+
+        # Apply placement and set name
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            new_mesh.transformation.apply_placement(obj.Placement, left=True)
+            new_mat = _get_material(base_rend, material)
+            new_name = "{}_{}".format(name, base_rend.name)
+            print("base_rend: %s" % new_name, base_rend.material)
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
+            rends.append(new_rend)
+
+    debug("Object", name, "A2P - Leaving '%s'" % subdoc.Name)
+    return [r for r in rends if r.mesh.count_facets]
+
+# TODO
+def _exec_in_mainthread(func, *args):
+    # TODO Rename ExporterWorker (or move to rdrexecutor)
+    worker = ExporterWorker(func, *args)
+    main_thread = QCoreApplication.instance().thread()
+    loop = QEventLoop()
+    worker.finished.connect(loop.quit)
+    worker.moveToThread(main_thread)
+    QMetaObject.invokeMethod(worker, "run", Qt.QueuedConnection)
+    loop.exec_()
+    return worker.result()
+
+def clean_a2p():
+    def close_subdoc(*args):
+        name, *_ = args
+        try:
+            App.closeDocument(name)
+        except NameError:
+            print("Unable to close '%s'" % name)
+        print("Closing %s" % name)
+
+    while a2p_subdocs:
+        name = a2p_subdocs.pop()
+        _exec_in_mainthread(close_subdoc, (name,))
+
+
+
 
 
 def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
