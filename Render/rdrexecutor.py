@@ -36,6 +36,7 @@ from subprocess import Popen, PIPE, STDOUT, SubprocessError
 from PySide.QtCore import (
     QThread,
     Signal,
+    Slot,
     QObject,
     QCoreApplication,
     QEventLoop,
@@ -142,6 +143,7 @@ class ExporterWorker(QObject):
         self.lock = threading.Lock()
         self.res = []
 
+    @Slot()
     def run(self):
         """Run worker.
 

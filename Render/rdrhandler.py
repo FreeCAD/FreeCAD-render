@@ -249,6 +249,11 @@ class RendererHandler:
         return res
 
     @staticmethod
+    def clean():
+        """Clean workspace after getting strings."""
+        renderables.clean_a2p()
+
+    @staticmethod
     def is_project(obj):
         """Determine if an object is a rendering project.
 

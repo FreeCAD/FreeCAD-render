@@ -816,6 +816,8 @@ def _get_objstrings_helper(renderer, views):
     rdr_executor.join()
     objstrings = exporter_worker.result()
 
+    renderer.clean()
+
     return objstrings
 
 
