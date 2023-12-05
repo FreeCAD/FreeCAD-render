@@ -39,6 +39,8 @@ import itertools
 import collections
 import math
 import os.path
+import shutil
+
 
 import FreeCAD as App
 
@@ -61,7 +63,11 @@ except (ImportError, ModuleNotFoundError):
 try:
     from a2plib import isA2pPart
 except (ImportError, ModuleNotFoundError):
-    isA2pPart = lambda _: False
+    # pylint: disable=invalid-name
+    def isA2pPart(_):
+        """Default function in case a2plib is not available."""
+        return False
+
 
 from Render.utils import (
     translate,
@@ -72,6 +78,7 @@ from Render.utils import (
     WHITE,
 )
 from Render.rendermaterial import is_multimat, is_valid_material
+from Render.rdrexecutor import exec_in_mainthread
 
 
 # ===========================================================================
@@ -136,7 +143,6 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         if upper_material is None
         else upper_material
     )
-    print(obj.Name, type(obj), "Material before filter", mat, obj.PropertiesList)  # TODO
     mat = mat if is_valid_material(mat) or is_multimat(mat) else None
     del upper_material  # Should not be used after this point...
 
@@ -147,9 +153,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # A2plus Part
     if isA2pPart(obj):
         debug("Object", label, "'A2plus Part detected'")
-        renderables = _get_rends_from_a2plus(
-            obj, name, mat, mesher, **kwargs
-        )
+        renderables = _get_rends_from_a2plus(obj, name, mat, mesher, **kwargs)
 
     # Assembly3 link
     elif obj_is_asm3_lnk:
@@ -278,12 +282,6 @@ def check_renderables(renderables):
 #                              Locals (helpers)
 # ===========================================================================
 
-# TODO
-from Render.rdrexecutor import ExporterWorker
-from PySide2.QtCore import QCoreApplication, QMetaObject, Qt, QEventLoop
-import time
-import shutil
-
 a2p_subdocs = set()
 
 
@@ -299,39 +297,37 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for this object
     """
+
     def open_subdoc(*args):
         path, *_ = args
         doc = App.openDocument(path, hidden=True)
-        print("doc = App.openDocument('%s')" % path)
         return doc
 
     objdir = os.path.dirname(obj.Document.FileName)
     subdoc_path = os.path.join(objdir, obj.sourceFile)
 
-    try:
-        subdoc = _exec_in_mainthread(open_subdoc, (subdoc_path,))
-    except OSError:  # TODO Manage exception in worker
-        warn("Could not find file '%s' - Falling back to part feature" % subdoc_path)
-        return _get_rends_from_partfeature(obj, name, material, mesher, **kwargs)
+    subdoc = exec_in_mainthread(open_subdoc, (subdoc_path,))
 
-    debug("Object", name, "A2P - Processing '%s'" % subdoc.Name)
+    debug("Object", name, f"A2P - Processing '{subdoc.Name}'")
 
     a2p_subdocs.add(subdoc.Name)
 
     rends = []
 
     # Only first level objects
-    for subobj in [d for d in subdoc.Objects if not d.InList]:
+    for subobj in (d for d in subdoc.Objects if not d.InList):
         subname = subobj.Name
         kwargs["ignore_unknown"] = True
-        base_rends = get_renderables(subobj, subname, material, mesher, **kwargs)
+        base_rends = get_renderables(
+            subobj, subname, material, mesher, **kwargs
+        )
 
         # Apply placement and set name
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             new_mesh.transformation.apply_placement(obj.Placement, left=True)
             new_mat = _get_material(base_rend, material)
-            new_name = "{}_{}".format(name, base_rend.name)
+            new_name = f"{name}_{base_rend.name}"
             new_color = base_rend.defcolor
             new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
             rends.append(new_rend)
@@ -352,39 +348,11 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
                         os.remove(dst_path)
                     except FileNotFoundError:
                         pass
-
+                    # Copy to main doc transient dir
                     shutil.copyfile(org_path, dst_path)
 
-    debug("Object", name, "A2P - Leaving '%s'" % subdoc.Name)
+    debug("Object", name, f"A2P - Leaving '{subdoc.Name}'")
     return [r for r in rends if r.mesh.count_facets]
-
-# TODO
-def _exec_in_mainthread(func, *args):
-    # TODO Rename ExporterWorker (or move to rdrexecutor)
-    worker = ExporterWorker(func, *args)
-    main_thread = QCoreApplication.instance().thread()
-    loop = QEventLoop()
-    worker.finished.connect(loop.quit)
-    worker.moveToThread(main_thread)
-    QMetaObject.invokeMethod(worker, "run", Qt.QueuedConnection)
-    loop.exec_()
-    return worker.result()
-
-def clean_a2p():
-    def close_subdoc(*args):
-        name, *_ = args
-        try:
-            App.closeDocument(name)
-        except NameError:
-            print("Unable to close '%s'" % name)
-        print("Closing %s" % name)
-
-    while a2p_subdocs:
-        name = a2p_subdocs.pop()
-        _exec_in_mainthread(close_subdoc, (name,))
-
-
-
 
 
 def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
@@ -479,7 +447,7 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
             new_mesh = base_rend.mesh.copy()
             if not getattr(obj, "LinkTransform", False):
                 new_mesh.transformation.apply_placement(
-                        linkedobject_plc_inverse
+                    linkedobject_plc_inverse
                 )
             new_mesh.transformation.apply_placement(base_plc)
             new_mesh.transformation.apply_placement(elem_plc)
@@ -900,3 +868,18 @@ def _needs_uvmap(material):
         return proxy.has_textures()
     except AttributeError:
         return False
+
+
+def clean_a2p():
+    """Clean/close A2Plus intermediate objects."""
+
+    def close_subdoc(*args):
+        name, *_ = args
+        try:
+            App.closeDocument(name)
+        except NameError:
+            print(f"Unable to close '{name}'")
+
+    while a2p_subdocs:
+        name = a2p_subdocs.pop()
+        exec_in_mainthread(close_subdoc, (name,))
