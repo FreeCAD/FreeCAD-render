@@ -62,7 +62,7 @@ def make_material(name="Material", color=None, transparency=None):
     if color:
         obj.Color = color[:3]
         if len(color) > 3:
-            obj.Transparency = color[3] * 100
+            obj.Transparency = round(color[3] * 100)
     if transparency:
         obj.Transparency = transparency
     return obj
