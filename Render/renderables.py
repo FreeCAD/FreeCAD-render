@@ -282,6 +282,7 @@ def check_renderables(renderables):
 from Render.rdrexecutor import ExporterWorker
 from PySide2.QtCore import QCoreApplication, QMetaObject, Qt, QEventLoop
 import time
+import shutil
 
 a2p_subdocs = set()
 
@@ -321,8 +322,6 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
 
     # Only first level objects
     for subobj in [d for d in subdoc.Objects if not d.InList]:
-        # TODO Naming
-        # TODO Apply placement
         subname = subobj.Name
         kwargs["ignore_unknown"] = True
         base_rends = get_renderables(subobj, subname, material, mesher, **kwargs)
@@ -333,10 +332,28 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
             new_mesh.transformation.apply_placement(obj.Placement, left=True)
             new_mat = _get_material(base_rend, material)
             new_name = "{}_{}".format(name, base_rend.name)
-            print("base_rend: %s" % new_name, base_rend.material)
             new_color = base_rend.defcolor
             new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
             rends.append(new_rend)
+
+            # Copy texture files if needed
+            if new_mat and new_mat.Proxy.has_textures():
+                image_paths = (
+                    t.getPropertyByName(i.image)
+                    for t in new_mat.Proxy.get_textures()
+                    for i in t.Proxy.get_images()
+                )
+                for org_path in image_paths:
+                    dst_path = os.path.join(
+                        obj.Document.TransientDir, os.path.basename(org_path)
+                    )
+                    # Remove before copying
+                    try:
+                        os.remove(dst_path)
+                    except FileNotFoundError:
+                        pass
+
+                    shutil.copyfile(org_path, dst_path)
 
     debug("Object", name, "A2P - Leaving '%s'" % subdoc.Name)
     return [r for r in rends if r.mesh.count_facets]
