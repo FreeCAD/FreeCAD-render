@@ -290,7 +290,6 @@ class RenderMaterial:
     # Factory methods (static)
 
     @staticmethod
-    @functools.lru_cache(maxsize=128)
     def build_standard(shadertype, values):
         """Build standard material."""
         res = RenderMaterial(shadertype)
@@ -311,7 +310,6 @@ class RenderMaterial:
         return res
 
     @staticmethod
-    @functools.lru_cache(maxsize=128)
     def build_passthrough(lines, renderer, default_color):
         """Build passthrough material."""
         res = RenderMaterial("Passthrough")
@@ -325,7 +323,6 @@ class RenderMaterial:
         return res
 
     @staticmethod
-    @functools.lru_cache(maxsize=128)
     def build_fallback(color):
         """Build fallback material (mixed).
 
@@ -924,7 +921,6 @@ _PASSTHRU_REPLACED_TOKENS = (
 )
 
 
-@functools.lru_cache(maxsize=128)
 def _convert_passthru(passthru):
     """Convert a passthrough string from FCMat format to Python FSML.
 
@@ -1040,7 +1036,6 @@ def _get_float(material, param_prefix, param_name, default=0.0):
     return material.get(param_prefix + param_name, default)
 
 
-@functools.lru_cache(maxsize=128)
 def passthrough_keys(renderer):
     """Compute material card keys for passthrough rendering material."""
     return {f"Render.{renderer}.{i:04}" for i in range(1, 9999)}
@@ -1048,10 +1043,7 @@ def passthrough_keys(renderer):
 
 def clear_cache():
     """Clear functions caches (debug purpose)."""
-    RenderMaterial.build_standard.cache_clear()
-    RenderMaterial.build_passthrough.cache_clear()
-    RenderMaterial.build_fallback.cache_clear()
-    _convert_passthru.cache_clear()
+    # Remove cache feature (error prone)
 
 
 # ===========================================================================
