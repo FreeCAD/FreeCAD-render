@@ -301,13 +301,27 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
 
     def open_subdoc(*args):
         path, *_ = args
-        doc = App.openDocument(path, hidden=True)
+        try:
+            doc = App.openDocument(path, hidden=True)
+        except OSError:
+            doc = None
         return doc
 
     objdir = os.path.dirname(obj.Document.FileName)
-    subdoc_path = os.path.join(objdir, obj.sourceFile)
+    subdoc_path = os.path.normpath(os.path.join(objdir, obj.sourceFile))
 
     subdoc = exec_in_mainthread(open_subdoc, (subdoc_path,))
+    print("here")
+
+    if not subdoc:
+        warn(
+            "Object",
+            name,
+            f"A2P - file '{subdoc_path}' not found - Falling back to default behavior",
+        )
+        return _get_rends_from_partfeature(
+            obj, name, material, mesher, **kwargs
+        )
 
     debug("Object", name, f"A2P - Processing '{subdoc.Name}'")
 
@@ -341,8 +355,11 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
                     for i in t.Proxy.get_images()
                 )
                 for org_path in image_paths:
-                    dst_path = os.path.join(
-                        obj.Document.TransientDir, os.path.basename(org_path)
+                    dst_path = os.path.normpath(
+                        os.path.join(
+                            obj.Document.TransientDir,
+                            os.path.basename(org_path),
+                        )
                     )
                     # Remove before copying
                     try:
