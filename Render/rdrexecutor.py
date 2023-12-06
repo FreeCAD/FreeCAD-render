@@ -36,9 +36,12 @@ from subprocess import Popen, PIPE, STDOUT, SubprocessError
 from PySide.QtCore import (
     QThread,
     Signal,
+    Slot,
     QObject,
     QCoreApplication,
     QEventLoop,
+    QMetaObject,
+    Qt,
 )
 
 import FreeCAD as App
@@ -142,6 +145,7 @@ class ExporterWorker(QObject):
         self.lock = threading.Lock()
         self.res = []
 
+    @Slot()
     def run(self):
         """Run worker.
 
@@ -247,6 +251,22 @@ class RendererExecutorCli(threading.Thread):
         called directly, but via Thread.start().
         """
         self.worker.run()
+
+
+def exec_in_mainthread(func, *args):
+    """Execute a function in the main thread.
+
+    Some methods of FreeCAD API require to be executed in main thread.
+    This function provides a way to do so.
+    """
+    worker = ExporterWorker(func, *args)
+    main_thread = QCoreApplication.instance().thread()
+    loop = QEventLoop()
+    worker.finished.connect(loop.quit)
+    worker.moveToThread(main_thread)
+    QMetaObject.invokeMethod(worker, "run", Qt.QueuedConnection)
+    loop.exec_()
+    return worker.result()
 
 
 RendererExecutor = RendererExecutorGui if App.GuiUp else RendererExecutorCli

@@ -562,6 +562,7 @@ class ViewProviderBase(ViewProviderBaseInterface):
             self.updateData(fpo, prop_name)
 
     if FCDVERSION < (0, 22):
+
         def __getstate__(self):
             """Provide data representation for object."""
             return None
@@ -569,13 +570,19 @@ class ViewProviderBase(ViewProviderBaseInterface):
         def __setstate__(self, state):
             """Restore object state from data representation."""
             return None
+
     else:
+
         def dumps(self):
             """Provide data representation for object."""
             return None
 
-        def loads(self, state):
-            """Restore object state from data representation."""
+        def loads(self, _):
+            """Restore object state from data representation.
+
+            Args:
+                state -- previous state to restore object to
+            """
             return None
 
     def getDisplayModes(self, vobj):

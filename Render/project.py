@@ -51,9 +51,8 @@ from Render.utils import (
     set_last_cmd,
     clear_report_view,
     WHITE,
-    is_assembly3,
-    is_assembly3_lnk,
-    is_link_to,
+    is_derived_or_link,
+    is_derived_or_link_asm3,
 )
 from Render.view import View
 from Render.groundplane import create_groundplane_view
@@ -301,12 +300,9 @@ class Project(FeatureBase):
                 success = False
                 if (
                     hasattr(obj, "Group")
-                    and not obj.isDerivedFrom("App::Part")
-                    and not obj.isDerivedFrom("PartDesign::Body")
-                    and not is_link_to(obj, "App::Part")
-                    and not is_link_to(obj, "PartDesign::Body")
-                    and not is_assembly3(obj)
-                    and not is_assembly3_lnk(obj)
+                    and not is_derived_or_link(obj, "App::Part")
+                    and not is_derived_or_link(obj, "PartDesign::Body")
+                    and not is_derived_or_link_asm3(obj)
                 ):
                     assert obj != group  # Just in case (infinite recursion)...
                     label = View.view_label(obj, group, True)
@@ -819,6 +815,8 @@ def _get_objstrings_helper(renderer, views):
     rdr_executor.start()
     rdr_executor.join()
     objstrings = exporter_worker.result()
+
+    renderer.clean()
 
     return objstrings
 

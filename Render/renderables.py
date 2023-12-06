@@ -38,9 +38,13 @@ Renderables
 import itertools
 import collections
 import math
+import os.path
+import shutil
+
 
 import FreeCAD as App
 
+# Assembly3
 try:
     if not App.GuiUp:
         # assembly3 needs Gui...
@@ -55,6 +59,16 @@ except (ImportError, ModuleNotFoundError):
     AsmConstraintGroup = type(None)
     AsmElementGroup = type(None)
 
+# A2plus
+try:
+    from a2plib import isA2pPart
+except (ImportError, ModuleNotFoundError):
+    # pylint: disable=invalid-name
+    def isA2pPart(_):
+        """Default function in case a2plib is not available."""
+        return False
+
+
 from Render.utils import (
     translate,
     debug,
@@ -62,8 +76,10 @@ from Render.utils import (
     getproxyattr,
     RGB,
     WHITE,
+    get_a2p,
 )
 from Render.rendermaterial import is_multimat, is_valid_material
+from Render.rdrexecutor import exec_in_mainthread
 
 
 # ===========================================================================
@@ -135,8 +151,13 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     ignore_unknown = bool(kwargs.get("ignore_unknown", False))
     transparency_boost = int(kwargs.get("transparency_boost", 0))
 
+    # A2plus Part
+    if get_a2p() and isA2pPart(obj):
+        debug("Object", label, "'A2plus Part detected'")
+        renderables = _get_rends_from_a2plus(obj, name, mat, mesher, **kwargs)
+
     # Assembly3 link
-    if obj_is_asm3_lnk:
+    elif obj_is_asm3_lnk:
         debug("Object", label, "'Assembly3 link' detected")
         renderables = _get_rends_from_assembly3(
             obj, name, mat, mesher, **kwargs
@@ -262,6 +283,78 @@ def check_renderables(renderables):
 #                              Locals (helpers)
 # ===========================================================================
 
+a2p_subdocs = set()
+
+
+def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
+    """Get renderables from an A2plus object.
+
+    Parameters:
+    obj -- the container object
+    name -- the name assigned to the container object for rendering
+    material -- the material for the container object
+    mesher -- a callable object which converts a shape into a mesh
+
+    Returns:
+    A list of renderables for this object
+    """
+
+    def open_subdoc(*args):
+        path, *_ = args
+        doc = App.openDocument(path, hidden=True)
+        return doc
+
+    objdir = os.path.dirname(obj.Document.FileName)
+    subdoc_path = os.path.join(objdir, obj.sourceFile)
+
+    subdoc = exec_in_mainthread(open_subdoc, (subdoc_path,))
+
+    debug("Object", name, f"A2P - Processing '{subdoc.Name}'")
+
+    a2p_subdocs.add(subdoc.Name)
+
+    rends = []
+
+    # Only first level objects
+    for subobj in (d for d in subdoc.Objects if not d.InList):
+        subname = subobj.Name
+        kwargs["ignore_unknown"] = True
+        base_rends = get_renderables(
+            subobj, subname, material, mesher, **kwargs
+        )
+
+        # Apply placement and set name
+        for base_rend in base_rends:
+            new_mesh = base_rend.mesh.copy()
+            new_mesh.transformation.apply_placement(obj.Placement, left=True)
+            new_mat = _get_material(base_rend, material)
+            new_name = f"{name}_{base_rend.name}"
+            new_color = base_rend.defcolor
+            new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
+            rends.append(new_rend)
+
+            # Copy texture files if needed
+            if new_mat and new_mat.Proxy.has_textures():
+                image_paths = (
+                    t.getPropertyByName(i.image)
+                    for t in new_mat.Proxy.get_textures()
+                    for i in t.Proxy.get_images()
+                )
+                for org_path in image_paths:
+                    dst_path = os.path.join(
+                        obj.Document.TransientDir, os.path.basename(org_path)
+                    )
+                    # Remove before copying
+                    try:
+                        os.remove(dst_path)
+                    except FileNotFoundError:
+                        pass
+                    # Copy to main doc transient dir
+                    shutil.copyfile(org_path, dst_path)
+
+    debug("Object", name, f"A2P - Leaving '{subdoc.Name}'")
+    return [r for r in rends if r.mesh.count_facets]
+
 
 def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
     """Get renderables from an assembly3 object.
@@ -333,37 +426,32 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
     Returns:
     A list of renderables for the array object
     """
-    # TODO Check left/right apply
-    # TODO Use sheer placement, not matrix
     renderables = []
-    base_plc_matrix = obj.Placement.toMatrix()
+    base_plc = obj.Placement
     elements = itertools.compress(obj.ElementList, obj.VisibilityList)
 
     for element in elements:
         if element.isDerivedFrom("App::LinkElement"):
             elem_object = element.LinkedObject
-            elem_placement = element.LinkPlacement
+            elem_plc = element.LinkPlacement
         else:
             elem_object = element
-            elem_placement = element.Placement
+            elem_plc = element.Placement
         elem_name = f"{name}_{element.Name}"
 
         # Compute rends and placements
         base_rends = get_renderables(
             elem_object, elem_name, material, mesher, **kwargs
         )
-        element_plc_matrix = elem_placement.toMatrix()
-        linkedobject_plc_inverse_matrix = (
-            elem_object.Placement.inverse().toMatrix()
-        )
+        linkedobject_plc_inverse = elem_object.Placement.inverse()
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not getattr(obj, "LinkTransform", False):
                 new_mesh.transformation.apply_placement(
-                    linkedobject_plc_inverse_matrix
+                    linkedobject_plc_inverse
                 )
-            new_mesh.transformation.apply_placement(base_plc_matrix)
-            new_mesh.transformation.apply_placement(element_plc_matrix)
+            new_mesh.transformation.apply_placement(base_plc)
+            new_mesh.transformation.apply_placement(elem_plc)
             new_mat = _get_material(base_rend, material)
             new_name = base_rend.name
             new_color = base_rend.defcolor
@@ -386,7 +474,6 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
     A list of renderables for the object
     """
     linkedobj = obj.LinkedObject
-    objcolor = _get_shapecolor(obj, kwargs.get("transparency_boost", 0))
     base_rends = get_renderables(linkedobj, name, material, mesher, **kwargs)
     link_plc = obj.LinkPlacement
     linkedobj_plc_inverse = linkedobj.Placement.inverse()
@@ -395,7 +482,9 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
         new_name = f"{name}_{base_rend.name}"
         new_mesh = base_rend.mesh.copy()
         new_mat = _get_material(base_rend, material)
-        new_color = _get_shapecolor(obj, kwargs.get("transparency_boost", 0), base_rend.defcolor)
+        new_color = _get_shapecolor(
+            obj, kwargs.get("transparency_boost", 0), base_rend.defcolor
+        )
         if not obj.LinkTransform:
             new_mesh.transformation.apply_placement(
                 linkedobj_plc_inverse, left=True
@@ -780,3 +869,18 @@ def _needs_uvmap(material):
         return proxy.has_textures()
     except AttributeError:
         return False
+
+
+def clean_a2p():
+    """Clean/close A2Plus intermediate objects."""
+
+    def close_subdoc(*args):
+        name, *_ = args
+        try:
+            App.closeDocument(name)
+        except NameError:
+            print(f"Unable to close '{name}'")
+
+    while a2p_subdocs:
+        name = a2p_subdocs.pop()
+        exec_in_mainthread(close_subdoc, (name,))

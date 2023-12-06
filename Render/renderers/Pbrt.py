@@ -224,6 +224,7 @@ AttributeEnd
 
 def write_distantlight(name, color, power, direction, angle, **kwargs):
     """Compute a string in renderer SDL to represent a point light."""
+    # pylint: disable=unused-argument
     # Nota: angle is not supported by pbrt
     snippet = """# Distant light '{n}'
 AttributeBegin

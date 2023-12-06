@@ -324,6 +324,7 @@ def write_distantlight(
     angle,
     **kwargs,
 ):
+    # pylint: disable=unused-argument
     """Compute a string in renderer SDL to represent a distant light."""
     # Nota: 'angle' is not suppported by Appleseed
     snippet = """
@@ -350,6 +351,8 @@ def write_distantlight(
         p=power,
         t=_transform(direction),
     )
+
+
 # ===========================================================================
 #                              Material implementation
 # ===========================================================================
@@ -708,21 +711,6 @@ def _write_material_emission(name, matval, write_material=True):
         n=_color_name(name), c=matval["color"][1]
     )
     snippet = [snippet_color, snippet_edf]
-    if write_material:
-        snippet_material = _snippet_material(name, matval)
-        snippet_tex = matval.write_textures()
-        snippet += [snippet_tex, snippet_material]
-    return "".join(snippet)
-
-    # TODO Remove
-    snippet_bsdf = f"""
-            <bsdf name="{name}_bsdf" model="lambertian_brdf">
-                <parameter name="reflectance" value="{matval["color"][0]}" />
-            </bsdf>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["color"][1]
-    )
-    snippet = [snippet_color, snippet_bsdf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
         snippet_tex = matval.write_textures()
@@ -1295,7 +1283,7 @@ def render(
     """
 
     def move_elements(
-        element_tag, destination, template, keep_one=False, replace=None
+        template, element_tag, destination, keep_one=False, replace=None
     ):
         """Move elements into another (root) element.
 
@@ -1352,6 +1340,55 @@ def render(
 
         return root
 
+    def define_default_camera(template):
+        """Define a default camera in the template file."""
+        res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
+        if res:
+            default_cam = res[-1]  # Take last match
+            snippet = '<parameter name="camera" value="{}" />'
+            pattern = (
+                r"<parameter\s+name\s*=\s*\"camera\""
+                r"\s+value\s*=\s*\"(.*?)\"\s*/>"
+            )
+            template = re.sub(
+                pattern,
+                snippet.format(default_cam),
+                template,
+            )
+        return template
+
+    def set_image_size(template):
+        """Set image size parameters in template."""
+        res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
+        if res:
+            snippet = '<parameter name="resolution" value="{} {}"/>'
+            template = template.replace(res[0], snippet.format(width, height))
+        return template
+
+    def set_denoiser(root):
+        # Nota: only final can denoise (only generic_frame_renderer, actually)
+        # see code in (look for denoise):
+        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/generic/genericframerenderer.cpp
+        # versus code in
+        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/progressive/progressiveframerenderer.cpp
+        for frame in root.iterfind("./output/frame"):
+            denoise_param = frame.find("./parameter[@name='denoiser']")
+            if not denoise_param:
+                denoise_param = et.Element("parameter", name="denoiser")
+                frame.append(denoise_param)
+            denoise_param.set("value", "on")
+            tile_param = frame.find("./parameter[@name='tile_size']")
+            if not tile_param:
+                tile_param = et.Element("parameter", name="tile_size")
+                frame.append(tile_param)
+            tile_param.set("value", "32 32")
+        # Use adaptive sampler for denoising
+        root = set_config_param(root, "final", None, "pixel_renderer", "")
+        root = set_config_param(
+            root, "final", None, "tile_renderer", "adaptive"
+        )
+        return root
+
     # Here starts render
 
     # Make various adjustments on file:
@@ -1362,36 +1399,26 @@ def render(
     with open(input_file, "r", encoding="utf-8") as f:
         template = f.read()
 
-    # Gather cameras, environment_edf, environment_shader, environment elements
+    # Move blocks in order to gather cameras, environment_edf,
+    # environment_shader, environment elements
     # in scene block (keeping only one environment element)
-    template = move_elements("camera", "scene", template)
-    template = move_elements("environment_edf", "scene", template)
-    template = move_elements("environment_shader", "scene", template)
-    template = move_elements("environment", "scene", template, True)
-    template = move_elements(
-        "scene_texture", "scene", template, replace="texture"
+    moves = (
+        ("camera", "scene", False, None),
+        ("environment_edf", "scene", False, None),
+        ("environment_shader", "scene", False, None),
+        ("environment", "scene", True, None),
+        ("scene_texture", "scene", False, "texture"),
+        ("scene_texture_instance", "scene", False, "texture"),
+        ("search_path", "search_paths", True, None),
     )
-    template = move_elements(
-        "scene_texture_instance", "scene", template, replace="texture_instance"
-    )
-    template = move_elements("search_path", "search_paths", template, True)
+    for move in moves:
+        template = move_elements(template, *move)
 
-    # Change image size
-    res = re.findall(r"<parameter name=\"resolution.*?\/>", template)
-    if res:
-        snippet = '<parameter name="resolution" value="{} {}"/>'
-        template = template.replace(res[0], snippet.format(width, height))
+    # Set image size
+    template = set_image_size(template)
 
     # Define default camera
-    res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
-    if res:
-        default_cam = res[-1]  # Take last match
-        snippet = '<parameter name="camera" value="{}" />'
-        template = re.sub(
-            r"<parameter\s+name\s*=\s*\"camera\"\s+value\s*=\s*\"(.*?)\"\s*/>",
-            snippet.format(default_cam),
-            template,
-        )
+    template = define_default_camera(template)
 
     # xml root element
     root = et.fromstring(template)
@@ -1417,27 +1444,7 @@ def render(
 
     # Denoiser
     if denoise:
-        # Nota: only final can denoise (only generic_frame_renderer, actually)
-        # see code in (look for denoise):
-        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/generic/genericframerenderer.cpp
-        # versus code in
-        # https://github.com/appleseedhq/appleseed/blob/master/src/appleseed/renderer/kernel/rendering/progressive/progressiveframerenderer.cpp
-        for frame in root.iterfind("./output/frame"):
-            denoise_param = frame.find("./parameter[@name='denoiser']")
-            if not denoise_param:
-                denoise_param = et.Element("parameter", name="denoiser")
-                frame.append(denoise_param)
-            denoise_param.set("value", "on")
-            tile_param = frame.find("./parameter[@name='tile_size']")
-            if not tile_param:
-                tile_param = et.Element("parameter", name="tile_size")
-                frame.append(tile_param)
-            tile_param.set("value", "32 32")
-        # Use adaptive sampler for denoising
-        root = set_config_param(root, "final", None, "pixel_renderer", "")
-        root = set_config_param(
-            root, "final", None, "tile_renderer", "adaptive"
-        )
+        set_denoiser(root)
 
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)
