@@ -400,6 +400,7 @@ def get_a2p():
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     return params.GetBool("A2p")
 
+
 def last_cmd():
     """Return last executed renderer command (debug purpose)."""
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
