@@ -59,6 +59,7 @@ class _GroundPlane:
 
         self.Mesh = Mesh.Mesh()
         bbox = project.get_bounding_box()
+        self.Document = project.fpo.Document
 
         if bbox.isValid():
             zpos = project.fpo.GroundPlaneZ
