@@ -151,7 +151,7 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 # ===========================================================================
 
 
-def get_rendering_material(meshname, material, renderer, default_color, doc):
+def get_rendering_material(meshname, material, renderer, default_color):
     """Get render material (Render.RenderMaterial) from FreeCAD material.
 
     This function implements rendering material logic.
@@ -186,12 +186,15 @@ def get_rendering_material(meshname, material, renderer, default_color, doc):
     parameters in the material card (i.e. the parameters are not parsed, just
     collected from the material card)
     """
+
     # Check valid material
     if not is_valid_material(material):
         ru_debug(
             "Material", f"'{meshname}' <None>", "Fallback to default material"
         )
-        return RenderMaterial.build_fallback(default_color, doc)
+        return RenderMaterial.build_fallback(default_color, doc=None)
+
+    doc = material.Document
 
     # Initialize
     mat = dict(material.Material)
@@ -206,7 +209,9 @@ def get_rendering_material(meshname, material, renderer, default_color, doc):
     if common_keys:
         lines = tuple(mat[k] for k in sorted(common_keys))
         debug("Found valid Passthrough - returning")
-        return RenderMaterial.build_passthrough(lines, renderer, default_color)
+        return RenderMaterial.build_passthrough(
+            lines, renderer, default_color, doc
+        )
 
     # Try standard materials
     shadertype = mat.get("Render.Type", None)
@@ -254,7 +259,7 @@ def get_rendering_material(meshname, material, renderer, default_color, doc):
         # Found usable father
         debug(f"Retrieve father material '{father_name}'")
         return get_rendering_material(
-            meshname, father, renderer, default_color, doc
+            meshname, father, renderer, default_color
         )
 
     # Try with Coin-like parameters (backward compatibility)
@@ -292,7 +297,7 @@ class RenderMaterial:
     @staticmethod
     def build_standard(shadertype, values, doc):
         """Build standard material."""
-        res = RenderMaterial(shadertype)
+        res = RenderMaterial(shadertype, doc)
 
         for nam, val, dft, typ, objcol in values:
             cast_function = _CAST_FUNCTIONS[typ]
@@ -310,9 +315,9 @@ class RenderMaterial:
         return res
 
     @staticmethod
-    def build_passthrough(lines, renderer, default_color):
+    def build_passthrough(lines, renderer, default_color, doc):
         """Build passthrough material."""
-        res = RenderMaterial("Passthrough")
+        res = RenderMaterial("Passthrough", doc)
         res.shader.string = _convert_passthru("\n".join(lines))
         res.shader.renderer = renderer
         res.default_color = default_color
@@ -361,13 +366,14 @@ class RenderMaterial:
 
     # Instance methods
 
-    def __init__(self, shadertype):
+    def __init__(self, shadertype, doc):
         """Initialize object."""
         shadertype = str(shadertype)
         self.shadertype = shadertype
         setattr(self, shadertype.lower(), types.SimpleNamespace())
         self.default_color = WHITE
         self._partypes = {}  # Record parameter types
+        self.doc = doc  # Source document, for textures
 
     def __repr__(self):
         """Represent object."""
@@ -408,7 +414,9 @@ class RenderMaterial:
 
     def getmixedsubmat(self, subname, nodename="mixed"):
         """Build a RenderMaterial from a mixed submaterial."""
-        res = RenderMaterial(subname)  # Resulting RenderMat to be returned
+        res = RenderMaterial(
+            subname, self.doc
+        )  # Resulting RenderMat to be returned
         # Copy submat into result
         node = getattr(self, nodename)
         submatsrc = getattr(node, subname)
@@ -763,9 +771,7 @@ def _castrgb(*args):
     if "Texture" in parsed:
         # Build RenderTexture
         imageid = str2imageid(parsed[1])
-        texobject = doc.getObject(
-            imageid.texture
-        )  # Texture object
+        texobject = doc.getObject(imageid.texture)  # Texture object
         file = texobject.getPropertyByName(imageid.image)
         try:
             fallback = RGB.from_string(parsed[2])
@@ -806,9 +812,7 @@ def _castfloat(*args):
     if "Texture" in parsed:
         # Build RenderTexture
         imageid = str2imageid(parsed[1])
-        texobject = doc.getObject(
-            imageid.texture
-        )  # Texture object
+        texobject = doc.getObject(imageid.texture)  # Texture object
         file = texobject.getPropertyByName(imageid.image)
         try:
             fallback = float(parsed[2])
