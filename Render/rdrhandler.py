@@ -383,7 +383,6 @@ class RendererHandler:
         # Mesher
         def mesher(
             shape,
-            doc,
             compute_uvmap=True,
             uvmap_projection=None,
             is_already_a_mesh=False,
@@ -413,7 +412,6 @@ class RendererHandler:
                 mesh.Placement = shape.Placement
                 rendermesh = create_rendermesh(
                     mesh,
-                    doc,
                     project_directory=self.project_directory,
                     export_directory=self.object_directory,
                     relative_path=True,
@@ -445,7 +443,6 @@ class RendererHandler:
 
             mesh = create_rendermesh(
                 mesh,
-                doc,
                 autosmooth,
                 autosmooth_angle,
                 compute_uvmap,
@@ -532,7 +529,7 @@ class RendererHandler:
             write_mesh(
                 r.name,
                 r.mesh,
-                get_mat(r.name, r.material, rdrname, r.defcolor, r.mesh.doc),
+                get_mat(r.name, r.material, rdrname, r.defcolor),
             )
             for r in rends
         ]
