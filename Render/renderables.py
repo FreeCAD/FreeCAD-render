@@ -285,6 +285,7 @@ def check_renderables(renderables):
 
 a2p_subdocs = set()
 
+
 def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
     """Get renderables from an A2plus object.
 
@@ -315,7 +316,10 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
         warn(
             "Object",
             name,
-            f"A2P - file '{subdoc_path}' not found - Downgrading to part::feature"
+            (
+                f"A2P - file '{subdoc_path}' not found"
+                "- Downgrading to part::feature"
+            ),
         )
         return _get_rends_from_partfeature(
             obj, name, material, mesher, **kwargs
@@ -343,7 +347,6 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
             new_name = f"{name}_{base_rend.name}"
             new_color = base_rend.defcolor
             new_rend = Renderable(new_name, new_mesh, new_mat, new_color)
-            print("New rend doc", new_rend.mesh.doc.Name)  # TODO
             rends.append(new_rend)
 
             # Copy texture files if needed
@@ -544,7 +547,6 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
                 name,
                 mesher(
                     obj.Shape,
-                    obj.Document,
                     _needs_uvmap(material),
                     uvprojection,
                     name=name,
@@ -635,9 +637,8 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
 
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
-    doc = obj.Document
     meshes = [
-        mesher(s, doc, n, uvprojection, name=n2, label=l)
+        mesher(s, n, uvprojection, name=n2, label=l)
         for s, n, n2, l in zip(
             obj.Shape.childShapes(), needs_uvmap, names, labels
         )
@@ -681,7 +682,6 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     meshes = [
         mesher(
             shape=s,
-            doc=obj.Document,
             compute_uvmap=n,
             uvmap_projection=uvprojection,
             name=n2,
@@ -769,7 +769,6 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
                 name,
                 mesher(
                     obj.Shape,
-                    obj.Document,
                     _needs_uvmap(material),
                     uvprojection,
                     name=name,
@@ -785,9 +784,8 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         nfaces = len(faces)
         names = [f"{name}_face{i}" for i in range(nfaces)]
         labels = [f"{obj.Label}_face{i}" for i in range(nfaces)]
-        doc = obj.Document
         meshes = [
-            mesher(f, doc, _needs_uvmap(material), uvprojection, name=n, label=l)
+            mesher(f, _needs_uvmap(material), uvprojection, name=n, label=l)
             for f, n, l in zip(faces, names, labels)
         ]
         materials = [material] * nfaces
@@ -815,7 +813,6 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
     uvprojection = kwargs.get("uvprojection", None)
     mesh = mesher(
         obj,
-        obj.Document,
         compute_uvmap=compute_uvmap,
         uvmap_projection=uvprojection,
         is_already_a_mesh=True,
