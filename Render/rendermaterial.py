@@ -151,7 +151,7 @@ STD_MATERIALS = sorted(list(STD_MATERIALS_PARAMETERS.keys()))
 # ===========================================================================
 
 
-def get_rendering_material(meshname, material, renderer, default_color):
+def get_rendering_material(meshname, material, renderer, default_color, doc):
     """Get render material (Render.RenderMaterial) from FreeCAD material.
 
     This function implements rendering material logic.
@@ -191,7 +191,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
         ru_debug(
             "Material", f"'{meshname}' <None>", "Fallback to default material"
         )
-        return RenderMaterial.build_fallback(default_color)
+        return RenderMaterial.build_fallback(default_color, doc)
 
     # Initialize
     mat = dict(material.Material)
@@ -226,7 +226,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
                 )
                 for p in params
             )
-            res = RenderMaterial.build_standard(shadertype, values)
+            res = RenderMaterial.build_standard(shadertype, values, doc)
             return res
 
     # Climb up to Father
@@ -254,7 +254,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
         # Found usable father
         debug(f"Retrieve father material '{father_name}'")
         return get_rendering_material(
-            meshname, father, renderer, default_color
+            meshname, father, renderer, default_color, doc
         )
 
     # Try with Coin-like parameters (backward compatibility)
@@ -265,11 +265,11 @@ def get_rendering_material(meshname, material, renderer, default_color):
     else:
         debug("Fallback to Coin-like parameters")
         diffusecolor.set_transparency(mat.get("Transparency", "0"))
-        return RenderMaterial.build_fallback(diffusecolor)
+        return RenderMaterial.build_fallback(diffusecolor, doc)
 
     # Fallback with default_color
     debug("Fallback to default color")
-    return RenderMaterial.build_fallback(default_color)
+    return RenderMaterial.build_fallback(default_color, doc)
 
 
 # ===========================================================================
@@ -290,16 +290,16 @@ class RenderMaterial:
     # Factory methods (static)
 
     @staticmethod
-    def build_standard(shadertype, values):
+    def build_standard(shadertype, values, doc):
         """Build standard material."""
         res = RenderMaterial(shadertype)
 
         for nam, val, dft, typ, objcol in values:
             cast_function = _CAST_FUNCTIONS[typ]
             try:
-                value = cast_function(val, objcol)
+                value = cast_function(val, doc, objcol)
             except (TypeError, ValueError):
-                value = cast_function(dft, objcol)
+                value = cast_function(dft, doc, objcol)
             res.setshaderparam(nam, value, typ)
 
         # Add a default_color, for fallback mechanisms in renderers. By
@@ -323,10 +323,11 @@ class RenderMaterial:
         return res
 
     @staticmethod
-    def build_fallback(color):
+    def build_fallback(color, doc):
         """Build fallback material (mixed).
 
         color -- a RGB color
+        doc -- document for texture searching
         """
         _alpha = color.alpha
 
@@ -356,7 +357,7 @@ class RenderMaterial:
                 ("Transparency", _trsparency, _trsparency, "float", color),
             )
 
-        return RenderMaterial.build_standard(shadertype, values)
+        return RenderMaterial.build_standard(shadertype, values, doc)
 
     # Instance methods
 
@@ -743,6 +744,7 @@ def _castrgb(*args):
 
     Args:
         value -- the value to parse and cast
+        doc -- the doc where to search textures
         objcol -- the object color
 
     Returns:
@@ -750,7 +752,8 @@ def _castrgb(*args):
         object if appliable.
     """
     value = str(args[0])
-    objcol = args[1]
+    doc = args[1]
+    objcol = args[2]
 
     parsed = parse_csv_str(value)
 
@@ -760,7 +763,7 @@ def _castrgb(*args):
     if "Texture" in parsed:
         # Build RenderTexture
         imageid = str2imageid(parsed[1])
-        texobject = App.ActiveDocument.getObject(
+        texobject = doc.getObject(
             imageid.texture
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
@@ -795,6 +798,7 @@ def _castfloat(*args):
         if appliable.
     """
     value = args[0]
+    doc = args[1]
 
     # Parse value
     parsed = parse_csv_str(str(value))
@@ -802,7 +806,7 @@ def _castfloat(*args):
     if "Texture" in parsed:
         # Build RenderTexture
         imageid = str2imageid(parsed[1])
-        texobject = App.ActiveDocument.getObject(
+        texobject = doc.getObject(
             imageid.texture
         )  # Texture object
         file = texobject.getPropertyByName(imageid.image)
@@ -840,9 +844,9 @@ def _caststr(*args):
     return value
 
 
-def _make_rendertexture(imageid, scalar=None):
+def _make_rendertexture(imageid, doc, scalar=None):
     """Make a RenderTexture from an ImageId (helper to cast)."""
-    texobject = App.ActiveDocument.getObject(imageid.texture)  # Texture object
+    texobject = doc.getObject(imageid.texture)  # Texture object
     file = texobject.getPropertyByName(imageid.image)
     res = RenderTexture(
         name=texobject.Label,
@@ -869,12 +873,13 @@ def _casttexonly(*args):
     """
     value = args[0]
     value = str(value)
+    doc = args[1]
     parsed = parse_csv_str(value)
 
     if parsed and parsed[0] == "Texture":
         # Build RenderTexture
         imageid = str2imageid(parsed[1])
-        return _make_rendertexture(imageid)
+        return _make_rendertexture(imageid, doc)
 
     # Default (and fallback), return empty
     return None
@@ -891,12 +896,13 @@ def _casttexscalar(*args):
     """
     value = args[0]
     value = str(value)
+    doc = args[1]
     parsed = parse_csv_str(value)
 
     if parsed and parsed[0] == "Texture":
         # Build RenderTexture
         imageid, scalar = str2imageid_ext(parsed[1])
-        return _make_rendertexture(imageid, scalar)
+        return _make_rendertexture(imageid, doc, scalar)
 
     # Default (and fallback), return empty
     return None

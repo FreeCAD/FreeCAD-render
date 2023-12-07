@@ -68,6 +68,7 @@ RenderMeshDirs = collections.namedtuple(
 
 def create_rendermesh(
     mesh,
+    doc,
     autosmooth=True,
     split_angle=radians(30),
     compute_uvmap=False,
@@ -107,6 +108,7 @@ def create_rendermesh(
     # Instantiate
     instance = RenderMesh(
         mesh,
+        doc,
         name,
         autosmooth,
         split_angle,
@@ -137,6 +139,7 @@ class RenderMeshBase:
     def __init__(
         self,
         mesh,
+        doc,
         name,
         autosmooth,
         split_angle,
@@ -149,6 +152,7 @@ class RenderMeshBase:
 
         Args:
             mesh -- a Mesh.Mesh object from which to initialize
+            doc -- the doc from which the mesh was extracted (for textures...)
             autosmooth -- flag to trigger autosmooth computation (bool)
             split_angle -- angle that breaks adjacency, for sharp edge
                 (float, in radians)
@@ -167,6 +171,7 @@ class RenderMeshBase:
         self.__transformation = _Transformation(mesh.Placement)
 
         self.name = name
+        self.doc = doc
 
         # Skip meshing?
         self.skip_meshing = bool(skip_meshing)
