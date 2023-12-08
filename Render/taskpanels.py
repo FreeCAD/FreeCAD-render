@@ -779,7 +779,7 @@ class MaterialSettingsTaskPanel:
                 else:
                     # No value (fallback)
                     option = TexonlyOption.NO_VALUE
-                    texture = None
+                    texture, scalar = None, 1.0
                 widget = TexonlyPicker(
                     option,
                     teximages,
