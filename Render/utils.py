@@ -507,3 +507,47 @@ class SharedWrapper:
     def __iter__(self):
         seq = self.seq
         return itertools.chain.from_iterable(seq)
+
+
+def top_objects(doc):
+    """Compute top objects of the document."""
+    return _top_objects_gui(doc) if App.GuiUp else _top_objects_cli(doc)
+
+
+def _top_objects_cli(doc):
+    """Compute top objects of the document in command line mode.
+
+    This function is less reliable than _top_objects_gui, but is a good
+    workaround when there are no ViewObject attached to objects.
+    This function is specialized for A2P context.
+    """
+    # All objects without parents
+    noparent_objs = {o for o in doc.Objects if not o.getParent()}
+
+    # Exclude objects with ParentTreeObject (A2P)
+    pto_objs = {
+        o
+        for o in doc.Objects
+        if hasattr(o, "ParentTreeObject") and o.ParentTreeObject is not None
+    }
+
+    return noparent_objs - pto_objs
+
+
+def _top_objects_gui(doc):
+    """Compute top objects of the document when GUI is up."""
+    objects = set(doc.Objects)
+
+    children = [
+        list(o.ViewObject.claimChildren())
+        for o in objects
+        if hasattr(o, "ViewObject") and hasattr(o.ViewObject, "claimChildren")
+    ]
+    children = set(itertools.chain.from_iterable(children))
+
+    return objects - children
+
+
+def top_object_names(doc=Gui.ActiveDocument.Document):
+    """Compute top objects names (debug)."""
+    return [o.Label for o in top_objects(doc)]
