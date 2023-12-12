@@ -72,11 +72,13 @@ except (ImportError, ModuleNotFoundError):
 from Render.utils import (
     translate,
     debug,
+    message,
     warn,
     getproxyattr,
     RGB,
     WHITE,
     get_a2p,
+    top_objects,
 )
 from Render.rendermaterial import is_multimat, is_valid_material
 from Render.rdrexecutor import exec_in_mainthread
@@ -326,13 +328,14 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
         )
 
     debug("Object", name, f"A2P - Processing '{subdoc.Name}'")
+    message("Object", name, f"A2P - Opening '{subdoc_path}'")
 
     a2p_subdocs.add(subdoc.Name)
 
     rends = []
 
     # Only first level objects
-    for subobj in (d for d in subdoc.Objects if not d.InList):
+    for subobj in top_objects(subdoc):
         subname = subobj.Name
         kwargs["ignore_unknown"] = True
         base_rends = get_renderables(
