@@ -548,6 +548,8 @@ def _top_objects_gui(doc):
     return objects - children
 
 
-def top_object_names(doc=Gui.ActiveDocument.Document):
+def top_object_names(doc=None):
     """Compute top objects names (debug)."""
+    if not doc and Gui.ActiveDocument:
+        doc = Gui.ActiveDocument.Document
     return [o.Label for o in top_objects(doc)]
