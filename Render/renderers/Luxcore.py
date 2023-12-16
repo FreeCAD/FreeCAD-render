@@ -29,6 +29,7 @@
 import os
 from textwrap import dedent
 import configparser
+import math
 
 import FreeCAD as App
 
@@ -326,9 +327,13 @@ def _write_material(name, matval):
 
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    # snippet = indent(matval["string"], "    ")
     snippet = matval["string"]
-    return snippet.format(n=name, c=matval.default_color.to_linear())
+    texarray = matval.passthrough_texture
+    try:
+        texarray["Rotation"] = math.degrees(texarray["Rotation"])
+    except KeyError:
+        pass
+    return snippet.format(n=name, c=matval.default_color.to_linear(), tex=texarray)
 
 
 def _write_material_glass(name, matval):
