@@ -606,8 +606,11 @@ def _write_material(name, matval):
 
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
+    texture = matval.passthrough_texture
     snippet = "\n# Passthrough\n" + matval["string"]
-    return snippet.format(n=name, c=matval.default_color.to_linear())
+    return snippet.format(
+        n=name, c=matval.default_color.to_linear(), tex=texture
+    )
 
 
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
