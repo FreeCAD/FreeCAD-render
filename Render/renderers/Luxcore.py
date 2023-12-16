@@ -328,12 +328,14 @@ def _write_material(name, matval):
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     snippet = matval["string"]
-    texarray = matval.passthrough_texture
+    texture = matval.passthrough_texture
     try:
         texarray["Rotation"] = math.degrees(texarray["Rotation"])
     except KeyError:
         pass
-    return snippet.format(n=name, c=matval.default_color.to_linear(), tex=texarray)
+    return snippet.format(
+        n=name, c=matval.default_color.to_linear(), tex=texture
+    )
 
 
 def _write_material_glass(name, matval):
