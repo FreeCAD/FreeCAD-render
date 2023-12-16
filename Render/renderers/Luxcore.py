@@ -330,7 +330,7 @@ def _write_material_passthrough(name, matval):
     snippet = matval["string"]
     texture = matval.passthrough_texture
     try:
-        texarray["Rotation"] = math.degrees(texarray["Rotation"])
+        texture["Rotation"] = math.degrees(texture["Rotation"])
     except KeyError:
         pass
     return snippet.format(
