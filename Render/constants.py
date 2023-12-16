@@ -52,7 +52,11 @@ DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 # FreeCAD version
-FCDVERSION = int(App.Version()[0]), int(App.Version()[1]), int(App.Version()[2])
+FCDVERSION = (
+    int(App.Version()[0]),
+    int(App.Version()[1]),
+    int(App.Version()[2]),
+)
 
 # Workbench parameters
 PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
