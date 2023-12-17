@@ -475,9 +475,11 @@ def _write_material(name, matval):
 
 def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
-    # snippet = indent(material.passthrough.string, "    ")
+    texture = matval.passthrough_texture
     snippet = matval["string"]
-    return snippet.format(n=name, c=matval.default_color.to_linear())
+    return snippet.format(
+        n=name, c=matval.default_color.to_linear(), tex=texture
+    )
 
 
 def _write_material_glass(name, matval, connect_to="output surface"):
@@ -675,7 +677,8 @@ def _write_texture(**kwargs):
     # as the input file
     filename = pathlib.Path(propvalue.file).name
 
-    scale, rotation = float(propvalue.scale), float(propvalue.rotation)
+    scale = float(propvalue.scale)
+    rotation = -radians(float(propvalue.rotation))
     translation_u = float(propvalue.translation_u)
     translation_v = float(propvalue.translation_v)
 

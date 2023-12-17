@@ -33,6 +33,8 @@ import collections
 import types
 import functools
 import uuid
+import re
+import os.path
 
 import FreeCAD as App
 
@@ -210,7 +212,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
         lines = tuple(mat[k] for k in sorted(common_keys))
         debug("Found valid Passthrough - returning")
         return RenderMaterial.build_passthrough(
-            lines, renderer, default_color, doc
+            lines, renderer, default_color, doc, material.Proxy.get_textures()
         )
 
     # Try standard materials
@@ -315,16 +317,54 @@ class RenderMaterial:
         return res
 
     @staticmethod
-    def build_passthrough(lines, renderer, default_color, doc):
+    def build_passthrough(lines, renderer, default_color, doc, textures):
         """Build passthrough material."""
         res = RenderMaterial("Passthrough", doc)
-        res.shader.string = _convert_passthru("\n".join(lines))
-        res.shader.renderer = renderer
-        res.default_color = default_color
+
         # pylint: disable=protected-access
+
+        # The main parameter is the string containing the passthrough
+        res.shader.string = _convert_passthru("\n".join(lines))
         res._partypes["string"] = "str"
+
+        res.shader.renderer = renderer
         res._partypes["renderer"] = "str"
+
+        res.default_color = default_color
         res._partypes["default_color"] = "RGBA"
+
+        # We also need to register textures
+        # in case they would be referenced by the material
+        # We just take the first texture
+        def _tex_get_value(propname, tex):
+            """Get value of a property in a texture."""
+            prop = tex.getPropertyByName(propname)
+
+            # Angle?
+            if propname == "Rotation":
+                return prop.getValueAs("rad")
+
+            # Distance?
+            if propname in ["TranslationU", "TranslationV"]:
+                return prop.getValueAs("m")
+
+            # Image File?
+            if propname.startswith("Image"):
+                return os.path.basename(prop)
+
+            # Default
+            return prop
+
+        try:
+            texture = textures[0]
+        except IndexError:
+            res.passthrough_texture = {}
+        else:
+            res.passthrough_texture = {
+                propname: _tex_get_value(propname, texture)
+                for propname in texture.PropertiesList
+            }
+
         return res
 
     @staticmethod
@@ -617,6 +657,11 @@ class MaterialValues:
 
             # Store resulting value
             self._values[propkey] = value
+
+            # Special case: passthrough. We store all the textures in a
+            # dedicated field, to make them available for the material
+            if material.shadertype == "Passthrough":
+                self.passthrough_texture = material.passthrough_texture
 
     @property
     def textures(self):
@@ -922,12 +967,13 @@ _CAST_FUNCTIONS = {
 
 
 _PASSTHRU_REPLACED_TOKENS = (
-    ("{", "{{"),
-    ("}", "}}"),
-    ("%NAME%", "{n}"),
-    ("%RED%", "{c[0]}"),
-    ("%GREEN%", "{c[1]}"),
-    ("%BLUE%", "{c[2]}"),
+    (r"{", r"{{"),
+    (r"}", r"}}"),
+    (r"%NAME%", r"{n}"),
+    (r"%RED%", r"{c[0]}"),
+    (r"%GREEN%", r"{c[1]}"),
+    (r"%BLUE%", r"{c[2]}"),
+    (r"%TEXTURE\((.*)\)%", r"{tex[\1]}"),
 )
 
 
@@ -936,8 +982,9 @@ def _convert_passthru(passthru):
 
     (FSML stands for Format Specification Mini-Language)
     """
-    for token in _PASSTHRU_REPLACED_TOKENS:
-        passthru = passthru.replace(*token)
+    for pattern, replace in _PASSTHRU_REPLACED_TOKENS:
+        passthru = re.sub(pattern, replace, passthru)
+
     return passthru
 
 
