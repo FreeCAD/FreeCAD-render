@@ -23,4 +23,3 @@ global_settings {
 
 //RaytracingCamera
 //RaytracingContent
-

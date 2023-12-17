@@ -117,21 +117,16 @@ def compute_adjacents(chunk):
         for facet_idx, facet in enumerate(UNPACKED_FACETS[start:stop])
         for other_idx in set(chain(FACETS_PER_POINT[p] for p in facet))
         if len(set(facet) & set(UNPACKED_FACETS[other_idx])) == 2
-        and dot(getnormal(facet_idx + start), getnormal(other_idx))
-        >= split_angle_cos
+        and dot(getnormal(facet_idx + start), getnormal(other_idx)) >= split_angle_cos
     )
 
     add = list.append
-    any(
-        itertools.starmap(add, iterator)
-    )  # Sorry, we use side effect (faster)...
+    any(itertools.starmap(add, iterator))  # Sorry, we use side effect (faster)...
 
     SHARED_ADJACENCY[start * 3 : stop * 3] = [
         a
         for adj in adjacents
-        for a in itertools.islice(
-            itertools.chain(set(adj), (-1, -1, -1)), 0, 3
-        )
+        for a in itertools.islice(itertools.chain(set(adj), (-1, -1, -1)), 0, 3)
     ]
 
 
@@ -200,9 +195,7 @@ def build_pairs_np(chunk):
     pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
     # Build adjacency lists
-    facet_pairs = np.stack(
-        (INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1
-    )
+    facet_pairs = np.stack((INDICES_NP[pairs["x"]], INDICES_NP[pairs["y"]]), axis=-1)
 
     # Filter angle
     split_angle_cos = cos(SHARED_SPLIT_ANGLE.value)
@@ -218,9 +211,7 @@ def build_pairs_np(chunk):
 
     # Write shared memory
     shm = create_shm(facet_pairs)
-    np_buffer = np.ndarray(
-        facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf
-    )
+    np_buffer = np.ndarray(facet_pairs.shape, dtype=facet_pairs.dtype, buffer=shm.buf)
     np_buffer[:] = facet_pairs[:]  # Copy the original data into shared memory
     name = shm.name
 
@@ -341,9 +332,7 @@ def connected_components(adjacents, shared=None):
     tag = None
 
     iterator = (x for x, y in enumerate(tags) if y is None)
-    shared_current_tag = (
-        shared["current_tag"] if shared else SHARED_CURRENT_TAG
-    )
+    shared_current_tag = shared["current_tag"] if shared else SHARED_CURRENT_TAG
 
     for starting_point in iterator:
         with shared_current_tag:
@@ -526,9 +515,7 @@ def normalize(chunk):
     """Normalize normal vectors."""
     start, stop = chunk
 
-    shm_vnormals_name = (
-        bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
-    )
+    shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
     shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
     vnormals_shm = shared_memory.SharedMemory(shm_vnormals_name)
     shared_vnormals = vnormals_shm.buf[0:shm_vnormals_size].cast("f")
@@ -543,9 +530,7 @@ def normalize(chunk):
         start * f3itemsize : stop * f3itemsize
     ]
 
-    result = b"".join(
-        f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals)
-    )
+    result = b"".join(f3pack(*safe_normalize(v)) for v in f3iter_unpack(vnormals))
 
     vnormals[::] = memoryview(result).cast("b")
 
@@ -558,9 +543,7 @@ def normalize_np(chunk):
     """Normalize normal vectors - Numpy version."""
     start, stop = chunk
 
-    shm_vnormals_name = (
-        bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
-    )
+    shm_vnormals_name = bytearray(SHARED_VNORMALS_SHM_NAME).rstrip(b"\0").decode()
     shm_vnormals_size = SHARED_VNORMALS_SHM_SIZE.value
     vnormals_shm = shared_memory.SharedMemory(shm_vnormals_name)
     shared_vnormals = vnormals_shm.buf[0:shm_vnormals_size].cast("f")
@@ -631,9 +614,7 @@ def init(shared):
 
     if use_numpy:
         global SHARED_HASHES_NP
-        SHARED_HASHES_NP = np.array(
-            shared["hashes"], copy=False, dtype=np.int64
-        )
+        SHARED_HASHES_NP = np.array(shared["hashes"], copy=False, dtype=np.int64)
 
         global SHARED_HASHES_INDICES_NP
         SHARED_HASHES_INDICES_NP = np.array(
@@ -736,10 +717,7 @@ def main(
             print(msg, time.time() - tm0)
 
     def make_chunks(chunk_size, length):
-        return (
-            (i, min(i + chunk_size, length))
-            for i in range(0, length, chunk_size)
-        )
+        return ((i, min(i + chunk_size, length)) for i in range(0, length, chunk_size))
 
     def make_chunks_aligned(chunk_size, length, values):
         def align(index):
@@ -888,9 +866,7 @@ def main(
                 adj[:] = -1
 
                 # Compute adjacency
-                chunks = make_chunks_aligned(
-                    chunk_size, len(facet_pairs), facet_pairs
-                )
+                chunks = make_chunks_aligned(chunk_size, len(facet_pairs), facet_pairs)
                 run_unordered(pool, compute_adjacents_np, chunks)
                 shm.close()
                 shm.unlink()
@@ -929,9 +905,7 @@ def main(
             )
             iterator = ((tag, tags_pass1[ifacet]) for tag, ifacet in iterator)
             iterator = (
-                (tag, other_tag)
-                for tag, other_tag in iterator
-                if tag != other_tag
+                (tag, other_tag) for tag, other_tag in iterator if tag != other_tag
             )
             for tag, other_tag in iterator:
                 subadjacency[tag].append(other_tag)
@@ -1010,9 +984,7 @@ def main(
             # Here, we'll update points and vnormals in processes
             chunks = make_chunks(chunk_size, len(shared["facets"]) // 3)
             func = (
-                compute_weighted_normals_np
-                if use_numpy
-                else compute_weighted_normals
+                compute_weighted_normals_np if use_numpy else compute_weighted_normals
             )
             data = pool.imap_unordered(func, chunks)
 
@@ -1021,9 +993,7 @@ def main(
             if not use_numpy:
                 wstruct = struct.Struct("lfff")
                 for chunk in data:
-                    for point_index, *weighted_vnorm in wstruct.iter_unpack(
-                        chunk
-                    ):
+                    for point_index, *weighted_vnorm in wstruct.iter_unpack(chunk):
                         offset = point_index * 3
                         vnorms[offset] += weighted_vnorm[0]
                         vnorms[offset + 1] += weighted_vnorm[1]

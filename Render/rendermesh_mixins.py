@@ -80,9 +80,7 @@ class RenderMeshMultiprocessingMixin:
 
         self._points = SharedArray("f", count_points, 3, points)
         self._facets = SharedArray("l", count_facets, 3, facets)
-        self._normals = SharedArray(
-            "f", count_facets, 3, [f.Normal for f in facets2]
-        )
+        self._normals = SharedArray("f", count_facets, 3, [f.Normal for f in facets2])
         self._areas = mp.RawArray("f", count_facets)
         self._areas[:] = [f.Area for f in facets2]
 
@@ -247,9 +245,7 @@ class RenderMeshMultiprocessingMixin:
             print("init connected", time.time() - tm0)
 
         # Run script (return points, facets, vnormals, uvmap)
-        result = self._run_path_in_process(
-            path, init_globals, return_types="flff"
-        )
+        result = self._run_path_in_process(path, init_globals, return_types="flff")
         if result:
             (
                 self._points.array,
@@ -352,14 +348,9 @@ class RenderMeshMultiprocessingMixin:
         arrays = None
         if result and sentinel not in result:
             msg = main_conn.recv()
-            shms = [
-                (shared_memory.SharedMemory(name), size) for name, size in msg
-            ]
+            shms = [(shared_memory.SharedMemory(name), size) for name, size in msg]
             buffers = [shm.buf[0:size] for shm, size in shms]
-            arrays = [
-                mp.RawArray(t, b.cast(t))
-                for b, t in zip(buffers, return_types)
-            ]
+            arrays = [mp.RawArray(t, b.cast(t)) for b, t in zip(buffers, return_types)]
             buffers = None  # Otherwise we cannot close shared memory...
             for shm, _ in shms:
                 shm.close()
@@ -379,9 +370,7 @@ class SharedArray:
         self._rawarray = mp.RawArray(typecode, length * width)
         self._width = width
         if initializer:
-            self._rawarray[:] = list(
-                itertools.chain.from_iterable(initializer)
-            )
+            self._rawarray[:] = list(itertools.chain.from_iterable(initializer))
 
     def __iter__(self):
         iters = [iter(self._rawarray)] * self.width
@@ -463,9 +452,7 @@ class RenderMeshNumpyMixin:
         facet_colors = facet_colors.ravel()
 
         # Compute center of gravity (triangle cogs weighted by triangle areas)
-        weighted_triangle_cogs = (
-            np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
-        )
+        weighted_triangle_cogs = np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
         cog = np.sum(weighted_triangle_cogs, axis=0) / np.sum(areas)
 
         # Update point list
@@ -474,9 +461,7 @@ class RenderMeshNumpyMixin:
         tshape = triangles.shape
         unfolded_points = triangles.reshape(tshape[0] * tshape[1], tshape[2])
         unfolded_point_colors = np.expand_dims(facet_colors.repeat(3), axis=1)
-        unfolded_colored_points = np.hstack(
-            (unfolded_points, unfolded_point_colors)
-        )
+        unfolded_colored_points = np.hstack((unfolded_points, unfolded_point_colors))
         colored_points, new_facets = np.unique(
             unfolded_colored_points, return_inverse=True, axis=0
         )
@@ -666,9 +651,7 @@ class RenderMeshNumpyMixin:
             print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
-        facet_pairs = np.stack(
-            (indices[pairs["x"]], indices[pairs["y"]]), axis=-1
-        )
+        facet_pairs = np.stack((indices[pairs["x"]], indices[pairs["y"]]), axis=-1)
 
         # https://stackoverflow.com/questions/
         # 38277143/sort-2d-numpy-array-lexicographically
@@ -677,8 +660,7 @@ class RenderMeshNumpyMixin:
             print("sorted pairs", time.time() - tm0)
 
         adjacency = {
-            k: list(map(itget1, v))
-            for k, v in groupby(facet_pairs, key=itget0)
+            k: list(map(itget1, v)) for k, v in groupby(facet_pairs, key=itget0)
         }
         adjacency = collections.defaultdict(list, adjacency)
 

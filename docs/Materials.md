@@ -16,7 +16,7 @@ objects exported to renderers.
 
 To make things easier, these features heavily rely on the standard Material
 data system of FreeCAD. An introduction to FreeCAD Material system can be found
-here: 
+here:
 [FreeCAD Material Introduction](https://wiki.freecadweb.org/Material).
 
 *Please note that it eventually leads to 2 concepts of "materials":
@@ -37,7 +37,7 @@ Let's detail those three steps:
 
 ### Step #1: Create a Material in your document
 
-Open the Material Creator: 
+Open the Material Creator:
 <img src=../Render/resources/icons/Arch_Material_Group.svg alt="editor" title="Creator Command"
 height=32>
 

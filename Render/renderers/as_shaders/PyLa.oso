@@ -1,6 +1,6 @@
 OpenShadingLanguage 1.00
 # Compiled by oslc 1.11.14
-# options: 
+# options:
 shader PyLa
 param	closure color	Base			%read{52,52} %write{0,0} %initexpr
 param	closure color	Layer			%read{56,56} %write{2147483647,-1}

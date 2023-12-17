@@ -45,4 +45,3 @@ light_source {
 #declare StdFinish = finish { crand 0.01 diffuse 0.8 };
 
 //RaytracingContent
-
