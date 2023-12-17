@@ -1,0 +1,30 @@
+; vi: ft=dosini
+; Howetuft
+
+[General]
+Name = RenderMagnetite
+Description = Magnetite Material for Render
+
+[Architectural]
+Color = (0.117, 0.115, 0.111)
+DiffuseColor = (0.117, 0.115, 0.111)
+SectionColor = (0.117, 0.115, 0.111)
+
+[Render]
+Render.Type = Disney
+Render.Disney.Anisotropic = 0.0
+Render.Disney.BaseColor = (0.117, 0.115, 0.111)
+Render.Disney.ClearCoat = 0.0
+Render.Disney.ClearCoatGloss = 0.0
+Render.Disney.Metallic = 1.0
+Render.Disney.Roughness = 0.3
+Render.Disney.Sheen = 0.0
+Render.Disney.SheenTint = 0.0
+Render.Disney.Specular = 0.0
+Render.Disney.SpecularTint = 0.0
+Render.Disney.Subsurface = 0.0
+Render.Luxcore.0001 = scene.materials.%NAME%.type = metal2
+Render.Luxcore.0002 = scene.materials.%NAME%.fresnel = %NAME%
+Render.Luxcore.0003 = scene.textures.%NAME%.type = fresnelluxpop
+Render.Luxcore.0004 = scene.textures.%NAME%.file = %TEXTURE(Image)%
+Render.Textures.Magnetite.Images.0 = Magnetite/magnetite.nk
