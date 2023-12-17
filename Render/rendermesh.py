@@ -433,9 +433,7 @@ class RenderMeshBase:
                 uv_scale,
             )
         elif filetype == RenderMeshBase.ExportType.PLY:
-            self._write_plyfile(
-                name, filename, uv_translate, uv_rotate, uv_scale
-            )
+            self._write_plyfile(name, filename, uv_translate, uv_rotate, uv_scale)
         elif filetype == RenderMeshBase.ExportType.CYCLES:
             self._write_cyclesfile(name, filename)
         elif filetype == RenderMeshBase.ExportType.POVRAY:
@@ -485,9 +483,7 @@ class RenderMeshBase:
                 mtlfile, _ = os.path.splitext(objfile)
                 mtlfile += ".mtl"
             # Write mtl file
-            mtlfilename = RenderMeshBase._write_mtl(
-                mtlname, mtlcontent, mtlfile
-            )
+            mtlfilename = RenderMeshBase._write_mtl(mtlname, mtlcontent, mtlfile)
             if os.path.dirname(mtlfilename) != os.path.dirname(objfile):
                 raise ValueError(
                     "OBJ and MTL files shoud be in the same dir\n"
@@ -573,10 +569,7 @@ class RenderMeshBase:
         fmtf = functools.partial(str.format, mask)
         joinf = functools.partial(str.join, "")
 
-        faces = (
-            joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"])
-            for f in self.facets
-        )
+        faces = (joinf(["f"] + [fmtf(x + 1) for x in f] + ["\n"]) for f in self.facets)
         faces = it.chain(["# Faces\n"], faces)
 
         res = it.chain(header, mtl, verts, uvs, norms, objname, faces)
@@ -845,9 +838,7 @@ class RenderMeshBase:
         """
         uvmap = list(self.uvmap)
         return [
-            uvmap[vertex_index]
-            for triangle in self.facets
-            for vertex_index in triangle
+            uvmap[vertex_index] for triangle in self.facets for vertex_index in triangle
         ]
 
     def center_of_gravity(self):
@@ -919,20 +910,15 @@ class RenderMeshBase:
         regular_mesh = Mesh.Mesh(regular)
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
-        uvmap += [
-            complex(atan2(p.x, p.y) * avg_radius, p.z) / 1000 for p in points
-        ]
+        uvmap += [complex(atan2(p.x, p.y) * avg_radius, p.z) / 1000 for p in points]
         mesh.addMesh(regular_mesh)
 
         # Non Z-normal facets (seam)
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
-        avg_radius = (
-            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
-        )
+        avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
         uvmap += [
-            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000
-            for p in points
+            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000 for p in points
         ]
         mesh.addMesh(seam_mesh)
 
@@ -1247,9 +1233,7 @@ class RenderMeshBase:
         tags = [None] * self.count_facets
         tag = None
 
-        iterator = zip(
-            it.count(), (x for x, y in enumerate(tags) if y is None)
-        )
+        iterator = zip(it.count(), (x for x, y in enumerate(tags) if y is None))
         for tag, starting_point in iterator:
             tags = self.connected_facets(
                 starting_point, adjacents, tags, tag, split_angle_cos
@@ -1293,9 +1277,7 @@ class RenderMeshBase:
 
         # If necessary, rebuild uvmap
         if self.uvmap:
-            self.uvmap = [
-                self.uvmap[point_index] for point_index, tag in newpoints
-            ]
+            self.uvmap = [self.uvmap[point_index] for point_index, tag in newpoints]
 
         # Update point indices in facets
         self.facets = [
@@ -1457,21 +1439,15 @@ def _intersect_unitcube_face(direction):
 
     if dabsx >= dabsy and dabsx >= dabsz:
         return (
-            0
-            if dirx >= 0
-            else 1  # _UnitCubeFaceEnum.XPLUS  # _UnitCubeFaceEnum.XMINUS
+            0 if dirx >= 0 else 1  # _UnitCubeFaceEnum.XPLUS  # _UnitCubeFaceEnum.XMINUS
         )
 
     if dabsy >= dabsx and dabsy >= dabsz:
         return (
-            2
-            if diry >= 0
-            else 3  # _UnitCubeFaceEnum.YPLUS  # _UnitCubeFaceEnum.YMINUS
+            2 if diry >= 0 else 3  # _UnitCubeFaceEnum.YPLUS  # _UnitCubeFaceEnum.YMINUS
         )
 
-    return (
-        4 if dirz >= 0 else 5
-    )  # _UnitCubeFaceEnum.ZPLUS  # _UnitCubeFaceEnum.ZMINUS
+    return 4 if dirz >= 0 else 5  # _UnitCubeFaceEnum.ZPLUS  # _UnitCubeFaceEnum.ZMINUS
 
 
 def _uc_xplus(point):

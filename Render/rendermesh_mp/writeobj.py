@@ -77,9 +77,7 @@ def format_chunk(shared_array, group, format_function, chunk):
     start, stop = chunk
 
     # Format string
-    elems = (
-        shared_array[group * i : group * i + group] for i in range(start, stop)
-    )
+    elems = (shared_array[group * i : group * i + group] for i in range(start, stop))
     lines = (format_function(tuple(e)) for e in elems)
     concat = b"".join(lines)
 
@@ -160,10 +158,7 @@ if __name__ == "__main__":
 
     def make_chunks(chunk_size, length):
         """Compute a tuple (start, stop) to define a chunk."""
-        return (
-            (i, min(i + chunk_size, length))
-            for i in range(0, length, chunk_size)
-        )
+        return ((i, min(i + chunk_size, length)) for i in range(0, length, chunk_size))
 
     # Run
     try:
@@ -200,21 +195,16 @@ if __name__ == "__main__":
                         chunks = make_chunks(CHUNK_SIZE, item_number)
                         buffers = pool.imap(format_function, chunks)
                         results = (
-                            (SharedMemory(name=n, create=False), s)
-                            for n, s in buffers
+                            (SharedMemory(name=n, create=False), s) for n, s in buffers
                         )
-                        results = (
-                            shm.buf[0:s].tobytes() for shm, s in results
-                        )
+                        results = (shm.buf[0:s].tobytes() for shm, s in results)
                         msg = f"# {name}\n"
                         f.write(msg.encode("utf-8"))
                         f.writelines(results)
                         tick(name.lower())
 
                     # Write header & mtl
-                    f.write(
-                        "# Written by FreeCAD-Render (mp)\n".encode("utf-8")
-                    )
+                    f.write("# Written by FreeCAD-Render (mp)\n".encode("utf-8"))
                     if MTLFILENAME:
                         mtl = f"mtllib {MTLFILENAME}\n\n"
                         f.write(mtl.encode("utf-8"))
@@ -228,9 +218,7 @@ if __name__ == "__main__":
 
                     # Write vertex normals
                     if HAS_VNORMALS:
-                        write_array(
-                            "Vertex normals", format_vnormals, count_vnormals
-                        )
+                        write_array("Vertex normals", format_vnormals, count_vnormals)
 
                     # Write object statement
                     f.write(f"o {OBJNAME}\n".encode("utf-8"))

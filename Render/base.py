@@ -496,9 +496,7 @@ class ViewProviderBase(ViewProviderBaseInterface):
     def getIcon(self):
         """Return the icon which will appear in the tree view (callback)."""
         icon = (
-            self.ICON
-            if self.ICON.startswith(":")
-            else os.path.join(ICONDIR, self.ICON)
+            self.ICON if self.ICON.startswith(":") else os.path.join(ICONDIR, self.ICON)
         )
         return icon
 
@@ -627,9 +625,7 @@ class PointableFeatureMixin:  # pylint: disable=too-few-public-methods
         fpo = self.fpo
         current_target = fpo.Placement.Rotation.multVec(App.Vector(0, 0, -1))
         base = fpo.Placement.Base
-        new_target = App.Vector(
-            point.x - base.x, point.y - base.y, point.z - base.z
-        )
+        new_target = App.Vector(point.x - base.x, point.y - base.y, point.z - base.z)
         axis = current_target.cross(new_target)
         if not axis.Length:
             # Don't try to rotate if axis is a null vector...
@@ -664,10 +660,7 @@ class PointableViewProviderMixin:  # pylint: disable=too-few-public-methods
         User will be requested to select an object to point at.
         """
         msg = (
-            translate(
-                "Render", "[Point at] Please select target (on geometry)"
-            )
-            + "\n"
+            translate("Render", "[Point at] Please select target (on geometry)") + "\n"
         )
         App.Console.PrintMessage(msg)
         self.callback = Gui.ActiveDocument.ActiveView.addEventCallbackPivy(

@@ -67,9 +67,7 @@ def str2imageid_ext(string):
         try:
             strength = float(strength)
         except ValueError as exc:
-            raise ImageIdError(
-                "Incompatible strength value, defaulting to 1."
-            ) from exc
+            raise ImageIdError("Incompatible strength value, defaulting to 1.") from exc
     except ImageIdError as err:
         App.Console.PrintWarning(str(err) + "\n")
 
@@ -176,9 +174,7 @@ class Texture(FeatureBase):
         Args:
             img_name -- the name of the property containing the image
         """
-        find_image = [
-            o.image for o in self.get_images() if o.image == img_name
-        ]
+        find_image = [o.image for o in self.get_images() if o.image == img_name]
         if find_image:
             self.fpo.removeProperty(img_name)
 
@@ -192,12 +188,8 @@ class ViewProviderTexture(ViewProviderBase):
     ICON = "Texture.svg"
 
     CONTEXT_MENU = [
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Add Image Entry"), "_add_image"
-        ),
-        CtxMenuItem(
-            QT_TRANSLATE_NOOP("Render", "Remove Image Entry"), "_del_image"
-        ),
+        CtxMenuItem(QT_TRANSLATE_NOOP("Render", "Add Image Entry"), "_add_image"),
+        CtxMenuItem(QT_TRANSLATE_NOOP("Render", "Remove Image Entry"), "_del_image"),
     ]
 
     def _add_image(self):
