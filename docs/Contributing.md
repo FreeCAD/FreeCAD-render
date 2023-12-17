@@ -48,6 +48,6 @@ Please note we do not translate:
   implemented, the external mode will always be used.
 * Add support for more renderers:
   - Yafaray
-  - OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays) 
+  - OpenCasCade's [CadRays](https://www.opencascade.com/content/cadrays)
   - Kerkythea (adapt the existing macro)
   - Blender's Eevee

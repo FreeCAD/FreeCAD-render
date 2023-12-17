@@ -164,9 +164,13 @@ def colorize_np(chunk):
     # Set common parameters
     start, stop = chunk
 
-    normals = SHARED_NORMALS_NP[start:stop,]
+    normals = SHARED_NORMALS_NP[
+        start:stop,
+    ]
 
-    facets = SHARED_FACETS_NP[start:stop,]
+    facets = SHARED_FACETS_NP[
+        start:stop,
+    ]
 
     areas = SHARED_AREAS_NP[start:stop]
 

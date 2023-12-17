@@ -33,4 +33,3 @@ sky_sphere {
 
 //RaytracingCamera
 //RaytracingContent
-

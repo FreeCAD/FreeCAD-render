@@ -44,7 +44,7 @@ In FreeCAD viewport, point light will be represented by a dashed "star":
 The size of the star is controlled by the `Radius` parameter, which should be
 useful to adapt the light representation to your scene dimensions.  Please note
 this parameter is just dedicated to viewport seeing, and has *no effect on
-rendering*. 
+rendering*.
 
 The representation in FreeCAD viewport casts light onto objects, but this is just
 for convenience and does not prejudge the final rendering.

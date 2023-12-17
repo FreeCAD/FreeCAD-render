@@ -82,4 +82,3 @@ def Material "ambientCG_Marble009_1K_JPG"
         float3 outputs:rgb
     }
 }
-
