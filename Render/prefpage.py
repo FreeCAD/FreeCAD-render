@@ -272,25 +272,19 @@ def _test_dispatcher_helper(renderer, batch, parent):
 
     # Run command
     try:
-        result = subprocess.run(
-            cmdline, capture_output=True, check=False, timeout=5
-        )
+        result = subprocess.run(cmdline, capture_output=True, check=False, timeout=5)
     except FileNotFoundError:
         _show_result(False, f"File not found ('{cmdline[0]}')", "", parent)
         return
     except PermissionError:
         if cmdline[0]:
-            _show_result(
-                False, f"Permission error ('{cmdline[0]}')", "", parent
-            )
+            _show_result(False, f"Permission error ('{cmdline[0]}')", "", parent)
         else:
             _show_result(False, "Empty path", "", parent)
         return
 
     # Print result
-    informative = (
-        f"File: '{cmdline[0]}'" "\n\n" f"Return code: {result.returncode}"
-    )
+    informative = f"File: '{cmdline[0]}'" "\n\n" f"Return code: {result.returncode}"
     detailed = (
         f"$> {' '.join(cmdline)}\n",
         "\n",

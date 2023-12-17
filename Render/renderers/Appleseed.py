@@ -62,9 +62,7 @@ SHADERS_DIR = os.path.join(os.path.dirname(__file__), "as_shaders")
 # ===========================================================================
 
 # Transformation matrix from fcd coords to appleseed coords
-PLACEMENT = App.Placement(
-    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
-)
+PLACEMENT = App.Placement(App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1))
 
 
 def write_mesh(name, mesh, material, **kwargs):
@@ -186,9 +184,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     )
 
 
-def write_arealight(
-    name, pos, size_u, size_v, color, power, transparent, **kwargs
-):
+def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
     """Compute a string in renderer SDL to represent an area light."""
     # Appleseed uses radiance (power/surface) instead of power
     radiance = power / (size_u * size_v)
@@ -385,9 +381,7 @@ def _write_material_diffuse(name, matval, write_material=True):
             <bsdf name="{name}_bsdf" model="lambertian_brdf">
                 <parameter name="reflectance" value="{matval["color"][0]}" />
             </bsdf>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["color"][1]
-    )
+    snippet_color = SNIPPET_COLOR.format(n=_color_name(name), c=matval["color"][1])
     snippet = [snippet_color, snippet_bsdf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
@@ -407,9 +401,7 @@ def _write_material_glass(name, matval, write_material=True):
                 <parameter name="volume_parameterization"
                            value="transmittance" />
             </bsdf>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["color"][1]
-    )
+    snippet_color = SNIPPET_COLOR.format(n=_color_name(name), c=matval["color"][1])
     snippet = [snippet_color, snippet_bsdf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
@@ -445,9 +437,7 @@ def _write_material_disney(name, matval):
                 <parameter name="clearcoat_gloss"
                            value="{matval["clearcoatgloss"]}" />
             </bsdf>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["basecolor"][1]
-    )
+    snippet_color = SNIPPET_COLOR.format(n=_color_name(name), c=matval["basecolor"][1])
     snippet_material = _snippet_material(name, matval)
     snippet_tex = matval.write_textures()
     snippet = [snippet_tex, snippet_color, snippet_bsdf, snippet_material]
@@ -652,9 +642,7 @@ def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     snippet = indent(matval["string"], "    ")
     texture = matval.passthrough_texture
-    return snippet.format(
-        n=name, c=matval.default_color.to_linear(), tex=texture
-    )
+    return snippet.format(n=name, c=matval.default_color.to_linear(), tex=texture)
 
 
 def _write_material_fallback(name, matval):
@@ -710,9 +698,7 @@ def _write_material_emission(name, matval, write_material=True):
                 <parameter name="alpha_map" value="1" />
                 <parameter name="shade_alpha_cutouts" value="false" />
             </material>"""
-    snippet_color = SNIPPET_COLOR.format(
-        n=_color_name(name), c=matval["color"][1]
-    )
+    snippet_color = SNIPPET_COLOR.format(n=_color_name(name), c=matval["color"][1])
     snippet = [snippet_color, snippet_edf]
     if write_material:
         snippet_material = _snippet_material(name, matval)
@@ -749,8 +735,7 @@ def _snippet_material(name, matval):
     """Get a string for Appleseed Material entity."""
     if matval.has_displacement():
         msg = (
-            f"[Material '{name}'] Warning - Appleseed "
-            "does not support displacement."
+            f"[Material '{name}'] Warning - Appleseed " "does not support displacement."
         )
         _warn(msg)
 
@@ -827,9 +812,7 @@ def _write_texture(**kwargs):
     """
     shadertype = kwargs["shadertype"]
     write_function = (
-        _write_texture_osl
-        if shadertype in OSL_SHADERS
-        else _write_texture_internal
+        _write_texture_osl if shadertype in OSL_SHADERS else _write_texture_internal
     )
     return write_function(**kwargs)
 
@@ -1022,9 +1005,7 @@ def _write_value(**kwargs):
     """
     shadertype = kwargs["shadertype"]
     write_function = (
-        _write_value_osl
-        if shadertype in OSL_SHADERS
-        else _write_value_internal
+        _write_value_osl if shadertype in OSL_SHADERS else _write_value_internal
     )
     return write_function(**kwargs)
 
@@ -1091,9 +1072,7 @@ def _write_texref(**kwargs):
     """Compute a string in SDL for a reference to a texture in a shader."""
     shadertype = kwargs["shadertype"]
     write_function = (
-        _write_texref_osl
-        if shadertype in OSL_SHADERS
-        else _write_texref_internal
+        _write_texref_osl if shadertype in OSL_SHADERS else _write_texref_internal
     )
     return write_function(**kwargs)
 
@@ -1285,22 +1264,16 @@ def render(
         A path to output image file (string)
     """
 
-    def move_elements(
-        template, element_tag, destination, keep_one=False, replace=None
-    ):
+    def move_elements(template, element_tag, destination, keep_one=False, replace=None):
         """Move elements into another (root) element.
 
         If keep_one is set, only last element is kept.
         Replace tag by 'replace' if specified.
         """
-        pattern = r"(?m)^ *<{e}(?:\s.*|)>[\s\S]*?<\/{e}>\n".format(
-            e=element_tag
-        )
+        pattern = r"(?m)^ *<{e}(?:\s.*|)>[\s\S]*?<\/{e}>\n".format(e=element_tag)
         regex_obj = re.compile(pattern)
         contents = regex_obj.findall(template)
-        contents = (
-            str(contents[-1]) if contents and keep_one else "\n".join(contents)
-        )
+        contents = str(contents[-1]) if contents and keep_one else "\n".join(contents)
         # Replace tag if required
         if replace is not None:
             contents = contents.replace(element_tag, replace)
@@ -1321,14 +1294,10 @@ def render(
         param = str(param)
         value = str(value)
 
-        config_elt = root.find(
-            f"./configurations/configuration[@name='{config}']"
-        )
+        config_elt = root.find(f"./configurations/configuration[@name='{config}']")
 
         if submodule is not None:
-            submodule_elt = config_elt.find(
-                f"./parameters[@name='{submodule}']"
-            )
+            submodule_elt = config_elt.find(f"./parameters[@name='{submodule}']")
             if not submodule_elt:
                 submodule_elt = et.Element("parameters", name=submodule)
                 config_elt.append(submodule_elt)
@@ -1350,8 +1319,7 @@ def render(
             default_cam = res[-1]  # Take last match
             snippet = '<parameter name="camera" value="{}" />'
             pattern = (
-                r"<parameter\s+name\s*=\s*\"camera\""
-                r"\s+value\s*=\s*\"(.*?)\"\s*/>"
+                r"<parameter\s+name\s*=\s*\"camera\"" r"\s+value\s*=\s*\"(.*?)\"\s*/>"
             )
             template = re.sub(
                 pattern,
@@ -1387,9 +1355,7 @@ def render(
             tile_param.set("value", "32 32")
         # Use adaptive sampler for denoising
         root = set_config_param(root, "final", None, "pixel_renderer", "")
-        root = set_config_param(
-            root, "final", None, "tile_renderer", "adaptive"
-        )
+        root = set_config_param(root, "final", None, "tile_renderer", "adaptive")
         return root
 
     # Here starts render
@@ -1435,9 +1401,7 @@ def render(
             "max_average_spp",
             spp,
         )
-        root = set_config_param(
-            root, "final", "uniform_pixel_renderer", "samples", spp
-        )
+        root = set_config_param(root, "final", "uniform_pixel_renderer", "samples", spp)
         root = set_config_param(root, "final", None, "passes", 1)
 
     # Don't use Embree

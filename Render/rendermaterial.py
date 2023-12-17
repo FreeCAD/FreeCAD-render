@@ -191,9 +191,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
 
     # Check valid material
     if not is_valid_material(material):
-        ru_debug(
-            "Material", f"'{meshname}' <None>", "Fallback to default material"
-        )
+        ru_debug("Material", f"'{meshname}' <None>", "Fallback to default material")
         return RenderMaterial.build_fallback(default_color, doc=None)
 
     doc = material.Document
@@ -241,12 +239,8 @@ def get_rendering_material(meshname, material, renderer, default_color):
     try:
         father_name = mat["Father"]
         assert father_name
-        materials = (
-            o for o in App.ActiveDocument.Objects if is_valid_material(o)
-        )
-        father = next(
-            m for m in materials if m.Material.get("Name", "") == father_name
-        )
+        materials = (o for o in App.ActiveDocument.Objects if is_valid_material(o))
+        father = next(m for m in materials if m.Material.get("Name", "") == father_name)
     except (KeyError, AssertionError):
         # No father
         debug("No valid father")
@@ -260,9 +254,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
     else:
         # Found usable father
         debug(f"Retrieve father material '{father_name}'")
-        return get_rendering_material(
-            meshname, father, renderer, default_color
-        )
+        return get_rendering_material(meshname, father, renderer, default_color)
 
     # Try with Coin-like parameters (backward compatibility)
     try:
@@ -454,9 +446,7 @@ class RenderMaterial:
 
     def getmixedsubmat(self, subname, nodename="mixed"):
         """Build a RenderMaterial from a mixed submaterial."""
-        res = RenderMaterial(
-            subname, self.doc
-        )  # Resulting RenderMat to be returned
+        res = RenderMaterial(subname, self.doc)  # Resulting RenderMat to be returned
         # Copy submat into result
         node = getattr(self, nodename)
         submatsrc = getattr(node, subname)
@@ -531,15 +521,11 @@ class RenderMaterial:
 
     def has_textures(self):
         """Check if this material has textures."""
-        return any(
-            hasattr(p, "is_texture") for p in self.shaderproperties.values()
-        )
+        return any(hasattr(p, "is_texture") for p in self.shaderproperties.values())
 
 
 Directories = collections.namedtuple("Directories", "project object")
-WriteFunctions = collections.namedtuple(
-    "WriteFunctions", "texture value texref"
-)
+WriteFunctions = collections.namedtuple("WriteFunctions", "texture value texref")
 
 
 class MaterialValues:
@@ -706,24 +692,16 @@ class MaterialValues:
     def get_bump_factor(self):
         """Get bump factor, default to 1.0 if non-existing."""
         rendertex_bump = self.material.shaderproperties["bump"]
-        return (
-            rendertex_bump.scalar if rendertex_bump.scalar is not None else 1.0
-        )
+        return rendertex_bump.scalar if rendertex_bump.scalar is not None else 1.0
 
     def get_normal_factor(self):
         """Get normal factor, default to 1.0 if non-existing."""
         rendertex_normal = self.material.shaderproperties["normal"]
-        return (
-            rendertex_normal.scalar
-            if rendertex_normal.scalar is not None
-            else 1.0
-        )
+        return rendertex_normal.scalar if rendertex_normal.scalar is not None else 1.0
 
     def has_normal(self):
         """Check if material has a normal texture (boolean)."""
-        return ("normal" in self._values) and (
-            self._values["normal"] is not None
-        )
+        return ("normal" in self._values) and (self._values["normal"] is not None)
 
     def has_displacement(self):
         """Check if material has a normal texture (boolean)."""
@@ -1042,8 +1020,7 @@ def generate_param_doc():
     for mat in STD_MATERIALS:
         lines += [h.format(m=mat) for h in header_fmt]
         lines += [
-            line_fmt.format(m=mat, p=param)
-            for param in STD_MATERIALS_PARAMETERS[mat]
+            line_fmt.format(m=mat, p=param) for param in STD_MATERIALS_PARAMETERS[mat]
         ]
         lines += footer_fmt
 
