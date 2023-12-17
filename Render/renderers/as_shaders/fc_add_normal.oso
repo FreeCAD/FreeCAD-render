@@ -1,6 +1,6 @@
 OpenShadingLanguage 1.00
 # Compiled by oslc 1.12.6.2
-# options: 
+# options:
 shader fc_add_normal
 param	normal	in_normal1	0 0 0		%read{4,4} %write{0,0} %initexpr
 param	normal	in_normal2	0 0 0		%read{7,7} %write{1,1} %initexpr

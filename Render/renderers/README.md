@@ -22,7 +22,7 @@ To add support for a new renderer, you will need to add at least 3 files:
 | ---------------- | --------: | -------------- | ---------------------|
 | Renderer plug-in | 1         | This directory | Python               |
 | Icon             | 1         | ../icons       | Image (png, svg...)  |
-| Templates        | 1 or more | ../templates   | Your renderer format | 
+| Templates        | 1 or more | ../templates   | Your renderer format |
 
 Optionally, but in a strongly recommended way, you will also add a few entries in module's Preferences.
 In particular, it is strongly recommended to include the following parameters:
@@ -32,9 +32,9 @@ In particular, it is strongly recommended to include the following parameters:
 
 ### Renderer plug-in
 #### Naming
- 
+
 You need to make sure your plugin file is named with the same name (case sensitive)
-that you will use everywhere to describe your renderer. 
+that you will use everywhere to describe your renderer.
 
 This name must start with a capital letter, and have a '.py' extension.
 
@@ -47,7 +47,7 @@ The plugin must contain the following functions:
 
 * `write_mesh(name, mesh, material, **kwargs)`
 
-  Expected behaviour:  
+  Expected behaviour:
   Return a string containing a mesh object description in renderer SDL
 
   Input parameters:
@@ -62,7 +62,7 @@ The plugin must contain the following functions:
 
 * `write_camera(name, pos, up, target, **kwargs)`
 
-  Expected behaviour:  
+  Expected behaviour:
   Return a string containing a camera description in renderer SDL
 
   Input parameters:
@@ -79,7 +79,7 @@ The plugin must contain the following functions:
 
 * `write_pointlight(name, pos, color, power, **kwargs)`
 
-  Expected behaviour:  
+  Expected behaviour:
   Return a string containing a point light description in renderer SDL
 
   Input parameters:
@@ -127,7 +127,7 @@ The plugin must contain the following functions:
 
 * `render(project, prefix, external, output, width, height)`
 
-  Expected behaviour:  
+  Expected behaviour:
   Generate a command to render the given project. The command is meant to be executed by
   the framework.
   This function is in charge of writing the renderer input file and building the system
