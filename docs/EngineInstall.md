@@ -11,7 +11,7 @@ or more external rendering engines. To achieve that, you must follow a 2-step pr
 We are aware that installation, particularly the set up of a rendering engine, can be
 a daunting and even dissuasive step.
 Therefore, if you encounter any difficulty, **please do not hesitate to report an issue** in order
-for us to help you and also to improve the process for other users. 
+for us to help you and also to improve the process for other users.
 
 
 
@@ -40,7 +40,7 @@ functional: test scenes are usually provided with the renderer for that
 purpose, please refer to its documentation.
 
 You'll also find a 'Test' button on the settings screen for each renderer,
-so you can make sure that the settings you've entered for a renderer make sense for Render Workbench. 
+so you can make sure that the settings you've entered for a renderer make sense for Render Workbench.
 
 </details>
 
@@ -65,7 +65,7 @@ should fill in both.
 Optionally, you may want to add some command-line parameters (for instance, to
 activate GPU rendering, or to specify halt conditions etc.: see your renderer's
 documentation) to renderer invocation. In that case, you can use the dedicated
-field 'Render parameters' in your renderer section. 
+field 'Render parameters' in your renderer section.
 
 Optionally as well, you can set a few renderer-wide parameters:
 * `Prefix`: A prefix that can be added before the renderer executable
@@ -98,7 +98,7 @@ In workbench settings, enter `/usr/bin/povray` in 'PovRay executable path'.
 #### LuxCoreRender - UI only
 *Caveat: this install is easier (and lighter), but you won't be able to run
 Luxcorerender in batch mode*
- 
+
 <ins>Install</ins><br>
 Download Luxcore binaries package from website, with this link:
 [Standalone release v2.6](https://github.com/LuxCoreRender/LuxCore/releases/download/luxcorerender_v2.6/luxcorerender-v2.6-linux64.tar.bz2)
@@ -145,7 +145,7 @@ Unzip the downloaded package file into `<appdir>`
 
 Install Python 2.7 library
 `sudo apt install libpython2.7`
-*(Very important)* 
+*(Very important)*
 
 <ins>Set up</ins><br>
 In workbench settings:
@@ -191,7 +191,7 @@ The following array gathers the recommended packages and the corresponding workb
 
 | Renderer      | Repo          | Package               | Workbench Settings||
 | ---           | ---           | ---                   | ---| --- |
-| Povray  	| Official  	| `povray`  		| PovRay executable path:                                   | `/usr/bin/povray`				| 
+| Povray  	| Official  	| `povray`  		| PovRay executable path:                                   | `/usr/bin/povray`				|
 | LuxCore  	| AUR  		| `luxcorerender` 	| LuxCore command (cli) path: <br> LuxCore UI path: | `/usr/bin/luxcoreconsole` <br> `/usr/bin/luxcoreui` |
 | Appleseed  	| AUR  		| `appleseed-git`  	| Appleseed command (cli) path: <br /> Appleseed Studio path: | `/usr/bin/appleseed.cli` <br /> `/usr/bin/appleseed.studio`|
 | Ospray  	| AUR  		| `ospray-studio`  	| OspStudio executable path: | `/usr/bin/ospStudio` |
@@ -270,7 +270,7 @@ https://github.com/MisterMakerNL/Cycles-stand-alone-windows-build. [1.13.4] <br>
 Download the repository as a zip, unzip to a target directory and enter the path to binary to 'Cycles (standalone) executable path' field.
 
 In other cases, for instance for those who like challenges, Cycles standalone can be compiled from sources, from here: https://github.com/blender/cycles <br>
-Compiling Cycles standalone from sources can be tricky and time-consuming; it is recommended to stick to precompiled versions - you'll be warned. <br> 
+Compiling Cycles standalone from sources can be tricky and time-consuming; it is recommended to stick to precompiled versions - you'll be warned. <br>
 
 #### Pbrt
 Pbrt has to be compiled from sources. See https://github.com/mmp/pbrt-v4

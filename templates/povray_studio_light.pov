@@ -53,4 +53,3 @@ light_source {
 
 //RaytracingCamera
 //RaytracingContent
-
