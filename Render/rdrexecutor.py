@@ -155,9 +155,7 @@ class ExporterWorker(QObject):
         try:
             res = self.func(*self.args)
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            App.Console.PrintError(
-                "[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n"
-            )
+            App.Console.PrintError("[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n")
             traceback.print_exception(exc)
         else:
             with self.lock:

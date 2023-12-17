@@ -161,9 +161,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     return snippet
 
 
-def write_arealight(
-    name, pos, size_u, size_v, color, power, transparent, **kwargs
-):
+def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
     """Compute a string in renderer SDL to represent an area light."""
     strength = power / 100
 
@@ -234,9 +232,7 @@ def write_sunskylight(
         sky_sub = _write_sunskylight_hosekwilkie
     else:
         raise NotImplementedError(model)
-    return sky_sub(
-        name, direction, turbidity, albedo, sun_intensity, sky_intensity
-    )
+    return sky_sub(name, direction, turbidity, albedo, sun_intensity, sky_intensity)
 
 
 def _write_sunskylight_hosekwilkie(
@@ -424,10 +420,7 @@ def _write_material(name, matval):
         material_function = MATERIALS[shadertype]
     except KeyError:
         # Unknown shader - fallback
-        msg = (
-            "'{}' - Material '{}' unknown by renderer, using fallback "
-            "material\n"
-        )
+        msg = "'{}' - Material '{}' unknown by renderer, using fallback " "material\n"
         App.Console.PrintWarning(msg.format(name, shadertype))
         snippet_mat = _write_material_fallback(name, matval)
         return f"""
@@ -477,9 +470,7 @@ def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     texture = matval.passthrough_texture
     snippet = matval["string"]
-    return snippet.format(
-        n=name, c=matval.default_color.to_linear(), tex=texture
-    )
+    return snippet.format(n=name, c=matval.default_color.to_linear(), tex=texture)
 
 
 def _write_material_glass(name, matval, connect_to="output surface"):
@@ -739,9 +730,7 @@ def _write_texture(**kwargs):
 
     else:
         # Plain texture
-        colorspace = (
-            "__builtin_srgb" if "color" in propname else "__builtin_raw"
-        )
+        colorspace = "__builtin_srgb" if "color" in propname else "__builtin_raw"
         connect = f"""
 <connect from="{texname} color" to="{objname}_bsdf {socket}"/>"""
 
@@ -781,9 +770,7 @@ def _write_value(**kwargs):
         value = ""
     elif proptype == "RGBA":
         lcol = val.to_linear()
-        value = (
-            f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])} {_rnd(lcol[3])}"
-        )
+        value = f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])} {_rnd(lcol[3])}"
     elif proptype == "texonly":
         value = f"{val}"
     elif proptype == "str":

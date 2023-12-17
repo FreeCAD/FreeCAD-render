@@ -141,9 +141,7 @@ class Project(FeatureBase):
         "OutputImage": Prop(
             "App::PropertyFile",
             "Output",
-            QT_TRANSLATE_NOOP(
-                "App::Property", "The image saved by this render"
-            ),
+            QT_TRANSLATE_NOOP("App::Property", "The image saved by this render"),
             "",
         ),
         "OpenAfterRender": Prop(
@@ -589,9 +587,7 @@ class Project(FeatureBase):
 
         This method is a (private) subroutine of `render` method.
         """
-        Params = namedtuple(
-            "Params", "prefix output width height batch spp denoise"
-        )
+        Params = namedtuple("Params", "prefix output width height batch spp denoise")
 
         prefix = PARAMS.GetString("Prefix", "")
         if prefix:
@@ -784,10 +780,7 @@ def user_select_template(renderer):
     try:
         handler = RendererHandler(renderer)
     except RendererNotFoundError as err:
-        msg = (
-            "[Render] Failed to open template selector - Renderer '%s' "
-            "not found\n"
-        )
+        msg = "[Render] Failed to open template selector - Renderer '%s' " "not found\n"
         App.Console.PrintError(msg % err.renderer)
         return None
     filefilter = handler.get_template_file_filter()
@@ -808,9 +801,7 @@ def _get_objstrings_helper(renderer, views):
     This helper is convenient for debugging purpose (easier to reload).
     """
     get_rdr_string = renderer.get_rendering_string
-    exporter_worker = ExporterWorker(
-        _get_objstrings_worker, (get_rdr_string, views)
-    )
+    exporter_worker = ExporterWorker(_get_objstrings_worker, (get_rdr_string, views))
     rdr_executor = RendererExecutor(exporter_worker)
     rdr_executor.start()
     rdr_executor.join()
@@ -827,9 +818,7 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
         if App.GuiUp:
             QApplication.setOverrideCursor(Qt.WaitCursor)
 
-        App.Console.PrintMessage(
-            "[Render][Objstrings] STARTING OBJECTS EXPORT\n"
-        )
+        App.Console.PrintMessage("[Render][Objstrings] STARTING OBJECTS EXPORT\n")
         time0 = time.time()
 
         max_workers = None if multithreaded else 1
@@ -846,9 +835,7 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
         )
     # pylint: disable=broad-exception-caught
     except Exception:
-        App.Console.PrintError(
-            "[Render][Objstrings] /!\\ OBJECTS EXPORT ERROR /!\\\n"
-        )
+        App.Console.PrintError("[Render][Objstrings] /!\\ OBJECTS EXPORT ERROR /!\\\n")
         traceback.print_exc()
         objstrings = []
     finally:
