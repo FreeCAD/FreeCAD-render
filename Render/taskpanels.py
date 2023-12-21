@@ -51,6 +51,7 @@ from PySide.QtGui import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QCheckBox,
 )
 from PySide.QtCore import (
     QT_TRANSLATE_NOOP,
@@ -547,6 +548,7 @@ class MaterialSettingsTaskPanel:
         self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
         self.passthru.textChanged.connect(self.on_passthrough_text_changed)
         self.passthru_cache = {}
+        self.force_uvmap = self.form.findChild(QCheckBox, "ForceUVMapCB")
         self._set_layout_visible("PassthruLayout", False)
 
         # Get selected material and initialize material type combo with it
@@ -593,6 +595,13 @@ class MaterialSettingsTaskPanel:
         except AttributeError:
             renderer = None
         self._populate_passthru(renderer, material)
+
+        # Retrieve ForceUVMap
+        try:
+            force_uvmap = bool(eval(material.Material["Render.ForceUVMap"]))
+        except KeyError:
+            force_uvmap = False
+        self.force_uvmap.setChecked(force_uvmap)
 
         # Retrieve material father
         self._set_layout_visible("FatherLayout", True)
@@ -837,6 +846,10 @@ class MaterialSettingsTaskPanel:
             # Fill with new lines for rdr
             lines = dict(zip(sorted(pthr_keys[rdr]), text.splitlines()))
             tmp_mat.update(lines)
+
+        # Set ForceUVMap
+        force_uvmap = str(self.force_uvmap.isChecked())
+        tmp_mat["Render.ForceUVMap"] = force_uvmap
 
         # Set father
         father = self.father_field.text()
