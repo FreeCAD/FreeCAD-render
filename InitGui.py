@@ -107,11 +107,17 @@ static char * Render_xpm[] = {
         from Render import RENDER_COMMANDS, TRANSDIR, ICONDIR, PreferencesPage
 
         addLanguagePath(TRANSDIR)
-        self.appendToolbar(QT_TRANSLATE_NOOP("Workbench", "Render"), RENDER_COMMANDS)
-        self.appendMenu(QT_TRANSLATE_NOOP("Workbench", "&Render"), RENDER_COMMANDS)
+        self.appendToolbar(
+            QT_TRANSLATE_NOOP("Workbench", "Render"), RENDER_COMMANDS
+        )
+        self.appendMenu(
+            QT_TRANSLATE_NOOP("Workbench", "&Render"), RENDER_COMMANDS
+        )
         addIconPath(ICONDIR)
         addPreferencePage(PreferencesPage, "Render")
-        msg = QT_TRANSLATE_NOOP("Render", "Loading Render module... done") + "\n"
+        msg = (
+            QT_TRANSLATE_NOOP("Render", "Loading Render module... done") + "\n"
+        )
         Console.PrintLog(msg)
 
     def GetClassName(self):  # pylint: disable=no-self-use

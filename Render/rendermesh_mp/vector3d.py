@@ -149,7 +149,9 @@ def dot4(vec1, vec2):
     """Dot product."""
     vec1_x, vec1_y, vec1_z, vec1_t = vec1
     vec2_x, vec2_y, vec2_z, vec2_t = vec2
-    return vec1_x * vec2_x + vec1_y * vec2_y + vec1_z * vec2_z + vec1_t * vec2_t
+    return (
+        vec1_x * vec2_x + vec1_y * vec2_y + vec1_z * vec2_z + vec1_t * vec2_t
+    )
 
 
 def transform(matrix, vec):

@@ -89,7 +89,9 @@ from Render.rdrexecutor import exec_in_mainthread
 # ===========================================================================
 
 
-Renderable = collections.namedtuple("Renderable", "name mesh material defcolor")
+Renderable = collections.namedtuple(
+    "Renderable", "name mesh material defcolor"
+)
 
 
 def get_renderables(obj, name, upper_material, mesher, **kwargs):
@@ -139,7 +141,11 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     except AttributeError:
         obj_is_asm3 = False
 
-    mat = getattr(obj, "Material", None) if upper_material is None else upper_material
+    mat = (
+        getattr(obj, "Material", None)
+        if upper_material is None
+        else upper_material
+    )
     mat = mat if is_valid_material(mat) or is_multimat(mat) else None
     del upper_material  # Should not be used after this point...
 
@@ -155,12 +161,16 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Assembly3 link
     elif obj_is_asm3_lnk:
         debug("Object", label, "'Assembly3 link' detected")
-        renderables = _get_rends_from_assembly3(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_assembly3(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Assembly3
     elif obj_is_asm3:
         debug("Object", label, "'Assembly3' detected")
-        renderables = _get_rends_from_assembly3(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_assembly3(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # DocumentObjectGroup
     elif obj_is_docobjectgroup:
@@ -170,17 +180,23 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Link (plain)
     elif obj_is_applink and not obj.ElementCount:
         debug("Object", label, "'Link (plain)' detected")
-        renderables = _get_rends_from_plainapplink(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_plainapplink(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Link (array)
     elif obj_is_applink and obj.ElementCount:
         debug("Object", label, "'Link (array)' detected")
-        renderables = _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_elementlist(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # LinkGroup
     elif obj_is_applinkgroup:
         debug("Object", label, "'LinkGroup' detected")
-        renderables = _get_rends_from_elementlist(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_elementlist(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Array, PathArray
     elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
@@ -210,14 +226,18 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     # Plain part feature (including PartDesign::Body)
     elif obj_is_partfeature:
         debug("Object", label, "'Part::Feature' detected")
-        renderables = _get_rends_from_partfeature(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_partfeature(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Mesh
     elif obj_is_meshfeature:
         debug("Object", label, "'Mesh::Feature' detected")
         color = _get_shapecolor(obj, transparency_boost)
         kwargs["meshcolor"] = color
-        renderables = _get_rends_from_meshfeature(obj, name, mat, mesher, **kwargs)
+        renderables = _get_rends_from_meshfeature(
+            obj, name, mat, mesher, **kwargs
+        )
 
     # Unhandled
     else:
@@ -225,7 +245,9 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         if not ignore_unknown:
             ascendants = ", ".join(obj.getAllDerivedFrom())
             name = getattr(obj, "FullName", "<no name>")
-            msg = translate("Render", f"Unhandled object type ('{name}': {ascendants})")
+            msg = translate(
+                "Render", f"Unhandled object type ('{name}': {ascendants})"
+            )
             raise RenderableError(msg)
         debug("Object", label, "Not renderable")
 
@@ -254,7 +276,9 @@ def check_renderables(renderables):
         if not mesh:
             raise RenderableError(translate("Render", "Cannot find mesh data"))
         if not mesh.count_points or not mesh.count_facets:
-            raise RenderableError(translate("Render", "Mesh topology is empty"))
+            raise RenderableError(
+                translate("Render", "Mesh topology is empty")
+            )
 
 
 # ===========================================================================
@@ -294,9 +318,14 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
         warn(
             "Object",
             name,
-            (f"A2P - file '{subdoc_path}' not found" "- Downgrading to part::feature"),
+            (
+                f"A2P - file '{subdoc_path}' not found"
+                "- Downgrading to part::feature"
+            ),
         )
-        return _get_rends_from_partfeature(obj, name, material, mesher, **kwargs)
+        return _get_rends_from_partfeature(
+            obj, name, material, mesher, **kwargs
+        )
 
     debug("Object", name, f"A2P - Processing '{subdoc.Name}'")
     message("Object", name, f"A2P - Opening '{subdoc_path}'")
@@ -309,7 +338,9 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
     for subobj in top_objects(subdoc):
         subname = subobj.Name
         kwargs["ignore_unknown"] = True
-        base_rends = get_renderables(subobj, subname, material, mesher, **kwargs)
+        base_rends = get_renderables(
+            subobj, subname, material, mesher, **kwargs
+        )
 
         # Apply placement and set name
         for base_rend in base_rends:
@@ -377,7 +408,9 @@ def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
     renderables = []
     for element in elements:
         # Get children renderables
-        base_rends = get_renderables(element, element.Name, material, mesher, **kwargs)
+        base_rends = get_renderables(
+            element, element.Name, material, mesher, **kwargs
+        )
         if not base_rends:
             # Element is not renderable...
             continue
@@ -387,7 +420,9 @@ def _get_rends_from_assembly3(obj, _, material, mesher, **kwargs):
             new_mesh = base_rend.mesh.copy()
             new_mesh.transformation.apply_placement(obj.Placement, left=True)
             if is_link:
-                new_mesh.transformation.apply_placement(lnk.Placement, left=True)
+                new_mesh.transformation.apply_placement(
+                    lnk.Placement, left=True
+                )
             new_mat = _get_material(base_rend, material)
             new_name = f"{prefix_name}_{base_rend.name}"
             new_color = base_rend.defcolor
@@ -427,12 +462,16 @@ def _get_rends_from_elementlist(obj, name, material, mesher, **kwargs):
         elem_name = f"{name}_{element.Name}"
 
         # Compute rends and placements
-        base_rends = get_renderables(elem_object, elem_name, material, mesher, **kwargs)
+        base_rends = get_renderables(
+            elem_object, elem_name, material, mesher, **kwargs
+        )
         linkedobject_plc_inverse = elem_object.Placement.inverse()
         for base_rend in base_rends:
             new_mesh = base_rend.mesh.copy()
             if not getattr(obj, "LinkTransform", False):
-                new_mesh.transformation.apply_placement(linkedobject_plc_inverse)
+                new_mesh.transformation.apply_placement(
+                    linkedobject_plc_inverse
+                )
             new_mesh.transformation.apply_placement(base_plc)
             new_mesh.transformation.apply_placement(elem_plc)
             new_mat = _get_material(base_rend, material)
@@ -469,7 +508,9 @@ def _get_rends_from_plainapplink(obj, name, material, mesher, **kwargs):
             obj, kwargs.get("transparency_boost", 0), base_rend.defcolor
         )
         if not obj.LinkTransform:
-            new_mesh.transformation.apply_placement(linkedobj_plc_inverse, left=True)
+            new_mesh.transformation.apply_placement(
+                linkedobj_plc_inverse, left=True
+            )
         new_mesh.transformation.apply_placement(link_plc, left=True)
         return Renderable(new_name, new_mesh, new_mat, new_color)
 
@@ -508,9 +549,9 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
             Renderable(
                 name,
                 mesher(
-                    obj.Shape,
-                    _needs_uvmap(material),
-                    uvprojection,
+                    shape=obj.Shape,
+                    compute_uvmap=_needs_uvmap(material),
+                    uvmap_projection=uvprojection,
                     name=name,
                     label=obj.Label,
                 ),
@@ -600,8 +641,16 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
     meshes = [
-        mesher(s, n, uvprojection, name=n2, label=l)
-        for s, n, n2, l in zip(obj.Shape.childShapes(), needs_uvmap, names, labels)
+        mesher(
+            shape=s,
+            compute_uvmap=n,
+            uvmap_projection=uvprojection,
+            name=n2,
+            label=l,
+        )
+        for s, n, n2, l in zip(
+            obj.Shape.childShapes(), needs_uvmap, names, labels
+        )
     ]
 
     # Build renderables
@@ -623,7 +672,9 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
-        return _get_rends_from_partfeature(obj, name, material, mesher, **kwargs)
+        return _get_rends_from_partfeature(
+            obj, name, material, mesher, **kwargs
+        )
 
     shapes = obj.Shape.childShapes()
 
@@ -688,9 +739,13 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
         subname = f"{name}#{subobj.Name}"
         if getattr(subobj, "Visibility", True):  # Add subobj only if visible
             kwargs["ignore_unknown"] = True  # Force ignore unknown materials
-            rends += get_renderables(subobj, subname, material, mesher, **kwargs)
+            rends += get_renderables(
+                subobj, subname, material, mesher, **kwargs
+            )
 
-    rends = [_adjust(r, origin, material) for r in rends if r.mesh.count_points]
+    rends = [
+        _adjust(r, origin, material) for r in rends if r.mesh.count_points
+    ]
 
     return rends
 
@@ -722,9 +777,9 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
             Renderable(
                 name,
                 mesher(
-                    obj.Shape,
-                    _needs_uvmap(material),
-                    uvprojection,
+                    shape=obj.Shape,
+                    compute_uvmap=_needs_uvmap(material),
+                    uvmap_projection=uvprojection,
                     name=name,
                     label=obj.Label,
                 ),
@@ -739,12 +794,20 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         names = [f"{name}_face{i}" for i in range(nfaces)]
         labels = [f"{obj.Label}_face{i}" for i in range(nfaces)]
         meshes = [
-            mesher(f, _needs_uvmap(material), uvprojection, name=n, label=l)
+            mesher(
+                shape=f,
+                compute_uvmap=_needs_uvmap(material),
+                uvmap_projection=uvprojection,
+                name=n,
+                label=l,
+            )
             for f, n, l in zip(faces, names, labels)
         ]
         materials = [material] * nfaces
         colors = map(RGB.from_fcd_rgba, colors)
-        renderables = [Renderable(*i) for i in zip(names, meshes, materials, colors)]
+        renderables = [
+            Renderable(*i) for i in zip(names, meshes, materials, colors)
+        ]
 
     return renderables
 
@@ -764,7 +827,7 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
     compute_uvmap = material and material.Proxy.has_textures()
     uvprojection = kwargs.get("uvprojection", None)
     mesh = mesher(
-        obj,
+        shape=obj,
         compute_uvmap=compute_uvmap,
         uvmap_projection=uvprojection,
         is_already_a_mesh=True,
@@ -836,10 +899,7 @@ def _needs_uvmap(material):
         return False
 
     proxy = material.Proxy
-    try:
-        return proxy.has_textures()
-    except AttributeError:
-        return False
+    return proxy.has_textures() or proxy.force_uvmap()
 
 
 def clean_a2p():

@@ -57,7 +57,9 @@ class DisplayableCoinNode:
             visible -- flag for object visibility (boolean)
         """
         visible = bool(visible)
-        self.switch.whichChild = coin.SO_SWITCH_ALL if visible else coin.SO_SWITCH_NONE
+        self.switch.whichChild = (
+            coin.SO_SWITCH_ALL if visible else coin.SO_SWITCH_NONE
+        )
 
     def set_position(self, position):
         """Set object position (translation only, no rotation).

@@ -139,12 +139,16 @@ def colorize_std(chunk):
     areas = [getarea(i) for i in range(start, stop)]
     triangles = (tuple(getpoint(i) for i in facet) for facet in facets)
 
-    data = ((barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas))
+    data = (
+        (barycenter(t), n, a) for t, n, a in zip(triangles, normals, areas)
+    )
     data = (
         (_intersect_unitcube_face(normal), barycenter, area)
         for barycenter, normal, area in data
     )
-    data = ((color, fmul(barycenter, area)) for color, barycenter, area in data)
+    data = (
+        (color, fmul(barycenter, area)) for color, barycenter, area in data
+    )
     colors, barys = zip(*data)
 
     centroid = add_n(*barys)
@@ -181,10 +185,14 @@ def colorize_np(chunk):
     facet_colors = facet_colors.ravel()
 
     # Update facet colors
-    np.copyto(SHARED_FACET_COLORS_NP[start:stop], facet_colors, casting="unsafe")
+    np.copyto(
+        SHARED_FACET_COLORS_NP[start:stop], facet_colors, casting="unsafe"
+    )
 
     # Compute center of gravity (triangle cogs weighted by triangle areas)
-    weighted_triangle_cogs = np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
+    weighted_triangle_cogs = (
+        np.add.reduce(triangles, 1) * areas[:, np.newaxis] / 3
+    )
     centroid = np.sum(weighted_triangle_cogs, axis=0).tolist()
     area = float(np.sum(areas))
 
@@ -210,7 +218,8 @@ def update_facets(chunk):
         iterator = [iter(SHARED_COLORED_POINTS[0:length])] * 2
         iterator = zip(*iterator)
         SHARED_POINT_MAP = {
-            colored_point: index for index, colored_point in enumerate(iterator)
+            colored_point: index
+            for index, colored_point in enumerate(iterator)
         }
 
     # Aliases
@@ -470,7 +479,10 @@ def main(
 
     tm0 = time.time()
     if showtime:
-        msg = f"start uv computation: {count_points} points, " f"{count_facets} facets"
+        msg = (
+            f"start uv computation: {count_points} points, "
+            f"{count_facets} facets"
+        )
         print(msg)
 
     def tick(msg=""):
@@ -479,7 +491,10 @@ def main(
             print(msg, time.time() - tm0)
 
     def make_chunks(chunk_size, length):
-        return ((i, min(i + chunk_size, length)) for i in range(0, length, chunk_size))
+        return (
+            (i, min(i + chunk_size, length))
+            for i in range(0, length, chunk_size)
+        )
 
     def run_unordered(pool, function, iterable):
         imap = pool.imap_unordered(function, iterable)
@@ -570,7 +585,9 @@ def main(
 
             # Recompute point list
             newpoints = [
-                coord for i, _ in colored_points for coord in points[3 * i : 3 * i + 3]
+                coord
+                for i, _ in colored_points
+                for coord in points[3 * i : 3 * i + 3]
             ]
             out_points[: colored_points_len * 3] = newpoints
             tick("new point list")

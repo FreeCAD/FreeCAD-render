@@ -49,7 +49,9 @@ from math import degrees, asin, sqrt, atan2, radians
 import FreeCAD as App
 
 # Transformation from fcd coords to osp coords
-PLACEMENT = App.Placement(App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1))
+PLACEMENT = App.Placement(
+    App.Matrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1)
+)
 
 TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
@@ -261,10 +263,14 @@ def write_pointlight(name, pos, color, power, **kwargs):
         ]
       }},"""
     osp_pos = PLACEMENT.multVec(pos)
-    return snippet.format(n=json.dumps(name), c=color.to_linear(), p=osp_pos, s=power)
+    return snippet.format(
+        n=json.dumps(name), c=color.to_linear(), p=osp_pos, s=power
+    )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     # Note: ospray expects a radiance (W/m²), we have to convert power
     # See here: https://www.ospray.org/documentation.html#luminous
@@ -582,7 +588,10 @@ def _write_material(name, matval):
     try:
         material_function = MATERIALS[matval.shadertype]
     except KeyError:
-        msg = "'{}' - Material '{}' unknown by renderer, using fallback " "material\n"
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, matval.shadertype))
         snippet_mat = _write_material_fallback(name, matval.default_color)
     else:
@@ -599,7 +608,9 @@ def _write_material_passthrough(name, matval):
     """Compute a string in the renderer SDL for a passthrough material."""
     texture = matval.passthrough_texture
     snippet = "\n# Passthrough\n" + matval["string"]
-    return snippet.format(n=name, c=matval.default_color.to_linear(), tex=texture)
+    return snippet.format(
+        n=name, c=matval.default_color.to_linear(), tex=texture
+    )
 
 
 def _write_material_glass(name, matval):  # pylint: disable=unused-argument
@@ -1054,7 +1065,9 @@ def render(
     if not batch:
         outfile_actual = f"{outfile_for_osp}.00000.png"  # The file osp'll use
     else:
-        outfile_actual = f"{outfile_for_osp}.Camera_1.00000.png"  # The file osp'll use
+        outfile_actual = (
+            f"{outfile_for_osp}.Camera_1.00000.png"  # The file osp'll use
+        )
     # We remove the outfile before writing, otherwise ospray will choose
     # another file
     try:
@@ -1136,7 +1149,9 @@ def _render_keep1cam(scene_graph):
             modified by this function
     """
     world_children = scene_graph["world"]["children"]
-    cameras = [c for c in reversed(world_children) if c.get("freecadtype") == "camera"]
+    cameras = [
+        c for c in reversed(world_children) if c.get("freecadtype") == "camera"
+    ]
     for index, cam in enumerate(cameras):
         world_children.remove(cam)
         if index == 0:

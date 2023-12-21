@@ -51,6 +51,7 @@ from PySide.QtGui import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QCheckBox,
 )
 from PySide.QtCore import (
     QT_TRANSLATE_NOOP,
@@ -154,7 +155,9 @@ class TexturePicker(QComboBox):
             texture = App.ActiveDocument.getObject(imageid.texture)
             full_filename = texture.getPropertyByName(imageid.image)
             filename = (
-                f'"{os.path.basename(full_filename)}"' if full_filename else "<No file>"
+                f'"{os.path.basename(full_filename)}"'
+                if full_filename
+                else "<No file>"
             )
             texturelabel = texture.Label
             text = f"{texturelabel} - {imageid.image} ({filename})"
@@ -166,7 +169,11 @@ class TexturePicker(QComboBox):
     def get_texture_text(self):
         """Get user selected value in text format."""
         imageid = self.currentData()
-        res = f"('{imageid.texture}','{imageid.image}')" if imageid else "('','')"
+        res = (
+            f"('{imageid.texture}','{imageid.image}')"
+            if imageid
+            else "('','')"
+        )
         return res
 
 
@@ -179,7 +186,9 @@ class TexturePickerExt(QWidget):
     It is mostly intended for bump texture.
     """
 
-    def __init__(self, image_list, current_image, init_scalar, scalar_label=None):
+    def __init__(
+        self, image_list, current_image, init_scalar, scalar_label=None
+    ):
         """Initialize texture picker.
 
         Args:
@@ -260,7 +269,9 @@ class ColorPickerExt(QGroupBox):
         self.layout().setColumnStretch(1, 10)
 
         # Object color option
-        self.button_objectcolor = QRadioButton(translate("Render", "Use object color"))
+        self.button_objectcolor = QRadioButton(
+            translate("Render", "Use object color")
+        )
         self.layout().addWidget(self.button_objectcolor, 0, 0)
 
         # Constant color option
@@ -493,7 +504,9 @@ class TexonlyPicker(QGroupBox):
 class MaterialSettingsTaskPanel:
     """Task panel to edit Material render settings."""
 
-    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP("MaterialSettingsTaskPanel", "<None>")
+    NONE_MATERIAL_TYPE = QT_TRANSLATE_NOOP(
+        "MaterialSettingsTaskPanel", "<None>"
+    )
 
     def __init__(self, obj=None):
         """Initialize task panel."""
@@ -501,7 +514,9 @@ class MaterialSettingsTaskPanel:
         self.tabs = self.form.RenderTabs
         self.tabs.setCurrentIndex(0)
         self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
-        self.material_type_combo = self.form.findChild(QComboBox, "MaterialType")
+        self.material_type_combo = self.form.findChild(
+            QComboBox, "MaterialType"
+        )
 
         # Initialize material name combo
         self.material_combo = self.form.MaterialNameLayout.itemAt(0).widget()
@@ -511,14 +526,18 @@ class MaterialSettingsTaskPanel:
             if is_valid_material(obj)
         }
         self.material_combo.addItems(list(self.existing_materials.keys()))
-        self.material_combo.currentTextChanged.connect(self.on_material_name_changed)
+        self.material_combo.currentTextChanged.connect(
+            self.on_material_name_changed
+        )
 
         # Initialize material type combo
         # Note: itemAt(0) is label, itemAt(1) is combo
-        self.material_type_combo = self.form.findChild(QComboBox, "MaterialType")
-        material_type_set = [MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE] + list(
-            STD_MATERIALS
+        self.material_type_combo = self.form.findChild(
+            QComboBox, "MaterialType"
         )
+        material_type_set = [
+            MaterialSettingsTaskPanel.NONE_MATERIAL_TYPE
+        ] + list(STD_MATERIALS)
         self.material_type_combo.addItems(material_type_set)
         self.material_type_combo.currentTextChanged.connect(
             self.on_material_type_changed
@@ -542,11 +561,14 @@ class MaterialSettingsTaskPanel:
         rdrwidget.setMaximumWidth(96)
         rdrwidget.setSpacing(6)
         rdrwidget.setMovement(QListView.Static)
-        rdrwidget.currentTextChanged.connect(self.on_passthrough_renderer_changed)
+        rdrwidget.currentTextChanged.connect(
+            self.on_passthrough_renderer_changed
+        )
         self.passthru_rdr = rdrwidget
         self.passthru = self.form.findChild(QPlainTextEdit, "PassthroughEdit")
         self.passthru.textChanged.connect(self.on_passthrough_text_changed)
         self.passthru_cache = {}
+        self.force_uvmap = self.form.findChild(QCheckBox, "ForceUVMapCB")
         self._set_layout_visible("PassthruLayout", False)
 
         # Get selected material and initialize material type combo with it
@@ -593,6 +615,13 @@ class MaterialSettingsTaskPanel:
         except AttributeError:
             renderer = None
         self._populate_passthru(renderer, material)
+
+        # Retrieve ForceUVMap
+        try:
+            force_uvmap = bool(eval(material.Material["Render.ForceUVMap"]))
+        except KeyError:
+            force_uvmap = False
+        self.force_uvmap.setChecked(force_uvmap)
 
         # Retrieve material father
         self._set_layout_visible("FatherLayout", True)
@@ -837,6 +866,10 @@ class MaterialSettingsTaskPanel:
             # Fill with new lines for rdr
             lines = dict(zip(sorted(pthr_keys[rdr]), text.splitlines()))
             tmp_mat.update(lines)
+
+        # Set ForceUVMap
+        force_uvmap = str(self.force_uvmap.isChecked())
+        tmp_mat["Render.ForceUVMap"] = force_uvmap
 
         # Set father
         father = self.father_field.text()

@@ -130,7 +130,9 @@ def write_pointlight(name, pos, color, power):
     AttributeEnd # {n}
     \n"""
 
-    return dedent(snippet).format(n=name, f=pos, L=color, p=power, e=efficiency, g=gain)
+    return dedent(snippet).format(
+        n=name, f=pos, L=color, p=power, e=efficiency, g=gain
+    )
 
 
 def write_arealight(name, pos, size_u, size_v, color, power):
@@ -257,7 +259,9 @@ def render(project, prefix, external, output, width, height):
 
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxParameters", "")
-    rpath = params.GetString("LuxRenderPath" if external else "LuxConsolePath", "")
+    rpath = params.GetString(
+        "LuxRenderPath" if external else "LuxConsolePath", ""
+    )
     if not rpath:
         App.Console.PrintError(
             "Unable to locate renderer executable. "
