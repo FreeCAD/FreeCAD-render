@@ -50,7 +50,9 @@ class View(FeatureBase):
         "Source": Prop(
             "App::PropertyLink",
             "Base",
-            QT_TRANSLATE_NOOP("App::Property", "The source object of this view"),
+            QT_TRANSLATE_NOOP(
+                "App::Property", "The source object of this view"
+            ),
             None,
             0,
         ),
@@ -128,7 +130,9 @@ class View(FeatureBase):
             name = "Source"
             fpo.removeProperty(name)
             spec = self.PROPERTIES[name]
-            prop = fpo.addProperty("App::PropertyXLink", name, spec.Group, spec.Doc, 0)
+            prop = fpo.addProperty(
+                "App::PropertyXLink", name, spec.Group, spec.Doc, 0
+            )
             setattr(prop, name, spec.Default)
             fpo.setEditorMode(name, spec.EditorMode)
         fpo.Source = source
@@ -142,7 +146,9 @@ class View(FeatureBase):
         """
         # Find containing project and check DelayedBuild is false
         try:
-            proj = next(x for x in obj.InListRecursive if RendererHandler.is_project(x))
+            proj = next(
+                x for x in obj.InListRecursive if RendererHandler.is_project(x)
+            )
             assert not proj.DelayedBuild
         except (StopIteration, AttributeError, AssertionError):
             return
@@ -200,5 +206,7 @@ class ViewProviderView(ViewProviderBase):
         object.
         """
         if "UseMaterialColor" not in vobj.PropertiesList:
-            vobj.addProperty("App::PropertyBool", "UseMaterialColor", "Render", "")
+            vobj.addProperty(
+                "App::PropertyBool", "UseMaterialColor", "Render", ""
+            )
         vobj.UseMaterialColor = False

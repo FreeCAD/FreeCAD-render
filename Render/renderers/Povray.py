@@ -161,7 +161,9 @@ light_source {{
     return snippet
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
@@ -343,7 +345,10 @@ def _write_material(name, matval):
     try:
         material_function = MATERIALS[shadertype]
     except KeyError:
-        msg = "'{}' - Material '{}' unknown by renderer, using fallback " "material\n"
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, shadertype))
         return _write_material_fallback(name, matval.default_color)
 
@@ -431,8 +436,16 @@ def _write_material_pbr(name, matval):  # pylint: disable=unused-argument
     bump = matval["bump"] if matval.has_bump() else ""
     normal = matval["normal"] if matval.has_normal() else ""
 
-    specular = float(matval["specular"]) if not matval.is_texture("specular") else 0.05
-    metallic = float(matval["metallic"]) if not matval.is_texture("metallic") else 0.05
+    specular = (
+        float(matval["specular"])
+        if not matval.is_texture("specular")
+        else 0.05
+    )
+    metallic = (
+        float(matval["metallic"])
+        if not matval.is_texture("metallic")
+        else 0.05
+    )
 
     if not math.isclose(metallic, 0.0) and math.isclose(specular, 0.0):
         specular = 0.2  # Non-null is required to get metallic work...
@@ -581,7 +594,9 @@ def _texname(**kwargs):
     shadertype = kwargs["shadertype"]
     parent_shadertype = kwargs["parent_shadertype"]
 
-    parent_shadertype = "" if parent_shadertype is None else parent_shadertype + "_"
+    parent_shadertype = (
+        "" if parent_shadertype is None else parent_shadertype + "_"
+    )
 
     name = f"{objname}_{parent_shadertype}{shadertype}_{propname}"
     if len(name) > 40:
@@ -717,7 +732,9 @@ def _write_value(**kwargs):
     if shadertype in ["Glass", "glass"] and propname == "color":
         value += " filter 0.7"
     elif (
-        shadertype == "diffuse" and parent_shadertype == "Mixed" and propname == "color"
+        shadertype == "diffuse"
+        and parent_shadertype == "Mixed"
+        and propname == "color"
     ):
         value += " transmit transparency"
 
@@ -739,7 +756,9 @@ def _write_texref(**kwargs):
     # Just a few property types are supported by POV-Ray...
     # For the others, warn and take fallback
     if proptype not in ["RGB", "RGBA", "texonly", "texscalar"]:
-        fallback = propvalue.fallback if propvalue.fallback is not None else 0.5
+        fallback = (
+            propvalue.fallback if propvalue.fallback is not None else 0.5
+        )
         msg = (
             f"[Render] [Povray] [Object '{objname[:-1]}'] "
             f"[Shader '{shadertype}'] [Parameter '{propname}'] - "
@@ -856,6 +875,10 @@ def render(
 
     cmd = prefix + rpath + " " + args + " " + filepath
 
-    output = output_file if output_file else os.path.splitext(input_file)[0] + ".png"
+    output = (
+        output_file
+        if output_file
+        else os.path.splitext(input_file)[0] + ".png"
+    )
 
     return cmd, output

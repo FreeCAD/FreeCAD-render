@@ -123,7 +123,9 @@ class RendererHandler:
         """
         self.renderer_name = str(rdrname)
         self.linear_deflection = float(kwargs.get("linear_deflection", 0.1))
-        self.angular_deflection = float(kwargs.get("angular_deflection", 0.524))
+        self.angular_deflection = float(
+            kwargs.get("angular_deflection", 0.524)
+        )
         self.transparency_boost = float(kwargs.get("transparency_boost", 0))
         self.project_directory = kwargs.get("project_directory")
         self.object_directory = kwargs.get("object_directory")

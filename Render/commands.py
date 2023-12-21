@@ -68,8 +68,11 @@ class RenderProjectCommand:
         rdr = self.renderer
         return {
             "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand", "%s Project") % rdr,
-            "ToolTip": QT_TRANSLATE_NOOP("RenderProjectCommand", "Create a %s project")
+            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand", "%s Project")
+            % rdr,
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "RenderProjectCommand", "Create a %s project"
+            )
             % rdr,
         }
 
@@ -87,7 +90,9 @@ class RenderProjectCommand:
             return
 
         # Create project
-        Project.create(App.ActiveDocument, renderer=self.renderer, template=template)
+        Project.create(
+            App.ActiveDocument, renderer=self.renderer, template=template
+        )
 
 
 class RenderViewCommand:
@@ -101,7 +106,9 @@ class RenderViewCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "RenderView.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderViewCommand", "Rendering View"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "RenderViewCommand", "Rendering View"
+            ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "RenderViewCommand",
                 "Create a Rendering View of the "
@@ -260,7 +267,9 @@ class SunskyLightCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "SunskyLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("SunskyLightCommand", "Sunsky Light"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "SunskyLightCommand", "Sunsky Light"
+            ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "SunskyLightCommand", "Create a Sunsky Light object"
             ),
@@ -304,7 +313,9 @@ class DistantLightCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "DistantLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("DistantLightCommand", "Distant Light"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "DistantLightCommand", "Distant Light"
+            ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "DistantLightCommand", "Create an Distant Light object"
             ),
@@ -328,7 +339,9 @@ class MaterialCreatorCommand(_CommandArchMaterial):
     def GetResources(self):
         """Get command's resources (callback)."""
         res = super().GetResources()
-        res["MenuText"] = QT_TRANSLATE_NOOP("MaterialCreatorCommand", "Create Material")
+        res["MenuText"] = QT_TRANSLATE_NOOP(
+            "MaterialCreatorCommand", "Create Material"
+        )
         res["ToolTip"] = QT_TRANSLATE_NOOP(
             "MaterialCreatorCommand",
             "Create a new Material in current document",
@@ -336,7 +349,9 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         return res
 
     def Activated(self):
-        App.ActiveDocument.openTransaction(translate("Render", "Create material"))
+        App.ActiveDocument.openTransaction(
+            translate("Render", "Create material")
+        )
         Gui.Control.closeDialog()
         Gui.addModule("Render")
         cmds = [
@@ -387,7 +402,9 @@ class MaterialApplierCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "ApplyMaterial.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("MaterialApplierCommand", "Apply Material"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialApplierCommand", "Apply Material"
+            ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialApplierCommand", "Apply a Material to selection"
             ),
@@ -422,7 +439,8 @@ class MaterialApplierCommand:
             title = translate("Render", "No Material")
             msg = translate(
                 "Render",
-                "No Material in document. Please create a " "Material before applying.",
+                "No Material in document. Please create a "
+                "Material before applying.",
             )
             QMessageBox.warning(None, title, msg)
             return
@@ -435,7 +453,9 @@ class MaterialApplierCommand:
             and o.Material.Label
         ]
         current_mats = [
-            count for count, val in enumerate(matlabels) if val in current_mats_labels
+            count
+            for count, val in enumerate(matlabels)
+            if val in current_mats_labels
         ]
         current_mat = current_mats[0] if len(current_mats) == 1 else 0
 
@@ -461,7 +481,9 @@ class MaterialApplierCommand:
                     "App::PropertyLink",
                     "Material",
                     "",
-                    QT_TRANSLATE_NOOP("App::Property", "The Material for this object"),
+                    QT_TRANSLATE_NOOP(
+                        "App::Property", "The Material for this object"
+                    ),
                 )
             try:
                 obj.Material = material
