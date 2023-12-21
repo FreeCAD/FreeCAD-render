@@ -183,7 +183,9 @@ scene.lights.{n}.efficency = {e}
     )
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     efficiency = 15
     gain = 0.001  # Guesstimated!
@@ -312,7 +314,10 @@ def _write_material(name, matval):
     try:
         write_function = MATERIALS[matval.shadertype]
     except KeyError:
-        msg = "'{}' - Material '{}' unknown by renderer, using fallback " "material\n"
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, matval.shadertype))
         snippet_mat = _write_material_fallback(name, matval.default_color)
     else:
@@ -328,7 +333,9 @@ def _write_material_passthrough(name, matval):
         texture["Rotation"] = math.degrees(texture["Rotation"])
     except KeyError:
         pass
-    return snippet.format(n=name, c=matval.default_color.to_linear(), tex=texture)
+    return snippet.format(
+        n=name, c=matval.default_color.to_linear(), tex=texture
+    )
 
 
 def _write_material_glass(name, matval):
@@ -656,7 +663,11 @@ def render(
     pageresult.read(input_file)
 
     # Compute output
-    output = output_file if output_file else os.path.splitext(input_file)[0] + ".png"
+    output = (
+        output_file
+        if output_file
+        else os.path.splitext(input_file)[0] + ".png"
+    )
 
     # Complete configuration
     config = pageresult["Configuration"]
@@ -727,7 +738,9 @@ def render(
     # Get rendering parameters
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxCoreParameters", "")
-    rpath = params.GetString("LuxCorePath" if not batch else "LuxCoreConsolePath", "")
+    rpath = params.GetString(
+        "LuxCorePath" if not batch else "LuxCoreConsolePath", ""
+    )
     if not rpath:
         msg = (
             "Unable to locate renderer executable. Please set the correct "
