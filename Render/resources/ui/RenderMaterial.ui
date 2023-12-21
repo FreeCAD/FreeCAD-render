@@ -64,7 +64,7 @@
       <bool>true</bool>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="usesScrollButtons">
       <bool>true</bool>
@@ -183,6 +183,13 @@
             </property>
             <property name="wordWrap">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="ForceUVMapCB">
+            <property name="text">
+             <string>Force UVMap computation</string>
             </property>
            </widget>
           </item>
