@@ -508,9 +508,9 @@ def _get_rends_from_array(obj, name, material, mesher, **kwargs):
             Renderable(
                 name,
                 mesher(
-                    obj.Shape,
-                    _needs_uvmap(material),
-                    uvprojection,
+                    shape=obj.Shape,
+                    compute_uvmap=_needs_uvmap(material),
+                    uvmap_projection=uvprojection,
                     name=name,
                     label=obj.Label,
                 ),
@@ -600,8 +600,16 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
     # Subobjects meshes
     uvprojection = kwargs.get("uvprojection")
     meshes = [
-        mesher(s, n, uvprojection, name=n2, label=l)
-        for s, n, n2, l in zip(obj.Shape.childShapes(), needs_uvmap, names, labels)
+        mesher(
+            shape=s,
+            compute_uvmap=n,
+            uvmap_projection=uvprojection,
+            name=n2,
+            label=l,
+        )
+        for s, n, n2, l in zip(
+            obj.Shape.childShapes(), needs_uvmap, names, labels
+        )
     ]
 
     # Build renderables
@@ -722,9 +730,9 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
             Renderable(
                 name,
                 mesher(
-                    obj.Shape,
-                    _needs_uvmap(material),
-                    uvprojection,
+                    shape=obj.Shape,
+                    compute_uvmap=_needs_uvmap(material),
+                    uvmap_projection=uvprojection,
                     name=name,
                     label=obj.Label,
                 ),
@@ -739,7 +747,13 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         names = [f"{name}_face{i}" for i in range(nfaces)]
         labels = [f"{obj.Label}_face{i}" for i in range(nfaces)]
         meshes = [
-            mesher(f, _needs_uvmap(material), uvprojection, name=n, label=l)
+            mesher(
+                shape=f,
+                compute_uvmap=_needs_uvmap(material),
+                uvmap_projection=uvprojection,
+                name=n,
+                label=l,
+            )
             for f, n, l in zip(faces, names, labels)
         ]
         materials = [material] * nfaces
@@ -764,7 +778,7 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
     compute_uvmap = material and material.Proxy.has_textures()
     uvprojection = kwargs.get("uvprojection", None)
     mesh = mesher(
-        obj,
+        shape=obj,
         compute_uvmap=compute_uvmap,
         uvmap_projection=uvprojection,
         is_already_a_mesh=True,
