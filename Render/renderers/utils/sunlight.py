@@ -814,7 +814,9 @@ class ColorXYZ:
             return self
 
         try:
-            return ColorXYZ(self.X + other.X, self.Y + other.Y, self.Z + other.Z)
+            return ColorXYZ(
+                self.X + other.X, self.Y + other.Y, self.Z + other.Z
+            )
         except (AttributeError, TypeError):
             return NotImplemented
 
@@ -836,7 +838,9 @@ class ColorXYZ:
         """Compute multiplication between this object and a scalar."""
         try:
             _scalar = float(scalar)
-            return ColorXYZ(self.X * _scalar, self.Y * _scalar, self.Z * _scalar)
+            return ColorXYZ(
+                self.X * _scalar, self.Y * _scalar, self.Z * _scalar
+            )
         except (TypeError, ValueError):
             return NotImplemented
 
@@ -852,7 +856,9 @@ class ColorXYZ:
     def to_xyY(self):
         """Convert this color to xyY color."""
         tot = self.X + self.Y + self.Z
-        res = namedtuple("xyY", ["x", "y", "Y"])(self.X / tot, self.Y / tot, self.Y)
+        res = namedtuple("xyY", ["x", "y", "Y"])(
+            self.X / tot, self.Y / tot, self.Y
+        )
         return res
 
     def to_srgb(self):
@@ -866,7 +872,9 @@ class ColorXYZ:
             Args:
                 u -- The RGB component.
             """
-            return 12.92 * u if u <= 0.0031308 else 1.055 * u ** (5 / 12) - 0.055
+            return (
+                12.92 * u if u <= 0.0031308 else 1.055 * u ** (5 / 12) - 0.055
+            )
 
         # Linear transformation
         red = +3.24096994 * self.X - 1.53738318 * self.Y - 0.49861076 * self.Z
@@ -969,7 +977,8 @@ def sunlight(theta, turbidity):
             * WATER_SPD[wavelength]
             * WATER_AMOUNT
             * mass
-            / (1.0 + 20.07 * WATER_SPD[wavelength] * WATER_AMOUNT * mass) ** 0.45
+            / (1.0 + 20.07 * WATER_SPD[wavelength] * WATER_AMOUNT * mass)
+            ** 0.45
         )
 
         return tau_r * tau_a * tau_o * tau_g * tau_wa

@@ -144,7 +144,9 @@ AttributeEnd
     return snippet.format(n=name, o=pos, c=color.to_linear(), s=power)
 
 
-def write_arealight(name, pos, size_u, size_v, color, power, transparent, **kwargs):
+def write_arealight(
+    name, pos, size_u, size_v, color, power, transparent, **kwargs
+):
     """Compute a string in renderer SDL to represent an area light."""
     points = [
         (-size_u / 2, -size_v / 2, 0),
@@ -251,7 +253,10 @@ def _write_material(name, matval):
     try:
         write_function = MATERIALS[matval.shadertype]
     except KeyError:
-        msg = "'{}' - Material '{}' unknown by renderer, using fallback " "material\n"
+        msg = (
+            "'{}' - Material '{}' unknown by renderer, using fallback "
+            "material\n"
+        )
         App.Console.PrintWarning(msg.format(name, matval.shadertype))
         write_function = _write_material_fallback
     snippet_mat = write_function(name, matval)

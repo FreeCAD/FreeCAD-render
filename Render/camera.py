@@ -84,7 +84,9 @@ class Camera(PointableFeatureMixin, FeatureBase):
         "Projection": Prop(
             "App::PropertyEnumeration",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Type of projection: Perspective/Orthographic"),
+            QT_TRANSLATE_NOOP(
+                "Render", "Type of projection: Perspective/Orthographic"
+            ),
             ("Perspective", "Orthographic"),
         ),
         "ViewportMapping": Prop(
@@ -285,7 +287,9 @@ def set_cam_from_coin_string(cam, camstr):
     """
     # Split, clean and tokenize
     camdata = [
-        y for y in [shlex.split(x, comments=True) for x in camstr.split("\n")] if y
+        y
+        for y in [shlex.split(x, comments=True) for x in camstr.split("\n")]
+        if y
     ]
     camdict = {y[0]: y[1:] for y in camdata}
 

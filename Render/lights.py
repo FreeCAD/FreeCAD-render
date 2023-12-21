@@ -135,12 +135,18 @@ class PointLight(FeatureBase):
 
     def _on_changed_location(self, obj):  # pylint: disable=no-self-use
         """Respond to Location change event (by synchronizing Placement)."""
-        if "Placement" in obj.PropertiesList and obj.Placement.Base != obj.Location:
+        if (
+            "Placement" in obj.PropertiesList
+            and obj.Placement.Base != obj.Location
+        ):
             obj.Placement.Base = obj.Location
 
     def _on_changed_placement(self, obj):  # pylint: disable=no-self-use
         """Respond to Placement change event (by synchronizing Location)."""
-        if "Location" in obj.PropertiesList and obj.Location != obj.Placement.Base:
+        if (
+            "Location" in obj.PropertiesList
+            and obj.Location != obj.Placement.Base
+        ):
             obj.Location = obj.Placement.Base
 
     def on_create_cb(self, fpo, viewp, **kwargs):
@@ -353,7 +359,9 @@ class SunskyLight(FeatureBase):
     RENDERING_TYPE = RenderingTypes.SUNSKYLIGHT
 
 
-class ViewProviderSunskyLight(CoinDirectionalLightViewProviderMixin, ViewProviderBase):
+class ViewProviderSunskyLight(
+    CoinDirectionalLightViewProviderMixin, ViewProviderBase
+):
     """View Provider of SunskyLight class."""
 
     ICON = "SunskyLight.svg"
@@ -448,7 +456,9 @@ class DistantLight(FeatureBase):
     RENDERING_TYPE = RenderingTypes.DISTANTLIGHT
 
 
-class ViewProviderDistantLight(CoinDirectionalLightViewProviderMixin, ViewProviderBase):
+class ViewProviderDistantLight(
+    CoinDirectionalLightViewProviderMixin, ViewProviderBase
+):
     """View Provider of DistantLight class."""
 
     ICON = "DistantLight.svg"

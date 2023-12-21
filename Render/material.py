@@ -266,7 +266,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
     def setupContextMenu(self, vobj, menu):
         """Set up the object's context menu in GUI (callback)."""
         # Edit Render Settings
-        action = QAction(QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu)
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit Render Settings"), menu
+        )
         QObject.connect(
             action,
             SIGNAL("triggered()"),
@@ -275,7 +277,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
         menu.addAction(action)
 
         # Edit General Settings
-        action = QAction(QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu)
+        action = QAction(
+            QT_TRANSLATE_NOOP("Render", "Edit General Settings"), menu
+        )
         QObject.connect(
             action,
             SIGNAL("triggered()"),
@@ -285,7 +289,9 @@ class ViewProviderMaterial(_ViewProviderArchMaterial):
 
         # Add a texture to material
         action = QAction(QT_TRANSLATE_NOOP("Render", "Add Texture"), menu)
-        QObject.connect(action, SIGNAL("triggered()"), lambda: _add_texture(vobj))
+        QObject.connect(
+            action, SIGNAL("triggered()"), lambda: _add_texture(vobj)
+        )
         menu.addAction(action)
 
     def claimChildren(self):
@@ -667,7 +673,9 @@ class _TextureImportHelper:
             # Substitute texture reference in internal format
             # Internal format is ("<texturename>", "<imagepropertyname>")
             # We have to recompute <imagepropertyname>
-            imgpropname = f"Image{texture_ref[1]}" if texture_ref[1] != 0 else "Image"
+            imgpropname = (
+                f"Image{texture_ref[1]}" if texture_ref[1] != 0 else "Image"
+            )
 
             # Translate in internal format and update 'otherdata'
             if len(texture_ref) == 2:
