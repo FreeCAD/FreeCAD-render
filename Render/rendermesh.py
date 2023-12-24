@@ -890,6 +890,10 @@ class RenderMeshBase:
             self._compute_uvmap_cylinder()
         else:
             raise ValueError
+
+        # Make uv greater or equal to 0 (required by LuxCore)
+        self._make_uvmap_positive()
+
         debug("Object", self.name, f"Uvmap ending: {time.time() - tm0}")
 
     def _compute_uvmap_cylinder(self):
@@ -1046,6 +1050,14 @@ class RenderMeshBase:
         self.normals = [tuple(f.Normal) for f in iter(mesh.Facets)]
         self.areas = [f.Area for f in iter(mesh.Facets)]
         self.uvmap = uvmap
+
+    def _make_uvmap_positive(self):
+        """Make all values in uvmap positive (or zero).
+
+        This is required by LuxCore (procedural textures).
+        """
+        offset = -complex(min(c.real for c in self.uvmap), min(c.imag for c in self.uvmap))
+        self.uvmap = [c + offset for c in self.uvmap]
 
     ##########################################################################
     #                       Vertex Normals manipulations                     #
