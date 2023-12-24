@@ -666,14 +666,14 @@ class RenderMeshBase:
         ]
 
         # Body - Vertices (and vertex normals and uv)
-        fmt3 = functools.partial(str.format, "{:g} {:g} {:g}")
+        fmt3 = functools.partial(str.format, "{:#g} {:#g} {:#g}")
         verts = [iter(fmt3(*v) for v in self.points)]
         if self.has_vnormals():
             verts += [iter(fmt3(*v) for v in self.vnormals)]
         if self.has_uvmap():
             # Translate, rotate, scale (optionally)
             uvs = self.uvtransform(uv_translate, uv_rotate, uv_scale)
-            fmt2 = functools.partial(str.format, "{:g} {:g}")
+            fmt2 = functools.partial(str.format, "{:#g} {:#g}")
             verts += [iter(fmt2(v.real, v.imag) for v in uvs)]
         verts += [it.repeat("\n")]
         verts = (" ".join(v) for v in zip(*verts))
@@ -924,7 +924,7 @@ class RenderMeshBase:
         points = list(regular_mesh.Points)
         avg_radius = sum(hypot(p.x, p.y) for p in points) / len(points)
         uvmap += [
-            complex(atan2(p.x, p.y) * avg_radius, p.z) / 1000 for p in points
+            complex(atan2(p.x, p.y) * avg_radius, p.z) / 1000.0 for p in points
         ]
         mesh.addMesh(regular_mesh)
 
@@ -932,11 +932,10 @@ class RenderMeshBase:
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
         avg_radius = (
-            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0
+            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0.0
         )
         uvmap += [
-            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000
-            for p in points
+            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000.0 for p in points
         ]
         mesh.addMesh(seam_mesh)
 
@@ -1595,7 +1594,16 @@ def _is_facet_normal_to_vector(facet, vector):
 def _facet_overlap_seam(facet):
     """Test whether facet overlaps the seam."""
     phis = [atan2(x, y) for x, y, _ in facet.Points]
-    return max(phis) * min(phis) < 0
+    minphi, maxphi = min(phis), max(phis)
+    if minphi * maxphi >=0:
+        return False
+
+    # We must also check we're not on the wrong side of the circle
+    # Seam is at -pi, +pi (due to atan2 behavior)
+    if minphi <= -pi/2 and maxphi >= pi/2:
+        return True
+
+    return False
 
 
 def _pos_atan2(p_x, p_y):
