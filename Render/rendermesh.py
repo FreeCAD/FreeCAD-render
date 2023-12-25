@@ -932,10 +932,13 @@ class RenderMeshBase:
         seam_mesh = Mesh.Mesh(seam)
         points = list(seam_mesh.Points)
         avg_radius = (
-            sum(hypot(p.x, p.y) for p in points) / len(points) if points else 0.0
+            sum(hypot(p.x, p.y) for p in points) / len(points)
+            if points
+            else 0.0
         )
         uvmap += [
-            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000.0 for p in points
+            complex(_pos_atan2(p.x, p.y) * avg_radius, p.z) / 1000.0
+            for p in points
         ]
         mesh.addMesh(seam_mesh)
 
@@ -1055,7 +1058,9 @@ class RenderMeshBase:
 
         This is required by LuxCore (procedural textures).
         """
-        offset = -complex(min(c.real for c in self.uvmap), min(c.imag for c in self.uvmap))
+        offset = -complex(
+            min(c.real for c in self.uvmap), min(c.imag for c in self.uvmap)
+        )
         self.uvmap = [c + offset for c in self.uvmap]
 
     ##########################################################################
@@ -1595,12 +1600,12 @@ def _facet_overlap_seam(facet):
     """Test whether facet overlaps the seam."""
     phis = [atan2(x, y) for x, y, _ in facet.Points]
     minphi, maxphi = min(phis), max(phis)
-    if minphi * maxphi >=0:
+    if minphi * maxphi >= 0:
         return False
 
     # We must also check we're not on the wrong side of the circle
     # Seam is at -pi, +pi (due to atan2 behavior)
-    if minphi <= -pi/2 and maxphi >= pi/2:
+    if minphi <= -pi / 2 and maxphi >= pi / 2:
         return True
 
     return False
