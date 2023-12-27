@@ -234,8 +234,9 @@ class Material(_ArchMaterial):
         trigger the uvmap computation accordingly; this feature allows the
         user to force it."""
         mat = self.fpo.Material
-        res = mat.get("Render.ForceUVMap", "False")
-        res = bool(eval(res))
+        val = mat.get("Render.ForceUVMap", "False")
+        val = val.strip()
+        res = val in ["True", "1"]
         return res
 
 
