@@ -414,6 +414,7 @@ class RenderMaterial:
         self.default_color = WHITE
         self._partypes = {}  # Record parameter types
         self.doc = doc  # Source document, for textures
+        self.passthrough_texture = {}
 
     def __repr__(self):
         """Represent object."""
