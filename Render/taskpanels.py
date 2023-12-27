@@ -617,10 +617,9 @@ class MaterialSettingsTaskPanel:
         self._populate_passthru(renderer, material)
 
         # Retrieve ForceUVMap
-        try:
-            force_uvmap = bool(eval(material.Material["Render.ForceUVMap"]))
-        except KeyError:
-            force_uvmap = False
+        val = material.Material.get("Render.ForceUVMap", "False")
+        val = val.strip()
+        force_uvmap = val in ["True", "1"]
         self.force_uvmap.setChecked(force_uvmap)
 
         # Retrieve material father
