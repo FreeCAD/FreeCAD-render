@@ -257,8 +257,8 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
 class RenderableError(Exception):
     """An error in renderable."""
 
-    def __init__(self, message):
-        super().__init__(message)
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
 def check_renderables(renderables):
