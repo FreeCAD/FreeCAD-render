@@ -1,0 +1,10 @@
+; vi: ft=dosini
+; Howetuft
+
+[General]
+Name = RenderTexture
+Description = Texture Base Material for Render
+UseObjectColor = False
+
+[Render]
+Render.Type = Substance_PBR
