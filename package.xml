@@ -3,9 +3,9 @@
   <name>Render</name>
   <description>A workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines.
 
-Designed as a modern replacement for internal Raytracing Workbench.</description>
-  <version>2023.08.18</version>
-  <date>2023-08-18</date>
+Designed as a modern replacement for deprecated internal Raytracing Workbench.</description>
+  <version>2023.12.28</version>
+  <date>2023-12-28</date>
   <maintainer email="@howetuft">howetuft</maintainer>
   <maintainer email="@yorikvanhavre">Yorik Van Havre</maintainer>
   <license file="LICENSE">LGPLv2.1</license>

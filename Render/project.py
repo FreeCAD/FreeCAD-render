@@ -101,7 +101,9 @@ class Project(FeatureBase):
             QT_TRANSLATE_NOOP(
                 "App::Property", "The width of the rendered image in pixels"
             ),
-            PARAMS.GetInt("RenderWidth", 800),
+            PARAMS.GetInt("RenderWidth", 800)
+            if PARAMS.GetInt("RenderWidth", 800) > 0
+            else 800,
         ),
         "RenderHeight": Prop(
             "App::PropertyInteger",
@@ -109,7 +111,9 @@ class Project(FeatureBase):
             QT_TRANSLATE_NOOP(
                 "App::Property", "The height of the rendered image in pixels"
             ),
-            PARAMS.GetInt("RenderHeight", 600),
+            PARAMS.GetInt("RenderHeight", 600)
+            if PARAMS.GetInt("RenderHeight", 600) > 0
+            else 600,
         ),
         "GroundPlane": Prop(
             "App::PropertyBool",
