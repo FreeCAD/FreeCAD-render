@@ -707,9 +707,11 @@ class MaterialValues:
     def get_bump_factor(self):
         """Get bump factor, default to 1.0 if non-existing."""
         rendertex_bump = self.material.shaderproperties["bump"]
-        return (
-            rendertex_bump.scalar if rendertex_bump.scalar is not None else 1.0
-        )
+        try:
+            scalar = float(rendertex_bump.scalar)
+        except (AttributeError, TypeError, ValueError):
+            scalar = 1.0
+        return scalar
 
     def get_normal_factor(self):
         """Get normal factor, default to 1.0 if non-existing."""
