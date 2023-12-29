@@ -1,0 +1,10 @@
+; vi: ft=dosini
+; Howetuft
+
+[General]
+Name = RenderDisney
+Description = Disney Material for Render
+UseObjectColor = False
+
+[Render]
+Render.Type = Disney
