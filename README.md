@@ -22,7 +22,13 @@ Raytracing:
   facilitate the addition of new engines. The Render Workbench already supports several more
   renderers than Raytracing Workbench, like Appleseed, LuxCoreRender and Cycles.
 * The Render Workbench provides enhanced features, compared to Raytracing:
-  scene lighting, camera enhanced control, material support etc.
+    - various scene lighting features (point lights, area lights, sunsky etc.)
+      and preconfigured lightings as templates
+    - camera enhanced control
+    - material support
+    - texture support
+    - renderers' advanced features handling: denoising, batch mode
+  etc.
 
 ## Supported rendering engines
 
@@ -94,6 +100,7 @@ Optionally, you may tweak some particulars of your scene:
 * Add [lights](./docs/Lights.md) to your scene
 * Add extra [cameras](./docs/Cameras.md)
 * Add [materials](./docs/Materials.md) to your objects
+* Add [textures](./docs/Materials.md##textures) to your materials
 
 These adjustments should take place between steps 2 and 3.
 
