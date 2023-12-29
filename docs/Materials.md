@@ -133,42 +133,107 @@ should be used only when standard material is not sufficient.
 
 ## Textures
 
-You can add textures to your material, to be used as inputs to material's parameters.
-To do so, right-click on the material and select 'Add Texture'.
-The new texture appears under the material:
+### A few words about textures
+First, let's remind of what a texture is, in Physically Based Rendering
+context: in PBR, **a texture is a set of images that serve as inputs to a
+material.**
+
+The use of textures therefore presupposes the use of a material. _There is no
+texture without material._
+Each image is intended to feed one of the material's parameters: color,
+roughness, normals, bumpiness, etc. The image is also called a map: color map,
+roughness map, normal map, bump map...
+
+
+### How it works in Render
+In Render, you can use textures in your materials via a four steps process:
+
+#### Step 1: Prepare
+The first thing to do is to obtain the texture. Textures for rendering can be
+downloaded from various sites, including [AmbientCG](www.ambientcg.com),
+[MaterialX](matlib.gpuopen.com) etc.
+
+Since it's usually shipped as a compressed file, you first have to unzip it
+into a temporary directory. At this stage, you usually get a set of image files
+plus a few other files containing metadata you may ignore (.usdc, .mtlx etc.).
+
+
+<img src=./fileset_texture.png alt="Texture File Set">
+
+As we have seen, texture is necessarily applied via a material. If you've
+already got a material to be textured, you can jump to next step. If not, it is
+recommended to use a Disney material, which is the most versatile solution.
+
+#### Step 2: Upload
+Then you have to store the texture into the material in FreeCAD.
+To do so, right-click on your material and select 'Add Texture'.
+A new texture object appears under the material:
 
 <img src=./material_texture.png alt="MaterialTexture">
 
+It contains:
+- an Image field
+- and mapping informations: rotation, scale, translation (in 2D)
 
-For the new texture to be usable, you must upload at least one image: set the
-'Image' parameter.
-You can then add as many other images as you want. Textures can indeed be
-composed of different images for different purposes (color, bump map, normal
-map...). Use 'Add image entry' in texture's right-click menu.
+You then have to upload your image files to this Render texture object:
+- click on the Image field, and select your first image file in the file
+  picker. The image file is being uploaded into the texture.
+- If there are remaining image files, right-click on the texture and select
+  'Add image entry' in the context menu. Click on the new Image field and
+  select your file. Repeat till there is no more remaining image file.
 
+You should obtain something like that:
 
 <img src=./manyimages_texture.png alt="ManyimagesTexture">
 
-Optionally, you can set the mapping parameters (rotation, scale, translation).
+Hints:
+1. Some image files found in downloadable textures are useless for our
+purposes. For instance:
+    - Ambient Occlusion: this input is not handled by our renderers.
+    - Normal DX: see note #2 below.
+    - Preview (usually a .png file...): although it is an image file, this file
+      is not intended to be an input for the material, but a way of assessing
+      the texture result.
 
+  You may ignore those files when uploading.
+
+2. Some image names may be reinterpreted to connect to their target parameters:
+    - Albedo should be connected to Color / Base Color
+    - Displacement may rather be connected to Bump than to Displacement.
+
+3. Due to FreeCAD's peculiarities, once you've uploaded a file to an Image
+   field, it's no longer possible to modify this link. If you still want to
+   make a modification, you need to delete the field, invoking 'Remove Image Entry' in
+   texture context menu, and recreate it (please don't blame Render for this,
+   this is FreeCAD related...).
+
+
+
+#### Step 3: Connect
 Once you have a workable texture, you can use it in rendering parameters:
-right-click on your material, select 'Edit Render Settings' to open your
-material's settings; set the parameter to 'Use texture' and select the texture
-you want in the combo box. You should get something like that:
+1. Right-click on your material, select 'Edit Render Settings' to open your
+material's settings
+2. For each parameter affected by an image file, set the parameter to 'Use
+   texture' and select the image file you want in the combo box. You should get
+   something like that:
 
 <img src=./textures.png alt="TextureSettings">
 
-Caveats:
-- Textures cannot be used standalone: they are necessarily linked to a
-  material.
-- A material can only access its own textures (not the textures of another
-  material).
-- The image files will be stored inside the .fcstd file. Large use of
+#### Step 4: Tweak
+Optionally, you may set:
+- the mapping parameters.
+- the UV mapping: see next chapter.
+
+#### Additional Notes
+- Normal DX / Normal GL: Normal maps exist in two formats : DX (DirectX)
+  and GL (OpenGL). Both formats strictly contain the same information, but in
+  two distinct encodings.
+  _In Render, normal maps are expected to follow OpenGL encoding (not DirectX)._
+  Hence NormalDX files are useless for us.
+- The image files will be stored inside the .FCStd file. Large use of
   textures may affect file size!
-- Normal maps are expected to follow OpenGL convention (not DirectX)
 
-
-## UV mapping
+### UV mapping
 To correctly position the texture on the object, Render WB generates a UV
 mapping. Three modes are available:
 - Cubic
@@ -178,6 +243,8 @@ Those modes are accessible in the View of the object, in the parameter
 `UV Projection` under the section `Material & Textures`.
 
 <img src=./UVProjection.png alt="UV Projection">
+
+By default, the cubic is mode is selected, which is suitable for most situations.
 
 
 ## Writing Material card for rendering <a name="parameters"></a>
