@@ -100,7 +100,7 @@ Optionally, you may tweak some particulars of your scene:
 * Add [lights](./docs/Lights.md) to your scene
 * Add extra [cameras](./docs/Cameras.md)
 * Add [materials](./docs/Materials.md) to your objects
-* Add [textures](./docs/Materials.md##textures) to your materials
+* Add [textures](./docs/Materials.md#textures) to your materials
 
 These adjustments should take place between steps 2 and 3.
 
