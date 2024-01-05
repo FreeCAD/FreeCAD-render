@@ -903,7 +903,7 @@ def _needs_uvmap(material):
         return proxy.has_textures() or proxy.force_uvmap()
     except AttributeError:
         App.Console.PrintMessage(
-            f"[Render][Objstrings] Material {proxy} is not a Render Matrial and no texture will be applied\n"
+            f"[Render][Objstrings] Material {proxy} is not a Render Material and no texture will be applied\n"
         )
         return False
 
