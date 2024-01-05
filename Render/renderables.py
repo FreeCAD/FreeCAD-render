@@ -899,7 +899,13 @@ def _needs_uvmap(material):
         return False
 
     proxy = material.Proxy
-    return proxy.has_textures() or proxy.force_uvmap()
+    try:
+        return proxy.has_textures() or proxy.force_uvmap()
+    except AttributeError:
+        App.Console.PrintMessage(
+            f"[Render][Objstrings] Material {proxy} is not a Render Matrial and no texture will be applied\n"
+        )
+        return False
 
 
 def clean_a2p():
