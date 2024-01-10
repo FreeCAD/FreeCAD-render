@@ -52,9 +52,15 @@
 #
 # Most of the other nodes are in 'src/scene' directory
 
+# To activate logging, use this prefix:
+# env GLOG_logtostderr=1 GLOG_v=10
+#
+# https://github.com/google/glog#verbose-logging
+
 
 import pathlib
 import functools
+import itertools as it
 from math import degrees, asin, sqrt, radians, atan2, acos
 import xml.etree.ElementTree as et
 
@@ -72,6 +78,10 @@ TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 
 def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
+    # Get specific parameters
+    cast_caustics = kwargs.get("CastCaustics", False)
+    receive_caustics = kwargs.get("ReceiveCaustics", False)
+
     # Compute material values
     matval = material.get_material_values(
         name,
@@ -152,13 +162,22 @@ def write_pointlight(name, pos, color, power, **kwargs):
 <light
     name="{name}"
     light_type="point"
-    co="{_write_point(pos)}"
     strength="1 1 1"
+    tfm="1 0 0 {pos[0]}  0 1 0 {pos[1]}  0 0 1 {pos[2]}"
 />
 </state>
 """
 
     return snippet
+
+
+# TODO Move
+def _write_tfm(placement):
+    """Translate a FreeCAD placement into a Cycles transformation (string)."""
+    mat = placement.Matrix.A
+    return " ".join(
+        [str(_rnd(i)) for i in it.chain(mat[0:4], mat[4:8], mat[8:12])]
+    )
 
 
 def write_arealight(
@@ -168,10 +187,6 @@ def write_arealight(
     strength = power / 100
 
     use_camera = "false" if transparent else "true"
-    rot = pos.Rotation
-    axis1 = rot.multVec(App.Vector(1.0, 0.0, 0.0))
-    axis2 = rot.multVec(App.Vector(0.0, 1.0, 0.0))
-    direction = axis1.cross(axis2)
     snippet = f"""
 <!-- Area light '{name}' -->
 <shader name="{name}_shader" use_mis="true">
@@ -185,15 +200,12 @@ def write_arealight(
 <state shader="{name}_shader">
 <light
     light_type="area"
-    co="{_write_point(pos.Base)}"
     strength="1 1 1"
-    axisu="{_write_vec(axis1)}"
-    axisv="{_write_vec(axis2)}"
+    tfm="{_write_tfm(pos)}"
     sizeu="{_write_float(size_u)}"
     sizev="{_write_float(size_v)}"
     size="1.0"
     round="false"
-    dir="{_write_vec(direction)}"
     use_mis="true"
     use_camera="{use_camera}"
 />
@@ -201,13 +213,11 @@ def write_arealight(
     light_type="area"
     co="{_write_point(pos.Base)}"
     strength="1 1 1"
-    axisu="{_write_vec(axis1)}"
-    axisv="{_write_vec(axis2)}"
+    tfm="{_write_tfm(pos)}"
     sizeu="{_write_float(size_u)}"
     sizev="{_write_float(size_v)}"
     size="1.0"
     round="false"
-    dir="{_write_vec(-direction)}"
     use_mis="true"
     use_camera="{use_camera}"
 />
