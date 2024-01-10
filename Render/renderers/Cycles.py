@@ -52,6 +52,11 @@
 #
 # Most of the other nodes are in 'src/scene' directory
 
+# To activate logging, use this prefix:
+# env GLOG_logtostderr=1 GLOG_v=10
+#
+# https://github.com/google/glog#verbose-logging
+
 
 import pathlib
 import functools
@@ -72,6 +77,10 @@ TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 
 def write_mesh(name, mesh, material, **kwargs):
     """Compute a string in renderer SDL to represent a FreeCAD mesh."""
+    # Get specific parameters
+    cast_caustics = kwargs.get("CastCaustics", False)
+    receive_caustics = kwargs.get("ReceiveCaustics", False)
+
     # Compute material values
     matval = material.get_material_values(
         name,
@@ -152,8 +161,8 @@ def write_pointlight(name, pos, color, power, **kwargs):
 <light
     name="{name}"
     light_type="point"
-    co="{_write_point(pos)}"
     strength="1 1 1"
+    tfm="1 0 0 {pos[0]}  0 1 0 {pos[1]}  0 0 1 {pos[2]}"
 />
 </state>
 """
