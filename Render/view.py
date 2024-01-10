@@ -108,6 +108,26 @@ class View(FeatureBase):
             30,
             0,
         ),
+        "CyclesCastCaustics": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Enable object to cast shadow caustics (Cycles only)",
+            ),
+            False,
+            0,
+        ),
+        "CyclesReceiveCaustics": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Enable object to receive shadow caustics (Cycles only)",
+            ),
+            False,
+            0,
+        ),
     }
 
     @classmethod
