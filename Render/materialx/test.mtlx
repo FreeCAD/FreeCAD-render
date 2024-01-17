@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<materialx version="1.38" colorspace="lin_rec709">
+  <render_pbr name="SR_default" type="surfaceshader">
+    <input name="BaseColor" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Subsurface" type="float" value="0" />
+    <input name="Roughness" type="float" value="0" />
+    <input name="Metallic" type="float" value="0" />
+    <input name="Specular" type="float" value="0" />
+    <input name="SpecularTint" type="float" value="0" />
+    <input name="Anisotropic" type="float" value="0" />
+    <input name="Sheen" type="float" value="0" />
+    <input name="SheenTint" type="float" value="0" />
+    <input name="ClearCoat" type="float" value="0" />
+    <input name="ClearCoatGloss" type="float" value="1.0" />
+    <input name="Normal" type="vector3"  value="0.5, 0.5, 1" />
+  </render_pbr>
+  <surfacematerial name="Default" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_default" />
+  </surfacematerial>
+</materialx>

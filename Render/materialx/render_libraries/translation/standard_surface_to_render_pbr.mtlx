@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<materialx version="1.38">
+
+  <nodedef name="standard_surface_to_render_pbr" node="standard_surface_to_render_pbr" nodegroup="translation">
+    <input name="base" type="float" value="1" />
+    <input name="base_color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="subsurface" type="float" value="0" />
+    <input name="metalness" type="float" value="0" />
+    <input name="specular" type="float" value="0" />
+    <input name="specular_roughness" type="float" value="0.2" />
+    <input name="sheen" type="float" value="0" />
+    <input name="sheen_color" type="color3" value="1, 1, 1" />
+    <input name="coat" type="float" value="0" />
+    <input name="coat_color" type="color3" value="0, 0, 0" />
+    <input name="coat_roughness" type="float" value="0.1" />
+    <input name="normal" type="vector3" defaultgeomprop="Nworld" />
+
+    <output name="BaseColor_out" type="color3" />
+    <output name="Subsurface_out" type="float" />
+    <output name="Roughness_out" type="float" />
+    <output name="Metallic_out" type="float" />
+    <output name="Specular_out" type="float" />
+    <output name="SpecularTint_out" type="float" />
+    <output name="Anisotropic_out" type="float" />
+    <output name="Sheen_out" type="float" />
+    <output name="SheenTint_out" type="float" />
+    <output name="ClearCoat_out" type="float" />
+    <output name="ClearCoatGloss_out" type="float" />
+    <output name="Normal_out" type="vector3" />
+  </nodedef>
+
+  <nodegraph name="NG_standard_surface_to_render_pbr" nodedef="standard_surface_to_render_pbr">
+
+    <!-- Subsurface -->
+    <dot name="subsurface" type="float">
+      <input name="in" type="float" interfacename="subsurface" />
+    </dot>
+
+    <!-- Coat attenuation -->
+    <dotproduct name="has_coat_color" type="float">
+      <input name="in1" type="vector3" interfacename="coat_color" channels="rgb" />
+      <input name="in2" type="vector3" value="1,1,1" />
+    </dotproduct>
+    <multiply name="scaledBaseColor" type="color3">
+      <input name="in1" type="color3" interfacename="base_color" />
+      <input name="in2" type="float" interfacename="base" />
+    </multiply>
+    <mix name="coatAttenuation" type="color3">
+      <input name="fg" type="color3" interfacename="coat_color" />
+      <input name="bg" type="color3" value="1.0, 1.0, 1.0" />
+      <input name="mix" type="float" interfacename="coat" />
+    </mix>
+    <multiply name="mixedBaseColor" type="color3">
+      <input name="in1" type="color3" nodename="scaledBaseColor" />
+      <input name="in2" type="color3" nodename="coatAttenuation" />
+    </multiply>
+    <divide name="constantOneThird" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" value="3" />
+    </divide>
+    <multiply name="coatColor" type="color3">
+      <input name="in1" type="color3" interfacename="coat_color" />
+      <input name="in2" type="float" interfacename="coat" />
+    </multiply>
+    <dotproduct name="weightedCoat" type="float">
+      <input name="in1" type="vector3" nodename="coatColor" channels="rgb" />
+      <input name="in2" type="vector3" nodename="constantOneThird" channels="xxx" />
+    </dotproduct>
+
+    <!-- Specular -->
+    <dot name="specular" type="float">
+      <input name="in" type="float" interfacename="specular" />
+    </dot>
+
+    <!-- Metallic roughness -->
+    <ifequal name="base_color" type="color3">
+      <input name="value1" type="float" nodename="has_coat_color" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="color3" nodename="scaledBaseColor" />
+      <input name="in2" type="color3" nodename="mixedBaseColor" />
+    </ifequal>
+    <dot name="metallic" type="float">
+      <input name="in" type="float" interfacename="metalness" />
+    </dot>
+    <dot name="roughness" type="float">
+      <input name="in" type="float" interfacename="specular_roughness" />
+    </dot>
+
+    <!-- Clearcoat -->
+    <ifequal name="clearcoat" type="float">
+      <input name="value1" type="float" nodename="has_coat_color" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="float" interfacename="coat" />
+      <input name="in2" type="float" nodename="weightedCoat" />
+    </ifequal>
+    <multiply name="coat_roughness_inv" type="float">
+      <input name="in1" type="float" interfacename="coat_roughness" />
+      <input name="in2" type="float" value="-1.0" />
+    </multiply>
+    <add name="clearcoatgloss" type="float">
+      <input name="in1" type="float" nodename="coat_roughness_inv" />
+      <input name="in2" type="float" value="1.0" />
+    </add>
+
+    <!-- Sheen -->
+    <dot name="sheen" type="float">
+      <input name="in" type="float" interfacename="sheen" />
+    </dot>
+
+    <!--Normal-->
+    <dot name="normal" type="vector3">
+      <input name="in" type="vector3" interfacename="normal" />
+    </dot>
+
+    <!-- Outputs -->
+    <output name="BaseColor_out" type="color3" nodename="base_color" />
+    <output name="Subsurface_out" type="float" nodename="subsurface" />
+    <output name="Roughness_out" type="float" nodename="roughness" />
+    <output name="Metallic_out" type="float" nodename="metallic" />
+    <output name="Specular_out" type="float" nodename="specular" />
+    <output name="SpecularTint_out" type="float" value="0" />
+    <output name="Anisotropic_out" type="float" value="0" />
+    <output name="Sheen_out" type="float" nodename="sheen" />
+    <output name="SheenTint_out" type="float" value="0" />
+    <output name="ClearCoat_out" type="float" nodename="clearcoat" />
+    <output name="ClearCoatGloss_out" type="float" nodename="clearcoatgloss" />
+    <output name="Normal_out" type="vector3" nodename="normal" />
+
+  </nodegraph>
+</materialx>
