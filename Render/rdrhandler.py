@@ -285,18 +285,34 @@ class RendererHandler:
 
     def _get_renderer_specifics(self, view):
         """Get specific parameters of the renderer for a given view."""
+        rdrname = self.renderer_name
+
+        # Source properties
         src = view.Source
         try:
             properties = src.PropertiesList
         except AttributeError:
-            return {}
+            res = {}
+        else:
+            res = {
+                p[len(rdrname) :]: src.getPropertyByName(p)
+                for p in properties
+                if p.startswith(rdrname)
+            }
 
-        rdrname = self.renderer_name
-        res = {
-            p[len(rdrname) :]: src.getPropertyByName(p)
-            for p in properties
-            if p.startswith(rdrname)
-        }
+        # View properties
+        try:
+            properties = view.PropertiesList
+        except AttributeError:
+            pass
+        else:
+            res.update(
+                {
+                    p[len(rdrname) :]: view.getPropertyByName(p)
+                    for p in properties
+                    if p.startswith(rdrname)
+                }
+            )
         return res
 
     def _get_general_data(self):
