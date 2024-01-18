@@ -311,7 +311,7 @@ def _write_sunskylight_hosekwilkie(
         light_type="distant"
         use_mis="true"
         strength="{sun_strength} {sun_strength} {sun_strength}"
-        dir="{-_dir.x} {-_dir.y} {-_dir.z}"
+        tfm="{_write_tfm(_dir2plc(-direction))}"
         angle="{angle}"
     />
 </state>
@@ -423,7 +423,7 @@ def write_distantlight(
         light_type="distant"
         strength="1 1 1"
         angle="{angle}"
-        dir="{direction.x} {direction.y} {direction.z}"
+        tfm="{_write_tfm(_dir2plc(direction))}"
 />
 </state>
 """
@@ -852,6 +852,28 @@ def _write_color(col):
         col -- a utils.RGB color"""
     lcol = col.to_linear()
     return f"{_rnd(lcol[0])} {_rnd(lcol[1])} {_rnd(lcol[2])}"
+
+
+NULLVEC = App.Vector(0.0, 0.0, 0.0)
+ZVEC = App.Vector(0.0, 0.0, 1.0)
+
+
+def _dir2plc(direction):
+    """Compute a placement that transforms (0,0,-1) into 'direction'.
+
+    Args:
+        direction -- The target direction (3D vector)
+
+    Returns a FreeCAD placement.
+    """
+    z_out = App.Vector(-direction)
+    x_out = ZVEC.cross(z_out)
+    if x_out.isEqual(NULLVEC, 1e-6):
+        # z_in and z_out are colinear:
+        # Placement is identity
+        return App.Placement()
+    y_out = z_out.cross(x_out)
+    return App.Placement(App.Matrix(x_out, y_out, z_out))
 
 
 # ===========================================================================
