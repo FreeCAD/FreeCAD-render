@@ -1,7 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2019 Yorik van Havre <yorik@uncreated.net>              *
-# *   Copyright (c) 2023 Howefuft <howetuft-at-gmail>                       *
+# *   Copyright (c) 2024 Howefuft <howetuft-at-gmail>                       *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -251,6 +251,8 @@ def write_sunskylight(
 ):
     """Compute a string in renderer SDL to represent a sunsky light."""
     model = kwargs.get("Model", "Hosek-Wilkie")
+    use_caustics = kwargs.get("LightUseCaustics", False)
+
     if model == "Nishita":
         sky_sub = _write_sunskylight_nishita
     elif model == "Hosek-Wilkie":
@@ -258,12 +260,24 @@ def write_sunskylight(
     else:
         raise NotImplementedError(model)
     return sky_sub(
-        name, direction, turbidity, albedo, sun_intensity, sky_intensity
+        name,
+        direction,
+        turbidity,
+        albedo,
+        sun_intensity,
+        sky_intensity,
+        use_caustics,
     )
 
 
 def _write_sunskylight_hosekwilkie(
-    name, direction, turbidity, albedo, sun_intensity, sky_intensity
+    name,
+    direction,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    use_caustics,
 ):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We model sun_sky with a sun light and a sky texture for world
@@ -313,6 +327,7 @@ def _write_sunskylight_hosekwilkie(
         strength="{sun_strength} {sun_strength} {sun_strength}"
         tfm="{_write_tfm(_dir2plc(-direction))}"
         angle="{angle}"
+        use_caustics="{use_caustics}"
     />
 </state>
 """
@@ -320,7 +335,13 @@ def _write_sunskylight_hosekwilkie(
 
 
 def _write_sunskylight_nishita(
-    name, direction, turbidity, albedo, sun_intensity, sky_intensity
+    name,
+    direction,
+    turbidity,
+    albedo,
+    sun_intensity,
+    sky_intensity,
+    use_caustics,
 ):
     """Compute a string in renderer SDL to represent a sunsky light."""
     # We use the new improved nishita model (2020)
@@ -362,6 +383,7 @@ def _write_sunskylight_nishita(
     light_type="background"
     strength="{sky_strength} {sky_strength} {sky_strength}"
     use_mis="true"
+    use_caustics="{use_caustics}"
 />
 </state>"""
 
@@ -399,9 +421,12 @@ def write_distantlight(
     power,
     direction,
     angle,
-    **_,
+    **kwargs,
 ):
     """Compute a string in renderer SDL to represent a distant light."""
+    # Get specific parameters
+    use_caustics = kwargs.get("LightUseCaustics", False)
+
     strength = _write_float(power)
     # For Cycles, angle must be in radians, so we have to convert
     angle = radians(angle)
@@ -424,6 +449,7 @@ def write_distantlight(
         strength="1 1 1"
         angle="{angle}"
         tfm="{_write_tfm(_dir2plc(direction))}"
+        use_caustics="{use_caustics}"
 />
 </state>
 """
