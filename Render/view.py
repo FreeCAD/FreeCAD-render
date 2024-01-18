@@ -108,6 +108,48 @@ class View(FeatureBase):
             30,
             0,
         ),
+        "CyclesObjectCastCaustics": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                (
+                    "Cycles only - Enable object to cast shadow caustics.\n"
+                    "WARNING: require Cycles version >= 4.0.3 "
+                    "(otherwise may crash)."
+                ),
+            ),
+            False,
+            0,
+        ),
+        "CyclesObjectReceiveCaustics": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                (
+                    "Cycles only - Enable object to receive shadow caustics.\n"
+                    "WARNING: require Cycles version >= 4.0.3 "
+                    "(otherwise may crash)."
+                ),
+            ),
+            False,
+            0,
+        ),
+        "CyclesLightUseCaustics": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                (
+                    "Cycles only - Enable light to generate caustics\n"
+                    "WARNING: require Cycles version >= 4.0.3 "
+                    "(otherwise may crash)."
+                ),
+            ),
+            False,
+            0,
+        ),
     }
 
     @classmethod
