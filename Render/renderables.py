@@ -77,7 +77,6 @@ from Render.utils import (
     getproxyattr,
     RGB,
     WHITE,
-    get_a2p,
     top_objects,
 )
 from Render.rendermaterial import is_multimat, is_valid_material
@@ -154,7 +153,7 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
     transparency_boost = int(kwargs.get("transparency_boost", 0))
 
     # A2plus Part
-    if get_a2p() and isA2pPart(obj):
+    if isA2pPart(obj):
         debug("Object", label, "'A2plus Part detected'")
         renderables = _get_rends_from_a2plus(obj, name, mat, mesher, **kwargs)
 
