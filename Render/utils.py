@@ -376,31 +376,6 @@ set_memcheck_on = functools.partial(set_memcheck, state=True)
 set_memcheck_off = functools.partial(set_memcheck, state=False)
 
 
-def set_a2p(state):
-    """Set A2plus support on/off
-
-    Warning: debug purpose only. /!\\
-
-    Args:
-        state -- state to set a2p support (boolean)
-    """
-    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    state = bool(state)
-    params.SetBool("A2p", state)
-    msg = (
-        "[Render][Debug] A2plus support is on\n"
-        if state
-        else "[Render][Debug] A2plus support is off\n"
-    )
-    App.Console.PrintMessage(msg)
-
-
-def get_a2p():
-    """Get A2plus support status."""
-    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    return params.GetBool("A2p")
-
-
 def last_cmd():
     """Return last executed renderer command (debug purpose)."""
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
