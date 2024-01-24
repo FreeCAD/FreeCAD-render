@@ -57,6 +57,15 @@
 #
 # https://github.com/google/glog#verbose-logging
 
+# Coordinate system:
+#
+# FreeCAD (z is up):         Cycles (y is up):
+#
+#
+#  z  y                         y  z
+#  | /                          | /
+#  .--x                         .--x
+
 
 import pathlib
 import functools
@@ -754,7 +763,7 @@ def _write_texture(**kwargs):
 />
 <normal_map
     name="{texname}_normalmap"
-    space="tangent"
+    space="object"
     strength="{normal_strength}"
 />
 <connect from="{texname} color" to="{texname}_curve value"/>
