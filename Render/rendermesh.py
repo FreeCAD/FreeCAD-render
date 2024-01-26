@@ -191,6 +191,7 @@ class RenderMeshBase:
 
         # Then we store the topology in internal structures
         self._points = self._facets = self._normals = self._areas = None
+        self._tangents = self._tangent_signs = None
         self._setup_internals()
 
         # Sanity check
@@ -331,6 +332,26 @@ class RenderMeshBase:
     def vnormals(self, value):
         """Set the vertex normals."""
         self._vnormals = value
+
+    @property
+    def tangents(self):
+        """Get the vertex tangents."""
+        return self._tangents
+
+    @tangents.setter
+    def tangents(self, value):
+        """Set the vertex normals."""
+        self._tangents = value
+
+    @property
+    def tangent_signs(self):
+        """Get the vertex tangent signs."""
+        return self._tangent_signs
+
+    @tangent_signs.setter
+    def tangent_signs(self, value):
+        """Set the vertex normals."""
+        self._tangent_signs = value
 
     def has_uvmap(self):
         """Check if object has a uv map."""
@@ -717,12 +738,34 @@ class RenderMeshBase:
         nverts = ["3"] * self.count_facets
         nverts = "  ".join(nverts)
 
+        if self.has_vnormals():
+            vnormals = [_write_point(vn) for vn in self.vnormals]
+            vnormals = "  ".join(vnormals)
+            vn_statement = f'    VN="{vnormals}"\n'
+        else:
+            vn_statement = ""
+
         if self.has_uvmap():
             uvs = [f"{p.real:g} {p.imag:g}" for p in self.uvmap_per_vertex()]
             uvs = "  ".join(uvs)
             uv_statement = f'    UV="{uvs}"\n'
         else:
             uv_statement = ""
+
+        if self.has_vnormals() and self.has_uvmap():
+            self.compute_tspaces()
+
+            tangents = self.tangents
+            tans = [_write_point(tangents[i]) for f in self.facets for i in f]
+            tans = "  ".join(tans)
+            t_statement = f'    T="{tans}"\n'
+
+            tangent_signs = self.tangent_signs
+            signs = [f"{tangent_signs[i]:g}" for f in self.facets for i in f]
+            signs = " ".join(signs)
+            s_statement = f'    TS="{signs}"\n'
+        else:
+            t_statement = s_statement = ""
 
         snippet_obj = f"""\
 <?xml version="1.0" ?>
@@ -732,7 +775,7 @@ class RenderMeshBase:
     P="{points}"
     verts="{verts}"
     nverts="{nverts}"
-{uv_statement}/>
+{vn_statement}{uv_statement}{t_statement}{s_statement}/>
 </cycles>
 """
 
@@ -1318,6 +1361,63 @@ class RenderMeshBase:
             tuple(newpoints[point_index, tag] for point_index in facet)
             for facet, tag in zip(facets, tags)
         ]
+
+    def compute_tspaces(self):
+        """Compute tangent spaces."""
+        # Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
+        # Terathon Software 3D Graphics Library, 2001.
+        # http://www.terathon.com/code/tangent.html
+        points = self.points
+        uvmap = self.uvmap
+        tan1 = [App.Vector() for _ in range(self.count_points)]
+        tan2 = [App.Vector() for _ in range(self.count_points)]
+        for facet in self.facets:
+            v1, v2, v3 = (App.Vector(points[i]) for i in facet)
+            w1, w2, w3 = (uvmap[i] for i in facet)
+
+            x1 = v2.x - v1.x
+            x2 = v3.x - v1.x
+            y1 = v2.y - v1.y
+            y2 = v3.y - v1.y
+            z1 = v2.z - v1.z
+            z2 = v3.z - v1.z
+
+            s1 = w2.real - w1.real
+            s2 = w3.real - w1.real
+            t1 = w2.imag - w1.imag
+            t2 = w3.imag - w1.imag
+
+            r = 1.0 / (s1 * t2 - s2 * t1)
+
+            sdir = App.Vector(
+                (t2 * x1 - t1 * x2) * r,
+                (t2 * y1 - t1 * y2) * r,
+                (t2 * z1 - t1 * z2) * r,
+            )
+            tdir = App.Vector(
+                (s1 * x2 - s2 * x1) * r,
+                (s1 * y2 - s2 * y1) * r,
+                (s1 * z2 - s2 * z1) * r,
+            )
+
+            for i in facet:
+                tan1[i] += sdir
+                tan2[i] += tdir
+
+        tangents = []
+        tangent_signs = []
+        vnormals = (App.Vector(vn) for vn in self.vnormals)
+        for n, t, b in zip(vnormals, tan1, tan2):
+            # Gram-Schmidt orthogonalize
+            tangent = t - n * n.dot(t)
+            tangent.normalize()
+            tangents.append(tuple(tangent))
+            # Handedness
+            h = -1.0 if b.dot(n.cross(t)) < 0.0 else 1.0
+            tangent_signs.append(h)
+
+        self.tangents = tangents
+        self.tangent_signs = tangent_signs
 
 
 # ===========================================================================
