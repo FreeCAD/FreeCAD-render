@@ -751,23 +751,14 @@ def _write_texture(**kwargs):
 
     elif propname == "normal":
         colorspace = "__builtin_raw"
-        # We use blender space, but we have to flip z
-        # "strange blender convention"
-        # https://github.com/blender/cycles/blob/master/src/kernel/svm/tex_coord.h#L324
         normal_strength = propvalue.scalar
         connect = f"""
-<rgb_curves
-    name="{texname}_curve"
-    curves="0.0 0.0 1.0  1.0 1.0 0.5"
-    fac = "1.0"
-/>
 <normal_map
     name="{texname}_normalmap"
-    space="object"
+    space="tangent"
     strength="{normal_strength}"
 />
-<connect from="{texname} color" to="{texname}_curve value"/>
-<connect from="{texname}_curve value" to="{texname}_normalmap color"/>
+<connect from="{texname} color" to="{texname}_normalmap color"/>
 <connect from="{texname}_normalmap normal" to="{objname}_bump normal"/>"""
 
     elif propname == "displacement":
