@@ -167,7 +167,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     # power is in watts
     # efficiency is in lumens/watt
     efficiency = 15  # incandescent light bulb ratio (average)
-    gain = 10  # Guesstimated! (don't hesitate to propose more sensible values)
+    gain = 3  # Guesstimated! (don't hesitate to propose more sensible values)
 
     snippet = """
 # Point light '{n}'
@@ -522,7 +522,7 @@ scene.textures.{texname}.texture2 = {texname}_img
 scene.textures.{texname}_img.type = imagemap
 scene.textures.{texname}_img.file = "{filename}"
 scene.textures.{texname}_img.gamma = {gamma}
-scene.textures.{texname}_img.channel = "rgb"
+scene.textures.{texname}_img.channel = "directx2opengl_normalmap"
 scene.textures.{texname}_img.mapping.type = uvmapping2d
 scene.textures.{texname}_img.mapping.rotation = {rotation}
 scene.textures.{texname}_img.mapping.uvscale = {scale} {scale}
