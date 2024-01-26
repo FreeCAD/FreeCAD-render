@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <materialx version="1.38" colorspace="lin_rec709">
+  <!--Definition-->
   <nodedef name="ND_render_pbr_surfaceshader" node="render_pbr" nodegroup="pbr">
     <input name="BaseColor" type="color3" value="0.8, 0.8, 0.8" />
     <input name="Subsurface" type="float" value="0" />
@@ -13,9 +14,12 @@
     <input name="ClearCoat" type="float" value="0" />
     <input name="ClearCoatGloss" type="float" value="1.0" />
     <input name="Normal" type="vector3"  defaultgeomprop="Nworld" />
-    <!--<input name="Displacement" type="float" value="0" />-->
     <output name="out" type="surfaceshader" />
-    <!--<output name="disp" type="displacementshader" />-->
+  </nodedef>
+
+  <nodedef name="ND_render_pbr_displacementshader" node="render_pbr" nodegroup="pbr">
+    <input name="Displacement" type="float" value="0" />
+    <output name="out" type="displacementshader" />
   </nodedef>
 
   <!--Implementation-->
@@ -56,6 +60,7 @@
       <input name="ior" type="float" value="1.5" />
       <input name="distribution" type="string" value="ggx" />
       <input name="scatter_mode" type="string" value="R" />
+      <input name="normal" type="vector3" interfacename="Normal" />
     </dielectric_bsdf>
     <layer name="specular_diffuse_subsurface_bsdf" type="BSDF">
       <input name="base" type="BSDF" nodename="diffuse_subsurface_bsdf" />
@@ -89,6 +94,7 @@
       <input name="weight" type="float" interfacename="Sheen" />
       <input name="color" type="color3" nodename="sheen_color" />
       <input name="roughness" type="float" interfacename="Roughness" />
+      <input name="normal" type="vector3" interfacename="Normal" />
     </sheen_bsdf>
 
     <layer name="sheen_layer" type="BSDF">
@@ -109,6 +115,7 @@
       <input name="weight" type="float" interfacename="ClearCoat" />
       <input name="roughness" type="vector2" nodename="clearcoat_roughness_uv" />
       <input name="ior" type="float" value="1.5" />
+      <input name="normal" type="vector3" interfacename="Normal" />
     </dielectric_bsdf>
 
     <layer name="clearcoat_layer" type="BSDF">
@@ -122,14 +129,17 @@
       <input name="opacity" type="float" value="1.0" />
     </surface>
 
-    <!--[> Displacement Shader Constructor <]-->
-    <!--<displacement name="displacement_constructor" type="displacementshader">-->
-      <!--<input name="displacement" type="float" interfacename="Displacement" />-->
-    <!--</displacement>-->
 
     <!-- Output -->
     <output name="out" type="surfaceshader" nodename="surface_constructor" />
-    <!--<output name="disp" type="displacementshader" nodename="displacement_constructor" />-->
 
   </nodegraph>
+
+  <nodegraph name="IM_render_pbr_displacementshader" nodedef="ND_render_pbr_displacementshader">
+    <surface name="displacement_constructor" type="displacementshader">
+      <input name="displacement" type="float" interfacename="Displacement" />
+    </surface>
+    <output name="out" type="displacementshader" nodename="displacement_constructor" />
+  </nodegraph>
+
 </materialx>

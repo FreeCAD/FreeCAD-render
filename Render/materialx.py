@@ -28,6 +28,8 @@ import os
 import sys
 from sys import platform
 import subprocess
+import shutil
+from contextlib import nullcontext
 
 try:
     import MaterialX as mx
@@ -48,7 +50,7 @@ import Render.material
 from Render.constants import MATERIALXDIR
 
 
-def import_materialx(zipname):
+def import_materialx(zipname, *, debug=False):
     """Import a MaterialX archive into a material in Render.
 
     Args:
@@ -59,9 +61,16 @@ def import_materialx(zipname):
         _warn("Missing MaterialX library: unable to import material")
         return None
 
+    if not debug:
+        tmpdir_cm = tempfile.TemporaryDirectory()
+    else:
+        tmpdir_cm = nullcontext(
+            tempfile.mkdtemp(dir=App.ActiveDocument.TransientDir)
+        )
+
     # Proceed with file
     with zipfile.ZipFile(zipname, "r") as matzip:
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmpdir_cm as tmpdir:
             # Unzip material
             matzip.extractall(path=tmpdir)
 
@@ -136,6 +145,8 @@ def import_materialx(zipname):
             _, outfile = tempfile.mkstemp(
                 suffix=".mtlx", dir=tmpdir, text=True
             )
+            baker.setupUnitSystem(mxdoc)
+            baker.setDistanceUnit("meter")
             baker.bakeAllMaterials(mxdoc, search_path, outfile)
 
             # Reset document to new file
@@ -147,16 +158,18 @@ def import_materialx(zipname):
             if not valid:
                 msg = f"Validation warnings for input document: {msg}"
                 _warn(msg)
-                return None
+                # return None
 
             # Get PBR material
             mxmats = mxdoc.getMaterialNodes()
-            assert len(mxmats) == 1, "len(mxmats) != 1"
+            assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
             mxmat = mxmats[0]
 
             # Get images
             node_graphs = mxdoc.getNodeGraphs()
-            assert len(node_graphs) == 1, "len(node_graphs) != 1"
+            assert (
+                len(node_graphs) == 1
+            ), f"len(node_graphs) = {len(node_graphs)}"
             node_graph = node_graphs[0]
             images = {
                 node.getName(): node.getInputValue("file")
@@ -175,6 +188,11 @@ def import_materialx(zipname):
 
             # Log PBR
             sys.__stdout__.write(f"{outfile}\n")
+            if debug:
+                print(f"cd {tmpdir}")
+                print(
+                    f"MaterialXView --material {outfile} --path {MATERIALXDIR} --library render_libraries"
+                )
 
             # Debug
             # _print_doc(mxdoc)
@@ -218,7 +236,12 @@ def import_materialx(zipname):
                     image = textures[outputs[output]]
                     name = param.getName()
                     key = f"Render.Disney.{name}"
-                    matdict[key] = f"Texture;('{texname}', '{image}')"
+                    if name != "Normal":
+                        matdict[key] = f"Texture;('{texname}','{image}')"
+                    else:
+                        matdict[
+                            key
+                        ] = f"Texture;('{texname}','{image}', '1.0')"
                 else:
                     # Value
                     name = param.getName()
@@ -250,7 +273,7 @@ def _print_file(outfile):
 
 
 def _run_materialx(outfile):
-    """Run MaterialX on outfile (debugging purposes)."""
+    """Run MaterialX on outfile (debug purpose)."""
     args = [
         "MaterialXView",
         # "MaterialXGraphEditor",
@@ -263,6 +286,15 @@ def _run_materialx(outfile):
     ]
     print(args)
     subprocess.run(args)
+
+
+def _save_intermediate(outfile):
+    """Save intermediate material (debug purpose)."""
+    src = os.path.dirname(outfile)
+    folder = os.path.basename(src)
+    dest = os.path.join(App.getUserCachePath(), folder)
+    print(f"Copying '{src}' into '{dest}'")
+    shutil.copytree(src, dest)
 
 
 def _warn(msg):
