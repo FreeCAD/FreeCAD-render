@@ -379,9 +379,16 @@ class SharedArray:
         self._rawarray = mp.RawArray(typecode, length * width)
         self._width = width
         if initializer:
-            self._rawarray[:] = list(
-                itertools.chain.from_iterable(initializer)
-            )
+            try:
+                self._rawarray[:] = list(
+                    itertools.chain.from_iterable(initializer)
+                )
+            except TypeError:
+                self._rawarray[:] = list(
+                    itertools.chain.from_iterable(
+                        (c.real, c.imag) for c in initializer
+                    )
+                )
 
     def __iter__(self):
         iters = [iter(self._rawarray)] * self.width
