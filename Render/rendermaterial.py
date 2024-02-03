@@ -456,7 +456,7 @@ class RenderMaterial:
     def getmixedsubmat(self, subname, nodename="mixed"):
         """Build a RenderMaterial from a mixed submaterial."""
         res = RenderMaterial(
-            subname, self.doc
+            shadertype=subname, doc=self.doc
         )  # Resulting RenderMat to be returned
         # Copy submat into result
         node = getattr(self, nodename)

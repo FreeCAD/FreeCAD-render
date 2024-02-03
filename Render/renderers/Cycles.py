@@ -585,18 +585,20 @@ def _write_material_diffuse(name, matval, connect_to="output surface"):
 def _write_material_mixed(name, matval, connect_to="output surface"):
     """Compute a string in the renderer SDL for a Mixed material."""
     # Glass
-    submat_g = matval.getmixedsubmat("glass")
+    matval.objname = f"{name}_glass"  # Ugly workaround
+    submatval_g = matval.getmixedsubmat(submat="glass")
     snippet_g = _write_material_glass(
-        f"{name}_glass", submat_g, f"{name}_bsdf closure2"
+        f"{name}_glass", submatval_g, f"{name}_bsdf closure2"
     )
-    snippet_g_tex = submat_g.write_textures()
+    snippet_g_tex = submatval_g.write_textures()
 
     # Diffuse
-    submat_d = matval.getmixedsubmat("diffuse")
+    matval.objname = f"{name}_diffuse"  # Ugly workaround
+    submatval_d = matval.getmixedsubmat(submat="diffuse")
     snippet_d = _write_material_diffuse(
-        f"{name}_diffuse", submat_d, f"{name}_bsdf closure1"
+        f"{name}_diffuse", submatval_d, f"{name}_bsdf closure1"
     )
-    snippet_d_tex = submat_d.write_textures()
+    snippet_d_tex = submatval_d.write_textures()
 
     # Mix
     snippet_m = f"""
