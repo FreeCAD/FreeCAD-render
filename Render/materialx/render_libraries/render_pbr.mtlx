@@ -135,11 +135,11 @@
 
   </nodegraph>
 
-  <nodegraph name="IM_render_pbr_displacementshader" nodedef="ND_render_pbr_displacementshader">
-    <surface name="displacement_constructor" type="displacementshader">
-      <input name="displacement" type="float" interfacename="Displacement" />
-    </surface>
-    <output name="out" type="displacementshader" nodename="displacement_constructor" />
-  </nodegraph>
+  <!--<nodegraph name="IM_render_pbr_displacementshader" nodedef="ND_render_pbr_displacementshader">-->
+    <!--<surface name="displacement_constructor" type="displacementshader">-->
+      <!--<input name="displacement" type="float" interfacename="Displacement" />-->
+    <!--</surface>-->
+    <!--<output name="out" type="displacementshader" nodename="displacement_constructor" />-->
+  <!--</nodegraph>-->
 
 </materialx>

@@ -31,6 +31,11 @@
 
   <nodegraph name="NG_standard_surface_to_render_pbr" nodedef="standard_surface_to_render_pbr">
 
+    <!-- Base color -->
+    <dot name="base_color" type="color3">
+      <input name="in" type="color3" interfacename="base_color" />
+    </dot>
+
     <!-- Subsurface -->
     <dot name="subsurface" type="float">
       <input name="in" type="float" interfacename="subsurface" />

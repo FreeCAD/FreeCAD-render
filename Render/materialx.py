@@ -98,7 +98,74 @@ def import_materialx(zipname, *, debug=False):
             if len(mxmats) > 1:
                 _warn(f"Too many materials ({len(mxmats)}) in file")
                 return
-            mxname = mxmats[0].getName()
+            mxmat = mxmats[0]
+            mxname = mxmat.getName()
+
+            # Clean doc for translation
+            # Add own node graph
+            render_ng = mxdoc.getNodeGraph("RENDER_NG")
+            if not render_ng:
+                render_ng = mxdoc.addNodeGraph("RENDER_NG")
+
+            # Move every cluttered root node to node graph
+            exclude = {
+                "nodedef",
+                "nodegraph",
+                "standard_surface",
+                "surfacematerial",
+                "displacement",
+            }
+            rootnodes = (
+                n for n in mxdoc.getNodes() if n.getCategory() not in exclude
+            )
+            moved_nodes = set()
+            for node in rootnodes:
+                nodecategory = node.getCategory()
+                nodename = node.getName()
+                nodetype = node.getType()
+                try:
+                    newnode = render_ng.addNode(
+                        nodecategory,
+                        nodename + "_",
+                        nodetype,
+                    )
+                except LookupError:
+                    # Already exist
+                    pass
+                else:
+                    newnode.copyContentFrom(node)
+                    mxdoc.removeNode(nodename)
+                    newnode.setName(nodename)
+                    moved_nodes.add(nodename)
+
+            # Connect shader inputs to node graph
+            shader_inputs = (
+                si
+                for shader in mx.getShaderNodes(
+                    materialNode=mxmat, nodeType=""
+                )
+                for si in shader.getInputs()
+                if not si.hasValueString() and not si.getConnectedOutput()
+            )
+            for shader_input in shader_inputs:
+                nodename = shader_input.getNodeName()
+                if nodename in moved_nodes:
+                    # Create output node in node graph
+                    newoutputname = f"{nodename}_output"
+                    try:
+                        newoutput = render_ng.addOutput(
+                            name=newoutputname,
+                            type=render_ng.getNode(nodename).getType(),
+                        )
+                    except LookupError:
+                        pass
+                    else:
+                        newoutput.setNodeName(nodename)
+
+                    # Connect input to output node
+                    shader_input.setOutputString(newoutputname)
+                    shader_input.setNodeGraphString("RENDER_NG")
+                    shader_input.removeAttribute("nodename")
 
             # Compute search path
             search_path = mx.getDefaultDataSearchPath()
@@ -168,18 +235,22 @@ def import_materialx(zipname, *, debug=False):
             # Get images
             node_graphs = mxdoc.getNodeGraphs()
             assert (
-                len(node_graphs) == 1
+                len(node_graphs) <= 1
             ), f"len(node_graphs) = {len(node_graphs)}"
-            node_graph = node_graphs[0]
-            images = {
-                node.getName(): node.getInputValue("file")
-                for node in node_graph.getNodes()
-                if node.getCategory() == "image"
-            }
-            outputs = {
-                node.getName(): node.getNodeName()
-                for node in node_graph.getOutputs()
-            }
+            if len(node_graphs):
+                node_graph = node_graphs[0]
+                images = {
+                    node.getName(): node.getInputValue("file")
+                    for node in node_graph.getNodes()
+                    if node.getCategory() == "image"
+                }
+                outputs = {
+                    node.getName(): node.getNodeName()
+                    for node in node_graph.getOutputs()
+                }
+            else:
+                images = {}
+                outputs = {}
 
             # Get PBR
             all_pbr_nodes = [
@@ -239,9 +310,9 @@ def import_materialx(zipname, *, debug=False):
                     if name != "Normal":
                         matdict[key] = f"Texture;('{texname}','{image}')"
                     else:
-                        matdict[
-                            key
-                        ] = f"Texture;('{texname}','{image}', '1.0')"
+                        matdict[key] = (
+                            f"Texture;('{texname}','{image}', '1.0')"
+                        )
                 else:
                     # Value
                     name = param.getName()
@@ -270,6 +341,13 @@ def _print_file(outfile):
     with open(outfile) as f:
         for line in f:
             print(line, end="")
+
+
+def _write_temp_doc(mxdoc):
+    """Write a MX document to a temporary file."""
+    _, outfile = tempfile.mkstemp(suffix=".mtlx", text=True)
+    mx.writeToXmlFile(mxdoc, outfile)
+    return outfile
 
 
 def _run_materialx(outfile):
