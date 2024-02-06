@@ -187,6 +187,10 @@ def import_materialx(zipname, *, debug=False):
                 _warn(err)
                 return None
 
+            # TODO
+            outfile = _write_temp_doc(mxdoc)
+            _run_materialx(outfile, "MaterialXGraphEditor")
+
             # Check the document for a UDIM set.
             udim_set_value = mxdoc.getGeomPropValue(mx.UDIM_SET_PROPERTY)
             udim_set = udim_set_value.getData() if udim_set_value else []
@@ -266,9 +270,9 @@ def import_materialx(zipname, *, debug=False):
                 )
 
             # Debug
-            # _print_doc(mxdoc)
-            # _print_file(outfile)
-            # _run_materialx(outfile)
+            _print_doc(mxdoc)
+            _print_file(outfile)
+            _run_materialx(outfile, "MaterialXGraphEditor")
 
             assert (
                 len(all_pbr_nodes) == 1
@@ -350,11 +354,12 @@ def _write_temp_doc(mxdoc):
     return outfile
 
 
-def _run_materialx(outfile):
+def _run_materialx(outfile, tool="MaterialXView"):
     """Run MaterialX on outfile (debug purpose)."""
+    tool = str(tool)
+    assert tool in ["MaterialXView", "MaterialXGraphEditor"]
     args = [
-        "MaterialXView",
-        # "MaterialXGraphEditor",
+        tool,
         "--material",
         outfile,
         "--path",
