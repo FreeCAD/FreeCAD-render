@@ -34,6 +34,7 @@ import os
 import re
 from collections import namedtuple
 import concurrent.futures
+import itertools as it
 import time
 import tracemalloc
 import traceback
@@ -829,6 +830,24 @@ def _get_objstrings_helper(renderer, views):
     return objstrings
 
 
+def grouper(iterable, number):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF G"
+    args = [iter(iterable)] * number
+    return it.zip_longest(*args, fillvalue=None)
+
+
+def partition(pred, iterable):
+    "Use a predicate to partition entries into false entries and true entries"
+    # partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+    tee1, tee2 = it.tee(iterable)
+    return it.filterfalse(pred, tee1), filter(pred, tee2)
+
+
+MIN_CHUNK_SIZE = 100
+MAX_CHUNK_SIZE = 1000
+
+
 def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
     """Get strings from renderer (worker)."""
     try:
@@ -840,13 +859,44 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
         )
         time0 = time.time()
 
-        max_workers = None if multithreaded else 1
-        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-            future_to_objstrings = [
-                executor.submit(get_rdr_string, view) for view in views
-            ]
-            futures = concurrent.futures.as_completed(future_to_objstrings)
-            objstrings = [future.result() for future in futures]
+        max_workers = min(32, os.cpu_count() + 4)
+
+        # Objects will be processed in chunks
+        # Heavy objects will be "packed individually" (1 chunk per object)
+        # For light objects, we'll compute a chunk size
+        heavy, light = partition(
+            lambda x: not hasattr(x.Source, "Terrain"), views
+        )
+
+        heavy = list(heavy)
+        light = list(light)
+
+        chunk_size = len(light) // (max_workers * 2)
+        chunk_size = max(chunk_size, MIN_CHUNK_SIZE)
+        chunk_size = min(chunk_size, MAX_CHUNK_SIZE)
+
+        chunks = list(it.chain(grouper(heavy, 1), grouper(light, chunk_size)))
+
+        msg = (
+            f"[Render][Objstrings] {len(chunks)} chunks: "
+            f"{len(heavy)} heavy - {len(chunks) - len(heavy)} light "
+            f"(size: {chunk_size})\n"
+        )
+        App.Console.PrintMessage(msg)
+
+        def worker(chunk):
+            return [get_rdr_string(v) for v in chunk if v is not None]
+
+        # Process views
+        if multithreaded:
+            with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
+                submits = (pool.submit(worker, chunk) for chunk in chunks)
+                futures = concurrent.futures.as_completed(submits)
+                objstrings = list(
+                    it.chain.from_iterable(f.result() for f in futures)
+                )
+        else:
+            objstrings = list(map(get_rdr_string, views))
 
         App.Console.PrintMessage(
             "[Render][Objstrings] ENDING OBJECTS EXPORT - TIME: "
