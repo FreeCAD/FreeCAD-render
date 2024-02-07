@@ -54,7 +54,7 @@ import MeshPart
 import Mesh
 
 from Render.utils import translate, debug, message, getproxyattr, RGB
-from Render.constants import PARAMS
+from Render.constants import PARAMS, FCDVERSION
 from Render.rendermesh import create_rendermesh
 from Render import renderables
 from Render import rendermaterial
@@ -449,12 +449,23 @@ class RendererHandler:
                 shape = shape.copy()
                 shape_plc = shape.Placement
                 shape.Placement = App.Base.Placement()
-                mesh = MeshPart.meshFromShape(
-                    Shape=shape,
-                    LinearDeflection=self.linear_deflection,
-                    AngularDeflection=self.angular_deflection,
-                    Relative=False,
-                )
+                if FCDVERSION >= (0, 22):
+                    print("Release GIL")  # TODO
+                    mesh = MeshPart.meshFromShape(
+                        Shape=shape,
+                        LinearDeflection=self.linear_deflection,
+                        AngularDeflection=self.angular_deflection,
+                        Relative=False,
+                        ReleaseGIL=True,
+                    )
+                else:
+                    mesh = MeshPart.meshFromShape(
+                        Shape=shape,
+                        LinearDeflection=self.linear_deflection,
+                        AngularDeflection=self.angular_deflection,
+                        Relative=False,
+                    )
+
                 mesh.Placement = shape_plc
 
             mesh = create_rendermesh(
