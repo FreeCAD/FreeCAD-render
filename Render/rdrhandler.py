@@ -451,7 +451,6 @@ class RendererHandler:
                 shape_plc = shape.Placement
                 shape.Placement = App.Base.Placement()
                 if FCDVERSION >= (0, 22):
-                    print("Release GIL")  # TODO
                     mesh = MeshPart.meshFromShape(
                         Shape=shape,
                         LinearDeflection=self.linear_deflection,
