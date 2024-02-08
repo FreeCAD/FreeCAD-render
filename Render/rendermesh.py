@@ -1241,7 +1241,7 @@ class RenderMeshBase:
         # Final
         return tags
 
-    def connected_components(self, split_angle=radians(30)):
+    def _connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
 
         Single process version
@@ -1283,7 +1283,7 @@ class RenderMeshBase:
                 are considered as non-connected (in radians)
         """
         debug_flag = PARAMS.GetBool("Debug")
-        tags = self.connected_components(split_angle)
+        tags = self._connected_components(split_angle)
 
         if debug_flag:
             print("distinct tags", len(set(tags)))
