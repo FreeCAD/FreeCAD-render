@@ -8,7 +8,7 @@ Designed as a modern replacement for deprecated internal Raytracing Workbench.</
   <date>2024-01-23</date>
   <maintainer email="@howetuft">howetuft</maintainer>
   <maintainer email="@yorikvanhavre">Yorik Van Havre</maintainer>
-  <license file="LICENSE">LGPLv2.1</license>
+  <license file="LICENSE">LGPL-2.1-or-later</license>
   <url type="repository" branch="master">https://github.com/FreeCAD/FreeCAD-render</url>
   <url type="bugtracker">https://github.com/FreeCAD/FreeCAD-render/issues</url>
   <url type="readme">https://github.com/FreeCAD/FreeCAD-render/blob/master/README.md</url>
