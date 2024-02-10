@@ -741,7 +741,7 @@ class RenderMeshBase:
         if self.has_vnormals():
             vnormals = [_write_point(vn) for vn in self.vnormals]
             vnormals = "  ".join(vnormals)
-            vn_statement = f'    VN="{vnormals}"\n'
+            vn_statement = f'    N="{vnormals}"\n'
         else:
             vn_statement = ""
 
@@ -758,12 +758,12 @@ class RenderMeshBase:
             tangents = self.tangents
             tans = [_write_point(tangents[i]) for f in self.facets for i in f]
             tans = "  ".join(tans)
-            t_statement = f'    T="{tans}"\n'
+            t_statement = f'    tangent="{tans}"\n'
 
             tangent_signs = self.tangent_signs
             signs = [f"{tangent_signs[i]:g}" for f in self.facets for i in f]
             signs = " ".join(signs)
-            s_statement = f'    TS="{signs}"\n'
+            s_statement = f'    tangent_sign="{signs}"\n'
         else:
             t_statement = s_statement = ""
 
