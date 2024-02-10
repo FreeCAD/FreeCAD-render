@@ -17,11 +17,6 @@
     <output name="out" type="surfaceshader" />
   </nodedef>
 
-  <nodedef name="ND_render_pbr_displacementshader" node="render_pbr" nodegroup="pbr">
-    <input name="Displacement" type="float" value="0" />
-    <output name="out" type="displacementshader" />
-  </nodedef>
-
   <!--Implementation-->
   <nodegraph name="IM_render_pbr_surfaceshader" nodedef="ND_render_pbr_surfaceshader">
 
@@ -134,12 +129,5 @@
     <output name="out" type="surfaceshader" nodename="surface_constructor" />
 
   </nodegraph>
-
-  <!--<nodegraph name="IM_render_pbr_displacementshader" nodedef="ND_render_pbr_displacementshader">-->
-    <!--<surface name="displacement_constructor" type="displacementshader">-->
-      <!--<input name="displacement" type="float" interfacename="Displacement" />-->
-    <!--</surface>-->
-    <!--<output name="out" type="displacementshader" nodename="displacement_constructor" />-->
-  <!--</nodegraph>-->
 
 </materialx>

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<materialx version="1.38" colorspace="lin_rec709">
+
+  <nodedef name="ND_render_pbr_displacementshader" node="render_disp" nodegroup="pbr">
+    <input name="Displacement" type="float" value="0" />
+    <input name="Scale" type="float" value="1" />
+    <output name="out" type="displacementshader" />
+  </nodedef>
+
+  <nodegraph name="IM_render_pbr_displacementshader" nodedef="ND_render_pbr_displacementshader">
+    <displacement name="displacement_constructor" type="displacementshader">
+      <input name="displacement" type="float" interfacename="Displacement" />
+      <input name="scale" type="float" interfacename="Scale" />
+    </displacement>
+    <output name="out" type="displacementshader" nodename="displacement_constructor" />
+  </nodegraph>
+
+</materialx>

@@ -70,6 +70,7 @@ def import_materialx(zipname, *, debug=False):
 
     # Proceed with file
     with zipfile.ZipFile(zipname, "r") as matzip:
+        print("STARTING IMPORT", file=sys.__stdout__)  # TODO
         with tmpdir_cm as tmpdir:
             # Unzip material
             matzip.extractall(path=tmpdir)
@@ -178,8 +179,9 @@ def import_materialx(zipname, *, debug=False):
             library_folders.append("render_libraries")
             mx.loadLibraries(library_folders, search_path, mxlib)
             mxdoc.importLibrary(mxlib)
+            outfile = _write_temp_doc(mxdoc)
 
-            # Translate materials between shading models
+            # Translate surface shader
             translator = mx_gen_shader.ShaderTranslator.create()
             try:
                 translator.translateAllMaterials(mxdoc, "render_pbr")
@@ -187,9 +189,20 @@ def import_materialx(zipname, *, debug=False):
                 _warn(err)
                 return None
 
-            # TODO
-            outfile = _write_temp_doc(mxdoc)
-            _run_materialx(outfile, "MaterialXGraphEditor")
+            # Translate displacement shader
+            dispnodes = [
+                s
+                for r in mx_gen_shader.findRenderableMaterialNodes(mxdoc)
+                for s in mx.getShaderNodes(
+                    r, mx.DISPLACEMENT_SHADER_TYPE_STRING
+                )
+            ]
+            try:
+                for dispnode in dispnodes:
+                    translator.translateShader(dispnode, "render_disp")
+            except mx.Exception as err:
+                _warn(err)
+                return None
 
             # Check the document for a UDIM set.
             udim_set_value = mxdoc.getGeomPropValue(mx.UDIM_SET_PROPERTY)
@@ -388,3 +401,8 @@ def _warn(msg):
 def _msg(msg):
     """Emit warning during MaterialX processing."""
     App.Console.PrintMessage("[Render][MaterialX] " + msg)
+
+
+def _view_doc(outfile):
+    """Open copy of doc in editor."""
+    subprocess.run(["/usr/bin/nvim", outfile])
