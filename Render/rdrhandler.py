@@ -53,9 +53,9 @@ import FreeCAD as App
 import MeshPart
 import Mesh
 
+import Render.rendermesh
 from Render.utils import translate, debug, message, getproxyattr, RGB
 from Render.constants import PARAMS
-from Render.rendermesh import create_rendermesh
 from Render import renderables
 from Render import rendermaterial
 
@@ -427,7 +427,7 @@ class RendererHandler:
                 debug("Object", fullname, "Skip meshing")
                 mesh = Mesh.Mesh()
                 mesh.Placement = shape.Placement
-                rendermesh = create_rendermesh(
+                rendermesh = Render.rendermesh.create_rendermesh(
                     mesh,
                     project_directory=self.project_directory,
                     export_directory=self.object_directory,
@@ -458,7 +458,7 @@ class RendererHandler:
                 )
                 mesh.Placement = shape_plc
 
-            mesh = create_rendermesh(
+            mesh = Render.rendermesh.create_rendermesh(
                 mesh,
                 autosmooth,
                 autosmooth_angle,
@@ -542,14 +542,28 @@ class RendererHandler:
         get_mat = rendermaterial.get_rendering_material
         rdrname = self.renderer_name
 
-        res = [
-            write_mesh(
-                r.name,
-                r.mesh,
-                get_mat(r.name, r.material, rdrname, r.defcolor),
+        res = []
+        for renderable in rends:
+            material = get_mat(
+                renderable.name,
+                renderable.material,
+                rdrname,
+                renderable.defcolor,
             )
-            for r in rends
-        ]
+            try:
+                objstring = write_mesh(
+                    renderable.name,
+                    renderable.mesh,
+                    material,
+                )
+            except Render.rendermesh.SkipMeshingError as err:
+                msg = (
+                    f"[Render][Objstring] '{label}': File not found "
+                    f"while attempting to reuse meshing ('{err.filename}').\n"
+                )
+                App.Console.PrintWarning(msg)
+            else:
+                res.append(objstring)
 
         return "".join(res)
 
