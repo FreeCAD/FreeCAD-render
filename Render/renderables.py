@@ -742,9 +742,7 @@ def _get_rends_from_part(obj, name, material, mesher, **kwargs):
                 subobj, subname, material, mesher, **kwargs
             )
 
-    rends = [
-        _adjust(r, origin, material) for r in rends if r.mesh.count_points
-    ]
+    rends = [_adjust(r, origin, material) for r in rends]
 
     return rends
 
