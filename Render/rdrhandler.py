@@ -419,11 +419,12 @@ class RendererHandler:
             debug_flag = PARAMS.GetBool("Debug")
             name = name or view.Source.FullName
             label = label or view.Source.Label
+            fullname = f"'{label}' ('{name}')"
 
             # Skip meshing?
             if self.skip_meshing:
                 # We just need placement, and an empty mesh
-                debug("Object", view.Source.Label, "Skip meshing")
+                debug("Object", fullname, "Skip meshing")
                 mesh = Mesh.Mesh()
                 mesh.Placement = shape.Placement
                 rendermesh = create_rendermesh(
@@ -432,11 +433,11 @@ class RendererHandler:
                     export_directory=self.object_directory,
                     relative_path=True,
                     skip_meshing=self.skip_meshing,
+                    name=fullname,
                 )
                 return rendermesh
 
             # Log
-            fullname = f"'{label}' ('{name}')"
             debug("Object", fullname, "Begin meshing")
             tm0 = time.time()
 
