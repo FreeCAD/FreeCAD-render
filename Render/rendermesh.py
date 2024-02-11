@@ -415,6 +415,9 @@ class RenderMeshBase:
 
         # Skip meshing?
         if self.skip_meshing:
+            # Check whether file exists
+            if not os.path.isfile(filename):
+                raise SkipMeshingError(filename)
             return res
 
         # Switch to specialized write function
@@ -1638,3 +1641,12 @@ def _check_directory(directory):
         msg = f"Mesh: invalid directory '{directory}'"
         raise ValueError(msg)
     return directory
+
+
+class SkipMeshingError(Exception):
+    """An error occuring while skipping meshing."""
+
+    def __init__(self, filename):
+        self.filename = str(filename)
+        msg = f"'{filename}' does not exist."
+        super().__init__(msg)
