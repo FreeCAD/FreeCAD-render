@@ -26,7 +26,6 @@ import zipfile
 import tempfile
 import os
 import sys
-from sys import platform
 import subprocess
 import shutil
 from contextlib import nullcontext
@@ -35,10 +34,6 @@ try:
     import MaterialX as mx
     from MaterialX import PyMaterialXGenShader as mx_gen_shader
     from MaterialX import PyMaterialXRender as mx_render
-    from MaterialX import PyMaterialXRenderGlsl as mx_render_glsl
-
-    if platform == "darwin":
-        from MaterialX import PyMaterialXRenderMsl as mx_render_msl
 except (ModuleNotFoundError, ImportError):
     MATERIALX = False
 else:
@@ -48,6 +43,7 @@ import FreeCAD as App
 
 import Render.material
 from Render.constants import MATERIALXDIR
+from Render.materialx_baker import RenderTextureBaker
 
 
 def import_materialx(zipname, *, debug=False):
@@ -59,7 +55,7 @@ def import_materialx(zipname, *, debug=False):
     # MaterialX system available?
     if not MATERIALX:
         _warn("Missing MaterialX library: unable to import material")
-        return None
+        return
 
     if not debug:
         tmpdir_cm = tempfile.TemporaryDirectory()
@@ -70,9 +66,9 @@ def import_materialx(zipname, *, debug=False):
 
     # Proceed with file
     with zipfile.ZipFile(zipname, "r") as matzip:
-        print("STARTING IMPORT", file=sys.__stdout__)  # TODO
         with tmpdir_cm as tmpdir:
             # Unzip material
+            print(f"Extracting to {tmpdir}")
             matzip.extractall(path=tmpdir)
 
             # Find materialx file
@@ -92,8 +88,7 @@ def import_materialx(zipname, *, debug=False):
             mx.readFromXmlFile(mxdoc, mtlx_name)
 
             # Check material unicity and get its name
-            mxmats = mxdoc.getMaterialNodes()
-            if not mxmats:
+            if not (mxmats := mxdoc.getMaterialNodes()):
                 _warn("No material in file")
                 return
             if len(mxmats) > 1:
@@ -104,8 +99,7 @@ def import_materialx(zipname, *, debug=False):
 
             # Clean doc for translation
             # Add own node graph
-            render_ng = mxdoc.getNodeGraph("RENDER_NG")
-            if not render_ng:
+            if not (render_ng := mxdoc.getNodeGraph("RENDER_NG")):
                 render_ng = mxdoc.addNodeGraph("RENDER_NG")
 
             # Move every cluttered root node to node graph
@@ -149,8 +143,7 @@ def import_materialx(zipname, *, debug=False):
                 if not si.hasValueString() and not si.getConnectedOutput()
             )
             for shader_input in shader_inputs:
-                nodename = shader_input.getNodeName()
-                if nodename in moved_nodes:
+                if (nodename := shader_input.getNodeName()) in moved_nodes:
                     # Create output node in node graph
                     newoutputname = f"{nodename}_output"
                     try:
@@ -187,7 +180,7 @@ def import_materialx(zipname, *, debug=False):
                 translator.translateAllMaterials(mxdoc, "render_pbr")
             except mx.Exception as err:
                 _warn(err)
-                return None
+                return
 
             # Translate displacement shader
             dispnodes = [
@@ -202,7 +195,7 @@ def import_materialx(zipname, *, debug=False):
                     translator.translateShader(dispnode, "render_disp")
             except mx.Exception as err:
                 _warn(err)
-                return None
+                return
 
             # Check the document for a UDIM set.
             udim_set_value = mxdoc.getGeomPropValue(mx.UDIM_SET_PROPERTY)
@@ -222,20 +215,50 @@ def import_materialx(zipname, *, debug=False):
             bake_width = max(bake_width, 4)
             bake_height = max(bake_height, 4)
 
-            # Bake textures
-            baker = mx_render_glsl.TextureBaker.create(
-                bake_width, bake_height, mx_render.BaseType.UINT8
-            )
+            # Bake surface shader
+            # baker = mx_render_glsl.TextureBaker.create(
+            # bake_width, bake_height, mx_render.BaseType.UINT8
+            # )
+            # _, outfile = tempfile.mkstemp(
+            # suffix=".mtlx", dir=tmpdir, text=True
+            # )
+            # baker.setupUnitSystem(mxdoc)
+            # baker.setDistanceUnit("meter")
+            # baker.bakeAllMaterials(mxdoc, search_path, outfile)
+
+            # TODO Move into separate function
+            # material_node, disp_node = next(
+            # (material, shader)
+            # for shader in mx.getShaderNodes(
+            # materialNode=material,
+            # nodeType=mx.DISPLACEMENT_SHADER_TYPE_STRING,
+            # )
+            # for material in mx_gen_shader.findRenderableMaterialNodes(
+            # mxdoc
+            # )
+            # )
             _, outfile = tempfile.mkstemp(
                 suffix=".mtlx", dir=tmpdir, text=True
             )
-            baker.setupUnitSystem(mxdoc)
-            baker.setDistanceUnit("meter")
-            baker.bakeAllMaterials(mxdoc, search_path, outfile)
+            baker = RenderTextureBaker(
+                bake_width,
+                bake_height,
+                mx_render.BaseType.UINT8,
+            )
+            # baker.setup_unit_system(mxdoc)
+            baker.optimize_constants = True
+            baker.hash_image_names = False
+            baker.bake_all_materials(
+                mxdoc,
+                search_path,
+                outfile,
+            )
 
             # Reset document to new file
             mxdoc = mx.createDocument()
             mx.readFromXmlFile(mxdoc, outfile)
+            # _view_doc(mxdoc)
+            # _run_materialx(outfile, "MaterialXGraphEditor")
 
             # Validate document
             valid, msg = mxdoc.validate()
@@ -282,10 +305,11 @@ def import_materialx(zipname, *, debug=False):
                     f"MaterialXView --material {outfile} --path {MATERIALXDIR} --library render_libraries"
                 )
 
+            # TODO
             # Debug
-            _print_doc(mxdoc)
-            _print_file(outfile)
-            _run_materialx(outfile, "MaterialXGraphEditor")
+            # _print_doc(mxdoc)
+            # _print_file(outfile)
+            # _run_materialx(outfile, "MaterialXGraphEditor")
 
             assert (
                 len(all_pbr_nodes) == 1
@@ -330,20 +354,19 @@ def import_materialx(zipname, *, debug=False):
                         matdict[key] = (
                             f"Texture;('{texname}','{image}', '1.0')"
                         )
-                else:
+                elif name := param.getName():
                     # Value
-                    name = param.getName()
-                    if name:
-                        key = f"Render.Disney.{name}"
-                        matdict[key] = param.getValueString()
-                    else:
-                        msg = f"Unhandled param: '{name}'"
-                        _msg(msg)
+                    key = f"Render.Disney.{name}"
+                    matdict[key] = param.getValueString()
+                else:
+                    msg = f"Unhandled param: '{name}'"
+                    _msg(msg)
 
             # Replace Material.Material
             mat.Material = matdict
 
-            return pbr_node
+
+# Debug functions
 
 
 def _print_doc(mxdoc):
@@ -355,7 +378,7 @@ def _print_doc(mxdoc):
 
 def _print_file(outfile):
     """Print a doc in XML format (debugging purposes)."""
-    with open(outfile) as f:
+    with open(outfile, encoding="utf-8") as f:
         for line in f:
             print(line, end="")
 
@@ -381,7 +404,7 @@ def _run_materialx(outfile, tool="MaterialXView"):
         "render_libraries",
     ]
     print(args)
-    subprocess.run(args)
+    subprocess.run(args, check=False)
 
 
 def _save_intermediate(outfile):
@@ -403,6 +426,7 @@ def _msg(msg):
     App.Console.PrintMessage("[Render][MaterialX] " + msg)
 
 
-def _view_doc(outfile):
+def _view_doc(doc):
     """Open copy of doc in editor."""
-    subprocess.run(["/usr/bin/nvim", outfile])
+    outfile = _write_temp_doc(doc)
+    subprocess.run(["/usr/bin/nvim", outfile], check=False)

@@ -275,6 +275,7 @@ def reload(module_name=None):
             "Render.help",
             "Render.prefpage",
             "Render.groundplane",
+            "Render.materialx_baker",
             "Render.materialx",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
