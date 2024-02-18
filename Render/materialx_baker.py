@@ -59,6 +59,8 @@ class RenderTextureBaker:
 
     # pylint: disable=too-many-instance-attributes
 
+    # CLASS DEFINITIONS {{{
+
     SRGB_TEXTURE = "srgb_texture"
     LIN_REC709 = "lin_rec709"
     BAKED_POSTFIX = "_baked"
@@ -80,6 +82,10 @@ class RenderTextureBaker:
 
         color: mx.Color4
         is_default: bool = False
+
+    # }}}
+
+    # INITIALIZATION {{{
 
     def __init__(
         self,
@@ -181,7 +187,9 @@ class RenderTextureBaker:
         )
         self._frame_capture_image.createResourceBuffer()
 
-    # GETTERS AND SETTERS
+    # }}}
+
+    # GETTERS AND SETTERS {{{
 
     @property
     def extension(self) -> str:
@@ -390,7 +398,9 @@ class RenderTextureBaker:
             raise TypeError(msg)
         self._texture_space_max = value
 
-    # PRIVATE METHODS
+    # }}}
+
+    # PRIVATE METHODS {{{
 
     def _get_value_string_from_color(
         self, color: mx.Color4, type_: str
@@ -835,7 +845,9 @@ class RenderTextureBaker:
 
         return self._baked_texture_doc
 
-    # PUBLIC METHODS (API)
+    # }}}
+
+    # PUBLIC METHODS {{{
 
     def bake_material_to_doc(
         self,
@@ -1027,3 +1039,8 @@ class RenderTextureBaker:
         )
         self._generator.getUnitSystem().loadLibrary(unit_definitions)
         self._generator.getUnitSystem().setUnitConverterRegistry(registry)
+
+    # }}}
+
+
+# vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
