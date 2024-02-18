@@ -298,19 +298,10 @@ def import_materialx(zipname, *, debug=False):
                 n for n in mxdoc.getNodes() if n.getCategory() == "render_pbr"
             ]
 
-            # Log PBR
-            sys.__stdout__.write(f"{outfile}\n")
-            if debug:
-                print(f"cd {tmpdir}")
-                print(
-                    f"MaterialXView --material {outfile} --path {MATERIALXDIR} --library render_libraries"
-                )
-
             # TODO
             # Debug
-            # _print_doc(mxdoc)
-            # _print_file(outfile)
-            # _run_materialx(outfile, "MaterialXGraphEditor")
+            _view_doc(mxdoc)
+            _run_materialx(outfile, "MaterialXGraphEditor")
 
             assert (
                 len(all_pbr_nodes) == 1

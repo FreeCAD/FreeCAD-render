@@ -38,6 +38,7 @@
 
 import hashlib
 import sys
+import itertools as it
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict, Set
 from collections.abc import Sequence
@@ -649,23 +650,23 @@ class RenderTextureBaker:
                 second2.is_default
                 or self._optimize_constants
                 or self._average_images
-            ):
+            ) and first2 in self._baked_image_map:
                 del self._baked_image_map[first2]
 
-    def _generate_new_document_from_shader(
-        self, shader: mx_core.Node, udim_set: List[str]
+    def _generate_new_document_from_shaders(
+        self, shaders: Sequence[mx_core.Node], udim_set: List[str]
     ) -> mx.Document:
-        """Generate a new document from a given shader."""
+        """Generate a new document from given shaders."""
         # pylint: disable=too-many-locals
-        if not shader:
+        if not shaders:
             return None
 
         # Create document
         if not self._baked_texture_doc or self._write_document_per_material:
             self._baked_texture_doc = mx.createDocument()
-        if shader.getDocument().hasColorSpace():
+        if shaders[0].getDocument().hasColorSpace():
             self._baked_texture_doc.setColorSpace(
-                shader.getDocument().getColorSpace()
+                shaders[0].getDocument().getColorSpace()
             )
 
         # Create node graph and geometry info
@@ -695,15 +696,18 @@ class RenderTextureBaker:
                 mx.UDIM_SET_PROPERTY, udim_set, "stringarray"
             )
 
-        # Create a shader node
-        baked_shader = self._baked_texture_doc.addNode(
-            shader.getCategory(),
-            shader.getName() + self.BAKED_POSTFIX,
-            shader.getType(),
-        )
+        # Create shader nodes
+        baked_shaders = [
+            self._baked_texture_doc.addNode(
+                shader.getCategory(),
+                shader.getName() + self.BAKED_POSTFIX,
+                shader.getType(),
+            )
+            for shader in shaders
+        ]
 
         # Optionally create a material node, connecting it to the new shader
-        # node
+        # nodes
         if self._material:
             try:
                 material_name = self._tex_template_overrides["$MATERIAL"]
@@ -717,111 +721,134 @@ class RenderTextureBaker:
             for source_material_input in self._material.getInputs():
                 source_material_input_name = source_material_input.getName()
                 upstream_shader = source_material_input.getConnectedNode()
-                if (
-                    upstream_shader
-                    and upstream_shader.getNamePath() == shader.getNamePath()
-                ):
-                    baked_material_input = baked_material.getInput(
-                        source_material_input_name
-                    )
-                    if not baked_material_input:
-                        baked_material_input = baked_material.addInput(
-                            source_material_input_name,
-                            source_material_input.getType(),
+                for shader, baked_shader in zip(shaders, baked_shaders):
+                    if (
+                        upstream_shader
+                        and upstream_shader.getNamePath()
+                        == shader.getNamePath()
+                    ):
+                        baked_material_input = baked_material.getInput(
+                            source_material_input_name
                         )
-                    baked_material_input.setNodeName(baked_shader.getName())
+                        if not baked_material_input:
+                            baked_material_input = baked_material.addInput(
+                                source_material_input_name,
+                                source_material_input.getType(),
+                            )
+                        baked_material_input.setNodeName(
+                            baked_shader.getName()
+                        )
 
-        # Create and connect inputs on the new shader node
-        value_elements = (
-            v for v in shader.getChildren() if v.isA(mx.ValueElement)
-        )
-        for value_elem in value_elements:
-            # Get the source input and its connected output
-            source_input = value_elem
+        # Create and connect inputs on the new shader nodes
+        for shader, baked_shader in zip(shaders, baked_shaders):
+            value_elements = (
+                v for v in shader.getChildren() if v.isA(mx.ValueElement)
+            )
+            for value_elem in value_elements:
+                # Get the source input and its connected output
+                source_input = value_elem
 
-            output = source_input.getConnectedOutput()
+                output = source_input.getConnectedOutput()
 
-            # Skip uniform outputs at their default values
-            if (
-                output
-                and output.getNamePath() in self._baked_constant_map
-                and self._baked_constant_map[output.getNamePath()].is_default
-            ):
-                continue
-
-            # Find or create the baked input.
-            source_name = source_input.getName()
-            source_type = source_input.getType()
-            if not (baked_input := baked_shader.getInput(source_name)):
-                baked_input = baked_shader.addInput(source_name, source_type)
-
-            # Assign image or constant data to the baked input
-            if output:
-                # Store a constant value for uniform outputs
+                # Skip uniform outputs at their default values
                 if (
-                    self._optimize_constants
+                    output
                     and output.getNamePath() in self._baked_constant_map
-                ):
-                    uniform_color = self._baked_constant_map[
+                    and self._baked_constant_map[
                         output.getNamePath()
-                    ].color
-                    uniform_color_string = self._get_value_string_from_color(
-                        uniform_color, baked_input.getType()
-                    )
-                    baked_input.setValueString(uniform_color_string)
-                    if baked_input.getType() in ["color3", "color4"]:
-                        baked_input.setColorSpace(self._colorspace)
+                    ].is_default
+                ):
                     continue
 
-                if self._baked_image_map:
-                    # Add the image node
-                    baked_image = baked_node_graph.addNode(
-                        "image",
-                        source_name + self.BAKED_POSTFIX,
-                        source_type,
-                    )
-                    input_ = baked_image.addInput("file", "filename")
-                    filename_template_map = self._initialize_file_template_map(
-                        baked_input,
-                        shader,
-                        self.EMPTY_STRING if not udim_set else mx.UDIM_TOKEN,
-                    )
-                    input_.setValueString(
-                        self._generate_texture_filename(
-                            filename_template_map
-                        ).asString()
+                # Find or create the baked input.
+                source_name = source_input.getName()
+                source_type = source_input.getType()
+                if not (baked_input := baked_shader.getInput(source_name)):
+                    baked_input = baked_shader.addInput(
+                        source_name, source_type
                     )
 
-                    # Reconstruct any world-space nodes that were excluded
-                    # from the baking process
-                    try:
-                        orig_world_space_node = self._world_space_nodes[
-                            source_input.getName()
-                        ]
-                    except KeyError:
-                        pass
-                    else:
-                        if orig_world_space_node:
-                            new_world_space_node = baked_node_graph.addNode(
-                                orig_world_space_node.getCategory,
-                                source_name + self.BAKED_POSTFIX + "_map",
-                                source_type,
+                # Assign image or constant data to the baked input
+                if output:
+                    # Store a constant value for uniform outputs
+                    if (
+                        self._optimize_constants
+                        and output.getNamePath() in self._baked_constant_map
+                    ):
+                        uniform_color = self._baked_constant_map[
+                            output.getNamePath()
+                        ].color
+                        uniform_color_string = (
+                            self._get_value_string_from_color(
+                                uniform_color, baked_input.getType()
                             )
-                        new_world_space_node.copyContentFrom(
-                            orig_world_space_node
                         )
-                        if map_input := new_world_space_node.getInput("in"):
-                            map_input.setNodeName(baked_image.getName())
-                        baked_image = new_world_space_node
+                        baked_input.setValueString(uniform_color_string)
+                        if baked_input.getType() in ["color3", "color4"]:
+                            baked_input.setColorSpace(self._colorspace)
+                        continue
 
-                    # Add the graph output
-                    baked_output = baked_node_graph.addOutput(
-                        source_name + "_output", source_type
-                    )
-                    baked_output.setConnectedNode(baked_image)
-                    baked_input.setConnectedOutput(baked_output)
-            else:  # if output
-                baked_input.copyContentFrom(source_input)
+                    if self._baked_image_map:
+                        # Add the image node
+                        baked_image = baked_node_graph.addNode(
+                            "image",
+                            source_name + self.BAKED_POSTFIX,
+                            source_type,
+                        )
+                        input_ = baked_image.addInput("file", "filename")
+                        filename_template_map = (
+                            self._initialize_file_template_map(
+                                baked_input,
+                                shader,
+                                (
+                                    self.EMPTY_STRING
+                                    if not udim_set
+                                    else mx.UDIM_TOKEN
+                                ),
+                            )
+                        )
+                        input_.setValueString(
+                            self._generate_texture_filename(
+                                filename_template_map
+                            ).asString()
+                        )
+
+                        # Reconstruct any world-space nodes that were excluded
+                        # from the baking process
+                        try:
+                            orig_world_space_node = self._world_space_nodes[
+                                source_input.getName()
+                            ]
+                        except KeyError:
+                            pass
+                        else:
+                            if orig_world_space_node:
+                                new_world_space_node = (
+                                    baked_node_graph.addNode(
+                                        orig_world_space_node.getCategory,
+                                        source_name
+                                        + self.BAKED_POSTFIX
+                                        + "_map",
+                                        source_type,
+                                    )
+                                )
+                            new_world_space_node.copyContentFrom(
+                                orig_world_space_node
+                            )
+                            if map_input := new_world_space_node.getInput(
+                                "in"
+                            ):
+                                map_input.setNodeName(baked_image.getName())
+                            baked_image = new_world_space_node
+
+                        # Add the graph output
+                        baked_output = baked_node_graph.addOutput(
+                            source_name + "_output", source_type
+                        )
+                        baked_output.setConnectedNode(baked_image)
+                        baked_input.setConnectedOutput(baked_output)
+                else:  # if output
+                    baked_input.copyContentFrom(source_input)
 
         # Generate uniform images and write to disk
         uniform_image = mx_render.createUniformImage(
@@ -899,34 +926,48 @@ class RenderTextureBaker:
             return None, ""
         material_node = elem
 
-        # TODO Process all shader nodes
-        shader_nodes = mx.getShaderNodes(material_node)
-        if not (shader_node := shader_nodes[0] if shader_nodes else None):
+        # Get shader nodes
+        shader_node_type_strings = [
+            mx.SURFACE_SHADER_TYPE_STRING,
+            mx.DISPLACEMENT_SHADER_TYPE_STRING,
+            mx.VOLUME_SHADER_TYPE_STRING,
+        ]
+        shader_nodes = it.chain.from_iterable(
+            mx.getShaderNodes(material_node, ts)
+            for ts in shader_node_type_strings
+        )
+        shader_nodes = tuple(shader_nodes)
+        if not shader_nodes:
             return None, ""
 
         resolver = doc.createStringResolver()
 
-        # Iterate over material tags
-        for tag in material_tags:
-            # Always clear any cached implementations before generation
-            # WARNING: Not available in Python
-            # context.clearNodeImplementations()
+        # Iterate over shader nodes
+        for shader_node in shader_nodes:
+            # Iterate over material tags
+            for tag in material_tags:
+                # TODO
+                # Always clear any cached implementations before generation
+                # WARNING: Not available in Python
+                # context.clearNodeImplementations()
 
-            hw_shader = self._generator.generate(
-                "Shader", shader_node, context
-            )
-            if not hw_shader:
-                continue
-            self._renderer.getImageHandler().setSearchPath(search_path)
-            resolver.setUdimString(tag)
-            self._renderer.getImageHandler().setFilenameResolver(resolver)
-            self._bake_shader_inputs(material_node, shader_node, context, tag)
+                hw_shader = self._generator.generate(
+                    "Shader", shader_node, context
+                )
+                if not hw_shader:
+                    continue
+                self._renderer.getImageHandler().setSearchPath(search_path)
+                resolver.setUdimString(tag)
+                self._renderer.getImageHandler().setFilenameResolver(resolver)
+                self._bake_shader_inputs(
+                    material_node, shader_node, context, tag
+                )
 
-            self._optimize_baked_textures(shader_node)
+                self._optimize_baked_textures(shader_node)
 
         return (
-            self._generate_new_document_from_shader(shader_node, udim_set),
-            shader_node.getName(),
+            self._generate_new_document_from_shaders(shader_nodes, udim_set),
+            material_node.getName(),
         )
 
     def bake_all_materials(
