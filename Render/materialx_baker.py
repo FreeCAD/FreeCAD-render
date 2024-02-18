@@ -622,29 +622,26 @@ class RenderTextureBaker:
                     self._baked_constant_map[first] = baked_constant
 
         # Check for uniform outputs at their default values
-        if shader_node_def := shader.getNodeDef():
-            for shader_input in shader.getInputs():
-                output = shader_input.getConnectedOutput()
-                if output.getNamePath() in self._baked_constant_map:
-                    input_ = shader_node_def.getInput(shader_input.getName())
-                    if input_:
-                        uniform_color = self._baked_constant_map[
-                            output.getNamePath()
-                        ].color
-                        uniform_color_string = (
-                            self._get_value_string_from_color(
-                                uniform_color, input_.getType()
-                            )
-                        )
-                        default_value_string = (
-                            input_.getValueString()
-                            if input_.hasValueString()
-                            else self.EMPTY_STRING
-                        )
-                        if uniform_color_string == default_value_string:
-                            self._baked_constant_map[
-                                output.getNamePath()
-                            ].is_default = True
+        if shader_nodedef := shader.getNodeDef():
+            iterator = (
+                (shader_input, self._baked_constant_map[opath], input_)
+                for shader_input in shader.getInputs()
+                if (output := shader_input.getConnectedOutput())
+                and (opath := output.getNamePath()) in self._baked_constant_map
+                and (input_ := shader_nodedef.getInput(shader_input.getName()))
+            )
+            for shader_input, baked_constant, input_ in iterator:
+                uniform_color_string = self._get_value_string_from_color(
+                    baked_constant.color,
+                    input_.getType(),
+                )
+                default_value_string = (
+                    input_.getValueString()
+                    if input_.hasValueString()
+                    else self.EMPTY_STRING
+                )
+                if uniform_color_string == default_value_string:
+                    baked_constant.is_default = True
 
         # Remove baked images that have been replaced by constant values
         for first2, second2 in self._baked_constant_map.items():
