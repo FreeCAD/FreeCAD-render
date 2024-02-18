@@ -248,6 +248,7 @@ def import_materialx(zipname, *, debug=False):
             # baker.setup_unit_system(mxdoc)
             baker.optimize_constants = True
             baker.hash_image_names = False
+            baker.filename_template_var_override = "test"
             baker.bake_all_materials(
                 mxdoc,
                 search_path,

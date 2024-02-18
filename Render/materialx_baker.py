@@ -40,6 +40,7 @@ import hashlib
 import sys
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict, Set
+from collections.abc import Sequence
 
 import MaterialX as mx
 from MaterialX import PyMaterialXCore as mx_core
@@ -180,25 +181,216 @@ class RenderTextureBaker:
         )
         self._frame_capture_image.createResourceBuffer()
 
+    # GETTERS AND SETTERS
+
+    @property
+    def extension(self) -> str:
+        """Return the file extension for baked textures."""
+        return self._extension
+
+    @extension.setter
+    def extension(self, value: str) -> None:
+        """Set the file extension for baked textures."""
+        self._extension = str(value)
+
+    @property
+    def colorspace(self) -> str:
+        """Return the color space in which color textures are encoded."""
+        return self._colorspace
+
+    @colorspace.setter
+    def colorspace(self, value: str) -> None:
+        """Set the color space in which color textures are encoded.
+
+        By default, this color space is srgb_texture, and color inputs are
+        automatically transformed to this space by the baker.  If another color
+        space is set, then the input graph is responsible for transforming
+        colors to this space.
+        """
+        self._colorspace = str(value)
+
+    @property
+    def distance_unit(self) -> str:
+        """Return the distance unit to which textures are baked."""
+        return self._distance_unit
+
+    @distance_unit.setter
+    def distance_unit(self, value: str) -> None:
+        """Set the distance unit to which textures are baked.
+
+        Defaults to meters.
+        """
+        self._distance_unit = str(value)
+
+    @property
+    def average_images(self) -> bool:
+        """Return whether images should be averaged to generate constants."""
+        return self._average_images
+
+    @average_images.setter
+    def average_images(self, value: bool) -> None:
+        """Set whether images should be averaged to generate constants.
+
+        Defaults to false.
+        """
+        self._average_images = bool(value)
+
     @property
     def optimize_constants(self) -> bool:
-        """Get optimize_constants parameter."""
+        """Return whether uniform textures should be stored as constants."""
         return self._optimize_constants
 
     @optimize_constants.setter
-    def optimize_constants(self, value: bool):
-        """Set optimize_constants parameter."""
-        self._optimize_constants = value
+    def optimize_constants(self, value: bool) -> None:
+        """Set whether uniform textures should be stored as constants.
+
+        Defaults to true.
+        """
+        self._optimize_constants = bool(value)
+
+    @property
+    def output_image_path(self) -> mx.FilePath:
+        """Get the current output location for baked texture images."""
+        return self._output_image_path
+
+    @output_image_path.setter
+    def output_image_path(self, value: mx.FilePath) -> None:
+        """Set the output location for baked texture images.
+
+        Defaults to the root folder of the destination material.
+        """
+        self._output_image_path = (
+            value if isinstance(value, mx.FilePath) else mx.FilePath(value)
+        )
+
+    @property
+    def baked_graph_name(self) -> str:
+        """Return the name of the baked graph element."""
+        return self._baked_graph_name
+
+    @baked_graph_name.setter
+    def baked_graph_name(self, value: str) -> None:
+        """Set the name of the baked graph element."""
+        self._baked_graph_name = str(value)
+
+    @property
+    def baked_geom_info_name(self) -> str:
+        """Return the name of the baked geometry info element."""
+        return self._baked_geom_info_name
+
+    @baked_geom_info_name.setter
+    def baked_geom_info_name(self, value: str) -> None:
+        """Set the name of the baked geometry info element."""
+        self._baked_geom_info_name = str(value)
+
+    @property
+    def texture_filename_template(self) -> str:
+        """Get the texture filename template."""
+        return self._texture_filename_template
+
+    @texture_filename_template.setter
+    def texture_filename_template(self, value: str) -> None:
+        """Set the texture filename template."""
+        value = str(value)
+        self._texture_filename_template = (
+            value + ".$EXTENSION" if "$EXTENSION" in value else value
+        )
+
+    def _set_filename_template_var_override(
+        self, value: Sequence[str]
+    ) -> None:
+        """Set 'tex_filename_overrides' if template variable exists."""
+        key, value, *_ = iter(value)
+        if key not in self._tex_template_overrides:
+            return
+        self._tex_template_overrides[key] = value
+
+    filename_template_var_override = property(
+        fset=_set_filename_template_var_override
+    )
+
+    @property
+    def output_stream(self):
+        """Return the output stream for reporting progress and warnings."""
+        return self._output_stream
+
+    @output_stream.setter
+    def output_stream(self, value) -> None:
+        """Set the output stream for reporting progress and warnings.
+
+        Defaults to sys.stdout.
+        """
+        try:
+            write = value.write
+        except AttributeError as err:
+            raise TypeError(
+                "'output_stream' setting error - no 'write' method."
+            ) from err
+
+        if not callable(write):
+            msg = (
+                "'output_stream' setting error - "
+                "'write' attribute is not callable."
+            )
+            raise TypeError(msg)
+
+        self._output_stream = value
 
     @property
     def hash_image_names(self) -> bool:
-        """Get hash_image_names parameter."""
+        """Return whether hashing baked image filenames is set."""
         return self._hash_image_names
 
     @hash_image_names.setter
-    def hash_image_names(self, value: bool):
-        """Set hash_image_names parameter."""
-        self._hash_image_names = value
+    def hash_image_names(self, value: bool) -> None:
+        """Set whether to create a short name for baked images by hashing.
+
+        If set, the baked image filenames are systematically hashed.
+        This is useful for file systems which may have a maximum limit on
+        filename size.
+        By default names are not hashed.
+        """
+        self._hash_image_names = bool(value)
+
+    @property
+    def texture_space_min(self) -> mx.Vector2:
+        """Return the minimum texcoords used in texture baking."""
+        return self._texture_space_min
+
+    @texture_space_min.setter
+    def texture_space_min(self, value) -> None:
+        """Set the minimum texcoords used in texture baking.
+
+        Defaults to 0, 0.
+        """
+        if not isinstance(value, mx.Vector2):
+            msg = (
+                "'texture_space_min' setting error - "
+                f"'MaterialX.Vector2' expected, got {type(value)}"
+            )
+            raise TypeError(msg)
+        self._texture_space_min = value
+
+    @property
+    def texture_space_max(self) -> mx.Vector2:
+        """Return the maximum texcoords used in texture baking."""
+        return self._texture_space_max
+
+    @texture_space_max.setter
+    def texture_space_max(self, value) -> None:
+        """Set the maximum texcoords used in texture baking.
+
+        Defaults to 1, 1.
+        """
+        if not isinstance(value, mx.Vector2):
+            msg = (
+                "'texture_space_max' setting error - "
+                f"'MaterialX.Vector2' expected, got {type(value)}"
+            )
+            raise TypeError(msg)
+        self._texture_space_max = value
+
+    # PRIVATE METHODS
 
     def _get_value_string_from_color(
         self, color: mx.Color4, type_: str
@@ -642,6 +834,8 @@ class RenderTextureBaker:
         self._material = None
 
         return self._baked_texture_doc
+
+    # PUBLIC METHODS (API)
 
     def bake_material_to_doc(
         self,
