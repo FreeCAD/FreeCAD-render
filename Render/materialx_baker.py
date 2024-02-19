@@ -741,115 +741,97 @@ class RenderTextureBaker:
                         )
 
         # Create and connect inputs on the new shader nodes
-        for shader, baked_shader in zip(shaders, baked_shaders):
-            value_elements = (
-                v for v in shader.getChildren() if v.isA(mx.ValueElement)
-            )
-            for value_elem in value_elements:
-                # Get the source input and its connected output
-                source_input = value_elem
+        iterator = (
+            (shader, baked_shader, source_input)
+            for shader, baked_shader in zip(shaders, baked_shaders)
+            for source_input in shader.getChildren()
+            if source_input.isA(mx.ValueElement)
+        )
+        for shader, baked_shader, source_input in iterator:
+            # Get the connected output to source_input
+            output = source_input.getConnectedOutput()
 
-                output = source_input.getConnectedOutput()
+            # Skip uniform outputs at their default values
+            if (
+                output
+                and output.getNamePath() in self._baked_constant_map
+                and self._baked_constant_map[output.getNamePath()].is_default
+            ):
+                continue
 
-                # Skip uniform outputs at their default values
+            # Find or create the baked input.
+            source_name = source_input.getName()
+            source_type = source_input.getType()
+            if not (baked_input := baked_shader.getInput(source_name)):
+                baked_input = baked_shader.addInput(source_name, source_type)
+
+            # Assign image or constant data to the baked input
+            if output:
+                # Store a constant value for uniform outputs
                 if (
-                    output
+                    self._optimize_constants
                     and output.getNamePath() in self._baked_constant_map
-                    and self._baked_constant_map[
-                        output.getNamePath()
-                    ].is_default
                 ):
+                    uniform_color = self._baked_constant_map[
+                        output.getNamePath()
+                    ].color
+                    uniform_color_string = self._get_value_string_from_color(
+                        uniform_color, baked_input.getType()
+                    )
+                    baked_input.setValueString(uniform_color_string)
+                    if baked_input.getType() in ["color3", "color4"]:
+                        baked_input.setColorSpace(self._colorspace)
                     continue
 
-                # Find or create the baked input.
-                source_name = source_input.getName()
-                source_type = source_input.getType()
-                if not (baked_input := baked_shader.getInput(source_name)):
-                    baked_input = baked_shader.addInput(
-                        source_name, source_type
+                if self._baked_image_map:
+                    # Add the image node
+                    baked_image = baked_node_graph.addNode(
+                        "image",
+                        source_name + self.BAKED_POSTFIX,
+                        source_type,
+                    )
+                    input_ = baked_image.addInput("file", "filename")
+                    filename_template_map = self._initialize_file_template_map(
+                        baked_input,
+                        shader,
+                        (self.EMPTY_STRING if not udim_set else mx.UDIM_TOKEN),
+                    )
+                    input_.setValueString(
+                        self._generate_texture_filename(
+                            filename_template_map
+                        ).asString()
                     )
 
-                # Assign image or constant data to the baked input
-                if output:
-                    # Store a constant value for uniform outputs
-                    if (
-                        self._optimize_constants
-                        and output.getNamePath() in self._baked_constant_map
-                    ):
-                        uniform_color = self._baked_constant_map[
-                            output.getNamePath()
-                        ].color
-                        uniform_color_string = (
-                            self._get_value_string_from_color(
-                                uniform_color, baked_input.getType()
+                    # Reconstruct any world-space nodes that were excluded
+                    # from the baking process
+                    try:
+                        orig_world_space_node = self._world_space_nodes[
+                            source_input.getName()
+                        ]
+                    except KeyError:
+                        pass
+                    else:
+                        if orig_world_space_node:
+                            new_world_space_node = baked_node_graph.addNode(
+                                orig_world_space_node.getCategory,
+                                source_name + self.BAKED_POSTFIX + "_map",
+                                source_type,
                             )
+                        new_world_space_node.copyContentFrom(
+                            orig_world_space_node
                         )
-                        baked_input.setValueString(uniform_color_string)
-                        if baked_input.getType() in ["color3", "color4"]:
-                            baked_input.setColorSpace(self._colorspace)
-                        continue
+                        if map_input := new_world_space_node.getInput("in"):
+                            map_input.setNodeName(baked_image.getName())
+                        baked_image = new_world_space_node
 
-                    if self._baked_image_map:
-                        # Add the image node
-                        baked_image = baked_node_graph.addNode(
-                            "image",
-                            source_name + self.BAKED_POSTFIX,
-                            source_type,
-                        )
-                        input_ = baked_image.addInput("file", "filename")
-                        filename_template_map = (
-                            self._initialize_file_template_map(
-                                baked_input,
-                                shader,
-                                (
-                                    self.EMPTY_STRING
-                                    if not udim_set
-                                    else mx.UDIM_TOKEN
-                                ),
-                            )
-                        )
-                        input_.setValueString(
-                            self._generate_texture_filename(
-                                filename_template_map
-                            ).asString()
-                        )
-
-                        # Reconstruct any world-space nodes that were excluded
-                        # from the baking process
-                        try:
-                            orig_world_space_node = self._world_space_nodes[
-                                source_input.getName()
-                            ]
-                        except KeyError:
-                            pass
-                        else:
-                            if orig_world_space_node:
-                                new_world_space_node = (
-                                    baked_node_graph.addNode(
-                                        orig_world_space_node.getCategory,
-                                        source_name
-                                        + self.BAKED_POSTFIX
-                                        + "_map",
-                                        source_type,
-                                    )
-                                )
-                            new_world_space_node.copyContentFrom(
-                                orig_world_space_node
-                            )
-                            if map_input := new_world_space_node.getInput(
-                                "in"
-                            ):
-                                map_input.setNodeName(baked_image.getName())
-                            baked_image = new_world_space_node
-
-                        # Add the graph output
-                        baked_output = baked_node_graph.addOutput(
-                            source_name + "_output", source_type
-                        )
-                        baked_output.setConnectedNode(baked_image)
-                        baked_input.setConnectedOutput(baked_output)
-                else:  # if output
-                    baked_input.copyContentFrom(source_input)
+                    # Add the graph output
+                    baked_output = baked_node_graph.addOutput(
+                        source_name + "_output", source_type
+                    )
+                    baked_output.setConnectedNode(baked_image)
+                    baked_input.setConnectedOutput(baked_output)
+            else:  # if output
+                baked_input.copyContentFrom(source_input)
 
         # Generate uniform images and write to disk
         uniform_image = mx_render.createUniformImage(
