@@ -27,11 +27,11 @@
 # - source/MaterialXRender/TextureBaker.inl
 # - source/MaterialXRender/TextureBaker.h
 #
-# Derivative work, under Howetuft's copyright, has mainly consisted (but may
-# not be restricted) in 2 main parts:
+# Derivative work, under Howetuft's copyright, mainly consists in (but may not be
+# restricted to) two things:
 # - Transposing from C++ to Python language
-# - Adaptation to FreeCAD Render Workbench needs, in particular ability to
-#   handle 'displacement' shaders as well
+# - Adaptating to FreeCAD Render Workbench needs, in particular giving ability
+#   to handle 'displacement' shaders as well
 
 
 """This module provides features to import MaterialX materials in Render WB."""
@@ -53,8 +53,9 @@ from MaterialX import PyMaterialXRenderGlsl as mx_render_glsl
 
 
 class RenderTextureBaker:
-    """A texture baker, capable for displacement shaders as well.
+    """A texture baker, capable for all shaders of a material.
 
+    In particular, this baker is capable for displacement shaders.
     This texture baker is based on GLSL.
     """
 
