@@ -27,11 +27,11 @@
 # - source/MaterialXRender/TextureBaker.inl
 # - source/MaterialXRender/TextureBaker.h
 #
-# Derivative work, under Howetuft's copyright, mainly consists in (but may not be
-# restricted to) two things:
-# - Transposing from C++ to Python language
+# Derivative work, under Howetuft's copyright, mainly consists in (but may not
+# be restricted to):
+# - Transposing original code from C++ to Python language
 # - Adaptating to FreeCAD Render Workbench needs, in particular giving ability
-#   to handle 'displacement' shaders as well
+#   to handle ALL shaders of a material (incl. displacement)
 
 
 """This module provides features to import MaterialX materials in Render WB."""
