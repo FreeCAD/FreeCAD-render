@@ -471,7 +471,7 @@ class RenderTextureBaker:
 
     def _initialize_file_template_map(
         self, input_: mx.Input, shader: mx.Node, udim: str
-    ):
+    ) -> Dict[str, str]:
         """Initialize a file template for exporting."""
         # source/MaterialXRender/TextureBaker.inl#L142
         asset_path = mx_format.FilePath(shader.getActiveSourceUri())
@@ -658,12 +658,12 @@ class RenderTextureBaker:
 
     def _connect_baked_input(
         self,
-        baked_input,
-        source_input,
-        output,
-        baked_node_graph,
-        filename_template_map,
-    ):
+        baked_input: mx.Input,
+        source_input: mx.Input,
+        output: mx.Output,
+        baked_node_graph: mx.NodeGraph,
+        filename_template_map: Dict[str, str],
+    ) -> None:
         # Aliases
         output_id = output.getNamePath()
         source_name = source_input.getName()
@@ -935,11 +935,11 @@ class RenderTextureBaker:
             mx.DISPLACEMENT_SHADER_TYPE_STRING,
             mx.VOLUME_SHADER_TYPE_STRING,
         ]
-        shader_nodes = it.chain.from_iterable(
+        shader_nodes_it = it.chain.from_iterable(
             mx.getShaderNodes(material_node, ts)
             for ts in shader_node_type_strings
         )
-        shader_nodes = tuple(shader_nodes)
+        shader_nodes = tuple(shader_nodes_it)
         if not shader_nodes:
             return None, ""
 
