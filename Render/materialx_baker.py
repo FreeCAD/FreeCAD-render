@@ -417,6 +417,11 @@ class RenderTextureBaker:
                 res = filename.find(var, res + 1)
         return res
 
+    def _print(self, message: str):
+        """Print a message on self._output_stream."""
+        if self._output_stream:
+            print(message, file=self._output_stream)
+
     def _generate_texture_filename(
         self, filename_template_map: Dict[str, str]
     ) -> mx.FilePath:
@@ -482,18 +487,10 @@ class RenderTextureBaker:
         if not self._renderer.getImageHandler().saveImage(
             baked.filename, image, self._flip_saved_image
         ):
-            if self._output_stream:
-                print(
-                    f"Failed to write baked image: {filename}",
-                    file=self._output_stream,
-                )
+            self._print(f"Failed to write baked image: {filename}")
             return False
 
-        if self._output_stream:
-            print(
-                f"Wrote baked image: {filename}",
-                file=self._output_stream,
-            )
+        self._print(f"Wrote baked image: {filename}")
         return True
 
     def _bake_shader_inputs(
@@ -897,11 +894,7 @@ class RenderTextureBaker:
         """
         # source/MaterialXRender/TextureBaker.inl#L485
 
-        if self._output_stream:
-            print(
-                f"Processing material: {material_path}",
-                file=self._output_stream,
-            )
+        self._print(f"Processing material: {material_path}")
 
         # Set up generator context for material
         context = mx_gen_shader.GenContext(self._generator)
@@ -1023,39 +1016,29 @@ class RenderTextureBaker:
             # Write document in memory to disk
             for document_name, baked_material_doc in baked_documents:
                 if baked_material_doc:
-                    write_filename = output_filename
+                    filename = output_filename
 
                 # Add additional filename decorations if there are multiple
                 # documents
                 if len(baked_documents) > 1:
-                    extension = write_filename.getExtension()
-                    write_filename.removeExtension()
+                    extension = filename.getExtension()
+                    filename.removeExtension()
                     filename_separator = (
-                        self.EMPTY_STRING
-                        if write_filename.isDirectory()
-                        else "_"
+                        self.EMPTY_STRING if filename.isDirectory() else "_"
                     )
-                    write_filename = mx_format.FilePath(
-                        write_filename.asString()
+                    filename = mx_format.FilePath(
+                        filename.asString()
                         + filename_separator
                         + document_name
                         + "."
                         + extension
                     )
 
-                mx.writeToXmlFile(baked_material_doc, write_filename)
-                if self._output_stream:
-                    print(
-                        f"Wrote baked document: {write_filename.asString()}",
-                        file=self._output_stream,
-                    )
+                mx.writeToXmlFile(baked_material_doc, filename)
+                self._print(f"Wrote baked document: {filename.asString()}")
         elif self._baked_texture_doc:
             mx.writeToXmlFile(self._baked_texture_doc, output_filename)
-            if self._output_stream:
-                print(
-                    f"Wrote baked document: {output_filename.asString()}",
-                    file=self._output_stream,
-                )
+            self._print(f"Wrote baked document: {output_filename.asString()}")
 
     def setup_unit_system(self, unit_definitions: mx.Document) -> None:
         """Set up baker unit system."""
