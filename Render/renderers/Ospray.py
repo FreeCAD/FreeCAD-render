@@ -1041,6 +1041,19 @@ def render(
         The command to run renderer (string)
         A path to output image file (string)
     """
+
+    def enclose_rpath(rpath):
+        """Enclose rpath in quotes, if needed."""
+        if not rpath:
+            return ""
+        if rpath[0] == rpath[-1] == '"':
+            # Already enclosed (double quotes)
+            return rpath
+        if rpath[0] == rpath[-1] == "'":
+            # Already enclosed (simple quotes)
+            return rpath
+        return f'"{rpath}"'
+
     # Read scene_graph (json)
     with open(input_file, "r", encoding="utf8") as f:
         scene_graph = json.load(f)
@@ -1107,6 +1120,7 @@ def render(
             "Edit -> Preferences -> Render\n"
         )
         return None, None
+    rpath = enclose_rpath(rpath)
 
     cmd = prefix + rpath + " " + args + " " + f'"{input_file}"'
 
