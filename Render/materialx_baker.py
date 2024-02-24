@@ -727,7 +727,6 @@ class RenderTextureBaker:
         self, shaders: Sequence[mx_core.Node], udim_set: List[str]
     ) -> mx.Document:
         """Generate a new document from given shaders."""
-        # pylint: disable=too-many-locals
         if not shaders:
             return None
 
@@ -821,12 +820,16 @@ class RenderTextureBaker:
             output = source_input.getConnectedOutput()
 
             # Skip uniform outputs at their default values
-            if (
-                output
-                and output.getNamePath() in self._baked_constant_map
-                and self._baked_constant_map[output.getNamePath()].is_default
-            ):
-                continue
+            try:
+                # Search for constant
+                constant = self._baked_constant_map[output.getNamePath()]
+            except (AttributeError, KeyError):
+                # No such constant...
+                pass
+            else:
+                # Skip if default
+                if constant.is_default:
+                    continue
 
             # Find or create the baked input.
             source_name = source_input.getName()
