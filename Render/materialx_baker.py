@@ -860,11 +860,15 @@ class RenderTextureBaker:
         uniform_image = mx_render.createUniformImage(
             4, 4, 4, self._base_type, mx.Color4()
         )
-        for value in self._baked_image_map.values():
-            for baked in value:
-                if baked.is_uniform:
-                    uniform_image.setUniformColor(baked.uniform_color)
-                    self._write_baked_image(baked, uniform_image)
+        baked_uniform_images_it = (
+            baked_image
+            for image_list in self._baked_image_map.values()
+            for baked_image in image_list
+            if baked_image.is_uniform
+        )
+        for baked_uniform_image in baked_uniform_images_it:
+            uniform_image.setUniformColor(baked_uniform_image.uniform_color)
+            self._write_baked_image(baked_uniform_image, uniform_image)
 
         # Clear cached information after each material bake
         self._baked_image_map.clear()
