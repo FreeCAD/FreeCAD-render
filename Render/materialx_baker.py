@@ -724,6 +724,48 @@ class RenderTextureBaker:
         baked_output.setConnectedNode(baked_image)
         baked_input.setConnectedOutput(baked_output)
 
+    def _create_baked_material_node(
+        self,
+        baked_shaders: Sequence[mx_core.Node],
+        shaders: Sequence[mx_core.Node],
+    ) -> None:
+        """Create a baked material node, connecting it to baked shaders."""
+        # Create material node
+        try:
+            material_name = self._tex_template_overrides["$MATERIAL"]
+        except KeyError:
+            material_name = self._material.getName()
+
+        baked_material = self._baked_texture_doc.addNode(
+            self._material.getCategory(),
+            material_name + self.BAKED_POSTFIX,
+            self._material.getType(),
+        )
+
+        # Connect new material node to new shader
+        inputs = (
+            (
+                baked_material.getInput(source_material_input.getName()),
+                source_material_input,
+                baked_shader.getName(),
+            )
+            for source_material_input in self._material.getInputs()
+            for shader, baked_shader in zip(shaders, baked_shaders)
+            if (
+                (up_shader := source_material_input.getConnectedNode())
+                and up_shader.getNamePath() == shader.getNamePath()
+            )
+        )
+
+        for baked_material_input, source_material_input, shadername in inputs:
+            if not baked_material_input:
+                # Create input in material if not existing
+                baked_material_input = baked_material.addInput(
+                    source_material_input.getName(),
+                    source_material_input.getType(),
+                )
+            baked_material_input.setNodeName(shadername)
+
     def _generate_new_document_from_shaders(
         self, shaders: Sequence[mx_core.Node], udim_set: List[str]
     ) -> mx.Document:
@@ -779,41 +821,7 @@ class RenderTextureBaker:
         # Optionally create a material node, connecting it to the new shader
         # nodes
         if self._material:
-            # Create material node
-            try:
-                material_name = self._tex_template_overrides["$MATERIAL"]
-            except KeyError:
-                material_name = self._material.getName()
-
-            baked_material = self._baked_texture_doc.addNode(
-                self._material.getCategory(),
-                material_name + self.BAKED_POSTFIX,
-                self._material.getType(),
-            )
-
-            # Connect new material node to new shader
-            inputs = (
-                (
-                    baked_material.getInput(source_material_input.getName()),
-                    source_material_input,
-                    baked_shader.getName(),
-                )
-                for source_material_input in self._material.getInputs()
-                for shader, baked_shader in zip(shaders, baked_shaders)
-                if (
-                    (up_shader := source_material_input.getConnectedNode())
-                    and up_shader.getNamePath() == shader.getNamePath()
-                )
-            )
-
-            for baked_mat_input, source_mat_input, shadername in inputs:
-                if not baked_mat_input:
-                    # Create input in material if not existing
-                    baked_mat_input = baked_material.addInput(
-                        source_mat_input.getName(),
-                        source_mat_input.getType(),
-                    )
-                baked_mat_input.setNodeName(shadername)
+            self._create_baked_material_node(baked_shaders, shaders)
 
         # Create and connect inputs on the new shader nodes
         iterator = (
@@ -853,6 +861,7 @@ class RenderTextureBaker:
                     (self.EMPTY_STRING if not udim_set else mx.UDIM_TOKEN),
                 )
 
+                # Connect
                 self._connect_baked_input(
                     baked_input,
                     source_input,
@@ -953,8 +962,7 @@ class RenderTextureBaker:
             mx.getShaderNodes(material_node, ts)
             for ts in shader_node_type_strings
         )
-        shader_nodes = tuple(shader_nodes_it)
-        if not shader_nodes:
+        if not (shader_nodes := tuple(shader_nodes_it)):
             return None, ""
 
         resolver = doc.createStringResolver()
