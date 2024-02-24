@@ -1060,10 +1060,10 @@ class RenderTextureBaker:
         registry = mx.UnitConverterRegistry.create()
         create_converter = mx.LinearUnitConverter.create
         registry.addUnitConverter(
-            distance_type_def, converter_create(distance_type_def)
+            distance_type_def, create_converter(distance_type_def)
         )
         registry.addUnitConverter(
-            angle_type_def, converter_create(angle_type_def)
+            angle_type_def, create_converter(angle_type_def)
         )
 
         unit_system.loadLibrary(unit_definitions)
