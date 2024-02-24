@@ -765,7 +765,7 @@ class RenderTextureBaker:
                 mx.UDIM_SET_PROPERTY, udim_set, "stringarray"
             )
 
-        # Create shader nodes
+        # Create baked shader nodes
         baked_shaders = [
             self._baked_texture_doc.addNode(
                 shader.getCategory(),
@@ -778,35 +778,41 @@ class RenderTextureBaker:
         # Optionally create a material node, connecting it to the new shader
         # nodes
         if self._material:
+            # Create material node
             try:
                 material_name = self._tex_template_overrides["$MATERIAL"]
             except KeyError:
                 material_name = self._material.getName()
+
             baked_material = self._baked_texture_doc.addNode(
                 self._material.getCategory(),
                 material_name + self.BAKED_POSTFIX,
                 self._material.getType(),
             )
-            for source_material_input in self._material.getInputs():
-                source_material_input_name = source_material_input.getName()
-                upstream_shader = source_material_input.getConnectedNode()
-                for shader, baked_shader in zip(shaders, baked_shaders):
-                    if (
-                        upstream_shader
-                        and upstream_shader.getNamePath()
-                        == shader.getNamePath()
-                    ):
-                        baked_material_input = baked_material.getInput(
-                            source_material_input_name
-                        )
-                        if not baked_material_input:
-                            baked_material_input = baked_material.addInput(
-                                source_material_input_name,
-                                source_material_input.getType(),
-                            )
-                        baked_material_input.setNodeName(
-                            baked_shader.getName()
-                        )
+
+            # Connect new material node to new shader
+            inputs = (
+                (
+                    baked_material.getInput(source_material_input.getName()),
+                    source_material_input,
+                    baked_shader.getName(),
+                )
+                for source_material_input in self._material.getInputs()
+                for shader, baked_shader in zip(shaders, baked_shaders)
+                if (
+                    (up_shader := source_material_input.getConnectedNode())
+                    and up_shader.getNamePath() == shader.getNamePath()
+                )
+            )
+
+            for baked_mat_input, source_mat_input, shadername in inputs:
+                if not baked_mat_input:
+                    # Create input in material if not existing
+                    baked_mat_input = baked_material.addInput(
+                        source_mat_input.getName(),
+                        source_mat_input.getType(),
+                    )
+                baked_mat_input.setNodeName(shadername)
 
         # Create and connect inputs on the new shader nodes
         iterator = (
