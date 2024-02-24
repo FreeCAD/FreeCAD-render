@@ -1,6 +1,7 @@
 # FreeCAD Render Workbench
 
 [![FreeCAD Addon manager status](https://img.shields.io/badge/FreeCAD%20addon%20manager-available-brightgreen)](https://github.com/FreeCAD/FreeCAD-addons)
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 A [FreeCAD](https://www.freecadweb.org) workbench to produce high-quality
 rendered images from your FreeCAD document, using open-source external

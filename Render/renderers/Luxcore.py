@@ -649,6 +649,18 @@ def render(
             output.write("\n".join(result))
         return f_path
 
+    def enclose_rpath(rpath):
+        """Enclose rpath in quotes, if needed."""
+        if not rpath:
+            return ""
+        if rpath[0] == rpath[-1] == '"':
+            # Already enclosed (double quotes)
+            return rpath
+        if rpath[0] == rpath[-1] == "'":
+            # Already enclosed (simple quotes)
+            return rpath
+        return f'"{rpath}"'
+
     # LuxCore requires 2 files:
     # - a configuration file, with rendering parameters (engine, sampler...)
     # - a scene file, with the scene objects (camera, lights, meshes...)
@@ -735,7 +747,7 @@ def render(
     scene = pageresult["Scene"]
     scn_path = export_section(scene, project.Name, "scn")
 
-    # Get rendering parameters
+    # Get rendering parameters and rpath
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     args = params.GetString("LuxCoreParameters", "")
     rpath = params.GetString(
@@ -748,6 +760,7 @@ def render(
         )
         App.Console.PrintError(msg)
         return None, None
+    rpath = enclose_rpath(rpath)
 
     # Prepare command line and return
     cmd = f"""{prefix}{rpath} {args} -o "{cfg_path}" -f "{scn_path}"\n"""

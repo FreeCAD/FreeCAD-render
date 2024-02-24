@@ -652,6 +652,19 @@ def render(
         The command to run renderer (string)
         A path to output image file (string)
     """
+
+    def enclose_rpath(rpath):
+        """Enclose rpath in quotes, if needed."""
+        if not rpath:
+            return ""
+        if rpath[0] == rpath[-1] == '"':
+            # Already enclosed (double quotes)
+            return rpath
+        if rpath[0] == rpath[-1] == "'":
+            # Already enclosed (simple quotes)
+            return rpath
+        return f'"{rpath}"'
+
     # Make various adjustments on file:
     # Reorder camera declarations and set width/height
     with open(input_file, "r", encoding="utf-8") as f:
@@ -703,6 +716,7 @@ def render(
             "Edit -> Preferences -> Render\n"
         )
         return None, None
+    rpath = enclose_rpath(rpath)
 
     filepath = f'"{input_file}"'
 
