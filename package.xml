@@ -13,6 +13,7 @@ Designed as a modern replacement for deprecated internal Raytracing Workbench.</
   <url type="bugtracker">https://github.com/FreeCAD/FreeCAD-render/issues</url>
   <url type="readme">https://github.com/FreeCAD/FreeCAD-render/blob/master/README.md</url>
   <icon>Render/resources/icons/Render.svg</icon>
+  <pythonmin>3.8</pythonmin>
 
   <content>
     <workbench>
@@ -20,6 +21,7 @@ Designed as a modern replacement for deprecated internal Raytracing Workbench.</
       <subdirectory>./</subdirectory>
       <icon>Render/resources/icons/Render.svg</icon>
       <classname>RenderWorkbench</classname>
+      <depend optional="true" type="python">materialx</depend>
     </workbench>
   </content>
 
