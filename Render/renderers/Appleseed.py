@@ -1392,6 +1392,18 @@ def render(
         )
         return root
 
+    def enclose_rpath(rpath):
+        """Enclose rpath in quotes, if needed."""
+        if not rpath:
+            return ""
+        if rpath[0] == rpath[-1] == '"':
+            # Already enclosed (double quotes)
+            return rpath
+        if rpath[0] == rpath[-1] == "'":
+            # Already enclosed (simple quotes)
+            return rpath
+        return f'"{rpath}"'
+
     # Here starts render
 
     # Make various adjustments on file:
@@ -1466,7 +1478,7 @@ def render(
     with open(input_file, "wb") as f:
         f.write(template)
 
-    # Prepare command line parameters
+    # Prepare command line parameters and rpath
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if not batch:
         # GUI
@@ -1489,6 +1501,7 @@ def render(
             "Edit -> Preferences -> Render\n"
         )
         return None, None
+    rpath = enclose_rpath(rpath)
     if args:
         args += " "
 
