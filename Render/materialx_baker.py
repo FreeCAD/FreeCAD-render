@@ -664,6 +664,7 @@ class RenderTextureBaker:
         baked_node_graph: mx.NodeGraph,
         filename_template_map: Dict[str, str],
     ) -> None:
+        """Connect a baked input to its baked image node."""
         # Aliases
         output_id = output.getNamePath()
         source_name = source_input.getName()
