@@ -1042,34 +1042,34 @@ class RenderTextureBaker:
 
     def setup_unit_system(self, unit_definitions: mx.Document) -> None:
         """Set up baker unit system."""
-        distance_type_def = (
-            unit_definitions.getUnitTypeDef("distance")
-            if unit_definitions
-            else None
-        )
-        angle_type_def = (
-            unit_definitions.getUnitTypeDef("angle")
-            if unit_definitions
-            else None
-        )
-        if not distance_type_def and not angle_type_def:
-            return
+        # Get distance and angle unit type definitions
+        if unit_definitions:
+            distance_type_def = unit_definitions.getUnitTypeDef("distance")
+            angle_type_def = unit_definitions.getUnitTypeDef("angle")
+            if not distance_type_def and not angle_type_def:
+                self._print("Missing unit type definitions")
+                return
 
+        # Prepare and set generator unit system
         unit_system = mx_gen_shader.UnitSystem.create(
             self._generator.getTarget()
         )
         if not unit_system:
             return
-        self._generator.setUnitSystem(unit_system)
+
         registry = mx.UnitConverterRegistry.create()
+        create_converter = mx.LinearUnitConverter.create
         registry.addUnitConverter(
-            distance_type_def, mx.LinearUnitConverter.create(distance_type_def)
+            distance_type_def, converter_create(distance_type_def)
         )
         registry.addUnitConverter(
-            angle_type_def, mx.LinearUnitConverter.create(angle_type_def)
+            angle_type_def, converter_create(angle_type_def)
         )
-        self._generator.getUnitSystem().loadLibrary(unit_definitions)
-        self._generator.getUnitSystem().setUnitConverterRegistry(registry)
+
+        unit_system.loadLibrary(unit_definitions)
+        unit_system.setUnitConverterRegistry(registry)
+
+        self._generator.setUnitSystem(unit_system)
 
     # }}}
 
