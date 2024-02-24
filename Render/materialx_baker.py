@@ -462,16 +462,15 @@ class RenderTextureBaker:
         # source/MaterialXRender/TextureBaker.inl#L142
         asset_path = mx_format.FilePath(shader.getActiveSourceUri())
         asset_path.removeExtension()
-        filename_template_map = {}
-        filename_template_map["$ASSET"] = asset_path.getBaseName()
-        filename_template_map["$INPUT"] = self._baked_input_map[
-            input_.getName()
-        ]
-        filename_template_map["$EXTENSION"] = self._extension
-        filename_template_map["$MATERIAL"] = self._material.getName()
-        filename_template_map["$SHADINGMODEL"] = shader.getCategory()
-        filename_template_map["$UDIM"] = udim
-        filename_template_map["$UDIMPREFIX"] = self.DEFAULT_UDIM_PREFIX
+        filename_template_map = {
+            "$ASSET": asset_path.getBaseName(),
+            "$INPUT": self._baked_input_map[input_.getName()],
+            "$EXTENSION": self._extension,
+            "$MATERIAL": self._material.getName(),
+            "$SHADINGMODEL": shader.getCategory(),
+            "$UDIM": udim,
+            "$UDIMPREFIX": self.DEFAULT_UDIM_PREFIX,
+        }
         return filename_template_map
 
     def _write_baked_image(
