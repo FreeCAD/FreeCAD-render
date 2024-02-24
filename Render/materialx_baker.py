@@ -101,17 +101,7 @@ class RenderTextureBaker:
         # Class declarations
         self._extension = ""
         self._colorspace = ""
-        self._distance_unit = ""
-        self._average_images = False
-        self._optimize_constants = False
         self._output_image_path: mx_format.FilePath = None
-        self._baked_graph_name = ""
-        self._baked_geom_info_name = ""
-        self._texture_filename_template = ""
-        self._output_stream = None
-        self._hash_image_names = False
-        self._texture_space_min = None
-        self._texture_space_max = None
 
         self._material: mx.Node = None
         self._frame_capture_image: mx.PyMaterialXRender.Image = None
@@ -126,9 +116,6 @@ class RenderTextureBaker:
 
         self._world_space_nodes: Dict[str, mx.Node] = {}
 
-        self._flip_saved_image: bool = False
-
-        self._write_document_per_material: bool = False
         self._baked_texture_doc: mx.Document = None
 
         # Constructor initializations
@@ -160,7 +147,6 @@ class RenderTextureBaker:
         }
         self._flip_saved_image = bool(flip_saved_image)
         self._write_document_per_material = True
-        self._baked_texture_doc = None
 
         # Specific
         self._base_type = base_type
