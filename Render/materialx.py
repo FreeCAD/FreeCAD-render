@@ -22,6 +22,14 @@
 
 """This module provides features to import MaterialX materials in Render WB."""
 
+# TODO list
+# Solve colorspace question in baking
+# Lint materialx_baker and improve readability (nested blocks / branches)
+# Add Scale to Disney displacement (and to renderers...)
+# Split import_materialx into subs: 1. Translation; 2. Import
+# Create GUI
+
+
 import zipfile
 import tempfile
 import os
@@ -293,20 +301,18 @@ def import_materialx(zipname, *, debug=False):
                 images = {}
                 outputs = {}
 
+            # TODO
             # Get PBR
-            all_pbr_nodes = [
-                n for n in mxdoc.getNodes() if n.getCategory() == "render_pbr"
-            ]
+            # all_render_nodes = tuple(
+            # node
+            # for node in mxdoc.getNodes()
+            # if node.getCategory() in ("render_pbr", "render_disp")
+            # )
 
             # TODO
             # Debug
-            _view_doc(mxdoc)
-            _run_materialx(outfile, "MaterialXGraphEditor")
-
-            assert (
-                len(all_pbr_nodes) == 1
-            ), f"len(all_pbr_nodes) = {len(all_pbr_nodes)}"
-            pbr_node = all_pbr_nodes[0]
+            # _view_doc(mxdoc)
+            # _run_materialx(outfile, "MaterialXGraphEditor")
 
             # TODO End 1st step
 
@@ -333,7 +339,13 @@ def import_materialx(zipname, *, debug=False):
             texname = texture.fpo.Name if texture else None
 
             # Fill fields
-            for param in pbr_node.getInputs():
+            render_params = (
+                param
+                for node in mxdoc.getNodes()
+                for param in node.getInputs()
+                if node.getCategory() in ("render_pbr", "render_disp")
+            )
+            for param in render_params:
                 if param.hasOutputString():
                     # Texture
                     output = param.getOutputString()
