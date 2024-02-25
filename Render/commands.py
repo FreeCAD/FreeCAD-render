@@ -28,7 +28,13 @@ import os
 import itertools as it
 
 from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
-from PySide.QtGui import QMessageBox, QInputDialog, QApplication, QCursor
+from PySide.QtGui import (
+    QMessageBox,
+    QInputDialog,
+    QApplication,
+    QCursor,
+    QFileDialog,
+)
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -49,6 +55,7 @@ from Render.lights import (
 )
 from Render.rendermaterial import is_multimat
 from Render.help import open_help
+from Render.materialx import import_materialx
 
 
 class RenderProjectCommand:
@@ -365,6 +372,45 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         App.ActiveDocument.commitTransaction()
 
 
+class MaterialMaterialXImportCommand:
+    """GUI command to import a MaterialX material."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Import MaterialX",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Import a material from MaterialX format",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
+        """
+        # TODO Test if MaterialX is installed
+        # TODO Icon
+        filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
+        caption = translate("Render", "Select MaterialX")
+        openfilename = QFileDialog.getOpenFileName(
+            Gui.getMainWindow(), caption, "", filefilter
+        )
+        materialx_file = openfilename[0]
+        if not materialx_file:
+            return
+        App.ActiveDocument.openTransaction("MaterialXImport")
+        import_materialx(materialx_file)
+        App.ActiveDocument.commitTransaction()
+
+
 class MaterialRenderSettingsCommand:
     """GUI command to set render settings of a material object."""
 
@@ -614,6 +660,7 @@ def _init_gui_commands():
 
     mats_cmd = [
         ("MaterialCreator", MaterialCreatorCommand()),
+        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
         ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
         ("MaterialApplier", MaterialApplierCommand()),
     ]
