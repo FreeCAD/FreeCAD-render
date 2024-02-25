@@ -65,309 +65,286 @@ def import_materialx(zipname, *, debug=False):
         _warn("Missing MaterialX library: unable to import material")
         return
 
-    if not debug:
-        tmpdir_cm = tempfile.TemporaryDirectory()
-    else:
-        tmpdir_cm = nullcontext(
-            tempfile.mkdtemp(dir=App.ActiveDocument.TransientDir)
-        )
-
     # Proceed with file
-    with zipfile.ZipFile(zipname, "r") as matzip:
-        with tmpdir_cm as tmpdir:
+    with tempfile.TemporaryDirectory() as working_dir:
+        with zipfile.ZipFile(zipname, "r") as matzip:
             # Unzip material
-            print(f"Extracting to {tmpdir}")
-            matzip.extractall(path=tmpdir)
-
-            # Find materialx file
-            files = (
-                entry.path
-                for entry in os.scandir(tmpdir)
-                if entry.is_file() and entry.name.endswith(".mtlx")
-            )
-            try:
-                mtlx_name = next(files)
-            except StopIteration:
-                _warn("Missing mtlx file")
-                return
-
-            # Read doc
-            mxdoc = mx.createDocument()
-            mx.readFromXmlFile(mxdoc, mtlx_name)
-
-            # Check material unicity and get its name
-            if not (mxmats := mxdoc.getMaterialNodes()):
-                _warn("No material in file")
-                return
-            if len(mxmats) > 1:
-                _warn(f"Too many materials ({len(mxmats)}) in file")
-                return
-            mxmat = mxmats[0]
-            mxname = mxmat.getName()
-
-            # Clean doc for translation
-            # Add own node graph
-            if not (render_ng := mxdoc.getNodeGraph("RENDER_NG")):
-                render_ng = mxdoc.addNodeGraph("RENDER_NG")
-
-            # Move every cluttered root node to node graph
-            exclude = {
-                "nodedef",
-                "nodegraph",
-                "standard_surface",
-                "surfacematerial",
-                "displacement",
-            }
-            rootnodes = (
-                n for n in mxdoc.getNodes() if n.getCategory() not in exclude
-            )
-            moved_nodes = set()
-            for node in rootnodes:
-                nodecategory = node.getCategory()
-                nodename = node.getName()
-                nodetype = node.getType()
-                try:
-                    newnode = render_ng.addNode(
-                        nodecategory,
-                        nodename + "_",
-                        nodetype,
-                    )
-                except LookupError:
-                    # Already exist
-                    pass
-                else:
-                    newnode.copyContentFrom(node)
-                    mxdoc.removeNode(nodename)
-                    newnode.setName(nodename)
-                    moved_nodes.add(nodename)
-
-            # Connect shader inputs to node graph
-            shader_inputs = (
-                si
-                for shader in mx.getShaderNodes(
-                    materialNode=mxmat, nodeType=""
-                )
-                for si in shader.getInputs()
-                if not si.hasValueString() and not si.getConnectedOutput()
-            )
-            for shader_input in shader_inputs:
-                if (nodename := shader_input.getNodeName()) in moved_nodes:
-                    # Create output node in node graph
-                    newoutputname = f"{nodename}_output"
-                    try:
-                        newoutput = render_ng.addOutput(
-                            name=newoutputname,
-                            type=render_ng.getNode(nodename).getType(),
-                        )
-                    except LookupError:
-                        pass
-                    else:
-                        newoutput.setNodeName(nodename)
-
-                    # Connect input to output node
-                    shader_input.setOutputString(newoutputname)
-                    shader_input.setNodeGraphString("RENDER_NG")
-                    shader_input.removeAttribute("nodename")
+            print(f"Extracting to {working_dir}")
+            matzip.extractall(path=working_dir)
 
             # Compute search path
             search_path = mx.getDefaultDataSearchPath()
-            search_path.append(tmpdir)
+            search_path.append(working_dir)
             search_path.append(MATERIALXDIR)
 
-            # Import libraries
-            mxlib = mx.createDocument()
-            library_folders = mx.getDefaultDataLibraryFolders()
-            library_folders.append("render_libraries")
-            mx.loadLibraries(library_folders, search_path, mxlib)
-            mxdoc.importLibrary(mxlib)
-            outfile = _write_temp_doc(mxdoc)
+            # Translate, bake and convert to render material
+            translated = _translate_materialx(working_dir, search_path)
+            baked = _bake_materialx(translated, working_dir, search_path)
+            _make_render_material(baked, working_dir)
 
-            # Translate surface shader
-            translator = mx_gen_shader.ShaderTranslator.create()
+
+# Helpers
+
+
+def _translate_materialx(matdir, search_path):
+    """Translate MaterialX from StandardSurface to RenderPBR.
+
+    Args:
+        matdir -- The directory where to find MaterialX files
+    """
+    # Find materialx file
+    files = (
+        entry.path
+        for entry in os.scandir(matdir)
+        if entry.is_file() and entry.name.endswith(".mtlx")
+    )
+    try:
+        mtlx_name = next(files)
+    except StopIteration:
+        _warn("Missing mtlx file")
+        return
+
+    # Read doc
+    mxdoc = mx.createDocument()
+    mx.readFromXmlFile(mxdoc, mtlx_name)
+
+    # Check material unicity and get its name
+    if not (mxmats := mxdoc.getMaterialNodes()):
+        _warn("No material in file")
+        return
+    if len(mxmats) > 1:
+        _warn(f"Too many materials ({len(mxmats)}) in file")
+        return
+    mxmat = mxmats[0]
+    mxname = mxmat.getName()
+
+    # Clean doc for translation
+    # Add own node graph
+    if not (render_ng := mxdoc.getNodeGraph("RENDER_NG")):
+        render_ng = mxdoc.addNodeGraph("RENDER_NG")
+
+    # Move every cluttered root node to node graph
+    exclude = {
+        "nodedef",
+        "nodegraph",
+        "standard_surface",
+        "surfacematerial",
+        "displacement",
+    }
+    rootnodes = (n for n in mxdoc.getNodes() if n.getCategory() not in exclude)
+    moved_nodes = set()
+    for node in rootnodes:
+        nodecategory = node.getCategory()
+        nodename = node.getName()
+        nodetype = node.getType()
+        try:
+            newnode = render_ng.addNode(
+                nodecategory,
+                nodename + "_",
+                nodetype,
+            )
+        except LookupError:
+            # Already exist
+            pass
+        else:
+            newnode.copyContentFrom(node)
+            mxdoc.removeNode(nodename)
+            newnode.setName(nodename)
+            moved_nodes.add(nodename)
+
+    # Connect shader inputs to node graph
+    shader_inputs = (
+        si
+        for shader in mx.getShaderNodes(materialNode=mxmat, nodeType="")
+        for si in shader.getInputs()
+        if not si.hasValueString() and not si.getConnectedOutput()
+    )
+    for shader_input in shader_inputs:
+        if (nodename := shader_input.getNodeName()) in moved_nodes:
+            # Create output node in node graph
+            newoutputname = f"{nodename}_output"
             try:
-                translator.translateAllMaterials(mxdoc, "render_pbr")
-            except mx.Exception as err:
-                _warn(err)
-                return
-
-            # Translate displacement shader
-            dispnodes = [
-                s
-                for r in mx_gen_shader.findRenderableMaterialNodes(mxdoc)
-                for s in mx.getShaderNodes(
-                    r, mx.DISPLACEMENT_SHADER_TYPE_STRING
+                newoutput = render_ng.addOutput(
+                    name=newoutputname,
+                    type=render_ng.getNode(nodename).getType(),
                 )
-            ]
-            try:
-                for dispnode in dispnodes:
-                    translator.translateShader(dispnode, "render_disp")
-            except mx.Exception as err:
-                _warn(err)
-                return
-
-            # Check the document for a UDIM set.
-            udim_set_value = mxdoc.getGeomPropValue(mx.UDIM_SET_PROPERTY)
-            udim_set = udim_set_value.getData() if udim_set_value else []
-
-            # Compute baking resolution from the source document.
-            image_handler = mx_render.ImageHandler.create(
-                mx_render.StbImageLoader.create()
-            )
-            image_handler.setSearchPath(search_path)
-            if udim_set:
-                resolver = mxdoc.createStringResolver()
-                resolver.setUdimString(udim_set[0])
-                image_handler.setFilenameResolver(resolver)
-            image_vec = image_handler.getReferencedImages(mxdoc)
-            bake_width, bake_height = mx_render.getMaxDimensions(image_vec)
-            bake_width = max(bake_width, 4)
-            bake_height = max(bake_height, 4)
-
-            # Bake surface shader
-            # baker = mx_render_glsl.TextureBaker.create(
-            # bake_width, bake_height, mx_render.BaseType.UINT8
-            # )
-            # _, outfile = tempfile.mkstemp(
-            # suffix=".mtlx", dir=tmpdir, text=True
-            # )
-            # baker.setupUnitSystem(mxdoc)
-            # baker.setDistanceUnit("meter")
-            # baker.bakeAllMaterials(mxdoc, search_path, outfile)
-
-            # TODO Move into separate function
-            # material_node, disp_node = next(
-            # (material, shader)
-            # for shader in mx.getShaderNodes(
-            # materialNode=material,
-            # nodeType=mx.DISPLACEMENT_SHADER_TYPE_STRING,
-            # )
-            # for material in mx_gen_shader.findRenderableMaterialNodes(
-            # mxdoc
-            # )
-            # )
-            _, outfile = tempfile.mkstemp(
-                suffix=".mtlx", dir=tmpdir, text=True
-            )
-            baker = RenderTextureBaker(
-                bake_width,
-                bake_height,
-                mx_render.BaseType.UINT8,
-            )
-            # baker.setup_unit_system(mxdoc)
-            baker.optimize_constants = True
-            baker.hash_image_names = False
-            baker.filename_template_var_override = "test"
-            baker.bake_all_materials(
-                mxdoc,
-                search_path,
-                outfile,
-            )
-
-            # Reset document to new file
-            mxdoc = mx.createDocument()
-            mx.readFromXmlFile(mxdoc, outfile)
-            # _view_doc(mxdoc)
-            # _run_materialx(outfile, "MaterialXGraphEditor")
-
-            # Validate document
-            valid, msg = mxdoc.validate()
-            if not valid:
-                msg = f"Validation warnings for input document: {msg}"
-                _warn(msg)
-                # return None
-
-            # Get PBR material
-            mxmats = mxdoc.getMaterialNodes()
-            assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
-            mxmat = mxmats[0]
-
-            # Get images
-            node_graphs = mxdoc.getNodeGraphs()
-            assert (
-                len(node_graphs) <= 1
-            ), f"len(node_graphs) = {len(node_graphs)}"
-            if len(node_graphs):
-                node_graph = node_graphs[0]
-                images = {
-                    node.getName(): node.getInputValue("file")
-                    for node in node_graph.getNodes()
-                    if node.getCategory() == "image"
-                }
-                outputs = {
-                    node.getName(): node.getNodeName()
-                    for node in node_graph.getOutputs()
-                }
+            except LookupError:
+                pass
             else:
-                images = {}
-                outputs = {}
+                newoutput.setNodeName(nodename)
 
-            # TODO
-            # Get PBR
-            # all_render_nodes = tuple(
-            # node
-            # for node in mxdoc.getNodes()
-            # if node.getCategory() in ("render_pbr", "render_disp")
-            # )
+            # Connect input to output node
+            shader_input.setOutputString(newoutputname)
+            shader_input.setNodeGraphString("RENDER_NG")
+            shader_input.removeAttribute("nodename")
 
-            # TODO
-            # Debug
-            # _view_doc(mxdoc)
-            # _run_materialx(outfile, "MaterialXGraphEditor")
+    # Import libraries
+    mxlib = mx.createDocument()
+    library_folders = mx.getDefaultDataLibraryFolders()
+    library_folders.append("render_libraries")
+    mx.loadLibraries(library_folders, search_path, mxlib)
+    mxdoc.importLibrary(mxlib)
+    outfile = _write_temp_doc(mxdoc)
 
-            # TODO End 1st step
+    # Translate surface shader
+    translator = mx_gen_shader.ShaderTranslator.create()
+    try:
+        translator.translateAllMaterials(mxdoc, "render_pbr")
+    except mx.Exception as err:
+        _warn(err)
+        return
 
-            # Create FreeCAD material
-            #
-            # Reminder: Material.Material is not updatable in-place (FreeCAD
-            # bug), thus we have to copy/replace
-            mat = Render.material.make_material(mxname)
-            matdict = mat.Material.copy()
-            matdict["Render.Type"] = "Disney"
+    # Translate displacement shader
+    dispnodes = [
+        s
+        for r in mx_gen_shader.findRenderableMaterialNodes(mxdoc)
+        for s in mx.getShaderNodes(r, mx.DISPLACEMENT_SHADER_TYPE_STRING)
+    ]
+    try:
+        for dispnode in dispnodes:
+            translator.translateShader(dispnode, "render_disp")
+    except mx.Exception as err:
+        _warn(err)
+        return
 
-            # Add textures, if necessary
-            texture = None
-            textures = {}
-            for name, img in images.items():
-                if not texture:
-                    texture, _, _ = mat.Proxy.add_texture(img)
-                    propname = "Image"
-                else:
-                    propname = texture.add_image(
-                        imagename="Image", imagepath=img
-                    )
-                textures[name] = propname
-            texname = texture.fpo.Name if texture else None
+    return mxdoc
 
-            # Fill fields
-            render_params = (
-                param
-                for node in mxdoc.getNodes()
-                for param in node.getInputs()
-                if node.getCategory() in ("render_pbr", "render_disp")
-            )
-            for param in render_params:
-                if param.hasOutputString():
-                    # Texture
-                    output = param.getOutputString()
-                    image = textures[outputs[output]]
-                    name = param.getName()
-                    key = f"Render.Disney.{name}"
-                    if name != "Normal":
-                        matdict[key] = f"Texture;('{texname}','{image}')"
-                    else:
-                        matdict[key] = (
-                            f"Texture;('{texname}','{image}', '1.0')"
-                        )
-                elif name := param.getName():
-                    # Value
-                    key = f"Render.Disney.{name}"
-                    matdict[key] = param.getValueString()
-                else:
-                    msg = f"Unhandled param: '{name}'"
-                    _msg(msg)
 
-            # Replace Material.Material
-            mat.Material = matdict
+def _bake_materialx(mxdoc, output_dir, search_path):
+    """Bake MaterialX material.
+
+    Args:
+        mxdoc -- The MaterialX document to bake.
+        output_dir -- The output directory, where to save textures and mtlx
+        search_path -- The search path to use.
+
+    Returns:
+        The baked document
+    """
+    # Check the document for a UDIM set.
+    udim_set_value = mxdoc.getGeomPropValue(mx.UDIM_SET_PROPERTY)
+    udim_set = udim_set_value.getData() if udim_set_value else []
+
+    # Compute baking resolution from the source document
+    image_handler = mx_render.ImageHandler.create(
+        mx_render.StbImageLoader.create()
+    )
+    image_handler.setSearchPath(search_path)
+    if udim_set:
+        resolver = mxdoc.createStringResolver()
+        resolver.setUdimString(udim_set[0])
+        image_handler.setFilenameResolver(resolver)
+    image_vec = image_handler.getReferencedImages(mxdoc)
+    bake_width, bake_height = mx_render.getMaxDimensions(image_vec)
+    bake_width = max(bake_width, 4)
+    bake_height = max(bake_height, 4)
+
+    # Prepare baker
+    baker = RenderTextureBaker(
+        bake_width,
+        bake_height,
+        mx_render.BaseType.UINT8,
+    )
+    baker.setup_unit_system(mxdoc)
+    baker.optimize_constants = True
+    baker.hash_image_names = False
+    baker.filename_template_var_override = "test"
+
+    # Bake and retrieve
+    _, outfile = tempfile.mkstemp(suffix=".mtlx", dir=output_dir, text=True)
+    baker.bake_all_materials(mxdoc, search_path, outfile)
+
+    mxdoc = mx.createDocument()
+    mx.readFromXmlFile(mxdoc, outfile)
+
+    # Validate document
+    valid, msg = mxdoc.validate()
+    if not valid:
+        msg = f"Validation warnings for input document: {msg}"
+        _warn(msg)
+
+    return mxdoc
+
+
+def _make_render_material(mxdoc, input_dir):
+    """Make a RenderMaterial from a MaterialX baked material.
+
+    Args:
+        mxdoc -- MaterialX document containing the baked material
+        input_dir -- The input directory, where to find textures
+    """
+    # Get PBR material
+    # TODO Make it more predictable (name node_graph etc.)
+    mxmats = mxdoc.getMaterialNodes()
+    assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
+    mxmat = mxmats[0]
+    mxname = mxmat.getAttribute("original_name")
+
+    # Get images
+    # TODO Make it more predictable (name node_graph etc.)
+    node_graphs = mxdoc.getNodeGraphs()
+    assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
+    if len(node_graphs):
+        node_graph = node_graphs[0]
+        images = {
+            node.getName(): node.getInputValue("file")
+            for node in node_graph.getNodes()
+            if node.getCategory() == "image"
+        }
+        outputs = {
+            node.getName(): node.getNodeName()
+            for node in node_graph.getOutputs()
+        }
+    else:
+        images = {}
+        outputs = {}
+
+    # Reminder: Material.Material is not updatable in-place (FreeCAD
+    # bug), thus we have to copy/replace
+    mat = Render.material.make_material(mxname)
+    matdict = mat.Material.copy()
+    matdict["Render.Type"] = "Disney"
+
+    # Add textures, if necessary
+    texture = None
+    textures = {}
+    for name, img in images.items():
+        if not texture:
+            texture, _, _ = mat.Proxy.add_texture(img)
+            propname = "Image"
+        else:
+            propname = texture.add_image(imagename="Image", imagepath=img)
+        textures[name] = propname
+    texname = texture.fpo.Name if texture else None
+
+    # Fill fields
+    render_params = (
+        param
+        for node in mxdoc.getNodes()
+        for param in node.getInputs()
+        if node.getCategory() in ("render_pbr", "render_disp")
+    )
+    for param in render_params:
+        if param.hasOutputString():
+            # Texture
+            output = param.getOutputString()
+            image = textures[outputs[output]]
+            name = param.getName()
+            key = f"Render.Disney.{name}"
+            if name != "Normal":
+                matdict[key] = f"Texture;('{texname}','{image}')"
+            else:
+                matdict[key] = f"Texture;('{texname}','{image}', '1.0')"
+        elif name := param.getName():
+            # Value
+            key = f"Render.Disney.{name}"
+            matdict[key] = param.getValueString()
+        else:
+            msg = f"Unhandled param: '{name}'"
+            _msg(msg)
+
+    # Replace Material.Material
+    mat.Material = matdict
 
 
 # Debug functions

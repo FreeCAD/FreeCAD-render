@@ -723,6 +723,7 @@ class RenderTextureBaker:
             material_name + self.BAKED_POSTFIX,
             self._material.getType(),
         )
+        baked_material.setAttribute("original_name", material_name)
 
         # Connect new material node to new shader
         inputs = (
