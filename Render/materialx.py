@@ -24,19 +24,19 @@
 
 # TODO list
 # Solve colorspace question in baking
-# Lint materialx_baker and improve readability (nested blocks / branches)
 # Add Scale to Disney displacement (and to renderers...)
-# Split import_materialx into subs: 1. Translation; 2. Import
 # Create GUI
+# Add an icon
+# Raise exceptions (rather than warning messages)
+# Test when no MaterialX system installed
+# Write the doc
 
 
 import zipfile
 import tempfile
 import os
-import sys
 import subprocess
 import shutil
-from contextlib import nullcontext
 
 try:
     import MaterialX as mx
@@ -46,16 +46,16 @@ except (ModuleNotFoundError, ImportError):
     MATERIALX = False
 else:
     MATERIALX = True
+    from Render.materialx_baker import RenderTextureBaker
 
 import FreeCAD as App
 
 import Render.material
 from Render.constants import MATERIALXDIR
-from Render.materialx_baker import RenderTextureBaker
 
 
-def import_materialx(zipname, *, debug=False):
-    """Import a MaterialX archive into a material in Render.
+def import_materialx(filename):
+    """Import a MaterialX archive as Render material.
 
     Args:
         zipname -- The path of the zip file containing the material
@@ -67,42 +67,46 @@ def import_materialx(zipname, *, debug=False):
 
     # Proceed with file
     with tempfile.TemporaryDirectory() as working_dir:
-        with zipfile.ZipFile(zipname, "r") as matzip:
-            # Unzip material
-            print(f"Extracting to {working_dir}")
-            matzip.extractall(path=working_dir)
+        if zipfile.is_zipfile(filename):
+            with zipfile.ZipFile(filename, "r") as matzip:
+                # Unzip material
+                print(f"Extracting to {working_dir}")
+                matzip.extractall(path=working_dir)
+                # Find materialx file
+                files = (
+                    entry.path
+                    for entry in os.scandir(working_dir)
+                    if entry.is_file() and entry.name.endswith(".mtlx")
+                )
+                try:
+                    mtlx_filename = next(files)
+                except StopIteration:
+                    _warn("Missing mtlx file")
+                    return
+        else:
+            mtlx_filename = filename
 
-            # Compute search path
-            search_path = mx.getDefaultDataSearchPath()
-            search_path.append(working_dir)
-            search_path.append(MATERIALXDIR)
+        # Compute search path
+        search_path = mx.getDefaultDataSearchPath()
+        search_path.append(working_dir)
+        search_path.append(os.path.dirname(mtlx_filename))
+        search_path.append(MATERIALXDIR)
 
-            # Translate, bake and convert to render material
-            translated = _translate_materialx(working_dir, search_path)
-            baked = _bake_materialx(translated, working_dir, search_path)
-            _make_render_material(baked, working_dir)
+        # Translate, bake and convert to render material
+        translated = _translate_materialx(mtlx_filename, search_path)
+        baked = _bake_materialx(translated, working_dir, search_path)
+        _make_render_material(baked)
 
 
 # Helpers
 
 
-def _translate_materialx(matdir, search_path):
+def _translate_materialx(mtlx_name, search_path):
     """Translate MaterialX from StandardSurface to RenderPBR.
 
     Args:
         matdir -- The directory where to find MaterialX files
     """
-    # Find materialx file
-    files = (
-        entry.path
-        for entry in os.scandir(matdir)
-        if entry.is_file() and entry.name.endswith(".mtlx")
-    )
-    try:
-        mtlx_name = next(files)
-    except StopIteration:
-        _warn("Missing mtlx file")
-        return
 
     # Read doc
     mxdoc = mx.createDocument()
@@ -116,7 +120,6 @@ def _translate_materialx(matdir, search_path):
         _warn(f"Too many materials ({len(mxmats)}) in file")
         return
     mxmat = mxmats[0]
-    mxname = mxmat.getName()
 
     # Clean doc for translation
     # Add own node graph
@@ -184,7 +187,6 @@ def _translate_materialx(matdir, search_path):
     library_folders.append("render_libraries")
     mx.loadLibraries(library_folders, search_path, mxlib)
     mxdoc.importLibrary(mxlib)
-    outfile = _write_temp_doc(mxdoc)
 
     # Translate surface shader
     translator = mx_gen_shader.ShaderTranslator.create()
@@ -266,7 +268,7 @@ def _bake_materialx(mxdoc, output_dir, search_path):
     return mxdoc
 
 
-def _make_render_material(mxdoc, input_dir):
+def _make_render_material(mxdoc):
     """Make a RenderMaterial from a MaterialX baked material.
 
     Args:
