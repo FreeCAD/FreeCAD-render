@@ -48,12 +48,13 @@ from Render.constants import FCDVERSION, PARAMS, WBMATERIALDIR, ICONDIR
 from Render.utils import translate, warn
 
 
-def make_material(name="Material", color=None, transparency=None):
+def make_material(name="Material", color=None, transparency=None, doc=None):
     """Make an Material object."""
-    if not App.ActiveDocument:
+    doc = doc or App.ActiveDocument
+    if not doc and not App.ActiveDocument:
         App.Console.PrintError("No active document. Aborting\n")
         return None
-    obj = App.ActiveDocument.addObject("App::MaterialObjectPython", "Material")
+    obj = doc.addObject("App::MaterialObjectPython", "Material")
     obj.Label = name
     Material(obj)
     if App.GuiUp:

@@ -54,16 +54,19 @@ import Render.material
 from Render.constants import MATERIALXDIR
 
 
-def import_materialx(filename):
+def import_materialx(filename, doc=None):
     """Import a MaterialX archive as Render material.
 
     Args:
         zipname -- The path of the zip file containing the material
+        doc -- The document to import materialx in
     """
     # MaterialX system available?
     if not MATERIALX:
         _warn("Missing MaterialX library: unable to import material")
         return
+
+    doc = doc or App.ActiveDocument
 
     # Proceed with file
     with tempfile.TemporaryDirectory() as working_dir:
@@ -95,7 +98,7 @@ def import_materialx(filename):
         # Translate, bake and convert to render material
         translated = _translate_materialx(mtlx_filename, search_path)
         baked = _bake_materialx(translated, working_dir, search_path)
-        _make_render_material(baked)
+        _make_render_material(baked, doc)
 
 
 # Helpers
@@ -268,12 +271,12 @@ def _bake_materialx(mxdoc, output_dir, search_path):
     return mxdoc
 
 
-def _make_render_material(mxdoc):
+def _make_render_material(mxdoc, fcdoc):
     """Make a RenderMaterial from a MaterialX baked material.
 
     Args:
         mxdoc -- MaterialX document containing the baked material
-        input_dir -- The input directory, where to find textures
+        fcdoc -- FreeCAD document where to import materialx
     """
     # Get PBR material
     # TODO Make it more predictable (name node_graph etc.)
