@@ -277,6 +277,7 @@ def reload(module_name=None):
             "Render.groundplane",
             "Render.materialx_baker",
             "Render.materialx",
+            "Render.materialx_downloader",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",

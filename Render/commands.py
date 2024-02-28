@@ -27,7 +27,7 @@
 import os
 import itertools as it
 
-from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt, QUrl
 from PySide.QtGui import (
     QMessageBox,
     QInputDialog,
@@ -54,8 +54,9 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.help import open_help
+from Render.help import open_help, HelpViewer
 from Render.materialx import import_materialx
+from Render.materialx_downloader import open_mxdownloader
 
 
 class RenderProjectCommand:
@@ -411,6 +412,35 @@ class MaterialMaterialXImportCommand:
         App.ActiveDocument.commitTransaction()
 
 
+class MaterialMaterialXLibrary:
+    """GUI command to open MaterialX online library."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Import MaterialX",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Import a material from MaterialX format",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
+        """
+        doc = App.ActiveDocument
+        url = QUrl("https://matlib.gpuopen.com/")
+        open_mxdownloader(url, doc)
+
+
 class MaterialRenderSettingsCommand:
     """GUI command to set render settings of a material object."""
 
@@ -660,9 +690,10 @@ def _init_gui_commands():
 
     mats_cmd = [
         ("MaterialCreator", MaterialCreatorCommand()),
-        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
         ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
         ("MaterialApplier", MaterialApplierCommand()),
+        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
+        ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
     ]
     materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
 
