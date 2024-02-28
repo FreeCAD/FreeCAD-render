@@ -41,6 +41,7 @@
 import hashlib
 import sys
 import itertools as it
+from threading import Event
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict, Set
 from collections.abc import Sequence
@@ -176,6 +177,10 @@ class RenderTextureBaker:
             width, height, 4, base_type
         )
         self._frame_capture_image.createResourceBuffer()
+
+        # Create halt requested event
+        # (to make code interruptible in multithreading context)
+        self._halt_requested = Event()
 
     # }}}
 
@@ -392,6 +397,12 @@ class RenderTextureBaker:
 
     # PRIVATE METHODS {{{
 
+    def _check_halt_requested(self):
+        """Check if baker halt is requested, raise BakerInterrupted if so."""
+        if self._halt_requested.is_set():
+            self._halt_requested.clear()
+            raise BakerInterrupted()
+
     def _get_value_string_from_color(
         self, color: mx.Color4, type_: str
     ) -> str:
@@ -538,6 +549,8 @@ class RenderTextureBaker:
                 self._baked_input_map[input_.getName()] = baked_outputs[
                     output.getNamePath()
                 ].getName()
+
+            self._check_halt_requested()
 
     def _bake_graph_output(
         self,
@@ -1072,7 +1085,15 @@ class RenderTextureBaker:
 
         self._generator.setUnitSystem(unit_system)
 
+    def request_halt(self):
+        """Request the baker to halt (only for multithreading use)."""
+        self._halt_requested.set()
+
     # }}}
+
+
+class BakerInterrupted(Exception):
+    """An exception to be raised when baker is interrupted."""
 
 
 # vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

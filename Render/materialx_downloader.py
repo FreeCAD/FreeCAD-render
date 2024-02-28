@@ -46,7 +46,7 @@ import FreeCAD as App
 
 from Render.constants import WBDIR
 from Render.rdrexecutor import RendererExecutorGui
-from Render.materialx import import_materialx
+from Render.materialx import MaterialXImporter
 
 
 class MaterialXDownloader(QWidget):
@@ -196,9 +196,10 @@ class ImporterWorker(QObject):
 
     @Slot()
     def run(self):
+        # TODO explicit doc?
+        importer = MaterialXImporter(self.filename)
         try:
-            # TODO explicit doc?
-            import_materialx(self.filename)
+            importer.run()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             App.Console.PrintError("/!\\ IMPORT ERROR /!\\\n")
             traceback.print_exception(exc)
