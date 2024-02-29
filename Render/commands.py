@@ -379,7 +379,7 @@ class MaterialMaterialXImportCommand:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
-            "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
+            "Pixmap": os.path.join(ICONDIR, "materialx-stacked-black.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
                 "Import MaterialX",
@@ -397,7 +397,7 @@ class MaterialMaterialXImportCommand:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not materialx.MATERIALX:
+        if not MATERIALX:
             QMessageBox.critical(
                 Gui.getMainWindow(),
                 "MaterialX",
@@ -423,7 +423,7 @@ class MaterialMaterialXLibrary:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
-            "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
+            "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
                 "Import MaterialX",
@@ -441,7 +441,7 @@ class MaterialMaterialXLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not materialx.MATERIALX:
+        if not MATERIALX:
             QMessageBox.critical(
                 Gui.getMainWindow(),
                 "MaterialX",

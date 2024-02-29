@@ -29,6 +29,9 @@
 # Handle case when no MaterialX system installed
 # Reorganize code with a subdir
 # Write the doc
+# Remove downloaded zip
+# Explicit doc
+# Solve TODO: explicit doc etc.
 
 
 import zipfile
