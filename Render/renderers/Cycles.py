@@ -560,6 +560,7 @@ def _write_material_disney(name, matval, connect_to="output surface"):
     subsurface = "{matval["subsurface"]}"
     metallic = "{matval["metallic"]}"
     specular = "{matval["specular"]}"
+    ior = "1.4"
     specular_ior_level = "{matval["specular"]}"
     specular_tint = "{matval["speculartint"]}"
     roughness = "{matval["roughness"]}"
