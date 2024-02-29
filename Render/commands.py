@@ -55,7 +55,7 @@ from Render.lights import (
 )
 from Render.rendermaterial import is_multimat
 from Render.help import open_help, HelpViewer
-from Render.materialx import import_materialx
+from Render.materialx import import_materialx, MATERIALX
 from Render.materialx_downloader import open_mxdownloader
 
 
@@ -397,7 +397,12 @@ class MaterialMaterialXImportCommand:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        # TODO Test if MaterialX is installed
+        if not materialx.MATERIALX:
+            QMessageBox.critical(
+                Gui.getMainWindow(),
+                "MaterialX",
+                "No MaterialX library installed!",
+            )
         # TODO Icon
         filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
         caption = translate("Render", "Select MaterialX")
@@ -436,6 +441,12 @@ class MaterialMaterialXLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not materialx.MATERIALX:
+            QMessageBox.critical(
+                Gui.getMainWindow(),
+                "MaterialX",
+                "No MaterialX library installed!",
+            )
         doc = App.ActiveDocument
         url = QUrl("https://matlib.gpuopen.com/")
         open_mxdownloader(url, doc)
