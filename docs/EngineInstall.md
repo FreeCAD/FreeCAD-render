@@ -321,6 +321,7 @@ ready-to-use binaries for many platforms, along with excellent rendering feature
   will have to compile the associated GPU kernels.
   This is not done at installation but "on-the-fly" at first execution. However, this compilation
   takes a few minutes.
+
   
   In practical terms, at first rendering, LuxCore seems to hang with the following message:
   `"[PathOCL kernel] Compiling kernels"`.
