@@ -25,9 +25,7 @@
 # TODO list
 # Solve colorspace question in baking
 # Add Scale to Disney displacement (and to renderers...)
-# Create GUI
-# Add an icon
-# Raise exceptions (rather than warning messages)
+# Add icons
 # Handle case when no MaterialX system installed
 # Reorganize code with a subdir
 # Write the doc
@@ -115,6 +113,11 @@ class MaterialXImporter:
         """Check if halt has been requested."""
         return self._request_halt.is_set()
 
+    def _check_halt_requested(self):
+        """Check if halt is requested, raise MaterialXInterrupted if so."""
+        if self._request_halt.is_set():
+            raise MaterialXInterrupted()
+
     # Helpers
     def _set_progress(self, value, maximum):
         """Report progress."""
@@ -145,6 +148,7 @@ class MaterialXImporter:
                     raise MaterialXError("Missing mtlx file") from exc
         else:
             self._mtlx_filename = self._filename
+        self._check_halt_requested()
 
     def _compute_search_path(self):
         """Compute search path for MaterialX."""
