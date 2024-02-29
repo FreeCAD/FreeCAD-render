@@ -230,7 +230,7 @@ Unzip the downloaded package file into `<appdir>`
 As stated in Download page (https://luxcorerender.org/download/):<br>
 <q>All Windows executables require the Visual C++ Redistributable Packages for
 VS 2017 and Intel C++ redistributable.</q><br>
-Please check your system meets those requirements, or update it accordingly.
+_Please check your system meets those requirements, or update it accordingly._
 
 <ins>Set up</ins><br>
 In workbench settings:
@@ -313,6 +313,24 @@ ready-to-use binaries for many platforms, along with excellent rendering feature
 
 
 
+</details>
+
+### Important note on using LuxCore with OpenCL Render Engines (GPU accelerated)
+<details>
+  If you use LuxCore with OpenCL Render Engines, ie PATHOCL, RTPATHOCL or TILEPATHOCL, LuxCore
+  will have to compile the associated GPU kernels.
+  This is not done at installation but "on-the-fly" at first execution. However, this compilation
+  takes a few minutes.
+
+  
+  In practical terms, at first rendering, LuxCore seems to hang with the following message:
+  `"[PathOCL kernel] Compiling kernels"`.
+
+  BE PATIENT, DO NOT INTERRUPT RENDERING AT THIS STAGE.
+
+  The compilation will eventually reach completion after a few minutes.
+  And for subsequent renderings, the compiled kernels will be cached and reused, without recompilation.
+  
 </details>
 
 ### Bugs & Errors
