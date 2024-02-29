@@ -27,12 +27,11 @@ import traceback
 
 from PySide2.QtWebEngineWidgets import (
     QWebEngineView,
-    QWebEngineScript,
     QWebEnginePage,
     QWebEngineProfile,
     QWebEngineDownloadItem,
 )
-from PySide2.QtCore import QUrl, Slot, Qt, QThread, Signal, QObject, QEventLoop
+from PySide2.QtCore import Slot, Qt, QThread, Signal, QObject, QEventLoop
 from PySide2.QtWidgets import (
     QWidget,
     QToolBar,
@@ -44,8 +43,6 @@ from PySide2.QtWidgets import (
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import WBDIR
-from Render.rdrexecutor import RendererExecutorGui
 from Render.materialx import MaterialXImporter
 
 
@@ -98,6 +95,7 @@ class MaterialXDownloader(QWidget):
 
     @Slot()
     def download_requested(self, download):
+        """Answer to download_requested signal."""
         # No save page download
         if download.isSavePageDownload():
             QMessageBox.warning(
@@ -115,6 +113,12 @@ class MaterialXDownloader(QWidget):
 
 
 class DownloadWindow(QProgressDialog):
+    """A simple widget to handle MaterialX download and import from the web.
+
+    This is mainly a QProgressDialog, with ability to trace progress of a
+    download from WebEngineProfile and handle import afterwards.
+    """
+
     def __init__(self, download, parent=None):
         parent = Gui.getMainWindow()
         super().__init__(parent)
@@ -125,22 +129,27 @@ class DownloadWindow(QProgressDialog):
         self.setAutoClose(False)
         self.setAutoReset(False)
 
-        # self.canceled.connect(self.on_canceled)
         self._download.downloadProgress.connect(self.set_progress)
         self.canceled.connect(download.cancel)
         download.finished.connect(self.finished_download)
 
-    # @Slot()
-    # def on_canceled(self):
-    # self._download.cancel()
+        self.thread = None
+        self.worker = None
 
     @Slot()
     def set_progress(self, bytes_received, bytes_total):
+        """Set value of widget progress bar."""
         self.setMaximum(bytes_total)
         self.setValue(bytes_received)
 
     @Slot()
     def finished_download(self):
+        """Slot to trigger when download has finished.
+
+        This slot handles import. Import is executed in a separate thread
+        to avoid blocking UI.
+        """
+        self.canceled.disconnect(self.cancel)
         if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
             print("Download cancelled")
             return
@@ -154,57 +163,74 @@ class DownloadWindow(QProgressDialog):
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
         )
         self.setLabelText(
-            f"{self.labelText()}\n\nImporting '{self._download.downloadFileName()}'..."
+            f"Importing '{self._download.downloadFileName()}'..."
         )
         filename = os.path.join(
             self._download.downloadDirectory(),
             self._download.downloadFileName(),
         )
-        self.setValue(0)
 
         # Start import
-        worker = ImporterWorker(filename)
-        thread = QThread()
-        thread.setTerminationEnabled()
-        self.canceled.connect(thread.terminate)
+        self.setValue(0)
+        self.worker = ImporterWorker(filename, self.set_progress)
+        self.thread = QThread()
+        self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
 
         # Move worker to thread
-        worker.moveToThread(thread)
+        self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
-        thread.started.connect(worker.run)
-        worker.finished.connect(thread.quit)
-        worker.finished.connect(worker.deleteLater)
-        worker.finished.connect(thread.exit)
-        thread.finished.connect(thread.deleteLater)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.thread.exit)
 
         # Start the thread
-        thread.start()
+        self.thread.start(QThread.IdlePriority)
         loop = QEventLoop()
-        thread.finished.connect(loop.quit)
-        if not thread.isFinished():
+        self.thread.finished.connect(loop.quit)
+        if not self.thread.isFinished():
             loop.exec_()
-        print(f"FINISHED {filename}")
+        loop.processEvents()
+        if self.worker.canceled():
+            self.cancel()
+        else:
+            self.setLabelText("Done")
+
+        self.canceled.connect(self.cancel)
 
 
 class ImporterWorker(QObject):
-    def __init__(self, filename):
+    """A worker for import."""
+
+    def __init__(self, filename, progress):
         super().__init__()
         self.filename = filename
+        # TODO explicit doc?
+        self.importer = MaterialXImporter(self.filename, None, progress)
 
     finished = Signal(int)
 
-    @Slot()
     def run(self):
-        # TODO explicit doc?
-        importer = MaterialXImporter(self.filename)
+        """Run in worker thread."""
         try:
-            importer.run()
+            self.importer.run()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             App.Console.PrintError("/!\\ IMPORT ERROR /!\\\n")
             traceback.print_exception(exc)
-        finally:
+            self.finished.emit(-1)
+        else:
             self.finished.emit(0)
+
+    @Slot()
+    def cancel(self):
+        """Request importer to cancel."""
+        self.importer.cancel()
+
+    def canceled(self):
+        """Check whether importer was requested to canceled."""
+        return self.importer.canceled()
 
 
 def open_mxdownloader(url, doc):

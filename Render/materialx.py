@@ -48,7 +48,7 @@ except (ModuleNotFoundError, ImportError):
     MATERIALX = False
 else:
     MATERIALX = True
-    from Render.materialx_baker import RenderTextureBaker
+    from Render.materialx_baker import RenderTextureBaker, MaterialXInterrupted
 
 import FreeCAD as App
 
@@ -59,25 +59,22 @@ from Render.constants import MATERIALXDIR
 class MaterialXImporter:
     """A class to import a MaterialX material into a RenderMaterial."""
 
-    def __init__(self, filename, doc=None):
+    def __init__(self, filename, doc=None, progress_hook=None):
         self._filename = filename
         self._doc = doc or App.ActiveDocument
         self._baker_ready = threading.Event()
+        self._request_halt = threading.Event()
+        self._progress_hook = progress_hook
 
         self._working_dir = ""  # Working directory
         self._mtlx_filename = ""  # Initial MaterialX file name
-        self._searchpath = None
+        self._search_path = None
         self._translated = None  # Translated document
         self._baker = None  # Baker
         self._baked = None  # Baked document
 
     def run(self):
-        """Import a MaterialX archive as Render material.
-
-        Args:
-            zipname -- The path of the zip file containing the material
-            doc -- The document to import materialx in
-        """
+        """Import a MaterialX archive as Render material."""
         # MaterialX system available?
         if not MATERIALX:
             _warn("Missing MaterialX library: unable to import material")
@@ -85,32 +82,53 @@ class MaterialXImporter:
 
         # Proceed with file
         with tempfile.TemporaryDirectory() as working_dir:
-            # Prepare
-            self._working_dir = working_dir
-            self._unzip_files()
-            self._compute_search_path()
+            print("STARTING MATERIALX IMPORT")
+            try:
+                # Prepare
+                self._working_dir = working_dir
+                self._unzip_files()
+                self._compute_search_path()
 
-            # Translate, bake and convert to render material
-            self._translate_materialx()
-            self._prepare_baker()
-            self._bake_materialx()
-            self._make_render_material()
+                # Translate, bake and convert to render material
+                self._translate_materialx()
+                self._prepare_baker()
+                self._bake_materialx()
+                self._make_render_material()
 
-    def request_halt(self):
+            except MaterialXInterrupted:
+                print("IMPORT - INTERRUPTED")
+            except MaterialXError as error:
+                print(f"IMPORT - ERROR ('{error.message}')")
+            else:
+                print("IMPORT - SUCCESS")
+
+    def cancel(self):
         """Request process to halt.
 
-        This command is likely to be executed in another thread than import.
+        This command is designed to be executed in another thread than run.
         """
-        if self._baker:
+        self._request_halt.set()
+        if self._baker_ready.is_set():
             self._baker.request_halt()
 
+    def canceled(self):
+        """Check if halt has been requested."""
+        return self._request_halt.is_set()
+
     # Helpers
+    def _set_progress(self, value, maximum):
+        """Report progress."""
+        if self._progress_hook is not None:
+            self._progress_hook(value, maximum)
+
     def _unzip_files(self):
         """Unzip materialx package, if needed.
 
         This method also set self._mtlx_filename
         """
         if zipfile.is_zipfile(self._filename):
+            if self._request_halt.is_set():
+                raise MaterialXInterrupted()
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
                 print(f"Extracting to {self._working_dir}")
@@ -123,11 +141,10 @@ class MaterialXImporter:
                 )
                 try:
                     self._mtlx_filename = next(files)
-                except StopIteration:
-                    _warn("Missing mtlx file")
-                    return
+                except StopIteration as exc:
+                    raise MaterialXError("Missing mtlx file") from exc
         else:
-            self._mtlx_filename = filename
+            self._mtlx_filename = self._filename
 
     def _compute_search_path(self):
         """Compute search path for MaterialX."""
@@ -160,11 +177,9 @@ class MaterialXImporter:
 
         # Check material unicity and get its name
         if not (mxmats := mxdoc.getMaterialNodes()):
-            _warn("No material in file")
-            return
+            raise MaterialXError("No material in file")
         if len(mxmats) > 1:
-            _warn(f"Too many materials ({len(mxmats)}) in file")
-            return
+            raise MaterialXError(f"Too many materials ({len(mxmats)}) in file")
         mxmat = mxmats[0]
 
         # Clean doc for translation
@@ -241,8 +256,9 @@ class MaterialXImporter:
         try:
             translator.translateAllMaterials(mxdoc, "render_pbr")
         except mx.Exception as err:
-            _warn(err)
-            return
+            raise MaterialXError(
+                "Translation error for surface shader"
+            ) from err
 
         # Translate displacement shader
         dispnodes = [
@@ -254,8 +270,9 @@ class MaterialXImporter:
             for dispnode in dispnodes:
                 translator.translateShader(dispnode, "render_disp")
         except mx.Exception as err:
-            _warn(err)
-            return
+            raise MaterialXError(
+                "Translation error for displacement shader"
+            ) from err
 
         self._translated = mxdoc
 
@@ -294,6 +311,7 @@ class MaterialXImporter:
         self._baker.setup_unit_system(mxdoc)
         self._baker.optimize_constants = True
         self._baker.hash_image_names = False
+        self._baker.progress_hook = self._progress_hook
 
         self._baker_ready.set()
 
@@ -411,6 +429,14 @@ def import_materialx(filename):
     """Import MaterialX (function version)."""
     importer = MaterialXImporter(filename)
     importer.run()
+
+
+class MaterialXError(Exception):
+    """Exception to be raised when import encounters an error."""
+
+    def __init__(self, msg):
+        super().__init__()
+        self.message = str(msg)
 
 
 # Debug functions

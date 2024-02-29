@@ -43,7 +43,7 @@ import sys
 import itertools as it
 from threading import Event
 from dataclasses import dataclass, field
-from typing import List, Tuple, Dict, Set
+from typing import List, Tuple, Dict, Set, Callable, Optional
 from collections.abc import Sequence
 
 import MaterialX as mx
@@ -181,6 +181,7 @@ class RenderTextureBaker:
         # Create halt requested event
         # (to make code interruptible in multithreading context)
         self._halt_requested = Event()
+        self._progress_hook: Optional[Callable[[int, int], None]] = None
 
     # }}}
 
@@ -361,7 +362,7 @@ class RenderTextureBaker:
         return self._texture_space_min
 
     @texture_space_min.setter
-    def texture_space_min(self, value) -> None:
+    def texture_space_min(self, value: mx.Vector2) -> None:
         """Set the minimum texcoords used in texture baking.
 
         Defaults to 0, 0.
@@ -380,7 +381,7 @@ class RenderTextureBaker:
         return self._texture_space_max
 
     @texture_space_max.setter
-    def texture_space_max(self, value) -> None:
+    def texture_space_max(self, value: mx.Vector2) -> None:
         """Set the maximum texcoords used in texture baking.
 
         Defaults to 1, 1.
@@ -393,6 +394,18 @@ class RenderTextureBaker:
             raise TypeError(msg)
         self._texture_space_max = value
 
+    @property
+    def progress_hook(self) -> Optional[Callable[[int, int], None]]:
+        """Return the function to report progress."""
+        return self._progress_hook
+
+    @progress_hook.setter
+    def progress_hook(
+        self, value: Optional[Callable[[int, int], None]]
+    ) -> None:
+        """Set the function to report progress."""
+        self._progress_hook = value
+
     # }}}
 
     # PRIVATE METHODS {{{
@@ -400,8 +413,16 @@ class RenderTextureBaker:
     def _check_halt_requested(self):
         """Check if baker halt is requested, raise BakerInterrupted if so."""
         if self._halt_requested.is_set():
-            self._halt_requested.clear()
-            raise BakerInterrupted()
+            raise MaterialXInterrupted()
+
+    def _set_progress(self, value, maximum):
+        """Report progress."""
+        try:
+            call = self.progress_hook.__call__
+        except AttributeError:
+            pass
+        else:
+            call(value, maximum)
 
     def _get_value_string_from_color(
         self, color: mx.Color4, type_: str
@@ -518,8 +539,14 @@ class RenderTextureBaker:
         if not shader:
             return
 
+        inputs = shader.getInputs()
+        count_inputs = len(inputs)
+        self._set_progress(1, count_inputs + 1)  # Take prev. steps in account
+        self._check_halt_requested()
+
         baked_outputs = {}
-        for input_ in shader.getInputs():
+        for index, input_ in enumerate(shader.getInputs()):
+            # Process
             output = input_.getConnectedOutput()
             if output and output.getNamePath() not in baked_outputs:
                 baked_outputs[output.getNamePath()] = input_
@@ -549,8 +576,9 @@ class RenderTextureBaker:
                 self._baked_input_map[input_.getName()] = baked_outputs[
                     output.getNamePath()
                 ].getName()
-
+            # Progress and halt management
             self._check_halt_requested()
+            self._set_progress(index + 2, count_inputs + 1)
 
     def _bake_graph_output(
         self,
@@ -1092,7 +1120,7 @@ class RenderTextureBaker:
     # }}}
 
 
-class BakerInterrupted(Exception):
+class MaterialXInterrupted(Exception):
     """An exception to be raised when baker is interrupted."""
 
 
