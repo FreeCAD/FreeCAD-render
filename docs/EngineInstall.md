@@ -230,7 +230,7 @@ Unzip the downloaded package file into `<appdir>`
 As stated in Download page (https://luxcorerender.org/download/):<br>
 <q>All Windows executables require the Visual C++ Redistributable Packages for
 VS 2017 and Intel C++ redistributable.</q><br>
-Please check your system meets those requirements, or update it accordingly.
+_Please check your system meets those requirements, or update it accordingly._
 
 <ins>Set up</ins><br>
 In workbench settings:
