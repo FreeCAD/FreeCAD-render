@@ -23,7 +23,7 @@
 """This module provides features to import MaterialX materials in Render WB."""
 
 # TODO list
-# Solve colorspace question in baking
+# Solve scale question
 # Add Scale to Disney displacement (and to renderers...)
 # Add icons
 # Handle case when no MaterialX system installed

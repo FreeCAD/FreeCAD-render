@@ -596,6 +596,8 @@ class RenderTextureBaker:
         # and (output.getType() in ["color3", "color4"])
         # )
         # self._renderer.getFrameBuffer.setEncodeSrgb(encode_srgb)
+        if output.getType() in ["color3", "color4"]:
+            context.getOptions().targetColorSpaceOverride = self.SRGB_TEXTURE
         shader = self._generator.generate("BakingShader", output, context)
         self._renderer.createProgram(shader)
 
