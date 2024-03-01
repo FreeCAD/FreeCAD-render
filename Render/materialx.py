@@ -31,6 +31,7 @@
 # Write the doc
 # Remove downloaded zip
 # Explicit doc
+# Fix texture dimensions
 # Solve TODO: explicit doc etc.
 
 

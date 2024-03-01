@@ -426,11 +426,11 @@ class MaterialMaterialXLibrary:
             "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Import MaterialX",
+                "Open GPUOpen MaterialX Library",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Import a material from MaterialX format",
+                "Open AMD GPUOpen MaterialX Library",
             ),
         }
 
