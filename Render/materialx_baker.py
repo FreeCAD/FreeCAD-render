@@ -207,7 +207,7 @@ class RenderTextureBaker:
         """Set the color space in which color textures are encoded.
 
         By default, this color space is srgb_texture, and color inputs are
-        automatically transformed to this space by the baker.  If another color
+        automatically transformed to this space by the baker. If another color
         space is set, then the input graph is responsible for transforming
         colors to this space.
         """
@@ -596,7 +596,10 @@ class RenderTextureBaker:
         # and (output.getType() in ["color3", "color4"])
         # )
         # self._renderer.getFrameBuffer.setEncodeSrgb(encode_srgb)
-        if output.getType() in ["color3", "color4"]:
+        if self._colorspace == self.SRGB_TEXTURE and output.getType() in [
+            "color3",
+            "color4",
+        ]:
             context.getOptions().targetColorSpaceOverride = self.SRGB_TEXTURE
         shader = self._generator.generate("BakingShader", output, context)
         self._renderer.createProgram(shader)
@@ -943,7 +946,7 @@ class RenderTextureBaker:
         # Set up generator context for material
         context = mx_gen_shader.GenContext(self._generator)
         context.getOptions().targetColorSpaceOverride = self.LIN_REC709
-        context.getOptions().fileTextureVerticalFlip = True
+        context.getOptions().fileTextureVerticalFlip = False
         context.getOptions().targetDistanceUnit = self._distance_unit
         context.getOptions().shaderInterfaceType = (
             mx_gen_shader.ShaderInterfaceType.SHADER_INTERFACE_COMPLETE
