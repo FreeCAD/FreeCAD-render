@@ -529,7 +529,7 @@ class RendererHandler:
 
         # Rescale to meters
         for rend in rends:
-            rend.mesh.transformation.scale = SCALE
+            rend.mesh.convert_distances(SCALE)
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(

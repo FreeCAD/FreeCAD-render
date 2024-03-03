@@ -255,6 +255,15 @@ class RenderMeshBase:
         return new_mesh
 
     ##########################################################################
+    #                               Rescaling                                #
+    ##########################################################################
+
+    def convert_distances(self, ratio):
+        """Convert mesh distances (points, translation) with ratio."""
+        self.points = [tuple(c * ratio for c in p) for p in self.points]
+        self.__transformation.convert_distances(ratio)
+
+    ##########################################################################
     #                               Getters                                  #
     ##########################################################################
 
@@ -1449,6 +1458,13 @@ class _Transformation:
         else:
             placement *= self.__placement
             self.__placement = placement
+
+    def convert_distances(self, ratio):
+        """Convert distances with ratio."""
+        mat = App.Matrix(self.__placement.toMatrix())
+        vec = App.Vector(mat.A14 * ratio, mat.A24 * ratio, mat.A34 * ratio)
+        mat.setCol(3, vec)
+        self.__placement = App.Placement(mat)
 
     def __str__(self):
         """Give a string representation."""
