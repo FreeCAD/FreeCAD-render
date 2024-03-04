@@ -33,6 +33,7 @@
 # Explicit doc
 # Fix texture dimensions
 # Solve TODO: explicit doc etc.
+# Handle HDR (set basetype to FLOAT, see translateshader.py)
 
 
 import zipfile
