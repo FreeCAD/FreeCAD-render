@@ -358,10 +358,13 @@ scene.materials.{name}.specular = {matval["specular"]}
 scene.materials.{name}.speculartint = {matval["speculartint"]}
 scene.materials.{name}.roughness = {matval["roughness"]}
 scene.materials.{name}.anisotropic = {matval["anisotropic"]}
-scene.materials.{name}.sheen = {matval["sheen"]}
+scene.materials.{name}.sheen = {name}_sheenscale
 scene.materials.{name}.sheentint = {matval["sheentint"]}
 scene.materials.{name}.clearcoat = {matval["clearcoat"]}
 scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
+scene.textures.{name}_sheenscale.type = "scale"
+scene.textures.{name}_sheenscale.texture1 = {matval["sheen"]}
+scene.textures.{name}_sheenscale.texture2 = 100
 """
 
 
