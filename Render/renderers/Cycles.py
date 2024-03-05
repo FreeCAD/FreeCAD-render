@@ -553,22 +553,48 @@ def _write_material_glass(name, matval, connect_to="output surface"):
 
 def _write_material_disney(name, matval, connect_to="output surface"):
     """Compute a string in the renderer SDL for a Disney material."""
+    # For ascending compatibility reasons, we kept sheen, clearcoat
+    # and clearcoat_roughness
+    sheentint = matval["sheentint"]
     return f"""
 <principled_bsdf
     name="{name}_bsdf"
     base_color = "{matval["basecolor"]}"
-    subsurface = "{matval["subsurface"]}"
+    subsurface_weight = "{matval["subsurface"]}"
     metallic = "{matval["metallic"]}"
-    specular = "{matval["specular"]}"
     ior = "1.4"
     specular_ior_level = "{matval["specular"]}"
     specular_tint = "{matval["speculartint"]}"
     roughness = "{matval["roughness"]}"
     anisotropic = "{matval["anisotropic"]}"
-    sheen = "{matval["sheen"]}"
-    sheen_tint = "{matval["sheentint"]}"
-    clearcoat = "{matval["clearcoat"]}"
-    clearcoat_roughness = "{1 - float(matval["clearcoatgloss"])}"
+    sheen_weight = "{matval["sheen"]}"
+    sheen_tint = "{sheentint}"
+    coat_weight = "{matval["clearcoat"]}"
+/>
+<math
+    name="{name}_clearcoatgloss_invert"
+    math_type="subtract"
+    value1="1.0"
+    value2="{matval["clearcoatgloss"]}"
+/>
+<connect
+    from="{name}_clearcoatgloss_invert value"
+    to="{name}_bsdf clearcoat_roughness"
+/>
+<connect
+    from="{name}_clearcoatgloss_invert value"
+    to="{name}_bsdf coat_roughness"
+/>
+<mix
+    name="{name}_sheentint"
+    mix_type="mix"
+    color1="1.0 1.0 1.0"
+    color2="{matval["basecolor"]}"
+    fac="{matval["sheentint"]}"
+/>
+<connect
+    from="{name}_sheentint color"
+    to="{name}_bsdf sheen_tint"
 />
 <connect from="{name}_bsdf bsdf" to="{connect_to}"/>"""
 
@@ -773,21 +799,44 @@ def _write_texture(**kwargs):
 />
 <connect from="{texname} color" to="output displacement"/>"""
 
+    elif propname == "subsurface":
+        colorspace = "__builtin_raw"
+        connect = f"""
+<connect
+    from="{texname} color"
+    to="{objname}_bsdf subsurface_weight"
+/>"""
+
+    elif propname == "sheen":
+        colorspace = "__builtin_raw"
+        connect = f"""
+<connect
+    from="{texname} color"
+    to="{objname}_bsdf sheen_weight"
+/>"""
+
+    elif propname == "sheentint":
+        colorspace = "__builtin_raw"
+        connect = f"""
+<connect
+    from="{texname} color"
+    to="{objname}_sheentint fac"
+/>"""
+
+    elif propname == "clearcoat":
+        colorspace = "__builtin_raw"
+        connect = f"""
+<connect
+    from="{texname} color"
+    to="{objname}_bsdf coat_weight"
+/>"""
+
     elif propname == "clearcoatgloss":
         colorspace = "__builtin_raw"
         connect = f"""
-<math
-    name="{texname}_clearcoat_roughness"
-    math_type="subtract"
-    value1="1.0"
-/>
 <connect
     from="{texname} color"
-    to="{texname}_clearcoat_roughness value2"
-/>
-<connect
-    from="{texname}_clearcoat_roughness value"
-    to="{objname}_bsdf clearcoat_roughness"
+    to="{objname}_clearcoatgloss_roughness value2"
 />"""
 
     else:
