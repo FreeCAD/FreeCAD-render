@@ -54,6 +54,8 @@ from MaterialX import PyMaterialXGenGlsl as mx_gen_glsl
 from MaterialX import PyMaterialXRender as mx_render
 from MaterialX import PyMaterialXRenderGlsl as mx_render_glsl
 
+from .materialx_utils import MaterialXInterrupted
+
 
 class RenderTextureBaker:
     """A texture baker, capable for all shaders of a material.
@@ -1123,10 +1125,6 @@ class RenderTextureBaker:
         self._halt_requested.set()
 
     # }}}
-
-
-class MaterialXInterrupted(Exception):
-    """An exception to be raised when baker is interrupted."""
 
 
 # vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

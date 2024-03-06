@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -43,7 +43,8 @@ from PySide2.QtWidgets import (
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.materialx import MaterialXImporter, MATERIALX
+from .materialx_utils import MATERIALX, critical_nomatx
+from .materialx_importer import MaterialXImporter
 
 
 class MaterialXDownloader(QWidget):
@@ -238,17 +239,11 @@ class ImporterWorker(QObject):
 def open_mxdownloader(url, doc):
     """Open a downloader."""
     if not App.GuiUp:
-        print("Fatal: open_mxdownloader requires GUI")
+        App.Console.PrintError("Fatal: open_mxdownloader requires GUI")
         return
 
     if not MATERIALX:
-        QMessageBox.critical(
-            Gui.getMainWindow(),
-            "MaterialX Download",
-            "Error: Cannot find MaterialX framework!\n"
-            "Please check MaterialX is correctly installed on your system "
-            "before using this feature...",
-        )
+        critical_nomatx()
         return
 
     viewer = MaterialXDownloader(doc)

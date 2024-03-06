@@ -55,8 +55,7 @@ from Render.lights import (
 )
 from Render.rendermaterial import is_multimat
 from Render.help import open_help, HelpViewer
-from Render.materialx import import_materialx, MATERIALX
-from Render.materialx_downloader import open_mxdownloader
+from Render.materialx import import_materialx, MATERIALX, open_mxdownloader
 
 
 class RenderProjectCommand:

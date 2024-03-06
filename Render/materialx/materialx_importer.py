@@ -39,24 +39,26 @@
 import zipfile
 import tempfile
 import os
-import subprocess
-import shutil
 import threading
 
-try:
-    import MaterialX as mx
-    from MaterialX import PyMaterialXGenShader as mx_gen_shader
-    from MaterialX import PyMaterialXRender as mx_render
-except (ModuleNotFoundError, ImportError):
-    MATERIALX = False
-else:
-    MATERIALX = True
-    from Render.materialx_baker import RenderTextureBaker, MaterialXInterrupted
+import MaterialX as mx
+from MaterialX import PyMaterialXGenShader as mx_gen_shader
+from MaterialX import PyMaterialXRender as mx_render
 
 import FreeCAD as App
 
 import Render.material
 from Render.constants import MATERIALXDIR
+
+from .materialx_utils import (
+    MaterialXInterrupted,
+    MATERIALX,
+    MaterialXError,
+    _warn,
+    _msg,
+    critical_nomatx,
+)
+from .materialx_baker import RenderTextureBaker
 
 
 class MaterialXImporter:
@@ -437,88 +439,7 @@ class MaterialXImporter:
 def import_materialx(filename):
     """Import MaterialX (function version)."""
     if not MATERIALX:
-        QMessageBox.critical(
-            Gui.getMainWindow(),
-            "MaterialX Import",
-            "Error: Cannot find MaterialX framework!\n"
-            "Please check MaterialX is correctly installed on your system "
-            "before using this feature...",
-        )
+        critical_nomatx()
         return
-
     importer = MaterialXImporter(filename)
     importer.run()
-
-
-class MaterialXError(Exception):
-    """Exception to be raised when import encounters an error."""
-
-    def __init__(self, msg):
-        super().__init__()
-        self.message = str(msg)
-
-
-# Debug functions
-
-
-def _print_doc(mxdoc):
-    """Print a doc in XML format (debugging purposes)."""
-    as_string = mx.writeToXmlString(mxdoc)
-    for line in as_string.splitlines():
-        print(line)
-
-
-def _print_file(outfile):
-    """Print a doc in XML format (debugging purposes)."""
-    with open(outfile, encoding="utf-8") as f:
-        for line in f:
-            print(line, end="")
-
-
-def _write_temp_doc(mxdoc):
-    """Write a MX document to a temporary file."""
-    _, outfile = tempfile.mkstemp(suffix=".mtlx", text=True)
-    mx.writeToXmlFile(mxdoc, outfile)
-    return outfile
-
-
-def _run_materialx(outfile, tool="MaterialXView"):
-    """Run MaterialX on outfile (debug purpose)."""
-    tool = str(tool)
-    assert tool in ["MaterialXView", "MaterialXGraphEditor"]
-    args = [
-        tool,
-        "--material",
-        outfile,
-        "--path",
-        MATERIALXDIR,
-        "--library",
-        "render_libraries",
-    ]
-    print(args)
-    subprocess.run(args, check=False)
-
-
-def _save_intermediate(outfile):
-    """Save intermediate material (debug purpose)."""
-    src = os.path.dirname(outfile)
-    folder = os.path.basename(src)
-    dest = os.path.join(App.getUserCachePath(), folder)
-    print(f"Copying '{src}' into '{dest}'")
-    shutil.copytree(src, dest)
-
-
-def _warn(msg):
-    """Emit warning during MaterialX processing."""
-    App.Console.PrintWarning("[Render][MaterialX] " + msg)
-
-
-def _msg(msg):
-    """Emit warning during MaterialX processing."""
-    App.Console.PrintMessage("[Render][MaterialX] " + msg)
-
-
-def _view_doc(doc):
-    """Open copy of doc in editor."""
-    outfile = _write_temp_doc(doc)
-    subprocess.run(["/usr/bin/nvim", outfile], check=False)
