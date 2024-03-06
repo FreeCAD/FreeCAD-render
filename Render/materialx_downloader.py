@@ -246,7 +246,7 @@ def open_mxdownloader(url, doc):
             Gui.getMainWindow(),
             "MaterialX Library",
             "Error: Cannot find MaterialX framework!\n"
-            "Please check MaterialX is correctly installed "
+            "Please check MaterialX is correctly installed on your system "
             "before using this feature...",
         )
         return
