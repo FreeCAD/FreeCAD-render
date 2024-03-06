@@ -400,10 +400,12 @@ class MaterialMaterialXImportCommand:
         if not MATERIALX:
             QMessageBox.critical(
                 Gui.getMainWindow(),
-                "MaterialX",
-                "No MaterialX library installed!",
+                "MaterialX Import",
+                "Error: Cannot find MaterialX framework!\n"
+                "Please check MaterialX is correctly installed on your system "
+                "before using this feature...",
             )
-        # TODO Icon
+            return
         filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
         caption = translate("Render", "Select MaterialX")
         openfilename = QFileDialog.getOpenFileName(

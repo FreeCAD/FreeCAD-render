@@ -439,7 +439,7 @@ def import_materialx(filename):
     if not MATERIALX:
         QMessageBox.critical(
             Gui.getMainWindow(),
-            "MaterialX Library",
+            "MaterialX Import",
             "Error: Cannot find MaterialX framework!\n"
             "Please check MaterialX is correctly installed on your system "
             "before using this feature...",
