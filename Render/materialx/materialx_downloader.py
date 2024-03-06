@@ -54,10 +54,11 @@ class MaterialXDownloader(QWidget):
     files.
     """
 
-    def __init__(self, doc, parent=None):
+    def __init__(self, fcdoc, parent=None):
         """Initialize HelpViewer."""
         super().__init__(parent)
         self.parent = parent
+        self.fcdoc = fcdoc
 
         self.setLayout(QVBoxLayout())
 
@@ -120,10 +121,11 @@ class DownloadWindow(QProgressDialog):
     download from WebEngineProfile and handle import afterwards.
     """
 
-    def __init__(self, download, parent=None):
+    def __init__(self, download, fcdoc, parent=None):
         parent = Gui.getMainWindow()
         super().__init__(parent)
         self._download = download
+        self._fcdoc = fcdoc
         filename = download.downloadFileName()
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
@@ -173,7 +175,7 @@ class DownloadWindow(QProgressDialog):
 
         # Start import
         self.setValue(0)
-        self.worker = ImporterWorker(filename, self.set_progress)
+        self.worker = ImporterWorker(filename, self._fcdoc, self.set_progress)
         self.thread = QThread()
         self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
 
@@ -182,7 +184,6 @@ class DownloadWindow(QProgressDialog):
 
         # Connect signals and slots
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.finished.connect(self.thread.exit)
@@ -190,11 +191,11 @@ class DownloadWindow(QProgressDialog):
         # Start the thread
         self.thread.start(QThread.IdlePriority)
         loop = QEventLoop()
-        self.thread.finished.connect(loop.quit)
+        self.worker.finished.connect(loop.exit)
         if not self.thread.isFinished():
-            loop.exec_()
+            res = loop.exec_()
         loop.processEvents()
-        if self.worker.canceled():
+        if self.worker.canceled() or res:
             self.cancel()
         else:
             self.setLabelText("Done")
@@ -207,24 +208,23 @@ class DownloadWindow(QProgressDialog):
 class ImporterWorker(QObject):
     """A worker for import."""
 
-    def __init__(self, filename, progress):
+    def __init__(self, filename, fcdoc, progress):
         super().__init__()
         self.filename = filename
-        # TODO explicit doc?
-        self.importer = MaterialXImporter(self.filename, None, progress)
+        self.importer = MaterialXImporter(self.filename, fcdoc, progress)
 
     finished = Signal(int)
 
     def run(self):
         """Run in worker thread."""
         try:
-            self.importer.run()
+            res = self.importer.run()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             App.Console.PrintError("/!\\ IMPORT ERROR /!\\\n")
             traceback.print_exception(exc)
             self.finished.emit(-1)
         else:
-            self.finished.emit(0)
+            self.finished.emit(res)
 
     @Slot()
     def cancel(self):

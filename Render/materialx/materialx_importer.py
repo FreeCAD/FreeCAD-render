@@ -83,12 +83,18 @@ class MaterialXImporter:
         # MaterialX system available?
         if not MATERIALX:
             _warn("Missing MaterialX library: unable to import material")
-            return
+            return -1
 
         # Proceed with file
         with tempfile.TemporaryDirectory() as working_dir:
             print("STARTING MATERIALX IMPORT")
             try:
+                # Destination document?
+                if not self._doc:
+                    raise MaterialXError(
+                        "No target document for import. Aborting..."
+                    )
+
                 # Prepare
                 self._working_dir = working_dir
                 self._unzip_files()
@@ -102,10 +108,13 @@ class MaterialXImporter:
 
             except MaterialXInterrupted:
                 print("IMPORT - INTERRUPTED")
+                return -2
             except MaterialXError as error:
-                print(f"IMPORT - ERROR ('{error.message}')")
-            else:
-                print("IMPORT - SUCCESS")
+                print(f"IMPORT - ERROR - {error.message}")
+                return -1
+
+            print("IMPORT - SUCCESS")
+            return 0
 
     def cancel(self):
         """Request process to halt.
@@ -390,7 +399,7 @@ class MaterialXImporter:
 
         # Reminder: Material.Material is not updatable in-place (FreeCAD
         # bug), thus we have to copy/replace
-        mat = Render.material.make_material(mxname)
+        mat = Render.material.make_material(name=mxname, doc=fcdoc)
         matdict = mat.Material.copy()
         matdict["Render.Type"] = "Disney"
 
@@ -436,10 +445,10 @@ class MaterialXImporter:
         mat.Material = matdict
 
 
-def import_materialx(filename):
+def import_materialx(filename, fcdoc):
     """Import MaterialX (function version)."""
     if not MATERIALX:
         critical_nomatx()
         return
-    importer = MaterialXImporter(filename)
+    importer = MaterialXImporter(filename, fcdoc)
     importer.run()

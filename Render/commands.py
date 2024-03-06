@@ -54,7 +54,7 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.help import open_help, HelpViewer
+from Render.help import open_help
 from Render.materialx import import_materialx, MATERIALX, open_mxdownloader
 
 
@@ -414,7 +414,7 @@ class MaterialMaterialXImportCommand:
         if not materialx_file:
             return
         App.ActiveDocument.openTransaction("MaterialXImport")
-        import_materialx(materialx_file)
+        import_materialx(materialx_file, Gui.ActiveDocument)
         App.ActiveDocument.commitTransaction()
 
 

@@ -998,7 +998,6 @@ class RenderTextureBaker:
         for shader_node in shader_nodes:
             # Iterate over material tags
             for tag in material_tags:
-                # TODO
                 # Always clear any cached implementations before generation
                 # WARNING: Not available in Python
                 # context.clearNodeImplementations()
