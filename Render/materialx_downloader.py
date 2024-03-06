@@ -245,9 +245,9 @@ def open_mxdownloader(url, doc):
         QMessageBox.critical(
             Gui.getMainWindow(),
             "MaterialX Library",
-            "Cannot find MaterialX library. "
+            "Error: Cannot find MaterialX libraries!\n"
             "Please check MaterialX is correctly installed "
-            "before using this feature.",
+            "before using this feature...",
         )
         return
 
