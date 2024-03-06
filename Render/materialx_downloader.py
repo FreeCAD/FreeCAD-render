@@ -43,7 +43,7 @@ from PySide2.QtWidgets import (
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.materialx import MaterialXImporter
+from Render.materialx import MaterialXImporter, MATERIALX
 
 
 class MaterialXDownloader(QWidget):
