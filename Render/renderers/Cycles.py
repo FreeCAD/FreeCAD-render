@@ -70,6 +70,8 @@ from .utils.sunlight import sunlight
 
 TEMPLATE_FILTER = "Cycles templates (cycles_*.xml)"
 
+DISNEY_IOR = 1.5  # As defined in 's2012_pbs_disney_brdf_notes_v3.pdf'
+
 
 # ===========================================================================
 #                             Objects
@@ -553,7 +555,7 @@ def _write_material_disney(name, matval, connect_to="output surface"):
     base_color = "{matval["basecolor"]}"
     subsurface_weight = "{matval["subsurface"]}"
     metallic = "{matval["metallic"]}"
-    ior = "1.4"
+    ior = "{DISNEY_IOR}"
     specular_ior_level = "{matval["specular"]}"
     specular_tint = "{matval["speculartint"]}"
     roughness = "{matval["roughness"]}"
@@ -561,6 +563,7 @@ def _write_material_disney(name, matval, connect_to="output surface"):
     sheen_weight = "{matval["sheen"]}"
     sheen_tint = "{sheentint}"
     coat_weight = "{matval["clearcoat"]}"
+    coat_ior = "{DISNEY_IOR}"
 />
 <math
     name="{name}_clearcoatgloss_invert"
