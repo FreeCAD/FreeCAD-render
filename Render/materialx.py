@@ -436,6 +436,16 @@ class MaterialXImporter:
 
 def import_materialx(filename):
     """Import MaterialX (function version)."""
+    if not MATERIALX:
+        QMessageBox.critical(
+            Gui.getMainWindow(),
+            "MaterialX Library",
+            "Error: Cannot find MaterialX framework!\n"
+            "Please check MaterialX is correctly installed on your system "
+            "before using this feature...",
+        )
+        return
+
     importer = MaterialXImporter(filename)
     importer.run()
 
