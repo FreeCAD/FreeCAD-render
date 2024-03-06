@@ -441,12 +441,6 @@ class MaterialMaterialXLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
-            QMessageBox.critical(
-                Gui.getMainWindow(),
-                "MaterialX",
-                "No MaterialX library installed!",
-            )
         doc = App.ActiveDocument
         url = QUrl("https://matlib.gpuopen.com/")
         open_mxdownloader(url, doc)

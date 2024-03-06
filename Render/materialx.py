@@ -27,7 +27,7 @@
 # Add Scale to Disney displacement (and to renderers...)
 # Add icons
 # Handle case when no MaterialX system installed
-# Reorganize code with a subdir
+# Reorganize code: rename, create a subdir
 # Write the doc
 # Remove downloaded zip
 # Explicit doc
