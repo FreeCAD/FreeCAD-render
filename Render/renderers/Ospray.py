@@ -55,6 +55,8 @@ PLACEMENT = App.Placement(
 
 TEMPLATE_FILTER = "Ospray templates (ospray_*.sg)"
 
+DISNEY_IOR = 1.5
+
 # ===========================================================================
 #                             Write functions
 # ===========================================================================
@@ -650,6 +652,8 @@ type principled
 {matval["clearcoat"]}
 {matval["clearcoatgloss"]}
 {matval["normal"] if matval.has_normal() else ""}
+ior {DISNEY_IOR}
+coatIor {DISNEY_IOR}
 """
     return snippet
 
