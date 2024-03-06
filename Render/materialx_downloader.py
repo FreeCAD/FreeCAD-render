@@ -198,7 +198,9 @@ class DownloadWindow(QProgressDialog):
         else:
             self.setLabelText("Done")
 
+        # Finalize (success)
         self.canceled.connect(self.cancel)
+        self.setCancelButtonText("Close")
 
 
 class ImporterWorker(QObject):
@@ -236,6 +238,16 @@ class ImporterWorker(QObject):
 def open_mxdownloader(url, doc):
     """Open a downloader."""
     if not App.GuiUp:
+        print("Fatal: open_mxdownloader requires GUI")
+        return
+
+    if not MATERIALX:
+        QMessageBox.critical(
+            Gui.getMainWindow(),
+            "MaterialX Library",
+            "Fatal: cannot find MaterialX library. "
+            "Please install MaterialX before using this feature.",
+        )
         return
 
     viewer = MaterialXDownloader(doc)
