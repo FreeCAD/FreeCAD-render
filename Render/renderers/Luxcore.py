@@ -361,10 +361,13 @@ scene.materials.{name}.anisotropic = {matval["anisotropic"]}
 scene.materials.{name}.sheen = {name}_sheenscale
 scene.materials.{name}.sheentint = {matval["sheentint"]}
 scene.materials.{name}.clearcoat = {matval["clearcoat"]}
-scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
+scene.materials.{name}.clearcoatgloss = {name}_clearcoatgloss_scale
 scene.textures.{name}_sheenscale.type = "scale"
 scene.textures.{name}_sheenscale.texture1 = {matval["sheen"]}
 scene.textures.{name}_sheenscale.texture2 = 100
+scene.textures.{name}_clearcoatgloss_scale.type = "scale"
+scene.textures.{name}_clearcoatgloss_scale.texture1 = {matval["clearcoatgloss"]}
+scene.textures.{name}_clearcoatgloss_scale.texture2 = 1.5
 """
 
 
