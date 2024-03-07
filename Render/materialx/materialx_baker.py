@@ -150,6 +150,7 @@ class RenderTextureBaker:
         }
         self._flip_saved_image = bool(flip_saved_image)
         self._write_document_per_material = True
+        self._filename_substitutions: List[Tuple[str, str]] = []
 
         # Specific
         self._base_type = base_type
@@ -165,9 +166,6 @@ class RenderTextureBaker:
         self._renderer.initialize()
 
         # Initialize our image handler
-        self._renderer.setImageHandler(
-            mx_render.ImageHandler.create(mx_render.StbImageLoader.create())
-        )
         self._renderer.setImageHandler(
             mx_render_glsl.GLTextureHandler.create(
                 mx_render.StbImageLoader.create()
@@ -407,6 +405,16 @@ class RenderTextureBaker:
     ) -> None:
         """Set the function to report progress."""
         self._progress_hook = value
+
+    @property
+    def filename_substitutions(self) -> List[Tuple[str, str]]:
+        """Return the filename substitutions."""
+        return self._filename_substitutions
+
+    @filename_substitutions.setter
+    def filename_substitutions(self, value: List[Tuple[str, str]]):
+        """Set the filename substitutions."""
+        self._filename_substitutions = value
 
     # }}}
 
@@ -943,7 +951,7 @@ class RenderTextureBaker:
         """
         # source/MaterialXRender/TextureBaker.inl#L485
 
-        self._print(f"Processing material: {material_path}")
+        self._print(f"Baking material: {material_path}")
 
         # Set up generator context for material
         context = mx_gen_shader.GenContext(self._generator)
@@ -993,6 +1001,8 @@ class RenderTextureBaker:
             return None, ""
 
         resolver = doc.createStringResolver()
+        for filename, substitute in self.filename_substitutions:
+            resolver.setFilenameSubstitution(filename, substitute)
 
         # Iterate over shader nodes
         for shader_node in shader_nodes:

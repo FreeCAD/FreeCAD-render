@@ -40,6 +40,8 @@ import zipfile
 import tempfile
 import os
 import threading
+from dataclasses import dataclass
+from typing import List, Tuple
 
 import MaterialX as mx
 from MaterialX import PyMaterialXGenShader as mx_gen_shader
@@ -64,6 +66,18 @@ from .materialx_baker import RenderTextureBaker
 class MaterialXImporter:
     """A class to import a MaterialX material into a RenderMaterial."""
 
+    @dataclass
+    class _ImporterState:
+        """The internal state of the importer, for run method."""
+
+        working_dir: str = ""  # Working directory
+        mtlx_filename: str = ""  # Initial MaterialX file name
+        search_path: mx.FileSearchPath = None
+        substitutions: List[Tuple[str, str]] = None  # File substitutions
+        translated: mx.Document = None  # Translated document
+        baker: RenderTextureBaker = None  # Baker
+        baked: mx.Document = None  # Baked document
+
     def __init__(self, filename, doc=None, progress_hook=None):
         self._filename = filename
         self._doc = doc or App.ActiveDocument
@@ -71,12 +85,7 @@ class MaterialXImporter:
         self._request_halt = threading.Event()
         self._progress_hook = progress_hook
 
-        self._working_dir = ""  # Working directory
-        self._mtlx_filename = ""  # Initial MaterialX file name
-        self._search_path = None
-        self._translated = None  # Translated document
-        self._baker = None  # Baker
-        self._baked = None  # Baked document
+        self._state = MaterialXImporter._ImporterState()
 
     def run(self):
         """Import a MaterialX archive as Render material."""
@@ -89,19 +98,20 @@ class MaterialXImporter:
         with tempfile.TemporaryDirectory() as working_dir:
             print("STARTING MATERIALX IMPORT")
             try:
-                # Destination document?
+                # Check wether there is a FreeCAD destination document
                 if not self._doc:
                     raise MaterialXError(
                         "No target document for import. Aborting..."
                     )
 
                 # Prepare
-                self._working_dir = working_dir
+                self._state.working_dir = working_dir
                 self._unzip_files()
                 self._compute_search_path()
 
                 # Translate, bake and convert to render material
                 self._translate_materialx()
+                self._compute_file_substitutions()
                 self._prepare_baker()
                 self._bake_materialx()
                 self._make_render_material()
@@ -145,39 +155,44 @@ class MaterialXImporter:
 
         This method also set self._mtlx_filename
         """
+        assert self._state.working_dir
+        working_dir = self._state.working_dir
+
         if zipfile.is_zipfile(self._filename):
             if self._request_halt.is_set():
                 raise MaterialXInterrupted()
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
-                print(f"Extracting to {self._working_dir}")
-                matzip.extractall(path=self._working_dir)
+                print(f"Extracting to {working_dir}")
+                matzip.extractall(path=working_dir)
                 # Find materialx file
                 files = (
                     entry.path
-                    for entry in os.scandir(self._working_dir)
+                    for entry in os.scandir(working_dir)
                     if entry.is_file() and entry.name.endswith(".mtlx")
                 )
                 try:
-                    self._mtlx_filename = next(files)
+                    self._state.mtlx_filename = next(files)
                 except StopIteration as exc:
                     raise MaterialXError("Missing mtlx file") from exc
         else:
-            self._mtlx_filename = self._filename
+            self._state.mtlx_filename = self._filename
         self._check_halt_requested()
 
     def _compute_search_path(self):
         """Compute search path for MaterialX."""
-        assert self._working_dir
-        assert self._mtlx_filename
+        assert self._state.working_dir
+        assert self._state.mtlx_filename
 
-        working_dir = self._working_dir
-        mtlx_filename = self._mtlx_filename
+        working_dir = self._state.working_dir
+        mtlx_filename = self._state.mtlx_filename
 
-        self._search_path = mx.getDefaultDataSearchPath()
-        self._search_path.append(working_dir)
-        self._search_path.append(os.path.dirname(mtlx_filename))
-        self._search_path.append(MATERIALXDIR)
+        search_path = mx.getDefaultDataSearchPath()
+        search_path.append(working_dir)
+        search_path.append(os.path.dirname(mtlx_filename))
+        search_path.append(MATERIALXDIR)
+
+        self._state.search_path = search_path
 
     def _translate_materialx(self):
         """Translate MaterialX from StandardSurface to RenderPBR.
@@ -185,11 +200,13 @@ class MaterialXImporter:
         Args:
             matdir -- The directory where to find MaterialX files
         """
-        assert self._mtlx_filename
-        assert self._search_path
+        assert self._state.mtlx_filename
+        assert self._state.search_path
 
-        mtlx_filename = self._mtlx_filename
-        search_path = self._search_path
+        mtlx_filename = self._state.mtlx_filename
+        search_path = self._state.search_path
+
+        print("Translating material to Render format")
 
         # Read doc
         mxdoc = mx.createDocument()
@@ -294,15 +311,68 @@ class MaterialXImporter:
                 "Translation error for displacement shader"
             ) from err
 
-        self._translated = mxdoc
+        self._state.translated = mxdoc
+
+    def _compute_file_substitutions(self):
+        """Compute file substitutions.
+
+        If a file is missing, search for another file with similar
+        case-insensitive name.
+        """
+        assert self._state.working_dir
+        assert self._state.search_path
+        assert self._state.translated
+
+        working_dir = self._state.working_dir
+        search_path = self._state.search_path
+        mxdoc = self._state.translated
+
+        # Available (normalized) files
+        def rebuild_filename(dirpath, filename):
+            relative_path = os.path.relpath(dirpath, working_dir)
+            return os.path.normpath(os.path.join(relative_path, filename))
+
+        available_files = {
+            (dirpath, filename.lower()): rebuild_filename(dirpath, filename)
+            for dirpath, _, filenames in os.walk(working_dir)
+            for filename in filenames
+        }
+
+        # Unfound files
+        working_dir_fp = mx.FilePath(working_dir)
+        unfound_files = (
+            (filename, working_dir_fp / filename.lower())
+            for elem in mxdoc.traverseTree()
+            if elem.getActiveSourceUri() == mxdoc.getSourceUri()
+            and elem.getType() == mx.FILENAME_TYPE_STRING
+            and not search_path.find(
+                filename := elem.getResolvedValueString()
+            ).exists()
+        )
+        unfound_files_dict = {
+            filename: (
+                filepath.getParentPath().asString(),
+                filepath.getBaseName(),
+            )
+            for filename, filepath in unfound_files
+        }
+
+        # Substitutions
+        self._state.substitutions = [
+            (filename, available_files[pathkey])
+            for filename, pathkey in unfound_files_dict.items()
+            if pathkey in available_files
+        ]
 
     def _prepare_baker(self):
-        """Bake MaterialX material."""
-        assert self._search_path
-        assert self._translated
+        """Prepare MaterialX texture baker."""
+        assert self._state.search_path
+        assert self._state.translated
+        assert self._state.substitutions is not None
 
-        search_path = self._search_path
-        mxdoc = self._translated
+        search_path = self._state.search_path
+        mxdoc = self._state.translated
+        substitutions = self._state.substitutions
 
         # Check the document for a UDIM set.
         udim_set_value = mxdoc.getGeomPropValue(mx.UDIM_SET_PROPERTY)
@@ -313,39 +383,42 @@ class MaterialXImporter:
             mx_render.StbImageLoader.create()
         )
         image_handler.setSearchPath(search_path)
+        resolver = mxdoc.createStringResolver()
         if udim_set:
-            resolver = mxdoc.createStringResolver()
             resolver.setUdimString(udim_set[0])
-            image_handler.setFilenameResolver(resolver)
+        for filename, substitute in substitutions:
+            resolver.setFilenameSubstitution(filename, substitute)
+        image_handler.setFilenameResolver(resolver)
         image_vec = image_handler.getReferencedImages(mxdoc)
         bake_width, bake_height = mx_render.getMaxDimensions(image_vec)
         bake_width = max(bake_width, 4)
         bake_height = max(bake_height, 4)
 
         # Prepare baker
-        self._baker = RenderTextureBaker(
+        self._state.baker = RenderTextureBaker(
             bake_width,
             bake_height,
             mx_render.BaseType.UINT8,
         )
-        self._baker.setup_unit_system(mxdoc)
-        self._baker.optimize_constants = True
-        self._baker.hash_image_names = False
-        self._baker.progress_hook = self._progress_hook
+        self._state.baker.setup_unit_system(mxdoc)
+        self._state.baker.optimize_constants = True
+        self._state.baker.hash_image_names = False
+        self._state.baker.progress_hook = self._progress_hook
+        self._state.baker.filename_substitutions = substitutions
 
         self._baker_ready.set()
 
     def _bake_materialx(self):
         """Bake MaterialX material."""
-        assert self._working_dir
-        assert self._baker
-        assert self._translated
-        assert self._search_path
+        assert self._state.working_dir
+        assert self._state.baker
+        assert self._state.translated
+        assert self._state.search_path
 
-        output_dir = self._working_dir
-        baker = self._baker
-        mxdoc = self._translated
-        search_path = self._search_path
+        output_dir = self._state.working_dir
+        baker = self._state.baker
+        mxdoc = self._state.translated
+        search_path = self._state.search_path
 
         # Bake and retrieve
         _, outfile = tempfile.mkstemp(
@@ -362,14 +435,14 @@ class MaterialXImporter:
             msg = f"Validation warnings for input document: {msg}"
             _warn(msg)
 
-        self._baked = mxdoc
+        self._state.baked = mxdoc
 
     def _make_render_material(self):
         """Make a RenderMaterial from a MaterialX baked material."""
-        assert self._baked
+        assert self._state.baked
         assert self._doc
 
-        mxdoc = self._baked
+        mxdoc = self._state.baked
         fcdoc = self._doc
         # Get PBR material
         # TODO Make it more predictable (name node_graph etc.)
@@ -377,6 +450,7 @@ class MaterialXImporter:
         assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
         mxmat = mxmats[0]
         mxname = mxmat.getAttribute("original_name")
+        print(f"Creating FreeCAD Render material '{mxname}'")
 
         # Get images
         # TODO Make it more predictable (name node_graph etc.)
