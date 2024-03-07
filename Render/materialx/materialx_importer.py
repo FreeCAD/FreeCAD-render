@@ -25,14 +25,10 @@
 # TODO list
 # Solve scale question
 # Add Scale to Disney displacement (and to renderers...)
-# Add icons
 # Handle case when no MaterialX system installed
-# Reorganize code: rename, create a subdir
-# Write the doc
+# Write documentation
 # Remove downloaded zip
-# Explicit doc
 # Fix texture dimensions
-# Solve TODO: explicit doc etc.
 # Handle HDR (set basetype to FLOAT, see translateshader.py)
 
 
@@ -445,7 +441,6 @@ class MaterialXImporter:
         mxdoc = self._state.baked
         fcdoc = self._doc
         # Get PBR material
-        # TODO Make it more predictable (name node_graph etc.)
         mxmats = mxdoc.getMaterialNodes()
         assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
         mxmat = mxmats[0]
@@ -453,7 +448,6 @@ class MaterialXImporter:
         print(f"Creating FreeCAD Render material '{mxname}'")
 
         # Get images
-        # TODO Make it more predictable (name node_graph etc.)
         node_graphs = mxdoc.getNodeGraphs()
         assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
         if len(node_graphs):
