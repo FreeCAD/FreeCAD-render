@@ -24,6 +24,8 @@
 
 # TODO list
 # Solve scale question
+# Allow to route displacement to bump
+# Add a mix normal/height map to Ospray
 # Add Scale to Disney displacement (and to renderers...)
 # Handle case when no MaterialX system installed
 # Write documentation
@@ -129,7 +131,7 @@ class MaterialXImporter:
         """
         self._request_halt.set()
         if self._baker_ready.is_set():
-            self._baker.request_halt()
+            self._state.baker.request_halt()
 
     def canceled(self):
         """Check if halt has been requested."""
