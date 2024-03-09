@@ -132,8 +132,8 @@ scene.shapes.{name}_mesh.ply = "{plyfile}"
     snippet = [
         snippet_obj,
         snippet_disp,
-        snippet_mat,
         snippet_tex,
+        snippet_mat,
         snippet_bump,
     ]
     snippet = (s for s in snippet if s)
