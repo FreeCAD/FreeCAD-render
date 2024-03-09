@@ -456,11 +456,11 @@ class MaterialAmbientCGLibrary:
             "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Open GPUOpen MaterialX Library",
+                "Open AmbientCG Library",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Open AMD GPUOpen MaterialX Library",
+                "Open AmbientCG Library",
             ),
         }
 
@@ -473,7 +473,7 @@ class MaterialAmbientCGLibrary:
         """
         doc = App.ActiveDocument
         url = QUrl("https://ambientcg.com/")
-        open_mxdownloader(url, doc)
+        open_mxdownloader(url, doc, disp2bump=True)
 
 
 class MaterialRenderSettingsCommand:

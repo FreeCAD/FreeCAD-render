@@ -54,11 +54,12 @@ class MaterialXDownloader(QWidget):
     files.
     """
 
-    def __init__(self, fcdoc, parent=None):
+    def __init__(self, fcdoc, parent, disp2bump=False):
         """Initialize HelpViewer."""
         super().__init__(parent)
         self.parent = parent
         self.fcdoc = fcdoc
+        self.disp2bump = disp2bump
 
         self.setLayout(QVBoxLayout())
 
@@ -109,7 +110,7 @@ class MaterialXDownloader(QWidget):
             return
 
         # Open download window
-        win = DownloadWindow(download, self.parent)
+        win = DownloadWindow(download, self.fcdoc, self.parent, self.disp2bump)
         win.open()
         download.accept()
 
@@ -121,11 +122,12 @@ class DownloadWindow(QProgressDialog):
     download from WebEngineProfile and handle import afterwards.
     """
 
-    def __init__(self, download, fcdoc, parent=None):
+    def __init__(self, download, fcdoc, parent, disp2bump=False):
         parent = Gui.getMainWindow()
         super().__init__(parent)
         self._download = download
         self._fcdoc = fcdoc
+        self._disp2bump = disp2bump
         filename = download.downloadFileName()
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
@@ -175,7 +177,9 @@ class DownloadWindow(QProgressDialog):
 
         # Start import
         self.setValue(0)
-        self.worker = ImporterWorker(filename, self._fcdoc, self.set_progress)
+        self.worker = ImporterWorker(
+            filename, self._fcdoc, self.set_progress, self._disp2bump
+        )
         self.thread = QThread()
         self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
 
@@ -209,10 +213,12 @@ class DownloadWindow(QProgressDialog):
 class ImporterWorker(QObject):
     """A worker for import."""
 
-    def __init__(self, filename, fcdoc, progress):
+    def __init__(self, filename, fcdoc, progress, disp2bump):
         super().__init__()
         self.filename = filename
-        self.importer = MaterialXImporter(self.filename, fcdoc, progress)
+        self.importer = MaterialXImporter(
+            self.filename, fcdoc, progress, disp2bump
+        )
 
     finished = Signal(int)
 
@@ -237,7 +243,7 @@ class ImporterWorker(QObject):
         return self.importer.canceled()
 
 
-def open_mxdownloader(url, doc):
+def open_mxdownloader(url, doc, disp2bump=False):
     """Open a downloader."""
     if not App.GuiUp:
         App.Console.PrintError("Fatal: open_mxdownloader requires GUI")
@@ -247,7 +253,7 @@ def open_mxdownloader(url, doc):
         critical_nomatx()
         return
 
-    viewer = MaterialXDownloader(doc)
+    viewer = MaterialXDownloader(doc, None, disp2bump)
     mdiarea = Gui.getMainWindow().centralWidget()
     subw = mdiarea.addSubWindow(viewer)
     subw.setWindowTitle("MaterialX Downloader")

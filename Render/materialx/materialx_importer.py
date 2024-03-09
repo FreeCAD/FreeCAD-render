@@ -39,7 +39,7 @@ import tempfile
 import os
 import threading
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 import MaterialX as mx
 from MaterialX import PyMaterialXGenShader as mx_gen_shader
@@ -76,12 +76,27 @@ class MaterialXImporter:
         baker: RenderTextureBaker = None  # Baker
         baked: mx.Document = None  # Baked document
 
-    def __init__(self, filename, doc=None, progress_hook=None):
+    def __init__(
+        self,
+        filename: str,
+        doc: App.Document = None,
+        progress_hook: Callable[int, int] = None,
+        disp2bump: bool = False,
+    ):
+        """Initialize importer.
+
+        Args:
+            filename -- the name of the file to import
+            doc -- the FreeCAD document where to create material
+            progress_hook -- a hook to call to report progress (current, max)
+            disp2bump -- a flag to set bump with displacement
+        """
         self._filename = filename
         self._doc = doc or App.ActiveDocument
         self._baker_ready = threading.Event()
         self._request_halt = threading.Event()
         self._progress_hook = progress_hook
+        self._disp2bump = disp2bump
 
         self._state = MaterialXImporter._ImporterState()
 
@@ -487,23 +502,25 @@ class MaterialXImporter:
 
         # Fill fields
         render_params = (
-            param
+            (param, param.getName())
             for node in mxdoc.getNodes()
             for param in node.getInputs()
             if node.getCategory() in ("render_pbr", "render_disp")
         )
-        for param in render_params:
+        for param, name in render_params:
+            print(self._disp2bump)  # TODO
+            if name == "Displacement" and self._disp2bump:
+                name = "Bump"  # Substitute bump to displacement
             if param.hasOutputString():
                 # Texture
                 output = param.getOutputString()
                 image = textures[outputs[output]]
-                name = param.getName()
                 key = f"Render.Disney.{name}"
-                if name != "Normal":
+                if name not in ("Normal", "Bump"):
                     matdict[key] = f"Texture;('{texname}','{image}')"
                 else:
                     matdict[key] = f"Texture;('{texname}','{image}', '1.0')"
-            elif name := param.getName():
+            elif name:
                 # Value
                 key = f"Render.Disney.{name}"
                 matdict[key] = param.getValueString()
