@@ -447,6 +447,35 @@ class MaterialMaterialXLibrary:
         open_mxdownloader(url, doc)
 
 
+class MaterialAmbientCGLibrary:
+    """GUI command to open AmbientCG online library."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Open GPUOpen MaterialX Library",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Open AMD GPUOpen MaterialX Library",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
+        """
+        doc = App.ActiveDocument
+        url = QUrl("https://ambientcg.com/")
+        open_mxdownloader(url, doc)
+
+
 class MaterialRenderSettingsCommand:
     """GUI command to set render settings of a material object."""
 
@@ -700,6 +729,7 @@ def _init_gui_commands():
         ("MaterialApplier", MaterialApplierCommand()),
         ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
         ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
+        ("MaterialAmbientCGLibrary", MaterialAmbientCGLibrary()),
     ]
     materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
 
