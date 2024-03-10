@@ -42,6 +42,7 @@ from typing import List, Tuple, Callable
 import MaterialX as mx
 from MaterialX import PyMaterialXGenShader as mx_gen_shader
 from MaterialX import PyMaterialXRender as mx_render
+from MaterialX import PyMaterialXFormat as mx_format
 
 import FreeCAD as App
 
@@ -221,7 +222,11 @@ class MaterialXImporter:
 
         # Read doc
         mxdoc = mx.createDocument()
-        mx.readFromXmlFile(mxdoc, mtlx_filename)
+        try:
+            mx.readFromXmlFile(mxdoc, mtlx_filename)
+        except mx_format.ExceptionParseError as err:
+            msg = "Unrecognized input format"
+            raise MaterialXError(msg) from err
 
         # Check material unicity and get its name
         if not (mxmats := mxdoc.getMaterialNodes()):

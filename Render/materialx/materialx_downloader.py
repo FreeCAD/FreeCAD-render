@@ -202,6 +202,7 @@ class DownloadWindow(QProgressDialog):
         if self.worker.canceled() or res:
             os.remove(filename)
             self.cancel()
+            return
 
         # Finalize (success)
         os.remove(filename)
