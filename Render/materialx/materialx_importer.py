@@ -24,12 +24,10 @@
 
 # TODO list
 # Solve scale question
-# Allow to route displacement to bump
 # Add a mix normal/height map to Ospray
-# Add Scale to Disney displacement (and to renderers...)
+# Povray: adapt Disney (clearcoat etc.)
 # Handle case when no MaterialX system installed
 # Write documentation
-# Remove downloaded zip
 # Fix texture dimensions
 # Handle HDR (set basetype to FLOAT, see translateshader.py)
 

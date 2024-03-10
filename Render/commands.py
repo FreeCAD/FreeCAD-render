@@ -453,7 +453,7 @@ class MaterialAmbientCGLibrary:
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
-            "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
+            "Pixmap": os.path.join(ICONDIR, "ambientcg.png"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
                 "Open AmbientCG Library",
