@@ -513,7 +513,7 @@ def _write_material(name, matval):
     use_object_space = "false"
     invert = "false"
     distance = "{bump_factor}"
-    strength = "1.0"
+    strength = "0.2"
 />
 <connect from="{name}_bump normal" to="{name}_bsdf normal"/>"""
 
