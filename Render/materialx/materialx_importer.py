@@ -506,7 +506,6 @@ class MaterialXImporter:
             if node.getCategory() in ("render_pbr", "render_disp")
         )
         for param, name in render_params:
-            print(self._disp2bump)  # TODO
             if name == "Displacement" and self._disp2bump:
                 name = "Bump"  # Substitute bump to displacement
             if param.hasOutputString():

@@ -725,13 +725,19 @@ def _init_gui_commands():
 
     mats_cmd = [
         ("MaterialCreator", MaterialCreatorCommand()),
+        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
         ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
         ("MaterialApplier", MaterialApplierCommand()),
-        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
+    ]
+    materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
+
+    libs_cmd = [
         ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
         ("MaterialAmbientCGLibrary", MaterialAmbientCGLibrary()),
     ]
-    materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
+    libraries_group = CommandGroup(
+        libs_cmd, "Libraries", "Download from material libraries"
+    )
 
     render_commands = [
         ("Projects", projects_group),
@@ -740,6 +746,7 @@ def _init_gui_commands():
         ("Lights", lights_group),
         ("View", RenderViewCommand()),
         ("Materials", materials_group),
+        ("Libraries", libraries_group),
         separator,
         ("Render", RenderCommand()),
         separator,
