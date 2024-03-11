@@ -50,8 +50,8 @@ from .materialx_importer import MaterialXImporter
 class MaterialXDownloader(QWidget):
     """A MaterialX downloader widget.
 
-    This viewer is an html viewer but is able to download and import MaterialX
-    files.
+    This is an embedded html viewer that catches download requests and triggers
+    MaterialX import accordingly.
     """
 
     def __init__(self, fcdoc, parent, disp2bump=False):
@@ -212,7 +212,12 @@ class DownloadWindow(QProgressDialog):
 
 
 class ImporterWorker(QObject):
-    """A worker for import."""
+    """A worker for import.
+
+    Runs an importer in a separate thread, with the ability:
+    - to cancel
+    - to return a result code
+    """
 
     def __init__(self, filename, fcdoc, progress, disp2bump):
         super().__init__()
