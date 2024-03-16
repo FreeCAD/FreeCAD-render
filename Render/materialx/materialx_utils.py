@@ -27,6 +27,7 @@ import shutil
 import tempfile
 
 from PySide2.QtWidgets import QMessageBox
+from PySide2.QtWebEngineWidgets import QWebEngineProfile
 
 
 try:
@@ -41,7 +42,8 @@ import FreeCADGui as Gui
 
 MATERIALXDIR = os.path.join(os.path.dirname(__file__), "materialx")
 
-# Error classes
+
+# Error handling
 
 
 class MaterialXError(Exception):

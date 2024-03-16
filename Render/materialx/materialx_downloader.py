@@ -24,6 +24,7 @@
 
 import os.path
 import traceback
+import re
 
 from PySide2.QtWebEngineWidgets import (
     QWebEngineView,
@@ -31,7 +32,15 @@ from PySide2.QtWebEngineWidgets import (
     QWebEngineProfile,
     QWebEngineDownloadItem,
 )
-from PySide2.QtCore import Slot, Qt, QThread, Signal, QObject, QEventLoop
+from PySide2.QtCore import (
+    Slot,
+    Qt,
+    QThread,
+    Signal,
+    QObject,
+    QEventLoop,
+)
+from PySide2.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PySide2.QtWidgets import (
     QWidget,
     QToolBar,
@@ -54,27 +63,31 @@ class MaterialXDownloader(QWidget):
     MaterialX import accordingly.
     """
 
+    _download_required = Signal(QWebEngineDownloadItem)
+
     def __init__(self, fcdoc, parent, disp2bump=False):
         """Initialize HelpViewer."""
         super().__init__(parent)
         self.parent = parent
         self.fcdoc = fcdoc
         self.disp2bump = disp2bump
+        self.webprofile = QWebEngineProfile(self)
 
         self.setLayout(QVBoxLayout())
 
         # Set subwidgets
-        self.toolbar = QToolBar()
+        self.toolbar = QToolBar(self)
         self.layout().addWidget(self.toolbar)
-        self.view = QWebEngineView()
-        self.profile = QWebEngineProfile()
-        self.page = QWebEnginePage(self.profile, parent)
+        self.view = QWebEngineView(self)
+        self.page = QWebEnginePage(self.webprofile, self)
         self.view.setPage(self.page)
         self.layout().addWidget(self.view)
 
         # Set download manager
-        self.profile.setDownloadPath(App.getTempPath())
-        self.profile.downloadRequested.connect(self.download_requested)
+        self.webprofile.setDownloadPath(App.getTempPath())
+        self.webprofile.downloadRequested.connect(self.download_requested)
+        self._download_required.connect(self.run_download, Qt.QueuedConnection)
+        self.win = None
 
         # Add actions to toolbar
         self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
@@ -94,12 +107,19 @@ class MaterialXDownloader(QWidget):
         # Have page released before profile is, and avoid offending message :
         # 'Release of profile requested but WebEnginePage still not deleted.
         # Expect troubles !'
+        self.view = None
         self.page = None
 
     @Slot()
     def download_requested(self, download):
         """Answer to download_requested signal."""
-        # No save page download
+        # For unknown reason, I can't manage to run a QEventLoop in this
+        # slot (perhaps because it is run in WebEngineProfile thread, or
+        # because of the accept/cancel mechanism?). As a consequence, the
+        # effective code has been moved to another slot which is triggered via
+        # a signal and runs in this class context
+
+        # Exclude save page download
         if download.isSavePageDownload():
             QMessageBox.warning(
                 self.parent,
@@ -109,10 +129,21 @@ class MaterialXDownloader(QWidget):
             download.cancel()
             return
 
-        # Open download window
-        win = DownloadWindow(download, self.fcdoc, self.parent, self.disp2bump)
-        win.open()
+        # Trigger effective download
+        self._download_required.emit(download)
         download.accept()
+
+    @Slot()
+    def run_download(self, download):
+        """Run download actually.
+
+        This slot allows to run download in object thread, while
+        being triggered from 'download_requested'.
+        """
+        actual_size = polyhaven_getsize(self.page)
+
+        self.win = DownloadWindow(download, self.fcdoc, self, self.disp2bump)
+        self.win.open()
 
 
 class DownloadWindow(QProgressDialog):
@@ -123,7 +154,6 @@ class DownloadWindow(QProgressDialog):
     """
 
     def __init__(self, download, fcdoc, parent, disp2bump=False):
-        parent = Gui.getMainWindow()
         super().__init__(parent)
         self._download = download
         self._fcdoc = fcdoc
@@ -144,6 +174,7 @@ class DownloadWindow(QProgressDialog):
     @Slot()
     def set_progress(self, bytes_received, bytes_total):
         """Set value of widget progress bar."""
+        # Caveat: this slot must be executed in DownloadWindow thread
         self.setMaximum(bytes_total)
         self.setValue(bytes_received)
 
@@ -178,7 +209,11 @@ class DownloadWindow(QProgressDialog):
         # Start import
         self.setValue(0)
         self.worker = ImporterWorker(
-            filename, self._fcdoc, self.set_progress, self._disp2bump
+            filename,
+            self._fcdoc,
+            self.set_progress,
+            self._disp2bump,
+            self._download.page(),
         )
         self.thread = QThread()
         self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
@@ -215,18 +250,25 @@ class ImporterWorker(QObject):
     """A worker for import.
 
     Runs an importer in a separate thread, with the ability:
+    - to report progress
     - to cancel
     - to return a result code
     """
 
-    def __init__(self, filename, fcdoc, progress, disp2bump):
+    def __init__(self, filename, fcdoc, progress, disp2bump, page):
         super().__init__()
         self.filename = filename
-        self.importer = MaterialXImporter(
-            self.filename, fcdoc, progress, disp2bump
-        )
 
+        self._report_progress.connect(progress)
+
+        self.importer = MaterialXImporter(
+            self.filename, fcdoc, self._report_progress.emit, disp2bump
+        )
+        self.page = page
+
+    # Signals
     finished = Signal(int)
+    _report_progress = Signal(int, int)
 
     def run(self):
         """Run in worker thread."""
@@ -267,3 +309,95 @@ def open_mxdownloader(url, doc, disp2bump=False):
 
     viewer.setUrl(url)
     viewer.show()
+
+
+class JavaScriptRunner(QObject):
+    """An object to run synchronously a JavaScript script on a web page."""
+
+    # https://stackoverflow.com/questions/42592999/qt-waiting-for-a-signal-using-qeventloop-what-if-the-signal-is-emitted-too-ear
+    _done = Signal()
+
+    def __init__(self, script, page):
+        super().__init__()
+        self._page = page
+        self._result = None
+        self._loop = QEventLoop()
+        self._script = script
+
+    def run(self):
+        """Run JavaScript and wait for result."""
+        self._done.connect(self._loop.quit, type=Qt.QueuedConnection)
+        self._page.runJavaScript(self._script, 0, self._get_result)
+        self._loop.exec_()
+
+    @Slot()
+    def _get_result(self, _result):
+        """Get result from QWebEnginePage.runJavaScript."""
+        self._result = _result
+        self._done.emit()
+
+    @property
+    def result(self):
+        """Get result value."""
+        return self._result
+
+
+def polyhaven_getsize(page):
+    """Get texture size (in meters) for gpuopen textures.
+
+    Some textures from gpuopen imported from polyhaven.com have wrong
+    dimensions. This hook fetches right dimensions from the original site.
+    """
+    # Check this is gpuopen
+    url = page.url()
+    if not url.host() == "matlib.gpuopen.com":
+        return None
+
+    # Get links in page
+    runner = JavaScriptRunner(GETLINKS_JS, page)
+    runner.run()
+    result = runner.result.split(" ")
+
+    # Search for a link to poly haven
+    polyhaven_links = (
+        l for l in result if l.startswith("https://polyhaven.com")
+    )
+    try:
+        link = next(polyhaven_links)
+    except StopIteration:
+        return None
+
+    # Load page from polyhaven
+    request = QNetworkRequest(link)
+    access_manager = QNetworkAccessManager()
+    loop = QEventLoop()
+    access_manager.finished.connect(loop.quit, Qt.QueuedConnection)
+    polyhaven_page = access_manager.get(request)
+    loop.exec_()
+    data = polyhaven_page.readAll()
+
+    # Search width
+    if not (result := re.search(rb"<strong>(.*)</strong><p>wide</p>", data)):
+        return None
+
+    # Parse quantity
+    try:
+        quantity = App.Units.parseQuantity(result.group(1))
+    except ValueError:
+        return None
+    print(
+        "Polyhaven material: will use actual texture size from polyhaven.com"
+        f"('{quantity}')"
+    )
+    return quantity
+
+
+# JavaScript snippet to get all links in a web page
+GETLINKS_JS = """
+var links = document.getElementsByTagName("a");
+var results = [];
+for(var i=0, max=links.length; i<max; i++) {
+    results.push(links[i].href);
+}
+results.join(" ");
+"""

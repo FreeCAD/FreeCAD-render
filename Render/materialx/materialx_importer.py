@@ -23,12 +23,13 @@
 """This module provides features to import MaterialX materials in Render WB."""
 
 # TODO list
-# Solve scale question
+# MaterialX system installer
+# Handle case when no MaterialX system installed
 # Add a mix normal/height map to Ospray
 # Povray: adapt Disney (clearcoat etc.)
-# Handle case when no MaterialX system installed
 # Write documentation
 # Fix texture dimensions
+# Solve scale question
 # Handle HDR (set basetype to FLOAT, see translateshader.py)
 
 
