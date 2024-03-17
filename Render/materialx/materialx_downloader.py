@@ -139,9 +139,11 @@ class MaterialXDownloader(QWidget):
         This slot allows to run download in object thread, while
         being triggered from 'download_requested'.
         """
-        actual_size = polyhaven_getsize(self.page)
+        polyhaven_actual_size = polyhaven_getsize(self.page)
 
-        self.win = DownloadWindow(download, self.fcdoc, self, self.disp2bump)
+        self.win = DownloadWindow(
+            download, self.fcdoc, self, self.disp2bump, polyhaven_actual_size
+        )
         self.win.open()
 
 
@@ -152,11 +154,19 @@ class DownloadWindow(QProgressDialog):
     download from WebEngineProfile and handle import afterwards.
     """
 
-    def __init__(self, download, fcdoc, parent, disp2bump=False):
+    def __init__(
+        self,
+        download,
+        fcdoc,
+        parent,
+        disp2bump=False,
+        polyhaven_actual_size=None,
+    ):
         super().__init__(parent)
         self._download = download
         self._fcdoc = fcdoc
         self._disp2bump = disp2bump
+        self._polyhaven_size = polyhaven_actual_size
         filename = download.downloadFileName()
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
@@ -213,6 +223,7 @@ class DownloadWindow(QProgressDialog):
             self.set_progress,
             self._disp2bump,
             self._download.page(),
+            self._polyhaven_size,
         )
         self.thread = QThread()
         self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
@@ -254,14 +265,20 @@ class ImporterWorker(QObject):
     - to return a result code
     """
 
-    def __init__(self, filename, fcdoc, progress, disp2bump, page):
+    def __init__(
+        self, filename, fcdoc, progress, disp2bump, page, polyhaven_actual_size
+    ):
         super().__init__()
         self.filename = filename
 
         self._report_progress.connect(progress)
 
         self.importer = MaterialXImporter(
-            self.filename, fcdoc, self._report_progress.emit, disp2bump
+            self.filename,
+            fcdoc,
+            self._report_progress.emit,
+            disp2bump,
+            polyhaven_actual_size,
         )
         self.page = page
 

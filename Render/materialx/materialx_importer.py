@@ -31,6 +31,7 @@
 # Fix texture dimensions
 # Solve scale question
 # Handle HDR (set basetype to FLOAT, see translateshader.py)
+# Handle case when 2 importers are open
 
 
 import zipfile
@@ -82,6 +83,7 @@ class MaterialXImporter:
         doc: App.Document = None,
         progress_hook: Callable[int, int] = None,
         disp2bump: bool = False,
+        polyhaven_size: float = None,
     ):
         """Initialize importer.
 
@@ -97,6 +99,7 @@ class MaterialXImporter:
         self._request_halt = threading.Event()
         self._progress_hook = progress_hook
         self._disp2bump = disp2bump
+        self._polyhaven_size = polyhaven_size
 
         self._state = MaterialXImporter._ImporterState()
 
@@ -124,6 +127,7 @@ class MaterialXImporter:
 
                 # Translate, bake and convert to render material
                 self._translate_materialx()
+                self._correct_polyhaven_size()
                 self._compute_file_substitutions()
                 self._prepare_baker()
                 self._bake_materialx()
@@ -329,6 +333,37 @@ class MaterialXImporter:
             ) from err
 
         self._state.translated = mxdoc
+
+    def _correct_polyhaven_size(self):
+        """Fix polyhaven size if an actual size has been given.
+
+        In gpuopen, materials translated from polyhaven.com frequently have
+        wrong size. This hook fixes this bug, if a substitute size has been
+        given.
+        """
+        if not (size := self._polyhaven_size):
+            return
+        mxdoc = self._state.translated
+
+        assert mxdoc
+
+        uvnodes = (
+            elem for elem in mxdoc.traverseTree() if elem.getName() == "uv"
+        )
+
+        try:
+            uvnode = next(uvnodes)
+        except StopIteration:
+            return
+
+        print(
+            "Polyhaven material detected: will use actual texture size from "
+            "polyhaven.com "
+            f"('{size} {'meters' if size > 1 else 'meter'}')"
+        )
+
+        value = uvnode.getInput("value")
+        value.setAttribute("value", str(1 / size))
 
     def _compute_file_substitutions(self):
         """Compute file substitutions.
