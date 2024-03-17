@@ -384,11 +384,19 @@ def polyhaven_getsize(page):
         quantity = App.Units.parseQuantity(result.group(1))
     except ValueError:
         return None
+
+    # Convert to meters
+    try:
+        value = quantity.getValueAs("m")
+    except ValueError:
+        return None
+
     print(
-        "Polyhaven material: will use actual texture size from polyhaven.com"
-        f"('{quantity}')"
+        "Polyhaven material: will use actual texture size from polyhaven.com "
+        f"('{value} {'meters' if value > 1 else 'meter'}')"
     )
-    return quantity
+
+    return value
 
 
 # JavaScript snippet to get all links in a web page
