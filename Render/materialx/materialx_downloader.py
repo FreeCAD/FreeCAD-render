@@ -29,7 +29,6 @@ import re
 from PySide2.QtWebEngineWidgets import (
     QWebEngineView,
     QWebEnginePage,
-    QWebEngineProfile,
     QWebEngineDownloadItem,
 )
 from PySide2.QtCore import (
@@ -54,6 +53,7 @@ import FreeCAD as App
 
 from .materialx_utils import MATERIALX, critical_nomatx
 from .materialx_importer import MaterialXImporter
+from .materialx_profile import WEBPROFILE
 
 
 class MaterialXDownloader(QWidget):
@@ -71,7 +71,6 @@ class MaterialXDownloader(QWidget):
         self.parent = parent
         self.fcdoc = fcdoc
         self.disp2bump = disp2bump
-        self.webprofile = QWebEngineProfile(self)
 
         self.setLayout(QVBoxLayout())
 
@@ -79,13 +78,13 @@ class MaterialXDownloader(QWidget):
         self.toolbar = QToolBar(self)
         self.layout().addWidget(self.toolbar)
         self.view = QWebEngineView(self)
-        self.page = QWebEnginePage(self.webprofile, self)
+        self.page = QWebEnginePage(WEBPROFILE, self)
         self.view.setPage(self.page)
         self.layout().addWidget(self.view)
 
         # Set download manager
-        self.webprofile.setDownloadPath(App.getTempPath())
-        self.webprofile.downloadRequested.connect(self.download_requested)
+        WEBPROFILE.setDownloadPath(App.getTempPath())
+        WEBPROFILE.downloadRequested.connect(self.download_requested)
         self._download_required.connect(self.run_download, Qt.QueuedConnection)
         self.win = None
 
