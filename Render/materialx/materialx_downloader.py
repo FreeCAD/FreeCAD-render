@@ -408,11 +408,6 @@ def polyhaven_getsize(page):
     except ValueError:
         return None
 
-    print(
-        "Polyhaven material: will use actual texture size from polyhaven.com "
-        f"('{value} {'meters' if value > 1 else 'meter'}')"
-    )
-
     return value
 
 
