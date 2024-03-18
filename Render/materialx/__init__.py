@@ -27,3 +27,8 @@ from .materialx_utils import MATERIALX
 if MATERIALX:
     from .materialx_importer import MaterialXImporter, import_materialx
     from .materialx_downloader import MaterialXDownloader, open_mxdownloader
+else:
+    MaterialXImporter = None
+    import_materialx = None
+    MaterialXDownloader = None
+    open_mxdownloader = None
