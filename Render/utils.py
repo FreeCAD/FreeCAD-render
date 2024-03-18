@@ -29,6 +29,9 @@ import importlib
 import csv
 import itertools
 import functools
+import shutil
+import os
+import subprocess
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -280,6 +283,7 @@ def reload(module_name=None):
             "Render.materialx.materialx_baker",
             "Render.materialx.materialx_importer",
             "Render.materialx.materialx_downloader",
+            "Render.materialx.materialx_installer",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",
@@ -533,3 +537,29 @@ def top_object_names(doc=None):
     if not doc and Gui.ActiveDocument:
         doc = Gui.ActiveDocument.Document
     return [o.Label for o in top_objects(doc)]
+
+
+def find_python():
+    """Find Python executable embedded in FreeCAD."""
+
+    def which(appname):
+        app = shutil.which(appname)
+        return os.path.abspath(app) if app else None
+
+    return which("pythonw") or which("python")
+
+
+def pip_install(package):
+    """Install package with pip.
+
+    Returns: a subprocess.CompletedInstance"""
+    executable = find_python()
+    if not executable:
+        raise RuntimeError("Unable to find Python executable")
+    result = subprocess.run(
+        [executable, "-m", "pip", "install", package],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    return result

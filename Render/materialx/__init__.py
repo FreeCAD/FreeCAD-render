@@ -23,12 +23,13 @@
 """This module gathers public MaterialX handling features."""
 
 from .materialx_utils import MATERIALX
+from .materialx_installer import propose_install
 
 if MATERIALX:
     from .materialx_importer import MaterialXImporter, import_materialx
     from .materialx_downloader import MaterialXDownloader, open_mxdownloader
 else:
-    MaterialXImporter = None
-    import_materialx = None
-    MaterialXDownloader = None
-    open_mxdownloader = None
+    MaterialXImporter = None  # pylint: disable=invalid-name
+    import_materialx = None  # pylint: disable=invalid-name
+    MaterialXDownloader = None  # pylint: disable=invalid-name
+    open_mxdownloader = None  # pylint: disable=invalid-name

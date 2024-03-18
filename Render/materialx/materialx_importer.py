@@ -32,6 +32,8 @@
 # Solve scale question
 # Handle HDR (set basetype to FLOAT, see translateshader.py)
 # Handle case when 2 importers are open
+# Fix download hanging (after having already downloaded)
+# Switch to PySide (https://wiki.freecad.org/PySide)
 
 
 import zipfile

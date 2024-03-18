@@ -1,7 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
-# *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -55,7 +55,12 @@ from Render.lights import (
 )
 from Render.rendermaterial import is_multimat
 from Render.help import open_help
-from Render.materialx import import_materialx, MATERIALX, open_mxdownloader
+from Render.materialx import (
+    import_materialx,
+    MATERIALX,
+    open_mxdownloader,
+    propose_install,
+)
 
 
 class RenderProjectCommand:
@@ -397,13 +402,7 @@ class MaterialMaterialXImportCommand:
         material.
         """
         if not MATERIALX:
-            QMessageBox.critical(
-                Gui.getMainWindow(),
-                "MaterialX Import",
-                "Error: Cannot find MaterialX framework!\n"
-                "Please check MaterialX is correctly installed on your system "
-                "before using this feature...",
-            )
+            propose_install()
             return
         filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
         caption = translate("Render", "Select MaterialX")
@@ -442,6 +441,9 @@ class MaterialMaterialXLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            propose_install()
+            return
         doc = App.ActiveDocument
         url = QUrl("https://matlib.gpuopen.com/")
         open_mxdownloader(url, doc)
@@ -471,6 +473,9 @@ class MaterialAmbientCGLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            propose_install()
+            return
         doc = App.ActiveDocument
         url = QUrl("https://ambientcg.com/")
         open_mxdownloader(url, doc, disp2bump=True)
