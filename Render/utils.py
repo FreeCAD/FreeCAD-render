@@ -38,7 +38,7 @@ try:
 except ImportError:
     from Draft import translate as _translate  # 0.18
 
-import PySide2
+import PySide
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -406,7 +406,7 @@ def clear_report_view():
     main_window = Gui.getMainWindow()
 
     report_view = main_window.findChild(
-        PySide2.QtWidgets.QDockWidget, "Report view"
+        PySide.QtWidgets.QDockWidget, "Report view"
     )
     if report_view is None:
         App.Console.PrintWarning(
@@ -415,7 +415,7 @@ def clear_report_view():
         return
 
     text_widget = report_view.findChild(
-        PySide2.QtWidgets.QTextEdit, "Report view"
+        PySide.QtWidgets.QTextEdit, "Report view"
     )
     if text_widget is None:
         App.Console.PrintWarning(
@@ -561,5 +561,6 @@ def pip_install(package):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        check=False,
     )
     return result

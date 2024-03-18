@@ -24,13 +24,13 @@
 
 import os.path
 
-from PySide2.QtWebEngineWidgets import (
+from PySide.QtWebEngineWidgets import (
     QWebEngineView,
     QWebEngineScript,
     QWebEnginePage,
 )
-from PySide2.QtCore import QUrl
-from PySide2.QtWidgets import QWidget, QToolBar, QVBoxLayout
+from PySide.QtCore import QUrl
+from PySide.QtWidgets import QWidget, QToolBar, QVBoxLayout
 
 import FreeCADGui as Gui
 import FreeCAD as App
