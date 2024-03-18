@@ -28,6 +28,6 @@
 # open. Thus the web profile has to be created once and for all, and
 # never reloaded...
 
-from PySide2.QtWebEngineWidgets import QWebEngineProfile
+from PySide.QtWebEngineWidgets import QWebEngineProfile
 
 WEBPROFILE = QWebEngineProfile()

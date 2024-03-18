@@ -26,12 +26,12 @@ import os.path
 import traceback
 import re
 
-from PySide2.QtWebEngineWidgets import (
+from PySide.QtWebEngineWidgets import (
     QWebEngineView,
     QWebEnginePage,
     QWebEngineDownloadItem,
 )
-from PySide2.QtCore import (
+from PySide.QtCore import (
     Slot,
     Qt,
     QThread,
@@ -39,8 +39,8 @@ from PySide2.QtCore import (
     QObject,
     QEventLoop,
 )
-from PySide2.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PySide2.QtWidgets import (
+from PySide.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PySide.QtWidgets import (
     QWidget,
     QToolBar,
     QVBoxLayout,
