@@ -23,27 +23,30 @@
 """This module implements an installer for materialx."""
 
 
-from PySide.QtWidgets import QMessageBox
+from PySide.QtWidgets import QMessageBox, QLayout
 from PySide.QtGui import QStyle, QSpacerItem, QSizePolicy
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.utils import pip_install
+from Render.utils import pip_install, ensure_pip
 
 translate = App.Qt.translate
+
+BOXTITLE = translate("Render", "Render - MaterialX")
 
 
 def propose_install():
     """Propose MaterialX installation."""
     msg = translate(
         "Render",
-        "Error: Cannot find MaterialX framework!\n\n"
-        "Do you want Render to try to install MaterialX?",
+        "Error: Cannot find MaterialX framework!\n"
+        "\n"
+        "Do you want Render to try to install MaterialX?\n",
     )
     res = QMessageBox.critical(
         Gui.getMainWindow(),
-        translate("Render", "Render - MaterialX"),
+        BOXTITLE,
         msg,
         buttons=QMessageBox.Yes | QMessageBox.No,
     )
@@ -53,6 +56,25 @@ def propose_install():
 
 def _install_materialx():
     """Install MaterialX (with pip)."""
+    # Check whether pip is installed
+    if not (installed := ensure_pip()):
+        msg = translate("Render", "Unknown error")
+        if installed == -2:
+            msg = translate("Render", "Error: cannot find Python executable.")
+        if installed == -1:
+            msg = translate(
+                "Render",
+                "Error: cannot find pip. Please install pip beforehand.",
+            )
+        QMessageBox.critical(
+            Gui.getMainWindow(),
+            BOXTITLE,
+            msg,
+            QMessageBox.Cancel,
+        )
+        return
+
+    # Try to install
     res = pip_install("materialx")
     success = res.returncode == 0
     informative = (
@@ -60,8 +82,12 @@ def _install_materialx():
         if success
         else translate(
             "Render",
-            f"Installation failed - pip returned code '{res.returncode}'.\n\n"
-            "See details below...",
+            "Installation failed...\n"
+            "\n"
+            f"Command line: '{' '.join(res.args)}'\n"
+            f"Returned code: '{res.returncode}'\n"
+            "\n"
+            "See more details below...",
         )
     )
     detailed = res.stdout
@@ -75,7 +101,7 @@ def _show_result(success, informative, detailed, parent):
     """
     # Create message box
     msgbox = QMessageBox(parent)
-    msgbox.setWindowTitle("Install MaterialX")
+    msgbox.setWindowTitle(BOXTITLE)
 
     # Populate
     if bool(success):
@@ -90,11 +116,13 @@ def _show_result(success, informative, detailed, parent):
         msgbox.setIconPixmap(icon.pixmap(64))
     msgbox.setInformativeText(informative)
     msgbox.setDetailedText(detailed)
+    msgbox.setSizeGripEnabled(True)
 
     # Resize
     hspacer = QSpacerItem(500, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
     layout = msgbox.layout()
     layout.addItem(hspacer, layout.rowCount(), 0, 1, layout.columnCount())
+    layout.setSizeConstraint(QLayout.SetNoConstraint)
 
     # Execute
     msgbox.exec()
