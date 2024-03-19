@@ -83,7 +83,7 @@ class MaterialXImporter:
         self,
         filename: str,
         doc: App.Document = None,
-        progress_hook: Callable[int, int] = None,
+        progress_hook: Callable[[int, int], None] = None,
         disp2bump: bool = False,
         polyhaven_size: float = None,
     ):

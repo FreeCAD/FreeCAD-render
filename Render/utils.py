@@ -549,16 +549,32 @@ def find_python():
     return which("pythonw") or which("python")
 
 
-def pip_install(package, uninstall=False):
-    """Install (or uninstall) package with pip.
+def pip_install(package):
+    """Install package with pip.
 
     Returns: a subprocess.CompletedInstance"""
-    verb = "install" if not uninstall else "uninstall"
     executable = find_python()
     if not executable:
         raise RuntimeError("Unable to find Python executable")
     result = subprocess.run(
-        [executable, "-m", "pip", verb, "--user", package],
+        [executable, "-m", "pip", "install", "--user", package],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    return result
+
+
+def pip_uninstall(package):
+    """Install (or uninstall) package with pip.
+
+    Returns: a subprocess.CompletedInstance"""
+    executable = find_python()
+    if not executable:
+        raise RuntimeError("Unable to find Python executable")
+    result = subprocess.run(
+        [executable, "-m", "pip", "uninstall", "-y", package],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

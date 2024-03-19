@@ -43,8 +43,7 @@ import sys
 import itertools as it
 from threading import Event
 from dataclasses import dataclass, field
-from typing import List, Tuple, Dict, Set, Callable, Optional
-from collections.abc import Sequence
+from typing import List, Tuple, Dict, Set, Callable, Optional, Sequence
 
 import MaterialX as mx
 from MaterialX import PyMaterialXCore as mx_core

@@ -57,7 +57,7 @@ def propose_install():
 def _install_materialx():
     """Install MaterialX (with pip)."""
     # Check whether pip is installed
-    if not (installed := ensure_pip()):
+    if (installed := ensure_pip()):
         msg = translate("Render", "Unknown error")
         if installed == -2:
             msg = translate("Render", "Error: cannot find Python executable.")
@@ -78,7 +78,11 @@ def _install_materialx():
     res = pip_install("materialx")
     success = res.returncode == 0
     informative = (
-        translate("Render", "Successful installation")
+        translate(
+            "Render",
+            "Successful installation!\n"
+            "\n"
+            "Please restart FreeCAD for the changes to take effect.")
         if success
         else translate(
             "Render",
