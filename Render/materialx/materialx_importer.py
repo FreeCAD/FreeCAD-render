@@ -475,9 +475,10 @@ class MaterialXImporter:
         search_path = self._state.search_path
 
         # Bake and retrieve
-        _, outfile = tempfile.mkstemp(
+        handle, outfile = tempfile.mkstemp(
             suffix=".mtlx", dir=output_dir, text=True
         )
+        os.close(handle)
         baker.bake_all_materials(mxdoc, search_path, outfile)
 
         mxdoc = mx.createDocument()

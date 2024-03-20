@@ -292,6 +292,7 @@ class ImporterWorker(QObject):
             res = self.importer.run()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             App.Console.PrintError("/!\\ IMPORT ERROR /!\\\n")
+            App.Console.PrintError(f"{type(exc)}{exc.args}\n")
             traceback.print_exception(exc)
             self.finished.emit(-1)
         else:
