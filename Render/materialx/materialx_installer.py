@@ -23,8 +23,7 @@
 """This module implements an installer for materialx."""
 
 
-from PySide.QtWidgets import QMessageBox, QLayout
-from PySide.QtGui import QStyle, QSpacerItem, QSizePolicy
+from PySide.QtGui import QStyle, QSpacerItem, QSizePolicy, QMessageBox, QLayout
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -57,7 +56,7 @@ def propose_install():
 def _install_materialx():
     """Install MaterialX (with pip)."""
     # Check whether pip is installed
-    if (installed := ensure_pip()):
+    if installed := ensure_pip():
         msg = translate("Render", "Unknown error")
         if installed == -2:
             msg = translate("Render", "Error: cannot find Python executable.")
@@ -82,7 +81,8 @@ def _install_materialx():
             "Render",
             "Successful installation!\n"
             "\n"
-            "Please restart FreeCAD for the changes to take effect.")
+            "Please restart FreeCAD for the changes to take effect.",
+        )
         if success
         else translate(
             "Render",

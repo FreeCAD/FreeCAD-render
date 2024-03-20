@@ -30,7 +30,7 @@ from PySide.QtWebEngineWidgets import (
     QWebEnginePage,
 )
 from PySide.QtCore import QUrl
-from PySide.QtWidgets import QWidget, QToolBar, QVBoxLayout
+from PySide.QtGui import QWidget, QToolBar, QVBoxLayout
 
 import FreeCADGui as Gui
 import FreeCAD as App

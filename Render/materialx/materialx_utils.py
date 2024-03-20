@@ -26,7 +26,7 @@ import subprocess
 import shutil
 import tempfile
 
-from PySide.QtWidgets import QMessageBox
+from PySide.QtGui import QMessageBox
 
 
 try:

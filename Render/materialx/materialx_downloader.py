@@ -40,7 +40,7 @@ from PySide.QtCore import (
     QEventLoop,
 )
 from PySide.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PySide.QtWidgets import (
+from PySide.QtGui import (
     QWidget,
     QToolBar,
     QVBoxLayout,

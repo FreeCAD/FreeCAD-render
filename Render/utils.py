@@ -38,7 +38,7 @@ try:
 except ImportError:
     from Draft import translate as _translate  # 0.18
 
-import PySide
+from PySide.QtGui import QDockWidget, QTextEdit
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -405,18 +405,14 @@ def clear_report_view():
         return
     main_window = Gui.getMainWindow()
 
-    report_view = main_window.findChild(
-        PySide.QtWidgets.QDockWidget, "Report view"
-    )
+    report_view = main_window.findChild(QDockWidget, "Report view")
     if report_view is None:
         App.Console.PrintWarning(
             "Unable to clear report view: QDockWidget not found\n"
         )
         return
 
-    text_widget = report_view.findChild(
-        PySide.QtWidgets.QTextEdit, "Report view"
-    )
+    text_widget = report_view.findChild(QTextEdit, "Report view")
     if text_widget is None:
         App.Console.PrintWarning(
             "Unable to clear report view: QTextEdit not found\n"
