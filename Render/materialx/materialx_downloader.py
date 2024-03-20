@@ -118,6 +118,10 @@ class MaterialXDownloader(QWidget):
         # effective code has been moved to another slot which is triggered via
         # a signal and runs in this class context
 
+        # Check origin
+        if download.page() != self.page:
+            return
+
         # Exclude save page download
         if download.isSavePageDownload():
             QMessageBox.warning(
