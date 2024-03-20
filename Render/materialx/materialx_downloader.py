@@ -79,6 +79,7 @@ class MaterialXDownloader(QWidget):
         self.layout().addWidget(self.toolbar)
         self.view = QWebEngineView(self)
         self.page = QWebEnginePage(WEBPROFILE, self)
+        self.page.javaScriptConsoleMessage = _nope  # Hide console messages
         self.view.setPage(self.page)
         self.layout().addWidget(self.view)
 
@@ -361,6 +362,10 @@ class JavaScriptRunner(QObject):
     def result(self):
         """Get result value."""
         return self._result
+
+
+def _nope(*_):
+    """No operation function."""
 
 
 def polyhaven_getsize(page):
