@@ -23,11 +23,19 @@
 """This module provides features to import MaterialX materials in Render WB."""
 
 # TODO list
+#
+# Version1
+# Write documentation
+# Write announcement
+# Assign material with right-click
+# Address 0.22 compatibility
+# Handle HDRI IBL download
+#
+# Version 2
 # Add a mix normal/height map to Ospray
 # Povray: adapt Disney (clearcoat etc.)
-# Write documentation
 # Handle HDR (set basetype to FLOAT, see translateshader.py)
-# Fix download hanging (after having already downloaded)
+# Add Poly Haven (gltf)
 
 
 import zipfile
@@ -242,26 +250,26 @@ class MaterialXImporter:
             render_ng = mxdoc.addNodeGraph("RENDER_NG")
 
         # Move every cluttered root node to node graph
-        exclude = {
-            "nodedef",
-            "nodegraph",
-            "standard_surface",
-            "surfacematerial",
-            "displacement",
-        }
         rootnodes = (
-            n for n in mxdoc.getNodes() if n.getCategory() not in exclude
+            n
+            for n in mxdoc.getNodes()
+            if n.getCategory()
+            not in {
+                "nodedef",
+                "nodegraph",
+                "standard_surface",
+                "surfacematerial",
+                "displacement",
+            }
         )
         moved_nodes = set()
         for node in rootnodes:
-            nodecategory = node.getCategory()
             nodename = node.getName()
-            nodetype = node.getType()
             try:
                 newnode = render_ng.addNode(
-                    nodecategory,
+                    node.getCategory(),
                     nodename + "_",
-                    nodetype,
+                    node.getType(),
                 )
             except LookupError:
                 # Already exist
