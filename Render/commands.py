@@ -352,11 +352,11 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         """Get command's resources (callback)."""
         res = super().GetResources()
         res["MenuText"] = QT_TRANSLATE_NOOP(
-            "MaterialCreatorCommand", "Create Material"
+            "MaterialCreatorCommand", "Internal Material Library"
         )
         res["ToolTip"] = QT_TRANSLATE_NOOP(
             "MaterialCreatorCommand",
-            "Create a new Material in current document",
+            "Create a new Material in current document from internal library",
         )
         return res
 
@@ -386,11 +386,11 @@ class MaterialMaterialXImportCommand:
             "Pixmap": os.path.join(ICONDIR, "materialx-stacked-black.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Import MaterialX",
+                "Import MaterialX file",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Import a material from MaterialX format",
+                "Import a material from MaterialX file",
             ),
         }
 
@@ -426,11 +426,11 @@ class MaterialMaterialXLibrary:
             "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Open GPUOpen MaterialX Library",
+                "GPUOpen Material Library",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Open AMD GPUOpen MaterialX Library",
+                "Open AMD GPUOpen Material Library",
             ),
         }
 
@@ -458,11 +458,11 @@ class MaterialAmbientCGLibrary:
             "Pixmap": os.path.join(ICONDIR, "ambientcg.png"),
             "MenuText": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Open AmbientCG Library",
+                "AmbientCG Material Library",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "MaterialMaterialXImportCommand",
-                "Open AmbientCG Library",
+                "Open AmbientCG Material Library",
             ),
         }
 
@@ -729,16 +729,16 @@ def _init_gui_commands():
     lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
 
     mats_cmd = [
-        ("MaterialCreator", MaterialCreatorCommand()),
-        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
-        ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
         ("MaterialApplier", MaterialApplierCommand()),
+        ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
     ]
     materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
 
     libs_cmd = [
         ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
         ("MaterialAmbientCGLibrary", MaterialAmbientCGLibrary()),
+        ("MaterialCreator", MaterialCreatorCommand()),
+        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
     ]
     libraries_group = CommandGroup(
         libs_cmd, "Libraries", "Download from material libraries"
@@ -750,8 +750,9 @@ def _init_gui_commands():
         ("Camera", CameraCommand()),
         ("Lights", lights_group),
         ("View", RenderViewCommand()),
-        ("Materials", materials_group),
+        separator,
         ("Libraries", libraries_group),
+        ("Materials", materials_group),
         separator,
         ("Render", RenderCommand()),
         separator,
