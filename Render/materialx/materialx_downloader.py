@@ -51,7 +51,6 @@ from PySide.QtGui import (
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from .materialx_utils import MATERIALX, critical_nomatx
 from .materialx_importer import MaterialXImporter
 from .materialx_profile import WEBPROFILE
 
@@ -317,10 +316,6 @@ def open_mxdownloader(url, doc, disp2bump=False):
     """Open a downloader."""
     if not App.GuiUp:
         App.Console.PrintError("Fatal: open_mxdownloader requires GUI")
-        return
-
-    if not MATERIALX:
-        critical_nomatx()
         return
 
     viewer = MaterialXDownloader(doc, None, disp2bump)

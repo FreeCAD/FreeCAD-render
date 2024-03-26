@@ -57,9 +57,7 @@ from Render.rendermaterial import is_multimat
 from Render.help import open_help
 from Render.materialx import (
     import_materialx,
-    MATERIALX,
     open_mxdownloader,
-    propose_install,
 )
 
 
@@ -401,9 +399,6 @@ class MaterialMaterialXImportCommand:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
-            propose_install()
-            return
         filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
         caption = translate("Render", "Select MaterialX")
         openfilename = QFileDialog.getOpenFileName(
@@ -441,9 +436,6 @@ class MaterialMaterialXLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
-            propose_install()
-            return
         doc = App.ActiveDocument
         url = QUrl("https://matlib.gpuopen.com/")
         open_mxdownloader(url, doc)
@@ -473,9 +465,6 @@ class MaterialAmbientCGLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
-            propose_install()
-            return
         doc = App.ActiveDocument
         url = QUrl("https://ambientcg.com/")
         open_mxdownloader(url, doc, disp2bump=True)

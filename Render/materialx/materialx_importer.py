@@ -51,17 +51,8 @@ import FreeCAD as App
 import importFCMat
 
 import Render.material
-from Render.constants import MATERIALXDIR
+from Render.constants import MATERIALXDIR  # TODO
 from Render.utils import find_python
-
-from .materialx_utils import (
-    MaterialXInterrupted,
-    MATERIALX,
-    MaterialXError,
-    _warn,
-    _msg,
-    critical_nomatx,
-)
 
 
 class MaterialXImporter:
@@ -95,7 +86,7 @@ class MaterialXImporter:
         """Import a MaterialX archive as Render material."""
         executable = find_python()
         script = os.path.join(
-            os.path.dirname(__file__), "materialx_converter.py"
+            os.path.dirname(__file__), "converter", "materialx_converter.py"
         )
         # Proceed with file
         with tempfile.TemporaryDirectory() as working_dir:
