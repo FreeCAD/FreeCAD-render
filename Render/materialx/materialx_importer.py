@@ -127,9 +127,10 @@ class MaterialXImporter:
                             App.Console.PrintMessage(line)
                         else:
                             # Should be a progress report
-                            self._progress_hook(
-                                decode["value"], decode["maximum"]
-                            )
+                            if self._progress_hook:
+                                self._progress_hook(
+                                    decode["value"], decode["maximum"]
+                                )
 
                 # Import result
                 in_file = os.path.join(working_dir, "out.FCMat")
@@ -173,8 +174,5 @@ class MaterialXImporter:
 
 def import_materialx(filename, fcdoc):
     """Import MaterialX (function version)."""
-    if not MATERIALX:
-        critical_nomatx()
-        return
     importer = MaterialXImporter(filename, fcdoc)
     importer.run()
