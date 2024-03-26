@@ -32,6 +32,7 @@ import functools
 import shutil
 import os
 import subprocess
+import venv
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -586,6 +587,22 @@ def ensure_pip():
         return -2
     result = subprocess.run(
         [executable, "-m", "ensurepip", "--default-pip"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        return -1
+    return 0
+
+
+def set_venv():
+    # Create
+    executable = find_python()
+    envpath = os.path.join(App.getUserAppDataDir(), "Render")
+    result = subprocess.run(
+        [executable, "-m", "venv", envpath, "--prompt", "Render"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

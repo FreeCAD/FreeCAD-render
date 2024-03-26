@@ -20,14 +20,14 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module provides utilities for MaterialX handling system."""
+"""This module provides utilities for MaterialX handling system.
+
+This module does not depend on FreeCAD.
+"""
 import os
 import subprocess
 import shutil
 import tempfile
-
-from PySide.QtGui import QMessageBox
-
 
 try:
     import MaterialX as mx
@@ -36,10 +36,7 @@ except (ModuleNotFoundError, ImportError):
 else:
     MATERIALX = True
 
-import FreeCAD as App
-import FreeCADGui as Gui
-
-MATERIALXDIR = os.path.join(os.path.dirname(__file__), "materialx")
+MATERIALXDIR = os.path.dirname(__file__)
 
 
 # Error handling
@@ -64,10 +61,7 @@ def critical_nomatx():
         "Please check MaterialX is correctly installed on your system "
         "before using this feature..."
     )
-    if App.GuiUp:
-        QMessageBox.critical(Gui.getMainWindow(), "MaterialX Import", msg)
-    else:
-        App.Console.PrintError(msg)
+    print(msg, file=sys.stderr)
 
 
 # Debug functions
@@ -122,12 +116,13 @@ def _save_intermediate(outfile):
 
 def _warn(msg):
     """Emit warning during MaterialX processing."""
-    App.Console.PrintWarning("[Render][MaterialX] " + msg)
+    # TODO
+    print("[Render][MaterialX] " + msg)
 
 
 def _msg(msg):
     """Emit warning during MaterialX processing."""
-    App.Console.PrintMessage("[Render][MaterialX] " + msg)
+    print("[Render][MaterialX] " + msg)
 
 
 def _view_doc(doc):

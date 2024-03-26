@@ -53,7 +53,7 @@ from MaterialX import PyMaterialXGenGlsl as mx_gen_glsl
 from MaterialX import PyMaterialXRender as mx_render
 from MaterialX import PyMaterialXRenderGlsl as mx_render_glsl
 
-from .materialx_utils import MaterialXInterrupted
+from materialx_utils import MaterialXInterrupted
 
 
 class RenderTextureBaker:
