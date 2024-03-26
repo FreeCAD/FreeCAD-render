@@ -51,7 +51,7 @@ import tempfile
 import os
 import threading
 from dataclasses import dataclass
-from typing import List, Tuple, Callable
+from typing import List, Tuple
 import argparse
 import pathlib
 import configparser
@@ -68,10 +68,11 @@ from materialx_utils import (
     MaterialXError,
     _warn,
     _msg,
-    critical_nomatx,
     MATERIALXDIR,
 )
 from materialx_baker import RenderTextureBaker
+
+TEXNAME = "Texture"  # Texture name
 
 
 class MaterialXConverter:
@@ -162,12 +163,6 @@ class MaterialXConverter:
         """Check if halt is requested, raise MaterialXInterrupted if so."""
         if self._request_halt.is_set():
             raise MaterialXInterrupted()
-
-    # Helpers
-    def _set_progress(self, value, maximum):
-        """Report progress."""
-        msg = json.dumps({"value": value, "maximum": maximum})
-        print(msg)
 
     def _unzip_files(self):
         """Unzip materialx package, if needed.
@@ -457,7 +452,7 @@ class MaterialXConverter:
         self._state.baker.setup_unit_system(mxdoc)
         self._state.baker.optimize_constants = True
         self._state.baker.hash_image_names = False
-        self._state.baker.progress_hook = self._set_progress
+        self._state.baker.progress_hook = _set_progress
         self._state.baker.filename_substitutions = substitutions
 
         self._baker_ready.set()
@@ -531,10 +526,9 @@ class MaterialXConverter:
 
         # Add textures, if necessary
         textures = {}
-        texname = "Texture"  # TODO Constant
         for index, item in enumerate(images.items()):
             name, img = item
-            matdict[f"Render.Textures.{texname}.Images.{index}"] = img
+            matdict[f"Render.Textures.{TEXNAME}.Images.{index}"] = img
             textures[name] = index
 
         # Fill fields
@@ -553,11 +547,9 @@ class MaterialXConverter:
                 index = textures[outputs[output]]
                 key = f"Render.Disney.{name}"
                 if name not in ("Normal", "Bump"):
-                    matdict[key] = f"Texture('{texname}', {index})"
+                    matdict[key] = f"Texture('{TEXNAME}', {index})"
                 else:
-                    matdict[key] = (
-                        f"Texture('{texname}', {index}, 1.0)"  # TODO
-                    )
+                    matdict[key] = f"Texture('{TEXNAME}', {index}, 1.0)"
             elif name:
                 # Value
                 key = f"Render.Disney.{name}"
@@ -571,20 +563,18 @@ class MaterialXConverter:
         config.optionxform = str  # Case sensitive
         config["General"] = {"Name": mxname}
         config["Render"] = matdict
-        with open(outfilename, "w") as out:
+        with open(outfilename, "w", encoding="utf-8") as out:
             config.write(out)
 
 
-# TODO
-def import_materialx(filename):
-    """Import MaterialX (function version)."""
-    if not MATERIALX:
-        critical_nomatx()
-        return
-    converter = MaterialXConverter(filename)
-    converter.run()
+# Helpers
+def _set_progress(value, maximum):
+    """Report progress."""
+    msg = json.dumps({"value": value, "maximum": maximum})
+    print(msg)
 
 
+# Main
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file", type=argparse.FileType("r"))
@@ -593,15 +583,13 @@ if __name__ == "__main__":
     parser.add_argument("--disp2bump", action="store_true")
     args = parser.parse_args()
 
-    filename = args.file.name
-
-    destdir = args.destdir.resolve()
-    if not destdir.exists() or not destdir.is_dir():
-        raise RuntimeError("Invalid destination directory")
+    _destdir = args.destdir.resolve()
+    if not _destdir.exists() or not _destdir.is_dir():
+        raise RuntimeError(f"Invalid destination directory ('{_destdir}')")
 
     converter = MaterialXConverter(
-        filename,
-        str(destdir),
+        args.file.name,
+        str(_destdir),
         polyhaven_size=args.polyhaven_size,
         disp2bump=args.disp2bump,
     )
