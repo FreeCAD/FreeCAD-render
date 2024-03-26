@@ -55,6 +55,7 @@ from typing import List, Tuple, Callable
 import argparse
 import pathlib
 import configparser
+import json
 
 import MaterialX as mx
 from MaterialX import PyMaterialXGenShader as mx_gen_shader
@@ -92,7 +93,6 @@ class MaterialXConverter:
         self,
         filename: str,
         destdir: str,
-        progress_hook: Callable[[int, int], None] = None,
         disp2bump: bool = False,
         polyhaven_size: float = None,
     ):
@@ -107,7 +107,6 @@ class MaterialXConverter:
         self._destdir = destdir
         self._baker_ready = threading.Event()
         self._request_halt = threading.Event()
-        self._progress_hook = progress_hook
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_size
 
@@ -167,8 +166,8 @@ class MaterialXConverter:
     # Helpers
     def _set_progress(self, value, maximum):
         """Report progress."""
-        if self._progress_hook is not None:
-            self._progress_hook(value, maximum)
+        msg = json.dumps({"value": value, "maximum": maximum})
+        print(msg)
 
     def _unzip_files(self):
         """Unzip materialx package, if needed.
@@ -458,7 +457,7 @@ class MaterialXConverter:
         self._state.baker.setup_unit_system(mxdoc)
         self._state.baker.optimize_constants = True
         self._state.baker.hash_image_names = False
-        self._state.baker.progress_hook = self._progress_hook
+        self._state.baker.progress_hook = self._set_progress
         self._state.baker.filename_substitutions = substitutions
 
         self._baker_ready.set()
@@ -493,85 +492,6 @@ class MaterialXConverter:
 
         self._state.baked = mxdoc
 
-    def _make_render_material(self):
-        return  # TODO
-        """Make a RenderMaterial from a MaterialX baked material."""
-        assert self._state.baked
-
-        mxdoc = self._state.baked
-        # Get PBR material
-        mxmats = mxdoc.getMaterialNodes()
-        assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
-        mxmat = mxmats[0]
-        mxname = mxmat.getAttribute("original_name")
-        print(f"Wrote FreeCAD Render material '{mxname}'")
-
-        # Get images
-        node_graphs = mxdoc.getNodeGraphs()
-        assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
-        if len(node_graphs):
-            node_graph = node_graphs[0]
-            images = {
-                node.getName(): node.getInputValue("file")
-                for node in node_graph.getNodes()
-                if node.getCategory() == "image"
-            }
-            outputs = {
-                node.getName(): node.getNodeName()
-                for node in node_graph.getOutputs()
-            }
-        else:
-            images = {}
-            outputs = {}
-
-        # Reminder: Material.Material is not updatable in-place (FreeCAD
-        # bug), thus we have to copy/replace
-        mat = Render.material.make_material(name=mxname, doc=fcdoc)
-        matdict = mat.Material.copy()
-        matdict["Render.Type"] = "Disney"
-
-        # Add textures, if necessary
-        texture = None
-        textures = {}
-        for name, img in images.items():
-            if not texture:
-                texture, _, _ = mat.Proxy.add_texture(img)
-                propname = "Image"
-            else:
-                propname = texture.add_image(imagename="Image", imagepath=img)
-            textures[name] = propname
-        texname = texture.fpo.Name if texture else None
-
-        # Fill fields
-        render_params = (
-            (param, param.getName())
-            for node in mxdoc.getNodes()
-            for param in node.getInputs()
-            if node.getCategory() in ("render_pbr", "render_disp")
-        )
-        for param, name in render_params:
-            if name == "Displacement" and self._disp2bump:
-                name = "Bump"  # Substitute bump to displacement
-            if param.hasOutputString():
-                # Texture
-                output = param.getOutputString()
-                image = textures[outputs[output]]
-                key = f"Render.Disney.{name}"
-                if name not in ("Normal", "Bump"):
-                    matdict[key] = f"Texture;('{texname}','{image}')"
-                else:
-                    matdict[key] = f"Texture;('{texname}','{image}', '1.0')"
-            elif name:
-                # Value
-                key = f"Render.Disney.{name}"
-                matdict[key] = param.getValueString()
-            else:
-                msg = f"Unhandled param: '{name}'"
-                _msg(msg)
-
-        # Replace Material.Material
-        mat.Material = matdict
-
     def _write_fcmat(self):
         """Make a RenderMaterial from a MaterialX baked material."""
         assert self._state.baked
@@ -584,7 +504,7 @@ class MaterialXConverter:
         mxname = mxmat.getAttribute("original_name")
 
         outfilename = os.path.join(self._destdir, "out.FCMat")
-        print(f"Wrote material card: {outfilename}")
+        print(f"Creating material card: {outfilename}")
 
         # Get images
         node_graphs = mxdoc.getNodeGraphs()

@@ -45,6 +45,7 @@ import threading
 from dataclasses import dataclass
 from typing import List, Tuple, Callable
 import subprocess
+import json
 
 import FreeCAD as App
 import importFCMat
@@ -110,7 +111,25 @@ class MaterialXImporter:
                 args = [executable, script, self._filename, working_dir]
                 if self._polyhaven_size:
                     args += ["--polyhaven-size", self._polyhaven_size]
-                subprocess.run(args)
+
+                with subprocess.Popen(
+                    args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    bufsize=1,
+                    universal_newlines=True,
+                ) as proc:
+                    for line in proc.stdout:
+                        try:
+                            decode = json.loads(line)
+                        except json.JSONDecodeError:
+                            # Undecodable: write as-is
+                            App.Console.PrintMessage(line)
+                        else:
+                            # Should be a progress report
+                            self._progress_hook(
+                                decode["value"], decode["maximum"]
+                            )
 
                 # Import result
                 in_file = os.path.join(working_dir, "out.FCMat")
@@ -122,8 +141,7 @@ class MaterialXImporter:
                 # Reminder: Material.Material is not updatable in-place
                 # (FreeCAD bug), thus we have to copy/replace
                 mat.Material = matdict
-                # Import textures (and remove texture data from self.material)
-
+            # TODO Exception handling
             except MaterialXInterrupted:
                 print("IMPORT - INTERRUPTED")
                 return -2
