@@ -30,22 +30,6 @@ is installed. Using a virtual environment allows to install MaterialX with
 pip even if Python modules are externally managed.
 """
 
-# TODO list
-#
-# Version1
-# Write announcement
-# Assign material with right-click
-# Address 0.22 compatibility
-# Handle HDRI IBL download
-# Isolate materialx in virtual env
-#
-# Version 2
-# Add a mix normal/height map to Ospray
-# Povray: adapt Disney (clearcoat etc.)
-# Handle HDR (set basetype to FLOAT, see translateshader.py)
-# Add Poly Haven (gltf)
-
-
 import zipfile
 import tempfile
 import os
@@ -56,23 +40,49 @@ import argparse
 import pathlib
 import configparser
 import json
+import signal
+import sys
 
-import MaterialX as mx
-from MaterialX import PyMaterialXGenShader as mx_gen_shader
-from MaterialX import PyMaterialXRender as mx_render
-from MaterialX import PyMaterialXFormat as mx_format
+try:
+    import MaterialX as mx
+    from MaterialX import PyMaterialXGenShader as mx_gen_shader
+    from MaterialX import PyMaterialXRender as mx_render
+    from MaterialX import PyMaterialXFormat as mx_format
+except (ModuleNotFoundError, ImportError):
+    MATERIALX = False
+else:
+    MATERIALX = True
 
-from materialx_utils import (
-    MaterialXInterrupted,
-    MATERIALX,
-    MaterialXError,
-    _warn,
-    _msg,
-    MATERIALXDIR,
-)
 from materialx_baker import RenderTextureBaker
 
+MATERIALXDIR = os.path.dirname(__file__)
 TEXNAME = "Texture"  # Texture name
+
+
+class ConverterError(Exception):
+    """Exception to be raised when import encounters an error."""
+
+    MESSAGES = {
+        255: "Interruption request",
+        1: "Unhandled exception",
+        2: "Missing mtlx file",
+        3: "Unrecognized input format",
+        4: "No material in file",
+        5: "Too many materials in file",
+        6: "Translation error for surface shader",
+        7: "Translation error for displacement shader",
+        8: "Invalid destination directory",
+        9: "Missing MaterialX library: unable to convert material",
+    }
+
+    def __init__(self, errno):
+        super().__init__()
+        self.errno = errno
+
+    @property
+    def message(self):
+        """Get error message."""
+        return self.MESSAGES.get(self.errno, "Unknown error.")
 
 
 class MaterialXConverter:
@@ -115,36 +125,20 @@ class MaterialXConverter:
 
     def run(self):
         """Import a MaterialX archive as Render material."""
-        # MaterialX system available?
-        if not MATERIALX:
-            _warn("Missing MaterialX library: unable to import material")
-            return -1
-
         # Proceed with file
-        working_dir = self._destdir
+        self._state.working_dir = self._destdir
 
-        try:
-            # Prepare
-            self._state.working_dir = working_dir
-            self._unzip_files()
-            self._compute_search_path()
+        # Prepare
+        self._unzip_files()
+        self._compute_search_path()
 
-            # Translate, bake and convert to render material
-            self._translate_materialx()
-            self._correct_polyhaven_size()
-            self._compute_file_substitutions()
-            self._prepare_baker()
-            self._bake_materialx()
-            self._write_fcmat()
-
-        except MaterialXInterrupted:
-            print("CONVERSION - INTERRUPTED")
-            return -2
-        except MaterialXError as error:
-            print(f"CONVERSION - ERROR - {error.message}")
-            return -1
-
-        return 0
+        # Translate, bake and convert to render material
+        self._translate_materialx()
+        self._correct_polyhaven_size()
+        self._compute_file_substitutions()
+        self._prepare_baker()
+        self._bake_materialx()
+        self._write_fcmat()
 
     def cancel(self):
         """Request process to halt.
@@ -158,11 +152,6 @@ class MaterialXConverter:
     def canceled(self):
         """Check if halt has been requested."""
         return self._request_halt.is_set()
-
-    def _check_halt_requested(self):
-        """Check if halt is requested, raise MaterialXInterrupted if so."""
-        if self._request_halt.is_set():
-            raise MaterialXInterrupted()
 
     def _unzip_files(self):
         """Unzip materialx package, if needed.
@@ -188,10 +177,9 @@ class MaterialXConverter:
                 try:
                     self._state.mtlx_filename = next(files)
                 except StopIteration as exc:
-                    raise MaterialXError("Missing mtlx file") from exc
+                    raise ConverterError(2) from exc
         else:
             self._state.mtlx_filename = self._filename
-        self._check_halt_requested()
 
     def _compute_search_path(self):
         """Compute search path for MaterialX."""
@@ -227,14 +215,13 @@ class MaterialXConverter:
         try:
             mx.readFromXmlFile(mxdoc, mtlx_filename)
         except mx_format.ExceptionParseError as err:
-            msg = "Unrecognized input format"
-            raise MaterialXError(msg) from err
+            raise ConverterError(3) from err
 
         # Check material unicity and get its name
         if not (mxmats := mxdoc.getMaterialNodes()):
-            raise MaterialXError("No material in file")
+            raise ConverterError(4)
         if len(mxmats) > 1:
-            raise MaterialXError(f"Too many materials ({len(mxmats)}) in file")
+            raise ConverterError(5)
         mxmat = mxmats[0]
 
         # Clean doc for translation
@@ -311,9 +298,7 @@ class MaterialXConverter:
         try:
             translator.translateAllMaterials(mxdoc, "render_pbr")
         except mx.Exception as err:
-            raise MaterialXError(
-                "Translation error for surface shader"
-            ) from err
+            raise ConverterError(6) from err
 
         # Translate displacement shader
         dispnodes = [
@@ -325,9 +310,7 @@ class MaterialXConverter:
             for dispnode in dispnodes:
                 translator.translateShader(dispnode, "render_disp")
         except mx.Exception as err:
-            raise MaterialXError(
-                "Translation error for displacement shader"
-            ) from err
+            raise ConverterError(7) from err
 
         self._state.translated = mxdoc
 
@@ -574,8 +557,29 @@ def _set_progress(value, maximum):
     print(msg)
 
 
+def _interrupt(signum, stackframe):
+    """Interrupt treatment."""
+    raise ConverterError(255)
+
+
+def _check_materialx():
+    """Check whether MaterialX is available."""
+    # MaterialX system available?
+    if not MATERIALX:
+        raise ConverterError(9)
+
+
+def _get_destdir(args):
+    """Get destination directory from arguments."""
+    destdir = args.destdir.resolve()
+    if not destdir.exists() or not destdir.is_dir():
+        raise ConverterError(8)
+    return destdir
+
+
 # Main
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     parser.add_argument("file", type=argparse.FileType("r"))
     parser.add_argument("destdir", type=pathlib.Path)
@@ -583,14 +587,22 @@ if __name__ == "__main__":
     parser.add_argument("--disp2bump", action="store_true")
     args = parser.parse_args()
 
-    _destdir = args.destdir.resolve()
-    if not _destdir.exists() or not _destdir.is_dir():
-        raise RuntimeError(f"Invalid destination directory ('{_destdir}')")
+    try:
+        signal.signal(signal.SIGTERM, _interrupt)
+        _check_materialx()
+        _destdir = _get_destdir(args)
 
-    converter = MaterialXConverter(
-        args.file.name,
-        str(_destdir),
-        polyhaven_size=args.polyhaven_size,
-        disp2bump=args.disp2bump,
-    )
-    converter.run()
+        converter = MaterialXConverter(
+            args.file.name,
+            str(_destdir),
+            polyhaven_size=args.polyhaven_size,
+            disp2bump=args.disp2bump,
+        )
+        converter.run()
+    except ConverterError as exc:
+        print(
+            f"CONVERTER EXCEPTION #{exc.errno}: {exc.message}", file=sys.stderr
+        )
+        exit(exc.errno)
+
+    exit(0)

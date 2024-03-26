@@ -53,8 +53,6 @@ from MaterialX import PyMaterialXGenGlsl as mx_gen_glsl
 from MaterialX import PyMaterialXRender as mx_render
 from MaterialX import PyMaterialXRenderGlsl as mx_render_glsl
 
-from materialx_utils import MaterialXInterrupted
-
 
 class RenderTextureBaker:
     """A texture baker, capable for all shaders of a material.
@@ -419,11 +417,6 @@ class RenderTextureBaker:
 
     # PRIVATE METHODS {{{
 
-    def _check_halt_requested(self):
-        """Check if baker halt is requested, raise BakerInterrupted if so."""
-        if self._halt_requested.is_set():
-            raise MaterialXInterrupted()
-
     def _set_progress(self, value, maximum):
         """Report progress."""
         try:
@@ -551,7 +544,6 @@ class RenderTextureBaker:
         inputs = shader.getInputs()
         count_inputs = len(inputs)
         self._set_progress(1, count_inputs + 1)  # Take prev. steps in account
-        self._check_halt_requested()
 
         baked_outputs = {}
         for index, input_ in enumerate(shader.getInputs()):
@@ -586,7 +578,6 @@ class RenderTextureBaker:
                     output.getNamePath()
                 ].getName()
             # Progress and halt management
-            self._check_halt_requested()
             self._set_progress(index + 2, count_inputs + 1)
 
     def _bake_graph_output(

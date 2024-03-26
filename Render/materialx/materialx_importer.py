@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Callable
 import subprocess
 import json
+import ctypes
 
 import FreeCAD as App
 import importFCMat
@@ -81,6 +82,7 @@ class MaterialXImporter:
         self._progress_hook = progress_hook
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_size
+        self._proc = None
 
     def run(self):
         """Import a MaterialX archive as Render material."""
@@ -91,58 +93,60 @@ class MaterialXImporter:
         # Proceed with file
         with tempfile.TemporaryDirectory() as working_dir:
             print("STARTING MATERIALX IMPORT")
-            try:
-                # Check wether there is a FreeCAD destination document
-                if not self._doc:
-                    raise MaterialXError(
-                        "No target document for import. Aborting..."
-                    )
-
-                # Prepare converter call
-                args = [executable, "-u", script, self._filename, working_dir]
-                if self._polyhaven_size:
-                    args += ["--polyhaven-size", self._polyhaven_size]
-                if self._disp2bump:
-                    args += ["--disp2bump"]
-
-                # Run converter
-                with subprocess.Popen(
-                    args,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    bufsize=0,  # Unbuffered
-                    universal_newlines=True,
-                ) as proc:
-                    for line in proc.stdout:
-                        try:
-                            decode = json.loads(line)
-                        except json.JSONDecodeError:
-                            # Undecodable: write as-is
-                            App.Console.PrintMessage(line)
-                        else:
-                            # Should be a progress report
-                            if self._progress_hook:
-                                self._progress_hook(
-                                    decode["value"], decode["maximum"]
-                                )
-
-                # Import result
-                in_file = os.path.join(working_dir, "out.FCMat")
-                matdict = importFCMat.read(in_file)
-                mxname = matdict.get("Name", "Material")
-                mat = Render.material.make_material(name=mxname, doc=self._doc)
-                matdict = mat.Proxy.import_textures(matdict, basepath=None)
-
-                # Reminder: Material.Material is not updatable in-place
-                # (FreeCAD bug), thus we have to copy/replace
-                mat.Material = matdict
-            # TODO Exception handling
-            except MaterialXInterrupted:
-                print("IMPORT - INTERRUPTED")
-                return -2
-            except MaterialXError as error:
-                print(f"IMPORT - ERROR - {error.message}")
+            # Check wether there is a FreeCAD destination document
+            if not self._doc:
+                print("No target document for import. Aborting...")
                 return -1
+
+            # Prepare converter call
+            args = [executable, "-u", script, self._filename, working_dir]
+            if self._polyhaven_size:
+                args += ["--polyhaven-size", self._polyhaven_size]
+            if self._disp2bump:
+                args += ["--disp2bump"]
+
+            # Run converter
+            with subprocess.Popen(
+                args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                bufsize=0,  # Unbuffered
+                universal_newlines=True,
+            ) as proc:
+                self._proc = proc
+                for line in proc.stdout:
+                    try:
+                        decode = json.loads(line)
+                    except json.JSONDecodeError:
+                        # Undecodable: write as-is
+                        App.Console.PrintMessage(line)
+                    else:
+                        # Report progress
+                        if self._progress_hook:
+                            self._progress_hook(
+                                decode["value"], decode["maximum"]
+                            )
+
+            # Check result
+            if (returncode := proc.returncode) != 0:
+                if returncode == 255:
+                    App.Console.PrintWarning("IMPORT - INTERRUPTED\n")
+                else:
+                    App.Console.PrintError(
+                        f"IMPORT - ABORTED ({returncode})\n"
+                    )
+                return returncode
+
+            # Import result
+            in_file = os.path.join(working_dir, "out.FCMat")
+            matdict = importFCMat.read(in_file)
+            mxname = matdict.get("Name", "Material")
+            mat = Render.material.make_material(name=mxname, doc=self._doc)
+            matdict = mat.Proxy.import_textures(matdict, basepath=None)
+
+            # Reminder: Material.Material is not updatable in-place
+            # (FreeCAD bug), thus we have to copy/replace
+            mat.Material = matdict
 
             print("IMPORT - SUCCESS")
             return 0
@@ -152,18 +156,8 @@ class MaterialXImporter:
 
         This command is designed to be executed in another thread than run.
         """
-        self._request_halt.set()
-        if self._baker_ready.is_set():
-            self._state.baker.request_halt()
-
-    def canceled(self):
-        """Check if halt has been requested."""
-        return self._request_halt.is_set()
-
-    def _check_halt_requested(self):
-        """Check if halt is requested, raise MaterialXInterrupted if so."""
-        if self._request_halt.is_set():
-            raise MaterialXInterrupted()
+        if self._proc:
+            self._proc.terminate()
 
 
 def import_materialx(filename, fcdoc):

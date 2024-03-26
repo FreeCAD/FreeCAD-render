@@ -242,13 +242,11 @@ class DownloadWindow(QProgressDialog):
         self.worker.finished.connect(self.thread.exit)
 
         # Start the thread
-        self.thread.start(QThread.IdlePriority)
         loop = QEventLoop()
-        self.worker.finished.connect(loop.exit)
-        if not self.thread.isFinished():
-            res = loop.exec_()
-        loop.processEvents()
-        if self.worker.canceled() or res:
+        self.worker.finished.connect(loop.exit, Qt.QueuedConnection)
+        self.thread.start(QThread.IdlePriority)
+        res = loop.exec_()
+        if res:
             os.remove(filename)
             self.cancel()
             return
@@ -298,7 +296,7 @@ class ImporterWorker(QObject):
             App.Console.PrintError("/!\\ IMPORT ERROR /!\\\n")
             App.Console.PrintError(f"{type(exc)}{exc.args}\n")
             traceback.print_exception(exc)
-            self.finished.emit(-1)
+            self.finished.emit(-99)  # Uncaught error
         else:
             self.finished.emit(res)
 
@@ -306,10 +304,6 @@ class ImporterWorker(QObject):
     def cancel(self):
         """Request importer to cancel."""
         self.importer.cancel()
-
-    def canceled(self):
-        """Check whether importer was requested to canceled."""
-        return self.importer.canceled()
 
 
 def open_mxdownloader(url, doc, disp2bump=False):
