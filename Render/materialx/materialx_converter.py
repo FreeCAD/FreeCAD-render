@@ -590,6 +590,7 @@ if __name__ == "__main__":
     parser.add_argument("file", type=argparse.FileType("r"))
     parser.add_argument("destdir", type=pathlib.Path)
     parser.add_argument("--polyhaven-size", type=float)
+    parser.add_argument("--disp2bump", action="store_true")
     args = parser.parse_args()
 
     filename = args.file.name
@@ -602,5 +603,6 @@ if __name__ == "__main__":
         filename,
         str(destdir),
         polyhaven_size=args.polyhaven_size,
+        disp2bump=args.disp2bump,
     )
     converter.run()

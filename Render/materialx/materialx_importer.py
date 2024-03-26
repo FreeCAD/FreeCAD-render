@@ -107,16 +107,19 @@ class MaterialXImporter:
                         "No target document for import. Aborting..."
                     )
 
-                # Run converter
-                args = [executable, script, self._filename, working_dir]
+                # Prepare converter call
+                args = [executable, "-u", script, self._filename, working_dir]
                 if self._polyhaven_size:
                     args += ["--polyhaven-size", self._polyhaven_size]
+                if self._disp2bump:
+                    args += ["--disp2bump"]
 
+                # Run converter
                 with subprocess.Popen(
                     args,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    bufsize=1,
+                    bufsize=0,  # Unbuffered
                     universal_newlines=True,
                 ) as proc:
                     for line in proc.stdout:
