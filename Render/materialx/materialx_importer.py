@@ -38,21 +38,17 @@
 # Add Poly Haven (gltf)
 
 
-import zipfile
 import tempfile
 import os
 import threading
-from dataclasses import dataclass
-from typing import List, Tuple, Callable
+from typing import Callable
 import subprocess
 import json
-import ctypes
 
 import FreeCAD as App
 import importFCMat
 
 import Render.material
-from Render.constants import MATERIALXDIR  # TODO
 from Render.utils import find_python
 
 

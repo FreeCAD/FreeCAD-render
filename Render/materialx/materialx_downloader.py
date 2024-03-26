@@ -245,8 +245,7 @@ class DownloadWindow(QProgressDialog):
         loop = QEventLoop()
         self.worker.finished.connect(loop.exit, Qt.QueuedConnection)
         self.thread.start(QThread.IdlePriority)
-        res = loop.exec_()
-        if res:
+        if loop.exec_():
             os.remove(filename)
             self.cancel()
             return

@@ -39,7 +39,6 @@ FCDMATERIALDIR = os.path.join(
 )
 USERMATERIALDIR = os.path.join(App.ConfigGet("UserAppData"), "Materials")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
-MATERIALXDIR = os.path.join(PKGDIR, "materialx")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
 
