@@ -413,7 +413,7 @@ class MaterialMaterialXImportCommand:
         if not materialx_file:
             return
         App.ActiveDocument.openTransaction("MaterialXImport")
-        import_materialx(materialx_file, Gui.ActiveDocument)
+        import_materialx(materialx_file, Gui.ActiveDocument.Document)
         App.ActiveDocument.commitTransaction()
 
 
