@@ -1001,7 +1001,6 @@ class RenderTextureBaker:
                 # Always clear any cached implementations before generation
                 # WARNING: Not available in Python
                 # context.clearNodeImplementations()
-
                 hw_shader = self._generator.generate(
                     "Shader", shader_node, context
                 )

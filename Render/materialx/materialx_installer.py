@@ -21,14 +21,16 @@
 # ***************************************************************************
 
 """This module implements an installer for materialx."""
-
+import venv
+import sys
 
 from PySide.QtGui import QStyle, QSpacerItem, QSizePolicy, QMessageBox, QLayout
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.utils import pip_install, ensure_pip
+from Render.utils import pip_install, ensure_pip, find_python
+from Render.constants import VENVDIR
 
 translate = App.Qt.translate
 
@@ -130,3 +132,46 @@ def _show_result(success, informative, detailed, parent):
 
     # Execute
     msgbox.exec()
+
+
+class RenderVirtualEnv:
+
+    def __init__(self):
+        """Install virtual environment."""
+        App.Console.PrintLog("Installing Render virtual environment.\n")
+        builder = venv.EnvBuilder(with_pip=True)
+        old_executable = sys._base_executable
+        try:
+            sys._base_executable = find_python()
+            self._context = builder.ensure_directories(VENVDIR)
+            builder.create_configuration(self._context)
+            builder.setup_python(self._context)
+            builder.setup_scripts(self._context)
+            builder.post_setup(self._context)
+            ensure_pip(self.env_exe)
+            pip_install("materialx", self.env_exe)
+        finally:
+            sys._base_executable = old_executable
+
+    @property
+    def env_dir(self):
+        return self._context.env_dir
+
+    @property
+    def env_name(self):
+        return self._context.env_name
+
+    @property
+    def executable(self):
+        return self._context.executable
+
+    @property
+    def env_exe(self):
+        return self._context.env_exe
+
+    @property
+    def env_exec_cmd(self):
+        return self._context.env_exec_cmd
+
+
+RENDERVENV = RenderVirtualEnv()

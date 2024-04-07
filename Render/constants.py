@@ -30,6 +30,7 @@ import FreeCAD as App
 # Paths
 PKGDIR = os.path.dirname(__file__)  # Package directory (=this file directory)
 WBDIR = os.path.dirname(PKGDIR)  # Workbench root directory
+USERAPPDIR = App.getUserAppDataDir()
 RDRDIR = os.path.join(PKGDIR, "renderers")
 ICONDIR = os.path.join(PKGDIR, "resources", "icons")
 TEMPLATEDIR = os.path.join(WBDIR, "templates")
@@ -41,6 +42,7 @@ USERMATERIALDIR = os.path.join(App.ConfigGet("UserAppData"), "Materials")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
+VENVDIR = os.path.join(USERAPPDIR, ".render_venv")  # Virtual environment
 
 # Renderers lists
 RENDERERS = {

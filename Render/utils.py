@@ -546,21 +546,23 @@ def find_python():
     return which("pythonw") or which("python")
 
 
-def pip_install(package):
+def pip_install(package, executable=None):
     """Install package with pip.
 
     Returns: a subprocess.CompletedInstance"""
-    executable = find_python()
+    if not executable:
+        executable = find_python()
     if not executable:
         raise RuntimeError("Unable to find Python executable")
-    result = subprocess.run(
-        [executable, "-m", "pip", "install", "--user", package],
+    with subprocess.Popen(
+        [executable, "-u", "-m", "pip", "install", package],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        check=False,
-    )
-    return result
+    ) as proc:
+        for line in proc.stdout:
+            App.Console.PrintLog(line)
+    return proc.returncode
 
 
 def pip_uninstall(package):
@@ -580,13 +582,14 @@ def pip_uninstall(package):
     return result
 
 
-def ensure_pip():
+def ensure_pip(executable=None):
     """Ensure pip is installed."""
-    executable = find_python()
+    if not executable:
+        executable = find_python()
     if not executable:
         return -2
     result = subprocess.run(
-        [executable, "-m", "ensurepip", "--default-pip"],
+        [executable, "-u", "-m", "ensurepip", "--default-pip"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
