@@ -42,6 +42,7 @@ import configparser
 import json
 import signal
 import sys
+import site
 
 try:
     import MaterialX as mx
@@ -193,6 +194,10 @@ class MaterialXConverter:
         search_path.append(working_dir)
         search_path.append(os.path.dirname(mtlx_filename))
         search_path.append(MATERIALXDIR)
+        if sys.prefix != sys.base_prefix:  # Virtual environment
+            for path in site.getsitepackages():
+                path = os.path.join(path, "MaterialX")
+                search_path.append(path)
 
         self._state.search_path = search_path
 
