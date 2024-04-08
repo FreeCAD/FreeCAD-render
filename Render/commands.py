@@ -40,7 +40,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 from ArchMaterial import _CommandArchMaterial
 
-from Render.constants import ICONDIR, VALID_RENDERERS
+from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS
 from Render.utils import translate
 from Render.rdrhandler import RendererHandler
 from Render.taskpanels import MaterialSettingsTaskPanel
@@ -346,11 +346,19 @@ class MaterialCreatorCommand(_CommandArchMaterial):
     This class is partially based on Arch 'ArchMaterial' command.
     """
 
+    def __init__(self, newname=False):
+        """Init command."""
+        self._newname = bool(newname)
+
     def GetResources(self):
         """Get command's resources (callback)."""
         res = super().GetResources()
-        res["MenuText"] = QT_TRANSLATE_NOOP(
-            "MaterialCreatorCommand", "Internal Material Library"
+        res["MenuText"] = (
+            QT_TRANSLATE_NOOP(
+                "MaterialCreatorCommand", "Internal Material Library"
+            )
+            if self._newname
+            else QT_TRANSLATE_NOOP("MaterialCreatorCommand", "Create Material")
         )
         res["ToolTip"] = QT_TRANSLATE_NOOP(
             "MaterialCreatorCommand",
@@ -733,21 +741,38 @@ def _init_gui_commands():
         libs_cmd, "Libraries", "Download from material libraries"
     )
 
-    render_commands = [
-        ("Projects", projects_group),
-        separator,
-        ("Camera", CameraCommand()),
-        ("Lights", lights_group),
-        ("View", RenderViewCommand()),
-        separator,
-        ("Libraries", libraries_group),
-        ("Materials", materials_group),
-        separator,
-        ("Render", RenderCommand()),
-        separator,
-        ("Settings", SettingsCommand()),
-        ("Help", HelpCommand()),
-    ]
+    if PARAMS.GetBool("MaterialX"):
+        render_commands = [
+            ("Projects", projects_group),
+            separator,
+            ("Camera", CameraCommand()),
+            ("Lights", lights_group),
+            ("View", RenderViewCommand()),
+            separator,
+            ("Libraries", libraries_group),
+            ("Materials", materials_group),
+            separator,
+            ("Render", RenderCommand()),
+            separator,
+            ("Settings", SettingsCommand()),
+            ("Help", HelpCommand()),
+        ]
+    else:
+        mats_cmd.insert(0, ("MaterialCreator", MaterialCreatorCommand()))
+        render_commands = [
+            ("Projects", projects_group),
+            separator,
+            ("Camera", CameraCommand()),
+            ("Lights", lights_group),
+            ("View", RenderViewCommand()),
+            separator,
+            ("Materials", materials_group),
+            separator,
+            ("Render", RenderCommand()),
+            separator,
+            ("Settings", SettingsCommand()),
+            ("Help", HelpCommand()),
+        ]
 
     result = []
 
