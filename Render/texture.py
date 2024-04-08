@@ -156,7 +156,7 @@ class Texture(FeatureBase):
 
         # Set value
         if imagepath is not None:
-            setattr(prop, imagename, imagepath)
+            setattr(prop, propertyname, imagepath)
 
         # Return eventual property name
         return propertyname

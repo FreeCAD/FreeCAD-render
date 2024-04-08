@@ -132,8 +132,8 @@ scene.shapes.{name}_mesh.ply = "{plyfile}"
     snippet = [
         snippet_obj,
         snippet_disp,
-        snippet_mat,
         snippet_tex,
+        snippet_mat,
         snippet_bump,
     ]
     snippet = (s for s in snippet if s)
@@ -167,7 +167,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     # power is in watts
     # efficiency is in lumens/watt
     efficiency = 15  # incandescent light bulb ratio (average)
-    gain = 10  # Guesstimated! (don't hesitate to propose more sensible values)
+    gain = 3  # Guesstimated! (don't hesitate to propose more sensible values)
 
     snippet = """
 # Point light '{n}'
@@ -361,10 +361,13 @@ scene.materials.{name}.anisotropic = {matval["anisotropic"]}
 scene.materials.{name}.sheen = {name}_sheenscale
 scene.materials.{name}.sheentint = {matval["sheentint"]}
 scene.materials.{name}.clearcoat = {matval["clearcoat"]}
-scene.materials.{name}.clearcoatgloss = {matval["clearcoatgloss"]}
+scene.materials.{name}.clearcoatgloss = {name}_clearcoatgloss_scale
 scene.textures.{name}_sheenscale.type = "scale"
 scene.textures.{name}_sheenscale.texture1 = {matval["sheen"]}
 scene.textures.{name}_sheenscale.texture2 = 100
+scene.textures.{name}_clearcoatgloss_scale.type = "scale"
+scene.textures.{name}_clearcoatgloss_scale.texture1 = {matval["clearcoatgloss"]}
+scene.textures.{name}_clearcoatgloss_scale.texture2 = 1.5
 """
 
 
@@ -524,8 +527,8 @@ scene.textures.{texname}.texture2 = {texname}_img
         snippet = f"""
 scene.textures.{texname}_img.type = imagemap
 scene.textures.{texname}_img.file = "{filename}"
-scene.textures.{texname}_img.gamma = {gamma}
-scene.textures.{texname}_img.channel = "rgb"
+scene.textures.{texname}_img.gamma = 1.0
+scene.textures.{texname}_img.channel = "directx2opengl_normalmap"
 scene.textures.{texname}_img.mapping.type = uvmapping2d
 scene.textures.{texname}_img.mapping.rotation = {rotation}
 scene.textures.{texname}_img.mapping.uvscale = {scale} {scale}

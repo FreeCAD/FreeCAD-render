@@ -29,13 +29,17 @@ import importlib
 import csv
 import itertools
 import functools
+import shutil
+import os
+import subprocess
+import venv
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
 except ImportError:
     from Draft import translate as _translate  # 0.18
 
-import PySide2
+from PySide.QtGui import QDockWidget, QTextEdit
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -275,6 +279,12 @@ def reload(module_name=None):
             "Render.help",
             "Render.prefpage",
             "Render.groundplane",
+            "Render.materialx",
+            "Render.materialx.materialx_utils",
+            "Render.materialx.materialx_baker",
+            "Render.materialx.materialx_importer",
+            "Render.materialx.materialx_downloader",
+            "Render.materialx.materialx_installer",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",
@@ -396,18 +406,14 @@ def clear_report_view():
         return
     main_window = Gui.getMainWindow()
 
-    report_view = main_window.findChild(
-        PySide2.QtWidgets.QDockWidget, "Report view"
-    )
+    report_view = main_window.findChild(QDockWidget, "Report view")
     if report_view is None:
         App.Console.PrintWarning(
             "Unable to clear report view: QDockWidget not found\n"
         )
         return
 
-    text_widget = report_view.findChild(
-        PySide2.QtWidgets.QTextEdit, "Report view"
-    )
+    text_widget = report_view.findChild(QTextEdit, "Report view")
     if text_widget is None:
         App.Console.PrintWarning(
             "Unable to clear report view: QTextEdit not found\n"
@@ -528,3 +534,83 @@ def top_object_names(doc=None):
     if not doc and Gui.ActiveDocument:
         doc = Gui.ActiveDocument.Document
     return [o.Label for o in top_objects(doc)]
+
+
+def find_python():
+    """Find Python executable embedded in FreeCAD."""
+
+    def which(appname):
+        app = shutil.which(appname)
+        return os.path.abspath(app) if app else None
+
+    return which("pythonw") or which("python")
+
+
+def pip_install(package, executable=None):
+    """Install package with pip.
+
+    Returns: a subprocess.CompletedInstance"""
+    if not executable:
+        executable = find_python()
+    if not executable:
+        raise RuntimeError("Unable to find Python executable")
+    with subprocess.Popen(
+        [executable, "-u", "-m", "pip", "install", package],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    ) as proc:
+        for line in proc.stdout:
+            App.Console.PrintLog(line)
+    return proc.returncode
+
+
+def pip_uninstall(package):
+    """Install (or uninstall) package with pip.
+
+    Returns: a subprocess.CompletedInstance"""
+    executable = find_python()
+    if not executable:
+        raise RuntimeError("Unable to find Python executable")
+    result = subprocess.run(
+        [executable, "-m", "pip", "uninstall", "-y", package],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    return result
+
+
+def ensure_pip(executable=None):
+    """Ensure pip is installed."""
+    if not executable:
+        executable = find_python()
+    if not executable:
+        return -2
+    result = subprocess.run(
+        [executable, "-u", "-m", "ensurepip", "--default-pip"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        return -1
+    return 0
+
+
+def set_venv():
+    # Create
+    executable = find_python()
+    envpath = os.path.join(App.getUserAppDataDir(), "Render")
+    result = subprocess.run(
+        [executable, "-m", "venv", envpath, "--prompt", "Render"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        return -1
+    return 0

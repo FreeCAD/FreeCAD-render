@@ -1,7 +1,7 @@
 # ***************************************************************************
 # *                                                                         *
 # *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
-# *   Copyright (c) 2021 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -27,14 +27,20 @@
 import os
 import itertools as it
 
-from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
-from PySide.QtGui import QMessageBox, QInputDialog, QApplication, QCursor
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt, QUrl
+from PySide.QtGui import (
+    QMessageBox,
+    QInputDialog,
+    QApplication,
+    QCursor,
+    QFileDialog,
+)
 
 import FreeCAD as App
 import FreeCADGui as Gui
 from ArchMaterial import _CommandArchMaterial
 
-from Render.constants import ICONDIR, VALID_RENDERERS
+from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS
 from Render.utils import translate
 from Render.rdrhandler import RendererHandler
 from Render.taskpanels import MaterialSettingsTaskPanel
@@ -49,6 +55,10 @@ from Render.lights import (
 )
 from Render.rendermaterial import is_multimat
 from Render.help import open_help
+from Render.materialx import (
+    import_materialx,
+    open_mxdownloader,
+)
 
 
 class RenderProjectCommand:
@@ -336,15 +346,23 @@ class MaterialCreatorCommand(_CommandArchMaterial):
     This class is partially based on Arch 'ArchMaterial' command.
     """
 
+    def __init__(self, newname=False):
+        """Init command."""
+        self._newname = bool(newname)
+
     def GetResources(self):
         """Get command's resources (callback)."""
         res = super().GetResources()
-        res["MenuText"] = QT_TRANSLATE_NOOP(
-            "MaterialCreatorCommand", "Create Material"
+        res["MenuText"] = (
+            QT_TRANSLATE_NOOP(
+                "MaterialCreatorCommand", "Internal Material Library"
+            )
+            if self._newname
+            else QT_TRANSLATE_NOOP("MaterialCreatorCommand", "Create Material")
         )
         res["ToolTip"] = QT_TRANSLATE_NOOP(
             "MaterialCreatorCommand",
-            "Create a new Material in current document",
+            "Create a new Material in current document from internal library",
         )
         return res
 
@@ -363,6 +381,101 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         for cmd in cmds:
             Gui.doCommand(cmd)
         App.ActiveDocument.commitTransaction()
+
+
+class MaterialMaterialXImportCommand:
+    """GUI command to import a MaterialX material."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "materialx-stacked-black.svg"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Import MaterialX file",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Import a material from MaterialX file",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
+        """
+        filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
+        caption = translate("Render", "Select MaterialX")
+        openfilename = QFileDialog.getOpenFileName(
+            Gui.getMainWindow(), caption, "", filefilter
+        )
+        materialx_file = openfilename[0]
+        if not materialx_file:
+            return
+        App.ActiveDocument.openTransaction("MaterialXImport")
+        import_materialx(materialx_file, Gui.ActiveDocument.Document)
+        App.ActiveDocument.commitTransaction()
+
+
+class MaterialMaterialXLibrary:
+    """GUI command to open MaterialX online library."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "amdgpuopen.png"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "GPUOpen Material Library",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Open AMD GPUOpen Material Library",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
+        """
+        doc = App.ActiveDocument
+        url = QUrl("https://matlib.gpuopen.com/")
+        open_mxdownloader(url, doc)
+
+
+class MaterialAmbientCGLibrary:
+    """GUI command to open AmbientCG online library."""
+
+    def GetResources(self):  # pylint: disable=no-self-use
+        """Get command's resources (callback)."""
+        return {
+            "Pixmap": os.path.join(ICONDIR, "ambientcg.png"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "AmbientCG Material Library",
+            ),
+            "ToolTip": QT_TRANSLATE_NOOP(
+                "MaterialMaterialXImportCommand",
+                "Open AmbientCG Material Library",
+            ),
+        }
+
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback).
+
+        This code is executed when the command is run in FreeCAD.
+        It opens a dialog to set the rendering parameters of the selected
+        material.
+        """
+        doc = App.ActiveDocument
+        url = QUrl("https://ambientcg.com/")
+        open_mxdownloader(url, doc, disp2bump=True)
 
 
 class MaterialRenderSettingsCommand:
@@ -613,25 +726,53 @@ def _init_gui_commands():
     lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
 
     mats_cmd = [
-        ("MaterialCreator", MaterialCreatorCommand()),
-        ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
         ("MaterialApplier", MaterialApplierCommand()),
+        ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
     ]
     materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
 
-    render_commands = [
-        ("Projects", projects_group),
-        separator,
-        ("Camera", CameraCommand()),
-        ("Lights", lights_group),
-        ("View", RenderViewCommand()),
-        ("Materials", materials_group),
-        separator,
-        ("Render", RenderCommand()),
-        separator,
-        ("Settings", SettingsCommand()),
-        ("Help", HelpCommand()),
+    libs_cmd = [
+        ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
+        ("MaterialAmbientCGLibrary", MaterialAmbientCGLibrary()),
+        ("MaterialCreator", MaterialCreatorCommand()),
+        ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
     ]
+    libraries_group = CommandGroup(
+        libs_cmd, "Libraries", "Download from material libraries"
+    )
+
+    if PARAMS.GetBool("MaterialX"):
+        render_commands = [
+            ("Projects", projects_group),
+            separator,
+            ("Camera", CameraCommand()),
+            ("Lights", lights_group),
+            ("View", RenderViewCommand()),
+            separator,
+            ("Libraries", libraries_group),
+            ("Materials", materials_group),
+            separator,
+            ("Render", RenderCommand()),
+            separator,
+            ("Settings", SettingsCommand()),
+            ("Help", HelpCommand()),
+        ]
+    else:
+        mats_cmd.insert(0, ("MaterialCreator", MaterialCreatorCommand()))
+        render_commands = [
+            ("Projects", projects_group),
+            separator,
+            ("Camera", CameraCommand()),
+            ("Lights", lights_group),
+            ("View", RenderViewCommand()),
+            separator,
+            ("Materials", materials_group),
+            separator,
+            ("Render", RenderCommand()),
+            separator,
+            ("Settings", SettingsCommand()),
+            ("Help", HelpCommand()),
+        ]
 
     result = []
 

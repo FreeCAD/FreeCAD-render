@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<materialx version="1.38">
+
+  <nodedef name="displacement_to_render_disp" node="displacement_to_render_disp" nodegroup="translation">
+    <input name="displacement" type="float" value="1" />
+    <input name="scale" type="float" value="1" />
+    <output name="Displacement_out" type="float" />
+    <output name="Scale_out" type="float" />
+  </nodedef>
+
+  <nodegraph name="NG_displacement_to_render_disp" nodedef="displacement_to_render_disp">
+    <!-- Displacement -->
+    <dot name="ng_displacement" type="float">
+      <input name="in" type="float" interfacename="displacement" />
+    </dot>
+    <dot name="ng_scale" type="float">
+      <input name="in" type="float" interfacename="scale" />
+    </dot>
+
+    <!-- Outputs -->
+    <output name="Displacement_out" type="float" nodename="ng_displacement" />
+    <output name="Scale_out" type="float" nodename="ng_scale" />
+  </nodegraph>
+</materialx>

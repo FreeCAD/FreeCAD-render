@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<materialx version="1.38" colorspace="lin_rec709">
+  <!--Definition-->
+  <nodedef name="ND_render_pbr_surfaceshader" node="render_pbr" nodegroup="pbr">
+    <input name="BaseColor" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Subsurface" type="float" value="0" />
+    <input name="Roughness" type="float" value="0" />
+    <input name="Metallic" type="float" value="0" />
+    <input name="Specular" type="float" value="0" />
+    <input name="SpecularTint" type="float" value="0" />
+    <input name="Anisotropic" type="float" value="0" />
+    <input name="Sheen" type="float" value="0" />
+    <input name="SheenTint" type="float" value="0" />
+    <input name="ClearCoat" type="float" value="0" />
+    <input name="ClearCoatGloss" type="float" value="1.0" />
+    <input name="Normal" type="vector3"  defaultgeomprop="Nworld" />
+    <output name="out" type="surfaceshader" />
+  </nodedef>
+
+  <!--Implementation-->
+  <nodegraph name="IM_render_pbr_surfaceshader" nodedef="ND_render_pbr_surfaceshader">
+
+    <!-- Specular Roughness -->
+    <roughness_anisotropy name="specular_roughness" type="vector2">
+      <input name="roughness" type="float" interfacename="Roughness" />
+      <input name="anisotropy" type="float" interfacename="Anisotropic" />
+    </roughness_anisotropy>
+
+    <!-- Diffuse + Subsurface -->
+    <burley_diffuse_bsdf name="diffuse_bsdf" type="BSDF">
+      <input name="color" type="color3" interfacename="BaseColor" />
+      <input name="roughness" type="float" interfacename="Roughness" />
+      <input name="normal" type="vector3" interfacename="Normal" />
+    </burley_diffuse_bsdf>
+    <subsurface_bsdf name="subsurface_bsdf" type="BSDF">
+      <input name="color" type="color3" interfacename="BaseColor" />
+      <input name="anisotropy" type="float" interfacename="Anisotropic" />
+    </subsurface_bsdf>
+    <mix name="diffuse_subsurface_bsdf" type="BSDF">
+      <input name="bg" type="BSDF" nodename="diffuse_bsdf" />
+      <input name="fg" type="BSDF" nodename="subsurface_bsdf" />
+      <input name="mix" type="float" interfacename="Subsurface" />
+    </mix>
+
+    <!-- Specular -->
+    <mix name="specular_tint" type="color3">
+      <input name="bg" type="color3" value="1, 1, 1" />
+      <input name="fg" type="color3" interfacename="BaseColor" />
+      <input name="mix" type="float" interfacename="SpecularTint" />
+    </mix>
+    <dielectric_bsdf name="specular_bsdf" type="BSDF">
+      <input name="weight" type="float" interfacename="Specular" />
+      <input name="tint" type="color3" nodename="specular_tint" />
+      <input name="roughness" type="vector2" nodename="specular_roughness" />
+      <input name="ior" type="float" value="1.5" />
+      <input name="distribution" type="string" value="ggx" />
+      <input name="scatter_mode" type="string" value="R" />
+      <input name="normal" type="vector3" interfacename="Normal" />
+    </dielectric_bsdf>
+    <layer name="specular_diffuse_subsurface_bsdf" type="BSDF">
+      <input name="base" type="BSDF" nodename="diffuse_subsurface_bsdf" />
+      <input name="top" type="BSDF" nodename="specular_bsdf" />
+    </layer>
+
+    <!-- Metal -->
+    <artistic_ior name="artistic_ior" type="multioutput">
+      <input name="reflectivity" type="color3" interfacename="BaseColor" />
+      <input name="edge_color" type="color3" interfacename="BaseColor" />
+    </artistic_ior>
+    <conductor_bsdf name="metal_bsdf" type="BSDF">
+      <input name="weight" type="float" value="1" />
+      <input name="ior" type="color3" nodename="artistic_ior" output="ior" />
+      <input name="extinction" type="color3" nodename="artistic_ior" output="extinction" />
+      <input name="roughness" type="vector2" nodename="specular_roughness" />
+      <input name="normal" type="vector3" interfacename="Normal" />
+    </conductor_bsdf>
+    <mix name="metal_specular_diffuse_subsurface_bsdf" type="BSDF">
+      <input name="bg" type="BSDF" nodename="specular_diffuse_subsurface_bsdf" />
+      <input name="fg" type="BSDF" nodename="metal_bsdf" />
+      <input name="mix" type="float" interfacename="Metallic" />
+    </mix>
+
+    <!-- Sheen -->
+    <mix name="sheen_color" type="color3" >
+      <input name="bg" type="color3" value="1, 1, 1" />
+      <input name="fg" type="color3" interfacename="BaseColor" />
+    </mix>
+    <sheen_bsdf name="sheen_bsdf" type="BSDF">
+      <input name="weight" type="float" interfacename="Sheen" />
+      <input name="color" type="color3" nodename="sheen_color" />
+      <input name="roughness" type="float" interfacename="Roughness" />
+      <input name="normal" type="vector3" interfacename="Normal" />
+    </sheen_bsdf>
+
+    <layer name="sheen_layer" type="BSDF">
+      <input name="top" type="BSDF" nodename="sheen_bsdf" />
+      <input name="base" type="BSDF" nodename="metal_specular_diffuse_subsurface_bsdf" />
+    </layer>
+
+    <!-- Clearcoat -->
+    <subtract name="clearcoat_roughness" type="float">
+      <input name="in1" type="float" value="1.0" />
+      <input name="in2" type="float" interfacename="ClearCoatGloss" />
+    </subtract>
+    <roughness_anisotropy name="clearcoat_roughness_uv" type="vector2">
+      <input name="roughness" type="float" nodename="clearcoat_roughness" />
+    </roughness_anisotropy>
+
+    <dielectric_bsdf name="clearcoat_bsdf" type="BSDF">
+      <input name="weight" type="float" interfacename="ClearCoat" />
+      <input name="roughness" type="vector2" nodename="clearcoat_roughness_uv" />
+      <input name="ior" type="float" value="1.5" />
+      <input name="normal" type="vector3" interfacename="Normal" />
+    </dielectric_bsdf>
+
+    <layer name="clearcoat_layer" type="BSDF">
+      <input name="top" type="BSDF" nodename="clearcoat_bsdf" />
+      <input name="base" type="BSDF" nodename="sheen_layer" />
+    </layer>
+
+    <!-- Surface Shader Constructor -->
+    <surface name="surface_constructor" type="surfaceshader">
+      <input name="bsdf" type="BSDF" nodename="clearcoat_layer" />
+      <input name="opacity" type="float" value="1.0" />
+    </surface>
+
+
+    <!-- Output -->
+    <output name="out" type="surfaceshader" nodename="surface_constructor" />
+
+  </nodegraph>
+
+</materialx>

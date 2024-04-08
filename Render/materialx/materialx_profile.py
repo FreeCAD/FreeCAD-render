@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -20,61 +20,14 @@
 # *                                                                         *
 # ***************************************************************************
 
+"""This module contains the web engine profile for MaterialX download."""
 
-"""This is Render workbench main module.
+# This module isolates the web engine profile from reloading.
+# DO NOT INCLUDE IT IN 'Render.reload'
+# Indeed, reloading the web engine profile crashes FreeCAD if a web page is
+# open. Thus the web profile has to be created once and for all, and
+# never reloaded...
 
-It imports all the public symbols which make up the Render Workbench API.
-"""
+from PySide.QtWebEngineWidgets import QWebEngineProfile
 
-
-from Render.constants import (  # noqa: F401
-    WBDIR,
-    RDRDIR,
-    ICONDIR,
-    TRANSDIR,
-    TEMPLATEDIR,
-    PREFPAGE,
-    TASKPAGE,
-    RENDERERS,
-    DEPRECATED_RENDERERS,
-    VALID_RENDERERS,
-    FCDVERSION,
-)
-
-from Render.project import Project, ViewProviderProject  # noqa: F401
-from Render.view import View, ViewProviderView  # noqa: F401
-from Render.camera import Camera, ViewProviderCamera  # noqa: F401
-from Render.lights import (  # noqa: F401
-    PointLight,
-    ViewProviderPointLight,
-    AreaLight,
-    ViewProviderAreaLight,
-    SunskyLight,
-    ViewProviderSunskyLight,
-    ImageLight,
-    ViewProviderImageLight,
-    DistantLight,
-    ViewProviderDistantLight,
-)
-from Render.texture import Texture, ViewProviderTexture  # noqa: F401
-from Render.material import (  # noqa: F401
-    Material,
-    ViewProviderMaterial,
-    make_material,
-)
-from Render.utils import (  # noqa: F401
-    reload,
-    last_cmd,
-    set_dryrun,
-    set_dryrun_on,
-    set_dryrun_off,
-    set_debug,
-    set_debug_on,
-    set_debug_off,
-    set_memcheck,
-    set_memcheck_on,
-    set_memcheck_off,
-)
-from Render.commands import RENDER_COMMANDS  # noqa: F401
-from Render.prefpage import PreferencesPage  # noqa: F401
-from Render.materialx import import_materialx  # noqa: F401
+WEBPROFILE = QWebEngineProfile()
