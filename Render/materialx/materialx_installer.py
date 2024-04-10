@@ -174,4 +174,5 @@ class RenderVirtualEnv:
         return self._context.env_exec_cmd
 
 
-RENDERVENV = RenderVirtualEnv()
+# RENDERVENV = RenderVirtualEnv()  # Not workable yet
+RENDERVENV = None

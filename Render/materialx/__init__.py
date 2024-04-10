@@ -22,6 +22,13 @@
 
 """This module gathers public MaterialX handling features."""
 
+from FreeCAD import GuiUp
+
 from .materialx_importer import MaterialXImporter, import_materialx
-from .materialx_downloader import MaterialXDownloader, open_mxdownloader
 from .materialx_installer import RENDERVENV
+
+if GuiUp:
+    from .materialx_downloader import MaterialXDownloader, open_mxdownloader
+else:
+    MaterialXDownloader = None
+    open_mxdownloader = None
