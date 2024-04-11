@@ -34,6 +34,7 @@ import time
 import itertools
 import operator
 import collections
+from math import radians, cos
 
 try:
     import numpy as np
@@ -614,7 +615,7 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print(time.time() - tm0)
 
-    def _adjacent_facets(self):
+    def _adjacent_facets(self, split_angle=radians(30)):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
@@ -683,14 +684,48 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("sorted pairs", time.time() - tm0)
 
-        adjacency = {
-            k: list(map(itget1, v))
-            for k, v in groupby(facet_pairs, key=itget0)
-        }
-        adjacency = collections.defaultdict(list, adjacency)
+        # Filter by normal angles
+        def _safe_normalize_np(vect_array):
+            """Safely normalize an array of vectors."""
+            # TODO move away
+            magnitudes = np.sqrt((vect_array**2).sum(-1))
+            magnitudes = np.expand_dims(magnitudes, axis=1)
+            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
 
-        if debug_flag:
-            print("adjacency", time.time() - tm0)
+        normals = np.asarray(self.normals)
+        vec1 = _safe_normalize_np(normals[facet_pairs[..., 0]])
+        vec2 = _safe_normalize_np(normals[facet_pairs[..., 1]])
+        print("normals duo", np.stack((vec1, vec2), axis=-1))
+
+        # Compute dot products. As vectors are normalized, this is cosinus
+        # (Clip to avoid precision issues)
+        dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
+        split_angle_cos = cos(split_angle)
+        print(f"{normals=}")
+        print(f"{dots=}")  # TODO
+
+        # Filter by cosinus
+        facet_pairs = facet_pairs[np.where(dots > split_angle_cos)]
+        print(f"{facet_pairs=}")  # TODO
+        print(f"{facets=}")  # TODO
+
+        # TODO DEBUG
+        points = np.asarray(self.points)
+        print(f"{points=}")
+        # points1 = points[facets[facet_pairs[..., 0]]]
+        # points2 = points[facets[facet_pairs[..., 1]]]
+        # print(points1, points2)
+
+        # TODO
+        # adjacency = {
+        # k: list(map(itget1, v))
+        # for k, v in groupby(facet_pairs, key=itget0)
+        # }
+        # adjacency = collections.defaultdict(list, adjacency)
+
+        # if debug_flag:
+        # print("adjacency", time.time() - tm0)
+        # return adjacency
 
         # Debug (symmetry)
         # errors = [
@@ -701,7 +736,71 @@ class RenderMeshNumpyMixin:
         # ]
         # assert not errors
 
-        return adjacency
+        # TODO
+        # Take split_angle into account
+        # Non-oriented graph
+
+        return facet_pairs
+
+    def _connected_components(self, split_angle=radians(30)):
+        """Get all connected components of facets in the mesh.
+
+        Numpy version: this method uses a union-find algorithm, with path compression
+
+        Args:
+            split_angle -- the angle that breaks adjacency
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        debug("Object", self.name, "Compute connected components (np)")
+
+        edges = self._adjacent_facets(split_angle)
+        nfacets = len(self.facets)
+        fathers = np.full(nfacets, -1, dtype=np.int32)
+
+        def find(x):
+            i = x
+            # TODO Reduce?
+            while fathers[i] > 0:
+                i = fathers[i]
+            return i
+
+        # TODO make a dedicated class?
+        def find_and_compress(x):
+            i = x
+            # TODO Reduce?
+            while fathers[i] > 0:
+                i = fathers[i]
+            r1 = i
+            i = x
+            # Compress path
+            while fathers[i] > 0:
+                fathers[i], i = r1, fathers[i]
+            return r1
+
+        def union(r1, r2):
+            if r1 == r2:
+                return
+
+            if fathers[r1] > fathers[r2]:
+                r1, r2 = r2, r1
+
+            fathers[r1] += fathers[r2]
+            fathers[r2] = r1
+
+        for edge in edges:
+            x, y = edge
+            root1 = find_and_compress(x)
+            root2 = find_and_compress(y)
+            union(root1, root2)
+
+        tags = [find(x) for x in fathers]
+        print(tags)  # TODO
+
+        return tags
 
 
 # ===========================================================================
