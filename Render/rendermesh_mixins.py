@@ -695,23 +695,16 @@ class RenderMeshNumpyMixin:
         normals = np.asarray(self.normals)
         vec1 = _safe_normalize_np(normals[facet_pairs[..., 0]])
         vec2 = _safe_normalize_np(normals[facet_pairs[..., 1]])
-        print("normals duo", np.stack((vec1, vec2), axis=-1))
 
         # Compute dot products. As vectors are normalized, this is cosinus
         # (Clip to avoid precision issues)
         dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
         split_angle_cos = cos(split_angle)
-        print(f"{normals=}")
-        print(f"{dots=}")  # TODO
 
         # Filter by cosinus
         facet_pairs = facet_pairs[np.where(dots > split_angle_cos)]
         print(f"{facet_pairs=}")  # TODO
-        print(f"{facets=}")  # TODO
 
-        # TODO DEBUG
-        points = np.asarray(self.points)
-        print(f"{points=}")
         # points1 = points[facets[facet_pairs[..., 0]]]
         # points2 = points[facets[facet_pairs[..., 1]]]
         # print(points1, points2)
@@ -796,6 +789,8 @@ class RenderMeshNumpyMixin:
             root1 = find_and_compress(x)
             root2 = find_and_compress(y)
             union(root1, root2)
+
+        print(f"{fathers=}")
 
         tags = [find(x) for x in fathers]
         print(tags)  # TODO
