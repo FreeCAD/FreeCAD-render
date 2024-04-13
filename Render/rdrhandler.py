@@ -391,6 +391,7 @@ class RendererHandler:
         Returns: a rendering string, obtained from the renderer module
         """
         autosmooth = getattr(view, "AutoSmooth", False)
+        force_meshing = getattr(view, "ForceMeshing", False)
         try:
             autosmooth_angle = float(view.AutoSmoothAngle.getValueAs("rad"))
         except AttributeError:
@@ -421,8 +422,10 @@ class RendererHandler:
             label = label or view.Source.Label
             fullname = f"'{label}' ('{name}')"
 
+            skip_meshing = self.skip_meshing and not force_meshing
+
             # Skip meshing?
-            if self.skip_meshing:
+            if skip_meshing:
                 # We just need placement, and an empty mesh
                 debug("Object", fullname, "Skip meshing")
                 mesh = Mesh.Mesh()
@@ -432,7 +435,7 @@ class RendererHandler:
                     project_directory=self.project_directory,
                     export_directory=self.object_directory,
                     relative_path=True,
-                    skip_meshing=self.skip_meshing,
+                    skip_meshing=True,
                     name=fullname,
                 )
                 return rendermesh
@@ -467,7 +470,7 @@ class RendererHandler:
                 project_directory=self.project_directory,
                 export_directory=self.object_directory,
                 relative_path=True,
-                skip_meshing=self.skip_meshing,
+                skip_meshing=skip_meshing,
                 name=fullname,
             )
 
