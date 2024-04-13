@@ -1399,7 +1399,12 @@ class RenderMeshBase:
             t1 = w2.imag - w1.imag
             t2 = w3.imag - w1.imag
 
-            r = 1.0 / (s1 * t2 - s2 * t1)
+            det = s1 * t2 - s2 * t1
+            if not det:
+                # Degenerated, we skip
+                continue
+
+            r = 1.0 / det
 
             sdir = App.Vector(
                 (t2 * x1 - t1 * x2) * r,
@@ -1422,7 +1427,12 @@ class RenderMeshBase:
         for n, t, b in zip(vnormals, tan1, tan2):
             # Gram-Schmidt orthogonalize
             tangent = t - n * n.dot(t)
-            tangent.normalize()
+            try:
+                tangent.normalize()
+            except App.Base.FreeCADError:
+                # Tangent is null, we pass normalization...
+                pass
+
             tangents.append(tuple(tangent))
             # Handedness
             h = -1.0 if b.dot(n.cross(t)) < 0.0 else 1.0
