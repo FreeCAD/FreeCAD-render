@@ -728,35 +728,29 @@ class RenderMeshNumpyMixin:
         nfacets = len(self.facets)
         fathers = np.full(nfacets, -1, dtype=np.int32)
 
-        def find(x):
-            i = x
-            # TODO Reduce?
-            while (father := fathers[i]) >= 0:
-                i = father
-            return i
-
         positive = functools.partial(operator.le, 0)
 
-        def find2(x):
-            x_fathers = itertools.accumulate(
-                itertools.repeat(0), lambda acc, _: fathers[acc], initial=x
-            )
-            *_, last = itertools.takewhile(
-                positive, x_fathers
-            )  # Take the last positive in chain
+        def getfather(x, _):
+            return fathers[x]
+
+        accumulate = itertools.accumulate
+        repeat = itertools.repeat
+        takewhile = itertools.takewhile
+
+        def find(x):
+            fathers_chain = accumulate(repeat(0), getfather, initial=x)
+            # Take the last positive in chain
+            *_, last = takewhile(positive, fathers_chain)
             return last
 
         # TODO make a dedicated class?
         def find_and_compress(x):
-            i = x
-            # TODO Reduce?
-            while fathers[i] >= 0:
-                i = fathers[i]
-            r1 = i
-            i = x
+            # Find
+            r1 = find(x)
             # Compress path
-            while fathers[i] >= 0:
-                fathers[i], i = r1, fathers[i]
+            i = x
+            while (father := fathers[i]) >= 0:
+                father, i = r1, father
             return r1
 
         def union(r1, r2):
@@ -776,8 +770,6 @@ class RenderMeshNumpyMixin:
             union(root1, root2)
 
         tags = [find(x) for x in range(len(fathers))]
-        tags2 = [find2(x) for x in range(len(fathers))]
-        assert tags == tags2
 
         return tags
 
