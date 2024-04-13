@@ -54,6 +54,8 @@ except (ModuleNotFoundError, ImportError):
 
 translate = _translate
 
+from Render.constants import FCDVERSION
+
 
 def debug(domain, object_name, msg):
     """Print debug message."""
@@ -258,10 +260,9 @@ def clamp(value, maxval=1e10):
 def reload(module_name=None):
     """Reload Render modules."""
     mods = (
-        (
+        [
             "Render.base",
             "Render.camera",
-            "Render.commands",
             "Render.constants",
             "Render.lights",
             "Render.imageviewer",
@@ -297,10 +298,12 @@ def reload(module_name=None):
             "Render.rendermesh_mp.vector3d",
             "Render.rendermesh_mixins",
             "Render",
-        )
+        ]
         if not module_name
         else (module_name,)
     )
+    if FCDVERSION < (0, 22, 0):
+        mods.append("Render.commands")
     for mod in mods:
         try:
             module = sys.modules[mod]

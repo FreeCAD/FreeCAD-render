@@ -667,25 +667,23 @@ class RenderMeshNumpyMixin:
             print("sorted hashes", time.time() - tm0)
 
         # Compute hashtable - find connections
-        itget0 = operator.itemgetter(0)
-        itget1 = operator.itemgetter(1)
-        permutations = itertools.permutations
-        groupby = itertools.groupby
-        hashtable = (
-            permutations(map(itget1, v), 2)
-            for v in map(itget1, groupby(hashes, key=itget0))
+        # https://stackoverflow.com/questions/38013778/is-there-any-numpy-group-by-function
+        _, unique_indices, unique_counts = np.unique(
+            hashes[:, 0], return_index=True, return_counts=True
         )
-
-        # Reformat into pairs
-        pairs = itertools.chain.from_iterable(hashtable)
-        pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
+        # hashtable = np.split(hashes[:,1], np.unique(hashes[:, 0], return_index=True)[1][1:])  # This is array of array  TODO
+        hashtable = np.split(
+            hashes[:, 1], unique_indices[1:]
+        )  # This is array of array
+        hashtable = [a for a, n in zip(hashtable, unique_counts) if n == 2]
+        hashtable = np.stack(hashtable)
 
         if debug_flag:
-            print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
+            print(f"all pairs ({len(hashtable)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
         facet_pairs = np.stack(
-            (indices[pairs["x"]], indices[pairs["y"]]), axis=-1
+            (indices[hashtable[..., 0]], indices[hashtable[..., 1]]), axis=-1
         )
 
         # Filter by normal angles
@@ -707,14 +705,8 @@ class RenderMeshNumpyMixin:
 
         # Compare to split_angle cosinus
         facet_pairs = facet_pairs[np.where(dots > split_angle_cos)]
-
-        # https://stackoverflow.com/questions/
-        # 38277143/sort-2d-numpy-array-lexicographically
-        facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
         if debug_flag:
-            print("sorted pairs", time.time() - tm0)
-
-        # TODO Keep only one pair (non directed graph)
+            print("filtered pairs", time.time() - tm0)
 
         return facet_pairs
 
@@ -733,9 +725,19 @@ class RenderMeshNumpyMixin:
         """
         debug("Object", self.name, "Compute connected components (np)")
 
+        debug_flag = PARAMS.GetBool("Debug")
+        if debug_flag:
+            print()
+            print(f"Connected components (start)")
+            tm0 = time.time()
+            np.set_printoptions(edgeitems=600)
+
         edges = self._adjacent_facets(split_angle)
+        if debug_flag:
+            print("Adjacent facets", time.time() - tm0)
+
         nfacets = len(self.facets)
-        fathers = np.full(nfacets, -1, dtype=np.int32)
+        fathers = [-1] * nfacets
 
         positive = functools.partial(operator.le, 0)
 
@@ -746,20 +748,23 @@ class RenderMeshNumpyMixin:
         repeat = itertools.repeat
         takewhile = itertools.takewhile
 
-        def find(x):
+        def find_path(x):
             fathers_chain = accumulate(repeat(0), getfather, initial=x)
-            # Take the last positive in chain
-            *_, last = takewhile(positive, fathers_chain)
-            return last
+            *path, r1 = takewhile(positive, fathers_chain)
+            return path, r1
 
         # TODO make a dedicated class?
         def find_and_compress(x):
             # Find
-            r1 = find(x)
-            # Compress path
-            i = x
-            while (father := fathers[i]) >= 0:
-                father, i = r1, father
+            path, r1 = find_path(x)
+
+            # Compress
+            setter = functools.partial(operator.setitem, fathers)
+            _ = [setter(a, r1) for a in path]
+
+            # for i in path:
+            # fathers[i] = r1
+
             return r1
 
         def union(r1, r2):
@@ -778,7 +783,10 @@ class RenderMeshNumpyMixin:
             root2 = find_and_compress(y)
             union(root1, root2)
 
-        tags = [find(x) for x in range(len(fathers))]
+        tags = [find_and_compress(x) for x in range(len(fathers))]
+
+        if debug_flag:
+            print("tags", time.time() - tm0)
 
         return tags
 
