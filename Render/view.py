@@ -150,6 +150,16 @@ class View(FeatureBase):
             False,
             0,
         ),
+        "ForceMeshing": Prop(
+            "App::PropertyBool",
+            "Advanced",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                ("Force meshing even when 'skip_meshing'" " is activated."),
+            ),
+            False,
+            2,
+        ),
     }
 
     @classmethod
