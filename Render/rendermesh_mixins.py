@@ -33,6 +33,7 @@ import os
 import time
 import itertools
 import operator
+import functools
 import collections
 from math import radians, cos
 
@@ -678,12 +679,6 @@ class RenderMeshNumpyMixin:
             (indices[pairs["x"]], indices[pairs["y"]]), axis=-1
         )
 
-        # https://stackoverflow.com/questions/
-        # 38277143/sort-2d-numpy-array-lexicographically
-        facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
-        if debug_flag:
-            print("sorted pairs", time.time() - tm0)
-
         # Filter by normal angles
         def _safe_normalize_np(vect_array):
             """Safely normalize an array of vectors."""
@@ -696,42 +691,21 @@ class RenderMeshNumpyMixin:
         vec1 = _safe_normalize_np(normals[facet_pairs[..., 0]])
         vec2 = _safe_normalize_np(normals[facet_pairs[..., 1]])
 
-        # Compute dot products. As vectors are normalized, this is cosinus
+        # Compute dot product. As vectors are normalized, this is cosinus
         # (Clip to avoid precision issues)
         dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
         split_angle_cos = cos(split_angle)
 
-        # Filter by cosinus
+        # Compare to split_angle cosinus
         facet_pairs = facet_pairs[np.where(dots > split_angle_cos)]
-        print(f"{facet_pairs=}")  # TODO
 
-        # points1 = points[facets[facet_pairs[..., 0]]]
-        # points2 = points[facets[facet_pairs[..., 1]]]
-        # print(points1, points2)
+        # https://stackoverflow.com/questions/
+        # 38277143/sort-2d-numpy-array-lexicographically
+        facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
+        if debug_flag:
+            print("sorted pairs", time.time() - tm0)
 
-        # TODO
-        # adjacency = {
-        # k: list(map(itget1, v))
-        # for k, v in groupby(facet_pairs, key=itget0)
-        # }
-        # adjacency = collections.defaultdict(list, adjacency)
-
-        # if debug_flag:
-        # print("adjacency", time.time() - tm0)
-        # return adjacency
-
-        # Debug (symmetry)
-        # errors = [
-        # i
-        # for i in range(0, self.count_facets)
-        # for j in adjacency[i]
-        # if i not in adjacency[j]
-        # ]
-        # assert not errors
-
-        # TODO
-        # Take split_angle into account
-        # Non-oriented graph
+        # TODO Keep only one pair (non directed graph)
 
         return facet_pairs
 
@@ -757,20 +731,31 @@ class RenderMeshNumpyMixin:
         def find(x):
             i = x
             # TODO Reduce?
-            while fathers[i] > 0:
-                i = fathers[i]
+            while (father := fathers[i]) >= 0:
+                i = father
             return i
+
+        positive = functools.partial(operator.le, 0)
+
+        def find2(x):
+            x_fathers = itertools.accumulate(
+                itertools.repeat(0), lambda acc, _: fathers[acc], initial=x
+            )
+            *_, last = itertools.takewhile(
+                positive, x_fathers
+            )  # Take the last positive in chain
+            return last
 
         # TODO make a dedicated class?
         def find_and_compress(x):
             i = x
             # TODO Reduce?
-            while fathers[i] > 0:
+            while fathers[i] >= 0:
                 i = fathers[i]
             r1 = i
             i = x
             # Compress path
-            while fathers[i] > 0:
+            while fathers[i] >= 0:
                 fathers[i], i = r1, fathers[i]
             return r1
 
@@ -790,13 +775,14 @@ class RenderMeshNumpyMixin:
             root2 = find_and_compress(y)
             union(root1, root2)
 
-        print(f"{fathers=}")
-
-        tags = [find(x) for x in fathers]
-        print(tags)  # TODO
+        tags = [find(x) for x in range(len(fathers))]
+        tags2 = [find2(x) for x in range(len(fathers))]
+        assert tags == tags2
 
         return tags
 
+
+# TODO compute_tspaces
 
 # ===========================================================================
 #                               Helpers
