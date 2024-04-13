@@ -629,9 +629,9 @@ class RenderMeshNumpyMixin:
             tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
-        # Compute edges (assume triangles)
+        # Compute mesh edges (assume triangles)
         facets = np.asarray(self.facets)
-        facets.sort(axis=1)
+        facets.sort(axis=1)  # Sort points in each facet
         if debug_flag:
             print("hashes", time.time() - tm0)
 
@@ -649,15 +649,24 @@ class RenderMeshNumpyMixin:
             np.left_shift(all_edges_left, 32, dtype=np.int64),
             all_edges_right,
         )
+        # At this point, we have a collection of hashed edges ("hashes") like that:
+        # facet(i, 0) << 32 | facet(i, 1)
+        # facet(i, 0) << 32 | facet(i, 2)
+        # facet(i, 1) << 32 | facet(i, 2)
+        #
+        # where facet(i, j) is the jth point in the ith facet
+        # We have to make those hashed edges match between facets to get
+        # the connections ("pairs") between facets
+        # To do this, we use itertools.groupby
 
-        # Sort hashes
+        # Sort hashes and, for each, append the index of the facet
         hashes_indices = np.argsort(hashes)
         hashes = hashes[hashes_indices]
         hashes = np.stack((hashes, hashes_indices % len(facets)), axis=-1)
         if debug_flag:
             print("sorted hashes", time.time() - tm0)
 
-        # Compute hashtable
+        # Compute hashtable - find connections
         itget0 = operator.itemgetter(0)
         itget1 = operator.itemgetter(1)
         permutations = itertools.permutations
@@ -667,7 +676,7 @@ class RenderMeshNumpyMixin:
             for v in map(itget1, groupby(hashes, key=itget0))
         )
 
-        # Compute pairs
+        # Reformat into pairs
         pairs = itertools.chain.from_iterable(hashtable)
         pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
 
