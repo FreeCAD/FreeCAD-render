@@ -44,9 +44,9 @@ import threading
 from typing import Callable
 import subprocess
 import json
+import configparser
 
 import FreeCAD as App
-import importFCMat
 
 import Render.material
 from Render.utils import find_python
@@ -135,8 +135,13 @@ class MaterialXImporter:
 
             # Import result
             in_file = os.path.join(working_dir, "out.FCMat")
-            matdict = importFCMat.read(in_file)
-            mxname = matdict.get("Name", "Material")
+            card = configparser.ConfigParser()
+            card.read(in_file)
+            try:
+                mxname = card["General"]["Name"]
+            except LookupError:
+                mxname = "Material"
+            matdict = dict(card["Render"])
             mat = Render.material.make_material(name=mxname, doc=self._doc)
             matdict = mat.Proxy.import_textures(matdict, basepath=None)
 
