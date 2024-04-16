@@ -136,6 +136,7 @@ class MaterialXImporter:
             # Import result
             in_file = os.path.join(working_dir, "out.FCMat")
             card = configparser.ConfigParser()
+            card.optionxform = lambda x: x  # Case sensitive
             card.read(in_file)
             try:
                 mxname = card["General"]["Name"]
