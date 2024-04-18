@@ -34,7 +34,6 @@ import time
 import itertools
 import operator
 import functools
-import collections
 from math import radians, cos
 
 try:
