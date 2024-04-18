@@ -644,7 +644,8 @@ class RenderMeshNumpyMixin:
             np.left_shift(all_edges_left, 32, dtype=np.int64),
             all_edges_right,
         )
-        # At this point, we have a collection of hashed edges ("hashes") like that:
+        # At this point, we have a collection of hashed edges ("hashes") like
+        # that:
         # facet(i, 0) << 32 | facet(i, 1)
         # facet(i, 0) << 32 | facet(i, 2)
         # facet(i, 1) << 32 | facet(i, 2)
@@ -666,7 +667,6 @@ class RenderMeshNumpyMixin:
         _, unique_indices, unique_counts = np.unique(
             hashes[:, 0], return_index=True, return_counts=True
         )
-        # hashtable = np.split(hashes[:,1], np.unique(hashes[:, 0], return_index=True)[1][1:])  # This is array of array  TODO
         hashtable = np.split(
             hashes[:, 1], unique_indices[1:]
         )  # This is array of array
@@ -700,7 +700,8 @@ class RenderMeshNumpyMixin:
     def _connected_components(self, split_angle=radians(30)):
         """Get all connected components of facets in the mesh.
 
-        Numpy version: this method uses a union-find algorithm, with path compression
+        Numpy version: this method uses a union-find algorithm, with path
+        compression
 
         Args:
             split_angle -- the angle that breaks adjacency
