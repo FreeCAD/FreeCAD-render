@@ -75,8 +75,7 @@ class RenderMeshMultiprocessingMixin:
         count_points = mesh.CountPoints
         count_facets = mesh.CountFacets
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if PARAMS.GetBool("Debug"):
             print(f"{count_points} points, {count_facets} facets")
 
         self._points = SharedArray("f", count_points, 3, points)
@@ -222,14 +221,13 @@ class RenderMeshMultiprocessingMixin:
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             tm0 = time.time()
 
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "autosmooth.py")
 
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print(f"Connected components: {self.count_points} points")
 
         # Init script globals
@@ -286,8 +284,7 @@ class RenderMeshMultiprocessingMixin:
 
         See write_objfile for more details.
         """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             tm0 = time.time()
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
@@ -445,8 +442,7 @@ class RenderMeshNumpyMixin:
 
         debug("Object", self.name, "Compute uvmap (np)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             time0 = time.time()
 
         # Set common parameters
@@ -537,8 +533,7 @@ class RenderMeshNumpyMixin:
         """
         debug("Object", self.name, "Compute vertex normals (np)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print("compute vnormals Numpy")
             tm0 = time.time()
 
@@ -621,8 +616,7 @@ class RenderMeshNumpyMixin:
         Returns a list of sets of facet indices (adjacency list).
         Numpy version
         """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print(f"compute adjacency lists (np) - {self.count_facets} facets")
             tm0 = time.time()
