@@ -749,15 +749,17 @@ class RenderMeshNumpyMixin:
 
             return root
 
-        def union(r1, r2):
-            if r1 == r2:
+        def union(root1, root2):
+            if root1 == root2:
                 return
 
-            if fathers[r1] > fathers[r2]:
-                r1, r2 = r2, r1
+            if (father1 := fathers[root1]) > (father2 := fathers[root2]):
+                father2 += father1
+                father1 = root2
+            else:
+                father1 += father2
+                father2 = root1
 
-            fathers[r1] += fathers[r2]
-            fathers[r2] = r1
 
         for edge in edges:
             x, y = edge
