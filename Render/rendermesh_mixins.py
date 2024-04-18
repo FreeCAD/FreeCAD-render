@@ -526,6 +526,14 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("numpy", time.time() - time0)
 
+    # Filter by normal angles
+    @staticmethod
+    def _safe_normalize_np(vect_array):
+        """Safely normalize an array of vectors."""
+        magnitudes = np.sqrt((vect_array**2).sum(-1))
+        magnitudes = np.expand_dims(magnitudes, axis=1)
+        return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
+
     def compute_vnormals(self):
         """Compute vertex normals (numpy version).
 
@@ -548,20 +556,14 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("init", time.time() - tm0)
 
-        def _safe_normalize_np(vect_array):
-            """Safely normalize an array of vectors."""
-            magnitudes = np.sqrt((vect_array**2).sum(-1))
-            magnitudes = np.expand_dims(magnitudes, axis=1)
-            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
-
         def _angles(i, j, k):
             """Compute triangle vertex angles."""
             # Compute normalized vectors
             vec1 = triangles[::, j, ::] - triangles[::, i, ::]
-            vec1 = _safe_normalize_np(vec1)
+            vec1 = self._safe_normalize_np(vec1)
 
             vec2 = triangles[::, k, ::] - triangles[::, i, ::]
-            vec2 = _safe_normalize_np(vec2)
+            vec2 = self._safe_normalize_np(vec2)
 
             # Compute dot products
             # (Clip to avoid precision issues)
@@ -603,7 +605,7 @@ class RenderMeshNumpyMixin:
                 np.bincount(indices, weighted_normals[..., 2]),
             )
         )
-        point_normals = _safe_normalize_np(point_normals)
+        point_normals = self._safe_normalize_np(point_normals)
 
         self.vnormals = point_normals.tolist()
 
@@ -679,17 +681,9 @@ class RenderMeshNumpyMixin:
             (indices[hashtable[..., 0]], indices[hashtable[..., 1]]), axis=-1
         )
 
-        # Filter by normal angles
-        def _safe_normalize_np(vect_array):
-            """Safely normalize an array of vectors."""
-            # TODO move away
-            magnitudes = np.sqrt((vect_array**2).sum(-1))
-            magnitudes = np.expand_dims(magnitudes, axis=1)
-            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
-
         normals = np.asarray(self.normals)
-        vec1 = _safe_normalize_np(normals[facet_pairs[..., 0]])
-        vec2 = _safe_normalize_np(normals[facet_pairs[..., 1]])
+        vec1 = self._safe_normalize_np(normals[facet_pairs[..., 0]])
+        vec2 = self._safe_normalize_np(normals[facet_pairs[..., 1]])
 
         # Compute dot product. As vectors are normalized, this is cosinus
         # (Clip to avoid precision issues)
