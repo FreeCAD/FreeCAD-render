@@ -713,15 +713,14 @@ class RenderMeshNumpyMixin:
         """
         debug("Object", self.name, "Compute connected components (np)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print()
-            print(f"Connected components (start)")
+            print("Connected components (start)")
             tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
         edges = self._adjacent_facets(split_angle)
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print("Adjacent facets", time.time() - tm0)
 
         nfacets = len(self.facets)
