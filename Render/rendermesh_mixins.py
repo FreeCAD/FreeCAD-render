@@ -728,8 +728,8 @@ class RenderMeshNumpyMixin:
 
         positive = functools.partial(operator.le, 0)
 
-        def getfather(x, _):
-            return fathers[x]
+        def getfather(child, _):
+            return fathers[child]
 
         accumulate = itertools.accumulate
         repeat = itertools.repeat
