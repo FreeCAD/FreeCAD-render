@@ -726,19 +726,19 @@ class RenderMeshNumpyMixin:
         nfacets = len(self.facets)
         fathers = [-1] * nfacets
 
-        positive = functools.partial(operator.le, 0)
-
         def getfather(child, _):
             return fathers[child]
 
-        accumulate = itertools.accumulate
-        repeat = itertools.repeat
         takewhile = itertools.takewhile
+        positive = functools.partial(operator.le, 0)
+        accumulate_x = functools.partial(
+            itertools.accumulate, itertools.repeat(0), getfather
+        )
+        setter = functools.partial(operator.setitem, fathers)
 
-        def find_path(x):
-            fathers_chain = accumulate(repeat(0), getfather, initial=x)
-            *path, r1 = takewhile(positive, fathers_chain)
-            return path, r1
+        def find_path(element):
+            *path, root = takewhile(positive, accumulate_x(initial=element))
+            return path, root
 
         # TODO make a dedicated class?
         def find_and_compress(x):
