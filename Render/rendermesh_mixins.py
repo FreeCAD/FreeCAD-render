@@ -754,11 +754,11 @@ class RenderMeshNumpyMixin:
                 return
 
             if (father1 := fathers[root1]) > (father2 := fathers[root2]):
-                father2 += father1
-                father1 = root2
+                fathers[root2] += father1
+                fathers[root1] = root2
             else:
-                father1 += father2
-                father2 = root1
+                fathers[root1] += father2
+                fathers[root2] = root1
 
         def union_find(elem1, elem2):
             union(find_and_compress(elem1), find_and_compress(elem2))
