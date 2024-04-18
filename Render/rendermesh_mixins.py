@@ -740,19 +740,14 @@ class RenderMeshNumpyMixin:
             *path, root = takewhile(positive, accumulate_x(initial=element))
             return path, root
 
-        # TODO make a dedicated class?
-        def find_and_compress(x):
+        def find_and_compress(child):
             # Find
-            path, r1 = find_path(x)
+            path, root = find_path(child)
 
-            # Compress
-            setter = functools.partial(operator.setitem, fathers)
-            _ = [setter(a, r1) for a in path]
+            # Compress (with side-effect)
+            _ = [setter(x, root) for x in path]
 
-            # for i in path:
-            # fathers[i] = r1
-
-            return r1
+            return root
 
         def union(r1, r2):
             if r1 == r2:
