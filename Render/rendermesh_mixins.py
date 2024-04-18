@@ -766,7 +766,7 @@ class RenderMeshNumpyMixin:
         vunion_find = np.vectorize(union_find)
         vunion_find(edges[..., 0], edges[..., 1])
 
-        tags = [find_and_compress(x) for x in range(len(fathers))]
+        tags = [find_path(x)[1] for x in range(len(fathers))]
 
         if debug_flag:
             print("tags", time.time() - tm0)
