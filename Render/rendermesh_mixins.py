@@ -760,12 +760,11 @@ class RenderMeshNumpyMixin:
                 father1 += father2
                 father2 = root1
 
+        def union_find(elem1, elem2):
+            union(find_and_compress(elem1), find_and_compress(elem2))
 
-        for edge in edges:
-            x, y = edge
-            root1 = find_and_compress(x)
-            root2 = find_and_compress(y)
-            union(root1, root2)
+        vunion_find = np.vectorize(union_find)
+        vunion_find(edges[..., 0], edges[..., 1])
 
         tags = [find_and_compress(x) for x in range(len(fathers))]
 
