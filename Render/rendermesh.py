@@ -195,7 +195,7 @@ class RenderMeshBase:
         self._setup_internals()
 
         # Sanity check
-        if not self.facets:
+        if not self.count_facets:
             return
 
         # Uvmap

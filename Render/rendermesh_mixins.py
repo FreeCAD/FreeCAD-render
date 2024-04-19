@@ -437,6 +437,60 @@ class RenderMeshNumpyMixin:
 
     # pylint: disable=too-few-public-methods
 
+    def _setup_internals(self):
+        """Set up internal variables.
+
+        To be overidden by mixins if necessary.
+        """
+        mesh = self._originalmesh
+        points, facets = mesh.Topology
+        facets2 = mesh.Facets
+        count_points = mesh.CountPoints
+        count_facets = mesh.CountFacets
+
+        if PARAMS.GetBool("Debug"):
+            print(f"{count_points} points, {count_facets} facets")
+
+        self._points = np.asarray(points)
+        self._facets = np.asarray(facets)
+        self._normals = np.asarray([f.Normal for f in facets2])
+        self._areas = np.asarray([f.Area for f in facets2])
+
+        self._uvmap = None
+
+        self._vnormals = None
+
+    def has_uvmap(self):
+        """Check if object has a uv map."""
+        return self._uvmap is not None
+
+    def has_vnormals(self):
+        """Check if object has a vertex normals."""
+        return self._vnormals is not None
+
+    # TODO uvmap cylinder and sphere
+
+    def _compute_uvmap_cylinder(self):
+        """Compute UV map for cylindric case.
+
+        Cylinder axis is supposed to be z.
+        """
+        super()._compute_uvmap_cylinder()
+        self.points = np.asarray(self.points)
+        self.facets = np.asarray(self.facets)
+        self.normals = np.asarray(self.normals)
+        self.areas = np.asarray(self.areas)
+        self.uvmap = np.asarray(self.uvmap)
+
+    def _compute_uvmap_sphere(self):
+        """Compute UV map for spherical case."""
+        super()._compute_uvmap_sphere()
+        self.points = np.asarray(self.points)
+        self.facets = np.asarray(self.facets)
+        self.normals = np.asarray(self.normals)
+        self.areas = np.asarray(self.areas)
+        self.uvmap = np.asarray(self.uvmap)
+
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - numpy version."""
 
@@ -447,11 +501,11 @@ class RenderMeshNumpyMixin:
 
         # Set common parameters
         count_facets = self.count_facets
-        normals = np.array(self.normals)
-        facets = np.array(self.facets)
+        normals = self.normals
+        facets = self.facets
         assert facets.shape[1] == 3
-        points = np.array(self.points)
-        areas = np.array(self.areas)
+        points = self.points
+        areas = self.areas
         triangles = np.take(points, facets, axis=0)
 
         # Compute facet colors
@@ -519,12 +573,20 @@ class RenderMeshNumpyMixin:
         uvs = uvs.squeeze(axis=-1)
 
         # Update attributes
-        self.facets = new_facets.tolist()
-        self.points = new_points.tolist()
-        self.uvmap = uvs.tolist()
+        self.facets = new_facets
+        self.points = new_points
+        self.uvmap = uvs
 
         if debug_flag:
             print("numpy", time.time() - time0)
+
+    def _make_uvmap_positive(self):
+        """Make all values in uvmap positive (or zero).
+
+        This is required by LuxCore (procedural textures).
+        """
+        offset = np.min(np.real(self.uvmap)) + 1j * np.min(np.imag(self.uvmap))
+        self.uvmap -= offset
 
     # Filter by normal angles
     @staticmethod
@@ -625,8 +687,7 @@ class RenderMeshNumpyMixin:
             np.set_printoptions(edgeitems=600)
 
         # Compute mesh edges (assume triangles)
-        facets = np.asarray(self.facets)
-        facets.sort(axis=1)  # Sort points in each facet
+        facets = np.sort(self.facets, axis=1)  # Sort points in each facet
         if debug_flag:
             print("hashes", time.time() - tm0)
 
@@ -766,7 +827,8 @@ class RenderMeshNumpyMixin:
         vunion_find = np.vectorize(union_find)
         vunion_find(edges[..., 0], edges[..., 1])
 
-        tags = [find_path(x)[1] for x in range(len(fathers))]
+        vfind_and_compress = np.vectorize(find_and_compress)
+        tags = vfind_and_compress(np.arange(nfacets))
 
         if debug_flag:
             print("tags", time.time() - tm0)
@@ -783,18 +845,15 @@ class RenderMeshNumpyMixin:
                 are considered as non-connected (in radians)
         """
         debug_flag = PARAMS.GetBool("Debug")
-        tags = np.asarray(
-            self._connected_components(split_angle)
-        )  # TODO convert tags to numpy
+        tags = self._connected_components(split_angle)
         if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print("distinct tags", len(set(tags)))
             tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
-        # TODO Convert underlying points/facets to numpy
-        points = np.asarray(self.points)
-        facets = np.asarray(self.facets)
+        points = self.points
+        facets = self.facets
 
         # Compute new points
         tags = np.expand_dims(tags, axis=1)
@@ -806,18 +865,16 @@ class RenderMeshNumpyMixin:
             newpoints, axis=0, return_inverse=True
         )
 
-        points = points[newpoints[..., 0]]
-        self.points = points.tolist()
+        self.points = points[newpoints[..., 0]]
 
         # Update point indices in facets
-        unique_inverse = np.reshape(unique_inverse, (-1, 3))
-        self.facets = unique_inverse.tolist()
+        self.facets = np.reshape(unique_inverse, (-1, 3))
 
         # If necessary, rebuild uvmap
-        if self.uvmap:
-            uvmap = np.asarray(self.uvmap)
-            uvmap = uvmap[newpoints[..., 0]]
-            self.uvmap = uvmap.tolist()
+        if self.uvmap is not None:
+            print(newpoints[..., 0])
+            print(type(self.uvmap))
+            self.uvmap = self.uvmap[newpoints[..., 0]]
 
         if debug_flag:
             print("separate", time.time() - tm0)
