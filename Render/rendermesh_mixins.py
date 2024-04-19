@@ -773,6 +773,55 @@ class RenderMeshNumpyMixin:
 
         return tags
 
+    def separate_connected_components(self, split_angle=radians(30)):
+        """Operate a separation into the mesh between connected components.
+
+        Only points are modified. Facets are kept as-is.
+
+        Args:
+            split_angle -- angle threshold, above which 2 adjacents facets
+                are considered as non-connected (in radians)
+        """
+        debug_flag = PARAMS.GetBool("Debug")
+        tags = np.asarray(
+            self._connected_components(split_angle)
+        )  # TODO convert tags to numpy
+        if debug_flag := PARAMS.GetBool("Debug"):
+            print()
+            print("distinct tags", len(set(tags)))
+            tm0 = time.time()
+            np.set_printoptions(edgeitems=600)
+
+        # TODO Convert underlying points/facets to numpy
+        points = np.asarray(self.points)
+        facets = np.asarray(self.facets)
+
+        # Compute new points
+        tags = np.expand_dims(tags, axis=1)
+        tags = np.repeat(tags, 3, axis=1)
+        tags = np.ravel(tags)
+        ravel_facets = np.ravel(facets)
+        newpoints = np.column_stack((ravel_facets, tags))
+        newpoints, unique_inverse = np.unique(
+            newpoints, axis=0, return_inverse=True
+        )
+
+        points = points[newpoints[..., 0]]
+        self.points = points.tolist()
+
+        # Update point indices in facets
+        unique_inverse = np.reshape(unique_inverse, (-1, 3))
+        self.facets = unique_inverse.tolist()
+
+        # If necessary, rebuild uvmap
+        if self.uvmap:
+            uvmap = np.asarray(self.uvmap)
+            uvmap = uvmap[newpoints[..., 0]]
+            self.uvmap = uvmap.tolist()
+
+        if debug_flag:
+            print("separate", time.time() - tm0)
+
 
 # TODO compute_tspaces
 
