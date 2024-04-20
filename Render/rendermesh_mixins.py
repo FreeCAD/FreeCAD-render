@@ -430,6 +430,7 @@ class SharedArray:
 # ===========================================================================
 #                           Numpy mixin
 # ===========================================================================
+import array
 
 
 class RenderMeshNumpyMixin:
@@ -446,15 +447,28 @@ class RenderMeshNumpyMixin:
             tm0 = time.time()
         mesh = self._originalmesh
         points, facets = mesh.Topology
+        count_facets = len(facets)
+        count_points = len(points)
 
-        if not len(facets):
+        if not count_facets:
+            # Empty mesh...
             return
 
         if PARAMS.GetBool("Debug"):
-            print(f"{len(points)} points, {len(facets)} facets")
+            print(f"{count_points} points, {count_facets} facets")
 
-        points = np.array(points)
-        facets = np.array(facets)
+        points = np.fromiter(
+            (x for p in points for x in p),
+            dtype=np.float64,
+            count=count_points * 3,
+        )
+        points = points.reshape((-1, 3))
+        facets = np.fromiter(
+            (x for f in facets for x in f),
+            dtype=np.int64,
+            count=count_facets * 3,
+        )
+        facets = facets.reshape((-1, 3))
 
         if PARAMS.GetBool("Debug"):
             tm1 = time.time() - tm0
@@ -903,8 +917,6 @@ class RenderMeshNumpyMixin:
 
         # If necessary, rebuild uvmap
         if self.uvmap is not None:
-            print(newpoints[..., 0])
-            print(type(self.uvmap))
             self.uvmap = self.uvmap[newpoints[..., 0]]
 
         if debug_flag:
