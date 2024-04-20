@@ -285,7 +285,7 @@ class RenderMeshBase:
     @property
     def count_points(self):
         """Get the number of points."""
-        return len(self._points)
+        return 0 if self._points is None else len(self._points)
 
     @property
     def facets(self):
@@ -300,7 +300,7 @@ class RenderMeshBase:
     @property
     def count_facets(self):
         """Get the number of facets."""
-        return len(self._facets)
+        return 0 if self._facets is None else len(self._facets)
 
     @property
     def uvmap(self):

@@ -442,23 +442,54 @@ class RenderMeshNumpyMixin:
 
         To be overidden by mixins if necessary.
         """
+        if PARAMS.GetBool("Debug"):
+            tm0 = time.time()
         mesh = self._originalmesh
         points, facets = mesh.Topology
-        facets2 = mesh.Facets
-        count_points = mesh.CountPoints
-        count_facets = mesh.CountFacets
+
+        if not len(facets):
+            return
 
         if PARAMS.GetBool("Debug"):
-            print(f"{count_points} points, {count_facets} facets")
+            print(f"{len(points)} points, {len(facets)} facets")
 
-        self._points = np.asarray(points)
-        self._facets = np.asarray(facets)
-        self._normals = np.asarray([f.Normal for f in facets2])
-        self._areas = np.asarray([f.Area for f in facets2])
+        points = np.array(points)
+        facets = np.array(facets)
+
+        if PARAMS.GetBool("Debug"):
+            tm1 = time.time() - tm0
+            print(f"Setup points & facets {tm1}")
+
+        # `mesh.Facets` is far too slow, so we recompute areas and normals
+        # by ourselves.
+        # We first compute vector products
+        vec1 = points[facets[..., 1]] - points[facets[..., 0]]
+        vec2 = points[facets[..., 2]] - points[facets[..., 0]]
+        cross = np.cross(vec1, vec2)
+        cross_norms = np.linalg.norm(cross, axis=1)
+
+        # We filter out triangles with null area (degenerated...)
+        notnull = np.where(cross_norms != 0.0)
+        facets = facets[notnull]
+        cross = cross[notnull]
+        cross_norms = cross_norms[notnull]
+
+        # And we compute normals
+        areas = cross_norms / 2
+        normals = cross / np.expand_dims(cross_norms, axis=1)
+
+        # Finally we assign to properties
+        self._points = points
+        self._facets = facets
+        self._areas = areas
+        self._normals = normals
 
         self._uvmap = None
-
         self._vnormals = None
+
+        if PARAMS.GetBool("Debug"):
+            tm1 = time.time() - tm0
+            print(f"Setup internals {tm1}")
 
     def has_uvmap(self):
         """Check if object has a uv map."""
