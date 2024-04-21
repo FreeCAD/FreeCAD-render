@@ -830,20 +830,25 @@ class RenderMeshNumpyMixin:
             print("Adjacent facets", time.time() - tm0)
 
         nfacets = len(self.facets)
-        fathers = [-1] * nfacets
+        # Numpy array is slightly slower than list, but it releases GIL...
+        fathers = np.full((nfacets,), -1, dtype=np.int64)
+        # fathers = [-1] * nfacets
 
         def getfather(child, _):
             return fathers[child]
 
         takewhile = itertools.takewhile
         positive = functools.partial(operator.le, 0)
-        accumulate_x = functools.partial(
+        accumulate_father = functools.partial(
             itertools.accumulate, itertools.repeat(0), getfather
         )
         setter = functools.partial(operator.setitem, fathers)
+        getter = functools.partial(operator.getitem, fathers)
 
         def find_path(element):
-            *path, root = takewhile(positive, accumulate_x(initial=element))
+            *path, root = takewhile(
+                positive, accumulate_father(initial=element)
+            )
             return path, root
 
         def find_and_compress(child):
@@ -852,6 +857,7 @@ class RenderMeshNumpyMixin:
 
             # Compress (with side-effect)
             _ = [setter(x, root) for x in path]
+            # setter(path, root)
 
             return root
 
@@ -859,12 +865,15 @@ class RenderMeshNumpyMixin:
             if root1 == root2:
                 return
 
-            if (father1 := fathers[root1]) > (father2 := fathers[root2]):
-                fathers[root2] += father1
-                fathers[root1] = root2
+            father1, father2 = getter(root1), getter(root2)
+            sumfather = father1 + father2
+
+            if father1 > father2:
+                setter(root2, sumfather)
+                setter(root1, root2)
             else:
-                fathers[root1] += father2
-                fathers[root2] = root1
+                setter(root1, sumfather)
+                setter(root2, root1)
 
         def union_find(elem1, elem2):
             union(find_and_compress(elem1), find_and_compress(elem2))
