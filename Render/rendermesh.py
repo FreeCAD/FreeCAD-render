@@ -1384,7 +1384,7 @@ class RenderMeshBase:
         # Terathon Software 3D Graphics Library, 2001.
         # http://www.terathon.com/code/tangent.html
         points = self.points
-        uvmap = self.uvmap
+        uvmap = list(self.uvmap)
         tan1 = [App.Vector() for _ in range(self.count_points)]
         tan2 = [App.Vector() for _ in range(self.count_points)]
         for facet in self.facets:

@@ -430,13 +430,10 @@ class SharedArray:
 # ===========================================================================
 #                           Numpy mixin
 # ===========================================================================
-import array
 
 
 class RenderMeshNumpyMixin:
     """A mixin class to add Numpy use capabilities to RenderMesh."""
-
-    # pylint: disable=too-few-public-methods
 
     def _setup_internals(self):
         """Set up internal variables.
@@ -714,7 +711,8 @@ class RenderMeshNumpyMixin:
         )
         point_normals = self._safe_normalize_np(point_normals)
 
-        self.vnormals = point_normals.tolist()
+        # self.vnormals = point_normals.tolist()
+        self.vnormals = point_normals
 
         if debug_flag:
             print(time.time() - tm0)
@@ -938,8 +936,116 @@ class RenderMeshNumpyMixin:
         """
         self.points *= ratio
 
-    # TODO compute_tspaces
+    def compute_tspaces(self):
+        """Compute tangent spaces.
 
+        Numpy version.
+        """
+        # pylint: disable=invalid-name
+        if debug_flag := PARAMS.GetBool("Debug"):
+            tm0 = time.time()
+            print("Start compute_tspaces")
+
+        # Lengyel, Eric.
+        # “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
+        # Terathon Software 3D Graphics Library, 2001.
+        # http://www.terathon.com/code/tangent.html
+        facets = self.facets
+        points = self.points
+        uvmap = self.uvmap
+        normals = self.vnormals
+
+        v1, v2, v3 = (
+            points[facets[..., 0]],
+            points[facets[..., 1]],
+            points[facets[..., 2]],
+        )
+        w1, w2, w3 = (
+            uvmap[facets[..., 0]],
+            uvmap[facets[..., 1]],
+            uvmap[facets[..., 2]],
+        )
+
+        x1 = v2[..., 0] - v1[..., 0]
+        x2 = v3[..., 0] - v1[..., 0]
+        y1 = v2[..., 1] - v1[..., 1]
+        y2 = v3[..., 1] - v1[..., 1]
+        z1 = v2[..., 2] - v1[..., 2]
+        z2 = v3[..., 2] - v1[..., 2]
+
+        s1 = w2.real - w1.real
+        s2 = w3.real - w1.real
+        t1 = w2.imag - w1.imag
+        t2 = w3.imag - w1.imag
+
+        det = s1 * t2 - s2 * t1
+
+        det_nz = np.where(det != 0.0)
+
+        det = det[det_nz]
+        x1 = x1[det_nz]
+        x2 = x2[det_nz]
+        y1 = y1[det_nz]
+        y2 = y2[det_nz]
+        z1 = z1[det_nz]
+        z2 = z2[det_nz]
+        s1 = s1[det_nz]
+        s2 = s2[det_nz]
+        facets = facets[det_nz]
+
+        r = 1.0 / det
+
+        sdir = np.column_stack(
+            (
+                (t2 * x1 - t1 * x2) * r,
+                (t2 * y1 - t1 * y2) * r,
+                (t2 * z1 - t1 * z2) * r,
+            )
+        )
+        tdir = np.column_stack(
+            (
+                (s1 * x2 - s2 * x1) * r,
+                (s1 * y2 - s2 * y1) * r,
+                (s1 * z2 - s2 * z1) * r,
+            )
+        )
+
+        sdir = np.repeat(sdir, 3, axis=0)
+        tdir = np.repeat(tdir, 3, axis=0)
+        flat_facets = np.ravel(facets)
+
+        tan1 = np.column_stack(
+            (
+                np.bincount(flat_facets, weights=sdir[..., 0]),
+                np.bincount(flat_facets, weights=sdir[..., 1]),
+                np.bincount(flat_facets, weights=sdir[..., 2]),
+            )
+        )
+        tan2 = np.column_stack(
+            (
+                np.bincount(flat_facets, weights=tdir[..., 0]),
+                np.bincount(flat_facets, weights=tdir[..., 1]),
+                np.bincount(flat_facets, weights=tdir[..., 2]),
+            )
+        )
+
+        # Gram-Schmidt
+        dot_norm_tan1 = (normals * tan1).sum(1)
+        dot_norm_tan1 = np.expand_dims(dot_norm_tan1, axis=1)
+        tangents = tan1 - normals * dot_norm_tan1
+        tangents = self._safe_normalize_np(tangents)
+
+        # Handedness
+        dot_cross_tan2 = (tan2 * np.cross(normals, tan1)).sum(1)
+        tangent_signs = np.sign(dot_cross_tan2)
+        tangent_signs[np.where(tangent_signs == 0.0)] = 1.0
+
+        self.tangents = tangents
+        self.tangent_signs = tangent_signs
+
+        if debug_flag:
+            tm1 = time.time()
+            print(f"End compute_tspaces: {tm1 - tm0}")
 
 
 # ===========================================================================
