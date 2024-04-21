@@ -260,8 +260,12 @@ class RenderMeshBase:
 
     def convert_distances(self, ratio):
         """Convert mesh distances (points, translation) with ratio."""
-        self.points = [tuple(c * ratio for c in p) for p in self.points]
+        self._scale_points(ratio)
         self.__transformation.convert_distances(ratio)
+
+    def _scale_points(self, ratio):
+        """Scale points with ratio (can be overriden by mixins)."""
+        self.points = [tuple(c * ratio for c in p) for p in self.points]
 
     ##########################################################################
     #                               Getters                                  #

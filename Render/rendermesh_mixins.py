@@ -931,8 +931,16 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("separate", time.time() - tm0)
 
+    def _scale_points(self, ratio):
+        """Scale points with ratio (can be overriden by mixins).
 
-# TODO compute_tspaces
+        Numpy version.
+        """
+        self.points *= ratio
+
+    # TODO compute_tspaces
+
+
 
 # ===========================================================================
 #                               Helpers
