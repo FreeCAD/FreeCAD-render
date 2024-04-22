@@ -657,8 +657,8 @@ def _write_material_carpaint(name, matval, connect_to="output surface"):
     base_color = "{matval["basecolor"]}"
     specular = "0.1"
     roughness = "0.5"
-    clearcoat = "1.0"
-    clearcoat_roughness = "0.05"
+    coat = "1.0"
+    coat_roughness = "0.05"
 />
 <connect from="{name}_bsdf bsdf" to="{connect_to}"/>
 
