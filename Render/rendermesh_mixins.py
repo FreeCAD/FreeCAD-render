@@ -33,7 +33,8 @@ import os
 import time
 import itertools
 import operator
-import collections
+import functools
+from math import radians, cos
 
 try:
     import numpy as np
@@ -74,8 +75,7 @@ class RenderMeshMultiprocessingMixin:
         count_points = mesh.CountPoints
         count_facets = mesh.CountFacets
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if PARAMS.GetBool("Debug"):
             print(f"{count_points} points, {count_facets} facets")
 
         self._points = SharedArray("f", count_points, 3, points)
@@ -221,14 +221,13 @@ class RenderMeshMultiprocessingMixin:
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             tm0 = time.time()
 
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "autosmooth.py")
 
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print(f"Connected components: {self.count_points} points")
 
         # Init script globals
@@ -285,8 +284,7 @@ class RenderMeshMultiprocessingMixin:
 
         See write_objfile for more details.
         """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             tm0 = time.time()
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
@@ -437,24 +435,119 @@ class SharedArray:
 class RenderMeshNumpyMixin:
     """A mixin class to add Numpy use capabilities to RenderMesh."""
 
-    # pylint: disable=too-few-public-methods
+    def _setup_internals(self):
+        """Set up internal variables.
+
+        To be overidden by mixins if necessary.
+        """
+        if PARAMS.GetBool("Debug"):
+            tm0 = time.time()
+        mesh = self._originalmesh
+        points, facets = mesh.Topology
+        count_facets = len(facets)
+        count_points = len(points)
+
+        if not count_facets:
+            # Empty mesh...
+            return
+
+        if PARAMS.GetBool("Debug"):
+            print(f"{count_points} points, {count_facets} facets")
+
+        points = np.fromiter(
+            (x for p in points for x in p),
+            dtype=np.float64,
+            count=count_points * 3,
+        )
+        points = points.reshape((-1, 3))
+        facets = np.fromiter(
+            (x for f in facets for x in f),
+            dtype=np.int64,
+            count=count_facets * 3,
+        )
+        facets = facets.reshape((-1, 3))
+
+        if PARAMS.GetBool("Debug"):
+            tm1 = time.time() - tm0
+            print(f"Setup points & facets {tm1}")
+
+        # `mesh.Facets` is far too slow, so we recompute areas and normals
+        # by ourselves.
+        # We first compute vector products
+        vec1 = points[facets[..., 1]] - points[facets[..., 0]]
+        vec2 = points[facets[..., 2]] - points[facets[..., 0]]
+        cross = np.cross(vec1, vec2)
+        cross_norms = np.linalg.norm(cross, axis=1)
+
+        # We filter out triangles with null area (degenerated...)
+        notnull = np.where(cross_norms != 0.0)
+        facets = facets[notnull]
+        cross = cross[notnull]
+        cross_norms = cross_norms[notnull]
+
+        # And we compute normals
+        areas = cross_norms / 2
+        normals = cross / np.expand_dims(cross_norms, axis=1)
+
+        # Finally we assign to properties
+        self._points = points
+        self._facets = facets
+        self._areas = areas
+        self._normals = normals
+
+        self._uvmap = None
+        self._vnormals = None
+
+        if PARAMS.GetBool("Debug"):
+            tm1 = time.time() - tm0
+            print(f"Setup internals {tm1}")
+
+    def has_uvmap(self):
+        """Check if object has a uv map."""
+        return self._uvmap is not None
+
+    def has_vnormals(self):
+        """Check if object has a vertex normals."""
+        return self._vnormals is not None
+
+    # TODO uvmap cylinder and sphere
+
+    def _compute_uvmap_cylinder(self):
+        """Compute UV map for cylindric case.
+
+        Cylinder axis is supposed to be z.
+        """
+        super()._compute_uvmap_cylinder()
+        self.points = np.asarray(self.points)
+        self.facets = np.asarray(self.facets)
+        self.normals = np.asarray(self.normals)
+        self.areas = np.asarray(self.areas)
+        self.uvmap = np.asarray(self.uvmap)
+
+    def _compute_uvmap_sphere(self):
+        """Compute UV map for spherical case."""
+        super()._compute_uvmap_sphere()
+        self.points = np.asarray(self.points)
+        self.facets = np.asarray(self.facets)
+        self.normals = np.asarray(self.normals)
+        self.areas = np.asarray(self.areas)
+        self.uvmap = np.asarray(self.uvmap)
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - numpy version."""
 
         debug("Object", self.name, "Compute uvmap (np)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             time0 = time.time()
 
         # Set common parameters
         count_facets = self.count_facets
-        normals = np.array(self.normals)
-        facets = np.array(self.facets)
+        normals = self.normals
+        facets = self.facets
         assert facets.shape[1] == 3
-        points = np.array(self.points)
-        areas = np.array(self.areas)
+        points = self.points
+        areas = self.areas
         triangles = np.take(points, facets, axis=0)
 
         # Compute facet colors
@@ -522,12 +615,28 @@ class RenderMeshNumpyMixin:
         uvs = uvs.squeeze(axis=-1)
 
         # Update attributes
-        self.facets = new_facets.tolist()
-        self.points = new_points.tolist()
-        self.uvmap = uvs.tolist()
+        self.facets = new_facets
+        self.points = new_points
+        self.uvmap = uvs
 
         if debug_flag:
             print("numpy", time.time() - time0)
+
+    def _make_uvmap_positive(self):
+        """Make all values in uvmap positive (or zero).
+
+        This is required by LuxCore (procedural textures).
+        """
+        offset = np.min(np.real(self.uvmap)) + 1j * np.min(np.imag(self.uvmap))
+        self.uvmap -= offset
+
+    # Filter by normal angles
+    @staticmethod
+    def _safe_normalize_np(vect_array):
+        """Safely normalize an array of vectors."""
+        magnitudes = np.sqrt((vect_array**2).sum(-1))
+        magnitudes = np.expand_dims(magnitudes, axis=1)
+        return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
 
     def compute_vnormals(self):
         """Compute vertex normals (numpy version).
@@ -536,8 +645,7 @@ class RenderMeshNumpyMixin:
         """
         debug("Object", self.name, "Compute vertex normals (np)")
 
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print("compute vnormals Numpy")
             tm0 = time.time()
 
@@ -552,20 +660,14 @@ class RenderMeshNumpyMixin:
         if debug_flag:
             print("init", time.time() - tm0)
 
-        def _safe_normalize_np(vect_array):
-            """Safely normalize an array of vectors."""
-            magnitudes = np.sqrt((vect_array**2).sum(-1))
-            magnitudes = np.expand_dims(magnitudes, axis=1)
-            return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
-
         def _angles(i, j, k):
             """Compute triangle vertex angles."""
             # Compute normalized vectors
             vec1 = triangles[::, j, ::] - triangles[::, i, ::]
-            vec1 = _safe_normalize_np(vec1)
+            vec1 = self._safe_normalize_np(vec1)
 
             vec2 = triangles[::, k, ::] - triangles[::, i, ::]
-            vec2 = _safe_normalize_np(vec2)
+            vec2 = self._safe_normalize_np(vec2)
 
             # Compute dot products
             # (Clip to avoid precision issues)
@@ -607,29 +709,28 @@ class RenderMeshNumpyMixin:
                 np.bincount(indices, weighted_normals[..., 2]),
             )
         )
-        point_normals = _safe_normalize_np(point_normals)
+        point_normals = self._safe_normalize_np(point_normals)
 
-        self.vnormals = point_normals.tolist()
+        # self.vnormals = point_normals.tolist()
+        self.vnormals = point_normals
 
         if debug_flag:
             print(time.time() - tm0)
 
-    def _adjacent_facets(self):
+    def _adjacent_facets(self, split_angle=radians(30)):
         """Compute the adjacent facets for each facet of the mesh.
 
         Returns a list of sets of facet indices (adjacency list).
         Numpy version
         """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print(f"compute adjacency lists (np) - {self.count_facets} facets")
             tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
-        # Compute edges (assume triangles)
-        facets = np.asarray(self.facets)
-        facets.sort(axis=1)
+        # Compute mesh edges (assume triangles)
+        facets = np.sort(self.facets, axis=1)  # Sort points in each facet
         if debug_flag:
             print("hashes", time.time() - tm0)
 
@@ -647,61 +748,304 @@ class RenderMeshNumpyMixin:
             np.left_shift(all_edges_left, 32, dtype=np.int64),
             all_edges_right,
         )
+        # At this point, we have a collection of hashed edges ("hashes") like
+        # that:
+        # facet(i, 0) << 32 | facet(i, 1)
+        # facet(i, 0) << 32 | facet(i, 2)
+        # facet(i, 1) << 32 | facet(i, 2)
+        #
+        # where facet(i, j) is the jth point in the ith facet
+        # We have to make those hashed edges match between facets to get
+        # the connections ("pairs") between facets
+        # To do this, we use itertools.groupby
 
-        # Sort hashes
+        # Sort hashes and, for each, append the index of the facet
         hashes_indices = np.argsort(hashes)
         hashes = hashes[hashes_indices]
         hashes = np.stack((hashes, hashes_indices % len(facets)), axis=-1)
         if debug_flag:
             print("sorted hashes", time.time() - tm0)
 
-        # Compute hashtable
-        itget0 = operator.itemgetter(0)
-        itget1 = operator.itemgetter(1)
-        permutations = itertools.permutations
-        groupby = itertools.groupby
-        hashtable = (
-            permutations(map(itget1, v), 2)
-            for v in map(itget1, groupby(hashes, key=itget0))
+        # Compute hashtable - find connections
+        # https://stackoverflow.com/questions/38013778/is-there-any-numpy-group-by-function
+        _, unique_indices, unique_counts = np.unique(
+            hashes[:, 0], return_index=True, return_counts=True
         )
-
-        # Compute pairs
-        pairs = itertools.chain.from_iterable(hashtable)
-        pairs = np.fromiter(pairs, dtype=[("x", np.int64), ("y", np.int64)])
+        hashtable = np.split(
+            hashes[:, 1], unique_indices[1:]
+        )  # This is array of array
+        hashtable = [a for a, n in zip(hashtable, unique_counts) if n == 2]
+        hashtable = np.stack(hashtable)
 
         if debug_flag:
-            print(f"all pairs ({len(pairs)} pairs)", time.time() - tm0)
+            print(f"all pairs ({len(hashtable)} pairs)", time.time() - tm0)
 
         # Build adjacency lists
         facet_pairs = np.stack(
-            (indices[pairs["x"]], indices[pairs["y"]]), axis=-1
+            (indices[hashtable[..., 0]], indices[hashtable[..., 1]]), axis=-1
         )
 
-        # https://stackoverflow.com/questions/
-        # 38277143/sort-2d-numpy-array-lexicographically
-        facet_pairs = facet_pairs[np.lexsort(facet_pairs.T[::-1])]
+        normals = np.asarray(self.normals)
+        vec1 = self._safe_normalize_np(normals[facet_pairs[..., 0]])
+        vec2 = self._safe_normalize_np(normals[facet_pairs[..., 1]])
+
+        # Compute dot product. As vectors are normalized, this is cosinus
+        # (Clip to avoid precision issues)
+        dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
+        split_angle_cos = cos(split_angle)
+
+        # Compare to split_angle cosinus
+        facet_pairs = facet_pairs[np.where(dots > split_angle_cos)]
         if debug_flag:
-            print("sorted pairs", time.time() - tm0)
+            print("filtered pairs", time.time() - tm0)
 
-        adjacency = {
-            k: list(map(itget1, v))
-            for k, v in groupby(facet_pairs, key=itget0)
-        }
-        adjacency = collections.defaultdict(list, adjacency)
+        return facet_pairs
+
+    def _connected_components(self, split_angle=radians(30)):
+        """Get all connected components of facets in the mesh.
+
+        Numpy version: this method uses a union-find algorithm, with path
+        compression
+
+        Args:
+            split_angle -- the angle that breaks adjacency
+
+        Returns:
+            a list of tags. Each tag gives the component of the corresponding
+                facet
+            the number of components
+        """
+        debug("Object", self.name, "Compute connected components (np)")
+
+        if debug_flag := PARAMS.GetBool("Debug"):
+            print()
+            print("Connected components (start)")
+            tm0 = time.time()
+            np.set_printoptions(edgeitems=600)
+
+        edges = self._adjacent_facets(split_angle)
+        if debug_flag := PARAMS.GetBool("Debug"):
+            print("Adjacent facets", time.time() - tm0)
+
+        nfacets = len(self.facets)
+        # Numpy array is slightly slower than list, but it releases GIL...
+        fathers = np.full((nfacets,), -1, dtype=np.int64)
+        # fathers = [-1] * nfacets
+
+        def getfather(child, _):
+            return fathers[child]
+
+        takewhile = itertools.takewhile
+        positive = functools.partial(operator.le, 0)
+        accumulate_father = functools.partial(
+            itertools.accumulate, itertools.repeat(0), getfather
+        )
+        setter = functools.partial(operator.setitem, fathers)
+        getter = functools.partial(operator.getitem, fathers)
+
+        def find_path(element):
+            *path, root = takewhile(
+                positive, accumulate_father(initial=element)
+            )
+            return path, root
+
+        def find_and_compress(child):
+            # Find
+            path, root = find_path(child)
+
+            # Compress (with side-effect)
+            _ = [setter(x, root) for x in path]
+            # setter(path, root)
+
+            return root
+
+        def union(root1, root2):
+            if root1 == root2:
+                return
+
+            father1, father2 = getter(root1), getter(root2)
+            sumfather = father1 + father2
+
+            if father1 > father2:
+                setter(root2, sumfather)
+                setter(root1, root2)
+            else:
+                setter(root1, sumfather)
+                setter(root2, root1)
+
+        def union_find(elem1, elem2):
+            union(find_and_compress(elem1), find_and_compress(elem2))
+
+        vunion_find = np.vectorize(union_find)
+        vunion_find(edges[..., 0], edges[..., 1])
+
+        vfind_and_compress = np.vectorize(find_and_compress)
+        tags = vfind_and_compress(np.arange(nfacets))
 
         if debug_flag:
-            print("adjacency", time.time() - tm0)
+            print("tags", time.time() - tm0)
 
-        # Debug (symmetry)
-        # errors = [
-        # i
-        # for i in range(0, self.count_facets)
-        # for j in adjacency[i]
-        # if i not in adjacency[j]
-        # ]
-        # assert not errors
+        return tags
 
-        return adjacency
+    def separate_connected_components(self, split_angle=radians(30)):
+        """Operate a separation into the mesh between connected components.
+
+        Only points are modified. Facets are kept as-is.
+
+        Args:
+            split_angle -- angle threshold, above which 2 adjacents facets
+                are considered as non-connected (in radians)
+        """
+        debug_flag = PARAMS.GetBool("Debug")
+        tags = self._connected_components(split_angle)
+        if debug_flag := PARAMS.GetBool("Debug"):
+            print()
+            print("distinct tags", len(set(tags)))
+            tm0 = time.time()
+            np.set_printoptions(edgeitems=600)
+
+        points = self.points
+        facets = self.facets
+
+        # Compute new points
+        tags = np.expand_dims(tags, axis=1)
+        tags = np.repeat(tags, 3, axis=1)
+        tags = np.ravel(tags)
+        ravel_facets = np.ravel(facets)
+        newpoints = np.column_stack((ravel_facets, tags))
+        newpoints, unique_inverse = np.unique(
+            newpoints, axis=0, return_inverse=True
+        )
+
+        self.points = points[newpoints[..., 0]]
+
+        # Update point indices in facets
+        self.facets = np.reshape(unique_inverse, (-1, 3))
+
+        # If necessary, rebuild uvmap
+        if self.uvmap is not None:
+            self.uvmap = self.uvmap[newpoints[..., 0]]
+
+        if debug_flag:
+            print("separate", time.time() - tm0)
+
+    def _scale_points(self, ratio):
+        """Scale points with ratio (can be overriden by mixins).
+
+        Numpy version.
+        """
+        self.points *= ratio
+
+    def compute_tspaces(self):
+        """Compute tangent spaces.
+
+        Numpy version.
+        """
+        # pylint: disable=invalid-name
+        if debug_flag := PARAMS.GetBool("Debug"):
+            tm0 = time.time()
+            print("Start compute_tspaces")
+
+        # Lengyel, Eric.
+        # “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
+        # Terathon Software 3D Graphics Library, 2001.
+        # http://www.terathon.com/code/tangent.html
+        facets = self.facets
+        points = self.points
+        uvmap = self.uvmap
+        normals = self.vnormals
+
+        v1, v2, v3 = (
+            points[facets[..., 0]],
+            points[facets[..., 1]],
+            points[facets[..., 2]],
+        )
+        w1, w2, w3 = (
+            uvmap[facets[..., 0]],
+            uvmap[facets[..., 1]],
+            uvmap[facets[..., 2]],
+        )
+
+        x1 = v2[..., 0] - v1[..., 0]
+        x2 = v3[..., 0] - v1[..., 0]
+        y1 = v2[..., 1] - v1[..., 1]
+        y2 = v3[..., 1] - v1[..., 1]
+        z1 = v2[..., 2] - v1[..., 2]
+        z2 = v3[..., 2] - v1[..., 2]
+
+        s1 = w2.real - w1.real
+        s2 = w3.real - w1.real
+        t1 = w2.imag - w1.imag
+        t2 = w3.imag - w1.imag
+
+        det = s1 * t2 - s2 * t1
+
+        det_nz = np.where(det != 0.0)
+
+        det = det[det_nz]
+        x1 = x1[det_nz]
+        x2 = x2[det_nz]
+        y1 = y1[det_nz]
+        y2 = y2[det_nz]
+        z1 = z1[det_nz]
+        z2 = z2[det_nz]
+        s1 = s1[det_nz]
+        s2 = s2[det_nz]
+        facets = facets[det_nz]
+
+        r = 1.0 / det
+
+        sdir = np.column_stack(
+            (
+                (t2 * x1 - t1 * x2) * r,
+                (t2 * y1 - t1 * y2) * r,
+                (t2 * z1 - t1 * z2) * r,
+            )
+        )
+        tdir = np.column_stack(
+            (
+                (s1 * x2 - s2 * x1) * r,
+                (s1 * y2 - s2 * y1) * r,
+                (s1 * z2 - s2 * z1) * r,
+            )
+        )
+
+        sdir = np.repeat(sdir, 3, axis=0)
+        tdir = np.repeat(tdir, 3, axis=0)
+        flat_facets = np.ravel(facets)
+
+        tan1 = np.column_stack(
+            (
+                np.bincount(flat_facets, weights=sdir[..., 0]),
+                np.bincount(flat_facets, weights=sdir[..., 1]),
+                np.bincount(flat_facets, weights=sdir[..., 2]),
+            )
+        )
+        tan2 = np.column_stack(
+            (
+                np.bincount(flat_facets, weights=tdir[..., 0]),
+                np.bincount(flat_facets, weights=tdir[..., 1]),
+                np.bincount(flat_facets, weights=tdir[..., 2]),
+            )
+        )
+
+        # Gram-Schmidt
+        dot_norm_tan1 = (normals * tan1).sum(1)
+        dot_norm_tan1 = np.expand_dims(dot_norm_tan1, axis=1)
+        tangents = tan1 - normals * dot_norm_tan1
+        tangents = self._safe_normalize_np(tangents)
+
+        # Handedness
+        dot_cross_tan2 = (tan2 * np.cross(normals, tan1)).sum(1)
+        tangent_signs = np.sign(dot_cross_tan2)
+        tangent_signs[np.where(tangent_signs == 0.0)] = 1.0
+
+        self.tangents = tangents
+        self.tangent_signs = tangent_signs
+
+        if debug_flag:
+            tm1 = time.time()
+            print(f"End compute_tspaces: {tm1 - tm0}")
 
 
 # ===========================================================================

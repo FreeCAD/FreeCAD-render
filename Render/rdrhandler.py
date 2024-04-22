@@ -460,6 +460,9 @@ class RendererHandler:
                     Relative=False,
                 )
                 mesh.Placement = shape_plc
+            if debug_flag:
+                tm1 = time.time() - tm0
+                print(f"End generating mesh ({tm1})")
 
             mesh = Render.rendermesh.create_rendermesh(
                 mesh,

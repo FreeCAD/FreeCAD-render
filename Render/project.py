@@ -874,6 +874,7 @@ def _get_objstrings_worker(get_rdr_string, views, multithreaded=True):
         chunk_size = len(light) // (max_workers * 2)
         chunk_size = max(chunk_size, MIN_CHUNK_SIZE)
         chunk_size = min(chunk_size, MAX_CHUNK_SIZE)
+        chunk_size = 1
 
         chunks = list(it.chain(grouper(heavy, 1), grouper(light, chunk_size)))
 
