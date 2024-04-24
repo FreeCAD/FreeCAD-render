@@ -134,7 +134,7 @@ def _check_venv():
 def _get_venv_python():
     """Get Python executable in Render virtual environment."""
     if os.name == "nt":
-        python = "Python.exe"  # TODO
+        python = "pythonw.exe"
     elif os.name == "posix":
         python = "python"
     else:
@@ -228,7 +228,7 @@ def _log(message):
 def _binpath():
     """Get path to binaries."""
     if os.name == "nt":
-        path = os.path.join(RENDER_VENV_DIR, "bin")  # TODO
+        path = os.path.join(RENDER_VENV_DIR, "Scripts")
     elif os.name == "posix":
         path = os.path.join(RENDER_VENV_DIR, "bin")
     else:
