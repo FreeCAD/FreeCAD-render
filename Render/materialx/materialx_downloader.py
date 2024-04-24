@@ -55,6 +55,13 @@ from .materialx_importer import MaterialXImporter
 from .materialx_profile import WEBPROFILE
 
 
+# Remark: please do not use:
+# - QWebEngineProfile.setDownloadPath
+# - QWebEngineDownloadItem.downloadFileName
+# - QWebEngineDownloadItem.downloadDirectory
+# as they may not be compatible with old PySide (and old Ubuntu)
+# (2024-04-24)
+
 class MaterialXDownloader(QWidget):
     """A MaterialX downloader widget.
 
@@ -83,7 +90,6 @@ class MaterialXDownloader(QWidget):
         self.layout().addWidget(self.view)
 
         # Set download manager
-        WEBPROFILE.setDownloadPath(App.getTempPath())
         WEBPROFILE.downloadRequested.connect(self.download_requested)
         self._download_required.connect(self.run_download, Qt.QueuedConnection)
         self.win = None
@@ -131,9 +137,10 @@ class MaterialXDownloader(QWidget):
             )
             download.cancel()
             return
-
         # Trigger effective download
         self._download_required.emit(download)
+        _, filename = os.path.split(download.path())
+        download.setPath(os.path.join(App.getTempPath(), filename))
         download.accept()
 
     @Slot()
@@ -171,7 +178,7 @@ class DownloadWindow(QProgressDialog):
         self._fcdoc = fcdoc
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_actual_size
-        filename = download.downloadFileName()
+        _, filename = os.path.split(download.path())
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
         self.setAutoClose(False)
@@ -211,13 +218,11 @@ class DownloadWindow(QProgressDialog):
         assert (
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
         )
+        _, filenameshort = os.path.split(self._download.path())
         self.setLabelText(
-            f"Importing '{self._download.downloadFileName()}'..."
+            f"Importing '{filenameshort}'..."
         )
-        filename = os.path.join(
-            self._download.downloadDirectory(),
-            self._download.downloadFileName(),
-        )
+        filename = self._download.path()
 
         # Start import
         self.setValue(0)
