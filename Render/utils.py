@@ -280,6 +280,7 @@ def reload(module_name=None):
             "Render.help",
             "Render.prefpage",
             "Render.groundplane",
+            "Render.virtualenv",
             "Render.materialx",
             "Render.materialx.materialx_utils",
             "Render.materialx.materialx_baker",
