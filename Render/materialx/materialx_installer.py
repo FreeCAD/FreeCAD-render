@@ -20,159 +20,217 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements an installer for materialx."""
-import venv
-import sys
+"""This module installs and manage a Python virtual environment for Render."""
 
-from PySide.QtGui import QStyle, QSpacerItem, QSizePolicy, QMessageBox, QLayout
+import sys
+import os
+import urllib.request
+import urllib.parse
+import tempfile
+import subprocess
+import shutil
 
 import FreeCAD as App
-import FreeCADGui as Gui
 
-from Render.utils import pip_install, ensure_pip, find_python
-from Render.constants import VENVDIR
+from Render.utils import find_python
 
-translate = App.Qt.translate
-
-BOXTITLE = translate("Render", "Render - MaterialX")
-
-
-def propose_install():
-    """Propose MaterialX installation."""
-    msg = translate(
-        "Render",
-        "Error: Cannot find MaterialX framework!\n"
-        "\n"
-        "Do you want Render to try to install MaterialX?\n",
-    )
-    res = QMessageBox.critical(
-        Gui.getMainWindow(),
-        BOXTITLE,
-        msg,
-        buttons=QMessageBox.Yes | QMessageBox.No,
-    )
-    if res == QMessageBox.Yes:
-        _install_materialx()
-
-
-def _install_materialx():
-    """Install MaterialX (with pip)."""
-    # Check whether pip is installed
-    if installed := ensure_pip():
-        msg = translate("Render", "Unknown error")
-        if installed == -2:
-            msg = translate("Render", "Error: cannot find Python executable.")
-        if installed == -1:
-            msg = translate(
-                "Render",
-                "Error: cannot find pip. Please install pip beforehand.",
-            )
-        QMessageBox.critical(
-            Gui.getMainWindow(),
-            BOXTITLE,
-            msg,
-            QMessageBox.Cancel,
-        )
-        return
-
-    # Try to install
-    res = pip_install("materialx")
-    success = res.returncode == 0
-    informative = (
-        translate(
-            "Render",
-            "Successful installation!\n"
-            "\n"
-            "Please restart FreeCAD for the changes to take effect.",
-        )
-        if success
-        else translate(
-            "Render",
-            "Installation failed...\n"
-            "\n"
-            f"Command line: '{' '.join(res.args)}'\n"
-            f"Returned code: '{res.returncode}'\n"
-            "\n"
-            "See more details below...",
-        )
-    )
-    detailed = res.stdout
-    _show_result(success, informative, detailed, Gui.getMainWindow())
-
-
-def _show_result(success, informative, detailed, parent):
-    """Show result of the install.
-
-    Result is shown in a QMessageBox.
-    """
-    # Create message box
-    msgbox = QMessageBox(parent)
-    msgbox.setWindowTitle(BOXTITLE)
-
-    # Populate
-    if bool(success):
-        msgbox.setText("SUCCESS")
-        pixmapi = QStyle.SP_DialogApplyButton
-        icon = parent.style().standardIcon(pixmapi)
-        msgbox.setIconPixmap(icon.pixmap(64))
-    else:
-        msgbox.setText("ERROR")
-        pixmapi = QStyle.SP_DialogCancelButton
-        icon = parent.style().standardIcon(pixmapi)
-        msgbox.setIconPixmap(icon.pixmap(64))
-    msgbox.setInformativeText(informative)
-    msgbox.setDetailedText(detailed)
-    msgbox.setSizeGripEnabled(True)
-
-    # Resize
-    hspacer = QSpacerItem(500, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
-    layout = msgbox.layout()
-    layout.addItem(hspacer, layout.rowCount(), 0, 1, layout.columnCount())
-    layout.setSizeConstraint(QLayout.SetNoConstraint)
-
-    # Execute
-    msgbox.exec()
-
-
-class RenderVirtualEnv:
-
-    def __init__(self):
-        """Install virtual environment."""
-        App.Console.PrintLog("Installing Render virtual environment.\n")
-        builder = venv.EnvBuilder(with_pip=True)
-        old_executable = sys._base_executable
-        try:
-            sys._base_executable = find_python()
-            self._context = builder.ensure_directories(VENVDIR)
-            builder.create_configuration(self._context)
-            builder.setup_python(self._context)
-            builder.setup_scripts(self._context)
-            builder.post_setup(self._context)
-            ensure_pip(self.env_exe)
-            pip_install("materialx", self.env_exe)
-        finally:
-            sys._base_executable = old_executable
-
-    @property
-    def env_dir(self):
-        return self._context.env_dir
-
-    @property
-    def env_name(self):
-        return self._context.env_name
-
-    @property
-    def executable(self):
-        return self._context.executable
-
-    @property
-    def env_exe(self):
-        return self._context.env_exe
-
-    @property
-    def env_exec_cmd(self):
-        return self._context.env_exec_cmd
-
+RENDER_VENV_FOLDER = ".rendervenv"
+RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
 
 # RENDERVENV = RenderVirtualEnv()  # Not workable yet
 RENDERVENV = None
+
+
+def ensure_rendervenv():
+    """Ensure Render virtual environment is available."""
+    # Step 1: Check if virtual environment exists at location RENDER_VENV_DIR
+    # Otherwise, create it
+    _log("Checking Render virtual environment")
+    if not _check_venv():
+        _log(">>> Environment does not exist - Creating")
+        _create_virtualenv()
+    else:
+        _log(">>> Environment exists: OK")
+
+    # Step 2: Check whether Python is available.
+    # Otherwise, recreate (try three times)
+    for _ in range(3):
+        if _get_venv_python() is None:
+            _log(
+                ">>> Environment does not provide Python "
+                "- Recreating environment"
+            )
+            _remove_virtualenv()
+            _create_virtualenv()
+        else:
+            _log(">>> Environment provides Python: OK")
+            break
+    else:
+        raise VenvError()
+
+    # Step 3: Check whether pip is available
+    # Otherwise, bootstrap (try three times)
+    for _ in range(3):
+        if _get_venv_pip() is None:
+            _log(">>> Environment does not provide Pip - Repairing")
+            url = "https://bootstrap.pypa.io/get-pip.py"
+            _bootstrap(url)
+        else:
+            _log(">>> Environment provides Pip: OK")
+            break
+    else:
+        raise VenvError()
+
+    # Step 4: Check for needed packages
+    packages = ["setuptools", "wheel", "materialx"]
+    for package in packages:
+        _log(f">>> Checking package '{package}':")
+        pip_install(package)
+
+
+def pip_install(package, log=None):
+    """Install package with pip in Render virtual environment.
+
+    Returns: a subprocess.CompletedInstance"""
+    log = log or _log
+    if not (executable := _get_venv_python()):
+        raise RuntimeError("Unable to find Python executable")  # TODO
+    with subprocess.Popen(
+        [executable, "-u", "-m", "pip", "install", package],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    ) as proc:
+        for line in proc.stdout:
+            log(line)
+    return proc.returncode
+
+
+def pip_uninstall(package):
+    """Install (or uninstall) package with pip.
+
+    Returns: a subprocess.CompletedInstance"""
+    if not (executable := _get_venv_python()):
+        raise RuntimeError("Unable to find Python executable")  # TODO
+    result = subprocess.run(
+        [executable, "-m", "pip", "uninstall", "-y", package],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    return result
+
+
+# Check
+
+
+def _check_venv():
+    """Check if virtual environment folder exists."""
+    # Does path exists as a directory?
+    return os.path.isdir(RENDER_VENV_DIR)
+
+
+def _get_venv_python():
+    """Get Python executable in Render virtual environment."""
+    if os.name == "nt":
+        python = "Python.exe"  # TODO
+    elif os.name == "posix":
+        python = "python"
+    else:
+        raise VenvError()  # Unknown os.name
+
+    binpath = _binpath()
+
+    path = os.path.join(binpath, python)
+
+    if not os.path.isfile(path):
+        return None
+
+    return path
+
+
+def _get_venv_pip():
+    """Get pip executable in Render virtual environment."""
+    if os.name == "nt":
+        pip = "pip.exe"  # TODO
+    elif os.name == "posix":
+        pip = "pip"
+    else:
+        raise VenvError()  # Unknown os.name
+
+    binpath = _binpath()
+
+    path = os.path.join(binpath, pip)
+
+    if not os.path.isfile(path):
+        return None
+
+    return path
+
+
+# Repair
+
+
+def _create_virtualenv():
+    """Create a fresh Render virtual environment."""
+    # We won't use system's pip or system's venv, in order to circumvent:
+    # - system managed environment (Arch etc.)
+    # - missing venv (Ubuntu etc.)
+    # Instead, we will bootstrap everything from pypi
+    # https://pypi.org/project/bootstrap-env
+    url = "https://bootstrap.pypa.io/virtualenv.pyz"
+    python = find_python()
+    with tempfile.TemporaryDirectory() as tmp:
+        # TODO request pyz consistent with python version?
+        pyz = os.path.join(tmp, "virtualenv.pyz")
+        urllib.request.urlretrieve(url, pyz)
+        subprocess.run([python, pyz, RENDER_VENV_DIR], check=True)
+
+
+def _remove_virtualenv():
+    """Remove Render virtual environment."""
+    shutil.rmtree(RENDER_VENV_DIR, ignore_errors=True)
+
+
+def _bootstrap(url):
+    """Bootstrap a component in Render virtual environment."""
+    _, _, path, _, _, _ = urllib.parse.urlparse(url)
+    scriptname = os.path.split(path)[-1]
+    python = _get_venv_python()
+
+    # Download script into temporary folder
+    with tempfile.TemporaryDirectory() as tmp:
+        script = os.path.join(tmp, scriptname)
+        urllib.request.urlretrieve(url, script)
+        _log(f">>> Bootstrapping {path}")
+        subprocess.run([python, script], check=True)
+
+
+# Helpers
+
+
+class VenvError(Exception):
+    """Exception class for error in Render virtual environment handling."""
+
+
+def _log(message):
+    """Log function for Render virtual environment handling."""
+    if not message:
+        return
+    # Trim ending newline
+    if message.endswith("\n"):
+        message = message[:-1]
+    print(f"[Render][Initialization] {message}")
+    sys.stdout.flush()
+
+
+def _binpath():
+    """Get path to binaries."""
+    if os.name == "nt":
+        path = os.path.join(RENDER_VENV_DIR, "bin")  # TODO
+    elif os.name == "posix":
+        path = os.path.join(RENDER_VENV_DIR, "bin")
+    else:
+        raise VenvError()  # Unknown os.name
+    return path

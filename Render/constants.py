@@ -42,7 +42,6 @@ USERMATERIALDIR = os.path.join(App.ConfigGet("UserAppData"), "Materials")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
-VENVDIR = os.path.join(USERAPPDIR, ".render_venv")  # Virtual environment
 
 # Renderers lists
 RENDERERS = {
