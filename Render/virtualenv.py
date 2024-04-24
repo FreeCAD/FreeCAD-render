@@ -38,7 +38,6 @@ eventually be installed:
 - without requiring any elevation of user rights (sudo etc.).
 """
 
-import sys
 import os
 import urllib.request
 import urllib.parse
@@ -73,7 +72,7 @@ def ensure_rendervenv():
     # Step 2: Check whether Python is available.
     # Otherwise, recreate (try three times)
     for _ in range(3):
-        if _get_venv_python() is None:
+        if get_venv_python() is None:
             _log(
                 ">>> Environment does not provide Python "
                 "- Recreating environment"
@@ -108,12 +107,31 @@ def ensure_rendervenv():
     _log("Render virtual environment: OK")
 
 
+def get_venv_python():
+    """Get Python executable in Render virtual environment."""
+    if os.name == "nt":
+        python = "pythonw.exe"
+    elif os.name == "posix":
+        python = "python"
+    else:
+        raise VenvError()  # Unknown os.name
+
+    binpath = _binpath()
+
+    path = os.path.join(binpath, python)
+
+    if not os.path.isfile(path):
+        return None
+
+    return path
+
+
 def pip_install(package, log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
     Returns: a subprocess.CompletedInstance"""
     log = log or _log
-    if not (executable := _get_venv_python()):
+    if not (executable := get_venv_python()):
         raise RuntimeError("Unable to find Python executable")  # TODO
     with subprocess.Popen(
         [executable, "-u", "-m", "pip", "install", package],
@@ -131,7 +149,7 @@ def pip_uninstall(package):
     """Install (or uninstall) package with pip.
 
     Returns: a subprocess.CompletedInstance"""
-    if not (executable := _get_venv_python()):
+    if not (executable := get_venv_python()):
         raise RuntimeError("Unable to find Python executable")  # TODO
     result = subprocess.run(
         [executable, "-m", "pip", "uninstall", "-y", package],
@@ -150,25 +168,6 @@ def _check_venv():
     """Check if virtual environment folder exists."""
     # Does path exists as a directory?
     return os.path.isdir(RENDER_VENV_DIR)
-
-
-def _get_venv_python():
-    """Get Python executable in Render virtual environment."""
-    if os.name == "nt":
-        python = "pythonw.exe"
-    elif os.name == "posix":
-        python = "python"
-    else:
-        raise VenvError()  # Unknown os.name
-
-    binpath = _binpath()
-
-    path = os.path.join(binpath, python)
-
-    if not os.path.isfile(path):
-        return None
-
-    return path
 
 
 def _get_venv_pip():
@@ -218,7 +217,7 @@ def _bootstrap(url):
     """Bootstrap a component in Render virtual environment."""
     _, _, path, _, _, _ = urllib.parse.urlparse(url)
     scriptname = os.path.split(path)[-1]
-    python = _get_venv_python()
+    python = get_venv_python()
 
     # Download script into temporary folder
     with tempfile.TemporaryDirectory() as tmp:

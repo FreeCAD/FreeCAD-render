@@ -49,7 +49,7 @@ import configparser
 import FreeCAD as App
 
 import Render.material
-from Render.utils import find_python
+from Render.virtualenv import get_venv_python
 
 
 class MaterialXImporter:
@@ -82,7 +82,7 @@ class MaterialXImporter:
 
     def run(self):
         """Import a MaterialX archive as Render material."""
-        executable = find_python()
+        executable = get_venv_python()
         script = os.path.join(
             os.path.dirname(__file__), "converter", "materialx_converter.py"
         )
