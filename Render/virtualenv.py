@@ -103,7 +103,7 @@ def pip_install(package, log=None, loglevel=0):
         stderr=subprocess.STDOUT,
         text=True,
     ) as proc:
-        pads = ' '.join(">>>" for _ in range(loglevel))
+        pads = " ".join(">>>" for _ in range(loglevel))
         for line in proc.stdout:
             log(f"{pads} {line}")
     return proc.returncode
@@ -224,7 +224,7 @@ def _log(message):
     # Trim ending newline
     if message.endswith("\n"):
         message = message[:-1]
-    App.Console.PrintLog(f"[Render][Initialization] {message}\n")
+    App.Console.PrintLog(f"[Render][Init] {message}\n")
 
 
 def _binpath():
