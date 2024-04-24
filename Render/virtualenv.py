@@ -85,10 +85,12 @@ def ensure_rendervenv():
     packages = ["setuptools", "wheel", "materialx"]
     for package in packages:
         _log(f">>> Checking package '{package}':")
-        pip_install(package)
+        pip_install(package, loglevel=1)
+
+    _log("Render virtual environment: OK")
 
 
-def pip_install(package, log=None):
+def pip_install(package, log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
     Returns: a subprocess.CompletedInstance"""
@@ -101,8 +103,9 @@ def pip_install(package, log=None):
         stderr=subprocess.STDOUT,
         text=True,
     ) as proc:
+        pads = ' '.join(">>>" for _ in range(loglevel))
         for line in proc.stdout:
-            log(line)
+            log(f"{pads} {line}")
     return proc.returncode
 
 
@@ -221,8 +224,7 @@ def _log(message):
     # Trim ending newline
     if message.endswith("\n"):
         message = message[:-1]
-    print(f"[Render][Initialization] {message}")
-    sys.stdout.flush()
+    App.Console.PrintLog(f"[Render][Initialization] {message}\n")
 
 
 def _binpath():
