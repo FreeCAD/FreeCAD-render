@@ -20,7 +20,23 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module installs and manage a Python virtual environment for Render."""
+"""This module installs and manages a Python virtual environment for Render.
+
+We set a Python virtual environment to host required external modules,
+e.g. MaterialX.
+This solution is preferred to system-wide ('pip install') or even
+user-restricted installation ('pip install --user') via pip, as the new
+'externally-managed-environment' feature starting from Python 3.11 will prevent
+such installations.
+But please note also this virtual environment is installed via bootstrap from
+Pypa, and not from system venv module. Indeed, 'venv' is deliberately
+omitted in base install by certain distributions (Ubuntu, Debian...).
+
+With our bootstrapped virtual environment, the required external modules can
+eventually be installed:
+- without having to bother with distro's package management
+- without requiring any elevation of user rights (sudo etc.).
+"""
 
 import sys
 import os
@@ -39,6 +55,8 @@ RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
 
 # RENDERVENV = RenderVirtualEnv()  # Not workable yet
 RENDERVENV = None
+
+# API
 
 
 def ensure_rendervenv():
