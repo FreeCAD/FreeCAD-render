@@ -133,8 +133,10 @@ def pip_install(package, log=None, loglevel=0):
     log = log or _log
     if not (executable := get_venv_python()):
         raise RuntimeError("Unable to find Python executable")  # TODO
+    cmd = [executable, "-u", "-m", "pip", "install", package]
+    log(" ".join(cmd))
     with subprocess.Popen(
-        [executable, "-u", "-m", "pip", "install", package],
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -205,7 +207,7 @@ def _create_virtualenv():
         # TODO request pyz consistent with python version?
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
-        subprocess.run([python, pyz, RENDER_VENV_DIR], check=True)
+        subprocess.run([python, "-u", pyz, "--system-site-packages", RENDER_VENV_DIR], check=True)
 
 
 def _remove_virtualenv():
@@ -224,7 +226,7 @@ def _bootstrap(url):
         script = os.path.join(tmp, scriptname)
         urllib.request.urlretrieve(url, script)
         _log(f">>> Bootstrapping {path}")
-        subprocess.run([python, script], check=True)
+        subprocess.run([python, "-u", script], check=True)
 
 
 # Helpers
