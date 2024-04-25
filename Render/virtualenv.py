@@ -98,11 +98,19 @@ def ensure_rendervenv():
     else:
         raise VenvError()
 
-    # Step 4: Check for needed packages
+    # Step 4: Update pip
+    _log(">>> Updating pip (if needed)")
+    pip_install(
+        "pip",
+        options=["--upgrade", "--no-warn-script-location"],
+        loglevel=1
+    )
+
+    # Step 5: Check for needed packages
     packages = ["setuptools", "wheel", "materialx"]
     for package in packages:
         _log(f">>> Checking package '{package}':")
-        pip_install(package, loglevel=1)
+        pip_install(package, options=["--no-warn-script-location"], loglevel=1)
 
     _log("Render virtual environment: OK")
 
@@ -126,15 +134,15 @@ def get_venv_python():
     return path
 
 
-def pip_install(package, log=None, loglevel=0):
+def pip_install(package, options=[], log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
     Returns: a subprocess.CompletedInstance"""
     log = log or _log
     if not (executable := get_venv_python()):
         raise RuntimeError("Unable to find Python executable")  # TODO
-    cmd = [executable, "-u", "-m", "pip", "install", package]
-    log(" ".join(cmd))
+    cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
+    log(" ".join([">>>"] + cmd))
     with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
