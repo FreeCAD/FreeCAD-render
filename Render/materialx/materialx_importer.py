@@ -97,7 +97,7 @@ class MaterialXImporter:
             # Prepare converter call
             args = [executable, "-u", script, self._filename, working_dir]
             if self._polyhaven_size:
-                args += ["--polyhaven-size", self._polyhaven_size]
+                args += ["--polyhaven-size", str(self._polyhaven_size)]
             if self._disp2bump:
                 args += ["--disp2bump"]
 
