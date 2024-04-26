@@ -341,14 +341,15 @@ class JavaScriptRunner(QObject):
 
     def run(self):
         """Run JavaScript and wait for result."""
+        self._page.javaScriptConsoleMessage = self._get_console_message
         self._done.connect(self._loop.quit, type=Qt.QueuedConnection)
-        self._page.runJavaScript(self._script, 0, self._get_result)
+        self._page.runJavaScript(self._script, 0)
         self._loop.exec_()
 
     @Slot()
-    def _get_result(self, _result):
-        """Get result from QWebEnginePage.runJavaScript."""
-        self._result = _result
+    def _get_console_message(self, level, message, line_number, source_id):
+        """Get console message - where the JS script should output result."""
+        self._result = message
         self._done.emit()
 
     @property
@@ -375,7 +376,7 @@ def polyhaven_getsize(page):
     # Get links in page
     runner = JavaScriptRunner(GETLINKS_JS, page)
     runner.run()
-    result = runner.result.split(" ")
+    result = runner.result.split(",")
 
     # Search for a link to poly haven
     polyhaven_links = (
@@ -387,6 +388,7 @@ def polyhaven_getsize(page):
         return None
 
     # Load page from polyhaven
+    print("Getting actual size from polyhaven.com")
     request = QNetworkRequest(link)
     access_manager = QNetworkAccessManager()
     loop = QEventLoop()
@@ -422,4 +424,5 @@ for(var i=0, max=links.length; i<max; i++) {
     results.push(links[i].href);
 }
 results.join(" ");
+console.log(results)
 """
