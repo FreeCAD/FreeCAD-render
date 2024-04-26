@@ -396,8 +396,15 @@ def polyhaven_getsize(page):
     loop.exec_()
     data = polyhaven_page.readAll()
 
-    # Search width
-    if not (result := re.search(rb"<strong>(.*)</strong><p>wide</p>", data)):
+    # Search size
+    sizes = (
+        res
+        for regex in (rb"<strong>(.*)</strong><p>wide</p>", rb"<strong>(.*)</strong><p>tall</p>")
+        if (res := re.search(regex, data)) is not None
+    )
+    try:
+        result = next(sizes)
+    except StopIteration:
         App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to find tags")
         return None
 
@@ -414,7 +421,6 @@ def polyhaven_getsize(page):
     except ValueError:
         App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to get valye as meters")
         return None
-    print(f"Getting actual texture size from polyhaven.com ({value} meters)")
 
     return value
 
