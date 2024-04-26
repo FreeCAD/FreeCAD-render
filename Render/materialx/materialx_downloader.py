@@ -388,7 +388,6 @@ def polyhaven_getsize(page):
         return None
 
     # Load page from polyhaven
-    print("Getting actual size from polyhaven.com")
     request = QNetworkRequest(link)
     access_manager = QNetworkAccessManager()
     loop = QEventLoop()
@@ -399,19 +398,23 @@ def polyhaven_getsize(page):
 
     # Search width
     if not (result := re.search(rb"<strong>(.*)</strong><p>wide</p>", data)):
+        App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to find tags")
         return None
 
     # Parse quantity
     try:
         quantity = App.Units.parseQuantity(result.group(1))
     except ValueError:
+        App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to parse quantity")
         return None
 
     # Convert to meters
     try:
         value = quantity.getValueAs("m")
     except ValueError:
+        App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to get valye as meters")
         return None
+    print(f"Getting actual texture size from polyhaven.com ({value} meters)")
 
     return value
 
