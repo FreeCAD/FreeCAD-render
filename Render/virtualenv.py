@@ -147,7 +147,7 @@ def pip_install(package, options=[], log=None, loglevel=0):
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        text=True,
+        encoding="utf-8",
     ) as proc:
         pads = " ".join(">>>" for _ in range(loglevel))
         for line in proc.stdout:
