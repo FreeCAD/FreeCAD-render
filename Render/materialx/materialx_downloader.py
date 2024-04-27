@@ -38,8 +38,9 @@ from PySide.QtCore import (
     Signal,
     QObject,
     QEventLoop,
+    QUrl,
 )
-from PySide.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PySide.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PySide.QtGui import (
     QWidget,
     QToolBar,
@@ -327,30 +328,27 @@ def open_mxdownloader(url, doc, disp2bump=False):
 
 
 class JavaScriptRunner(QObject):
-    """An object to run synchronously a JavaScript script on a web page."""
+    """An object to run a JavaScript script on a web page."""
 
     # https://stackoverflow.com/questions/42592999/qt-waiting-for-a-signal-using-qeventloop-what-if-the-signal-is-emitted-too-ear
-    _done = Signal()
+    javascript_done = Signal()
 
     def __init__(self, script, page):
         super().__init__()
         self._page = page
         self._result = None
-        self._loop = QEventLoop()
         self._script = script
 
     def run(self):
         """Run JavaScript and wait for result."""
         self._page.javaScriptConsoleMessage = self._get_console_message
-        self._done.connect(self._loop.quit, type=Qt.QueuedConnection)
         self._page.runJavaScript(self._script, 0)
-        self._loop.exec_()
 
     @Slot()
     def _get_console_message(self, level, message, line_number, source_id):
         """Get console message - where the JS script should output result."""
         self._result = message
-        self._done.emit()
+        self.javascript_done.emit()
 
     @property
     def result(self):
@@ -360,6 +358,74 @@ class JavaScriptRunner(QObject):
 
 def _nope(*_):
     """No operation function."""
+
+class GetPolyhavenLink(JavaScriptRunner):
+
+    done = Signal()
+
+    def __init__(self, page):
+        # JavaScript snippet to get all links in a web page
+        getlinks_snippet = """
+        var links = document.getElementsByTagName("a");
+        var results = [];
+        for(var i=0, max=links.length; i<max; i++) {
+            results.push(links[i].href);
+        }
+        results.join(" ");
+        console.log(results);
+        """
+        super().__init__(getlinks_snippet, page)
+        self.javascript_done.connect(self._echo_done, Qt.QueuedConnection)
+        self._result = None
+
+    @Slot()
+    def _echo_done(self):
+        res = super().result.split(",")
+
+        # Search for a link to poly haven
+        polyhaven_links = (
+            l for l in res if l.startswith("https://polyhaven.com")
+        )
+        try:
+            link = next(polyhaven_links)
+        except StopIteration:
+            link = None
+
+        self._link = link
+        self.done.emit()
+
+    @property
+    def link(self):
+        return self._link
+
+ACCESS_MANAGER = QNetworkAccessManager()
+
+class GetPolyhavenData(QObject):
+    done = Signal()
+
+    def __init__(self, link):
+        """Initialize object."""
+        super().__init__()
+        self._link = QUrl(link)
+        self._data = None
+        self._reply = None
+
+    def run(self):
+        """Run get request."""
+        request = QNetworkRequest(self._link)
+        self._reply = ACCESS_MANAGER.get(request)
+        self._reply.finished.connect(self._process_reply, Qt.QueuedConnection)
+
+    @Slot()
+    def _process_reply(self):
+        """Process reply of get request."""
+        self._data = self._reply.readAll()
+        self.done.emit()
+
+    @property
+    def data(self):
+        """Get result."""
+        return self._data
 
 
 def polyhaven_getsize(page):
@@ -373,28 +439,22 @@ def polyhaven_getsize(page):
     if not url.host() == "matlib.gpuopen.com":
         return None
 
-    # Get links in page
-    runner = JavaScriptRunner(GETLINKS_JS, page)
-    runner.run()
-    result = runner.result.split(",")
-
-    # Search for a link to poly haven
-    polyhaven_links = (
-        l for l in result if l.startswith("https://polyhaven.com")
-    )
-    try:
-        link = next(polyhaven_links)
-    except StopIteration:
+    # Get link in gpuopen page
+    loop = QEventLoop()
+    getlink = GetPolyhavenLink(page)
+    getlink.done.connect(loop.quit, Qt.QueuedConnection)
+    getlink.run()
+    loop.exec_()
+    link = getlink.link
+    if link is None:
         return None
 
-    # Load page from polyhaven
-    request = QNetworkRequest(link)
-    access_manager = QNetworkAccessManager()
-    loop = QEventLoop()
-    access_manager.finished.connect(loop.quit, Qt.QueuedConnection)
-    polyhaven_page = access_manager.get(request)
+    # Get data in polyhaven page
+    getdata = GetPolyhavenData(link)
+    getdata.done.connect(loop.exit, Qt.QueuedConnection)
+    getdata.run()
     loop.exec_()
-    data = polyhaven_page.readAll()
+    data = getdata.data
 
     # Search size
     sizes = (
@@ -425,13 +485,3 @@ def polyhaven_getsize(page):
     return value
 
 
-# JavaScript snippet to get all links in a web page
-GETLINKS_JS = """
-var links = document.getElementsByTagName("a");
-var results = [];
-for(var i=0, max=links.length; i<max; i++) {
-    results.push(links[i].href);
-}
-results.join(" ");
-console.log(results)
-"""
