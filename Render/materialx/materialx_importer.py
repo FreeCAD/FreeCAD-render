@@ -142,6 +142,7 @@ class MaterialXImporter:
                 mxname = card["General"]["Name"]
             except LookupError:
                 mxname = "Material"
+            print(f"Importing material card as FreeCAD material: {mxname}")
             matdict = dict(card["Render"])
             mat = Render.material.make_material(name=mxname, doc=self._doc)
             matdict = mat.Proxy.import_textures(matdict, basepath=None)
