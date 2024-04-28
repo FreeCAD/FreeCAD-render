@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; Glass
 ; Howetuft
 
 [General]
@@ -19,3 +19,4 @@ Transparency = 100
 Render.Type = Glass
 Render.Glass.IOR = 1.5
 Render.Glass.Color = (1.0, 1.0, 1.0)
+; vi: ft=dosini

@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; Terrazzo
 ; Howetuft
 
 [General]
@@ -20,3 +20,4 @@ Render.Textures.Terrazzo.Images.1 = Terrazzo019/Terrazzo019M_1K_Roughness.jpg
 Render.Textures.Terrazzo.Images.2 = Terrazzo019/Terrazzo019M_1K_NormalGL.jpg
 Render.Textures.Terrazzo.Images.3 = Terrazzo019/Terrazzo019M_1K_Displacement.jpg
 Render.Textures.Terrazzo.Scale = 0.2
+; vi: ft=dosini

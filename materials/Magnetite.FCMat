@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; Magnetite
 ; Howetuft
 
 [General]
@@ -28,3 +28,4 @@ Render.Luxcore.0002 = scene.materials.%NAME%.fresnel = %NAME%
 Render.Luxcore.0003 = scene.textures.%NAME%.type = fresnelluxpop
 Render.Luxcore.0004 = scene.textures.%NAME%.file = %TEXTURE(Image)%
 Render.Textures.Magnetite.Images.0 = Magnetite/magnetite.nk
+; vi: ft=dosini

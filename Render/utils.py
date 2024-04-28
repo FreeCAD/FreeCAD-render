@@ -547,4 +547,4 @@ def find_python():
         app = shutil.which(appname)
         return os.path.abspath(app) if app else None
 
-    return which("pythonw") or which("python")
+    return which("pythonw") or which("python") or which("python3")

@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; Disney
 ; Howetuft
 
 [General]
@@ -8,3 +8,4 @@ UseObjectColor = False
 
 [Render]
 Render.Type = Disney
+; vi: ft=dosini
