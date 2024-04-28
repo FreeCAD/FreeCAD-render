@@ -25,6 +25,7 @@
 import os.path
 import traceback
 import re
+from urllib.parse import urlparse
 
 from PySide.QtWebEngineWidgets import (
     QWebEngineView,
@@ -387,7 +388,10 @@ class GetPolyhavenLink(JavaScriptRunner):
 
         # Search for a link to poly haven
         polyhaven_links = (
-            l for l in res if l.startswith("https://polyhaven.com")
+            l
+            for l in res
+            if urlparse(l).hostname
+            and urlparse(l).hostname.endswith("polyhaven.com")
         )
         try:
             link = next(polyhaven_links)
