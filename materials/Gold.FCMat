@@ -4,6 +4,7 @@
 [General]
 Name = RenderGold
 Description = Gold Material for Render
+UseObjectColor = False
 
 [Architectural]
 Color = (0.84, 0.67, 0.22)

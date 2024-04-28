@@ -5,15 +5,7 @@
 ; General name
 Name = RenderGlass
 Description = Glass Material for Render
-
-[Architectural]
-; Description to be updated
-Color = (0.8, 0.8, 0.8)
-
-; Description to be updated
-DiffuseColor = (0.8, 0.8, 0.8)
-SectionColor = (0.8, 0.8, 0.8)
-Transparency = 100
+UseObjectColor = True
 
 [Render]
 Render.Type = Glass
