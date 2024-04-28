@@ -391,7 +391,7 @@ class GetPolyhavenLink(JavaScriptRunner):
             l
             for l in res
             if urlparse(l).hostname
-            and urlparse(l).hostname.endswith("polyhaven.com")
+            and urlparse(l).hostname.endswith(".polyhaven.com")
         )
         try:
             link = next(polyhaven_links)
