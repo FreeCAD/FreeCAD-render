@@ -4,6 +4,7 @@
 [General]
 Name = RenderBrass
 Description = Brass Material for Render
+UseObjectColor = False
 
 [Architectural]
 Color = (0.96, 0.89, 0.68)

@@ -4,6 +4,7 @@
 [General]
 Name = RenderIron
 Description = Iron Material for Render
+UseObjectColor = False
 
 [Architectural]
 Color = (0.77, 0.78, 0.78)

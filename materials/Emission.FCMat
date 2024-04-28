@@ -5,17 +5,7 @@
 ; General name
 Name = RenderEmission
 Description = Emission Material for Render
-
-[Architectural]
-; Description to be updated
-Color = (1.0, 1.0, 1.0)
-
-; Description to be updated
-DiffuseColor = (1.0, 1.0, 1.0)
-SectionColor = (1.0, 1.0, 1.0)
-Transparency = 0
-
-
+UseObjectColor = True
 
 [Rendering]
 Render.Type = Emission
