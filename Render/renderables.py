@@ -263,21 +263,31 @@ class RenderableError(Exception):
 def check_renderables(renderables):
     """Assert compliance of a list of renderables.
 
-    If an error is detected (malformed renderable), a RenderableError is
-    raised.
+    Filter malformed meshes and return the list of "good" ones.
     """
     if not renderables:
         raise RenderableError(translate("Render", "Nothing to render"))
+    result = []
     for renderable in renderables:
         mesh = renderable.mesh
         if mesh.skip_meshing:
             continue
         if not mesh:
-            raise RenderableError(translate("Render", "Cannot find mesh data"))
-        if not mesh.count_points or not mesh.count_facets:
-            raise RenderableError(
-                translate("Render", "Mesh topology is empty")
+            warn(
+                "Export",
+                renderable.name,
+                translate("Render", "Cannot find mesh data"),
             )
+            continue
+        if not mesh.count_points or not mesh.count_facets:
+            warn(
+                "Export",
+                renderable.name,
+                translate("Render", "Mesh topology is empty"),
+            )
+            continue
+        result.append(renderable)
+    return result
 
 
 # ===========================================================================
