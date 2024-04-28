@@ -49,7 +49,7 @@ import configparser
 import FreeCAD as App
 
 import Render.material
-from Render.utils import find_python
+from Render.virtualenv import get_venv_python
 
 
 class MaterialXImporter:
@@ -82,7 +82,7 @@ class MaterialXImporter:
 
     def run(self):
         """Import a MaterialX archive as Render material."""
-        executable = find_python()
+        executable = get_venv_python()
         script = os.path.join(
             os.path.dirname(__file__), "converter", "materialx_converter.py"
         )
@@ -97,7 +97,7 @@ class MaterialXImporter:
             # Prepare converter call
             args = [executable, "-u", script, self._filename, working_dir]
             if self._polyhaven_size:
-                args += ["--polyhaven-size", self._polyhaven_size]
+                args += ["--polyhaven-size", str(self._polyhaven_size)]
             if self._disp2bump:
                 args += ["--disp2bump"]
 
@@ -142,6 +142,7 @@ class MaterialXImporter:
                 mxname = card["General"]["Name"]
             except LookupError:
                 mxname = "Material"
+            print(f"Importing material card as FreeCAD material: {mxname}")
             matdict = dict(card["Render"])
             mat = Render.material.make_material(name=mxname, doc=self._doc)
             matdict = mat.Proxy.import_textures(matdict, basepath=None)

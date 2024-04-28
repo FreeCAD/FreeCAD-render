@@ -25,6 +25,7 @@
 import os.path
 import traceback
 import re
+from urllib.parse import urlparse
 
 from PySide.QtWebEngineWidgets import (
     QWebEngineView,
@@ -38,8 +39,13 @@ from PySide.QtCore import (
     Signal,
     QObject,
     QEventLoop,
+    QUrl,
 )
-from PySide.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PySide.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest,
+    QNetworkReply,
+)
 from PySide.QtGui import (
     QWidget,
     QToolBar,
@@ -53,6 +59,14 @@ import FreeCAD as App
 
 from .materialx_importer import MaterialXImporter
 from .materialx_profile import WEBPROFILE
+
+
+# Remark: please do not use:
+# - QWebEngineProfile.setDownloadPath
+# - QWebEngineDownloadItem.downloadFileName
+# - QWebEngineDownloadItem.downloadDirectory
+# as they may not be compatible with old PySide (and old Ubuntu)
+# (2024-04-24)
 
 
 class MaterialXDownloader(QWidget):
@@ -83,7 +97,6 @@ class MaterialXDownloader(QWidget):
         self.layout().addWidget(self.view)
 
         # Set download manager
-        WEBPROFILE.setDownloadPath(App.getTempPath())
         WEBPROFILE.downloadRequested.connect(self.download_requested)
         self._download_required.connect(self.run_download, Qt.QueuedConnection)
         self.win = None
@@ -131,9 +144,10 @@ class MaterialXDownloader(QWidget):
             )
             download.cancel()
             return
-
         # Trigger effective download
         self._download_required.emit(download)
+        _, filename = os.path.split(download.path())
+        download.setPath(os.path.join(App.getTempPath(), filename))
         download.accept()
 
     @Slot()
@@ -171,7 +185,7 @@ class DownloadWindow(QProgressDialog):
         self._fcdoc = fcdoc
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_actual_size
-        filename = download.downloadFileName()
+        _, filename = os.path.split(download.path())
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
         self.setAutoClose(False)
@@ -211,13 +225,9 @@ class DownloadWindow(QProgressDialog):
         assert (
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
         )
-        self.setLabelText(
-            f"Importing '{self._download.downloadFileName()}'..."
-        )
-        filename = os.path.join(
-            self._download.downloadDirectory(),
-            self._download.downloadFileName(),
-        )
+        _, filenameshort = os.path.split(self._download.path())
+        self.setLabelText(f"Importing '{filenameshort}'...")
+        filename = self._download.path()
 
         # Start import
         self.setValue(0)
@@ -322,29 +332,27 @@ def open_mxdownloader(url, doc, disp2bump=False):
 
 
 class JavaScriptRunner(QObject):
-    """An object to run synchronously a JavaScript script on a web page."""
+    """An object to run a JavaScript script on a web page."""
 
     # https://stackoverflow.com/questions/42592999/qt-waiting-for-a-signal-using-qeventloop-what-if-the-signal-is-emitted-too-ear
-    _done = Signal()
+    javascript_done = Signal()
 
     def __init__(self, script, page):
         super().__init__()
         self._page = page
         self._result = None
-        self._loop = QEventLoop()
         self._script = script
 
     def run(self):
         """Run JavaScript and wait for result."""
-        self._done.connect(self._loop.quit, type=Qt.QueuedConnection)
-        self._page.runJavaScript(self._script, 0, self._get_result)
-        self._loop.exec_()
+        self._page.javaScriptConsoleMessage = self._get_console_message
+        self._page.runJavaScript(self._script, 0)
 
     @Slot()
-    def _get_result(self, _result):
-        """Get result from QWebEnginePage.runJavaScript."""
-        self._result = _result
-        self._done.emit()
+    def _get_console_message(self, level, message, line_number, source_id):
+        """Get console message - where the JS script should output result."""
+        self._result = message
+        self.javascript_done.emit()
 
     @property
     def result(self):
@@ -354,6 +362,79 @@ class JavaScriptRunner(QObject):
 
 def _nope(*_):
     """No operation function."""
+
+
+class GetPolyhavenLink(JavaScriptRunner):
+    done = Signal()
+
+    def __init__(self, page):
+        # JavaScript snippet to get all links in a web page
+        getlinks_snippet = """
+        var links = document.getElementsByTagName("a");
+        var results = [];
+        for(var i=0, max=links.length; i<max; i++) {
+            results.push(links[i].href);
+        }
+        results.join(" ");
+        console.log(results);
+        """
+        super().__init__(getlinks_snippet, page)
+        self.javascript_done.connect(self._echo_done, Qt.QueuedConnection)
+        self._result = None
+
+    @Slot()
+    def _echo_done(self):
+        res = super().result.split(",")
+
+        # Search for a link to poly haven
+        polyhaven_links = (
+            l
+            for l in res
+            if urlparse(l).hostname
+            and urlparse(l).hostname.endswith(".polyhaven.com")
+        )
+        try:
+            link = next(polyhaven_links)
+        except StopIteration:
+            link = None
+
+        self._link = link
+        self.done.emit()
+
+    @property
+    def link(self):
+        return self._link
+
+
+ACCESS_MANAGER = QNetworkAccessManager()
+
+
+class GetPolyhavenData(QObject):
+    done = Signal()
+
+    def __init__(self, link):
+        """Initialize object."""
+        super().__init__()
+        self._link = QUrl(link)
+        self._data = None
+        self._reply = None
+
+    def run(self):
+        """Run get request."""
+        request = QNetworkRequest(self._link)
+        self._reply = ACCESS_MANAGER.get(request)
+        self._reply.finished.connect(self._process_reply, Qt.QueuedConnection)
+
+    @Slot()
+    def _process_reply(self):
+        """Process reply of get request."""
+        self._data = self._reply.readAll()
+        self.done.emit()
+
+    @property
+    def data(self):
+        """Get result."""
+        return self._data
 
 
 def polyhaven_getsize(page):
@@ -367,54 +448,56 @@ def polyhaven_getsize(page):
     if not url.host() == "matlib.gpuopen.com":
         return None
 
-    # Get links in page
-    runner = JavaScriptRunner(GETLINKS_JS, page)
-    runner.run()
-    result = runner.result.split(" ")
-
-    # Search for a link to poly haven
-    polyhaven_links = (
-        l for l in result if l.startswith("https://polyhaven.com")
-    )
-    try:
-        link = next(polyhaven_links)
-    except StopIteration:
+    # Get link in gpuopen page
+    loop = QEventLoop()
+    getlink = GetPolyhavenLink(page)
+    getlink.done.connect(loop.quit, Qt.QueuedConnection)
+    getlink.run()
+    loop.exec_()
+    link = getlink.link
+    if link is None:
         return None
 
-    # Load page from polyhaven
-    request = QNetworkRequest(link)
-    access_manager = QNetworkAccessManager()
-    loop = QEventLoop()
-    access_manager.finished.connect(loop.quit, Qt.QueuedConnection)
-    polyhaven_page = access_manager.get(request)
+    # Get data in polyhaven page
+    getdata = GetPolyhavenData(link)
+    getdata.done.connect(loop.exit, Qt.QueuedConnection)
+    getdata.run()
     loop.exec_()
-    data = polyhaven_page.readAll()
+    data = getdata.data
 
-    # Search width
-    if not (result := re.search(rb"<strong>(.*)</strong><p>wide</p>", data)):
+    # Search size
+    sizes = (
+        res
+        for regex in (
+            rb"<strong>(.*)</strong><p>wide</p>",
+            rb"<strong>(.*)</strong><p>tall</p>",
+        )
+        if (res := re.search(regex, data)) is not None
+    )
+    try:
+        result = next(sizes)
+    except StopIteration:
+        App.Console.PrintLog(
+            "[Render][MaterialX] Polyhaven - failed to find tags"
+        )
         return None
 
     # Parse quantity
     try:
         quantity = App.Units.parseQuantity(result.group(1))
     except ValueError:
+        App.Console.PrintLog(
+            "[Render][MaterialX] Polyhaven - failed to parse quantity"
+        )
         return None
 
     # Convert to meters
     try:
         value = quantity.getValueAs("m")
     except ValueError:
+        App.Console.PrintLog(
+            "[Render][MaterialX] Polyhaven - failed to get valye as meters"
+        )
         return None
 
     return value
-
-
-# JavaScript snippet to get all links in a web page
-GETLINKS_JS = """
-var links = document.getElementsByTagName("a");
-var results = [];
-for(var i=0, max=links.length; i<max; i++) {
-    results.push(links[i].href);
-}
-results.join(" ");
-"""

@@ -584,7 +584,6 @@ def _get_destdir(args):
 
 # Main
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("file", type=argparse.FileType("r"))
     parser.add_argument("destdir", type=pathlib.Path)

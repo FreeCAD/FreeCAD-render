@@ -280,6 +280,7 @@ def reload(module_name=None):
             "Render.help",
             "Render.prefpage",
             "Render.groundplane",
+            "Render.virtualenv",
             "Render.materialx",
             "Render.materialx.materialx_utils",
             "Render.materialx.materialx_baker",
@@ -547,73 +548,3 @@ def find_python():
         return os.path.abspath(app) if app else None
 
     return which("pythonw") or which("python")
-
-
-def pip_install(package, executable=None):
-    """Install package with pip.
-
-    Returns: a subprocess.CompletedInstance"""
-    if not executable:
-        executable = find_python()
-    if not executable:
-        raise RuntimeError("Unable to find Python executable")
-    with subprocess.Popen(
-        [executable, "-u", "-m", "pip", "install", package],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    ) as proc:
-        for line in proc.stdout:
-            App.Console.PrintLog(line)
-    return proc.returncode
-
-
-def pip_uninstall(package):
-    """Install (or uninstall) package with pip.
-
-    Returns: a subprocess.CompletedInstance"""
-    executable = find_python()
-    if not executable:
-        raise RuntimeError("Unable to find Python executable")
-    result = subprocess.run(
-        [executable, "-m", "pip", "uninstall", "-y", package],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
-    return result
-
-
-def ensure_pip(executable=None):
-    """Ensure pip is installed."""
-    if not executable:
-        executable = find_python()
-    if not executable:
-        return -2
-    result = subprocess.run(
-        [executable, "-u", "-m", "ensurepip", "--default-pip"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
-    if result.returncode:
-        return -1
-    return 0
-
-
-def set_venv():
-    # Create
-    executable = find_python()
-    envpath = os.path.join(App.getUserAppDataDir(), "Render")
-    result = subprocess.run(
-        [executable, "-m", "venv", envpath, "--prompt", "Render"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
-    if result.returncode:
-        return -1
-    return 0
