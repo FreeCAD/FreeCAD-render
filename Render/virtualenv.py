@@ -48,6 +48,7 @@ import shutil
 import FreeCAD as App
 
 from Render.utils import find_python
+from Render.constants import PARAMS
 
 RENDER_VENV_FOLDER = ".rendervenv"
 RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
@@ -60,6 +61,10 @@ RENDERVENV = None
 
 def ensure_rendervenv():
     """Ensure Render virtual environment is available."""
+    # Step 0: Sentry for experimental feature (#TODO)
+    if not PARAMS.GetBool("MaterialX"):
+        return
+
     # Step 1: Check if virtual environment exists at location RENDER_VENV_DIR
     # Otherwise, create it
     _log("Checking Render virtual environment")
