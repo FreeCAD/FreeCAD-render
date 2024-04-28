@@ -103,13 +103,14 @@ def ensure_rendervenv():
     else:
         raise VenvError()
 
-    # Step 4: Update pip
-    _log(">>> Updating pip (if needed)")
-    pip_install(
-        "pip",
-        options=["--upgrade", "--no-warn-script-location"],
-        loglevel=1
-    )
+    # Step 4: Update pip (optional)
+    if PARAMS.GetBool("UpdatePip"):
+        _log(">>> Updating pip (if needed)")
+        pip_install(
+            "pip",
+            options=["--upgrade", "--no-warn-script-location"],
+            loglevel=1
+        )
 
     # Step 5: Check for needed packages
     packages = ["setuptools", "wheel", "materialx"]
