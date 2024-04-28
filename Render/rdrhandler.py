@@ -499,39 +499,16 @@ class RendererHandler:
         # Build a list of renderables from the object
         material = view.Material
         tpboost = self.transparency_boost
-        try:
-            rends = renderables.get_renderables(
-                source,
-                name,
-                material,
-                mesher,
-                transparency_boost=tpboost,
-                uvprojection=uvproj,
-            )
-            renderables.check_renderables(rends)
-        except renderables.RenderableError as err:
-            # 'get_renderables' will raise RenderableError if unable to render
-            # In this case, we pass with a warning
-            msg = (
-                translate(
-                    "Render",
-                    "[Render] Cannot render view '{0}': {1} (file {2}, "
-                    "line {3} in {4}). Skipping...",
-                )
-                + "\n"
-            )
-            _, _, exc_traceback = sys.exc_info()
-            framestack = traceback.extract_tb(exc_traceback)[-1]
-            App.Console.PrintWarning(
-                msg.format(
-                    getattr(view, "Label", "<No label>"),
-                    err,
-                    framestack.filename,
-                    framestack.lineno,
-                    framestack.name,
-                )
-            )
-            return ""
+
+        rends = renderables.get_renderables(
+            source,
+            name,
+            material,
+            mesher,
+            transparency_boost=tpboost,
+            uvprojection=uvproj,
+        )
+        rends = renderables.check_renderables(rends)
 
         # Rescale to meters
         for rend in rends:
