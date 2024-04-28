@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; Matte
 ; Howetuft
 
 [General]
@@ -9,3 +9,4 @@ UseObjectColor = True
 [Render]
 Render.Type = Diffuse
 Render.Diffuse.Color = Object
+; vi: ft=dosini

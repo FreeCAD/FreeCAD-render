@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; GreenMarble
 ; Howetuft
 
 [General]
@@ -20,3 +20,4 @@ Render.Textures.GreenMarble.Images.1 = GreenMarble/Marble009_1K_Roughness.jpg
 Render.Textures.GreenMarble.Images.2 = GreenMarble/Marble009_1K_NormalGL.jpg
 Render.Textures.GreenMarble.Images.3 = GreenMarble/Marble009_1K_Displacement.jpg
 Render.Textures.GreenMarble.Scale = 1.0
+; vi: ft=dosini

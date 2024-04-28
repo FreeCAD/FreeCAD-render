@@ -1,8 +1,7 @@
-; vi: ft=dosini
+; Carpaint
 ; Howetuft
 
 [General]
-; General name
 Name = RenderCarpaint
 Description = Carpaint Material for Render
 UseObjectColor = True
@@ -10,3 +9,5 @@ UseObjectColor = True
 [Render]
 Render.Type = Carpaint
 Render.Carpaint.BaseColor = Object
+
+; vi: ft=dosini

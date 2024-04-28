@@ -1,4 +1,4 @@
-; vi: ft=dosini
+; Gold
 ; Howetuft
 
 [General]
@@ -158,3 +158,5 @@ Render.Povray.0006 =     metallic 1
 Render.Povray.0007 =     specular 0.60
 Render.Povray.0008 =     roughness 1/20
 Render.Povray.0009 = }
+
+; vi: ft=dosini
