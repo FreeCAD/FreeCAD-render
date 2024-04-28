@@ -562,9 +562,9 @@ class RenderTextureBaker:
                     output.setConnectedNode(
                         world_space_node.getConnectedNode("in")
                     )
-                    self._world_space_nodes[input_.getName()] = (
-                        world_space_node
-                    )
+                    self._world_space_nodes[
+                        input_.getName()
+                    ] = world_space_node
 
                 filename_template_map = self._initialize_file_template_map(
                     input_, shader, udim

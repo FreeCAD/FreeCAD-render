@@ -109,7 +109,7 @@ def ensure_rendervenv():
         pip_install(
             "pip",
             options=["--upgrade", "--no-warn-script-location"],
-            loglevel=1
+            loglevel=1,
         )
 
     # Step 5: Check for needed packages
@@ -221,7 +221,10 @@ def _create_virtualenv():
         # TODO request pyz consistent with python version?
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
-        subprocess.run([python, "-u", pyz, "--system-site-packages", RENDER_VENV_DIR], check=True)
+        subprocess.run(
+            [python, "-u", pyz, "--system-site-packages", RENDER_VENV_DIR],
+            check=True,
+        )
 
 
 def _remove_virtualenv():

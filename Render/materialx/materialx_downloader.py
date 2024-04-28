@@ -40,7 +40,11 @@ from PySide.QtCore import (
     QEventLoop,
     QUrl,
 )
-from PySide.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from PySide.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest,
+    QNetworkReply,
+)
 from PySide.QtGui import (
     QWidget,
     QToolBar,
@@ -62,6 +66,7 @@ from .materialx_profile import WEBPROFILE
 # - QWebEngineDownloadItem.downloadDirectory
 # as they may not be compatible with old PySide (and old Ubuntu)
 # (2024-04-24)
+
 
 class MaterialXDownloader(QWidget):
     """A MaterialX downloader widget.
@@ -220,9 +225,7 @@ class DownloadWindow(QProgressDialog):
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
         )
         _, filenameshort = os.path.split(self._download.path())
-        self.setLabelText(
-            f"Importing '{filenameshort}'..."
-        )
+        self.setLabelText(f"Importing '{filenameshort}'...")
         filename = self._download.path()
 
         # Start import
@@ -359,8 +362,8 @@ class JavaScriptRunner(QObject):
 def _nope(*_):
     """No operation function."""
 
-class GetPolyhavenLink(JavaScriptRunner):
 
+class GetPolyhavenLink(JavaScriptRunner):
     done = Signal()
 
     def __init__(self, page):
@@ -398,7 +401,9 @@ class GetPolyhavenLink(JavaScriptRunner):
     def link(self):
         return self._link
 
+
 ACCESS_MANAGER = QNetworkAccessManager()
+
 
 class GetPolyhavenData(QObject):
     done = Signal()
@@ -459,29 +464,36 @@ def polyhaven_getsize(page):
     # Search size
     sizes = (
         res
-        for regex in (rb"<strong>(.*)</strong><p>wide</p>", rb"<strong>(.*)</strong><p>tall</p>")
+        for regex in (
+            rb"<strong>(.*)</strong><p>wide</p>",
+            rb"<strong>(.*)</strong><p>tall</p>",
+        )
         if (res := re.search(regex, data)) is not None
     )
     try:
         result = next(sizes)
     except StopIteration:
-        App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to find tags")
+        App.Console.PrintLog(
+            "[Render][MaterialX] Polyhaven - failed to find tags"
+        )
         return None
 
     # Parse quantity
     try:
         quantity = App.Units.parseQuantity(result.group(1))
     except ValueError:
-        App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to parse quantity")
+        App.Console.PrintLog(
+            "[Render][MaterialX] Polyhaven - failed to parse quantity"
+        )
         return None
 
     # Convert to meters
     try:
         value = quantity.getValueAs("m")
     except ValueError:
-        App.Console.PrintLog("[Render][MaterialX] Polyhaven - failed to get valye as meters")
+        App.Console.PrintLog(
+            "[Render][MaterialX] Polyhaven - failed to get valye as meters"
+        )
         return None
 
     return value
-
-
