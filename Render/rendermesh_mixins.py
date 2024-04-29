@@ -748,6 +748,7 @@ class RenderMeshNumpyMixin:
             np.left_shift(all_edges_left, 32, dtype=np.int64),
             all_edges_right,
         )
+
         # At this point, we have a collection of hashed edges ("hashes") like
         # that:
         # facet(i, 0) << 32 | facet(i, 1)
@@ -775,6 +776,10 @@ class RenderMeshNumpyMixin:
             hashes[:, 1], unique_indices[1:]
         )  # This is array of array
         hashtable = [a for a, n in zip(hashtable, unique_counts) if n == 2]
+        if not hashtable:
+            if debug_flag:
+                print("No edge")
+            return np.empty((0, 2), dtype=np.int64)
         hashtable = np.stack(hashtable)
 
         if debug_flag:
@@ -876,11 +881,15 @@ class RenderMeshNumpyMixin:
         def union_find(elem1, elem2):
             union(find_and_compress(elem1), find_and_compress(elem2))
 
-        vunion_find = np.vectorize(union_find)
-        vunion_find(edges[..., 0], edges[..., 1])
+        if len(edges):
+            vunion_find = np.vectorize(union_find)
+            vunion_find(edges[..., 0], edges[..., 1])
 
-        vfind_and_compress = np.vectorize(find_and_compress)
-        tags = vfind_and_compress(np.arange(nfacets))
+        if nfacets:
+            vfind_and_compress = np.vectorize(find_and_compress)
+            tags = vfind_and_compress(np.arange(nfacets))
+        else:
+            tags = np.ndarray()
 
         if debug_flag:
             print("tags", time.time() - tm0)
