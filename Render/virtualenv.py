@@ -65,70 +65,80 @@ def ensure_rendervenv():
     if not PARAMS.GetBool("MaterialX"):
         return
 
-    # Step 1: Check if virtual environment exists at location RENDER_VENV_DIR
-    # Otherwise, create it
-    _log("Checking Render virtual environment")
-    if not _check_venv():
-        _log(">>> Environment does not exist - Creating")
-        _create_virtualenv()
-    else:
-        _log(">>> Environment exists: OK")
-
-    # Step 2: Check whether Python is available.
-    # Otherwise, recreate (try three times)
-    for _ in range(3):
-        if get_venv_python() is None:
-            _log(
-                ">>> Environment does not provide Python "
-                "- Recreating environment"
-            )
-            _remove_virtualenv()
+    try:
+        # Step 1: Check if virtual environment exists at location RENDER_VENV_DIR
+        # Otherwise, create it
+        _log("Checking Render virtual environment")
+        if not _check_venv():
+            _log(">>> Environment folder does not exist - Creating")
             _create_virtualenv()
         else:
-            _log(">>> Environment provides Python: OK")
-            break
-    else:
-        raise VenvError()
+            _log(">>> Environment folder exists: OK")
 
-    # Step 3: Check whether pip is available
-    # Otherwise, bootstrap (try three times)
-    for _ in range(3):
-        if _get_venv_pip() is None:
-            _log(">>> Environment does not provide Pip - Repairing")
-            url = "https://bootstrap.pypa.io/get-pip.py"
-            _bootstrap(url)
+        # Step 2: Check whether Python is available.
+        # Otherwise, recreate (try three times)
+        for _ in range(3):
+            if get_venv_python() is None:
+                _log(
+                    ">>> Environment does not provide Python "
+                    "- Recreating environment"
+                )
+                _remove_virtualenv()
+                _create_virtualenv()
+            else:
+                _log(">>> Environment provides Python: OK")
+                break
         else:
-            _log(">>> Environment provides Pip: OK")
-            break
-    else:
-        raise VenvError()
+            raise VenvError(3)
 
-    # Step 4: Update pip (optional)
-    if PARAMS.GetBool("UpdatePip"):
-        _log(">>> Updating pip (if needed)")
-        pip_install(
-            "pip",
-            options=["--upgrade", "--no-warn-script-location"],
-            loglevel=1,
+        # Step 3: Check whether pip is available
+        # Otherwise, bootstrap (try three times)
+        for _ in range(3):
+            if _get_venv_pip() is None:
+                _log(">>> Environment does not provide Pip - Repairing")
+                url = "https://bootstrap.pypa.io/get-pip.py"
+                _bootstrap(url)
+            else:
+                _log(">>> Environment provides Pip: OK")
+                break
+        else:
+            raise VenvError(4)
+
+        # Step 4: Update pip (optional)
+        if PARAMS.GetBool("UpdatePip"):
+            _log(">>> Updating pip (if needed)")
+            pip_install(
+                "pip",
+                options=["--upgrade", "--no-warn-script-location"],
+                loglevel=1,
+            )
+
+        # Step 5: Check for needed packages
+        packages = ["setuptools", "wheel", "materialx"]
+        for package in packages:
+            _log(f">>> Checking package '{package}':")
+            pip_install(
+                package, options=["--no-warn-script-location"], loglevel=1
+            )
+    except VenvError as error:
+        msg = (
+            "[Render][Init] Error - Failed to set virtual environment - "
+            f"#{error.errorno} '{error.message}' - "
+            "Some features may not be available...\n"
         )
-
-    # Step 5: Check for needed packages
-    packages = ["setuptools", "wheel", "materialx"]
-    for package in packages:
-        _log(f">>> Checking package '{package}':")
-        pip_install(package, options=["--no-warn-script-location"], loglevel=1)
-
-    _log("Render virtual environment: OK")
+        App.Console.PrintError(msg)
+    else:
+        _log("Render virtual environment: OK")
 
 
 def get_venv_python():
     """Get Python executable in Render virtual environment."""
     if os.name == "nt":
         python = "pythonw.exe"
-    elif os.name == "posix":
+    elif os.name == "posix":  # TODO
         python = "python"
     else:
-        raise VenvError()  # Unknown os.name
+        raise VenvError(2)  # Unknown os.name
 
     binpath = _binpath()
 
@@ -146,7 +156,7 @@ def pip_install(package, options=[], log=None, loglevel=0):
     Returns: a subprocess.CompletedInstance"""
     log = log or _log
     if not (executable := get_venv_python()):
-        raise RuntimeError("Unable to find Python executable")  # TODO
+        raise VenvError(3)
     cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
     log(" ".join([">>>"] + cmd))
     with subprocess.Popen(
@@ -166,7 +176,7 @@ def pip_uninstall(package):
 
     Returns: a subprocess.CompletedInstance"""
     if not (executable := get_venv_python()):
-        raise RuntimeError("Unable to find Python executable")  # TODO
+        raise VenvError(3)
     result = subprocess.run(
         [executable, "-m", "pip", "uninstall", "-y", package],
         stdout=subprocess.PIPE,
@@ -193,7 +203,7 @@ def _get_venv_pip():
     elif os.name == "posix":
         pip = "pip"
     else:
-        raise VenvError()  # Unknown os.name
+        raise VenvError(2)
 
     binpath = _binpath()
 
@@ -217,6 +227,8 @@ def _create_virtualenv():
     # https://pypi.org/project/bootstrap-env
     url = "https://bootstrap.pypa.io/virtualenv.pyz"
     python = find_python()
+    if not python:
+        raise VenvError(0)
     with tempfile.TemporaryDirectory() as tmp:
         # TODO request pyz consistent with python version?
         pyz = os.path.join(tmp, "virtualenv.pyz")
@@ -252,6 +264,24 @@ def _bootstrap(url):
 class VenvError(Exception):
     """Exception class for error in Render virtual environment handling."""
 
+    MESSAGES = {
+        1: "Cannot find Python",
+        2: "Unknown OS",
+        3: "Python is not available in virtual environment",
+        4: "Pip is not available in virtual environment",
+    }
+
+    def __init__(self, errorno):
+        self._errorno = int(errorno)
+
+    @property
+    def message(self):
+        return self.MESSAGES.get(self._errorno, "Unknown error")
+
+    @property
+    def errorno(self):
+        return self._errorno
+
 
 def _log(message):
     """Log function for Render virtual environment handling."""
@@ -270,5 +300,5 @@ def _binpath():
     elif os.name == "posix":
         path = os.path.join(RENDER_VENV_DIR, "bin")
     else:
-        raise VenvError()  # Unknown os.name
+        raise VenvError(2)  # Unknown os.name
     return path
