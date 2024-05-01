@@ -619,8 +619,7 @@ class MaterialApplierCommand:
                         "[Render][Material] "
                         "Cannot apply Material to object '%s': "
                         "object's Material property does not accept "
-                        "provided material '%s' (maybe due to the relative "
-                        "positions of object and material in the document?)",
+                        "provided material '%s'",
                     )
                     + "\n"
                 )
