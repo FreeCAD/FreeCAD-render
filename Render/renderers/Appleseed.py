@@ -1423,7 +1423,7 @@ def render(
         ("environment_shader", "scene", False, None),
         ("environment", "scene", True, None),
         ("scene_texture", "scene", False, "texture"),
-        ("scene_texture_instance", "scene", False, "texture"),
+        ("scene_texture_instance", "scene", False, "texture_instance"),
         ("search_path", "search_paths", True, None),
     )
     for move in moves:

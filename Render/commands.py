@@ -612,21 +612,28 @@ class MaterialApplierCommand:
                     + "\n"
                 )
                 App.Console.PrintError(msg % obj.Label)
-            except ValueError:
+            except ValueError as err:
                 msg = (
                     translate(
                         "Render",
                         "[Render][Material] "
-                        "Cannot apply Material to object '%s': "
+                        f"Cannot apply Material to object '{obj.Label}': "
                         "object's Material property does not accept "
-                        "provided material '%s' (maybe due to the relative "
-                        "positions of object and material in the document?)",
+                        f"provided material '{material.Label}'",
+                    )
+                    + "\n"
+                )
+                msg2 = (
+                    translate(
+                        "Render",
+                        f"[Render][Material] Object raises ValueError {err.args}",
                     )
                     + "\n"
                 )
                 # Maybe related to:
                 # https://forum.freecad.org/viewtopic.php?t=87202&start=50#p756345
-                App.Console.PrintError(msg % (obj.Label, material.Label))
+                App.Console.PrintError(msg)
+                App.Console.PrintError(msg2)
         App.ActiveDocument.commitTransaction()
 
 
