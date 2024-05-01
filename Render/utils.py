@@ -31,8 +31,6 @@ import itertools
 import functools
 import shutil
 import os
-import subprocess
-import venv
 
 try:
     from draftutils.translate import translate as _translate  # 0.19
@@ -44,6 +42,8 @@ from PySide.QtGui import QDockWidget, QTextEdit
 import FreeCAD as App
 import FreeCADGui as Gui
 
+from Render.constants import FCDVERSION
+
 try:
     if not App.GuiUp:
         # assembly3 needs Gui...
@@ -53,8 +53,6 @@ except (ModuleNotFoundError, ImportError):
     AsmBase = type(None)
 
 translate = _translate
-
-from Render.constants import FCDVERSION
 
 
 def debug(domain, object_name, msg):

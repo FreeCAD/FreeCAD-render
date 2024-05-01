@@ -66,8 +66,8 @@ def ensure_rendervenv():
         return
 
     try:
-        # Step 1: Check if virtual environment exists at location RENDER_VENV_DIR
-        # Otherwise, create it
+        # Step 1: Check if virtual environment exists at location
+        # RENDER_VENV_DIR. Otherwise, create it
         _log("Checking Render virtual environment")
         if not _check_venv():
             _log(">>> Environment folder does not exist - Creating")
@@ -135,7 +135,7 @@ def get_venv_python():
     """Get Python executable in Render virtual environment."""
     if os.name == "nt":
         python = "pythonw.exe"
-    elif os.name == "posix":  # TODO
+    elif os.name == "posix":
         python = "python"
     else:
         raise VenvError(2)  # Unknown os.name
@@ -150,10 +150,11 @@ def get_venv_python():
     return path
 
 
-def pip_install(package, options=[], log=None, loglevel=0):
+def pip_install(package, options=None, log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
     Returns: a subprocess.CompletedInstance"""
+    options = options or []
     log = log or _log
     if not (executable := get_venv_python()):
         raise VenvError(3)
@@ -199,7 +200,7 @@ def _check_venv():
 def _get_venv_pip():
     """Get pip executable in Render virtual environment."""
     if os.name == "nt":
-        pip = "pip.exe"  # TODO
+        pip = "pip.exe"
     elif os.name == "posix":
         pip = "pip"
     else:
@@ -226,11 +227,9 @@ def _create_virtualenv():
     # Instead, we will bootstrap everything from pypi
     # https://pypi.org/project/bootstrap-env
     url = "https://bootstrap.pypa.io/virtualenv.pyz"
-    python = find_python()
-    if not python:
+    if not (python := find_python()):
         raise VenvError(0)
     with tempfile.TemporaryDirectory() as tmp:
-        # TODO request pyz consistent with python version?
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
         subprocess.run(
@@ -276,10 +275,12 @@ class VenvError(Exception):
 
     @property
     def message(self):
+        """Return error message."""
         return self.MESSAGES.get(self._errorno, "Unknown error")
 
     @property
     def errorno(self):
+        """Return error number."""
         return self._errorno
 
 

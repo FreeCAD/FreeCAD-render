@@ -511,9 +511,9 @@ class MaterialSettingsTaskPanel:
     def __init__(self, obj=None):
         """Initialize task panel."""
         self.form = Gui.PySideUic.loadUi(TASKPAGE)
-        self.tabs = self.form.RenderTabs
-        self.tabs.setCurrentIndex(0)
-        self.layout = self.tabs.findChild(QFormLayout, "FieldsLayout")
+        tabs = self.form.RenderTabs
+        tabs.setCurrentIndex(0)
+        self.layout = tabs.findChild(QFormLayout, "FieldsLayout")
         self.material_type_combo = self.form.findChild(
             QComboBox, "MaterialType"
         )
@@ -657,8 +657,7 @@ class MaterialSettingsTaskPanel:
 
     def on_passthrough_text_changed(self):
         """Respond to passthrough renderer changed event."""
-        rdr = self.passthru_rdr.currentItem()
-        if not rdr:
+        if not (rdr := self.passthru_rdr.currentItem()):
             return
         text = self.passthru.toPlainText()
         self.passthru_cache[rdr.text()] = text
@@ -871,8 +870,7 @@ class MaterialSettingsTaskPanel:
         tmp_mat["Render.ForceUVMap"] = force_uvmap
 
         # Set father
-        father = self.father_field.text()
-        if father:
+        if father := self.father_field.text():
             tmp_mat["Father"] = str(father)
 
         # Write to material
@@ -919,7 +917,11 @@ please edit 'Render settings' from material context menu.*"""
         label.setTextFormat(Qt.TextFormat.MarkdownText)
         self.form.layout().addWidget(label)
 
-    def fillMaterialCombo(self):
+        # Attributes
+        self.cards = None
+        self.material = None
+
+    def fillMaterialCombo(self):  # pylint: disable=invalid-name
         """Fill Material combo box.
 
         Look for cards in both Workbench directory and Materials sub-folder
@@ -965,6 +967,6 @@ please edit 'Render settings' from material context menu.*"""
         super().accept()
         return True
 
-    def reject(self):
+    def reject(self):  # pylint: disable=no-self-use
         """Respond to user rejection."""
         return True

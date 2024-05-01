@@ -95,8 +95,7 @@ class RenderProjectCommand:
         assert self.renderer, "Error: no renderer in command"
 
         # Get rendering template
-        template = user_select_template(self.renderer)
-        if not template:
+        if not (template := user_select_template(self.renderer)):
             return
 
         # Create project
@@ -366,7 +365,8 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         )
         return res
 
-    def Activated(self):
+    def Activated(self):  # pylint: disable=no-self-use
+        """Respond to Activated event (callback)."""
         App.ActiveDocument.openTransaction(
             translate("Render", "Create material")
         )
@@ -412,8 +412,7 @@ class MaterialMaterialXImportCommand:
         openfilename = QFileDialog.getOpenFileName(
             Gui.getMainWindow(), caption, "", filefilter
         )
-        materialx_file = openfilename[0]
-        if not materialx_file:
+        if not (materialx_file := openfilename[0]):
             return
         App.ActiveDocument.openTransaction("MaterialXImport")
         import_materialx(materialx_file, Gui.ActiveDocument.Document)
@@ -532,8 +531,7 @@ class MaterialApplierCommand:
         created.
         """
         # Get selected objects
-        selection = Gui.Selection.getSelection()
-        if not selection:
+        if not (selection := Gui.Selection.getSelection()):
             title = translate("Render", "Empty Selection")
             msg = translate(
                 "Render",
@@ -626,12 +624,17 @@ class MaterialApplierCommand:
                 msg2 = (
                     translate(
                         "Render",
-                        f"[Render][Material] Object raises ValueError {err.args}",
+                        "[Render][Material] Object raises ValueError "
+                        f"{err.args}",
                     )
                     + "\n"
                 )
                 # Maybe related to:
                 # https://forum.freecad.org/viewtopic.php?t=87202&start=50#p756345
+                #
+                # Material and Part were not in the same document (in
+                # particular, it could happen with assemblies, with parts in
+                # separate docs)
                 App.Console.PrintError(msg)
                 App.Console.PrintError(msg2)
         App.ActiveDocument.commitTransaction()
