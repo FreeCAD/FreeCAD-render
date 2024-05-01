@@ -227,7 +227,7 @@ def _create_virtualenv():
     # Instead, we will bootstrap everything from pypi
     # https://pypi.org/project/bootstrap-env
     url = "https://bootstrap.pypa.io/virtualenv.pyz"
-    if not (python:= find_python()):
+    if not (python := find_python()):
         raise VenvError(0)
     with tempfile.TemporaryDirectory() as tmp:
         pyz = os.path.join(tmp, "virtualenv.pyz")

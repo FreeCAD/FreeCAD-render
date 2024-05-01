@@ -870,7 +870,7 @@ class MaterialSettingsTaskPanel:
         tmp_mat["Render.ForceUVMap"] = force_uvmap
 
         # Set father
-        if (father := self.father_field.text()):
+        if father := self.father_field.text():
             tmp_mat["Father"] = str(father)
 
         # Write to material

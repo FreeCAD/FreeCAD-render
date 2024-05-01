@@ -95,7 +95,7 @@ class RenderProjectCommand:
         assert self.renderer, "Error: no renderer in command"
 
         # Get rendering template
-        if not (template:= user_select_template(self.renderer)):
+        if not (template := user_select_template(self.renderer)):
             return
 
         # Create project
