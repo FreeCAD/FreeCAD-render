@@ -162,7 +162,7 @@ class MaterialXDownloader(QWidget):
             win.open()
             return
 
-        # Nominal materialx import
+        # Nominal case: materialx import
         polyhaven_actual_size = polyhaven_getsize(self.page)
 
         win = MaterialXDownloadWindow(
@@ -230,6 +230,26 @@ class DownloadWindow(QProgressDialog):
         This slot handles import. Import is executed in a separate thread
         to avoid blocking UI.
         """
+        self.canceled.disconnect(self.cancel)
+        if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
+            print("Download cancelled")
+            return
+        if (
+            self._download.state()
+            == QWebEngineDownloadItem.DownloadInterrupted
+        ):
+            print("Download interrupted")
+            return
+        assert (
+            self._download.state() == QWebEngineDownloadItem.DownloadCompleted
+        )
+        self.do_import()
+
+    def do_import(self):
+        """Do importation of downloaded file (callback).
+
+        To be overriden by specialized widgets.
+        """
 
 
 class MaterialXDownloadWindow(DownloadWindow):
@@ -250,26 +270,12 @@ class MaterialXDownloadWindow(DownloadWindow):
         self.thread = None
         self.worker = None
 
-    @Slot()
-    def finished_download(self):
-        """Slot to trigger when download has finished.
+    def do_import(self):
+        """Do import of MaterialX downloaded file.
 
-        This slot handles import. Import is executed in a separate thread
+        This function handles import. Import is executed in a separate thread
         to avoid blocking UI.
         """
-        self.canceled.disconnect(self.cancel)
-        if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
-            print("Download cancelled")
-            return
-        if (
-            self._download.state()
-            == QWebEngineDownloadItem.DownloadInterrupted
-        ):
-            print("Download interrupted")
-            return
-        assert (
-            self._download.state() == QWebEngineDownloadItem.DownloadCompleted
-        )
         _, filenameshort = os.path.split(self._download.path())
         self.setLabelText(f"Importing '{filenameshort}'...")
         filename = self._download.path()
@@ -363,26 +369,8 @@ class ImporterWorker(QObject):
 class HdriDownloadWindow(DownloadWindow):
     """A simple widget to handle HDRI download and import from the web."""
 
-    @Slot()
-    def finished_download(self):
-        """Slot to trigger when download has finished.
-
-        This slot handles import. Import is executed in a separate thread
-        to avoid blocking UI.
-        """
-        self.canceled.disconnect(self.cancel)
-        if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
-            print("Download cancelled")
-            return
-        if (
-            self._download.state()
-            == QWebEngineDownloadItem.DownloadInterrupted
-        ):
-            print("Download interrupted")
-            return
-        assert (
-            self._download.state() == QWebEngineDownloadItem.DownloadCompleted
-        )
+    def do_import(self):
+        """Do import of HDRI downloaded file."""
         print("HDRI download (stub)")
 
 
