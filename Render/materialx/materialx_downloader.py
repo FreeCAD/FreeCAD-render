@@ -174,7 +174,11 @@ class MaterialXDownloader(QWidget):
         """Check whether download is HDRI (rather than MaterialX)."""
         # Only for a restricted list of sites (ambientcg...)
         url = self.page.url().toString()
-        if not ((hostname := urlparse(url).hostname) and hostname in ["ambientcg.com", "acg-download.struffelproductions.com"]):
+        if not (
+            (hostname := urlparse(url).hostname)
+            and hostname
+            in ["ambientcg.com", "acg-download.struffelproductions.com"]
+        ):
             return False
 
         # And only for a restricted list of file extensions
