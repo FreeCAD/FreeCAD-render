@@ -117,6 +117,7 @@ def write_camera(name, pos, updir, target, fov, resolution, **kwargs):
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    name = name.replace("#", "_")
     width, height = resolution
 
     # Pov-ray uses an horizontal fov, so we have to convert
@@ -146,6 +147,7 @@ def write_pointlight(name, pos, color, power, **kwargs):
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    name = name.replace("#", "_")
     color = color.to_linear()
     factor = power / 100
 
@@ -168,6 +170,7 @@ def write_arealight(
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    name = name.replace("#", "_")
 
     # Dimensions of the point sources array
     # (area light is treated as point sources array, see POV-Ray documentation)
@@ -238,6 +241,7 @@ def write_sunskylight(
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    name = name.replace("#", "_")
 
     location = direction.normalize()
     location.Length = distance
@@ -275,6 +279,7 @@ def write_imagelight(name, image, **_):
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    name = name.replace("#", "_")
 
     # Find image type
     # exr | gif | hdr | iff | jpeg | pgm | png | ppm | sys | tga | tiff
@@ -333,6 +338,7 @@ def write_distantlight(
     # POV-Ray has a lot of reserved keywords, so we suffix name with a '_' to
     # avoid any collision
     name = name + "_"
+    name = name.replace("#", "_")
 
     # Nota: angle is not supported by Povray
 
