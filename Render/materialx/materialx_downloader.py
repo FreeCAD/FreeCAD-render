@@ -379,7 +379,7 @@ class HdriDownloadWindow(DownloadWindow):
         filepath = self._download.path()
         basename = os.path.basename(filepath)
         _, fpo, _ = ImageLight.create(self._fcdoc)
-        fpo.Label =basename
+        fpo.Label = basename
         fpo.ImageFile = filepath
 
         # Finalize (success)
