@@ -157,12 +157,38 @@ class MaterialXDownloader(QWidget):
         This slot allows to run download in object thread, while
         being triggered from 'download_requested'.
         """
+        # Special case: HDRI
+        if self._is_hdri_download(download):
+            print("HDRI download is not implemented yet.")
+            return
+
+        # Nominal materialx import
         polyhaven_actual_size = polyhaven_getsize(self.page)
 
         self.win = DownloadWindow(
             download, self.fcdoc, self, self.disp2bump, polyhaven_actual_size
         )
         self.win.open()
+
+    def _is_hdri_download(self, download):
+        """Check whether download is HDRI (rather than MaterialX)."""
+        # Only for a restricted list of sites (ambientcg...)
+        url = self.page.url().toString()
+        if not (
+            (hostname := urlparse(url).hostname)
+            and hostname
+            in ["ambientcg.com", "acg-download.struffelproductions.com"]
+        ):
+            return False
+
+        # And only for a restricted list of file extensions
+        _, ext = os.path.splitext(download.path())
+        if ext.lower() not in [".exr", ".jpg"]:
+            print(ext)
+            return False
+
+        # Seems to be one of ours
+        return True
 
 
 class DownloadWindow(QProgressDialog):
