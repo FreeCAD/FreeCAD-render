@@ -428,22 +428,46 @@ def _write_material_disney(name, matval):  # pylint: disable=unused-argument
         else ""
     )
 
-    snippet = f"""
-    texture {{
-        {matval["basecolor"]}
-        finish {{
-            diffuse albedo 0.8
-            specular {matval["specular"]}
-            roughness {matval["roughness"]}
-            conserve_energy
-            reflection {{
-                {matval["specular"]}
-                metallic
-            }}
-            {subsurface}
-            irid {{ {matval["clearcoatgloss"]} }}
-        }}
+    bump = matval["bump"] if matval.has_bump() else ""
+    normal = matval["normal"] if matval.has_normal() else ""
 
+    specular = (
+        float(matval["specular"])
+        if not matval.is_texture("specular")
+        else 0.05
+    )
+
+    if not matval.is_texture("metallic"):
+        print("Metallic", float(matval["metallic"]))
+        if (metallic_val := float(matval["metallic"])) >= 0.8:
+            metallic = f"""metallic {metallic_val}   reflection {{0.07}}"""
+        else:
+            metallic = ""
+    else:
+        metallic = """metallic 0.05   reflection {{0.07}}"""
+
+    roughness = (
+        float(matval["roughness"]) / 100
+        if not matval.is_texture("roughness")
+        else 0.005
+    )
+
+    if not math.isclose(metallic_val, 0.0) and math.isclose(specular, 0.0):
+        specular = 0.2  # Non-null is required to get metallic work...
+
+    snippet = f"""texture {{
+        {matval["basecolor"]}
+        {bump}
+        {normal}
+        finish {{
+          diffuse 0.9
+          specular {specular}
+          {metallic}
+          roughness {roughness}
+          conserve_energy
+         {subsurface}
+         irid {{ {matval["clearcoatgloss"]} }}
+        }}
     }}"""
     return snippet
 
