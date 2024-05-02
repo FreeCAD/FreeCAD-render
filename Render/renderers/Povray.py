@@ -280,7 +280,6 @@ def write_imagelight(name, image, **_):
     # exr | gif | hdr | iff | jpeg | pgm | png | ppm | sys | tga | tiff
     _, ext = os.path.splitext(image)
     ext = ext.lower()
-    print(ext)
 
     map_ext = {
         ".exr": "exr",
@@ -676,6 +675,7 @@ def _write_texture(**kwargs):
         return texname, ""
 
     imagefile = os.path.relpath(propvalue.file, project_directory)
+    imagefile = _safe_filepath(imagefile)
 
     if shadertype in ["Glass", "glass"]:
         # Glass, either standalone ('Glass') or in mixed shader ('glass')
@@ -804,6 +804,15 @@ def _write_texref(**kwargs):
     statement = "normal " if propname == "bump" else "pigment "
 
     return f"""{statement} {{ {texname} }}"""
+
+
+def _safe_filepath(filepath):
+    """Replaces antislashes by double antislashes where required.
+
+    Avoid unexpected interpretation of \ in pathes as escape sequence.
+    """
+    return filepath.replace("\\", "\\\\")
+
 
 
 # ===========================================================================
