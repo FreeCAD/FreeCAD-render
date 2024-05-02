@@ -60,6 +60,7 @@ import FreeCAD as App
 from .materialx_importer import MaterialXImporter
 from .materialx_profile import WEBPROFILE
 
+from Render import ImageLight
 
 # Remark: please do not use:
 # - QWebEngineProfile.setDownloadPath
@@ -247,6 +248,8 @@ class DownloadWindow(QProgressDialog):
         assert (
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
         )
+        _, filenameshort = os.path.split(self._download.path())
+        self.setLabelText(f"Importing '{filenameshort}'...")
         self.do_import()
 
     def do_import(self):
@@ -280,8 +283,6 @@ class MaterialXDownloadWindow(DownloadWindow):
         This function handles import. Import is executed in a separate thread
         to avoid blocking UI.
         """
-        _, filenameshort = os.path.split(self._download.path())
-        self.setLabelText(f"Importing '{filenameshort}'...")
         filename = self._download.path()
 
         # Start import
@@ -375,7 +376,17 @@ class HdriDownloadWindow(DownloadWindow):
 
     def do_import(self):
         """Do import of HDRI downloaded file."""
-        print("HDRI download (stub)")
+        filepath = self._download.path()
+        basename = os.path.basename(filepath)
+        _, fpo, _ = ImageLight.create(self._fcdoc)
+        fpo.Label =basename
+        fpo.ImageFile = filepath
+
+        # Finalize (success)
+        os.remove(filepath)
+        self.setLabelText("Done")
+        self.canceled.connect(self.cancel)
+        self.setCancelButtonText("Close")
 
 
 def open_mxdownloader(url, doc, disp2bump=False):
