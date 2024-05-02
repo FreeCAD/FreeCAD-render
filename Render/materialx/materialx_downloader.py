@@ -165,7 +165,7 @@ class MaterialXDownloader(QWidget):
         # Nominal materialx import
         polyhaven_actual_size = polyhaven_getsize(self.page)
 
-        self.win = DownloadWindow(
+        self.win = MaterialXDownloadWindow(
             download, self.fcdoc, self, self.disp2bump, polyhaven_actual_size
         )
         self.win.open()
@@ -188,10 +188,10 @@ class MaterialXDownloader(QWidget):
 
 
 class DownloadWindow(QProgressDialog):
-    """A simple widget to handle MaterialX download and import from the web.
+    """A simple widget to handle download and import from the web.
 
     This is mainly a QProgressDialog, with ability to trace progress of a
-    download from WebEngineProfile and handle import afterwards.
+    download from WebEngineProfile and trigger import afterwards.
     """
 
     def __init__(
@@ -199,14 +199,10 @@ class DownloadWindow(QProgressDialog):
         download,
         fcdoc,
         parent,
-        disp2bump=False,
-        polyhaven_actual_size=None,
     ):
         super().__init__(parent)
         self._download = download
         self._fcdoc = fcdoc
-        self._disp2bump = disp2bump
-        self._polyhaven_size = polyhaven_actual_size
         _, filename = os.path.split(download.path())
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
@@ -226,6 +222,33 @@ class DownloadWindow(QProgressDialog):
         # Caveat: this slot must be executed in DownloadWindow thread
         self.setMaximum(bytes_total)
         self.setValue(bytes_received)
+
+    @Slot()
+    def finished_download(self):
+        """Slot to trigger when download has finished.
+
+        This slot handles import. Import is executed in a separate thread
+        to avoid blocking UI.
+        """
+
+
+class MaterialXDownloadWindow(DownloadWindow):
+    """A simple widget to handle MaterialX download and import from the web."""
+
+    def __init__(
+        self,
+        download,
+        fcdoc,
+        parent,
+        disp2bump=False,
+        polyhaven_actual_size=None,
+    ):
+        super().__init__(download, fcdoc, parent)
+        self._disp2bump = disp2bump
+        self._polyhaven_size = polyhaven_actual_size
+
+        self.thread = None
+        self.worker = None
 
     @Slot()
     def finished_download(self):
