@@ -99,7 +99,6 @@ class MaterialXDownloader(QWidget):
         # Set download manager
         WEBPROFILE.downloadRequested.connect(self.download_requested)
         self._download_required.connect(self.run_download, Qt.QueuedConnection)
-        self.win = None
 
         # Add actions to toolbar
         self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
@@ -159,16 +158,17 @@ class MaterialXDownloader(QWidget):
         """
         # Special case: HDRI
         if self._is_hdri_download(download):
-            print("HDRI download is not implemented yet.")
+            win = HdriDownloadWindow(download, self.fcdoc, self)
+            win.open()
             return
 
         # Nominal materialx import
         polyhaven_actual_size = polyhaven_getsize(self.page)
 
-        self.win = MaterialXDownloadWindow(
+        win = MaterialXDownloadWindow(
             download, self.fcdoc, self, self.disp2bump, polyhaven_actual_size
         )
-        self.win.open()
+        win.open()
 
     def _is_hdri_download(self, download):
         """Check whether download is HDRI (rather than MaterialX)."""
@@ -358,6 +358,32 @@ class ImporterWorker(QObject):
     def cancel(self):
         """Request importer to cancel."""
         self.importer.cancel()
+
+
+class HdriDownloadWindow(DownloadWindow):
+    """A simple widget to handle HDRI download and import from the web."""
+
+    @Slot()
+    def finished_download(self):
+        """Slot to trigger when download has finished.
+
+        This slot handles import. Import is executed in a separate thread
+        to avoid blocking UI.
+        """
+        self.canceled.disconnect(self.cancel)
+        if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
+            print("Download cancelled")
+            return
+        if (
+            self._download.state()
+            == QWebEngineDownloadItem.DownloadInterrupted
+        ):
+            print("Download interrupted")
+            return
+        assert (
+            self._download.state() == QWebEngineDownloadItem.DownloadCompleted
+        )
+        print("HDRI download (stub)")
 
 
 def open_mxdownloader(url, doc, disp2bump=False):
