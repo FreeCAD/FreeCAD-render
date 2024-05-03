@@ -29,5 +29,5 @@ from .materialx_importer import MaterialXImporter, import_materialx
 if GuiUp:
     from .materialx_downloader import MaterialXDownloader, open_mxdownloader
 else:
-    MaterialXDownloader = None
-    open_mxdownloader = None
+    MaterialXDownloader = None  # pylint: disable=invalid-name
+    open_mxdownloader = None  # pylint: disable=invalid-name
