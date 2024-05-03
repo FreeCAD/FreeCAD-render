@@ -44,7 +44,6 @@ from PySide.QtCore import (
 from PySide.QtNetwork import (
     QNetworkAccessManager,
     QNetworkRequest,
-    QNetworkReply,
 )
 from PySide.QtGui import (
     QWidget,
@@ -57,10 +56,11 @@ from PySide.QtGui import (
 import FreeCADGui as Gui
 import FreeCAD as App
 
+from Render import ImageLight
+
 from .materialx_importer import MaterialXImporter
 from .materialx_profile import WEBPROFILE
 
-from Render import ImageLight
 
 # Remark: please do not use:
 # - QWebEngineProfile.setDownloadPath
@@ -419,12 +419,12 @@ class JavaScriptRunner(QObject):
 
     def run(self):
         """Run JavaScript and wait for result."""
-        self._page.javaScriptConsoleMessage = self._get_console_message
+        self._page.javaScriptConsoleMessage = self.cb_get_console_message
         self._page.runJavaScript(self._script, 0)
 
     @Slot()
-    def _get_console_message(self, level, message, line_number, source_id):
-        """Get console message - where the JS script should output result."""
+    def cb_get_console_message(self, level, message, line_number, source_id):
+        """Get console message - callback for JS script to output result."""
         self._result = message
         self.javascript_done.emit()
 
@@ -439,6 +439,7 @@ def _nope(*_):
 
 
 class GetPolyhavenLink(JavaScriptRunner):
+    """A class to get the link to polyhaven page, from gpuopen page."""
     done = Signal()
 
     def __init__(self, page):
@@ -455,9 +456,11 @@ class GetPolyhavenLink(JavaScriptRunner):
         super().__init__(getlinks_snippet, page)
         self.javascript_done.connect(self._echo_done, Qt.QueuedConnection)
         self._result = None
+        self._link = None
 
     @Slot()
     def _echo_done(self):
+        """Slot to trigger when javascript has run."""
         res = super().result.split(",")
 
         # Search for a link to poly haven
@@ -477,6 +480,7 @@ class GetPolyhavenLink(JavaScriptRunner):
 
     @property
     def link(self):
+        """Get link attribute."""
         return self._link
 
 
@@ -484,6 +488,12 @@ ACCESS_MANAGER = QNetworkAccessManager()
 
 
 class GetPolyhavenData(QObject):
+    """A class to get data from polyhaven.com, for gpuopen.
+
+    Some dimensions in gpuopen, for materials originating from polyhaven.com,
+    are wrong. To remedy, this class can retrieve those information querying
+    polyhaven.com.
+    """
     done = Signal()
 
     def __init__(self, link):
@@ -528,8 +538,7 @@ def polyhaven_getsize(page):
     getlink.done.connect(loop.quit, Qt.QueuedConnection)
     getlink.run()
     loop.exec_()
-    link = getlink.link
-    if link is None:
+    if (link := getlink.link) is None:
         return None
 
     # Get data in polyhaven page
