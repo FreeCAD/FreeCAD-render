@@ -440,6 +440,7 @@ def _nope(*_):
 
 class GetPolyhavenLink(JavaScriptRunner):
     """A class to get the link to polyhaven page, from gpuopen page."""
+
     done = Signal()
 
     def __init__(self, page):
@@ -494,6 +495,7 @@ class GetPolyhavenData(QObject):
     are wrong. To remedy, this class can retrieve those information querying
     polyhaven.com.
     """
+
     done = Signal()
 
     def __init__(self, link):
