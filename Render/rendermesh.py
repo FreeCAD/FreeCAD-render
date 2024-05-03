@@ -1185,7 +1185,7 @@ class RenderMeshBase:
         Returns a list of sets of facet indices (adjacency list).
         Single process version.
         """
-        if (debug_flag := PARAMS.GetBool("Debug")):
+        if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print(f"compute adjacency lists (sp) - {self.count_facets} facets")
             tm0 = time.time()

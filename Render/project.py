@@ -399,7 +399,7 @@ class Project(FeatureBase):
             Output file path
         """
         # Create memcheck object (debug)
-        if (memcheck_flag := PARAMS.GetBool("Memcheck")):
+        if memcheck_flag := PARAMS.GetBool("Memcheck"):
             tracemalloc.start()
             snapshot1 = tracemalloc.take_snapshot()
 
@@ -599,7 +599,7 @@ class Project(FeatureBase):
             "Params", "prefix output width height batch spp denoise"
         )
 
-        if (prefix := PARAMS.GetString("Prefix", "")):
+        if prefix := PARAMS.GetString("Prefix", ""):
             prefix += " "
 
         try:
@@ -762,7 +762,7 @@ class ViewProviderProject(ViewProviderBase):
     def change_template(self):
         """Change the template of the project."""
         fpo = self.fpo
-        if (new_template := user_select_template(fpo.Renderer)):
+        if new_template := user_select_template(fpo.Renderer):
             App.ActiveDocument.openTransaction("ChangeTemplate")
             if fpo.getTypeIdOfProperty("Template") != "App::PropertyString":
                 # Ascending compatibility: convert Template property type if

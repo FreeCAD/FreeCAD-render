@@ -321,7 +321,6 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
     objdir = os.path.dirname(obj.Document.FileName)
     subdoc_path = os.path.normpath(os.path.join(objdir, obj.sourceFile))
 
-
     if not (subdoc := exec_in_mainthread(open_subdoc, (subdoc_path,))):
         warn(
             "Object",
@@ -859,7 +858,6 @@ def _get_material(base_renderable, upper_material):
 def _get_shapecolor(obj, transparency_boost, default_color=None):
     """Get shape color (including transparency) from an object."""
     default_color = default_color or WHITE
-
 
     # Is there a view object? (console mode, for instance)
     if (vobj := obj.ViewObject) is None:

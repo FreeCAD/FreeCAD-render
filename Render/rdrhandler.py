@@ -420,7 +420,6 @@ class RendererHandler:
             label = label or view.Source.Label
             fullname = f"'{label}' ('{name}')"
 
-
             # Skip meshing?
             if (skip_meshing := self.skip_meshing) and not force_meshing:
                 # We just need placement, and an empty mesh
