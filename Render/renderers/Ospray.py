@@ -844,10 +844,8 @@ def _write_texture(**kwargs):
     translation_u = float(propvalue.translation_u)
     translation_v = float(propvalue.translation_v)
 
-    field = _FIELD_MAPPING.get((shadertype, propname), propname)
-
     # Exclusions (not supported)
-    if field is None:
+    if (field := _FIELD_MAPPING.get((shadertype, propname), propname)) is None:
         return propname, ""
     if propname in [
         "clearcoatgloss",
@@ -900,10 +898,8 @@ def _write_value(**kwargs):
     objname = kwargs["objname"]
     matval = kwargs["matval"]
 
-    field = _FIELD_MAPPING.get((shadertype, propname), propname)
-
     # Exclusions
-    if field is None:
+    if (field := _FIELD_MAPPING.get((shadertype, propname), propname)) is None:
         msg = (
             f"[Render] [Ospray] [{objname}] Warning: "
             f"'{shadertype}::{propname}' is not supported by Ospray. "
@@ -956,10 +952,9 @@ def _write_texref(**kwargs):
     objname = kwargs["objname"]
     matval = kwargs["matval"]
 
-    field = _FIELD_MAPPING.get((shadertype, propname), propname)
 
     # Exclusions
-    if field is None:
+    if (field := _FIELD_MAPPING.get((shadertype, propname), propname)) is None:
         msg = (
             f"[Render] [Ospray] [{objname}] Warning: "
             f"'{shadertype}::{propname}' is not supported by Ospray. "
@@ -1095,8 +1090,7 @@ def render(
 
     # Prepare command line arguments
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = params.GetString("Prefix", "")
-    if prefix:
+    if (prefix := params.GetString("Prefix", "")):
         prefix += " "
     rpath = params.GetString("OspPath", "")
 
