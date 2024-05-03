@@ -114,7 +114,7 @@ class Material(_ArchMaterial):
         """Hide aspect-related properties, to avoid confusion."""
         set_editor_mode = self.fpo.setEditorMode
 
-        for prop in ["Color", "SectionColor", "Transparency"]:
+        for prop in ("Color", "SectionColor", "Transparency"):
             try:
                 set_editor_mode(prop, 2)
             except AttributeError:
@@ -166,7 +166,7 @@ class Material(_ArchMaterial):
         # Eventually execute...
         try:
             super().execute(obj)
-        except AttributeError as err:
+        except AttributeError:
             pass
 
     def add_texture(self, img_path):

@@ -321,9 +321,8 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
     objdir = os.path.dirname(obj.Document.FileName)
     subdoc_path = os.path.normpath(os.path.join(objdir, obj.sourceFile))
 
-    subdoc = exec_in_mainthread(open_subdoc, (subdoc_path,))
 
-    if not subdoc:
+    if not (subdoc := exec_in_mainthread(open_subdoc, (subdoc_path,))):
         warn(
             "Object",
             name,
@@ -861,10 +860,9 @@ def _get_shapecolor(obj, transparency_boost, default_color=None):
     """Get shape color (including transparency) from an object."""
     default_color = default_color or WHITE
 
-    vobj = obj.ViewObject
 
     # Is there a view object? (console mode, for instance)
-    if vobj is None:
+    if (vobj := obj.ViewObject) is None:
         return default_color
 
     # Overridden color for faces?
@@ -910,7 +908,8 @@ def _needs_uvmap(material):
         return proxy.has_textures() or proxy.force_uvmap()
     except AttributeError:
         App.Console.PrintMessage(
-            f"[Render][Objstrings] Material {proxy} is not a Render Material and no texture will be applied\n"
+            f"[Render][Objstrings] Material {proxy} is not a Render Material "
+            "and no texture will be applied\n"
         )
         return False
 
