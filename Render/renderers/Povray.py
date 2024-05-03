@@ -81,8 +81,7 @@ def write_mesh(name, mesh, material, **kwargs):
     material = _write_material(name, materialvalues)
 
     # Textures
-    textures = materialvalues.write_textures()
-    if textures:
+    if (textures := materialvalues.write_textures()):
         textures = f"// Textures\n{textures}"
 
     # Get mesh file
@@ -839,7 +838,7 @@ def _write_texref(**kwargs):
 def _safe_filepath(filepath):
     """Replaces antislashes by double antislashes where required.
 
-    Avoid unexpected interpretation of \ in pathes as escape sequence.
+    Avoid unexpected interpretation of \\ in pathes as escape sequence.
     """
     return filepath.replace("\\", "\\\\")
 
@@ -909,12 +908,10 @@ def render(
 
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
 
-    prefix = params.GetString("Prefix", "")
-    if prefix:
+    if (prefix := params.GetString("Prefix", "")):
         prefix += " "
 
-    rpath = params.GetString("PovRayPath", "")
-    if not rpath:
+    if not (rpath:= params.GetString("PovRayPath", "")):
         App.Console.PrintError(
             "Unable to locate renderer executable. "
             "Please set the correct path in "
@@ -924,8 +921,7 @@ def render(
     rpath = enclose_rpath(rpath)
 
     # Prepare command line parameters
-    args = params.GetString("PovRayParameters", "")
-    if args:
+    if (args := params.GetString("PovRayParameters", "")):
         args += " "
     if "+W" in args:
         args = re.sub(r"\+W[0-9]+", f"+W{width}", args)
