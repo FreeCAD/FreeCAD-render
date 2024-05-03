@@ -1185,8 +1185,7 @@ class RenderMeshBase:
         Returns a list of sets of facet indices (adjacency list).
         Single process version.
         """
-        debug_flag = PARAMS.GetBool("Debug")
-        if debug_flag:
+        if (debug_flag := PARAMS.GetBool("Debug")):
             print()
             print(f"compute adjacency lists (sp) - {self.count_facets} facets")
             tm0 = time.time()
@@ -1380,6 +1379,7 @@ class RenderMeshBase:
 
     def compute_tspaces(self):
         """Compute tangent spaces."""
+        # TODO Refactor/lint
         # Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
         # Terathon Software 3D Graphics Library, 2001.
         # http://www.terathon.com/code/tangent.html
