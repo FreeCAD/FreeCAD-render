@@ -941,6 +941,33 @@ class RenderTextureBaker:
         """
         # source/MaterialXRender/TextureBaker.inl#L485
 
+        def get_shader_nodes(material_node):
+            """Get shader nodes from material node."""
+            shader_node_type_strings = [
+                mx.SURFACE_SHADER_TYPE_STRING,
+                mx.DISPLACEMENT_SHADER_TYPE_STRING,
+                mx.VOLUME_SHADER_TYPE_STRING,
+            ]
+            shader_nodes_it = it.chain.from_iterable(
+                mx.getShaderNodes(material_node, ts)
+                for ts in shader_node_type_strings
+            )
+            return tuple(shader_nodes_it)
+
+        def setup_color_management_system(context):
+            """Set up color management system for generator."""
+            target = self._generator.getTarget()
+            cms = mx_gen_shader.DefaultColorManagementSystem.create(target)
+            cms.loadLibrary(doc)
+            context.registerSourceCodeSearchPath(search_path)
+            self._generator.setColorManagementSystem(cms)
+
+        def setup_string_resolver():
+            resolver = doc.createStringResolver()
+            for substitution in self.filename_substitutions:
+                resolver.setFilenameSubstitution(*substitution)
+            return resolver
+
         self._print(f"Baking material: {material_path}")
 
         # Set up generator context for material
@@ -955,44 +982,29 @@ class RenderTextureBaker:
         # If we're generating Vulkan-compliant GLSL then set the binding
         # context (generateshader.py)
         if isinstance(self._generator, mx_gen_glsl.VkShaderGenerator):
-            binding_context = mx_gen_glsl.GlslResourceBindingContext.create(
-                0, 0
+            context.pushUserData(
+                "udbinding",
+                mx_gen_glsl.GlslResourceBindingContext.create(0, 0)
             )
-            context.pushUserData("udbinding", binding_context)
 
         # Color management
-        cms = mx_gen_shader.DefaultColorManagementSystem.create(
-            self._generator.getTarget()
-        )
-        cms.loadLibrary(doc)
-        context.registerSourceCodeSearchPath(search_path)
-        self._generator.setColorManagementSystem(cms)
+        setup_color_management_system(context)
 
         # Compute the material tag set
         if not (material_tags := udim_set.copy()):
             material_tags.append(self.EMPTY_STRING)
 
-        elem = doc.getDescendant(material_path)
-        if not elem or not elem.isA(mx.Node):
+        # Get material node
+        material_node = doc.getDescendant(material_path)
+        if not material_node or not material_node.isA(mx.Node):
             return None, ""
-        material_node = elem
 
         # Get shader nodes
-        shader_node_type_strings = [
-            mx.SURFACE_SHADER_TYPE_STRING,
-            mx.DISPLACEMENT_SHADER_TYPE_STRING,
-            mx.VOLUME_SHADER_TYPE_STRING,
-        ]
-        shader_nodes_it = it.chain.from_iterable(
-            mx.getShaderNodes(material_node, ts)
-            for ts in shader_node_type_strings
-        )
-        if not (shader_nodes := tuple(shader_nodes_it)):
+        if not (shader_nodes := get_shader_nodes(material_node)):
             return None, ""
 
-        resolver = doc.createStringResolver()
-        for filename, substitute in self.filename_substitutions:
-            resolver.setFilenameSubstitution(filename, substitute)
+        # Create resolver
+        resolver = setup_string_resolver()
 
         # Iterate over shader nodes
         for shader_node in shader_nodes:
@@ -1001,10 +1013,7 @@ class RenderTextureBaker:
                 # Always clear any cached implementations before generation
                 # WARNING: Not available in Python
                 # context.clearNodeImplementations()
-                hw_shader = self._generator.generate(
-                    "Shader", shader_node, context
-                )
-                if not hw_shader:
+                if not self._generator.generate("Shader", shader_node, context):
                     continue
                 self._renderer.getImageHandler().setSearchPath(search_path)
                 resolver.setUdimString(tag)
