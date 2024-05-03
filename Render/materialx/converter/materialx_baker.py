@@ -799,6 +799,56 @@ class RenderTextureBaker:
         self, shaders: Sequence[mx_core.Node], udim_set: List[str]
     ) -> mx.Document:
         """Generate a new document from given shaders."""
+
+        def create_baked_node_graph():
+            """Create baked node graph and geometry info."""
+            texdoc = self._baked_texture_doc
+
+            # Node graph
+            if self._baked_image_map:
+                graph_name = texdoc.createValidChildName(self._baked_graph_name)
+                baked_node_graph = texdoc.addNodeGraph(graph_name)
+                baked_node_graph.setColorSpace(self._colorspace)
+                self._baked_graph_name = graph_name
+            else:
+                baked_node_graph = None
+
+            # Geometry info
+            geom_name = texdoc.createValidChildName(self._baked_geom_info_name)
+            baked_geom = texdoc.addGeomInfo(geom_name) if udim_set else None
+            if baked_geom:
+                baked_geom.setGeomPropValue(
+                    mx.UDIM_SET_PROPERTY, udim_set, "stringarray"
+                )
+            self._baked_geom_info_name = geom_name
+
+            return baked_node_graph
+
+        def write_uniform_images():
+            """Generate uniform images and write them to disk."""
+            uniform_image = mx_render.createUniformImage(
+                4, 4, 4, self._base_type, mx.Color4()
+            )
+            baked_uniform_images_it = (
+                baked_image
+                for image_list in self._baked_image_map.values()
+                for baked_image in image_list
+                if baked_image.is_uniform
+            )
+            for baked_uniform_image in baked_uniform_images_it:
+                uniform_image.setUniformColor(baked_uniform_image.uniform_color)
+                self._write_baked_image(baked_uniform_image, uniform_image)
+
+        def is_uniform_at_default_value(output):
+            """Check whether an output is uniform and at default value."""
+            try:
+                # Search for constant and test its defaultness
+                return self._baked_constant_map[output.getNamePath()].is_default
+            except (AttributeError, KeyError):
+                # No such constant...
+                return False
+
+        #' _generate_new_document_from_shaders' starts here
         if not shaders:
             return None
 
@@ -811,31 +861,7 @@ class RenderTextureBaker:
             )
 
         # Create node graph and geometry info
-        if self._baked_image_map:
-            self._baked_graph_name = (
-                self._baked_texture_doc.createValidChildName(
-                    self._baked_graph_name
-                )
-            )
-            baked_node_graph = self._baked_texture_doc.addNodeGraph(
-                self._baked_graph_name
-            )
-            baked_node_graph.setColorSpace(self._colorspace)
-
-        self._baked_geom_info_name = (
-            self._baked_texture_doc.createValidChildName(
-                self._baked_geom_info_name
-            )
-        )
-        baked_geom = (
-            self._baked_texture_doc.addGeomInfo(self._baked_geom_info_name)
-            if udim_set
-            else None
-        )
-        if baked_geom:
-            baked_geom.setGeomPropValue(
-                mx.UDIM_SET_PROPERTY, udim_set, "stringarray"
-            )
+        baked_node_graph = create_baked_node_graph()
 
         # Create baked shader nodes
         baked_shaders = [
@@ -853,33 +879,23 @@ class RenderTextureBaker:
             self._create_baked_material_node(baked_shaders, shaders)
 
         # Create and connect inputs on the new shader nodes
-        iterator = (
-            (shader, baked_shader, source_input)
+        for shader, baked_shader, source_input, output in (
+            (shader, baked_shader, source_input, source_input.getConnectedOutput())
             for shader, baked_shader in zip(shaders, baked_shaders)
             for source_input in shader.getChildren()
             if source_input.isA(mx.ValueElement)
-        )
-        for shader, baked_shader, source_input in iterator:
-            # Get the connected output to source_input
-            output = source_input.getConnectedOutput()
+            ):
+            # NB: 'output' is the connected output to source_input
 
             # Skip uniform outputs at their default values
-            try:
-                # Search for constant
-                constant = self._baked_constant_map[output.getNamePath()]
-            except (AttributeError, KeyError):
-                # No such constant...
-                pass
-            else:
-                # Skip if default
-                if constant.is_default:
-                    continue
+            if is_uniform_at_default_value(output):
+                continue
 
             # Find or create the baked input.
-            source_name = source_input.getName()
-            source_type = source_input.getType()
-            if not (baked_input := baked_shader.getInput(source_name)):
-                baked_input = baked_shader.addInput(source_name, source_type)
+            baked_input = (
+                baked_shader.getInput(source_name := source_input.getName())
+                or baked_shader.addInput(source_name, source_input.getType())
+            )
 
             # Assign image or constant data to the baked input
             if output:
@@ -902,18 +918,7 @@ class RenderTextureBaker:
                 baked_input.copyContentFrom(source_input)
 
         # Generate uniform images and write to disk
-        uniform_image = mx_render.createUniformImage(
-            4, 4, 4, self._base_type, mx.Color4()
-        )
-        baked_uniform_images_it = (
-            baked_image
-            for image_list in self._baked_image_map.values()
-            for baked_image in image_list
-            if baked_image.is_uniform
-        )
-        for baked_uniform_image in baked_uniform_images_it:
-            uniform_image.setUniformColor(baked_uniform_image.uniform_color)
-            self._write_baked_image(baked_uniform_image, uniform_image)
+        write_uniform_images()
 
         # Clear cached information after each material bake
         self._baked_image_map.clear()
