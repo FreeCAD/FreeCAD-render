@@ -195,15 +195,6 @@ def write_pointlight(name, pos, color, power, **kwargs):
     return snippet
 
 
-# TODO Move
-def _write_tfm(placement):
-    """Translate a FreeCAD placement into a Cycles transformation (string)."""
-    mat = placement.Matrix.A
-    return " ".join(
-        [str(_rnd(i)) for i in it.chain(mat[0:4], mat[4:8], mat[8:12])]
-    )
-
-
 def write_arealight(
     name, pos, size_u, size_v, color, power, transparent, **kwargs
 ):
@@ -958,6 +949,14 @@ def _dir2plc(direction):
     return App.Placement(App.Matrix(x_out, y_out, z_out))
 
 
+def _write_tfm(placement):
+    """Translate a FreeCAD placement into a Cycles transformation (string)."""
+    mat = placement.Matrix.A
+    return " ".join(
+        [str(_rnd(i)) for i in it.chain(mat[0:4], mat[4:8], mat[8:12])]
+    )
+
+
 # ===========================================================================
 #                              Test function
 # ===========================================================================
@@ -1026,7 +1025,7 @@ def render(
         tree = et.parse(input_file)
         root = tree.getroot()
         integrator = root.find("integrator")
-        if integrator is None:
+        if (integrator := root.find("integrator")) is None:
             integrator = et.Element("integrator")
             root.append(integrator)
         integrator.set("use_denoise", "true")
@@ -1034,8 +1033,7 @@ def render(
 
     # Prepare command line arguments
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = params.GetString("Prefix", "")
-    if prefix:
+    if (prefix:= params.GetString("Prefix", "")):
         prefix += " "
     rpath = params.GetString("CyclesPath", "")
     args = params.GetString("CyclesParameters", "")
