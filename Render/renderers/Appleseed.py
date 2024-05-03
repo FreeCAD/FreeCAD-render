@@ -781,8 +781,7 @@ def _snippet_material(name, matval):
             </material>"""
 
     # Compute texture scale
-    texobjects = matval.texobjects
-    if texobjects:
+    if (texobjects := matval.texobjects):
         tex = next(iter(texobjects.values()))  # We take the 1st texture...
         scale = float(tex.scale) if float(tex.scale) != 0 else 1.0
     else:
@@ -1253,6 +1252,16 @@ def test_cmdline(batch):
 #                              Render function
 # ===========================================================================
 
+# Blocks to move (see render functions...)
+MOVES = (
+    ("camera", "scene", False, None),
+    ("environment_edf", "scene", False, None),
+    ("environment_shader", "scene", False, None),
+    ("environment", "scene", True, None),
+    ("scene_texture", "scene", False, "texture"),
+    ("scene_texture_instance", "scene", False, "texture_instance"),
+    ("search_path", "search_paths", True, None),
+)
 
 def render(
     project,
@@ -1345,8 +1354,7 @@ def render(
 
     def define_default_camera(template):
         """Define a default camera in the template file."""
-        res = re.findall(r"<camera name=\"(.*?)\".*?>", template)
-        if res:
+        if (res := re.findall(r"<camera name=\"(.*?)\".*?>", template)):
             default_cam = res[-1]  # Take last match
             snippet = '<parameter name="camera" value="{}" />'
             pattern = (
@@ -1417,16 +1425,7 @@ def render(
     # Move blocks in order to gather cameras, environment_edf,
     # environment_shader, environment elements
     # in scene block (keeping only one environment element)
-    moves = (
-        ("camera", "scene", False, None),
-        ("environment_edf", "scene", False, None),
-        ("environment_shader", "scene", False, None),
-        ("environment", "scene", True, None),
-        ("scene_texture", "scene", False, "texture"),
-        ("scene_texture_instance", "scene", False, "texture_instance"),
-        ("search_path", "search_paths", True, None),
-    )
-    for move in moves:
+    for move in MOVES:
         template = move_elements(template, *move)
 
     # Set image size
@@ -1488,8 +1487,7 @@ def render(
     else:
         # Console
         rpath = params.GetString("AppleseedCliPath", "")
-        args = params.GetString("AppleseedParameters", "")
-        if args:
+        if (args := params.GetString("AppleseedParameters", "")):
             args += " "
         args += f"""--output "{output_file}" """
         if spp:
