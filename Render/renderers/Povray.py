@@ -81,7 +81,7 @@ def write_mesh(name, mesh, material, **kwargs):
     material = _write_material(name, materialvalues)
 
     # Textures
-    if (textures := materialvalues.write_textures()):
+    if textures := materialvalues.write_textures():
         textures = f"// Textures\n{textures}"
 
     # Get mesh file
@@ -908,10 +908,10 @@ def render(
 
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
 
-    if (prefix := params.GetString("Prefix", "")):
+    if prefix := params.GetString("Prefix", ""):
         prefix += " "
 
-    if not (rpath:= params.GetString("PovRayPath", "")):
+    if not (rpath := params.GetString("PovRayPath", "")):
         App.Console.PrintError(
             "Unable to locate renderer executable. "
             "Please set the correct path in "
@@ -921,7 +921,7 @@ def render(
     rpath = enclose_rpath(rpath)
 
     # Prepare command line parameters
-    if (args := params.GetString("PovRayParameters", "")):
+    if args := params.GetString("PovRayParameters", ""):
         args += " "
     if "+W" in args:
         args = re.sub(r"\+W[0-9]+", f"+W{width}", args)

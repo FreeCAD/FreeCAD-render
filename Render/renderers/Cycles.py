@@ -1033,7 +1033,7 @@ def render(
 
     # Prepare command line arguments
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    if (prefix:= params.GetString("Prefix", "")):
+    if prefix := params.GetString("Prefix", ""):
         prefix += " "
     rpath = params.GetString("CyclesPath", "")
     args = params.GetString("CyclesParameters", "")

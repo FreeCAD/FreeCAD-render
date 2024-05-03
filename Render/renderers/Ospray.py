@@ -952,7 +952,6 @@ def _write_texref(**kwargs):
     objname = kwargs["objname"]
     matval = kwargs["matval"]
 
-
     # Exclusions
     if (field := _FIELD_MAPPING.get((shadertype, propname), propname)) is None:
         msg = (
@@ -1090,7 +1089,7 @@ def render(
 
     # Prepare command line arguments
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    if (prefix := params.GetString("Prefix", "")):
+    if prefix := params.GetString("Prefix", ""):
         prefix += " "
     rpath = params.GetString("OspPath", "")
 

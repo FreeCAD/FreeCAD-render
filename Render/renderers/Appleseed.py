@@ -781,7 +781,7 @@ def _snippet_material(name, matval):
             </material>"""
 
     # Compute texture scale
-    if (texobjects := matval.texobjects):
+    if texobjects := matval.texobjects:
         tex = next(iter(texobjects.values()))  # We take the 1st texture...
         scale = float(tex.scale) if float(tex.scale) != 0 else 1.0
     else:
@@ -1263,6 +1263,7 @@ MOVES = (
     ("search_path", "search_paths", True, None),
 )
 
+
 def render(
     project,
     prefix,
@@ -1354,7 +1355,7 @@ def render(
 
     def define_default_camera(template):
         """Define a default camera in the template file."""
-        if (res := re.findall(r"<camera name=\"(.*?)\".*?>", template)):
+        if res := re.findall(r"<camera name=\"(.*?)\".*?>", template):
             default_cam = res[-1]  # Take last match
             snippet = '<parameter name="camera" value="{}" />'
             pattern = (
@@ -1487,7 +1488,7 @@ def render(
     else:
         # Console
         rpath = params.GetString("AppleseedCliPath", "")
-        if (args := params.GetString("AppleseedParameters", "")):
+        if args := params.GetString("AppleseedParameters", ""):
             args += " "
         args += f"""--output "{output_file}" """
         if spp:
