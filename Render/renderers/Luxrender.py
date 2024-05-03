@@ -231,16 +231,14 @@ def render(project, prefix, external, output, width, height):
     with open(project.PageResult, "r", encoding="utf-8") as f:
         template = f.read()
 
-    res = re.findall("integer xresolution", template)
-    if res:
+    if (res:= re.findall("integer xresolution", template)):
         template = re.sub(
             r'"integer xresolution".*?\[.*?\]',
             f'"integer xresolution" [{width}]',
             template,
         )
 
-    res = re.findall("integer yresolution", template)
-    if res:
+    if (res := re.findall("integer yresolution", template)):
         template = re.sub(
             r'"integer yresolution".*?\[.*?\]',
             f'"integer yresolution" [{height}]',
