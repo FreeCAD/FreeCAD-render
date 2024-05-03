@@ -33,7 +33,8 @@
 # - Refactoring some parts of the code to make it more pythonic or simply more
 #   readable in Python
 # - Adaptating to FreeCAD Render Workbench needs, in particular giving ability
-#   to handle ALL shaders of a material (incl. displacement)
+#   to handle ALL shaders of a material (incl. displacement) and adding progress
+#   reporting feature.
 
 
 """This module provides features to import MaterialX materials in Render WB."""
@@ -693,48 +694,54 @@ class RenderTextureBaker:
         filename_template_map: Dict[str, str],
     ) -> None:
         """Connect a baked input to its baked image node."""
-        # Aliases
-        output_id = output.getNamePath()
-        source_name = source_input.getName()
-        source_type = source_input.getType()
 
-        # Store a constant value for uniform outputs
-        if self._optimize_constants:
+        def handle_constant(output):
+            """Handle constant color.
+
+            If output is constant, optimize it and return True.
+            Otherwise, pass and return False.
+            """
+            output_id = output.getNamePath()
             try:
                 uniform_color = self._baked_constant_map[output_id].color
             except KeyError:
                 # Output not in constant map
-                pass
-            else:
-                uniform_color_string = self._get_value_string_from_color(
-                    uniform_color, baked_input.getType()
-                )
-                baked_input.setValueString(uniform_color_string)
-                if baked_input.getType() in ["color3", "color4"]:
-                    baked_input.setColorSpace(self._colorspace)
-                return
+                return False
 
-        if not self._baked_image_map:
-            return
+            uniform_color_string = self._get_value_string_from_color(
+                uniform_color, baked_input.getType()
+            )
+            baked_input.setValueString(uniform_color_string)
+            if baked_input.getType() in ["color3", "color4"]:
+                baked_input.setColorSpace(self._colorspace)
+            return True
 
-        # Add the image node
-        baked_image = baked_node_graph.addNode(
-            "image",
-            source_name + self.BAKED_POSTFIX,
-            source_type,
-        )
-        input_ = baked_image.addInput("file", "filename")
-        filename = self._generate_texture_filename(filename_template_map)
-        input_.setValueString(filename.asString())
+        def add_image_node(source_name, source_type):
+            """Add the image node to the node graph."""
+            baked_image = baked_node_graph.addNode(
+                "image",
+                source_name + self.BAKED_POSTFIX,
+                source_type,
+            )
+            input_ = baked_image.addInput("file", "filename")
+            filename = self._generate_texture_filename(filename_template_map)
+            input_.setValueString(filename.asString())
+            return baked_image
 
-        # Reconstruct any world-space nodes that were excluded
-        # from the baking process
-        try:
-            orig_world_space_node = self._world_space_nodes[source_name]
-            ows_node_category = orig_world_space_node.getCategory()
-        except (KeyError, AttributeError):
-            pass
-        else:
+        def rebuild_world_space_node(source_name, source_type, baked_image):
+            """Reconstruct world space node, if any.
+
+            Find the world space node name source_name, if any and reconstruct
+            it with source_name, source_type, and connect baked image to in
+            slot.
+            """
+            try:
+                orig_world_space_node = self._world_space_nodes[source_name]
+                ows_node_category = orig_world_space_node.getCategory()
+            except (KeyError, AttributeError):
+                # No excluded node
+                return None
+
             new_world_space_node = baked_node_graph.addNode(
                 ows_node_category,
                 f"{source_name}{self.BAKED_POSTFIX}_map",
@@ -743,14 +750,41 @@ class RenderTextureBaker:
             new_world_space_node.copyContentFrom(orig_world_space_node)
             if map_input := new_world_space_node.getInput("in"):
                 map_input.setNodeName(baked_image.getName())
-            baked_image = new_world_space_node
+            return new_world_space_node
+
+        def add_output(source_name, source_type, baked_image):
+            """Add output to the graph."""
+            baked_output = baked_node_graph.addOutput(
+                f"{source_name}_output", source_type
+            )
+            baked_output.setConnectedNode(baked_image)
+            baked_input.setConnectedOutput(baked_output)
+
+        # '_connect_baked_input' starts here
+        # Aliases
+        source_name = source_input.getName()
+        source_type = source_input.getType()
+
+        # If uniform, optimise and return
+        if handle_constant(output):
+            return
+
+        # Check whether there are baked images
+        if not self._baked_image_map:
+            return
+
+        # Add the image node
+        baked_image = add_image_node(source_name, source_type)
+
+        # Reconstruct any world-space node that was excluded
+        # from the baking process
+        baked_image = (
+            rebuild_world_space_node(source_name, source_type, baked_image)
+            or baked_image
+        )
 
         # Add the graph output
-        baked_output = baked_node_graph.addOutput(
-            f"{source_name}_output", source_type
-        )
-        baked_output.setConnectedNode(baked_image)
-        baked_input.setConnectedOutput(baked_output)
+        add_output(source_name, source_type, baked_image)
 
     def _create_baked_material_node(
         self,
