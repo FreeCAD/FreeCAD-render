@@ -207,8 +207,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
     debug("Starting material computation")
 
     # Try renderer Passthrough
-    common_keys = passthrough_keys(renderer) & mat.keys()
-    if common_keys:
+    if (common_keys := passthrough_keys(renderer) & mat.keys()):
         lines = tuple(mat[k] for k in sorted(common_keys))
         debug("Found valid Passthrough - returning")
         return RenderMaterial.build_passthrough(
@@ -216,8 +215,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
         )
 
     # Try standard materials
-    shadertype = mat.get("Render.Type", None)
-    if shadertype:
+    if (shadertype := mat.get("Render.Type", None)):
         try:
             params = STD_MATERIALS_PARAMETERS[shadertype]
         except KeyError:
