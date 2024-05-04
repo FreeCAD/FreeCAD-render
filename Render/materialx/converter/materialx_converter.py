@@ -20,11 +20,11 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module converts MaterialX materials to FreeCAD Render material.
+"""This module converts MaterialX material into FreeCAD material card.
 
 This module is intended to run as a script. It takes a MaterialX filename
-and outputs a FCMat.
-This module does not depend on FreeCAD in any way.
+and outputs a FCMat file.
+This module should not depend on FreeCAD libs in any way.
 The aim of this module is to be run in a virtual environment where MaterialX
 is installed. Using a virtual environment allows to install MaterialX with
 pip even if system Python modules are externally managed.
@@ -478,71 +478,9 @@ class MaterialXConverter:
         self._state.baked = mxdoc
 
     def _write_fcmat(self):
-        """Make a RenderMaterial from a MaterialX baked material."""
+        """Make a FCMat file from a MaterialX baked material."""
 
-        def get_images(mxdoc):
-            """Get images from MaterialX doc."""
-            node_graphs = mxdoc.getNodeGraphs()
-            assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
-            try:
-                node_graph = node_graphs[0]
-            except IndexError:
-                images = {}
-                outputs = {}
-            else:
-                images = {
-                    node.getName(): node.getInputValue("file")
-                    for node in node_graph.getNodes()
-                    if node.getCategory() == "image"
-                }
-                outputs = {
-                    node.getName(): node.getNodeName()
-                    for node in node_graph.getOutputs()
-                }
-            return images, outputs
-
-        def get_fields(textures):
-            """Get FCMat fields corresponding to mxdoc."""
-            matdict = {}
-            render_params = (
-                (param, param.getName())
-                for node in mxdoc.getNodes()
-                for param in node.getInputs()
-                if node.getCategory() in ("render_pbr", "render_disp")
-            )
-            for param, name in render_params:
-                if name == "Displacement" and self._disp2bump:
-                    name = "Bump"  # Substitute bump to displacement
-                if param.hasOutputString():
-                    # Texture
-                    output = param.getOutputString()
-                    index = textures[outputs[output]]
-                    key = f"Render.Disney.{name}"
-                    if name not in ("Normal", "Bump"):
-                        matdict[key] = f"Texture('{TEXNAME}', {index})"
-                    else:
-                        matdict[key] = f"Texture('{TEXNAME}', {index}, 1.0)"
-                elif name:
-                    # Value
-                    key = f"Render.Disney.{name}"
-                    matdict[key] = param.getValueString()
-                else:
-                    msg = f"Unhandled param: '{name}'"
-                    warn(msg)
-            return matdict
-
-        def write_fcmat(matdict):
-            """Write material to disk, as a FCMat file."""
-            config = configparser.ConfigParser()
-            config.optionxform = str  # Case sensitive
-            config["General"] = {"Name": mxname}
-            config["Render"] = matdict
-            with open(outfilename, "w", encoding="utf-8") as out:
-                config.write(out)
-
-        # '_write_fcmat' starts here
         assert self._state.baked
-
         mxdoc = self._state.baked
 
         # Get PBR material
@@ -555,28 +493,92 @@ class MaterialXConverter:
         log(f"Creating material card: {outfilename}")
 
         # Get images
-        images, outputs = get_images(mxdoc)
+        images, outputs = _get_images_from_mxdoc(mxdoc)
 
         # Reminder: Material.Material is not updatable in-place (FreeCAD
         # bug), thus we have to copy/replace
         matdict = {}
         matdict["Render.Type"] = "Disney"
 
-        # Handle textures, if necessary
-        textures = {}
-        for index, item in enumerate(images.items()):
-            name, img = item
-            matdict[f"Render.Textures.{TEXNAME}.Images.{index}"] = img
-            textures[name] = index
-
         # Fill fields of material dictionary
-        matdict.update(get_fields(textures))
+        matdict.update(_get_fcmat_fields(mxdoc, self._disp2bump, outputs, images))
 
         # Write FCMat
-        write_fcmat(matdict)
+        _write_fcmat_to_disk(matdict, mxname, outfilename)
 
 
 # Helpers
+def _get_images_from_mxdoc(mxdoc):
+    """Get images from MaterialX document."""
+    node_graphs = mxdoc.getNodeGraphs()
+    assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
+    try:
+        node_graph = node_graphs[0]
+    except IndexError:
+        images = {}
+        outputs = {}
+    else:
+        images = {
+            node.getName(): node.getInputValue("file")
+            for node in node_graph.getNodes()
+            if node.getCategory() == "image"
+        }
+        outputs = {
+            node.getName(): node.getNodeName()
+            for node in node_graph.getOutputs()
+        }
+    return images, outputs
+
+
+def _get_fcmat_fields(mxdoc, disp2bump, outputs, images):
+    """Get FCMat fields from mxdoc."""
+    matdict = {}
+
+    # Handle textures, if necessary
+    textures = {}
+    for index, item in enumerate(images.items()):
+        name, img = item
+        matdict[f"Render.Textures.{TEXNAME}.Images.{index}"] = img
+        textures[name] = index
+
+    render_params = (
+        (param, param.getName())
+        for node in mxdoc.getNodes()
+        for param in node.getInputs()
+        if node.getCategory() in ("render_pbr", "render_disp")
+    )
+    for param, name in render_params:
+        if name == "Displacement" and disp2bump:
+            name = "Bump"  # Substitute bump to displacement
+        if param.hasOutputString():
+            # Texture
+            output = param.getOutputString()
+            index = textures[outputs[output]]
+            key = f"Render.Disney.{name}"
+            if name not in ("Normal", "Bump"):
+                matdict[key] = f"Texture('{TEXNAME}', {index})"
+            else:
+                matdict[key] = f"Texture('{TEXNAME}', {index}, 1.0)"
+        elif name:
+            # Value
+            key = f"Render.Disney.{name}"
+            matdict[key] = param.getValueString()
+        else:
+            msg = f"Unhandled param: '{name}'"
+            warn(msg)
+    return matdict
+
+
+def _write_fcmat_to_disk(matdict, name, outfilename):
+    """Write material to disk, as a FCMat file."""
+    config = configparser.ConfigParser()
+    config.optionxform = str  # Case sensitive
+    config["General"] = {"Name": name}
+    config["Render"] = matdict
+    with open(outfilename, "w", encoding="utf-8") as out:
+        config.write(out)
+
+
 def _set_progress(value, maximum):
     """Report progress."""
     msg = json.dumps({"value": value, "maximum": maximum})
