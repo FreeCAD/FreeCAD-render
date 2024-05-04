@@ -95,7 +95,6 @@ class MaterialXConverter:
     class _ConverterState:
         """The internal state of the converter, for run method."""
 
-        working_dir: str = ""  # Working directory
         mtlx_filename: str = ""  # Initial MaterialX file name
         search_path: mx.FileSearchPath = None
         mtlx_input_doc: mx.Document = None
@@ -115,23 +114,23 @@ class MaterialXConverter:
 
         Args:
             filename -- the name of the file to import
+            destdir -- destination directory, where to collect inputs and
+              deposit outputs
             progress_hook -- a hook to call to report progress (current, max)
             disp2bump -- a flag to set bump with displacement
         """
-        self._filename = filename
-        self._destdir = destdir
+        self._filename = str(filename)
+        self._destdir = str(destdir)
+        self._disp2bump = bool(disp2bump)
+        self._polyhaven_size = polyhaven_size
+
         self._baker_ready = threading.Event()
         self._request_halt = threading.Event()
-        self._disp2bump = disp2bump
-        self._polyhaven_size = polyhaven_size
 
         self._state = MaterialXConverter._ConverterState()
 
     def run(self):
         """Import a MaterialX archive as Render material."""
-        # Proceed with file
-        self._state.working_dir = self._destdir
-
         # Prepare
         self._unzip_files()
         self._compute_search_path()
@@ -163,8 +162,7 @@ class MaterialXConverter:
 
         This method also set self._mtlx_filename
         """
-        assert self._state.working_dir
-        working_dir = self._state.working_dir
+        working_dir = self._destdir
 
         if zipfile.is_zipfile(self._filename):
             if self._request_halt.is_set():
@@ -188,10 +186,9 @@ class MaterialXConverter:
 
     def _compute_search_path(self):
         """Compute search path for MaterialX."""
-        assert self._state.working_dir
         assert self._state.mtlx_filename
 
-        working_dir = self._state.working_dir
+        working_dir = self._destdir
         mtlx_filename = self._state.mtlx_filename
 
         search_path = mx.getDefaultDataSearchPath()
@@ -365,11 +362,10 @@ class MaterialXConverter:
         If a file is missing, search for another file with similar
         case-insensitive name.
         """
-        assert self._state.working_dir
         assert self._state.search_path
         assert self._state.translated
 
-        working_dir = self._state.working_dir
+        working_dir = self._destdir
         search_path = self._state.search_path
         mxdoc = self._state.translated
 
@@ -456,12 +452,11 @@ class MaterialXConverter:
 
     def _bake_materialx(self):
         """Bake MaterialX material."""
-        assert self._state.working_dir
         assert self._state.baker
         assert self._state.translated
         assert self._state.search_path
 
-        output_dir = self._state.working_dir
+        output_dir = self._destdir
         baker = self._state.baker
         mxdoc = self._state.translated
         search_path = self._state.search_path
