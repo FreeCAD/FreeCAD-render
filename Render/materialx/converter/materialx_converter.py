@@ -98,6 +98,7 @@ class MaterialXConverter:
         working_dir: str = ""  # Working directory
         mtlx_filename: str = ""  # Initial MaterialX file name
         search_path: mx.FileSearchPath = None
+        mtlx_input_doc: mx.Document = None
         substitutions: List[Tuple[str, str]] = None  # File substitutions
         translated: mx.Document = None  # Translated document
         baker: RenderTextureBaker = None  # Baker
@@ -135,7 +136,8 @@ class MaterialXConverter:
         self._unzip_files()
         self._compute_search_path()
 
-        # Translate, bake and convert to render material
+        # Read, translate, bake and convert to render material
+        self._read_materialx()
         self._translate_materialx()
         self._correct_polyhaven_size()
         self._compute_file_substitutions()
@@ -203,24 +205,16 @@ class MaterialXConverter:
 
         self._state.search_path = search_path
 
-    def _translate_materialx(self):
-        """Translate MaterialX from StandardSurface to RenderPBR.
-
-        Args:
-            matdir -- The directory where to find MaterialX files
-        """
+    def _read_materialx(self):
+        """Read materialx file to translate."""
         assert self._state.mtlx_filename
-        assert self._state.search_path
 
-        mtlx_filename = self._state.mtlx_filename
-        search_path = self._state.search_path
-
-        log("Translating material to Render format")
+        log("Reading MaterialX file")
 
         # Read doc
         mxdoc = mx.createDocument()
         try:
-            mx.readFromXmlFile(mxdoc, mtlx_filename)
+            mx.readFromXmlFile(mxdoc, self._state.mtlx_filename)
         except mx_format.ExceptionParseError as err:
             raise ConverterError(3) from err
 
@@ -292,6 +286,19 @@ class MaterialXConverter:
                 shader_input.setOutputString(newoutputname)
                 shader_input.setNodeGraphString("RENDER_NG")
                 shader_input.removeAttribute("nodename")
+
+        # Update state
+        self._state.mtlx_input_doc = mxdoc
+
+    def _translate_materialx(self):
+        """Translate MaterialX from StandardSurface to RenderPBR."""
+        log("Translating material to Render format")
+
+        assert self._state.search_path
+        assert self._state.mtlx_input_doc
+
+        search_path = self._state.search_path
+        mxdoc = self._state.mtlx_input_doc
 
         # Import libraries
         mxlib = mx.createDocument()
