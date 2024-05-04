@@ -638,24 +638,40 @@ class RenderTextureBaker:
         if not shader:
             return
 
-        # Check for fully uniform outputs
-        for first, second in self._baked_image_map.items():
-            output_is_uniform = True
-            for baked in second:
-                if (
-                    not baked.is_uniform
-                    or baked.uniform_color != second[0].uniform_color
-                ):
-                    output_is_uniform = False
-                    continue
-                if output_is_uniform:
-                    baked_constant = self.BakedConstant(
-                        color=second[0].uniform_color
-                    )
-                    self._baked_constant_map[first] = baked_constant
+        def optimize_fully_uniform_outputs():
+            """Look for fully uniform outputs and update self accordingly.
 
-        # Check for uniform outputs at their default values
-        if shader_nodedef := shader.getNodeDef():
+            Look in self._baked_image_map and update
+            self._baked_constant_map accordingly.
+            Criteria to be optimizable: all images of an output_id
+            have to be uniform and of same color of first image for output_id.
+            """
+            for output_id, baked_images in self._baked_image_map.items():
+                output_is_uniform = True
+                base_color = baked_images[0].uniform_color
+                for baked in baked_images:
+                    if (
+                        not baked.is_uniform
+                        or baked.uniform_color != base_color
+                    ):
+                        output_is_uniform = False
+                        continue
+                    if output_is_uniform:
+                        baked_constant = self.BakedConstant(color=base_color)
+                        self._baked_constant_map[output_id] = baked_constant
+
+        def optimize_uniform_outputs_at_default():
+            if not (shader_nodedef := shader.getNodeDef()):
+                return
+
+            # Iterate over shader's inputs meeting the following crits:
+            #   shader input has got a connected output
+            #   connected ouput is in _baked_constant_map
+            #   shader input is in shader's node definition
+            #
+            # For the filtered inputs, if the baked constant (from the
+            # _bake_constant_map) and the shader input color are the same,
+            # update _bake_constant_map accordingly
             iterator = (
                 (shader_input, self._baked_constant_map[opath], input_)
                 for shader_input in shader.getInputs()
@@ -674,17 +690,33 @@ class RenderTextureBaker:
                     else self.EMPTY_STRING
                 )
                 if uniform_color_string == default_value_string:
+                    # Update _bake_constant_map
                     baked_constant.is_default = True
 
-        # Remove baked images that have been replaced by constant values
-        for first2, second2 in self._baked_constant_map.items():
-            if (
-                second2.is_default
-                or self._optimize_constants
-                or self._average_images
-            ) and first2 in self._baked_image_map:
-                del self._baked_image_map[first2]
+        def clean_baked_image_map():
+            """Remove baked image that have been replaced by constant."""
+            optimization_required = self._optimize_constants or self._average_images
+            iterator = (
+                output_id
+                for output_id, constant in self._baked_constant_map.items()
+                if (constant.is_default or optimization_required)
+                and output_id in self._baked_image_map
+            )
+            for output_id in iterator:
+                del self._baked_image_map[output_id]
 
+        # '_optimize_baked_textures' starts here
+
+        # Check for fully uniform outputs
+        optimize_fully_uniform_outputs()
+
+        # Check for uniform outputs at their default values
+        optimize_uniform_outputs_at_default()
+
+        # Remove baked images that have been replaced by constant values
+        clean_baked_image_map()
+
+    # pylint: disable=too-many-arguments
     def _connect_baked_input(
         self,
         baked_input: mx.Input,
