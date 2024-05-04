@@ -56,8 +56,6 @@ else:
 
 from materialx_baker import RenderTextureBaker
 
-from materialx_utils import log, warn, error
-
 MATERIALXDIR = os.path.dirname(__file__)
 TEXNAME = "Texture"  # Texture name
 
@@ -607,6 +605,36 @@ def _get_destdir(args):
     if not destdir.exists() or not destdir.is_dir():
         raise ConverterError(8)
     return destdir
+
+
+@dataclass
+class TermColors:
+    """Ascii sequences for terminal colors."""
+
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
+def log(msg):
+    """Emit log message during MaterialX processing."""
+    print(msg)
+
+
+def warn(msg):
+    """Emit warning during MaterialX processing."""
+    print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
+
+
+def error(msg):
+    """Emit error message during MaterialX processing."""
+    print(TermColors.FAIL + msg + TermColors.ENDC, file=sys.stderr)
 
 
 # Main
