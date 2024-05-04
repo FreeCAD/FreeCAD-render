@@ -694,8 +694,7 @@ def render(
 
     # Build command and launch
     params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
-    prefix = params.GetString("Prefix", "")
-    if prefix:
+    if prefix := params.GetString("Prefix", ""):
         prefix += " "
     rpath = params.GetString("PbrtPath", "")
     args = params.GetString("PbrtParameters", "")

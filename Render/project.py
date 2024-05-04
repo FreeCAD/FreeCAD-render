@@ -399,8 +399,7 @@ class Project(FeatureBase):
             Output file path
         """
         # Create memcheck object (debug)
-        memcheck_flag = PARAMS.GetBool("Memcheck")
-        if memcheck_flag:
+        if memcheck_flag := PARAMS.GetBool("Memcheck"):
             tracemalloc.start()
             snapshot1 = tracemalloc.take_snapshot()
 
@@ -426,8 +425,7 @@ class Project(FeatureBase):
             os.mkdir(object_directory)
 
         # Clear report view (if required)
-        clear_report = PARAMS.GetBool("ClearReport")
-        if clear_report:
+        if PARAMS.GetBool("ClearReport"):
             clear_report_view()
 
         # Get a handle to renderer module
@@ -490,8 +488,7 @@ class Project(FeatureBase):
         set_last_cmd(cmd)
 
         # Dry run?
-        dryrun = PARAMS.GetBool("DryRun")
-        if dryrun:
+        if PARAMS.GetBool("DryRun"):
             # "Dry run": Print command and return without running renderer
             # Debug purpose only
             App.Console.PrintWarning("*** DRY RUN ***\n")
@@ -602,8 +599,7 @@ class Project(FeatureBase):
             "Params", "prefix output width height batch spp denoise"
         )
 
-        prefix = PARAMS.GetString("Prefix", "")
-        if prefix:
+        if prefix := PARAMS.GetString("Prefix", ""):
             prefix += " "
 
         try:
@@ -737,8 +733,7 @@ class ViewProviderProject(ViewProviderBase):
                 msg,
                 QMessageBox.Yes | QMessageBox.No,
             )
-            usr_confirm = box.exec()
-            if usr_confirm == QMessageBox.Yes:
+            if box.exec() == QMessageBox.Yes:
                 subobjs = self.fpo.Proxy.all_views(include_groups=True)[1:]
                 for obj in subobjs:
                     obj.Document.removeObject(obj.Name)
@@ -767,8 +762,7 @@ class ViewProviderProject(ViewProviderBase):
     def change_template(self):
         """Change the template of the project."""
         fpo = self.fpo
-        new_template = user_select_template(fpo.Renderer)
-        if new_template:
+        if new_template := user_select_template(fpo.Renderer):
             App.ActiveDocument.openTransaction("ChangeTemplate")
             if fpo.getTypeIdOfProperty("Template") != "App::PropertyString":
                 # Ascending compatibility: convert Template property type if
@@ -805,8 +799,7 @@ def user_select_template(renderer):
     openfilename = QFileDialog.getOpenFileName(
         Gui.getMainWindow(), caption, TEMPLATEDIR, filefilter
     )
-    template_path = openfilename[0]
-    if not template_path:
+    if not (template_path := openfilename[0]):
         return None
     return os.path.relpath(template_path, TEMPLATEDIR)
 

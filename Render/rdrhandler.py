@@ -41,9 +41,7 @@ input colors in linear colorspace. A conversion is made.
 #                                   Imports
 # ===========================================================================
 
-import sys
 import functools
-import traceback
 import enum
 from importlib import import_module
 from types import SimpleNamespace
@@ -422,10 +420,8 @@ class RendererHandler:
             label = label or view.Source.Label
             fullname = f"'{label}' ('{name}')"
 
-            skip_meshing = self.skip_meshing and not force_meshing
-
             # Skip meshing?
-            if skip_meshing:
+            if (skip_meshing := self.skip_meshing) and not force_meshing:
                 # We just need placement, and an empty mesh
                 debug("Object", fullname, "Skip meshing")
                 mesh = Mesh.Mesh()

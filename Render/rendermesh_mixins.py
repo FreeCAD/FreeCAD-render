@@ -518,20 +518,20 @@ class RenderMeshNumpyMixin:
         Cylinder axis is supposed to be z.
         """
         super()._compute_uvmap_cylinder()
-        self.points = np.asarray(self.points)
-        self.facets = np.asarray(self.facets)
-        self.normals = np.asarray(self.normals)
-        self.areas = np.asarray(self.areas)
-        self.uvmap = np.asarray(self.uvmap)
+        self._points = np.asarray(self._points)
+        self._facets = np.asarray(self._facets)
+        self._normals = np.asarray(self._normals)
+        self._areas = np.asarray(self._areas)
+        self._uvmap = np.asarray(self._uvmap)
 
     def _compute_uvmap_sphere(self):
         """Compute UV map for spherical case."""
         super()._compute_uvmap_sphere()
-        self.points = np.asarray(self.points)
-        self.facets = np.asarray(self.facets)
-        self.normals = np.asarray(self.normals)
-        self.areas = np.asarray(self.areas)
-        self.uvmap = np.asarray(self.uvmap)
+        self._points = np.asarray(self._points)
+        self._facets = np.asarray(self._facets)
+        self._normals = np.asarray(self._normals)
+        self._areas = np.asarray(self._areas)
+        self._uvmap = np.asarray(self._uvmap)
 
     def _compute_uvmap_cube(self):
         """Compute UV map for cubic case - numpy version."""
@@ -543,11 +543,11 @@ class RenderMeshNumpyMixin:
 
         # Set common parameters
         count_facets = self.count_facets
-        normals = self.normals
-        facets = self.facets
+        normals = self._normals
+        facets = self._facets
         assert facets.shape[1] == 3
-        points = self.points
-        areas = self.areas
+        points = self._points
+        areas = self._areas
         triangles = np.take(points, facets, axis=0)
 
         # Compute facet colors
@@ -615,9 +615,9 @@ class RenderMeshNumpyMixin:
         uvs = uvs.squeeze(axis=-1)
 
         # Update attributes
-        self.facets = new_facets
-        self.points = new_points
-        self.uvmap = uvs
+        self._facets = new_facets
+        self._points = new_points
+        self._uvmap = uvs
 
         if debug_flag:
             print("numpy", time.time() - time0)
@@ -627,8 +627,10 @@ class RenderMeshNumpyMixin:
 
         This is required by LuxCore (procedural textures).
         """
-        offset = np.min(np.real(self.uvmap)) + 1j * np.min(np.imag(self.uvmap))
-        self.uvmap -= offset
+        offset = np.min(np.real(self._uvmap)) + 1j * np.min(
+            np.imag(self._uvmap)
+        )
+        self._uvmap -= offset
 
     # Filter by normal angles
     @staticmethod
@@ -650,10 +652,10 @@ class RenderMeshNumpyMixin:
             tm0 = time.time()
 
         # Prepare parameters
-        points = np.array(self.points, dtype="f4")
-        normals = np.array(self.normals, dtype="f4")
-        areas = np.array(self.areas, dtype="f4")
-        facets = np.array(self.facets, dtype="i4")
+        points = np.array(self._points, dtype="f4")
+        normals = np.array(self._normals, dtype="f4")
+        areas = np.array(self._areas, dtype="f4")
+        facets = np.array(self._facets, dtype="i4")
         triangles = np.take(points, facets, axis=0)
         indices = facets.ravel(order="F")
 
@@ -730,7 +732,7 @@ class RenderMeshNumpyMixin:
             np.set_printoptions(edgeitems=600)
 
         # Compute mesh edges (assume triangles)
-        facets = np.sort(self.facets, axis=1)  # Sort points in each facet
+        facets = np.sort(self._facets, axis=1)  # Sort points in each facet
         if debug_flag:
             print("hashes", time.time() - tm0)
 
@@ -790,7 +792,7 @@ class RenderMeshNumpyMixin:
             (indices[hashtable[..., 0]], indices[hashtable[..., 1]]), axis=-1
         )
 
-        normals = np.asarray(self.normals)
+        normals = np.asarray(self._normals)
         vec1 = self._safe_normalize_np(normals[facet_pairs[..., 0]])
         vec2 = self._safe_normalize_np(normals[facet_pairs[..., 1]])
 
@@ -889,7 +891,7 @@ class RenderMeshNumpyMixin:
             vfind_and_compress = np.vectorize(find_and_compress)
             tags = vfind_and_compress(np.arange(nfacets))
         else:
-            tags = np.ndarray()
+            tags = np.empty(shape=[0], dtype=np.int64)
 
         if debug_flag:
             print("tags", time.time() - tm0)
@@ -913,8 +915,8 @@ class RenderMeshNumpyMixin:
             tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
-        points = self.points
-        facets = self.facets
+        points = self._points
+        facets = self._facets
 
         # Compute new points
         tags = np.expand_dims(tags, axis=1)
@@ -926,14 +928,14 @@ class RenderMeshNumpyMixin:
             newpoints, axis=0, return_inverse=True
         )
 
-        self.points = points[newpoints[..., 0]]
+        self._points = points[newpoints[..., 0]]
 
         # Update point indices in facets
-        self.facets = np.reshape(unique_inverse, (-1, 3))
+        self._facets = np.reshape(unique_inverse, (-1, 3))
 
         # If necessary, rebuild uvmap
-        if self.uvmap is not None:
-            self.uvmap = self.uvmap[newpoints[..., 0]]
+        if self._uvmap is not None:
+            self._uvmap = self._uvmap[newpoints[..., 0]]
 
         if debug_flag:
             print("separate", time.time() - tm0)
@@ -943,13 +945,14 @@ class RenderMeshNumpyMixin:
 
         Numpy version.
         """
-        self.points *= ratio
+        self._points *= ratio
 
     def compute_tspaces(self):
         """Compute tangent spaces.
 
         Numpy version.
         """
+        # TODO REFACTOR
         # pylint: disable=invalid-name
         if debug_flag := PARAMS.GetBool("Debug"):
             tm0 = time.time()
@@ -959,10 +962,10 @@ class RenderMeshNumpyMixin:
         # “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
         # Terathon Software 3D Graphics Library, 2001.
         # http://www.terathon.com/code/tangent.html
-        facets = self.facets
-        points = self.points
-        uvmap = self.uvmap
-        normals = self.vnormals
+        facets = self._facets
+        points = self._points
+        uvmap = self._uvmap
+        normals = self._vnormals
 
         v1, v2, v3 = (
             points[facets[..., 0]],
@@ -1049,8 +1052,8 @@ class RenderMeshNumpyMixin:
         tangent_signs = np.sign(dot_cross_tan2)
         tangent_signs[np.where(tangent_signs == 0.0)] = 1.0
 
-        self.tangents = tangents
-        self.tangent_signs = tangent_signs
+        self._tangents = tangents
+        self._tangent_signs = tangent_signs
 
         if debug_flag:
             tm1 = time.time()

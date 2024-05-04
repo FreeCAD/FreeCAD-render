@@ -25,16 +25,12 @@
 # TODO list
 #
 # Version1
-# Write documentation
 # Write announcement
 # Assign material with right-click
 # Address 0.22 compatibility
-# Handle HDRI IBL download
 #
 # Version 2
 # Add a mix normal/height map to Ospray
-# Povray: adapt Disney (clearcoat etc.)
-# Handle HDR (set basetype to FLOAT, see translateshader.py)
 # Add Poly Haven (gltf)
 
 
