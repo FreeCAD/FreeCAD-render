@@ -169,7 +169,7 @@ class MaterialXConverter:
                 raise ConverterError(255)  # Interrupted
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
-                print(f"Extracting to {working_dir}")
+                log(f"Extracting to {working_dir}")
                 matzip.extractall(path=working_dir)
                 # Find materialx file
                 files = (
@@ -215,7 +215,7 @@ class MaterialXConverter:
         mtlx_filename = self._state.mtlx_filename
         search_path = self._state.search_path
 
-        print("Translating material to Render format")
+        log("Translating material to Render format")
 
         # Read doc
         mxdoc = mx.createDocument()
@@ -343,7 +343,7 @@ class MaterialXConverter:
         except StopIteration:
             return
 
-        print(
+        log(
             "Polyhaven material detected: will use actual texture size from "
             "polyhaven.com "
             f"('{size} {'meters' if size > 1 else 'meter'}')"
@@ -552,7 +552,7 @@ class MaterialXConverter:
         mxname = mxmat.getAttribute("original_name")
 
         outfilename = os.path.join(self._destdir, "out.FCMat")
-        print(f"Creating material card: {outfilename}")
+        log(f"Creating material card: {outfilename}")
 
         # Get images
         images, outputs = get_images(mxdoc)
@@ -580,7 +580,7 @@ class MaterialXConverter:
 def _set_progress(value, maximum):
     """Report progress."""
     msg = json.dumps({"value": value, "maximum": maximum})
-    print(msg)
+    log(msg)
 
 
 def _interrupt(signum, stackframe):

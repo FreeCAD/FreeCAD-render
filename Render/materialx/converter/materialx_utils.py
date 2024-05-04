@@ -126,15 +126,15 @@ class TermColors:
 
 def log(msg):
     """Emit log message during MaterialX processing."""
-    print("[Render][MaterialX] " + msg)
+    print(msg)
 
 def warn(msg):
     """Emit warning during MaterialX processing."""
-    print(TermColors.WARNING + "[Render][MaterialX] " + msg + TermColors.ENDC, file=sys.stderr)
+    print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
 
 def error(msg):
     """Emit error message during MaterialX processing."""
-    print(TermColors.FAIL + "[Render][MaterialX] " + msg + TermColors.ENDC, file=sys.stderr)
+    print(TermColors.FAIL + msg + TermColors.ENDC, file=sys.stderr)
 
 
 def _view_doc(doc):
