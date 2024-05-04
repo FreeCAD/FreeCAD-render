@@ -563,9 +563,9 @@ class RenderTextureBaker:
                     output.setConnectedNode(
                         world_space_node.getConnectedNode("in")
                     )
-                    self._world_space_nodes[input_.getName()] = (
-                        world_space_node
-                    )
+                    self._world_space_nodes[
+                        input_.getName()
+                    ] = world_space_node
 
                 filename_template_map = self._initialize_file_template_map(
                     input_, shader, udim
@@ -695,7 +695,9 @@ class RenderTextureBaker:
 
         def clean_baked_image_map():
             """Remove baked image that have been replaced by constant."""
-            optimization_required = self._optimize_constants or self._average_images
+            optimization_required = (
+                self._optimize_constants or self._average_images
+            )
             iterator = (
                 output_id
                 for output_id, constant in self._baked_constant_map.items()
@@ -872,7 +874,9 @@ class RenderTextureBaker:
 
             # Node graph
             if self._baked_image_map:
-                graph_name = texdoc.createValidChildName(self._baked_graph_name)
+                graph_name = texdoc.createValidChildName(
+                    self._baked_graph_name
+                )
                 baked_node_graph = texdoc.addNodeGraph(graph_name)
                 baked_node_graph.setColorSpace(self._colorspace)
                 self._baked_graph_name = graph_name
@@ -902,14 +906,18 @@ class RenderTextureBaker:
                 if baked_image.is_uniform
             )
             for baked_uniform_image in baked_uniform_images_it:
-                uniform_image.setUniformColor(baked_uniform_image.uniform_color)
+                uniform_image.setUniformColor(
+                    baked_uniform_image.uniform_color
+                )
                 self._write_baked_image(baked_uniform_image, uniform_image)
 
         def is_uniform_at_default_value(output):
             """Check whether an output is uniform and at default value."""
             try:
                 # Search for constant and test its defaultness
-                return self._baked_constant_map[output.getNamePath()].is_default
+                return self._baked_constant_map[
+                    output.getNamePath()
+                ].is_default
             except (AttributeError, KeyError):
                 # No such constant...
                 return False
@@ -946,11 +954,16 @@ class RenderTextureBaker:
 
         # Create and connect inputs on the new shader nodes
         for shader, baked_shader, source_input, output in (
-            (shader, baked_shader, source_input, source_input.getConnectedOutput())
+            (
+                shader,
+                baked_shader,
+                source_input,
+                source_input.getConnectedOutput(),
+            )
             for shader, baked_shader in zip(shaders, baked_shaders)
             for source_input in shader.getChildren()
             if source_input.isA(mx.ValueElement)
-            ):
+        ):
             # NB: 'output' is the connected output to source_input
 
             # Skip uniform outputs at their default values
@@ -958,10 +971,9 @@ class RenderTextureBaker:
                 continue
 
             # Find or create the baked input.
-            baked_input = (
-                baked_shader.getInput(source_name := source_input.getName())
-                or baked_shader.addInput(source_name, source_input.getType())
-            )
+            baked_input = baked_shader.getInput(
+                source_name := source_input.getName()
+            ) or baked_shader.addInput(source_name, source_input.getType())
 
             # Assign image or constant data to the baked input
             if output:
@@ -1055,7 +1067,7 @@ class RenderTextureBaker:
         if isinstance(self._generator, mx_gen_glsl.VkShaderGenerator):
             context.pushUserData(
                 "udbinding",
-                mx_gen_glsl.GlslResourceBindingContext.create(0, 0)
+                mx_gen_glsl.GlslResourceBindingContext.create(0, 0),
             )
 
         # Color management
@@ -1084,7 +1096,9 @@ class RenderTextureBaker:
                 # Always clear any cached implementations before generation
                 # WARNING: Not available in Python
                 # context.clearNodeImplementations()
-                if not self._generator.generate("Shader", shader_node, context):
+                if not self._generator.generate(
+                    "Shader", shader_node, context
+                ):
                     continue
                 self._renderer.getImageHandler().setSearchPath(search_path)
                 resolver.setUdimString(tag)
