@@ -27,7 +27,7 @@ and outputs a FCMat.
 This module does not depend on FreeCAD in any way.
 The aim of this module is to be run in a virtual environment where MaterialX
 is installed. Using a virtual environment allows to install MaterialX with
-pip even if Python modules are externally managed.
+pip even if system Python modules are externally managed.
 """
 
 import zipfile
@@ -55,6 +55,8 @@ else:
     MATERIALX = True
 
 from materialx_baker import RenderTextureBaker
+
+from materialx_utils import log, warn, error
 
 MATERIALXDIR = os.path.dirname(__file__)
 TEXNAME = "Texture"  # Texture name
@@ -164,7 +166,7 @@ class MaterialXConverter:
 
         if zipfile.is_zipfile(self._filename):
             if self._request_halt.is_set():
-                raise MaterialXInterrupted()
+                raise ConverterError(255)  # Interrupted
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
                 print(f"Extracting to {working_dir}")
@@ -470,16 +472,79 @@ class MaterialXConverter:
         # Validate document
         valid, msg = mxdoc.validate()
         if not valid:
-            msg = f"Validation warnings for input document: {msg}"
-            _warn(msg)
+            warning = f"Validation warnings for input document: {msg}"
+            warn(warning)
 
         self._state.baked = mxdoc
 
     def _write_fcmat(self):
         """Make a RenderMaterial from a MaterialX baked material."""
+
+        def get_images(mxdoc):
+            """Get images from MaterialX doc."""
+            node_graphs = mxdoc.getNodeGraphs()
+            assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
+            try:
+                node_graph = node_graphs[0]
+            except IndexError:
+                images = {}
+                outputs = {}
+            else:
+                images = {
+                    node.getName(): node.getInputValue("file")
+                    for node in node_graph.getNodes()
+                    if node.getCategory() == "image"
+                }
+                outputs = {
+                    node.getName(): node.getNodeName()
+                    for node in node_graph.getOutputs()
+                }
+            return images, outputs
+
+        def get_fields(textures):
+            """Get FCMat fields corresponding to mxdoc."""
+            matdict = {}
+            render_params = (
+                (param, param.getName())
+                for node in mxdoc.getNodes()
+                for param in node.getInputs()
+                if node.getCategory() in ("render_pbr", "render_disp")
+            )
+            for param, name in render_params:
+                if name == "Displacement" and self._disp2bump:
+                    name = "Bump"  # Substitute bump to displacement
+                if param.hasOutputString():
+                    # Texture
+                    output = param.getOutputString()
+                    index = textures[outputs[output]]
+                    key = f"Render.Disney.{name}"
+                    if name not in ("Normal", "Bump"):
+                        matdict[key] = f"Texture('{TEXNAME}', {index})"
+                    else:
+                        matdict[key] = f"Texture('{TEXNAME}', {index}, 1.0)"
+                elif name:
+                    # Value
+                    key = f"Render.Disney.{name}"
+                    matdict[key] = param.getValueString()
+                else:
+                    msg = f"Unhandled param: '{name}'"
+                    warn(msg)
+            return matdict
+
+        def write_fcmat(matdict):
+            """Write material to disk, as a FCMat file."""
+            config = configparser.ConfigParser()
+            config.optionxform = str  # Case sensitive
+            config["General"] = {"Name": mxname}
+            config["Render"] = matdict
+            with open(outfilename, "w", encoding="utf-8") as out:
+                config.write(out)
+
+        # '_write_fcmat' starts here
         assert self._state.baked
 
         mxdoc = self._state.baked
+
         # Get PBR material
         mxmats = mxdoc.getMaterialNodes()
         assert len(mxmats) == 1, f"len(mxmats) = {len(mxmats)}"
@@ -490,69 +555,25 @@ class MaterialXConverter:
         print(f"Creating material card: {outfilename}")
 
         # Get images
-        node_graphs = mxdoc.getNodeGraphs()
-        assert len(node_graphs) <= 1, f"len(node_graphs) = {len(node_graphs)}"
-        if len(node_graphs):
-            node_graph = node_graphs[0]
-            images = {
-                node.getName(): node.getInputValue("file")
-                for node in node_graph.getNodes()
-                if node.getCategory() == "image"
-            }
-            outputs = {
-                node.getName(): node.getNodeName()
-                for node in node_graph.getOutputs()
-            }
-        else:
-            images = {}
-            outputs = {}
+        images, outputs = get_images(mxdoc)
 
         # Reminder: Material.Material is not updatable in-place (FreeCAD
         # bug), thus we have to copy/replace
         matdict = {}
         matdict["Render.Type"] = "Disney"
 
-        # Add textures, if necessary
+        # Handle textures, if necessary
         textures = {}
         for index, item in enumerate(images.items()):
             name, img = item
             matdict[f"Render.Textures.{TEXNAME}.Images.{index}"] = img
             textures[name] = index
 
-        # Fill fields
-        render_params = (
-            (param, param.getName())
-            for node in mxdoc.getNodes()
-            for param in node.getInputs()
-            if node.getCategory() in ("render_pbr", "render_disp")
-        )
-        for param, name in render_params:
-            if name == "Displacement" and self._disp2bump:
-                name = "Bump"  # Substitute bump to displacement
-            if param.hasOutputString():
-                # Texture
-                output = param.getOutputString()
-                index = textures[outputs[output]]
-                key = f"Render.Disney.{name}"
-                if name not in ("Normal", "Bump"):
-                    matdict[key] = f"Texture('{TEXNAME}', {index})"
-                else:
-                    matdict[key] = f"Texture('{TEXNAME}', {index}, 1.0)"
-            elif name:
-                # Value
-                key = f"Render.Disney.{name}"
-                matdict[key] = param.getValueString()
-            else:
-                msg = f"Unhandled param: '{name}'"
-                _msg(msg)
+        # Fill fields of material dictionary
+        matdict.update(get_fields(textures))
 
         # Write FCMat
-        config = configparser.ConfigParser()
-        config.optionxform = str  # Case sensitive
-        config["General"] = {"Name": mxname}
-        config["Render"] = matdict
-        with open(outfilename, "w", encoding="utf-8") as out:
-            config.write(out)
+        write_fcmat(matdict)
 
 
 # Helpers
@@ -589,24 +610,22 @@ if __name__ == "__main__":
     parser.add_argument("destdir", type=pathlib.Path)
     parser.add_argument("--polyhaven-size", type=float)
     parser.add_argument("--disp2bump", action="store_true")
-    args = parser.parse_args()
+    program_args = parser.parse_args()
 
     try:
         signal.signal(signal.SIGTERM, _interrupt)
         _check_materialx()
-        _destdir = _get_destdir(args)
+        _destdir = _get_destdir(program_args)
 
         converter = MaterialXConverter(
-            args.file.name,
+            program_args.file.name,
             str(_destdir),
-            polyhaven_size=args.polyhaven_size,
-            disp2bump=args.disp2bump,
+            polyhaven_size=program_args.polyhaven_size,
+            disp2bump=program_args.disp2bump,
         )
         converter.run()
-    except ConverterError as exc:
-        print(
-            f"CONVERTER EXCEPTION #{exc.errno}: {exc.message}", file=sys.stderr
-        )
-        exit(exc.errno)
+    except ConverterError as main_err:
+        error(f"CONVERTER EXCEPTION #{main_err.errno}: {main_err.message}")
+        sys.exit(main_err.errno)
 
-    exit(0)
+    sys.exit(0)
