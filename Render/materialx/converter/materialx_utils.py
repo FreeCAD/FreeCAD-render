@@ -113,24 +113,28 @@ def _save_intermediate(outfile):
     print(f"Copying '{src}' into '{dest}'")
     shutil.copytree(src, dest)
 
+
 class TermColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
 
 def log(msg):
     """Emit log message during MaterialX processing."""
     print(msg)
 
+
 def warn(msg):
     """Emit warning during MaterialX processing."""
     print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
+
 
 def error(msg):
     """Emit error message during MaterialX processing."""

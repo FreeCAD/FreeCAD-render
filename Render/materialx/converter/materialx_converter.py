@@ -503,7 +503,9 @@ class MaterialXConverter:
         matdict["Render.Type"] = "Disney"
 
         # Fill fields of material dictionary
-        matdict.update(_get_fcmat_fields(mxdoc, self._disp2bump, outputs, images))
+        matdict.update(
+            _get_fcmat_fields(mxdoc, self._disp2bump, outputs, images)
+        )
 
         # Write FCMat
         _write_fcmat_to_disk(matdict, mxname, outfilename)
