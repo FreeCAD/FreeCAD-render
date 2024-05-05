@@ -209,7 +209,11 @@ def display_image(img_path):
     subw.setVisible(True)
 
     # Set subwindow background to opaque
-    bkg = Gui.getMainWindow().palette().color(QPalette.Background)
+    try:
+        bkg = Gui.getMainWindow().palette().color(QPalette.Background)
+    except AttributeError:
+        # Qt6
+        bkg = Gui.getMainWindow().palette().color(QPalette.ColorRole.Window)
     style = (
         "QMdiSubWindow {"
         f"background-color:rgb({bkg.red()},{bkg.green()},{bkg.blue()});"
