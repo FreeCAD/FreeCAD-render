@@ -739,13 +739,15 @@ def render(
 
     # Outputs
     config["film.outputs.0.type"] = "RGB_IMAGEPIPELINE"
-    config["film.outputs.0.filename"] = output
+    config["film.outputs.0.filename"] = '"' + output + '"'
     config["film.outputs.0.index"] = "0"
     if denoise:
         config["film.outputs.1.type"] = "ALBEDO"
-        config["film.outputs.1.filename"] = output + "_ALBEDO.exr"
+        config["film.outputs.1.filename"] = '"' + output + '_ALBEDO.exr"'
         config["film.outputs.2.type"] = "AVG_SHADING_NORMAL"
-        config["film.outputs.2.filename"] = output + "_AVG_SHADING_NORMAL.exr"
+        config["film.outputs.2.filename"] = (
+            '"' + output + '_AVG_SHADING_NORMAL.exr"'
+        )
 
     cfg_path = export_section(config, project.Name, "cfg")
 
