@@ -27,11 +27,21 @@ import traceback
 import re
 from urllib.parse import urlparse
 
-from PySide.QtWebEngineWidgets import (
-    QWebEngineView,
-    QWebEnginePage,
-    QWebEngineDownloadItem,
-)
+try:
+    from PySide2.QtWebEngineWidgets import (
+        QWebEngineView,
+        QWebEnginePage,
+        QWebEngineDownloadItem,
+    )
+except ModuleNotFoundError:
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import (
+        QWebEnginePage,
+        QWebEngineDownloadRequest,
+    )
+
+    QWebEngineDownloadItem = QWebEngineDownloadRequest
+
 from PySide.QtCore import (
     Slot,
     Qt,
@@ -146,8 +156,14 @@ class MaterialXDownloader(QWidget):
             return
         # Trigger effective download
         self._download_required.emit(download)
-        _, filename = os.path.split(download.path())
-        download.setPath(os.path.join(App.getTempPath(), filename))
+        try:
+            _, filename = os.path.split(download.path())
+            download.setPath(os.path.join(App.getTempPath(), filename))
+        except AttributeError:
+            # Qt6
+            filename = download.downloadFileName()
+            download.setDownloadDirectory(App.getTempPath())
+
         download.accept()
 
     @Slot()
@@ -183,7 +199,11 @@ class MaterialXDownloader(QWidget):
             return False
 
         # And only for a restricted list of file extensions
-        _, ext = os.path.splitext(download.path())
+        try:
+            _, ext = os.path.splitext(download.path())
+        except AttributeError:
+            # Qt6
+            _, ext = os.path.splitext(download.downloadFileName())
         if ext.lower() not in [".exr", ".jpg"]:
             print(ext)
             return False
@@ -208,23 +228,42 @@ class DownloadWindow(QProgressDialog):
         super().__init__(parent)
         self._download = download
         self._fcdoc = fcdoc
-        _, filename = os.path.split(download.path())
+        try:
+            _, filename = os.path.split(download.path())
+        except AttributeError:
+            # Qt6
+            filename = download.downloadFileName()
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
         self.setAutoClose(False)
         self.setAutoReset(False)
 
-        self._download.downloadProgress.connect(self.set_progress)
+        try:
+            self._download.downloadProgress.connect(self.set_progress)
+            download.finished.connect(self.finished_download)
+        except:
+            # Qt6
+            self._download.receivedBytesChanged.connect(self.set_progress_6)
+            download.isFinishedChanged.connect(self.finished_download)
+
         self.canceled.connect(download.cancel)
-        download.finished.connect(self.finished_download)
 
         self.thread = None
         self.worker = None
 
     @Slot()
     def set_progress(self, bytes_received, bytes_total):
-        """Set value of widget progress bar."""
+        """Set value of widget progress bar (Qt5)."""
         # Caveat: this slot must be executed in DownloadWindow thread
+        self.setMaximum(bytes_total)
+        self.setValue(bytes_received)
+
+    @Slot()
+    def set_progress_6(self):
+        """Set value of widget progress bar (Qt6)."""
+        # Caveat: this slot must be executed in DownloadWindow thread
+        bytes_total = self._download.totalBytes()
+        bytes_received = self._download.receivedBytes()
         self.setMaximum(bytes_total)
         self.setValue(bytes_received)
 
@@ -248,7 +287,11 @@ class DownloadWindow(QProgressDialog):
         assert (
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
         )
-        _, filenameshort = os.path.split(self._download.path())
+        try:
+            _, filenameshort = os.path.split(self._download.path())
+        except AttributeError:
+            # Qt6
+            filenameshort = self._download.downloadFileName()
         self.setLabelText(f"Importing '{filenameshort}'...")
         self.do_import()
 
@@ -283,7 +326,13 @@ class MaterialXDownloadWindow(DownloadWindow):
         This function handles import. Import is executed in a separate thread
         to avoid blocking UI.
         """
-        filename = self._download.path()
+        try:
+            filename = self._download.path()
+        except AttributeError:
+            filename = os.path.join(
+                self._download.downloadDirectory(),
+                self._download.downloadFileName(),
+            )
 
         # Start import
         self.setValue(0)
@@ -376,7 +425,14 @@ class HdriDownloadWindow(DownloadWindow):
 
     def do_import(self):
         """Do import of HDRI downloaded file."""
-        filepath = self._download.path()
+        try:
+            filepath = self._download.path()
+        except:
+            # Qt6
+            filepath = os.path.join(
+                self._download.downloadDirectory(),
+                self._download.downloadFileName(),
+            )
         basename = os.path.basename(filepath)
         _, fpo, _ = ImageLight.create(self._fcdoc)
         fpo.Label = basename

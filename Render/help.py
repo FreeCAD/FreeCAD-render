@@ -24,11 +24,16 @@
 
 import os.path
 
-from PySide.QtWebEngineWidgets import (
-    QWebEngineView,
-    QWebEngineScript,
-    QWebEnginePage,
-)
+try:
+    from PySide2.QtWebEngineWidgets import (
+        QWebEngineView,
+        QWebEnginePage,
+        QWebEngineScript,
+    )
+except ModuleNotFoundError:
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
+
 from PySide.QtCore import QUrl
 from PySide.QtGui import QWidget, QToolBar, QVBoxLayout
 

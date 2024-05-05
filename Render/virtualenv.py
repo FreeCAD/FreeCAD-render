@@ -109,7 +109,11 @@ def ensure_rendervenv():
             _log(">>> Updating pip (if needed)")
             pip_install(
                 "pip",
-                options=["--upgrade", "--no-warn-script-location"],
+                options=[
+                    "--upgrade",
+                    "--no-warn-script-location",
+                    "--only-binary",
+                ],
                 loglevel=1,
             )
 
@@ -118,7 +122,9 @@ def ensure_rendervenv():
         for package in packages:
             _log(f">>> Checking package '{package}':")
             pip_install(
-                package, options=["--no-warn-script-location"], loglevel=1
+                package,
+                options=["--no-warn-script-location", "--prefer-binary"],
+                loglevel=1,
             )
     except VenvError as error:
         msg = (
