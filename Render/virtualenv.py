@@ -44,6 +44,7 @@ import urllib.parse
 import tempfile
 import subprocess
 import shutil
+import concurrent.futures
 
 import FreeCAD as App
 
@@ -118,14 +119,27 @@ def ensure_rendervenv():
             )
 
         # Step 5: Check for needed packages
-        packages = ["setuptools", "wheel", "materialx"]
-        for package in packages:
-            _log(f">>> Checking package '{package}':")
-            pip_install(
-                package,
-                options=["--no-warn-script-location", "--prefer-binary"],
-                loglevel=1,
-            )
+        packages = ["setuptools", "wheel", "materialx", "jfscreep"]
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(
+                    pip_install,
+                    package,
+                    options=["--no-warn-script-location", "--prefer-binary"],
+                    loglevel=1,
+                ): package
+                for package in packages
+            }
+            for future in concurrent.futures.as_completed(futures):
+                package = futures[future]
+                return_code = future.result()
+                if not (return_code := future.result()):
+                    _log(f">>> Checked package '{package}' - OK")
+                else:
+                    _log(
+                        f">>> Checked package '{package}' - ERROR "
+                        f"(return code: {return_code})"
+                    )
     except VenvError as error:
         msg = (
             "[Render][Init] Error - Failed to set virtual environment - "
@@ -263,7 +277,7 @@ def _bootstrap(url):
         subprocess.run([python, "-u", script], check=True)
 
 
-# Helpers
+# Error handling
 
 
 class VenvError(Exception):
@@ -288,6 +302,9 @@ class VenvError(Exception):
     def errorno(self):
         """Return error number."""
         return self._errorno
+
+
+# Helpers
 
 
 def _log(message):
