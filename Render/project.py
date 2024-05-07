@@ -419,6 +419,19 @@ class Project(FeatureBase):
             App.Console.PrintError(msg)
             return None
 
+        # Fetch the rendering parameters
+        params = self._get_rendering_params()
+
+        # Check output consistency
+        if not os.path.exists(os.path.dirname(params.output)):
+            msg = translate(
+                "Render",
+                "[Render][Project] WARNING - Output image path "
+                f"'{params.output}' does not seem to be a valid path on "
+                "your system. This may cause the renderer to fail...\n",
+            )
+            App.Console.PrintWarning(msg)
+
         # Set export directories
         project_directory = self.fpo.Document.TransientDir
         object_directory = os.path.join(project_directory, self.fpo.Name)
@@ -464,9 +477,6 @@ class Project(FeatureBase):
         fpath = self._write_instantiated_template_to_file(
             instantiated, project_directory
         )
-
-        # Fetch the rendering parameters
-        params = self._get_rendering_params()
 
         # Get the renderer command on the generated temp file, with rendering
         # params
@@ -608,7 +618,7 @@ class Project(FeatureBase):
 
         try:
             output = self.fpo.OutputImage
-            assert output
+            assert output  # TODO don't use assert here
         except (AttributeError, AssertionError):
             fname = f"{self.fpo.Name}_output.png"
             output = os.path.join(self.fpo.Document.TransientDir, fname)
