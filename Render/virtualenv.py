@@ -44,11 +44,12 @@ import urllib.parse
 import tempfile
 import subprocess
 import shutil
+import concurrent.futures
 
 import FreeCAD as App
 
 from Render.utils import find_python
-from Render.constants import PARAMS
+from Render.constants import PARAMS, WHEELSDIR
 
 RENDER_VENV_FOLDER = ".rendervenv"
 RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
@@ -117,15 +118,34 @@ def ensure_rendervenv():
                 loglevel=1,
             )
 
-        # Step 5: Check for needed packages
+        # Step 5: Check for needed packages - binaries
         packages = ["setuptools", "wheel", "materialx"]
-        for package in packages:
-            _log(f">>> Checking package '{package}':")
-            pip_install(
-                package,
-                options=["--no-warn-script-location", "--prefer-binary"],
-                loglevel=1,
-            )
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(
+                    pip_install,
+                    package,
+                    options=[
+                        "--no-warn-script-location",
+                        "--only-binary=:all:",
+                        f"--find-links={WHEELSDIR}",
+                    ],
+                    loglevel=1,
+                ): package
+                for package in packages
+            }
+            errors = {}
+            for future in concurrent.futures.as_completed(futures):
+                package = futures[future]
+                return_code = future.result()
+                if not (return_code := future.result()):
+                    _log(f">>> Checked package '{package}' - OK")
+                else:
+                    _log(
+                        f">>> Checked package '{package}' - ERROR "
+                        f"(return code: {return_code})"
+                    )
+                    errors[package] = return_code
     except VenvError as error:
         msg = (
             "[Render][Init] Error - Failed to set virtual environment - "
@@ -134,7 +154,10 @@ def ensure_rendervenv():
         )
         App.Console.PrintError(msg)
     else:
-        _log("Render virtual environment: OK")
+        if not errors:
+            _log("Render virtual environment: OK")
+        else:
+            _log(f"Render virtual environment: {len(errors)} error(s)")
 
 
 def get_venv_python():
@@ -263,7 +286,7 @@ def _bootstrap(url):
         subprocess.run([python, "-u", script], check=True)
 
 
-# Helpers
+# Error handling
 
 
 class VenvError(Exception):
@@ -288,6 +311,9 @@ class VenvError(Exception):
     def errorno(self):
         """Return error number."""
         return self._errorno
+
+
+# Helpers
 
 
 def _log(message):
