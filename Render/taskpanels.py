@@ -26,8 +26,10 @@
 
 import os
 import re
+import configparser
 from enum import Enum, auto
 
+from PySide import __version__ as pyside_version
 from PySide.QtGui import (
     QPushButton,
     QColor,
@@ -902,6 +904,12 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         # Disable copy from existant (buggy with textures...)
         self.form.comboBox_FromExisting.hide()
 
+        # PySide6
+        if pyside_version >= "6":
+            self.form.comboBox_MaterialsInDir.currentTextChanged.connect(
+                self.chooseMat
+            )
+
         # Disable color buttons (error-prone) and replace with message
         self.form.ButtonColor.hide()
         self.form.label.hide()
@@ -916,10 +924,6 @@ please edit 'Render settings' from material context menu.*"""
         label.setWordWrap(True)
         label.setTextFormat(Qt.TextFormat.MarkdownText)
         self.form.layout().addWidget(label)
-
-        # Attributes
-        self.cards = None
-        self.material = None
 
     def fillMaterialCombo(self):  # pylint: disable=invalid-name
         """Fill Material combo box.
@@ -944,6 +948,28 @@ please edit 'Render settings' from material context menu.*"""
         }
         for k in sorted(self.cards.keys()):
             self.form.comboBox_MaterialsInDir.addItem(k)
+
+    def chooseMat(self, card):
+        """ "Sets self.material from a card.
+
+        Override Arch initial method (buggy).
+        """
+        assert card in self.cards
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.optionxform = lambda x: x  # Case sensitive
+        in_file = self.cards[card]
+        parser.read(in_file)
+        try:
+            matname = parser["General"]["Name"]
+        except LookupError:
+            matname = "Material"
+
+        self.material = {
+            key: value
+            for section in parser.values()
+            for key, value in section.items()
+        }
+        self.setFields()
 
     def accept(self):
         """Respond to user acceptation.
