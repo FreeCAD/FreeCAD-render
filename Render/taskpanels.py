@@ -924,10 +924,6 @@ please edit 'Render settings' from material context menu.*"""
         label.setTextFormat(Qt.TextFormat.MarkdownText)
         self.form.layout().addWidget(label)
 
-        # Attributes
-        self.cards = None
-        self.material = None
-
     def fillMaterialCombo(self):  # pylint: disable=invalid-name
         """Fill Material combo box.
 
