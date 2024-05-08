@@ -28,6 +28,7 @@ import os
 import re
 from enum import Enum, auto
 
+from PySide import __version__ as pyside_version
 from PySide.QtGui import (
     QPushButton,
     QColor,
@@ -901,6 +902,12 @@ class MaterialTaskPanel(_ArchMaterialTaskPanel):
         self.form.setWindowTitle("Render Material")
         # Disable copy from existant (buggy with textures...)
         self.form.comboBox_FromExisting.hide()
+
+        # PySide6
+        if pyside_version >= "6":
+            self.form.comboBox_MaterialsInDir.currentTextChanged.connect(
+                self.chooseMat
+            )
 
         # Disable color buttons (error-prone) and replace with message
         self.form.ButtonColor.hide()
