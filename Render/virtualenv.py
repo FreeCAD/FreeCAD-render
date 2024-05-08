@@ -49,7 +49,7 @@ import concurrent.futures
 import FreeCAD as App
 
 from Render.utils import find_python
-from Render.constants import PARAMS
+from Render.constants import PARAMS, WHEELSDIR
 
 RENDER_VENV_FOLDER = ".rendervenv"
 RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
@@ -128,6 +128,7 @@ def ensure_rendervenv():
                     options=[
                         "--no-warn-script-location",
                         "--only-binary=:all:",
+                        f"--find-links={WHEELSDIR}",
                     ],
                     loglevel=1,
                 ): package
