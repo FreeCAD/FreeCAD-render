@@ -26,6 +26,7 @@
 
 import os
 import re
+import configparser
 from enum import Enum, auto
 
 from PySide import __version__ as pyside_version
@@ -947,6 +948,28 @@ please edit 'Render settings' from material context menu.*"""
         }
         for k in sorted(self.cards.keys()):
             self.form.comboBox_MaterialsInDir.addItem(k)
+
+    def chooseMat(self, card):
+        """ "Sets self.material from a card.
+
+        Override Arch initial method (buggy).
+        """
+        assert card in self.cards
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.optionxform = lambda x: x  # Case sensitive
+        in_file = self.cards[card]
+        parser.read(in_file)
+        try:
+            matname = parser["General"]["Name"]
+        except LookupError:
+            matname = "Material"
+
+        self.material = {
+            key: value
+            for section in parser.values()
+            for key, value in section.items()
+        }
+        self.setFields()
 
     def accept(self):
         """Respond to user acceptation.
