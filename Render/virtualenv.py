@@ -118,18 +118,22 @@ def ensure_rendervenv():
                 loglevel=1,
             )
 
-        # Step 5: Check for needed packages
-        packages = ["setuptools", "wheel", "materialx", "jfscreep"]
+        # Step 5: Check for needed packages - binaries
+        packages = ["setuptools", "wheel", "materialx"]
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
                 executor.submit(
                     pip_install,
                     package,
-                    options=["--no-warn-script-location", "--prefer-binary"],
+                    options=[
+                        "--no-warn-script-location",
+                        "--only-binary=:all:",
+                    ],
                     loglevel=1,
                 ): package
                 for package in packages
             }
+            errors = {}
             for future in concurrent.futures.as_completed(futures):
                 package = futures[future]
                 return_code = future.result()
@@ -140,6 +144,7 @@ def ensure_rendervenv():
                         f">>> Checked package '{package}' - ERROR "
                         f"(return code: {return_code})"
                     )
+                    errors[package] = return_code
     except VenvError as error:
         msg = (
             "[Render][Init] Error - Failed to set virtual environment - "
@@ -148,7 +153,10 @@ def ensure_rendervenv():
         )
         App.Console.PrintError(msg)
     else:
-        _log("Render virtual environment: OK")
+        if not errors:
+            _log("Render virtual environment: OK")
+        else:
+            _log(f"Render virtual environment: {len(errors)} error(s)")
 
 
 def get_venv_python():
