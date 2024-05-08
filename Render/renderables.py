@@ -270,22 +270,21 @@ def check_renderables(renderables):
     result = []
     for renderable in renderables:
         mesh = renderable.mesh
-        if mesh.skip_meshing:
-            continue
-        if not mesh:
-            warn(
-                "Export",
-                renderable.name,
-                translate("Render", "Cannot find mesh data"),
-            )
-            continue
-        if not mesh.count_points or not mesh.count_facets:
-            warn(
-                "Export",
-                renderable.name,
-                translate("Render", "Mesh topology is empty"),
-            )
-            continue
+        if not mesh.skip_meshing:
+            if not mesh:
+                warn(
+                    "Export",
+                    renderable.name,
+                    translate("Render", "Cannot find mesh data"),
+                )
+                continue
+            if not mesh.count_points or not mesh.count_facets:
+                warn(
+                    "Export",
+                    renderable.name,
+                    translate("Render", "Mesh topology is empty"),
+                )
+                continue
         result.append(renderable)
     return result
 
