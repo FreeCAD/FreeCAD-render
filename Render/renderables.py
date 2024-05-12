@@ -290,7 +290,7 @@ def check_renderables(renderables):
 
 
 # ===========================================================================
-#                              Locals (helpers)
+#                           Renderable getters
 # ===========================================================================
 
 a2p_subdocs = set()
@@ -612,55 +612,103 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # not replicated (must be a bug...). Therefore we look at base's
         # WindowsParts
         window_parts = obj.CloneOf.WindowParts
-    subnames = window_parts[0::5]  # Names every 5th item...
-    names = [f"{name}_{s.replace(' ', '_')}" for s in subnames]
-    labels = [f"{obj.Label}_{s.replace(' ', '_')}" for s in subnames]
 
-    # Subobjects colors
-    transparency_boost = kwargs.get("transparency_boost", 0)
-    faces_len = [len(s.Faces) for s in obj.Shape.Solids]
-    if obj.ViewObject is not None:  # Gui is up
-        colors = [
-            _boost_tp(
-                RGB.from_fcd_rgba(obj.ViewObject.DiffuseColor[i]),
-                transparency_boost,
+    # There are 2 types of Arch Windows:
+    # - WindowParts-based
+    # - Type-base
+    # See _ViewProviderWindow.colorize in ArchWindow.py
+
+    if window_parts:
+        # WindowParts-based window
+        subnames = window_parts[0::5]  # Names every 5th item...
+        names = [f"{name}_{s.replace(' ', '_')}" for s in subnames]
+        labels = [f"{obj.Label}_{s.replace(' ', '_')}" for s in subnames]
+
+        # Subobjects colors
+        transparency_boost = kwargs.get("transparency_boost", 0)
+        faces_len = [len(s.Faces) for s in obj.Shape.Solids]
+        if obj.ViewObject is not None:  # Gui is up
+            colors = [
+                _boost_tp(
+                    RGB.from_fcd_rgba(obj.ViewObject.DiffuseColor[i]),
+                    transparency_boost,
+                )
+                for i in itertools.accumulate([0] + faces_len[:-1])
+            ]
+        else:
+            colors = [WHITE] * len(subnames)
+
+        # Subobjects materials
+        if material is not None and is_multimat(material):
+            mats_dict = dict(zip(material.Names, material.Materials))
+            mats = [mats_dict.get(s) for s in subnames]
+            needs_uvmap = [_needs_uvmap(m) for m in mats]
+            if [m for m in mats if not m]:
+                msg = translate(
+                    "Render", "Incomplete multimaterial (missing {m})"
+                )
+                missing_mats = ", ".join(set(subnames) - mats_dict.keys())
+                warn("Window", obj.Label, msg.format(m=missing_mats))
+        else:
+            mats = [material] * len(subnames)
+            needs_uvmap = [False] * len(subnames)
+
+        # Subobjects meshes
+        uvprojection = kwargs.get("uvprojection")
+        meshes = [
+            mesher(
+                shape=s,
+                compute_uvmap=n,
+                uvmap_projection=uvprojection,
+                name=n2,
+                label=l,
             )
-            for i in itertools.accumulate([0] + faces_len[:-1])
+            for s, n, n2, l in zip(
+                obj.Shape.childShapes(), needs_uvmap, names, labels
+            )
         ]
+
+        # Build renderables (WindowParts-based)
+        return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
+
     else:
-        colors = [WHITE] * len(subnames)
+        # Type-based
+        # Components are given by obj.Base (which should be an App::Part)
+        rends = get_renderables(obj.Base, name, material, mesher, **kwargs)
 
-    # Subobjects materials
-    if material is not None:
-        assert is_multimat(material), "Multimaterial expected"
-        mats_dict = dict(zip(material.Names, material.Materials))
-        mats = [mats_dict.get(s) for s in subnames]
-        needs_uvmap = [_needs_uvmap(m) for m in mats]
-        if [m for m in mats if not m]:
-            msg = translate("Render", "Incomplete multimaterial (missing {m})")
-            missing_mats = ", ".join(set(subnames) - mats_dict.keys())
-            warn("Window", obj.Label, msg.format(m=missing_mats))
-    else:
-        mats = [None] * len(subnames)
-        needs_uvmap = [False] * len(subnames)
+        # Adjust placements
+        def _adjust(rend, origin, upper_material):
+            """Reposition to origin and set material of the given renderable."""
+            origin_matrix = origin.toMatrix()
+            new_mesh = rend.mesh.copy()
+            new_mesh.transformation.apply_placement(origin_matrix, left=True)
+            new_mat = _get_material(rend, upper_material)
+            new_color = rend.defcolor
+            return Renderable(rend.name, new_mesh, new_mat, new_color)
 
-    # Subobjects meshes
-    uvprojection = kwargs.get("uvprojection")
-    meshes = [
-        mesher(
-            shape=s,
-            compute_uvmap=n,
-            uvmap_projection=uvprojection,
-            name=n2,
-            label=l,
-        )
-        for s, n, n2, l in zip(
-            obj.Shape.childShapes(), needs_uvmap, names, labels
-        )
-    ]
+        origin = obj.Placement
+        rends = [_adjust(r, origin, material) for r in rends]
 
-    # Build renderables
-    return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
+        # Adjust colors
+        transparency_boost = kwargs.get("transparency_boost", 0)
+        faces_len = [len(s.Faces) for s in obj.Shape.Solids]
+        if obj.ViewObject is not None:  # Gui is up
+            colors = [
+                _boost_tp(
+                    RGB.from_fcd_rgba(obj.ViewObject.DiffuseColor[i]),
+                    transparency_boost,
+                )
+                for i in itertools.accumulate([0] + faces_len[:-1])
+            ]
+        else:
+            colors = [WHITE] * len(rends)
+
+        for i, rend in enumerate(rends):
+            rends[i] = Renderable(
+                rend.name, rend.mesh, rend.material, colors[i]
+            )
+
+        return rends
 
 
 def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
@@ -678,42 +726,85 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
-        return _get_rends_from_partfeature(
+        rends = _get_rends_from_partfeature(
             obj, name, material, mesher, **kwargs
         )
+    else:
+        # Multimaterial case...
 
-    shapes = obj.Shape.childShapes()
+        shapes = obj.Shape.childShapes()
 
-    # Subobjects names
-    names = [f"{name}_{i}" for i in range(len(shapes))]
-    labels = [f"{obj.Label}_{i}" for i in range(len(shapes))]
+        # Subobjects names
+        names = [f"{name}_{i}" for i in range(len(shapes))]
+        labels = [f"{obj.Label}_{i}" for i in range(len(shapes))]
 
-    # Subobjects materials
-    materials = material.Materials
-    needs_uvmap = [_needs_uvmap(m) for m in materials]
+        # Subobjects materials
+        materials = material.Materials
+        needs_uvmap = [_needs_uvmap(m) for m in materials]
 
-    # Subobjects meshes
-    uvprojection = kwargs.get("uvprojection")
-    meshes = [
-        mesher(
-            shape=s,
-            compute_uvmap=n,
-            uvmap_projection=uvprojection,
-            name=n2,
-            label=l,
-        )
-        for s, n, n2, l in zip(shapes, needs_uvmap, names, labels)
-    ]
+        # Subobjects meshes
+        uvprojection = kwargs.get("uvprojection")
+        meshes = [
+            mesher(
+                shape=s,
+                compute_uvmap=n,
+                uvmap_projection=uvprojection,
+                name=n2,
+                label=l,
+            )
+            for s, n, n2, l in zip(shapes, needs_uvmap, names, labels)
+        ]
 
-    # Subobjects colors
-    tp_boost = kwargs.get("transparency_boost", 0)
-    colors = [
-        _boost_tp(RGB([*m.Color[0:3], 1.0 - m.Transparency]), tp_boost)
-        for m in materials
-    ]
+        # Subobjects colors
+        tp_boost = kwargs.get("transparency_boost", 0)
+        colors = [
+            _boost_tp(RGB([*m.Color[0:3], 1.0 - m.Transparency]), tp_boost)
+            for m in materials
+        ]
 
-    # Build renderables
-    return [Renderable(*r) for r in zip(names, meshes, materials, colors)]
+        # Build renderables
+        rends = [Renderable(*r) for r in zip(names, meshes, materials, colors)]
+
+    # Process Components if any
+    components = {
+        o
+        for o in obj.InListRecursive
+        if hasattr(o, "Hosts") and obj in o.Hosts
+    }
+    if components:
+        # This code is copy/paste from 'part' and there should be
+        # a merge, one day...
+        def _adjust(rend, origin, upper_material):
+            """Reposition to origin and set material of the given renderable."""
+            origin_matrix = origin.toMatrix()
+            new_mesh = rend.mesh.copy()
+            new_mesh.transformation.apply_placement(origin_matrix, left=True)
+            new_mat = _get_material(rend, upper_material)
+            new_color = rend.defcolor
+            return Renderable(rend.name, new_mesh, new_mat, new_color)
+
+        origin = obj.Placement
+
+        component_rends = []
+        for order, subobj in enumerate(components):
+            subname = f"{name}#{subobj.Name}_{order}"
+            if getattr(
+                subobj, "Visibility", True
+            ):  # Add subobj only if visible
+                kwargs["ignore_unknown"] = (
+                    True  # Force ignore unknown materials
+                )
+                component_rends += get_renderables(
+                    subobj, subname, material, mesher, **kwargs
+                )
+
+        component_rends = [
+            _adjust(r, origin, material) for r in component_rends
+        ]
+
+        rends += component_rends
+
+    return rends
 
 
 def _get_rends_from_part(obj, name, material, mesher, **kwargs):
@@ -772,6 +863,18 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
         colors = []
 
     uvprojection = kwargs.get("uvprojection")
+
+    # Handle multimaterial
+    if is_multimat(material):
+        # Try to find a matching material
+        mats_dict = dict(zip(material.Names, material.Materials))
+        try:
+            mat = mats_dict[obj.Label]
+        except KeyError:
+            pass
+        else:
+            material = mat
+            print("Found", material.Label)
 
     if len(colors) <= 1:
         # Monocolor: Treat shape as a whole
@@ -843,6 +946,11 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
     return renderables
 
 
+# ===========================================================================
+#                           Helpers
+# ===========================================================================
+
+
 def _get_material(base_renderable, upper_material):
     """Get material from a base renderable and an upper material."""
     upper_mat_is_multimat = is_multimat(upper_material)
@@ -904,9 +1012,12 @@ def _needs_uvmap(material):
     try:
         return proxy.has_textures() or proxy.force_uvmap()
     except AttributeError:
+        label = (
+            "<No name>" if not hasattr(material, "Label") else material.Label
+        )
         App.Console.PrintMessage(
-            f"[Render][Objstrings] Material {proxy} is not a Render Material "
-            "and no texture will be applied\n"
+            f"[Render][Objstrings] Material '{label}' ({proxy}) is not a "
+            "Render Material and may not be used for rendering.\n"
         )
         return False
 
