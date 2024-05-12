@@ -673,7 +673,8 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
 
     else:
         # Type-based
-        rends = get_renderables(obj.Base, name, None, mesher, **kwargs)
+        # Components are given by obj.Base (which should be an App::Part)
+        rends = get_renderables(obj.Base, name, material, mesher, **kwargs)
 
         # Adjust placements
         def _adjust(rend, origin, upper_material):
@@ -863,6 +864,18 @@ def _get_rends_from_partfeature(obj, name, material, mesher, **kwargs):
 
     uvprojection = kwargs.get("uvprojection")
 
+    # Handle multimaterial
+    if is_multimat(material):
+        # Try to find a matching material
+        mats_dict = dict(zip(material.Names, material.Materials))
+        try:
+            mat = mats_dict[obj.Label]
+        except KeyError:
+            pass
+        else:
+            material = mat
+            print("Found", material.Label)
+
     if len(colors) <= 1:
         # Monocolor: Treat shape as a whole
         transparency_boost = int(kwargs.get("transparency_boost", 0))
@@ -999,9 +1012,12 @@ def _needs_uvmap(material):
     try:
         return proxy.has_textures() or proxy.force_uvmap()
     except AttributeError:
+        label = (
+            "<No name>" if not hasattr(material, "Label") else material.Label
+        )
         App.Console.PrintMessage(
-            f"[Render][Objstrings] Material {proxy} is not a Render Material "
-            "and no texture will be applied\n"
+            f"[Render][Objstrings] Material '{label}' ({proxy}) is not a "
+            "Render Material and may not be used for rendering.\n"
         )
         return False
 
