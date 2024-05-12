@@ -290,7 +290,7 @@ def check_renderables(renderables):
 
 
 # ===========================================================================
-#                              Locals (helpers)
+#                           Renderable getters
 # ===========================================================================
 
 a2p_subdocs = set()
@@ -678,42 +678,85 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
     """
     if material is None or not is_multimat(material):
         # No multimaterial: handle wall as a plain Part::Feature
-        return _get_rends_from_partfeature(
+        rends = _get_rends_from_partfeature(
             obj, name, material, mesher, **kwargs
         )
+    else:
+        # Multimaterial case...
 
-    shapes = obj.Shape.childShapes()
+        shapes = obj.Shape.childShapes()
 
-    # Subobjects names
-    names = [f"{name}_{i}" for i in range(len(shapes))]
-    labels = [f"{obj.Label}_{i}" for i in range(len(shapes))]
+        # Subobjects names
+        names = [f"{name}_{i}" for i in range(len(shapes))]
+        labels = [f"{obj.Label}_{i}" for i in range(len(shapes))]
 
-    # Subobjects materials
-    materials = material.Materials
-    needs_uvmap = [_needs_uvmap(m) for m in materials]
+        # Subobjects materials
+        materials = material.Materials
+        needs_uvmap = [_needs_uvmap(m) for m in materials]
 
-    # Subobjects meshes
-    uvprojection = kwargs.get("uvprojection")
-    meshes = [
-        mesher(
-            shape=s,
-            compute_uvmap=n,
-            uvmap_projection=uvprojection,
-            name=n2,
-            label=l,
-        )
-        for s, n, n2, l in zip(shapes, needs_uvmap, names, labels)
-    ]
+        # Subobjects meshes
+        uvprojection = kwargs.get("uvprojection")
+        meshes = [
+            mesher(
+                shape=s,
+                compute_uvmap=n,
+                uvmap_projection=uvprojection,
+                name=n2,
+                label=l,
+            )
+            for s, n, n2, l in zip(shapes, needs_uvmap, names, labels)
+        ]
 
-    # Subobjects colors
-    tp_boost = kwargs.get("transparency_boost", 0)
-    colors = [
-        _boost_tp(RGB([*m.Color[0:3], 1.0 - m.Transparency]), tp_boost)
-        for m in materials
-    ]
+        # Subobjects colors
+        tp_boost = kwargs.get("transparency_boost", 0)
+        colors = [
+            _boost_tp(RGB([*m.Color[0:3], 1.0 - m.Transparency]), tp_boost)
+            for m in materials
+        ]
 
-    # Build renderables
-    return [Renderable(*r) for r in zip(names, meshes, materials, colors)]
+        # Build renderables
+        rends = [Renderable(*r) for r in zip(names, meshes, materials, colors)]
+
+    # Process Components if any
+    components = {
+        o
+        for o in obj.InListRecursive
+        if hasattr(o, "Hosts") and obj in o.Hosts
+    }
+    if components:
+        # This code is copy/paste from 'part' and there should be
+        # a merge, one day...
+        def _adjust(rend, origin, upper_material):
+            """Reposition to origin and set material of the given renderable."""
+            origin_matrix = origin.toMatrix()
+            new_mesh = rend.mesh.copy()
+            new_mesh.transformation.apply_placement(origin_matrix, left=True)
+            new_mat = _get_material(rend, upper_material)
+            new_color = rend.defcolor
+            return Renderable(rend.name, new_mesh, new_mat, new_color)
+
+        origin = obj.Placement
+
+        component_rends = []
+        for order, subobj in enumerate(components):
+            subname = f"{name}#{subobj.Name}_{order}"
+            if getattr(
+                subobj, "Visibility", True
+            ):  # Add subobj only if visible
+                kwargs["ignore_unknown"] = (
+                    True  # Force ignore unknown materials
+                )
+                component_rends += get_renderables(
+                    subobj, subname, material, mesher, **kwargs
+                )
+
+        component_rends = [
+            _adjust(r, origin, material) for r in component_rends
+        ]
+
+        rends += component_rends
+
+    return rends
 
 
 def _get_rends_from_part(obj, name, material, mesher, **kwargs):
@@ -841,6 +884,11 @@ def _get_rends_from_meshfeature(obj, name, material, mesher, **kwargs):
     color = kwargs["meshcolor"]
     renderables = [Renderable(name, mesh, material, color)]
     return renderables
+
+
+# ===========================================================================
+#                           Helpers
+# ===========================================================================
 
 
 def _get_material(base_renderable, upper_material):
