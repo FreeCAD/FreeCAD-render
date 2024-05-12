@@ -48,7 +48,7 @@ import concurrent.futures
 
 import FreeCAD as App
 
-from Render.utils import find_python
+from Render.utils import find_python, pyside_version
 from Render.constants import PARAMS, WHEELSDIR
 
 RENDER_VENV_FOLDER = ".rendervenv"
@@ -62,9 +62,6 @@ RENDERVENV = None
 
 def ensure_rendervenv():
     """Ensure Render virtual environment is available."""
-    # Step 0: Sentry for experimental feature (#TODO)
-    if not PARAMS.GetBool("MaterialX"):
-        return
 
     try:
         # Step 1: Check if virtual environment exists at location
@@ -119,7 +116,16 @@ def ensure_rendervenv():
             )
 
         # Step 5: Check for needed packages - binaries
-        packages = ["setuptools", "wheel", "materialx"]
+        packages = ["setuptools", "wheel"]
+
+        if PARAMS.GetBool("MaterialX"):
+            packages.append("materialx")
+
+        if pyside_version >= "6":
+            packages.append("PySide6-addons")
+        else:
+            packages.append("PySide2")
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
                 executor.submit(
@@ -262,7 +268,7 @@ def _create_virtualenv():
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
         subprocess.run(
-            [python, "-u", pyz, "--system-site-packages", RENDER_VENV_DIR],
+            [python, "-u", pyz, RENDER_VENV_DIR],
             check=True,
         )
 

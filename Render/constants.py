@@ -39,7 +39,7 @@ FCDMATERIALDIR = os.path.join(
     App.getResourceDir(), "Mod", "Material", "StandardMaterial"
 )
 USERMATERIALDIR = os.path.join(App.ConfigGet("UserAppData"), "Materials")
-WHEELSDIR = os.path.join(WBDIR, "wheels")
+WHEELSDIR = os.path.join(WBDIR, "wheelhouse")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")

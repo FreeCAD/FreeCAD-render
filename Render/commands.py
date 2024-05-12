@@ -54,7 +54,6 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.help import open_help
 from Render.materialx import (
     import_materialx,
     open_mxdownloader,
@@ -660,7 +659,7 @@ class HelpCommand:
         This code is executed when the command is run in FreeCAD.
         It creates a new camera into the active document.
         """
-        open_help()
+        # TODO
 
 
 class SettingsCommand:

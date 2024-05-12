@@ -23,38 +23,76 @@
 """This module implements a help viewer for Render workbench."""
 
 import os.path
+import pathlib
+import argparse
+import sys
 
-try:
-    from PySide2.QtWebEngineWidgets import (
-        QWebEngineView,
-        QWebEnginePage,
-        QWebEngineScript,
-    )
-except ModuleNotFoundError:
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-    from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-
-from PySide.QtCore import QUrl
-from PySide.QtGui import QWidget, QToolBar, QVBoxLayout
-
-import FreeCADGui as Gui
-import FreeCAD as App
-
-from Render.constants import WBDIR
+# try:
+# from PySide2.QtWebEngineWidgets import (
+# QWebEngineView,
+# QWebEnginePage,
+# QWebEngineScript,
+# )
+# from PySide2.QtCore import QUrl
+# from PySide2.QtGui import QWidget, QToolBar, QVBoxLayout, QApplication, QMainWindow
+# except ModuleNotFoundError:
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
+from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import (
+    QWidget,
+    QToolBar,
+    QVBoxLayout,
+    QApplication,
+    QMainWindow,
+    QLabel,
+    QTabWidget,
+    QMdiArea,
+)
+from PySide6.QtWebEngineQuick import QtWebEngineQuick
+from PySide6.QtQml import QQmlApplicationEngine
 
 
 class HelpViewer(QWidget):
     """A help viewer widget.
 
-    The help viewer is an html viewer but is able to render (local)markdown
+    The help viewer is an html viewer but is able to render (local) markdown
     files.
     Markdown files are converted on-the-fly, thanks to 'marked.js' module.
     (https://github.com/markedjs/marked)
     """
 
-    def __init__(self, parent=None):
+    SCRIPT_GREASEBLOCK = """\
+    // ==UserScript==
+    // @match file://*/*.md
+    // ==/UserScript==
+    """
+
+    def __init__(self, wbdir, parent=None):
         """Initialize HelpViewer."""
-        assert SCRIPT_JQUERY and SCRIPT_MARKED
+
+        jquery_path = os.path.join(wbdir, "docs", "3rdparty", "jQuery.js")
+        with open(jquery_path, encoding="utf-8") as f:
+            script_jquery_source = self.SCRIPT_GREASEBLOCK + f.read()
+
+        marked_path = os.path.join(wbdir, "docs", "3rdparty", "marked.min.js")
+        with open(marked_path, encoding="utf-8") as f:
+            script_marked_source = self.SCRIPT_GREASEBLOCK + f.read()
+
+        css_path = os.path.join(wbdir, "docs", "3rdparty", "waterlight.css")
+        css_url = QUrl.fromLocalFile(css_path).url()
+
+        script_run_source = (
+            self.SCRIPT_GREASEBLOCK
+            + f"""\
+        $.when( $.ready).then(function() {{
+          var now_body = $("body").text();
+          $("body").html( marked.parse(now_body) );
+          $("head").append('<link rel="stylesheet" href="{css_url}">');
+        }});
+        """
+        )  # Stylesheet credit: https://github.com/kognise/water.css
 
         super().__init__(parent)
 
@@ -63,7 +101,7 @@ class HelpViewer(QWidget):
         # Set subwidgets
         self.toolbar = QToolBar()
         self.layout().addWidget(self.toolbar)
-        self.view = QWebEngineView()
+        self.view = MyViewer()
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
@@ -76,19 +114,21 @@ class HelpViewer(QWidget):
         scripts = self.view.page().scripts()
 
         script_jquery = QWebEngineScript()
-        script_jquery.setSourceCode(SCRIPT_JQUERY)
+        script_jquery.setSourceCode(script_jquery_source)
         script_jquery.setInjectionPoint(QWebEngineScript.DocumentCreation)
         scripts.insert(script_jquery)
 
         script_marked = QWebEngineScript()
-        script_marked.setSourceCode(SCRIPT_MARKED)
+        script_marked.setSourceCode(script_marked_source)
         script_marked.setInjectionPoint(QWebEngineScript.DocumentCreation)
         scripts.insert(script_marked)
 
         script_run = QWebEngineScript()
-        script_run.setSourceCode(SCRIPT_RUN)
+        script_run.setSourceCode(script_run_source)
         script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
         scripts.insert(script_run)
+
+        self.view.page().createWindow = fail
 
     def setUrl(self, url):  # pylint: disable=invalid-name
         """Set viewer url.
@@ -96,10 +136,30 @@ class HelpViewer(QWidget):
         Args:
             url -- url to set viewer to (QUrl)
         """
-        self.view.setUrl(url)
+        self.view.load(url)
 
 
-def open_help():
+def send_message(message_type, message_content):
+    message = f"@@{message_type}@@{message_content}"
+    print(message)
+    sys.stdout.flush()
+
+
+class MyViewer(QWebEngineView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createWindow(self, type):
+        raise RuntimeError()
+        print("createWindow", type)
+        return None
+
+
+def fail():
+    raise RuntimeError()
+
+
+def open_help(workbench_dir):
     """Open a help viewer on Render documentation.
 
     The help files are located in ./docs directory, except the root file, which
@@ -107,47 +167,93 @@ def open_help():
     files, the help is available off-line.
     Help files are in markdown format.
     """
-    if not App.GuiUp:
-        return
+    # app = QApplication(["", "--no-sandbox"])
+    # QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
+    # app = QApplication(["", "--no-sandbox"])
+    QtWebEngineQuick.initialize()
+    app = QGuiApplication()
 
-    viewer = HelpViewer()
-    mdiarea = Gui.getMainWindow().centralWidget()
-    subw = mdiarea.addSubWindow(viewer)
-    subw.setWindowTitle("Render help")
-    subw.setVisible(True)
+    # QCoreApplication.setAttribute(Qt.AA_NativeWindows)
+    # QCoreApplication.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
+    # app = QApplication()
+    # main_window = QMainWindow()
+    # winid = main_window.winId()
+    # send_message("WINID", winid)
+    # input()
+    # print(winid)  # TODO
 
-    path = os.path.join(WBDIR, "README.md")
-    url = QUrl.fromLocalFile(path)
-    viewer.setUrl(url)
-    viewer.show()
+    readme = os.path.join(workbench_dir, "README.md")
+
+    # label = QLabel("Hello")
+    # main_window.setCentralWidget(QMdiArea())
+    # area = main_window.centralWidget()
+    # area.show()
+
+    # winid = view.winId()
+    # # view.setWindowFlags(Qt.FramelessWindowHint | Qt.BypassGraphicsProxyWidget)
+    # send_message("WINID", winid)
+    # input()
+    # view.setUrl(QUrl.fromLocalFile(readme))
+    # print(winid)  # TODO
+
+    # print(f"{view.windowType()=}")
+    # print(f"{view.windowFlags()=}")
+    # # main_window.setCentralWidget(view)
+    # # main_window.setCentralWidget(viewer)
+    # # viewer.show()
+    # # main_window.show()
+    # view.show()
+    # print(view.winId())  # TODO
+    # print(view.winId())  # TODO
+    # send_message("WINID", winid)
+    # input()
+    # main_window.show()
+
+    # area.addSubWindow(QLabel("Hello")).show()
+
+    engine = QQmlApplicationEngine()
+    engine.load(
+        QUrl(
+            "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
+        )
+    )
+    objects = engine.rootObjects()
+    print(objects)
+
+    @Slot()
+    def add_viewer():
+
+        viewer = HelpViewer(workbench_dir, parent=area)
+        viewer.setUrl(QUrl.fromLocalFile(readme))
+        viewer.setVisible(True)
+        area.addSubWindow(viewer)
+        viewer.show()
+
+    @Slot()
+    def send_winid():
+        winid = objects[0].winId()
+        send_message("WINID", winid)
+
+    QTimer.singleShot(5000, send_winid)
+    app.exec()
 
 
-# Init module
-SCRIPT_JQUERY, SCRIPT_MARKED = None, None
+def main():
+    """The entry point."""
+    # Get workbench path from command line arguments
+    parser = argparse.ArgumentParser(
+        prog="Render help",
+        description="Open a help browser for Render Workbench",
+    )
+    parser.add_argument(
+        "path_to_workbench",
+        help="the path to the workbench",
+        type=pathlib.Path,
+    )
+    args = parser.parse_args()
 
-SCRIPT_GREASEBLOCK = """\
-// ==UserScript==
-// @match file://*/*.md
-// ==/UserScript==
-"""
+    open_help(args.path_to_workbench)
 
-JQUERY_PATH = os.path.join(WBDIR, "docs", "3rdparty", "jQuery.js")
-with open(JQUERY_PATH, encoding="utf-8") as f:
-    SCRIPT_JQUERY = SCRIPT_GREASEBLOCK + f.read()
 
-MARKED_PATH = os.path.join(WBDIR, "docs", "3rdparty", "marked.min.js")
-with open(MARKED_PATH, encoding="utf-8") as f:
-    SCRIPT_MARKED = SCRIPT_GREASEBLOCK + f.read()
-
-CSS_PATH = os.path.join(WBDIR, "docs", "3rdparty", "waterlight.css")
-CSS_URL = QUrl.fromLocalFile(CSS_PATH).url()
-SCRIPT_RUN = (
-    SCRIPT_GREASEBLOCK
-    + f"""\
-$.when( $.ready).then(function() {{
-  var now_body = $("body").text();
-  $("body").html( marked.parse(now_body) );
-  $("head").append('<link rel="stylesheet" href="{CSS_URL}">');
-}});
-"""
-)  # Stylesheet credit: https://github.com/kognise/water.css
+# Script
+main()

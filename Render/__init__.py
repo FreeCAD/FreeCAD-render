@@ -26,6 +26,10 @@
 It imports all the public symbols which make up the Render Workbench API.
 """
 
+# First ensure we've got a Python virtual environment
+from Render.virtualenv import ensure_rendervenv  # noqa: F401
+
+ensure_rendervenv()
 
 from Render.constants import (  # noqa: F401
     WBDIR,
@@ -78,7 +82,4 @@ from Render.utils import (  # noqa: F401
 from Render.commands import RENDER_COMMANDS  # noqa: F401
 from Render.prefpage import PreferencesPage  # noqa: F401
 from Render.materialx import import_materialx  # noqa: F401
-from Render.virtualenv import ensure_rendervenv  # noqa: F401
-
-# Ensure we've got a Python virtual environment
-ensure_rendervenv()
+from Render.subcontainer import start_help  # TODO
