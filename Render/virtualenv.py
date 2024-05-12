@@ -128,7 +128,7 @@ def ensure_rendervenv():
                     options=[
                         "--no-warn-script-location",
                         "--only-binary=:all:",
-                        f"--find-links={WHEELSDIR}",
+                        f"--find-links='{WHEELSDIR}'",
                     ],
                     loglevel=1,
                 ): package
@@ -146,6 +146,27 @@ def ensure_rendervenv():
                         f"(return code: {return_code})"
                     )
                     errors[package] = return_code
+
+        # Step 7: Report errors to user
+        if not errors:
+            return
+
+        failed = ", ".join(f"'{p}'" for p in errors.keys())
+        _warn(
+            f"WARNING - The following dependencies could not be installed:"
+            f"{failed}"
+        )
+
+        statement = (
+            f'"{get_venv_python()}" -u -m pip install --prefer-binary '
+            f"--require-virtualenv {failed}"
+        )
+        _warn(
+            "You may try to install those packages on your own with the "
+            "following command-line statement:\n"
+        )
+        App.Console.PrintWarning(f"{statement}\n")
+
     except VenvError as error:
         msg = (
             "[Render][Init] Error - Failed to set virtual environment - "
@@ -324,6 +345,16 @@ def _log(message):
     if message.endswith("\n"):
         message = message[:-1]
     App.Console.PrintLog(f"[Render][Init] {message}\n")
+
+
+def _warn(message):
+    """Log function for Render virtual environment handling."""
+    if not message:
+        return
+    # Trim ending newline
+    if message.endswith("\n"):
+        message = message[:-1]
+    App.Console.PrintWarning(f"[Render][Init] {message}\n")
 
 
 def _binpath():
