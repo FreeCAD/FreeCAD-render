@@ -227,31 +227,31 @@ def open_help(workbench_dir):
     # area.addSubWindow(QLabel("Hello")).show()
 
     # Via QQmlApplicationEngine
-    @Slot()
-    def send_winid_qml():
-        objects = engine.rootObjects()
-        print("Objects:", objects)
-        winid = objects[0].winId()
-        send_message("WINID", winid)
+    # @Slot()
+    # def send_winid_qml():
+    # objects = engine.rootObjects()
+    # print("Objects:", objects)
+    # winid = objects[0].winId()
+    # send_message("WINID", winid)
 
-    @Slot()
-    def send_winid_wigdet():
-        objects = engine.rootObjects()
-        print("Objects:", objects)
-        winid = objects[0].winId()
-        send_message("WINID", winid)
+    # @Slot()
+    # def send_winid_wigdet():
+    # objects = engine.rootObjects()
+    # print("Objects:", objects)
+    # winid = objects[0].winId()
+    # send_message("WINID", winid)
 
-    QML = False
-    if QML:
-        QtWebEngineQuick.initialize()
-        app = QGuiApplication()
-        engine = QQmlApplicationEngine()
-        engine.load(
-            QUrl(
-                "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
-            )
-        )
-        QTimer.singleShot(5000, send_winid_qml)
+    # QML = False
+    # if QML:
+    # QtWebEngineQuick.initialize()
+    # app = QGuiApplication()
+    # engine = QQmlApplicationEngine()
+    # engine.load(
+    # QUrl(
+    # "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
+    # )
+    # )
+    # QTimer.singleShot(5000, send_winid_qml)
 
     # Via widget
     @Slot()
@@ -265,11 +265,10 @@ def open_help(workbench_dir):
         winid = mainwindow.winId()
         send_message("WINID", winid)
 
-    if not QML:
-        app = QApplication()
-        mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
-        mainwindow.show()
-        QTimer.singleShot(0, add_viewer)
+    app = QApplication()
+    mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
+    mainwindow.show()
+    QTimer.singleShot(0, add_viewer)
 
     if PYSIDE6:
         app.exec()

@@ -114,7 +114,8 @@ def create_window(winid, worker):
     )
 
     subw = mdiarea.addSubWindow(container)
-    container.setParent(subw)
+    print(subw, subw.parent())
+    # print(container.parent().parent())
     subw.setOption(QMdiSubWindow.RubberBandResize, on=False)
     subw.show()
 
