@@ -27,9 +27,7 @@ import pathlib
 import argparse
 import sys
 
-PYSIDE6 = False
-
-if PYSIDE6:
+try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
     from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
@@ -46,8 +44,14 @@ if PYSIDE6:
     )
     from PySide6.QtWebEngineQuick import QtWebEngineQuick
     from PySide6.QtQml import QQmlApplicationEngine
-else:
-    from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineScript, QWebEnginePage
+
+    PYSIDE6 = True
+except ModuleNotFoundError:
+    from PySide2.QtWebEngineWidgets import (
+        QWebEngineView,
+        QWebEngineScript,
+        QWebEnginePage,
+    )
     from PySide2.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
     from PySide2.QtGui import QGuiApplication, QWindow
     from PySide2.QtWidgets import (
@@ -60,9 +64,10 @@ else:
         QTabWidget,
         QMdiArea,
     )
+
+    PYSIDE6 = False
     # from PySide2.QtWebEngineQuick import QtWebEngineQuick
     # from PySide2.QtQml import QQmlApplicationEngine
-
 
 
 class HelpViewer(QWidget):
