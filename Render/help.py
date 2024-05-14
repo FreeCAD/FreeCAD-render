@@ -27,31 +27,42 @@ import pathlib
 import argparse
 import sys
 
-# try:
-# from PySide2.QtWebEngineWidgets import (
-# QWebEngineView,
-# QWebEnginePage,
-# QWebEngineScript,
-# )
-# from PySide2.QtCore import QUrl
-# from PySide2.QtGui import QWidget, QToolBar, QVBoxLayout, QApplication, QMainWindow
-# except ModuleNotFoundError:
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
-from PySide6.QtGui import QGuiApplication, QWindow
-from PySide6.QtWidgets import (
-    QWidget,
-    QToolBar,
-    QVBoxLayout,
-    QApplication,
-    QMainWindow,
-    QLabel,
-    QTabWidget,
-    QMdiArea,
-)
-from PySide6.QtWebEngineQuick import QtWebEngineQuick
-from PySide6.QtQml import QQmlApplicationEngine
+PYSIDE6 = False
+
+if PYSIDE6:
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
+    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
+    from PySide6.QtGui import QGuiApplication, QWindow
+    from PySide6.QtWidgets import (
+        QWidget,
+        QToolBar,
+        QVBoxLayout,
+        QApplication,
+        QMainWindow,
+        QLabel,
+        QTabWidget,
+        QMdiArea,
+    )
+    from PySide6.QtWebEngineQuick import QtWebEngineQuick
+    from PySide6.QtQml import QQmlApplicationEngine
+else:
+    from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineScript, QWebEnginePage
+    from PySide2.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
+    from PySide2.QtGui import QGuiApplication, QWindow
+    from PySide2.QtWidgets import (
+        QWidget,
+        QToolBar,
+        QVBoxLayout,
+        QApplication,
+        QMainWindow,
+        QLabel,
+        QTabWidget,
+        QMdiArea,
+    )
+    # from PySide2.QtWebEngineQuick import QtWebEngineQuick
+    # from PySide2.QtQml import QQmlApplicationEngine
+
 
 
 class HelpViewer(QWidget):
@@ -254,7 +265,10 @@ def open_help(workbench_dir):
         mainwindow.show()
         QTimer.singleShot(0, add_viewer)
 
-    app.exec()
+    if PYSIDE6:
+        app.exec()
+    else:
+        app.exec_()
 
 
 def main():
