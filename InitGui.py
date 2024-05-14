@@ -126,4 +126,3 @@ static char * Render_xpm[] = {
 
 
 Gui.addWorkbench(RenderWorkbench)
-Gui.doCommand("import Render")
