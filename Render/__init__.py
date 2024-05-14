@@ -83,3 +83,10 @@ from Render.commands import RENDER_COMMANDS  # noqa: F401
 from Render.prefpage import PreferencesPage  # noqa: F401
 from Render.materialx import import_materialx  # noqa: F401
 from Render.subcontainer import start_help  # TODO
+
+import FreeCAD as App
+
+if App.GuiUp:
+    import FreeCADGui as Gui
+
+    Gui.doCommand("import Render")
