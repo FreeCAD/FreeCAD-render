@@ -107,12 +107,12 @@ class HelpViewer(QWidget):
 
         super().__init__(parent)
 
-        self.setLayout(QVBoxLayout())
+        self.setLayout(QVBoxLayout(self))
 
         # Set subwidgets
-        self.toolbar = QToolBar()
+        self.toolbar = QToolBar(self)
         self.layout().addWidget(self.toolbar)
-        self.view = MyViewer()
+        self.view = MyViewer(self)
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
@@ -139,6 +139,7 @@ class HelpViewer(QWidget):
         script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
         scripts.insert(script_run)
 
+        # TODO
         self.view.page().createWindow = fail
 
     def setUrl(self, url):  # pylint: disable=invalid-name
@@ -251,17 +252,17 @@ def open_help(workbench_dir):
     @Slot()
     def add_viewer():
         # window = QWindow()
-        viewer = HelpViewer(workbench_dir, parent=None)
+        viewer = HelpViewer(workbench_dir, parent=mainwindow)
         viewer.setUrl(QUrl.fromLocalFile(readme))
         viewer.setVisible(True)
         mainwindow.setCentralWidget(viewer)
-        viewer.show()
+        viewer.showMaximized()
         winid = mainwindow.winId()
         send_message("WINID", winid)
 
     if not QML:
         app = QApplication()
-        mainwindow = QMainWindow()
+        mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         mainwindow.show()
         QTimer.singleShot(0, add_viewer)
 

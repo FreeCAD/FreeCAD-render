@@ -82,7 +82,9 @@ class SubprocessWorker(QObject):
                 message_type, message_content, *_ = groups
                 self.dispatch_message(message_type, message_content)
             else:
-                print("[Render][Sub] " + str(line, encoding="utf-8"))
+                print("[Render][Sub] " + str(line, encoding="latin-1"))
+                # TODO
+                # print("[Render][Sub] " + str(line, encoding="utf-8"))
 
     def dispatch_message(self, command, message):
         if command == b"WINID":
@@ -112,7 +114,11 @@ def create_window(winid, worker):
     )
 
     subw = mdiarea.addSubWindow(container)
+    container.setParent(subw)
+    subw.setOption(QMdiSubWindow.RubberBandResize, on=False)
+    subw.show()
 
+    container.showMaximized()
     container.show()
     worker.write_to_process.emit(b"@@START@@")
 
