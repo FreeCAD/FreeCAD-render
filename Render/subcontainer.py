@@ -14,7 +14,7 @@ from PySide.QtCore import (
     QByteArray,
 )
 from PySide.QtWidgets import QWidget, QLabel
-from PySide.QtGui import QWindow, QMdiSubWindow
+from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
 
 import FreeCADGui as Gui
 import FreeCAD as App
@@ -64,13 +64,6 @@ class SubprocessWorker(QObject):
 
         loop.exec_()
 
-        # # Read process window id
-        # win_id, _ = raw.toLongLong()
-        # print(win_id)
-        # sys.stdout.flush()  # TODO What for?
-
-        # Create window
-        # TODO rename variable (more explicit...)
         self.process.terminate()
 
     @Slot()
@@ -106,21 +99,21 @@ class SubprocessWorker(QObject):
 def create_window(winid, worker):
     mdiarea = Gui.getMainWindow().centralWidget()
 
-    window = QWindow.fromWinId(winid)
-    container = QWidget.createWindowContainer(
-        window, mdiarea, Qt.FramelessWindowHint | Qt.Window
+    all_windows = QGuiApplication.instance().allWindows()
+    main_qwindow = next(
+        w
+        for w in all_windows
+        if w.objectName() == "Gui::MainWindowClassWindow"
     )
 
-    subw = QMdiSubWindow()
-    subw.setAttribute(Qt.WA_DeleteOnClose)  # Very important
-    # subw.layout().addWidget(container)
-    subw.setWidget(container)
-    mdiarea.addSubWindow(subw)
+    window = QWindow.fromWinId(winid)
+    container = QWidget.createWindowContainer(
+        window, None, Qt.FramelessWindowHint | Qt.Window
+    )
 
-    window.show()
+    subw = mdiarea.addSubWindow(container)
+
     container.show()
-    subw.show()
-
     worker.write_to_process.emit(b"@@START@@")
 
 

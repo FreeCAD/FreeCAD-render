@@ -39,7 +39,7 @@ import sys
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
 from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QWindow
 from PySide6.QtWidgets import (
     QWidget,
     QToolBar,
@@ -170,8 +170,6 @@ def open_help(workbench_dir):
     # app = QApplication(["", "--no-sandbox"])
     # QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     # app = QApplication(["", "--no-sandbox"])
-    QtWebEngineQuick.initialize()
-    app = QGuiApplication()
 
     # QCoreApplication.setAttribute(Qt.AA_NativeWindows)
     # QCoreApplication.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
@@ -211,30 +209,51 @@ def open_help(workbench_dir):
 
     # area.addSubWindow(QLabel("Hello")).show()
 
-    engine = QQmlApplicationEngine()
-    engine.load(
-        QUrl(
-            "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
-        )
-    )
-    objects = engine.rootObjects()
-    print(objects)
-
+    # Via QQmlApplicationEngine
     @Slot()
-    def add_viewer():
-
-        viewer = HelpViewer(workbench_dir, parent=area)
-        viewer.setUrl(QUrl.fromLocalFile(readme))
-        viewer.setVisible(True)
-        area.addSubWindow(viewer)
-        viewer.show()
-
-    @Slot()
-    def send_winid():
+    def send_winid_qml():
+        objects = engine.rootObjects()
+        print("Objects:", objects)
         winid = objects[0].winId()
         send_message("WINID", winid)
 
-    QTimer.singleShot(5000, send_winid)
+    @Slot()
+    def send_winid_wigdet():
+        objects = engine.rootObjects()
+        print("Objects:", objects)
+        winid = objects[0].winId()
+        send_message("WINID", winid)
+
+    QML = False
+    if QML:
+        QtWebEngineQuick.initialize()
+        app = QGuiApplication()
+        engine = QQmlApplicationEngine()
+        engine.load(
+            QUrl(
+                "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
+            )
+        )
+        QTimer.singleShot(5000, send_winid_qml)
+
+    # Via widget
+    @Slot()
+    def add_viewer():
+        # window = QWindow()
+        viewer = HelpViewer(workbench_dir, parent=None)
+        viewer.setUrl(QUrl.fromLocalFile(readme))
+        viewer.setVisible(True)
+        mainwindow.setCentralWidget(viewer)
+        viewer.show()
+        winid = mainwindow.winId()
+        send_message("WINID", winid)
+
+    if not QML:
+        app = QApplication()
+        mainwindow = QMainWindow()
+        mainwindow.show()
+        QTimer.singleShot(0, add_viewer)
+
     app.exec()
 
 
@@ -255,5 +274,7 @@ def main():
     open_help(args.path_to_workbench)
 
 
-# Script
-main()
+if __name__ == "__main__":
+    print("Starting help")  # TODO
+    # Script
+    main()
