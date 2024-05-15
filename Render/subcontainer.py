@@ -22,53 +22,32 @@ import FreeCAD as App
 from Render.constants import WBDIR, PKGDIR
 from Render.virtualenv import get_venv_python
 
-from Render.rdrexecutor import RendererExecutor
 
 # From:
 # https://stackoverflow.com/questions/40348044/executing-a-qt-application-inside-qt-application
 
 
-class SubprocessWorker(QObject):
+class PythonSubprocess(QProcess):
 
-    finished = Signal(int)
-    create_window = Signal(int, QProcess)
-    write_to_process = Signal(bytes)
+    winid_available = Signal(int)
 
-    def __init__(self, python, args):
-        super().__init__()
-        self.python = python
-        self.args = args
-        self.process = None
+    def __init__(self, python, args, parent=None):
+        super().__init__(parent)
 
-    def run(self):
-        loop = QEventLoop()
+        # Set program and arguments
+        self.setProgram(python)
+        self.setArguments(args)
 
-        # Get central widget
-        mdiarea = Gui.getMainWindow().centralWidget()
-
-        # Prepare process
-        self.process = QProcess()
-        self.process.setReadChannel(QProcess.StandardOutput)
-        self.process.setProcessChannelMode(
-            QProcess.ProcessChannelMode.MergedChannels
-        )
+        # Set channel processing
+        self.setReadChannel(QProcess.StandardOutput)
+        self.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
 
         # Connect signals
-        self.process.readyRead.connect(self.handle_input)
-        self.process.finished.connect(loop.exit, Qt.QueuedConnection)
-        self.write_to_process.connect(self.write)
-
-        # Start process
-        self.process.start(self.python, self.args)
-        started = self.process.waitForStarted()
-
-        loop.exec_()
-
-        self.process.terminate()
+        self.readyRead.connect(self._handle_input)
 
     @Slot()
-    def handle_input(self):
-        raw = self.process.readAllStandardOutput()
+    def _handle_input(self):
+        raw = self.readAllStandardOutput()
         lines = raw.split("\n")
         for line in lines:
             if not line:
@@ -80,48 +59,59 @@ class SubprocessWorker(QObject):
                     App.Console.PrintError("Malformed process message")
                     continue
                 message_type, message_content, *_ = groups
-                self.dispatch_message(message_type, message_content)
+                self._dispatch_message(message_type, message_content)
             else:
-                print("[Render][Sub] " + str(line, encoding="latin-1"))
-                # TODO
-                # print("[Render][Sub] " + str(line, encoding="utf-8"))
+                print("[Render][Sub] " + str(line, encoding="latin-1"))  # TODO
 
-    def dispatch_message(self, command, message):
+    def _dispatch_message(self, command, message):
         if command == b"WINID":
             winid, _ = QByteArray(message).toLongLong()
-            self.create_window.emit(winid, self)
+            self.winid_available.emit(winid)
 
     @Slot(bytes)
     def write(self, message):
-        res = self.process.write(message + b"\n")
+        res = super().write(message + b"\n")
         print(res)
 
 
-@Slot(int, SubprocessWorker)
-def create_window(winid, worker):
-    mdiarea = Gui.getMainWindow().centralWidget()
+class PythonSubprocessWindow(QMdiSubWindow):
+    def __init__(self, python, args):
+        super().__init__()  # Parent will be set at start
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.process = PythonSubprocess(python, args, parent=self)
 
-    all_windows = QGuiApplication.instance().allWindows()
-    main_qwindow = next(
-        w
-        for w in all_windows
-        if w.objectName() == "Gui::MainWindowClassWindow"
-    )
+        self.container = None
 
-    window = QWindow.fromWinId(winid)
-    container = QWidget.createWindowContainer(
-        window, None, Qt.FramelessWindowHint | Qt.Window
-    )
+        # Signal/slot connections
+        self.process.winid_available.connect(self.attach_process)
 
-    subw = mdiarea.addSubWindow(container)
-    print(subw, subw.parent())
-    # print(container.parent().parent())
-    subw.setOption(QMdiSubWindow.RubberBandResize, on=False)
-    subw.show()
+    def __del__(self):
+        if self.process:
+            self.process.terminate()
+            finished = self.process.waitForFinished()
+            if not finished:
+                self.process.kill()
+                self.process.waitForFinished()
 
-    container.showMaximized()
-    container.show()
-    worker.write_to_process.emit(b"@@START@@")
+    def start(self):
+        self.process.start()
+        mdiarea = Gui.getMainWindow().centralWidget()
+        mdiarea.addSubWindow(self)
+
+    @Slot(int)
+    def attach_process(self, winid):
+        # Create and embed container
+        self.container = QWidget.createWindowContainer(
+            QWindow.fromWinId(winid),
+            None,
+            Qt.FramelessWindowHint
+            | Qt.ForeignWindow
+            | Qt.X11BypassWindowManagerHint,
+        )
+        self.setWidget(self.container)
+        self.show()
+
+        self.process.write(b"@@START@@")
 
 
 def start_subapp(script, options=None):
@@ -133,10 +123,8 @@ def start_subapp(script, options=None):
     python = get_venv_python()
     args = ["-u", script] + options
 
-    worker = SubprocessWorker(python, args)
-    worker.create_window.connect(create_window)
-    executor = RendererExecutor(worker)
-    executor.start()
+    subw = PythonSubprocessWindow(python, args)
+    subw.start()
 
 
 def start_help():
