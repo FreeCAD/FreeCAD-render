@@ -507,9 +507,8 @@ class RendererHandler:
         rends = renderables.check_renderables(rends)
 
         # Rescale to meters
-        if not self.skip_meshing:
-            for rend in rends:
-                rend.mesh.convert_distances(SCALE)
+        for rend in rends:
+            rend.mesh.convert_distances(SCALE, self.skip_meshing)
 
         # Call renderer on renderables, concatenate and return
         write_mesh = functools.partial(

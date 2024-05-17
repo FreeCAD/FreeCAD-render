@@ -258,9 +258,14 @@ class RenderMeshBase:
     #                               Rescaling                                #
     ##########################################################################
 
-    def convert_distances(self, ratio):
+    def convert_distances(self, ratio, skip_meshing):
         """Convert mesh distances (points, translation) with ratio."""
-        self._scale_points(ratio)
+        if not skip_meshing:
+            # In case of skip_meshing, point scaling has already been done
+            # At first step
+            self._scale_points(ratio)
+
+        # In all cases, however, transformation has to be scaled
         self.__transformation.convert_distances(ratio)
 
     def _scale_points(self, ratio):
