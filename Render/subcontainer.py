@@ -101,13 +101,16 @@ class PythonSubprocessWindow(QMdiSubWindow):
     @Slot(int)
     def attach_process(self, winid):
         # Create and embed container
+        window = QWindow.fromWinId(winid)
+        window.setObjectName("RenderWindowFromWinid")
         self.container = QWidget.createWindowContainer(
-            QWindow.fromWinId(winid),
+            window,
             None,
             Qt.FramelessWindowHint
             | Qt.ForeignWindow
             | Qt.X11BypassWindowManagerHint,
         )
+        self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
         self.show()
 
