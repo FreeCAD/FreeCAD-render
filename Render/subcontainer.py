@@ -96,19 +96,21 @@ class PythonSubprocessWindow(QMdiSubWindow):
     def start(self):
         self.process.start()
         mdiarea = Gui.getMainWindow().centralWidget()
+        if not mdiarea.subWindowList():
+            # Hack: if we don't do that, FreeCAD crashes at next "newDocument"
+            # I haven't found out the reason of the crash, but the following
+            # open/close trick will avoid that
+            doc = App.newDocument()
+            App.closeDocument(doc.Name)
         mdiarea.addSubWindow(self)
 
     @Slot(int)
     def attach_process(self, winid):
         # Create and embed container
-        window = QWindow.fromWinId(winid)
-        window.setObjectName("RenderWindowFromWinid")
+        self.window = QWindow.fromWinId(winid)
+        self.window.setObjectName("RenderWindowFromWinid")
         self.container = QWidget.createWindowContainer(
-            window,
-            None,
-            Qt.FramelessWindowHint
-            | Qt.ForeignWindow
-            | Qt.X11BypassWindowManagerHint,
+            self.window, None, Qt.FramelessWindowHint | Qt.ForeignWindow
         )
         self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
