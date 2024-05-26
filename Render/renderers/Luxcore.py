@@ -242,6 +242,8 @@ def write_sunskylight(
         gain = 1.0
     elif gain_preset == "Mitigated":
         gain = 0.00003
+    elif gain_preset == "Interior":
+        gain = 0.001
     elif gain_preset == "Custom":
         gain = kwargs.get("CustomGain")
     else:

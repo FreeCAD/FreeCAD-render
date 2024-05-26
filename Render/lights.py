@@ -337,11 +337,13 @@ class SunskyLight(FeatureBase):
                 "App::Property",
                 "The gain preset to use for sun & sky (Luxcore only):\n"
                 "* 'Physical' yields accurate real light power, needing tone "
-                "mapping\n"
+                "mapping or camera advanced settings\n"
                 "* 'Mitigated' allows to render without tone mapping\n"
+                "* 'Interior' is intended for interior scenes "
+                "(through glass...)\n"
                 "* 'Custom' gives full control on gain value",
             ),
-            ("Mitigated", "Physical", "Custom"),
+            ("Mitigated", "Physical", "Interior", "Custom"),
             0,
         ),
         "LuxcoreCustomGain": Prop(
