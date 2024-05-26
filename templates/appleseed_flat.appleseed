@@ -34,7 +34,6 @@
             </parameters>
             <parameters name="pt">
                 <parameter name="dl_light_samples" value="1.000000" />
-                <parameter name="enable_caustics" value="false" />
                 <parameter name="enable_dl" value="true" />
                 <parameter name="enable_ibl" value="true" />
                 <parameter name="ibl_env_samples" value="1.000000" />
@@ -45,7 +44,6 @@
             <parameters name="sppm">
                 <parameter name="alpha" value="0.700000" />
                 <parameter name="dl_mode" value="rt" />
-                <parameter name="enable_caustics" value="true" />
                 <parameter name="enable_ibl" value="true" />
                 <parameter name="env_photons_per_pass" value="1000000" />
                 <parameter name="initial_radius" value="0.100000" />
@@ -68,7 +66,6 @@
             <parameter name="sampling_mode" value="qmc" />
             <parameters name="pt">
                 <parameter name="dl_light_samples" value="1.000000" />
-                <parameter name="enable_caustics" value="false" />
                 <parameter name="enable_dl" value="true" />
                 <parameter name="enable_ibl" value="true" />
                 <parameter name="ibl_env_samples" value="1.000000" />

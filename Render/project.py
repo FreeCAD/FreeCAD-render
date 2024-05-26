@@ -233,6 +233,17 @@ class Project(FeatureBase):
             ),
             False,
         ),
+        "AppleseedUseCaustics": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Activate caustics in Appleseed (usefull for interior scenes "
+                "ligthened by external light sources through glass)\n"
+                "SPECIFIC TO APPLESEED",
+            ),
+            False,
+        ),
     }
 
     ON_CHANGED = {
