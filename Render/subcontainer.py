@@ -1,4 +1,39 @@
-# TODO license etc.
+# ***************************************************************************
+# *                                                                         *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
+# *                                                                         *
+# *   This program is free software; you can redistribute it and/or modify  *
+# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
+# *   as published by the Free Software Foundation; either version 2 of     *
+# *   the License, or (at your option) any later version.                   *
+# *   for detail see the LICENCE text file.                                 *
+# *                                                                         *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+# *   GNU Library General Public License for more details.                  *
+# *                                                                         *
+# *   You should have received a copy of the GNU Library General Public     *
+# *   License along with this program; if not, write to the Free Software   *
+# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
+# *   USA                                                                   *
+# *                                                                         *
+# ***************************************************************************
+
+"""This module allows to embed an external application in FreeCAD
+
+It is firstly intended to embed QtWebEngine features, following the
+removal of QtWebEngine from FreeCAD dependencies (May 2024).
+This module reduces Render dependencies to FreeCAD and PySide.
+"""
+
+# A few design comments:
+# - Communication between Render and embedded app is done by pipes
+# - For a reason I couldn't clarify, the subwindow to embed the external
+#   application cannot be the first one created in the MDI, otherwise when a
+#   new document is created, FreeCAD crashes. So I had to introduce a (bad)
+#   workaround when the view list is empty (create and immediately destroy
+#   a dummy doc...)
 
 import os
 import sys
@@ -28,6 +63,7 @@ from Render.virtualenv import get_venv_python
 
 
 class PythonSubprocess(QProcess):
+    """A helper to run a Python script as a subprocess."""
 
     winid_available = Signal(int)
 
@@ -47,6 +83,12 @@ class PythonSubprocess(QProcess):
 
     @Slot()
     def _handle_input(self):
+        """Handle subprocess messages, piped to subprocess stdout.
+
+        If subprocess output is recognized as a message, it is parsed
+        and transmitted to dispatch_message.
+        """
+
         raw = self.readAllStandardOutput()
         lines = raw.split("\n")
         for line in lines:
@@ -59,19 +101,19 @@ class PythonSubprocess(QProcess):
                     App.Console.PrintError("Malformed process message")
                     continue
                 message_type, message_content, *_ = groups
-                self._dispatch_message(message_type, message_content)
+                self.dispatch_message(message_type, message_content)
             else:
                 print("[Render][Sub] " + str(line, encoding="latin-1"))  # TODO
 
-    def _dispatch_message(self, command, message):
+    def dispatch_message(self, command, message):
         if command == b"WINID":
             winid, _ = QByteArray(message).toLongLong()
             self.winid_available.emit(winid)
 
     @Slot(bytes)
     def write(self, message):
+        """Write a message to subprocess."""
         res = super().write(message + b"\n")
-        print(res)
 
 
 class PythonSubprocessWindow(QMdiSubWindow):
@@ -102,6 +144,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
             # open/close trick will avoid that
             doc = App.newDocument()
             App.closeDocument(doc.Name)
+        self.setWindowTitle("Render")
         mdiarea.addSubWindow(self)
 
     @Slot(int)
