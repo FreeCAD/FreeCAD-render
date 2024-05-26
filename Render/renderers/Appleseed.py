@@ -1461,6 +1461,16 @@ def render(
     if denoise:
         set_denoiser(root)
 
+    # Use caustics if required
+    caustics = (
+        "true" if getattr(project, "AppleseedUseCaustics", False) else "false"
+    )
+    root = set_config_param(
+        root, "interactive", "pt", "enable_caustics", caustics
+    )
+    root = set_config_param(root, "final", "pt", "enable_caustics", caustics)
+    root = set_config_param(root, "final", "sppm", "enable_caustics", caustics)
+
     # Template update
     template = et.tostring(root, encoding="unicode", xml_declaration=True)
 
