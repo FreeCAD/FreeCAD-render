@@ -158,13 +158,13 @@ class PythonSubprocessWindow(QMdiSubWindow):
         finished = self.process.waitForFinished(3000)
         if not finished:
             App.Console.PrintWarning(
-                "[Render][Sub] Subprocess quit timeout, ask for termination"
+                "[Render][Sub] Subprocess quit timeout, ask for termination\n"
             )
             self.process.terminate()
             finished = self.process.waitForFinished(3000)
             if not finished:
                 App.Console.PrintWarning(
-                    "[Render][Sub] Subprocess terminate timeout, have to kill it"
+                    "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
                 )
                 self.process.kill()
 
