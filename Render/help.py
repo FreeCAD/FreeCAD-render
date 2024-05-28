@@ -30,7 +30,14 @@ import sys
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
+    from PySide6.QtCore import (
+        QUrl,
+        Qt,
+        QTimer,
+        Slot,
+        QCoreApplication,
+        QSocketNotifier,
+    )
     from PySide6.QtGui import QGuiApplication, QWindow
     from PySide6.QtWidgets import (
         QWidget,
@@ -52,7 +59,14 @@ except ModuleNotFoundError:
         QWebEngineScript,
         QWebEnginePage,
     )
-    from PySide2.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
+    from PySide2.QtCore import (
+        QUrl,
+        Qt,
+        QTimer,
+        Slot,
+        QCoreApplication,
+        QSocketNotifier,
+    )
     from PySide2.QtGui import QGuiApplication, QWindow
     from PySide2.QtWidgets import (
         QWidget,
@@ -66,8 +80,6 @@ except ModuleNotFoundError:
     )
 
     PYSIDE6 = False
-    # from PySide2.QtWebEngineQuick import QtWebEngineQuick
-    # from PySide2.QtQml import QQmlApplicationEngine
 
 
 class HelpViewer(QWidget):
@@ -117,7 +129,7 @@ class HelpViewer(QWidget):
         # Set subwidgets
         self.toolbar = QToolBar(self)
         self.layout().addWidget(self.toolbar)
-        self.view = MyViewer(self)
+        self.view = QWebEngineView(self)
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
@@ -144,9 +156,6 @@ class HelpViewer(QWidget):
         script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
         scripts.insert(script_run)
 
-        # TODO
-        self.view.page().createWindow = fail
-
     def setUrl(self, url):  # pylint: disable=invalid-name
         """Set viewer url.
 
@@ -162,20 +171,6 @@ def send_message(message_type, message_content):
     sys.stdout.flush()
 
 
-class MyViewer(QWebEngineView):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def createWindow(self, type):
-        raise RuntimeError()
-        print("createWindow", type)
-        return None
-
-
-def fail():
-    raise RuntimeError()
-
-
 def open_help(workbench_dir):
     """Open a help viewer on Render documentation.
 
@@ -184,79 +179,10 @@ def open_help(workbench_dir):
     files, the help is available off-line.
     Help files are in markdown format.
     """
-    # app = QApplication(["", "--no-sandbox"])
-    # QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
-    # app = QApplication(["", "--no-sandbox"])
-
-    # QCoreApplication.setAttribute(Qt.AA_NativeWindows)
-    # QCoreApplication.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
-    # app = QApplication()
-    # main_window = QMainWindow()
-    # winid = main_window.winId()
-    # send_message("WINID", winid)
-    # input()
-    # print(winid)  # TODO
-
     readme = os.path.join(workbench_dir, "README.md")
 
-    # label = QLabel("Hello")
-    # main_window.setCentralWidget(QMdiArea())
-    # area = main_window.centralWidget()
-    # area.show()
-
-    # winid = view.winId()
-    # # view.setWindowFlags(Qt.FramelessWindowHint | Qt.BypassGraphicsProxyWidget)
-    # send_message("WINID", winid)
-    # input()
-    # view.setUrl(QUrl.fromLocalFile(readme))
-    # print(winid)  # TODO
-
-    # print(f"{view.windowType()=}")
-    # print(f"{view.windowFlags()=}")
-    # # main_window.setCentralWidget(view)
-    # # main_window.setCentralWidget(viewer)
-    # # viewer.show()
-    # # main_window.show()
-    # view.show()
-    # print(view.winId())  # TODO
-    # print(view.winId())  # TODO
-    # send_message("WINID", winid)
-    # input()
-    # main_window.show()
-
-    # area.addSubWindow(QLabel("Hello")).show()
-
-    # Via QQmlApplicationEngine
-    # @Slot()
-    # def send_winid_qml():
-    # objects = engine.rootObjects()
-    # print("Objects:", objects)
-    # winid = objects[0].winId()
-    # send_message("WINID", winid)
-
-    # @Slot()
-    # def send_winid_wigdet():
-    # objects = engine.rootObjects()
-    # print("Objects:", objects)
-    # winid = objects[0].winId()
-    # send_message("WINID", winid)
-
-    # QML = False
-    # if QML:
-    # QtWebEngineQuick.initialize()
-    # app = QGuiApplication()
-    # engine = QQmlApplicationEngine()
-    # engine.load(
-    # QUrl(
-    # "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
-    # )
-    # )
-    # QTimer.singleShot(5000, send_winid_qml)
-
-    # Via widget
     @Slot()
     def add_viewer():
-        # window = QWindow()
         viewer = HelpViewer(workbench_dir, parent=mainwindow)
         viewer.setUrl(QUrl.fromLocalFile(readme))
         viewer.setVisible(True)
@@ -265,9 +191,18 @@ def open_help(workbench_dir):
         winid = mainwindow.winId()
         send_message("WINID", winid)
 
+    @Slot()
+    def get_input():
+        data = input()
+        if data == "@@QUIT@@":
+            QCoreApplication.instance().shutdown()
+
     app = QApplication()
     mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
     mainwindow.show()
+    socket = QSocketNotifier(sys.stdin.fileno(), QSocketNotifier.Read)
+    socket.setEnabled(True)
+    socket.activated.connect(get_input)
     QTimer.singleShot(0, add_viewer)
 
     if PYSIDE6:
@@ -294,6 +229,6 @@ def main():
 
 
 if __name__ == "__main__":
-    print("Starting help")  # TODO
+    print("Starting help")
     # Script
     main()
