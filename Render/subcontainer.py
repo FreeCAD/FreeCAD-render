@@ -127,14 +127,6 @@ class PythonSubprocessWindow(QMdiSubWindow):
         # Signal/slot connections
         self.process.winid_available.connect(self.attach_process)
 
-    def __del__(self):
-        if self.process:
-            self.process.terminate()
-            finished = self.process.waitForFinished()
-            if not finished:
-                self.process.kill()
-                self.process.waitForFinished()
-
     def start(self):
         self.process.start()
         mdiarea = Gui.getMainWindow().centralWidget()
@@ -160,6 +152,21 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.show()
 
         self.process.write(b"@@START@@")
+
+    def closeEvent(self, event):
+        self.process.write(b"@@QUIT@@")
+        finished = self.process.waitForFinished(3000)
+        if not finished:
+            App.Console.PrintWarning(
+                "[Render][Sub] Subprocess quit timeout, ask for termination"
+            )
+            self.process.terminate()
+            finished = self.process.waitForFinished(3000)
+            if not finished:
+                App.Console.PrintWarning(
+                    "[Render][Sub] Subprocess terminate timeout, have to kill it"
+                )
+                self.process.kill()
 
 
 def start_subapp(script, options=None):
