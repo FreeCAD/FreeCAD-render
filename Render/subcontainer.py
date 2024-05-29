@@ -154,19 +154,13 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.process.write(b"@@START@@")
 
     def closeEvent(self, event):
-        self.process.write(b"@@QUIT@@")
+        self.process.terminate()
         finished = self.process.waitForFinished(3000)
         if not finished:
             App.Console.PrintWarning(
-                "[Render][Sub] Subprocess quit timeout, ask for termination\n"
+                "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
             )
-            self.process.terminate()
-            finished = self.process.waitForFinished(3000)
-            if not finished:
-                App.Console.PrintWarning(
-                    "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
-                )
-                self.process.kill()
+            self.process.kill()
 
 
 def start_subapp(script, options=None):

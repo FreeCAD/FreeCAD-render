@@ -26,6 +26,7 @@ import os.path
 import pathlib
 import argparse
 import sys
+import signal
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -265,15 +266,17 @@ def open_help(workbench_dir):
         winid = mainwindow.winId()
         send_message("WINID", winid)
 
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
     app = QApplication()
     mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
     mainwindow.show()
     QTimer.singleShot(0, add_viewer)
 
     if PYSIDE6:
-        app.exec()
+        sys.exit(app.exec())
     else:
-        app.exec_()
+        sys.exit(app.exec_())
 
 
 def main():
