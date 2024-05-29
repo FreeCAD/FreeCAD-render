@@ -170,7 +170,6 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
 
 def start_subapp(script, options=None):
-    global subw
     # Process arguments
     script = str(script)
     options = options or []
@@ -181,11 +180,6 @@ def start_subapp(script, options=None):
 
     subw = PythonSubprocessWindow(python, args)
     subw.start()
-
-
-def write_to_help(msg):
-    global subw
-    subw.process.write(msg)
 
 
 def start_help():
