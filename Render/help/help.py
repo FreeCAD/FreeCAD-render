@@ -59,6 +59,9 @@ except ModuleNotFoundError:
     PYSIDE6 = False
 
 
+THISDIR = os.path.dirname(__file__)
+
+
 class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
     """A help viewer widget.
 
@@ -74,7 +77,7 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
     // ==/UserScript==
     """
 
-    def __init__(self, wbdir, parent=None):
+    def __init__(self, scripts_dir, parent=None):
         """Initialize HelpViewer."""
         super().__init__(parent)
 
@@ -92,15 +95,15 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
         self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
 
         # Prepare scripts
-        jquery_path = os.path.join(wbdir, "docs", "3rdparty", "jQuery.js")
+        jquery_path = os.path.join(scripts_dir, "jQuery.js")
         with open(jquery_path, encoding="utf-8") as f:
             script_jquery_source = self.SCRIPT_GREASEBLOCK + f.read()
 
-        marked_path = os.path.join(wbdir, "docs", "3rdparty", "marked.min.js")
+        marked_path = os.path.join(scripts_dir, "marked.min.js")
         with open(marked_path, encoding="utf-8") as f:
             script_marked_source = self.SCRIPT_GREASEBLOCK + f.read()
 
-        css_path = os.path.join(wbdir, "docs", "3rdparty", "waterlight.css")
+        css_path = os.path.join(scripts_dir, "waterlight.css")
         css_url = QUrl.fromLocalFile(css_path).url()
 
         script_run_source = (
@@ -157,10 +160,11 @@ def open_help(workbench_dir):
     Help files are in markdown format.
     """
     readme = os.path.join(workbench_dir, "README.md")
+    scripts_dir = os.path.join(THISDIR, "3rdparty")
 
     @Slot()
     def add_viewer():
-        viewer = HelpViewer(workbench_dir, parent=mainwindow)
+        viewer = HelpViewer(scripts_dir, parent=mainwindow)
         viewer.setUrl(QUrl.fromLocalFile(readme))
         viewer.setVisible(True)
         mainwindow.setCentralWidget(viewer)

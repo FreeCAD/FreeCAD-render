@@ -177,7 +177,7 @@ def start_subapp(script, options=None):
 
 
 def start_help():
-    script = os.path.join(PKGDIR, "help.py")
+    script = os.path.join(PKGDIR, "help", "help.py")
     script = os.path.normpath(script)
     wbdir = os.path.normpath(WBDIR)
     options = [wbdir]
