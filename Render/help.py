@@ -67,8 +67,6 @@ except ModuleNotFoundError:
     )
 
     PYSIDE6 = False
-    # from PySide2.QtWebEngineQuick import QtWebEngineQuick
-    # from PySide2.QtQml import QQmlApplicationEngine
 
 
 class HelpViewer(QWidget):
@@ -185,79 +183,10 @@ def open_help(workbench_dir):
     files, the help is available off-line.
     Help files are in markdown format.
     """
-    # app = QApplication(["", "--no-sandbox"])
-    # QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
-    # app = QApplication(["", "--no-sandbox"])
-
-    # QCoreApplication.setAttribute(Qt.AA_NativeWindows)
-    # QCoreApplication.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
-    # app = QApplication()
-    # main_window = QMainWindow()
-    # winid = main_window.winId()
-    # send_message("WINID", winid)
-    # input()
-    # print(winid)  # TODO
-
     readme = os.path.join(workbench_dir, "README.md")
 
-    # label = QLabel("Hello")
-    # main_window.setCentralWidget(QMdiArea())
-    # area = main_window.centralWidget()
-    # area.show()
-
-    # winid = view.winId()
-    # # view.setWindowFlags(Qt.FramelessWindowHint | Qt.BypassGraphicsProxyWidget)
-    # send_message("WINID", winid)
-    # input()
-    # view.setUrl(QUrl.fromLocalFile(readme))
-    # print(winid)  # TODO
-
-    # print(f"{view.windowType()=}")
-    # print(f"{view.windowFlags()=}")
-    # # main_window.setCentralWidget(view)
-    # # main_window.setCentralWidget(viewer)
-    # # viewer.show()
-    # # main_window.show()
-    # view.show()
-    # print(view.winId())  # TODO
-    # print(view.winId())  # TODO
-    # send_message("WINID", winid)
-    # input()
-    # main_window.show()
-
-    # area.addSubWindow(QLabel("Hello")).show()
-
-    # Via QQmlApplicationEngine
-    # @Slot()
-    # def send_winid_qml():
-    # objects = engine.rootObjects()
-    # print("Objects:", objects)
-    # winid = objects[0].winId()
-    # send_message("WINID", winid)
-
-    # @Slot()
-    # def send_winid_wigdet():
-    # objects = engine.rootObjects()
-    # print("Objects:", objects)
-    # winid = objects[0].winId()
-    # send_message("WINID", winid)
-
-    # QML = False
-    # if QML:
-    # QtWebEngineQuick.initialize()
-    # app = QGuiApplication()
-    # engine = QQmlApplicationEngine()
-    # engine.load(
-    # QUrl(
-    # "file:///home/vincent/Documents/DevGit/FreeCAD-render/Render/main.qml"
-    # )
-    # )
-    # QTimer.singleShot(5000, send_winid_qml)
-
-    # Via widget
     @Slot()
     def add_viewer():
-        # window = QWindow()
         viewer = HelpViewer(workbench_dir, parent=mainwindow)
         viewer.setUrl(QUrl.fromLocalFile(readme))
         viewer.setVisible(True)
