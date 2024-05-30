@@ -59,7 +59,7 @@ except ModuleNotFoundError:
     PYSIDE6 = False
 
 
-class HelpViewer(QWidget):
+class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
     """A help viewer widget.
 
     The help viewer is an html viewer but is able to render (local) markdown
@@ -76,7 +76,22 @@ class HelpViewer(QWidget):
 
     def __init__(self, wbdir, parent=None):
         """Initialize HelpViewer."""
+        super().__init__(parent)
 
+        # Set subwidgets
+        self.setLayout(QVBoxLayout(self))
+        self.toolbar = QToolBar(self)
+        self.layout().addWidget(self.toolbar)
+        self.view = QWebEngineView(self)
+        self.layout().addWidget(self.view)
+
+        # Add actions to toolbar
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
+
+        # Prepare scripts
         jquery_path = os.path.join(wbdir, "docs", "3rdparty", "jQuery.js")
         with open(jquery_path, encoding="utf-8") as f:
             script_jquery_source = self.SCRIPT_GREASEBLOCK + f.read()
@@ -98,22 +113,6 @@ class HelpViewer(QWidget):
         }});
         """
         )  # Stylesheet credit: https://github.com/kognise/water.css
-
-        super().__init__(parent)
-
-        self.setLayout(QVBoxLayout(self))
-
-        # Set subwidgets
-        self.toolbar = QToolBar(self)
-        self.layout().addWidget(self.toolbar)
-        self.view = QWebEngineView(self)
-        self.layout().addWidget(self.view)
-
-        # Add actions to toolbar
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
 
         # Insert scripts into Web view
         scripts = self.view.page().scripts()
@@ -143,6 +142,7 @@ class HelpViewer(QWidget):
 
 
 def send_message(message_type, message_content):
+    """Send message to the parent process."""
     message = f"@@{message_type}@@{message_content}"
     print(message)  # Needed, not debug!
     sys.stdout.flush()
