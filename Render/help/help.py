@@ -27,11 +27,13 @@ import pathlib
 import argparse
 import sys
 import signal
+import uuid
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
     from PySide6.QtCore import QUrl, Qt, QTimer, Slot
+    from PySide6.QtNetwork import QLocalServer
     from PySide6.QtWidgets import (
         QWidget,
         QToolBar,
@@ -48,6 +50,7 @@ except ModuleNotFoundError:
         QWebEnginePage,
     )
     from PySide2.QtCore import QUrl, Qt, QTimer, Slot
+    from PySide2.QtNetwork import QLocalServer
     from PySide2.QtWidgets import (
         QWidget,
         QToolBar,
@@ -161,6 +164,7 @@ def open_help(workbench_dir):
     """
     readme = os.path.join(workbench_dir, "README.md")
     scripts_dir = os.path.join(THISDIR, "3rdparty")
+    connection = None
 
     @Slot()
     def add_viewer():
@@ -170,7 +174,18 @@ def open_help(workbench_dir):
         mainwindow.setCentralWidget(viewer)
         viewer.showMaximized()
         winid = mainwindow.winId()
+        server.listen(str(uuid.uuid1()))
         send_message("WINID", winid)
+        send_message("SERVER", server.serverName())
+
+    @Slot()
+    def read_socket():
+        app.quit()
+
+    @Slot()
+    def new_connection():
+        connection = server.nextPendingConnection()
+        connection.readyRead.connect(read_socket)
 
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
@@ -178,6 +193,8 @@ def open_help(workbench_dir):
     mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
     mainwindow.show()
     QTimer.singleShot(0, add_viewer)
+    server = QLocalServer(app)
+    server.newConnection.connect(new_connection)
 
     if PYSIDE6:
         sys.exit(app.exec())

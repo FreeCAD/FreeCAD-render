@@ -50,6 +50,7 @@ from PySide.QtCore import (
 )
 from PySide.QtWidgets import QWidget, QLabel
 from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
+from PySide.QtNetwork import QLocalSocket
 
 import FreeCADGui as Gui
 import FreeCAD as App
@@ -81,6 +82,9 @@ class PythonSubprocess(QProcess):
         # Connect signals
         self.readyRead.connect(self._handle_input)
 
+        # Create socket
+        self.socket = QLocalSocket()
+
     @Slot()
     def _handle_input(self):
         """Handle subprocess messages, piped to subprocess stdout.
@@ -109,6 +113,10 @@ class PythonSubprocess(QProcess):
         if command == b"WINID":
             winid, _ = QByteArray(message).toLongLong()
             self.winid_available.emit(winid)
+        elif command == b"SERVER":
+            # Connect to child process server
+            server_name = message.decode("utf-8")
+            self.socket.connectToServer(server_name)
 
     @Slot(bytes)
     def write(self, message):
@@ -149,18 +157,22 @@ class PythonSubprocessWindow(QMdiSubWindow):
         )
         self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
-        self.show()
+        self.showMaximized()
 
         self.process.write(b"@@START@@")
 
     def closeEvent(self, event):
-        self.process.terminate()
+        self.process.socket.write(b"CLOSE")
+        self.process.socket.flush()
         finished = self.process.waitForFinished(3000)
         if not finished:
-            App.Console.PrintWarning(
-                "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
-            )
-            self.process.kill()
+            self.process.terminate()
+            finished = self.process.waitForFinished(3000)
+            if not finished:
+                App.Console.PrintWarning(
+                    "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
+                )
+                self.process.kill()
 
 
 def start_subapp(script, options=None):
