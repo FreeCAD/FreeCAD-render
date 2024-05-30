@@ -116,7 +116,7 @@ class HelpViewer(QWidget):
         # Set subwidgets
         self.toolbar = QToolBar(self)
         self.layout().addWidget(self.toolbar)
-        self.view = MyViewer(self)
+        self.view = QWebEngineView(self)
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
@@ -143,9 +143,6 @@ class HelpViewer(QWidget):
         script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
         scripts.insert(script_run)
 
-        # TODO
-        self.view.page().createWindow = fail
-
     def setUrl(self, url):  # pylint: disable=invalid-name
         """Set viewer url.
 
@@ -159,20 +156,6 @@ def send_message(message_type, message_content):
     message = f"@@{message_type}@@{message_content}"
     print(message)
     sys.stdout.flush()
-
-
-class MyViewer(QWebEngineView):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def createWindow(self, type):
-        raise RuntimeError()
-        print("createWindow", type)
-        return None
-
-
-def fail():
-    raise RuntimeError()
 
 
 def open_help(workbench_dir):
