@@ -31,20 +31,14 @@ import signal
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
-    from PySide6.QtGui import QGuiApplication, QWindow
+    from PySide6.QtCore import QUrl, Qt, QTimer, Slot
     from PySide6.QtWidgets import (
         QWidget,
         QToolBar,
         QVBoxLayout,
         QApplication,
         QMainWindow,
-        QLabel,
-        QTabWidget,
-        QMdiArea,
     )
-    from PySide6.QtWebEngineQuick import QtWebEngineQuick
-    from PySide6.QtQml import QQmlApplicationEngine
 
     PYSIDE6 = True
 except ModuleNotFoundError:
@@ -53,17 +47,13 @@ except ModuleNotFoundError:
         QWebEngineScript,
         QWebEnginePage,
     )
-    from PySide2.QtCore import QUrl, Qt, QTimer, Slot, QCoreApplication
-    from PySide2.QtGui import QGuiApplication, QWindow
+    from PySide2.QtCore import QUrl, Qt, QTimer, Slot
     from PySide2.QtWidgets import (
         QWidget,
         QToolBar,
         QVBoxLayout,
         QApplication,
         QMainWindow,
-        QLabel,
-        QTabWidget,
-        QMdiArea,
     )
 
     PYSIDE6 = False
@@ -154,7 +144,7 @@ class HelpViewer(QWidget):
 
 def send_message(message_type, message_content):
     message = f"@@{message_type}@@{message_content}"
-    print(message)
+    print(message)  # Needed, not debug!
     sys.stdout.flush()
 
 
@@ -209,6 +199,4 @@ def main():
 
 
 if __name__ == "__main__":
-    print("Starting help")  # TODO
-    # Script
     main()
