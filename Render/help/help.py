@@ -174,16 +174,18 @@ def open_help(workbench_dir):
         mainwindow.setCentralWidget(viewer)
         viewer.showMaximized()
         winid = mainwindow.winId()
-        server.listen(str(uuid.uuid1()))
+        server.listen("render." + str(uuid.uuid1()))
         send_message("WINID", winid)
-        send_message("SERVER", server.serverName())
+        send_message("SERVER", server.fullServerName())
 
     @Slot()
     def read_socket():
+        print("Read socket")
         app.quit()
 
     @Slot()
     def new_connection():
+        print("Connection")  # TODO
         connection = server.nextPendingConnection()
         connection.readyRead.connect(read_socket)
 
@@ -194,6 +196,7 @@ def open_help(workbench_dir):
     mainwindow.show()
     QTimer.singleShot(0, add_viewer)
     server = QLocalServer(app)
+    server.setSocketOptions(QLocalServer.UserAccessOption)
     server.newConnection.connect(new_connection)
 
     if PYSIDE6:
