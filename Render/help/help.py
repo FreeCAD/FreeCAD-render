@@ -153,6 +153,7 @@ def send_message(message_type, message_content):
     print(message)  # Needed, not debug!
     sys.stdout.flush()
 
+connections = []
 
 def open_help(workbench_dir):
     """Open a help viewer on Render documentation.
@@ -164,7 +165,7 @@ def open_help(workbench_dir):
     """
     readme = os.path.join(workbench_dir, "README.md")
     scripts_dir = os.path.join(THISDIR, "3rdparty")
-    connection = None
+    app = QApplication()
 
     @Slot()
     def add_viewer():
@@ -187,11 +188,11 @@ def open_help(workbench_dir):
     def new_connection():
         print("Connection")  # TODO
         connection = server.nextPendingConnection()
+        connections.append(connection)  # Keep
         connection.readyRead.connect(read_socket)
 
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
-    app = QApplication()
     mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
     mainwindow.show()
     QTimer.singleShot(0, add_viewer)
