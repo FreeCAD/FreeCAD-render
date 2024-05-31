@@ -115,10 +115,14 @@ class PythonSubprocess(QProcess):
             self.winid_available.emit(winid)
         elif command == b"SERVER":
             # Connect to child process server (remove trailing \n)
-            server_name = message[:-1].decode("utf-8")
-            print(f"socket side: '{server_name}'")  # TODO
+            if os.name == "nt":
+                server_name = message[:-1].decode("utf-8")
+            else:
+                server_name = message.decode("utf-8")
             self.socket.connectToServer(server_name)
-            print(self.socket.error())  # TODO
+            res = self.socket.waitForConnected(2000)
+            if not res:
+                print(self.socket.error())
 
     @Slot(bytes)
     def write(self, message):

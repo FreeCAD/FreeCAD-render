@@ -153,7 +153,9 @@ def send_message(message_type, message_content):
     print(message)  # Needed, not debug!
     sys.stdout.flush()
 
+
 connections = []
+
 
 def open_help(workbench_dir):
     """Open a help viewer on Render documentation.
@@ -177,17 +179,18 @@ def open_help(workbench_dir):
         winid = mainwindow.winId()
         server.listen("render." + str(uuid.uuid1()))
         send_message("WINID", winid)
-        send_message("SERVER", server.fullServerName())
+        if os.name == "nt":
+            send_message("SERVER", server.fullServerName())
+        else:
+            send_message("SERVER", server.serverName())
 
     @Slot()
     def read_socket():
-        print("Read socket")
         app.closeAllWindows()
         app.quit()
 
     @Slot()
     def new_connection():
-        print("Connection")  # TODO
         connection = server.nextPendingConnection()
         connections.append(connection)  # Keep
         connection.readyRead.connect(read_socket)
