@@ -182,6 +182,7 @@ def open_help(workbench_dir):
     @Slot()
     def read_socket():
         print("Read socket")
+        app.closeAllWindows()
         app.quit()
 
     @Slot()

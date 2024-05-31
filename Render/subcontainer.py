@@ -166,6 +166,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
     def closeEvent(self, event):
         self.process.socket.write(b"CLOSE")
         self.process.socket.flush()
+        QGuiApplication.instance().processEvents()
         finished = self.process.waitForFinished(3000)
         if not finished:
             self.process.terminate()
