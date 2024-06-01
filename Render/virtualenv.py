@@ -61,14 +61,15 @@ RENDERVENV = None
 
 
 def ensure_rendervenv():
-    """Ensure Render virtual environment is available."""
+    """Ensure Render virtual environment is available and up-to-date."""
+    _msg("Checking dependencies...")
 
     try:
         # Step 1: Check if virtual environment exists at location
         # RENDER_VENV_DIR. Otherwise, create it
         _log("Checking Render virtual environment")
         if not _check_venv():
-            _log(">>> Environment folder does not exist - Creating")
+            _msg(">>> Environment folder does not exist - Creating")
             _create_virtualenv()
         else:
             _log(">>> Environment folder exists: OK")
@@ -77,7 +78,7 @@ def ensure_rendervenv():
         # Otherwise, recreate (try three times)
         for _ in range(3):
             if get_venv_python() is None:
-                _log(
+                _msg(
                     ">>> Environment does not provide Python "
                     "- Recreating environment"
                 )
@@ -93,7 +94,7 @@ def ensure_rendervenv():
         # Otherwise, bootstrap (try three times)
         for _ in range(3):
             if _get_venv_pip() is None:
-                _log(">>> Environment does not provide Pip - Repairing")
+                _msg(">>> Environment does not provide Pip - Repairing")
                 url = "https://bootstrap.pypa.io/get-pip.py"
                 _bootstrap(url)
             else:
@@ -143,7 +144,6 @@ def ensure_rendervenv():
             errors = {}
             for future in concurrent.futures.as_completed(futures):
                 package = futures[future]
-                return_code = future.result()
                 if not (return_code := future.result()):
                     _log(f">>> Checked package '{package}' - OK")
                 else:
@@ -353,8 +353,18 @@ def _log(message):
     App.Console.PrintLog(f"[Render][Init] {message}\n")
 
 
+def _msg(message):
+    """Message function for Render virtual environment handling."""
+    if not message:
+        return
+    # Trim ending newline
+    if message.endswith("\n"):
+        message = message[:-1]
+    App.Console.PrintMessage(f"[Render][Init] {message}\n")
+
+
 def _warn(message):
-    """Log function for Render virtual environment handling."""
+    """Warn function for Render virtual environment handling."""
     if not message:
         return
     # Trim ending newline
