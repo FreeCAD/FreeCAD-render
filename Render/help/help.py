@@ -28,12 +28,13 @@ import argparse
 import sys
 import signal
 import uuid
+import pickle
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
     from PySide6.QtCore import QUrl, Qt, QTimer, Slot
-    from PySide6.QtNetwork import QLocalServer
+    from PySide6.QtNetwork import QLocalServer, QLocalSocket
     from PySide6.QtWidgets import (
         QWidget,
         QToolBar,
@@ -147,17 +148,16 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
         self.view.load(url)
 
 
-def send_message(message_type, message_content):
-    """Send message to the parent process."""
-    message = f"@@{message_type}@@{message_content}"
-    print(message)  # Needed, not debug!
-    sys.stdout.flush()
-
+# def send_message(message_type, message_content):
+# """Send message to the parent process."""
+# message = f"@@{message_type}@@{message_content}"
+# print(message)  # Needed, not debug!
+# sys.stdout.flush()
 
 connections = []
 
 
-def open_help(workbench_dir):
+def open_help(workbench_dir, server_name):
     """Open a help viewer on Render documentation.
 
     The help files are located in ./docs directory, except the root file, which
@@ -168,6 +168,14 @@ def open_help(workbench_dir):
     readme = os.path.join(workbench_dir, "README.md")
     scripts_dir = os.path.join(THISDIR, "3rdparty")
     app = QApplication()
+    connection = None
+
+    def send_message(verb, argument):
+        """Send message to the parent process."""
+        message = (verb, argument)
+        data = pickle.dumps(message)
+        connection.write(data)
+        connection.flush()
 
     @Slot()
     def add_viewer():
@@ -186,8 +194,30 @@ def open_help(workbench_dir):
 
     @Slot()
     def read_socket():
-        app.closeAllWindows()
-        app.quit()
+        # Read verb and argument
+        connection.startTransaction()
+        data = connection.readAll()
+        try:
+            obj = pickle.loads(data, encoding="utf-8")
+            verb, argument = obj
+        except pickle.UnpicklingError as err:
+            App.Console.PrintWarning(
+                f"[Render][Sub] Cannot unpickle subprocess message: {err}"
+            )
+            connection.rollbackTransaction()
+            return
+        except TypeError as err:
+            App.Console.PrintWarning(
+                f"[Render][Sub] Cannot interpret subprocess message: {err}"
+            )
+            connection.rollbackTransaction()
+            return
+        connection.commitTransaction()
+
+        # Handle
+        if verb == "CLOSE":
+            app.closeAllWindows()
+            app.quit()
 
     @Slot()
     def new_connection():
@@ -203,6 +233,14 @@ def open_help(workbench_dir):
     server = QLocalServer(app)
     server.setSocketOptions(QLocalServer.UserAccessOption)
     server.newConnection.connect(new_connection)
+
+    connection = QLocalSocket()
+    connection.connectToServer(server_name)
+    res = connection.waitForConnected(2000)
+    if not res:
+        print(connection.error())
+        exit(-1)
+    connection.readyRead.connect(read_socket)
 
     if PYSIDE6:
         sys.exit(app.exec())
@@ -222,9 +260,14 @@ def main():
         help="the path to the workbench",
         type=pathlib.Path,
     )
+    parser.add_argument(
+        "--server",
+        help="the communication server name",
+        type=str,
+    )
     args = parser.parse_args()
 
-    open_help(args.path_to_workbench)
+    open_help(args.path_to_workbench, args.server)
 
 
 if __name__ == "__main__":

@@ -38,6 +38,8 @@ This module reduces Render dependencies to FreeCAD and PySide.
 import os
 import sys
 import re
+import pickle
+import uuid
 
 from PySide.QtCore import (
     QProcess,
@@ -50,7 +52,7 @@ from PySide.QtCore import (
 )
 from PySide.QtWidgets import QWidget, QLabel
 from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
-from PySide.QtNetwork import QLocalSocket
+from PySide.QtNetwork import QLocalServer, QLocalSocket
 
 import FreeCADGui as Gui
 import FreeCAD as App
@@ -64,29 +66,84 @@ from Render.virtualenv import get_venv_python
 
 
 class PythonSubprocess(QProcess):
-    """A helper to run a Python script as a subprocess."""
+    """A helper to run a Python script as a subprocess.
+
+    This object provides:
+    - echoing of subprocess stdout/stderr
+    - a communication server to interact with process (based on QLocalServer)
+    """
 
     winid_available = Signal(int)
 
     def __init__(self, python, args, parent=None):
         super().__init__(parent)
 
+        # Set stdout/stderr echoing
+        self.setReadChannel(QProcess.StandardOutput)
+        self.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        self.readyRead.connect(self._echo_stdout)
+
+        # Create communication server
+        self.server = QLocalServer(self)
+        self.server.setSocketOptions(QLocalServer.UserAccessOption)
+        self.server.newConnection.connect(self._server_new_connection)
+        server_name = f"render.{str(uuid.uuid1())}"
+        self.server.listen(server_name)
+        # TODO Handle error in listening
+        args = args + ["--server", server_name]
+        self.connection = None
+
         # Set program and arguments
         self.setProgram(python)
         self.setArguments(args)
 
-        # Set channel processing
-        self.setReadChannel(QProcess.StandardOutput)
-        self.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+    @Slot()
+    def _server_new_connection(self):
+        """Handle new connection to communication server.
 
-        # Connect signals
-        self.readyRead.connect(self._handle_input)
-
-        # Create socket
-        self.socket = QLocalSocket()
+        Nota: only one connection is allowed.
+        """
+        if self.connection:
+            raise RuntimeError(
+                "New incoming connection, but connection already set"
+            )
+        self.connection = self.server.nextPendingConnection()
+        self.connection.readyRead.connect(self._server_read)
 
     @Slot()
-    def _handle_input(self):
+    def _server_read(self):
+        """Read data from communication server."""
+        # Read verb and argument
+        self.connection.startTransaction()
+        data = self.connection.readAll()
+        try:
+            obj = pickle.loads(data, encoding="utf-8")
+            verb, argument = obj
+        except pickle.UnpicklingError as err:
+            App.Console.PrintWarning(
+                f"[Render][Sub] Cannot unpickle subprocess message: {err}"
+            )
+            self.connection.rollbackTransaction()
+            return
+        except TypeError as err:
+            App.Console.PrintWarning(
+                f"[Render][Sub] Cannot interpret subprocess message: {err}"
+            )
+            self.connection.rollbackTransaction()
+            return
+        self.connection.commitTransaction()
+
+        # Handle
+        if verb == "WINID":
+            argument = int(argument)
+            self.winid_available.emit(argument)
+        else:
+            App.Console.PrintError(
+                "[Render][Sub] Unknown verb/argument: '{verb}' '{argument}')"
+            )
+
+    @Slot()
+    def _echo_stdout(self):
         """Handle subprocess messages, piped to subprocess stdout.
 
         If subprocess output is recognized as a message, it is parsed
@@ -96,38 +153,15 @@ class PythonSubprocess(QProcess):
         raw = self.readAllStandardOutput()
         lines = raw.split("\n")
         for line in lines:
-            if not line:
-                continue
-            match = re.match(rb"^@@(.*?)@@(.*)", line)
-            if match:
-                groups = match.groups()
-                if len(groups) < 2:
-                    App.Console.PrintError("Malformed process message")
-                    continue
-                message_type, message_content, *_ = groups
-                self.dispatch_message(message_type, message_content)
-            else:
-                print("[Render][Sub] " + str(line, encoding="latin-1"))  # TODO
-
-    def dispatch_message(self, command, message):
-        if command == b"WINID":
-            winid, _ = QByteArray(message).toLongLong()
-            self.winid_available.emit(winid)
-        elif command == b"SERVER":
-            # Connect to child process server (remove trailing \n)
-            if os.name == "nt":
-                server_name = message[:-1].decode("utf-8")
-            else:
-                server_name = message.decode("utf-8")
-            self.socket.connectToServer(server_name)
-            res = self.socket.waitForConnected(2000)
-            if not res:
-                print(self.socket.error())
+            print("[Render][Sub] " + str(line, encoding="utf-8"))
 
     @Slot(bytes)
-    def write(self, message):
+    def send_message(self, verb, argument=None):
         """Write a message to subprocess."""
-        res = super().write(message + b"\n")
+        message = (verb, argument)
+        data = pickle.dumps(message)
+        self.connection.write(data)
+        self.connection.flush()
 
 
 class PythonSubprocessWindow(QMdiSubWindow):
@@ -168,8 +202,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.process.write(b"@@START@@")
 
     def closeEvent(self, event):
-        self.process.socket.write(b"CLOSE")
-        self.process.socket.flush()
+        self.process.send_message("CLOSE")
         QGuiApplication.instance().processEvents()
         finished = self.process.waitForFinished(3000)
         if not finished:
