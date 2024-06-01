@@ -88,8 +88,13 @@ class PythonSubprocess(QProcess):
         self.server.setSocketOptions(QLocalServer.UserAccessOption)
         self.server.newConnection.connect(self._server_new_connection)
         server_name = f"render.{str(uuid.uuid1())}"
-        self.server.listen(server_name)
-        # TODO Handle error in listening
+        res = self.server.listen(server_name)
+        if not res:
+            App.Console.PrintWarning(self.server.error())
+            raise RuntimeError(
+                "[Render][Sub] Unable to launch server: "
+                f"'{server.errorString()}'"
+            )
         args = args + ["--server", server_name]
         self.connection = None
 
