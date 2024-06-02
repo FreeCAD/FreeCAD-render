@@ -51,7 +51,7 @@ except ModuleNotFoundError:
         QWebEnginePage,
     )
     from PySide2.QtCore import QUrl, Qt, QTimer, Slot
-    from PySide2.QtNetwork import QLocalServer
+    from PySide2.QtNetwork import QLocalServer, QLocalSocket
     from PySide2.QtWidgets import (
         QWidget,
         QToolBar,
