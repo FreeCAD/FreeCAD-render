@@ -135,7 +135,7 @@ def ensure_rendervenv():
                     options=[
                         "--no-warn-script-location",
                         "--only-binary=:all:",
-                        f"--find-links='{WHEELSDIR}'",
+                        f"--find-links={WHEELSDIR}",
                     ],
                     loglevel=1,
                 ): package

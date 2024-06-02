@@ -101,6 +101,8 @@ class PythonSubprocess(QProcess):
         # Set program and arguments
         self.setProgram(python)
         self.setArguments(args)
+        statement = " ".join([python] + args)
+        App.Console.PrintLog(statement + "\n")
 
     @Slot()
     def _server_new_connection(self):
