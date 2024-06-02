@@ -123,9 +123,9 @@ def ensure_rendervenv():
             packages.append("materialx")
 
         if pyside_version >= "6":
-            packages.append("PySide6-addons")
+            packages.append(f"PySide6=={pyside_version}")
         else:
-            packages.append("PySide2")
+            packages.append("PySide2=={pyside_version}")
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
