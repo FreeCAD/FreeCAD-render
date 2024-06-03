@@ -66,8 +66,8 @@ else:
         Qt,
         QByteArray,
     )
-    from PySide2.QtWidgets import QWidget, QLabel
-    from PySide2.QtGui import QWindow, QMdiSubWindow, QApplication
+    from PySide2.QtWidgets import QWidget, QLabel, QMdiSubWindow
+    from PySide2.QtGui import QWindow, QApplication
     from PySide2.QtNetwork import QLocalServer, QLocalSocket
 
 
