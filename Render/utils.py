@@ -38,7 +38,7 @@ except ImportError:
     from Draft import translate as _translate  # 0.18
 
 from PySide.QtGui import QDockWidget, QTextEdit
-from PySide import __version__ as pyside_version
+from PySide import __version__ as PYSIDE_VERSION
 
 import FreeCAD as App
 import FreeCADGui as Gui

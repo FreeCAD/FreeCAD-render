@@ -41,25 +41,35 @@ import re
 import pickle
 import uuid
 
-from PySide import __version__ as pyside_version
+from Render.utils import PYSIDE_VERSION
 
-if pyside_version >= "6":
-    PySide = PySide6
+if PYSIDE_VERSION >= "6":
+    from PySide6.QtCore import (
+        QProcess,
+        QObject,
+        Signal,
+        Slot,
+        QEventLoop,
+        Qt,
+        QByteArray,
+    )
+    from PySide6.QtWidgets import QWidget, QLabel, QMdiSubWindow, QApplication
+    from PySide6.QtGui import QWindow
+    from PySide6.QtNetwork import QLocalServer, QLocalSocket
 else:
-    PySide = PySide2
+    from PySide2.QtCore import (
+        QProcess,
+        QObject,
+        Signal,
+        Slot,
+        QEventLoop,
+        Qt,
+        QByteArray,
+    )
+    from PySide2.QtWidgets import QWidget, QLabel
+    from PySide2.QtGui import QWindow, QMdiSubWindow, QApplication
+    from PySide2.QtNetwork import QLocalServer, QLocalSocket
 
-from PySide.QtCore import (
-    QProcess,
-    QObject,
-    Signal,
-    Slot,
-    QEventLoop,
-    Qt,
-    QByteArray,
-)
-from PySide.QtWidgets import QWidget, QLabel
-from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
-from PySide.QtNetwork import QLocalServer, QLocalSocket
 
 import FreeCADGui as Gui
 import FreeCAD as App
@@ -217,14 +227,15 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
     def closeEvent(self, event):
         self.process.send_message("CLOSE")
-        QGuiApplication.instance().processEvents()
+        QApplication.instance().processEvents()
         finished = self.process.waitForFinished(3000)
         if not finished:
             self.process.terminate()
             finished = self.process.waitForFinished(3000)
             if not finished:
                 App.Console.PrintWarning(
-                    "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
+                    "[Render][Sub] Subprocess terminate timeout, "
+                    "have to kill it\n"
                 )
                 self.process.kill()
 
