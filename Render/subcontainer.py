@@ -146,7 +146,7 @@ class PythonSubprocess(QProcess):
             self.winid_available.emit(argument)
         else:
             App.Console.PrintError(
-                "[Render][Sub] Unknown verb/argument: '{verb}' '{argument}')"
+                f"[Render][Sub] Unknown verb/argument: '{verb}' '{argument}')"
             )
 
     @Slot()
