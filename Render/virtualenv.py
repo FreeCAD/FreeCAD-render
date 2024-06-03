@@ -125,6 +125,8 @@ def ensure_rendervenv():
         if pyside_version >= "6":
             packages.append(f"PySide6=={pyside_version}")
         else:
+            if pyside_version == "5.15.2":
+                pyside_version = "5.15.2.1"  # For Ubuntu 22.04
             packages.append(f"PySide2=={pyside_version}")
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
