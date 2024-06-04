@@ -48,7 +48,9 @@ import concurrent.futures
 
 import FreeCAD as App
 
-from Render.utils import find_python, pyside_version
+from PySide import __version__ as PYSIDE_VERSION
+
+from Render.utils import find_python
 from Render.constants import PARAMS, WHEELSDIR
 
 RENDER_VENV_FOLDER = ".rendervenv"
@@ -122,6 +124,7 @@ def ensure_rendervenv():
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
 
+        pyside_version = PYSIDE_VERSION
         if pyside_version >= "6":
             packages.append(f"PySide6=={pyside_version}")
         else:

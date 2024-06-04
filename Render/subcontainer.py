@@ -41,13 +41,6 @@ import re
 import pickle
 import uuid
 
-from PySide import __version__ as pyside_version
-
-if pyside_version >= "6":
-    PySide = PySide6
-else:
-    PySide = PySide2
-
 from PySide.QtCore import (
     QProcess,
     QObject,
