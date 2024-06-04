@@ -48,7 +48,7 @@ import concurrent.futures
 
 import FreeCAD as App
 
-from Render.utils import find_python, PYSIDE_VERSION
+from Render.utils import find_python, pyside_version
 from Render.constants import PARAMS, WHEELSDIR
 
 RENDER_VENV_FOLDER = ".rendervenv"
@@ -122,12 +122,12 @@ def ensure_rendervenv():
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
 
-        if PYSIDE_VERSION >= "6":
-            packages.append(f"PySide6=={PYSIDE_VERSION}")
-        elif PYSIDE_VERSION == "5.15.2":
-            packages.append(f"PySide2==5.15.2.1")
+        if pyside_version >= "6":
+            packages.append(f"PySide6=={pyside_version}")
         else:
-            packages.append(f"PySide2=={PYSIDE_VERSION}")
+            if pyside_version == "5.15.2":
+                pyside_version = "5.15.2.1"  # For Ubuntu 22.04
+            packages.append(f"PySide2=={pyside_version}")
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
