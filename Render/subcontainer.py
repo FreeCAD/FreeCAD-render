@@ -68,7 +68,7 @@ from multiprocessing.connection import Client, Listener, Connection, wait
 from threading import Thread
 
 
-class PipeListener(QObject):
+class ConnectionServer(QObject):
     new_connection = Signal(Connection)
 
     def __init__(self, parent=None):
@@ -78,21 +78,25 @@ class PipeListener(QObject):
         self.thread = Thread(target=self._do_listen)
 
     def start_listening(self):
+        """Start listening to incoming connection requests."""
         self.thread.start()
 
     @property
     def address(self):
+        """Give server address."""
         return self.listener.address
 
     @property
     def last_accepted(self):
+        """Return last accepted connection."""
         return self.listener.last_accepted
 
     def _do_listen(self):
+        """Listen to incoming conn requests (worker)."""
+        # TODO Exit gracefully
         while conn := self.listener.accept():
             self.connections.append(conn)
             self.new_connection.emit(conn)
-            print("Connection accepted from", self.listener.last_accepted)
 
 
 class PythonSubprocess(QProcess):
@@ -113,24 +117,12 @@ class PythonSubprocess(QProcess):
         self.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.readyRead.connect(self._echo_stdout)
 
-        # Create communication server
-        # TODO
-        # self.server = QLocalServer(self)
-        # self.server.setSocketOptions(QLocalServer.UserAccessOption)
-        # self.server.newConnection.connect(self._server_new_connection)
-        self.listener = PipeListener()
-        self.listener.new_connection.connect(self._new_connection)
-        self.listener.start_listening()
+        # Create connection server
+        self.server = ConnectionServer()
+        self.server.new_connection.connect(self._new_connection)
+        self.server.start_listening()
 
-        server_name = self.listener.address
-        # server_name = f"render.{str(uuid.uuid1())}"
-        # res = self.server.listen(server_name)
-        # if not res:
-        # App.Console.PrintWarning(self.server.error())
-        # raise RuntimeError(
-        # "[Render][Sub] Unable to launch server: "
-        # f"'{server.errorString()}'"
-        # )
+        server_name = self.server.address
         args = args + ["--server", server_name]
         self.connection = None
         self.connection_listener = None
@@ -143,7 +135,7 @@ class PythonSubprocess(QProcess):
 
     @Slot(Connection)
     def _new_connection(self, connection):
-        """Handle new connection to communication server.
+        """Handle new connection.
 
         Nota: only one connection is allowed.
         """
@@ -152,20 +144,18 @@ class PythonSubprocess(QProcess):
                 "New incoming connection, but connection already set"
             )
         self.connection = connection
-        self.connection_listener = Thread(target=self._connection_read)
+        self.connection_listener = Thread(target=self.child_recv)
         self.connection_listener.start()
-        # TODO
-        # self.connection.readyRead.connect(self._server_read)
 
-    def _connection_read(self):
+    def child_recv(self):
+        """Receive messages from subprocess."""
+        # TODO exit gracefully
         while True:
-            print("HERE")
             try:
                 obj = self.connection.recv()
             except EOFError:
                 break
             verb, argument = obj
-            print(verb, argument)  # TODO
 
             # Handle
             if verb == "WINID":
@@ -177,59 +167,23 @@ class PythonSubprocess(QProcess):
                 )
 
     @Slot()
-    def _server_read(self):
-        """Read data from communication server."""
-        # Read verb and argument
-        self.connection.startTransaction()
-        data = self.connection.readAll()
-        try:
-            obj = pickle.loads(data, encoding="utf-8")
-            verb, argument = obj
-        except pickle.UnpicklingError as err:
-            App.Console.PrintWarning(
-                f"[Render][Sub] Cannot unpickle subprocess message: {err}"
-            )
-            self.connection.rollbackTransaction()
-            return
-        except TypeError as err:
-            App.Console.PrintWarning(
-                f"[Render][Sub] Cannot interpret subprocess message: {err}"
-            )
-            self.connection.rollbackTransaction()
-            return
-        self.connection.commitTransaction()
-
-        # Handle
-        if verb == "WINID":
-            argument = int(argument)
-            self.winid_available.emit(argument)
-        else:
-            App.Console.PrintError(
-                f"[Render][Sub] Unknown verb/argument: '{verb}' '{argument}')"
-            )
+    def child_send(self, verb, argument=None):
+        """Write a message to subprocess."""
+        message = (verb, argument)
+        self.connection.send(message)
 
     @Slot()
     def _echo_stdout(self):
-        """Handle subprocess messages, piped to subprocess stdout.
-
-        If subprocess output is recognized as a message, it is parsed
-        and transmitted to dispatch_message.
-        """
-
+        """Handle subprocess stdout, echoing to parent stdout."""
         raw = self.readAllStandardOutput()
         lines = raw.split("\n")
         for line in lines:
             print("[Render][Sub] " + str(line, encoding="utf-8"))
 
-    @Slot(bytes)
-    def send_message(self, verb, argument=None):
-        """Write a message to subprocess."""
-        message = (verb, argument)
-        self.connection.send(message)
-        # self.connection.flush()
-
 
 class PythonSubprocessWindow(QMdiSubWindow):
+    """A window for a Python subprocess, intended for MDI area."""
+
     def __init__(self, python, args):
         super().__init__()  # Parent will be set at start
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -241,6 +195,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.process.winid_available.connect(self.attach_process)
 
     def start(self):
+        """Start window."""
         self.process.start()
         mdiarea = Gui.getMainWindow().centralWidget()
         if not mdiarea.subWindowList():
@@ -254,6 +209,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
     @Slot(int)
     def attach_process(self, winid):
+        """Attach subprocess."""
         # Create and embed container
         self.window = QWindow.fromWinId(winid)
         self.window.setObjectName("RenderWindowFromWinid")
@@ -264,10 +220,9 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.setWidget(self.container)
         self.showMaximized()
 
-        self.process.write(b"@@START@@")
-
     def closeEvent(self, event):
-        self.process.send_message("CLOSE")
+        """Respond to close event."""
+        self.process.child_send("CLOSE")
         QGuiApplication.instance().processEvents()
         finished = self.process.waitForFinished(3000)
         if not finished:
@@ -281,6 +236,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
 
 def start_subapp(script, options=None):
+    """Start sub application."""
     # Process arguments
     script = str(script)
     options = options or []
@@ -294,6 +250,7 @@ def start_subapp(script, options=None):
 
 
 def start_help():
+    """Start help sub application."""
     script = os.path.join(PKGDIR, "help", "help.py")
     script = os.path.normpath(script)
     wbdir = os.path.normpath(WBDIR)
