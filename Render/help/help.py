@@ -29,12 +29,12 @@ import sys
 import signal
 import uuid
 import pickle
-from multiprocessing.connection import Client
+from multiprocessing.connection import Client, wait
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PySide6.QtCore import QUrl, Qt, QTimer, Slot
+    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QObject
     from PySide6.QtNetwork import QLocalServer, QLocalSocket
     from PySide6.QtWidgets import (
         QWidget,
@@ -158,6 +158,61 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
 connections = []
 
 
+class HelpApplication(QObject):
+    def __init__(self, workbench_dir, connection_name, parent=None):
+        super().__init__(parent)
+        readme = os.path.join(workbench_dir, "README.md")
+        scripts_dir = os.path.join(THISDIR, "3rdparty")
+
+        self.app = QApplication()
+        self.connection = Client(connection_name)
+        self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
+        self.mainwindow.showMaximized()
+
+        self.viewer = HelpViewer(scripts_dir, parent=self.mainwindow)
+        self.viewer.setUrl(QUrl.fromLocalFile(readme))
+        self.viewer.setVisible(True)
+
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        QTimer.singleShot(0, self.add_viewer)
+
+    def send_message(self, verb, argument):
+        """Send message to the parent process."""
+        message = (verb, argument)
+        self.connection.send(message)
+
+    # TODO Rename
+    def _connection_read(self):
+        while True:
+            print("HERE")  # TODO
+            conn, *_ = wait([self.connection])
+            try:
+                obj = conn.recv()
+            except EOFError:
+                break
+            verb, argument = obj
+            print(verb, argument)  # TODO
+
+            # Handle
+            # Handle
+            if verb == "CLOSE":
+                app.closeAllWindows()
+                app.quit()
+
+    @Slot()
+    def add_viewer(self):
+        self.mainwindow.setCentralWidget(self.viewer)
+        self.viewer.showMaximized()
+        winid = self.mainwindow.winId()
+        self.send_message("WINID", winid)
+
+    def exec(self):
+        if PYSIDE6:
+            sys.exit(self.app.exec())
+        else:
+            sys.exit(self.app.exec_())
+
+
 def open_help(workbench_dir, server_name):
     """Open a help viewer on Render documentation.
 
@@ -265,7 +320,8 @@ def main():
     )
     args = parser.parse_args()
 
-    open_help(args.path_to_workbench, args.server)
+    application = HelpApplication(args.path_to_workbench, args.server)
+    application.exec()
 
 
 if __name__ == "__main__":
