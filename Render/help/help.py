@@ -30,11 +30,12 @@ import signal
 import uuid
 import pickle
 from multiprocessing.connection import Client, wait
+from threading import Thread
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QObject
+    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QObject, Signal
     from PySide6.QtNetwork import QLocalServer, QLocalSocket
     from PySide6.QtWidgets import (
         QWidget,
@@ -159,13 +160,27 @@ connections = []
 
 
 class HelpApplication(QObject):
+    """Open a help viewer on Render documentation.
+
+    The help files are located in ./docs directory, except the root file, which
+    is in the workbench root directory. As the files are located in local
+    files, the help is available off-line.
+    Help files are in markdown format.
+    """
+
+    bye = Signal()
+
     def __init__(self, workbench_dir, connection_name, parent=None):
         super().__init__(parent)
         readme = os.path.join(workbench_dir, "README.md")
         scripts_dir = os.path.join(THISDIR, "3rdparty")
 
-        self.app = QApplication()
+        # Communication
         self.connection = Client(connection_name)
+        self.connection_listener = Thread(target=self._connection_read)
+        self.connection_listener.start()
+
+        self.app = QApplication()
         self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         self.mainwindow.showMaximized()
 
@@ -174,6 +189,8 @@ class HelpApplication(QObject):
         self.viewer.setVisible(True)
 
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        self.bye.connect(self.quit)
+
         QTimer.singleShot(0, self.add_viewer)
 
     def send_message(self, verb, argument):
@@ -184,20 +201,22 @@ class HelpApplication(QObject):
     # TODO Rename
     def _connection_read(self):
         while True:
-            print("HERE")  # TODO
-            conn, *_ = wait([self.connection])
             try:
-                obj = conn.recv()
+                obj = self.connection.recv()
             except EOFError:
                 break
             verb, argument = obj
             print(verb, argument)  # TODO
 
             # Handle
-            # Handle
             if verb == "CLOSE":
-                app.closeAllWindows()
-                app.quit()
+                self.bye.emit()
+                break
+
+    @Slot()
+    def quit(self):
+        self.app.closeAllWindows()
+        self.app.quit()
 
     @Slot()
     def add_viewer(self):
@@ -208,9 +227,9 @@ class HelpApplication(QObject):
 
     def exec(self):
         if PYSIDE6:
-            sys.exit(self.app.exec())
+            return self.app.exec()
         else:
-            sys.exit(self.app.exec_())
+            return self.app.exec_()
 
 
 def open_help(workbench_dir, server_name):
@@ -321,7 +340,7 @@ def main():
     args = parser.parse_args()
 
     application = HelpApplication(args.path_to_workbench, args.server)
-    application.exec()
+    sys.exit(application.exec())
 
 
 if __name__ == "__main__":

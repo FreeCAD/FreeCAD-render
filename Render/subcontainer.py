@@ -160,9 +160,8 @@ class PythonSubprocess(QProcess):
     def _connection_read(self):
         while True:
             print("HERE")
-            conn, *_ = wait([self.connection])
             try:
-                obj = conn.recv()
+                obj = self.connection.recv()
             except EOFError:
                 break
             verb, argument = obj
