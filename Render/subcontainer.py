@@ -64,6 +64,36 @@ from Render.virtualenv import get_venv_python
 # From:
 # https://stackoverflow.com/questions/40348044/executing-a-qt-application-inside-qt-application
 
+from multiprocessing.connection import Client, Listener, Connection, wait
+from threading import Thread
+
+
+class PipeListener(QObject):
+    new_connection = Signal(Connection)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.listener = Listener()
+        self.connections = []
+        self.thread = Thread(target=self._do_listen)
+
+    def start_listening(self):
+        self.thread.start()
+
+    @property
+    def address(self):
+        return self.listener.address
+
+    @property
+    def last_accepted(self):
+        return self.listener.last_accepted
+
+    def _do_listen(self):
+        while conn := self.listener.accept():
+            self.connections.append(conn)
+            self.new_connection.emit(conn)
+            print("Connection accepted from", self.listener.last_accepted)
+
 
 class PythonSubprocess(QProcess):
     """A helper to run a Python script as a subprocess.
@@ -84,19 +114,26 @@ class PythonSubprocess(QProcess):
         self.readyRead.connect(self._echo_stdout)
 
         # Create communication server
-        self.server = QLocalServer(self)
-        self.server.setSocketOptions(QLocalServer.UserAccessOption)
-        self.server.newConnection.connect(self._server_new_connection)
-        server_name = f"render.{str(uuid.uuid1())}"
-        res = self.server.listen(server_name)
-        if not res:
-            App.Console.PrintWarning(self.server.error())
-            raise RuntimeError(
-                "[Render][Sub] Unable to launch server: "
-                f"'{server.errorString()}'"
-            )
+        # TODO
+        # self.server = QLocalServer(self)
+        # self.server.setSocketOptions(QLocalServer.UserAccessOption)
+        # self.server.newConnection.connect(self._server_new_connection)
+        self.listener = PipeListener()
+        self.listener.new_connection.connect(self._new_connection)
+        self.listener.start_listening()
+
+        server_name = self.listener.address
+        # server_name = f"render.{str(uuid.uuid1())}"
+        # res = self.server.listen(server_name)
+        # if not res:
+        # App.Console.PrintWarning(self.server.error())
+        # raise RuntimeError(
+        # "[Render][Sub] Unable to launch server: "
+        # f"'{server.errorString()}'"
+        # )
         args = args + ["--server", server_name]
         self.connection = None
+        self.connection_listener = None
 
         # Set program and arguments
         self.setProgram(python)
@@ -104,8 +141,8 @@ class PythonSubprocess(QProcess):
         statement = " ".join([python] + args)
         App.Console.PrintLog(statement + "\n")
 
-    @Slot()
-    def _server_new_connection(self):
+    @Slot(Connection)
+    def _new_connection(self, connection):
         """Handle new connection to communication server.
 
         Nota: only one connection is allowed.
@@ -114,8 +151,31 @@ class PythonSubprocess(QProcess):
             raise RuntimeError(
                 "New incoming connection, but connection already set"
             )
-        self.connection = self.server.nextPendingConnection()
-        self.connection.readyRead.connect(self._server_read)
+        self.connection = connection
+        self.connection_listener = Thread(target=self._connection_read)
+        self.connection_listener.start()
+        # TODO
+        # self.connection.readyRead.connect(self._server_read)
+
+    def _connection_read(self):
+        while True:
+            print("HERE")
+            conn, *_ = wait([self.connection])
+            try:
+                obj = conn.recv()
+            except EOFError:
+                break
+            verb, argument = obj
+            print(verb, argument)  # TODO
+
+            # Handle
+            if verb == "WINID":
+                argument = int(argument)
+                self.winid_available.emit(argument)
+            else:
+                App.Console.PrintError(
+                    f"[Render][Sub] Unknown verb/argument: '{verb}' '{argument}')"
+                )
 
     @Slot()
     def _server_read(self):
@@ -166,9 +226,8 @@ class PythonSubprocess(QProcess):
     def send_message(self, verb, argument=None):
         """Write a message to subprocess."""
         message = (verb, argument)
-        data = pickle.dumps(message)
-        self.connection.write(data)
-        self.connection.flush()
+        self.connection.send(message)
+        # self.connection.flush()
 
 
 class PythonSubprocessWindow(QMdiSubWindow):

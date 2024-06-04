@@ -29,6 +29,7 @@ import sys
 import signal
 import uuid
 import pickle
+from multiprocessing.connection import Client
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -173,9 +174,7 @@ def open_help(workbench_dir, server_name):
     def send_message(verb, argument):
         """Send message to the parent process."""
         message = (verb, argument)
-        data = pickle.dumps(message)
-        connection.write(data)
-        connection.flush()
+        connection.send(message)
 
     @Slot()
     def add_viewer():
@@ -187,10 +186,10 @@ def open_help(workbench_dir, server_name):
         winid = mainwindow.winId()
         server.listen("render." + str(uuid.uuid1()))
         send_message("WINID", winid)
-        if os.name == "nt":
-            send_message("SERVER", server.fullServerName())
-        else:
-            send_message("SERVER", server.serverName())
+        # if os.name == "nt":
+        # send_message("SERVER", server.fullServerName())
+        # else:
+        # send_message("SERVER", server.serverName())
 
     @Slot()
     def read_socket():
@@ -201,9 +200,7 @@ def open_help(workbench_dir, server_name):
             obj = pickle.loads(data, encoding="utf-8")
             verb, argument = obj
         except pickle.UnpicklingError as err:
-            App.Console.PrintWarning(
-                f"[Render][Sub] Cannot unpickle subprocess message: {err}"
-            )
+            print(f"[Render][Sub] Cannot unpickle subprocess message: {err}")
             connection.rollbackTransaction()
             return
         except TypeError as err:
@@ -234,13 +231,14 @@ def open_help(workbench_dir, server_name):
     server.setSocketOptions(QLocalServer.UserAccessOption)
     server.newConnection.connect(new_connection)
 
-    connection = QLocalSocket()
-    connection.connectToServer(server_name)
-    res = connection.waitForConnected(2000)
-    if not res:
-        print(connection.error())
-        exit(-1)
-    connection.readyRead.connect(read_socket)
+    # connection = QLocalSocket()
+    # connection.connectToServer(server_name)
+    # res = connection.waitForConnected(2000)
+    # if not res:
+    # print(connection.error())
+    # exit(-1)
+    # connection.readyRead.connect(read_socket)
+    connection = Client(server_name)
 
     if PYSIDE6:
         sys.exit(app.exec())
