@@ -291,7 +291,7 @@ def _create_virtualenv():
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
         subprocess.run(
-            [python, "-u", pyz, RENDER_VENV_DIR],
+            [python, "-u", pyz, RENDER_VENV_DIR, "--system-site-packages"],
             check=True,
         )
 
