@@ -55,11 +55,18 @@ VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 # FreeCAD version
 APPVERSION = App.Version()
-FCDVERSION = (
-    int(APPVERSION[0] or "0"),
-    int(APPVERSION[1] or "0"),
-    int(APPVERSION[2] or "0"),
-)
+if APPVERSION[2]:
+    FCDVERSION = (
+        int(APPVERSION[0]),
+        int(APPVERSION[1]),
+        int(APPVERSION[2]),
+    )
+else:
+    FCDVERSION = (
+        int(APPVERSION[0]),
+        int(APPVERSION[1]),
+    )
+
 
 # Workbench parameters
 PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
