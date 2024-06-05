@@ -54,11 +54,14 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.help import open_help
-from Render.materialx import (
-    import_materialx,
-    open_mxdownloader,
-)
+from Render.subcontainer import start_help
+
+MATERIALX = PARAMS.GetBool("MaterialX")
+if MATERIALX:
+    from Render.materialx import (
+        import_materialx,
+        open_mxdownloader,
+    )
 
 
 class RenderProjectCommand:
@@ -658,9 +661,9 @@ class HelpCommand:
         """Respond to Activated event (callback).
 
         This code is executed when the command is run in FreeCAD.
-        It creates a new camera into the active document.
+        It opens a help browser in Gui.
         """
-        open_help()
+        start_help()
 
 
 class SettingsCommand:
@@ -767,7 +770,7 @@ def _init_gui_commands():
         libs_cmd, "Libraries", "Download from material libraries"
     )
 
-    if PARAMS.GetBool("MaterialX"):
+    if MATERIALX:
         render_commands = [
             ("Projects", projects_group),
             separator,

@@ -28,12 +28,6 @@ import re
 from urllib.parse import urlparse
 
 try:
-    from PySide2.QtWebEngineWidgets import (
-        QWebEngineView,
-        QWebEnginePage,
-        QWebEngineDownloadItem,
-    )
-except ModuleNotFoundError:
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import (
         QWebEnginePage,
@@ -41,6 +35,12 @@ except ModuleNotFoundError:
     )
 
     QWebEngineDownloadItem = QWebEngineDownloadRequest
+except ModuleNotFoundError:
+    from PySide2.QtWebEngineWidgets import (
+        QWebEngineView,
+        QWebEnginePage,
+        QWebEngineDownloadItem,
+    )
 
 from PySide.QtCore import (
     Slot,

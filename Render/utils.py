@@ -38,6 +38,7 @@ except ImportError:
     from Draft import translate as _translate  # 0.18
 
 from PySide.QtGui import QDockWidget, QTextEdit
+from PySide import __version__ as pyside_version
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -275,7 +276,7 @@ def reload(module_name=None):
             "Render.material",
             "Render.project",
             "Render.taskpanels",
-            "Render.help",
+            "Render.subcontainer",
             "Render.prefpage",
             "Render.groundplane",
             "Render.virtualenv",

@@ -39,7 +39,7 @@ FCDMATERIALDIR = os.path.join(
     App.getResourceDir(), "Mod", "Material", "StandardMaterial"
 )
 USERMATERIALDIR = os.path.join(App.ConfigGet("UserAppData"), "Materials")
-WHEELSDIR = os.path.join(WBDIR, "wheels")
+WHEELSDIR = os.path.join(WBDIR, "wheelhouse")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
@@ -54,11 +54,19 @@ DEPRECATED_RENDERERS = {"Luxrender"}
 VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 # FreeCAD version
-FCDVERSION = (
-    int(App.Version()[0]),
-    int(App.Version()[1]),
-    int(App.Version()[2]),
-)
+APPVERSION = App.Version()
+if APPVERSION[2]:
+    FCDVERSION = (
+        int(APPVERSION[0]),
+        int(APPVERSION[1]),
+        int(APPVERSION[2]),
+    )
+else:
+    FCDVERSION = (
+        int(APPVERSION[0]),
+        int(APPVERSION[1]),
+    )
+
 
 # Workbench parameters
 PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")

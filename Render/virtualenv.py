@@ -48,8 +48,11 @@ import concurrent.futures
 
 import FreeCAD as App
 
+from PySide import __version__ as PYSIDE_VERSION
+
 from Render.utils import find_python
 from Render.constants import PARAMS, WHEELSDIR
+from Render.rdrexecutor import RendererExecutor, ExporterWorker
 
 RENDER_VENV_FOLDER = ".rendervenv"
 RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
@@ -61,17 +64,25 @@ RENDERVENV = None
 
 
 def ensure_rendervenv():
-    """Ensure Render virtual environment is available."""
-    # Step 0: Sentry for experimental feature (#TODO)
-    if not PARAMS.GetBool("MaterialX"):
-        return
+    """Ensure Render virtual environment is available and up-to-date."""
+    errormsg = "[Render][Init] Virtual environment error\n"
+    worker = ExporterWorker(rendervenv_worker, [], errormsg)
+    executor = RendererExecutor(worker)
+    executor.start()
+    executor.join()
+
+
+def rendervenv_worker():
+    """Worker for ensure_rendervenv."""
+
+    _msg("Checking dependencies...")
 
     try:
         # Step 1: Check if virtual environment exists at location
         # RENDER_VENV_DIR. Otherwise, create it
         _log("Checking Render virtual environment")
         if not _check_venv():
-            _log(">>> Environment folder does not exist - Creating")
+            _msg(">>> Environment folder does not exist - Creating")
             _create_virtualenv()
         else:
             _log(">>> Environment folder exists: OK")
@@ -80,7 +91,7 @@ def ensure_rendervenv():
         # Otherwise, recreate (try three times)
         for _ in range(3):
             if get_venv_python() is None:
-                _log(
+                _msg(
                     ">>> Environment does not provide Python "
                     "- Recreating environment"
                 )
@@ -96,7 +107,7 @@ def ensure_rendervenv():
         # Otherwise, bootstrap (try three times)
         for _ in range(3):
             if _get_venv_pip() is None:
-                _log(">>> Environment does not provide Pip - Repairing")
+                _msg(">>> Environment does not provide Pip - Repairing")
                 url = "https://bootstrap.pypa.io/get-pip.py"
                 _bootstrap(url)
             else:
@@ -119,7 +130,19 @@ def ensure_rendervenv():
             )
 
         # Step 5: Check for needed packages - binaries
-        packages = ["setuptools", "wheel", "materialx"]
+        packages = ["setuptools", "wheel"]
+
+        if PARAMS.GetBool("MaterialX"):
+            packages.append("materialx")
+
+        pyside_version = PYSIDE_VERSION
+        if pyside_version >= "6":
+            packages.append(f"PySide6=={pyside_version}")
+        else:
+            if pyside_version == "5.15.2":
+                pyside_version = "5.15.2.1"  # For Ubuntu 22.04
+            packages.append(f"PySide2=={pyside_version}")
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
                 executor.submit(
@@ -128,7 +151,7 @@ def ensure_rendervenv():
                     options=[
                         "--no-warn-script-location",
                         "--only-binary=:all:",
-                        f"--find-links='{WHEELSDIR}'",
+                        f"--find-links={WHEELSDIR}",
                     ],
                     loglevel=1,
                 ): package
@@ -137,35 +160,32 @@ def ensure_rendervenv():
             errors = {}
             for future in concurrent.futures.as_completed(futures):
                 package = futures[future]
-                return_code = future.result()
                 if not (return_code := future.result()):
-                    _log(f">>> Checked package '{package}' - OK")
+                    _msg(f"Checked package '{package}' - OK")
                 else:
-                    _log(
-                        f">>> Checked package '{package}' - ERROR "
+                    _warn(
+                        f"Checked package '{package}' - ERROR "
                         f"(return code: {return_code})"
                     )
                     errors[package] = return_code
 
         # Step 7: Report errors to user
-        if not errors:
-            return
+        if errors:
+            failed = ", ".join(f"'{p}'" for p in errors.keys())
+            _warn(
+                f"WARNING - The following dependencies could not be installed:"
+                f"{failed}"
+            )
 
-        failed = ", ".join(f"'{p}'" for p in errors.keys())
-        _warn(
-            f"WARNING - The following dependencies could not be installed:"
-            f"{failed}"
-        )
-
-        statement = (
-            f'"{get_venv_python()}" -u -m pip install --prefer-binary '
-            f"--require-virtualenv {failed}"
-        )
-        _warn(
-            "You may try to install those packages on your own with the "
-            "following command-line statement:\n"
-        )
-        App.Console.PrintWarning(f"{statement}\n")
+            statement = (
+                f'"{get_venv_python()}" -u -m pip install --prefer-binary '
+                f"--require-virtualenv {failed}"
+            )
+            _warn(
+                "You may try to install those packages on your own with the "
+                "following command-line statement:\n"
+            )
+            App.Console.PrintWarning(f"{statement}\n")
 
     except VenvError as error:
         msg = (
@@ -178,7 +198,8 @@ def ensure_rendervenv():
         if not errors:
             _log("Render virtual environment: OK")
         else:
-            _log(f"Render virtual environment: {len(errors)} error(s)")
+            _warn(f"Render virtual environment: {len(errors)} error(s)")
+        _msg("Done.")
 
 
 def get_venv_python():
@@ -283,7 +304,7 @@ def _create_virtualenv():
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
         subprocess.run(
-            [python, "-u", pyz, "--system-site-packages", RENDER_VENV_DIR],
+            [python, "-u", pyz, RENDER_VENV_DIR, "--system-site-packages"],
             check=True,
         )
 
@@ -347,8 +368,18 @@ def _log(message):
     App.Console.PrintLog(f"[Render][Init] {message}\n")
 
 
+def _msg(message):
+    """Message function for Render virtual environment handling."""
+    if not message:
+        return
+    # Trim ending newline
+    if message.endswith("\n"):
+        message = message[:-1]
+    App.Console.PrintMessage(f"[Render][Init] {message}\n")
+
+
 def _warn(message):
-    """Log function for Render virtual environment handling."""
+    """Warn function for Render virtual environment handling."""
     if not message:
         return
     # Trim ending newline

@@ -26,6 +26,10 @@
 It imports all the public symbols which make up the Render Workbench API.
 """
 
+# First ensure we've got a Python virtual environment
+from Render.virtualenv import ensure_rendervenv  # noqa: F401
+
+ensure_rendervenv()
 
 from Render.constants import (  # noqa: F401
     WBDIR,
@@ -39,6 +43,7 @@ from Render.constants import (  # noqa: F401
     DEPRECATED_RENDERERS,
     VALID_RENDERERS,
     FCDVERSION,
+    PARAMS,
 )
 
 from Render.project import Project, ViewProviderProject  # noqa: F401
@@ -77,8 +82,14 @@ from Render.utils import (  # noqa: F401
 )
 from Render.commands import RENDER_COMMANDS  # noqa: F401
 from Render.prefpage import PreferencesPage  # noqa: F401
-from Render.materialx import import_materialx  # noqa: F401
-from Render.virtualenv import ensure_rendervenv  # noqa: F401
+from Render.subcontainer import start_help  # TODO
 
-# Ensure we've got a Python virtual environment
-ensure_rendervenv()
+if PARAMS.GetBool("MaterialX"):
+    from Render.materialx import import_materialx  # noqa: F401
+
+import FreeCAD as App
+
+if App.GuiUp:
+    import FreeCADGui as Gui
+
+    Gui.doCommand("import Render")
