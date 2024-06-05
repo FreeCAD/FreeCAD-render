@@ -28,43 +28,61 @@ This module reduces Render dependencies to FreeCAD and PySide.
 """
 
 # A few design comments:
-# - Communication between Render and embedded app is done by pipes
+# - Communication between Render and embedded app is done by pipes, thanks to
+#   Python. I did not opt for QLocalServer/QLocalSocket, as QtNetwork is not
+#   available in all FreeCAD versions (and could be removed in the future?)
 # - For a reason I couldn't clarify, the subwindow to embed the external
 #   application cannot be the first one created in the MDI, otherwise when a
 #   new document is created, FreeCAD crashes. So I had to introduce a (bad)
 #   workaround when the view list is empty (create and immediately destroy
 #   a dummy doc...)
+#
+# From:
+# https://stackoverflow.com/questions/40348044/executing-a-qt-application-inside-qt-application
+
 
 import os
 import sys
 import re
-import pickle
-import uuid
+from multiprocessing.connection import Client, Listener, Connection, wait
+from threading import Thread
 
-from PySide.QtCore import (
-    QProcess,
-    QObject,
-    Signal,
-    Slot,
-    QEventLoop,
-    Qt,
-    QByteArray,
-)
-from PySide.QtWidgets import QWidget, QLabel
-from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
 
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import WBDIR, PKGDIR
+from Render.constants import WBDIR, PKGDIR, FCDVERSION
 from Render.virtualenv import get_venv_python
 
-
-# From:
-# https://stackoverflow.com/questions/40348044/executing-a-qt-application-inside-qt-application
-
-from multiprocessing.connection import Client, Listener, Connection, wait
-from threading import Thread
+if FCDVERSION > (0, 19):
+    from PySide.QtCore import (
+        QProcess,
+        QObject,
+        Signal,
+        Slot,
+        QEventLoop,
+        Qt,
+        QByteArray,
+    )
+    from PySide.QtWidgets import QWidget, QLabel
+    from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
+else:
+    from PySide.QtCore import (
+        QProcess,
+        QObject,
+        Signal,
+        Slot,
+        QEventLoop,
+        Qt,
+        QByteArray,
+    )
+    from PySide.QtGui import (
+        QWidget,
+        QLabel,
+        QWindow,
+        QMdiSubWindow,
+        QGuiApplication,
+    )
 
 
 class ConnectionServer(QObject):
@@ -162,7 +180,8 @@ class PythonSubprocess(QProcess):
                 self.winid_available.emit(argument)
             else:
                 App.Console.PrintError(
-                    f"[Render][Sub] Unknown verb/argument: '{verb}' '{argument}')"
+                    "[Render][Sub] Unknown verb/argument: "
+                    f"'{verb}' '{argument}')"
                 )
 
     @Slot()
@@ -229,7 +248,8 @@ class PythonSubprocessWindow(QMdiSubWindow):
             finished = self.process.waitForFinished(3000)
             if not finished:
                 App.Console.PrintWarning(
-                    "[Render][Sub] Subprocess terminate timeout, have to kill it\n"
+                    "[Render][Sub] Subprocess terminate timeout, "
+                    "have to kill it\n"
                 )
                 self.process.kill()
 
