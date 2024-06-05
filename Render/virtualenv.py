@@ -64,14 +64,17 @@ RENDERVENV = None
 
 
 def ensure_rendervenv():
-    worker = ExporterWorker(rendervenv_worker, [])
+    """Ensure Render virtual environment is available and up-to-date."""
+    errormsg = "[Render][Init] Virtual environment error\n"
+    worker = ExporterWorker(rendervenv_worker, [], errormsg)
     executor = RendererExecutor(worker)
     executor.start()
     executor.join()
 
 
 def rendervenv_worker():
-    """Ensure Render virtual environment is available and up-to-date."""
+    """Worker for ensure_rendervenv."""
+
     _msg("Checking dependencies...")
 
     try:

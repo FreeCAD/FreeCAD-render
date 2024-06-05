@@ -132,18 +132,22 @@ class ExporterWorker(QObject):
 
     finished = Signal(int)
 
-    def __init__(self, func, args):
+    def __init__(self, func, args, errormsg=None):
         """Initialize worker.
 
         Args:
             func -- function to run (callable)
             args -- arguments to pass (tuple)
+            errormsg -- error message
         """
         super().__init__()
         self.func = func
         self.args = args
         self.lock = threading.Lock()
         self.res = []
+        self.errormsg = (
+            errormsg or "[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n"
+        )
 
     @Slot()
     def run(self):
@@ -155,9 +159,7 @@ class ExporterWorker(QObject):
         try:
             res = self.func(*self.args)
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            App.Console.PrintError(
-                "[Render][Objstrings] /!\\ EXPORT ERROR /!\\\n"
-            )
+            App.Console.PrintError(self.errormsg)
             traceback.print_exception(exc)
         else:
             with self.lock:
