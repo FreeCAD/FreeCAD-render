@@ -173,7 +173,7 @@ class HelpApplication(QObject):
         self.bye.connect(self.quit)
 
         # Application and widget
-        self.app = QApplication(sys.argv + ["--no-sandbox"])
+        self.app = QApplication()
         self.app.aboutToQuit.connect(self.stop_listening)
         self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         self.mainwindow.showMaximized()
