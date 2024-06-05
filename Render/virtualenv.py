@@ -52,6 +52,7 @@ from PySide import __version__ as PYSIDE_VERSION
 
 from Render.utils import find_python
 from Render.constants import PARAMS, WHEELSDIR
+from Render.rdrexecutor import RendererExecutor, ExporterWorker
 
 RENDER_VENV_FOLDER = ".rendervenv"
 RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
@@ -62,8 +63,14 @@ RENDERVENV = None
 # API
 
 
-# TODO Don't block main loop
 def ensure_rendervenv():
+    worker = ExporterWorker(rendervenv_worker, [])
+    executor = RendererExecutor(worker)
+    executor.start()
+    executor.join()
+
+
+def rendervenv_worker():
     """Ensure Render virtual environment is available and up-to-date."""
     _msg("Checking dependencies...")
 
@@ -160,24 +167,22 @@ def ensure_rendervenv():
                     errors[package] = return_code
 
         # Step 7: Report errors to user
-        if not errors:
-            return
+        if errors:
+            failed = ", ".join(f"'{p}'" for p in errors.keys())
+            _warn(
+                f"WARNING - The following dependencies could not be installed:"
+                f"{failed}"
+            )
 
-        failed = ", ".join(f"'{p}'" for p in errors.keys())
-        _warn(
-            f"WARNING - The following dependencies could not be installed:"
-            f"{failed}"
-        )
-
-        statement = (
-            f'"{get_venv_python()}" -u -m pip install --prefer-binary '
-            f"--require-virtualenv {failed}"
-        )
-        _warn(
-            "You may try to install those packages on your own with the "
-            "following command-line statement:\n"
-        )
-        App.Console.PrintWarning(f"{statement}\n")
+            statement = (
+                f'"{get_venv_python()}" -u -m pip install --prefer-binary '
+                f"--require-virtualenv {failed}"
+            )
+            _warn(
+                "You may try to install those packages on your own with the "
+                "following command-line statement:\n"
+            )
+            App.Console.PrintWarning(f"{statement}\n")
 
     except VenvError as error:
         msg = (
@@ -191,6 +196,7 @@ def ensure_rendervenv():
             _log("Render virtual environment: OK")
         else:
             _log(f"Render virtual environment: {len(errors)} error(s)")
+        _msg("Done.")
 
 
 def get_venv_python():
