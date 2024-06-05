@@ -195,7 +195,7 @@ def rendervenv_worker():
         if not errors:
             _log("Render virtual environment: OK")
         else:
-            _log(f"Render virtual environment: {len(errors)} error(s)")
+            _warn(f"Render virtual environment: {len(errors)} error(s)")
         _msg("Done.")
 
 
