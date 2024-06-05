@@ -28,7 +28,7 @@ import argparse
 import sys
 import signal
 from multiprocessing.connection import Client, wait
-from threading import Thread
+from threading import Thread, Event
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -164,6 +164,8 @@ class HelpApplication(QObject):
 
         # Communication
         self.connection = Client(connection_name)
+        self.connection_active = Event()
+        self.connection_active.set()
         self.connection_listener = Thread(target=self.parent_recv)
         self.connection_listener.start()
 
@@ -172,6 +174,7 @@ class HelpApplication(QObject):
 
         # Application and widget
         self.app = QApplication()
+        self.app.aboutToQuit.connect(self.stop_listening)
         self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         self.mainwindow.showMaximized()
 
@@ -188,17 +191,26 @@ class HelpApplication(QObject):
 
     def parent_recv(self):
         """Receive messages from parent process."""
-        while True:
-            try:
-                obj = self.connection.recv()
-            except EOFError:
-                break
-            verb, argument = obj
+        while self.connection_active.is_set():
+            # We use wait to get a timeout parameter
+            for conn in wait([self.connection], timeout=1):
+                try:
+                    message = conn.recv()
+                except EOFError:
+                    self.connection_active.clear()
+                else:
+                    verb, argument = message
 
-            # Handle
-            if verb == "CLOSE":
-                self.bye.emit()
-                break
+                    # Handle
+                    if verb == "CLOSE":
+                        self.bye.emit()
+                        self.connection_active.clear()
+
+    @Slot()
+    def stop_listening(self):
+        """Stop listening to parent messages."""
+        self.connection_active.clear()
+        self.connection_listener.join()
 
     @Slot()
     def quit(self):
