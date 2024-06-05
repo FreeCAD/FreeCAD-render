@@ -52,7 +52,6 @@ from PySide.QtCore import (
 )
 from PySide.QtWidgets import QWidget, QLabel
 from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
-from PySide.QtNetwork import QLocalServer, QLocalSocket
 
 import FreeCADGui as Gui
 import FreeCAD as App
