@@ -62,7 +62,6 @@ if FCDVERSION > (0, 19):
         Slot,
         QEventLoop,
         Qt,
-        QByteArray,
     )
     from PySide.QtWidgets import QWidget, QLabel
     from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
@@ -74,7 +73,6 @@ else:
         Slot,
         QEventLoop,
         Qt,
-        QByteArray,
     )
     from PySide.QtGui import (
         QWidget,
