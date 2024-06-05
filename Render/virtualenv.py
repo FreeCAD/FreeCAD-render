@@ -62,6 +62,7 @@ RENDERVENV = None
 # API
 
 
+# TODO Don't block main loop
 def ensure_rendervenv():
     """Ensure Render virtual environment is available and up-to-date."""
     _msg("Checking dependencies...")

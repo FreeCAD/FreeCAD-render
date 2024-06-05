@@ -55,10 +55,13 @@ from Render.lights import (
 )
 from Render.rendermaterial import is_multimat
 from Render.subcontainer import start_help
-from Render.materialx import (
-    import_materialx,
-    open_mxdownloader,
-)
+
+MATERIALX = PARAMS.GetBool("MaterialX")
+if MATERIALX:
+    from Render.materialx import (
+        import_materialx,
+        open_mxdownloader,
+    )
 
 
 class RenderProjectCommand:
@@ -767,7 +770,7 @@ def _init_gui_commands():
         libs_cmd, "Libraries", "Download from material libraries"
     )
 
-    if PARAMS.GetBool("MaterialX"):
+    if MATERIALX:
         render_commands = [
             ("Projects", projects_group),
             separator,

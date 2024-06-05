@@ -266,6 +266,9 @@ def start_subapp(script, options=None):
     subw.start()
 
 
+# Specialized starters
+
+
 def start_help():
     """Start help sub application."""
     script = os.path.join(PKGDIR, "help", "help.py")
