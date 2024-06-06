@@ -223,9 +223,8 @@ class RendererExecutorGui(QObject):
         should not be of much use in GUI context.
         """
         loop = QEventLoop()
-        self.thread.finished.connect(loop.quit)
-        if not self.thread.isFinished():
-            loop.exec_(flags=QEventLoop.ExcludeUserInputEvents)
+        self.thread.finished.connect(loop.quit, Qt.QueuedConnection)
+        loop.exec_(flags=QEventLoop.ExcludeUserInputEvents)
 
 
 class RendererExecutorCli(threading.Thread):
