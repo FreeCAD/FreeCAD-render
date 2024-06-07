@@ -230,8 +230,8 @@ def pip_install(package, options=None, log=None, loglevel=0):
     cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
     log(" ".join([">>>"] + cmd))
     environment = os.environ.copy()
-    del environment["PYTHONHOME"]
-    del environment["PYTHONPATH"]
+    environment.pop("PYTHONHOME", None)
+    environment.pop("PYTHONPATH", None)
     with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
