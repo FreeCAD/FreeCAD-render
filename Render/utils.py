@@ -43,7 +43,7 @@ from PySide import __version__ as pyside_version
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import FCDVERSION
+from Render.constants import FCDVERSION, PARAMS
 
 try:
     if not App.GuiUp:
@@ -258,7 +258,7 @@ def clamp(value, maxval=1e10):
 
 def reload(module_name=None):
     """Reload Render modules."""
-    if not module_name:
+    if module_name is None:
         mods = [
             "Render.base",
             "Render.camera",
@@ -293,12 +293,12 @@ def reload(module_name=None):
             "Render.rendermesh_mixins",
             "Render",
         ]
-    if PARAMS.GetBool("MaterialX"):
-        mods += [
-            "Render.materialx",
-            "Render.materialx.materialx_importer",
-            "Render.materialx.materialx_downloader",
-        ]
+        if PARAMS.GetBool("MaterialX"):
+            mods += [
+                "Render.materialx",
+                "Render.materialx.materialx_importer",
+                "Render.materialx.materialx_downloader",
+            ]
     else:
         mods = (module_name,)
 
