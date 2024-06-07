@@ -57,6 +57,7 @@ from Render.virtualenv import get_venv_python
 if FCDVERSION > (0, 19):
     from PySide.QtCore import (
         QProcess,
+        QProcessEnvironment,
         QObject,
         Signal,
         Slot,
@@ -68,6 +69,7 @@ if FCDVERSION > (0, 19):
 else:
     from PySide.QtCore import (
         QProcess,
+        QProcessEnvironment,
         QObject,
         Signal,
         Slot,
@@ -129,6 +131,13 @@ class PythonSubprocess(QProcess):
 
     def __init__(self, python, args, parent=None):
         super().__init__(parent)
+
+        # Set environment
+        environment = QProcessEnvironment.systemEnvironment()
+        environment.remove("PYTHONHOME")
+        environment.remove("PYTHONPATH")
+        environment.remove("LD_LIBRARY_PATH")
+        self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing
         self.setReadChannel(QProcess.StandardOutput)
