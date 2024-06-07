@@ -38,7 +38,6 @@ from PySide.QtGui import (
 
 import FreeCAD as App
 import FreeCADGui as Gui
-from ArchMaterial import _CommandArchMaterial
 
 from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS
 from Render.utils import translate
@@ -342,11 +341,8 @@ class DistantLightCommand:
         DistantLight.create()
 
 
-class MaterialCreatorCommand(_CommandArchMaterial):
-    """GUI command to create a material.
-
-    This class is partially based on Arch 'ArchMaterial' command.
-    """
+class MaterialCreatorCommand:
+    """GUI command to create a material."""
 
     def __init__(self, newname=False):
         """Init command."""
@@ -354,18 +350,24 @@ class MaterialCreatorCommand(_CommandArchMaterial):
 
     def GetResources(self):
         """Get command's resources (callback)."""
-        res = super().GetResources()
-        res["MenuText"] = (
-            QT_TRANSLATE_NOOP(
-                "MaterialCreatorCommand", "Internal Material Library"
-            )
-            if self._newname
-            else QT_TRANSLATE_NOOP("MaterialCreatorCommand", "Create Material")
-        )
-        res["ToolTip"] = QT_TRANSLATE_NOOP(
-            "MaterialCreatorCommand",
-            "Create a new Material in current document from internal library",
-        )
+        res = {
+            "Pixmap": "Arch_Material_Group",
+            "MenuText": (
+                QT_TRANSLATE_NOOP(
+                    "MaterialCreatorCommand", "Internal Material Library"
+                )
+                if self._newname
+                else QT_TRANSLATE_NOOP(
+                    "MaterialCreatorCommand", "Create Material"
+                )
+            ),
+            "ToolTip": (
+                QT_TRANSLATE_NOOP(
+                    "MaterialCreatorCommand",
+                    "Create a new Material in current document from internal library",
+                )
+            ),
+        }
         return res
 
     def Activated(self):  # pylint: disable=no-self-use
@@ -384,6 +386,12 @@ class MaterialCreatorCommand(_CommandArchMaterial):
         for cmd in cmds:
             Gui.doCommand(cmd)
         App.ActiveDocument.commitTransaction()
+
+    def IsActive(self):
+        v = hasattr(
+            FreeCADGui.getMainWindow().getActiveWindow(), "getSceneGraph"
+        )
+        return v
 
 
 class MaterialMaterialXImportCommand:
