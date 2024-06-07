@@ -231,11 +231,15 @@ def pip_install(package, options=None, log=None, loglevel=0):
         raise VenvError(3)
     cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
     log(" ".join([">>>"] + cmd))
+    environment = os.environ.copy()
+    del environment["PYTHONHOME"]
+    del environment["PYTHONPATH"]
     with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding="utf-8",
+        env=environment,
     ) as proc:
         pads = " ".join(">>>" for _ in range(loglevel))
         for line in proc.stdout:
