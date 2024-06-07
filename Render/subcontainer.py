@@ -150,7 +150,7 @@ class PythonSubprocess(QProcess):
         self.server.start_listening()
 
         server_name = self.server.address
-        args = args + ["--server", server_name]
+        args = ["-I"] + args + ["--server", server_name]
         self.connections = []
         self.connections_listener = Thread(target=self.child_recv)
         self.connections_active = Event()
