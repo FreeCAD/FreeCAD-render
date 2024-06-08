@@ -52,7 +52,8 @@ import FreeCADGui as Gui
 import FreeCAD as App
 
 from Render.constants import WBDIR, PKGDIR, FCDVERSION
-from Render.virtualenv import get_venv_python
+from Render.virtualenv import get_venv_python, get_venv_pyside_version
+from PySide import __version_info__ as pyside_version_info
 
 if FCDVERSION > (0, 19):
     from PySide.QtCore import (
@@ -134,8 +135,8 @@ class PythonSubprocess(QProcess):
 
         # Set environment
         environment = QProcessEnvironment.systemEnvironment()
-        environment.remove("PYTHONHOME")
-        environment.remove("PYTHONPATH")
+        # environment.remove("PYTHONHOME")
+        # environment.remove("PYTHONPATH")
         environment.remove("LD_LIBRARY_PATH")
         self.setProcessEnvironment(environment)
 
@@ -150,7 +151,13 @@ class PythonSubprocess(QProcess):
         self.server.start_listening()
 
         server_name = self.server.address
-        args = ["-I"] + args + ["--server", server_name]
+        subcontainer_args = [
+            "--server",
+            server_name,
+            "--pyside",
+            get_venv_pyside_version(),
+        ]
+        args = ["-I"] + args + subcontainer_args
         self.connections = []
         self.connections_listener = Thread(target=self.child_recv)
         self.connections_active = Event()

@@ -30,7 +30,35 @@ import signal
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
 
-try:
+if __name__ == "__main__":
+    # Get arguments
+    parser = argparse.ArgumentParser(
+        prog="Render help",
+        description="Open a help browser for Render Workbench",
+    )
+    parser.add_argument(
+        "path_to_workbench",
+        help="the path to the workbench",
+        type=pathlib.Path,
+    )
+    parser.add_argument(
+        "--server",
+        help="the communication server name",
+        type=str,
+    )
+    parser.add_argument(
+        "--pyside",
+        help="pyside version",
+        type=str,
+        choices=("PySide2", "PySide6"),
+    )
+    ARGS = parser.parse_args()
+    PYSIDE = ARGS.pyside
+else:
+    PYSIDE = 6
+
+# Imports
+if PYSIDE == "PySide6":
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
     from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QObject, Signal
@@ -42,8 +70,7 @@ try:
         QMainWindow,
     )
 
-    PYSIDE6 = True
-except ModuleNotFoundError:
+if PYSIDE == "PySide2":
     from PySide2.QtWebEngineWidgets import (
         QWebEngineView,
         QWebEngineScript,
@@ -57,8 +84,6 @@ except ModuleNotFoundError:
         QApplication,
         QMainWindow,
     )
-
-    PYSIDE6 = False
 
 
 THISDIR = os.path.dirname(__file__)
@@ -228,7 +253,7 @@ class HelpApplication(QObject):
 
     def exec(self):
         """Execute application (start event loop)."""
-        if PYSIDE6:
+        if PYSIDE == "PySide6":
             return self.app.exec()
         else:
             return self.app.exec_()
@@ -236,24 +261,8 @@ class HelpApplication(QObject):
 
 def main():
     """The entry point."""
-    # Get workbench path from command line arguments
-    parser = argparse.ArgumentParser(
-        prog="Render help",
-        description="Open a help browser for Render Workbench",
-    )
-    parser.add_argument(
-        "path_to_workbench",
-        help="the path to the workbench",
-        type=pathlib.Path,
-    )
-    parser.add_argument(
-        "--server",
-        help="the communication server name",
-        type=str,
-    )
-    args = parser.parse_args()
 
-    application = HelpApplication(args.path_to_workbench, args.server)
+    application = HelpApplication(ARGS.path_to_workbench, ARGS.server)
     sys.exit(application.exec())
 
 
