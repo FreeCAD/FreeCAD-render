@@ -45,18 +45,20 @@ import os
 import sys
 import re
 from multiprocessing.connection import Client, Listener, Connection, wait
-from threading import Thread
+from threading import Thread, Event
 
 
 import FreeCADGui as Gui
 import FreeCAD as App
 
 from Render.constants import WBDIR, PKGDIR, FCDVERSION
-from Render.virtualenv import get_venv_python
+from Render.virtualenv import get_venv_python, get_venv_pyside_version
+from PySide import __version_info__ as pyside_version_info
 
 if FCDVERSION > (0, 19):
     from PySide.QtCore import (
         QProcess,
+        QProcessEnvironment,
         QObject,
         Signal,
         Slot,
@@ -68,6 +70,7 @@ if FCDVERSION > (0, 19):
 else:
     from PySide.QtCore import (
         QProcess,
+        QProcessEnvironment,
         QObject,
         Signal,
         Slot,
@@ -108,10 +111,13 @@ class ConnectionServer(QObject):
 
     def _do_listen(self):
         """Listen to incoming conn requests (worker)."""
-        # TODO Exit gracefully
         while conn := self.listener.accept():
             self.connections.append(conn)
             self.new_connection.emit(conn)
+
+    def close(self):
+        """Close listener."""
+        self.listener.close()
 
 
 class PythonSubprocess(QProcess):
@@ -119,13 +125,20 @@ class PythonSubprocess(QProcess):
 
     This object provides:
     - echoing of subprocess stdout/stderr
-    - a communication server to interact with process (based on QLocalServer)
+    - a communication server to interact with process
     """
 
     winid_available = Signal(int)
 
     def __init__(self, python, args, parent=None):
         super().__init__(parent)
+
+        # Set environment
+        environment = QProcessEnvironment.systemEnvironment()
+        # environment.remove("PYTHONHOME")
+        # environment.remove("PYTHONPATH")
+        environment.remove("LD_LIBRARY_PATH")
+        self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing
         self.setReadChannel(QProcess.StandardOutput)
@@ -138,55 +151,69 @@ class PythonSubprocess(QProcess):
         self.server.start_listening()
 
         server_name = self.server.address
-        args = args + ["--server", server_name]
-        self.connection = None
-        self.connection_listener = None
+        subcontainer_args = [
+            "--server",
+            server_name,
+            "--pyside",
+            get_venv_pyside_version(),
+        ]
+        args = ["-I"] + args + subcontainer_args
+        self.connections = []
+        self.connections_listener = Thread(target=self.child_recv)
+        self.connections_active = Event()
+        self.connections_active.set()
 
         # Set program and arguments
         self.setProgram(python)
         self.setArguments(args)
+
+        # Log
         statement = " ".join([python] + args)
         App.Console.PrintLog(statement + "\n")
 
     @Slot(Connection)
     def _new_connection(self, connection):
-        """Handle new connection.
-
-        Nota: only one connection is allowed.
-        """
-        if self.connection:
-            raise RuntimeError(
-                "New incoming connection, but connection already set"
-            )
-        self.connection = connection
-        self.connection_listener = Thread(target=self.child_recv)
-        self.connection_listener.start()
+        """Handle new connection."""
+        self.connections.append(connection)
+        if not self.connections_listener.is_alive():
+            self.connections_listener.start()
 
     def child_recv(self):
         """Receive messages from subprocess."""
-        # TODO exit gracefully
-        while True:
-            try:
-                obj = self.connection.recv()
-            except EOFError:
-                break
-            verb, argument = obj
+        while self.connections_active.is_set:
+            # We use wait to get a timeout parameter
+            for conn in wait(self.connections, timeout=1):
+                try:
+                    message = conn.recv()
+                except EOFError:
+                    self.connections.remove(conn)
+                    if not self.connections:
+                        self.connections_active.clear()
+                else:
+                    verb, argument = message
 
-            # Handle
-            if verb == "WINID":
-                argument = int(argument)
-                self.winid_available.emit(argument)
-            else:
-                App.Console.PrintError(
-                    "[Render][Sub] Unknown verb/argument: "
-                    f"'{verb}' '{argument}')"
-                )
+                    # Handle
+                    if verb == "WINID":
+                        argument = int(argument)
+                        self.winid_available.emit(argument)
+                    else:
+                        App.Console.PrintError(
+                            "[Render][Sub] Unknown verb/argument: "
+                            f"'{verb}' '{argument}')"
+                        )
+
+    @Slot()
+    def stop_listening(self):
+        """Stop listening to parent messages."""
+        self.connections_active.clear()
+        self.connections_listener.join()
 
     @Slot()
     def child_send(self, verb, argument=None):
         """Write a message to subprocess."""
         message = (verb, argument)
-        self.connection.send(message)
+        for conn in self.connections:
+            conn.send(message)
 
     @Slot()
     def _echo_stdout(self):

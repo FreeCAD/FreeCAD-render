@@ -135,13 +135,12 @@ def rendervenv_worker():
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
 
-        pyside_version = PYSIDE_VERSION
-        if pyside_version >= "6":
-            packages.append(f"PySide6=={pyside_version}")
-        else:
-            if pyside_version == "5.15.2":
-                pyside_version = "5.15.2.1"  # For Ubuntu 22.04
-            packages.append(f"PySide2=={pyside_version}")
+        packages.append(get_venv_pyside_version())
+
+        # TODO
+        # if pyside_version == "5.15.2":
+        # pyside_version = "5.15.2.1"  # For Ubuntu 22.04
+        # packages.append(f"PySide2=={pyside_version}")
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
@@ -221,6 +220,23 @@ def get_venv_python():
     return path
 
 
+def get_venv_python_version():
+    """Get version of virtual environment Python interpreter."""
+    path = get_venv_python()
+    res = subprocess.run([path, "--version"], capture_output=True)
+    res = tuple(int(c) for c in res.stdout.lstrip(b"Python ").split(b"."))
+    return res
+
+
+def get_venv_pyside_version():
+    python_version = get_venv_python_version()
+    _log(str(python_version))
+    if python_version >= (3, 9):
+        return "PySide6"
+    else:
+        return "PySide2"
+
+
 def pip_install(package, options=None, log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
@@ -231,11 +247,15 @@ def pip_install(package, options=None, log=None, loglevel=0):
         raise VenvError(3)
     cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
     log(" ".join([">>>"] + cmd))
+    environment = os.environ.copy()
+    environment.pop("PYTHONHOME", None)
+    environment.pop("PYTHONPATH", None)
     with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding="utf-8",
+        env=environment,
     ) as proc:
         pads = " ".join(">>>" for _ in range(loglevel))
         for line in proc.stdout:
@@ -303,8 +323,17 @@ def _create_virtualenv():
     with tempfile.TemporaryDirectory() as tmp:
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)
+        command = [
+            python,
+            "-I",
+            "-u",
+            pyz,
+            RENDER_VENV_DIR,
+            "--system-site-packages",
+        ]
+        _log(" ".join(command))
         subprocess.run(
-            [python, "-u", pyz, RENDER_VENV_DIR, "--system-site-packages"],
+            command,
             check=True,
         )
 

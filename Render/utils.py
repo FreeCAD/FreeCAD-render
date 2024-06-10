@@ -43,7 +43,7 @@ from PySide import __version__ as pyside_version
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import FCDVERSION
+from Render.constants import FCDVERSION, PARAMS
 
 try:
     if not App.GuiUp:
@@ -258,8 +258,8 @@ def clamp(value, maxval=1e10):
 
 def reload(module_name=None):
     """Reload Render modules."""
-    mods = (
-        [
+    if module_name is None:
+        mods = [
             "Render.base",
             "Render.camera",
             "Render.constants",
@@ -280,9 +280,6 @@ def reload(module_name=None):
             "Render.prefpage",
             "Render.groundplane",
             "Render.virtualenv",
-            "Render.materialx",
-            "Render.materialx.materialx_importer",
-            "Render.materialx.materialx_downloader",
             "Render.renderers.Appleseed",
             "Render.renderers.Cycles",
             "Render.renderers.Luxcore",
@@ -296,9 +293,15 @@ def reload(module_name=None):
             "Render.rendermesh_mixins",
             "Render",
         ]
-        if not module_name
-        else (module_name,)
-    )
+        if PARAMS.GetBool("MaterialX"):
+            mods += [
+                "Render.materialx",
+                "Render.materialx.materialx_importer",
+                "Render.materialx.materialx_downloader",
+            ]
+    else:
+        mods = (module_name,)
+
     if FCDVERSION < (0, 22, 0):
         mods.append("Render.commands")
     for mod in mods:
@@ -543,4 +546,4 @@ def find_python():
         app = shutil.which(appname)
         return os.path.abspath(app) if app else None
 
-    return which("pythonw") or which("python") or which("python3")
+    return which("pythonw") or which("python3") or which("python")

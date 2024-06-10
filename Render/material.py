@@ -39,7 +39,8 @@ from PySide.QtCore import QObject, SIGNAL, QT_TRANSLATE_NOOP
 from ArchMaterial import (
     _ArchMaterial,
     _ViewProviderArchMaterial,
-    getMaterialContainer,
+    _ArchMaterialContainer,
+    _ViewProviderArchMaterialContainer,
 )
 
 from Render.texture import Texture
@@ -59,7 +60,7 @@ def make_material(name="Material", color=None, transparency=None, doc=None):
     Material(obj)
     if App.GuiUp:
         ViewProviderMaterial(obj.ViewObject)
-    getMaterialContainer().addObject(obj)
+    get_material_container().addObject(obj)
     if color:
         obj.Color = color[:3]
         if len(color) > 3:
@@ -67,6 +68,25 @@ def make_material(name="Material", color=None, transparency=None, doc=None):
     if transparency:
         obj.Transparency = transparency
     return obj
+
+
+def get_material_container():
+    """Returns a group object to put materials in."""
+    doc = App.ActiveDocument
+    containers = (
+        obj for obj in doc.Objects if obj.Name == "MaterialContainer"
+    )
+    try:
+        container = next(containers)
+    except StopIteration:
+        container = doc.addObject(
+            "App::DocumentObjectGroupPython", "MaterialContainer"
+        )
+        container.Label = "Materials"
+        _ArchMaterialContainer(obj)
+        if App.GuiUp:
+            _ViewProviderArchMaterialContainer(container.ViewObject)
+    return container
 
 
 def strtobool(val):
