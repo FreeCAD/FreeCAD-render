@@ -135,9 +135,10 @@ class PythonSubprocess(QProcess):
 
         # Set environment
         environment = QProcessEnvironment.systemEnvironment()
-        # environment.remove("PYTHONHOME")
-        # environment.remove("PYTHONPATH")
+        environment.remove("PYTHONHOME")
+        environment.remove("PYTHONPATH")
         environment.remove("LD_LIBRARY_PATH")
+        environment.remove("PIP_USER")
         self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing
