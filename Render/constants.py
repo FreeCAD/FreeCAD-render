@@ -43,6 +43,7 @@ WHEELSDIR = os.path.join(WBDIR, "wheelhouse")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
+PLUGINDIR = os.path.join(PKGDIR, "plugins")
 
 # Renderers lists
 RENDERERS = {

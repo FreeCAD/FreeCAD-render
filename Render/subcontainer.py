@@ -51,7 +51,7 @@ from threading import Thread, Event
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import WBDIR, PKGDIR, FCDVERSION
+from Render.constants import WBDIR, PKGDIR, FCDVERSION, PLUGINDIR
 from Render.virtualenv import get_venv_python, get_venv_pyside_version
 from PySide import __version_info__ as pyside_version_info
 
@@ -300,7 +300,7 @@ def start_subapp(script, options=None):
 
 def start_help():
     """Start help sub application."""
-    script = os.path.join(PKGDIR, "help", "help.py")
+    script = os.path.join(PLUGINDIR, "help", "help.py")
     script = os.path.normpath(script)
     wbdir = os.path.normpath(WBDIR)
     options = [wbdir]
