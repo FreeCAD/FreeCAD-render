@@ -388,10 +388,8 @@ class MaterialCreatorCommand:
         App.ActiveDocument.commitTransaction()
 
     def IsActive(self):
-        v = hasattr(
-            FreeCADGui.getMainWindow().getActiveWindow(), "getSceneGraph"
-        )
-        return v
+        """Check whether command is active (callback)."""
+        return hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
 
 
 class MaterialMaterialXImportCommand:
