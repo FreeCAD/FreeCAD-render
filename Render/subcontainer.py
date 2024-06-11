@@ -164,7 +164,8 @@ class PythonSubprocess(QProcess):
         self.connections_active.set()
 
         # Set program and arguments
-        self.setProgram(python)
+        self.setProgram("strace")
+        args = ["-e", "trace=open,openat,close,connect,accept", python] + args
         self.setArguments(args)
 
         # Log
