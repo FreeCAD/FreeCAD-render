@@ -130,12 +130,15 @@ def rendervenv_worker():
             )
 
         # Step 5: Check for needed packages - binaries
-        packages = ["setuptools", "wheel"]
+        packages = [
+            "setuptools",
+            "wheel",
+            get_venv_pyside_version(),  # PySide
+            os.path.join(WHEELSDIR, "plugin_framework"),
+        ]
 
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
-
-        packages.append(get_venv_pyside_version())
 
         # TODO
         # if pyside_version == "5.15.2":

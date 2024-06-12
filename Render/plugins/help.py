@@ -30,44 +30,17 @@ import signal
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
 
-if __name__ == "__main__":
-    # Get arguments
-    parser = argparse.ArgumentParser(
-        prog="Render help",
-        description="Open a help browser for Render Workbench",
-    )
-    parser.add_argument(
-        "path_to_workbench",
-        help="the path to the workbench",
-        type=pathlib.Path,
-    )
-    parser.add_argument(
-        "--server",
-        help="the communication server name",
-        type=str,
-    )
-    parser.add_argument(
-        "--pyside",
-        help="pyside version",
-        type=str,
-        choices=("PySide2", "PySide6"),
-    )
-    ARGS = parser.parse_args()
-    PYSIDE = ARGS.pyside
-else:
-    PYSIDE = 6
+from plugin_framework import PYSIDE, ARGS, RenderPlugin
 
 # Imports
 if PYSIDE == "PySide6":
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PySide6.QtCore import QUrl, Qt, QTimer, Slot, QObject, Signal
+    from PySide6.QtCore import QUrl, Slot, QObject, Signal
     from PySide6.QtWidgets import (
         QWidget,
         QToolBar,
         QVBoxLayout,
-        QApplication,
-        QMainWindow,
     )
 
 if PYSIDE == "PySide2":
@@ -76,13 +49,11 @@ if PYSIDE == "PySide2":
         QWebEngineScript,
         QWebEnginePage,
     )
-    from PySide2.QtCore import QUrl, Qt, QTimer, Slot, QObject, Signal
+    from PySide2.QtCore import QUrl, Slot, QObject, Signal
     from PySide2.QtWidgets import (
         QWidget,
         QToolBar,
         QVBoxLayout,
-        QApplication,
-        QMainWindow,
     )
 
 
@@ -104,9 +75,9 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
     // ==/UserScript==
     """
 
-    def __init__(self, scripts_dir, parent=None):
+    def __init__(self, starting_url, scripts_dir):
         """Initialize HelpViewer."""
-        super().__init__(parent)
+        super().__init__()
 
         # Set subwidgets
         self.setLayout(QVBoxLayout(self))
@@ -162,6 +133,9 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
         script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
         scripts.insert(script_run)
 
+        # Set starting url
+        self.setUrl(starting_url)
+
     def setUrl(self, url):  # pylint: disable=invalid-name
         """Set viewer url.
 
@@ -171,98 +145,29 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
         self.view.load(url)
 
 
-class HelpApplication(QObject):
-    """Open a help viewer on Render documentation.
-
-    The help files are located in ./docs directory, except the root file, which
-    is in the workbench root directory. As the files are located in local
-    files, the help is available off-line.
-    Help files are in markdown format.
-    """
-
-    bye = Signal()
-
-    def __init__(self, workbench_dir, connection_name, parent=None):
-        super().__init__(parent)
-        readme = os.path.join(workbench_dir, "README.md")
-        scripts_dir = os.path.join(THISDIR, "3rdparty")
-
-        # Communication
-        self.connection = Client(connection_name)
-        self.connection_active = Event()
-        self.connection_active.set()
-        self.connection_listener = Thread(target=self.parent_recv)
-        self.connection_listener.start()
-
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        self.bye.connect(self.quit)
-
-        # Application and widget
-        self.app = QApplication()
-        self.app.aboutToQuit.connect(self.stop_listening)
-        self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
-        self.mainwindow.showMaximized()
-
-        self.viewer = HelpViewer(scripts_dir, parent=self.mainwindow)
-        self.viewer.setUrl(QUrl.fromLocalFile(readme))
-        self.viewer.setVisible(True)
-
-        QTimer.singleShot(0, self.add_viewer)
-
-    def parent_send(self, verb, argument):
-        """Send message to parent process."""
-        message = (verb, argument)
-        self.connection.send(message)
-
-    def parent_recv(self):
-        """Receive messages from parent process."""
-        while self.connection_active.is_set():
-            # We use wait to get a timeout parameter
-            for conn in wait([self.connection], timeout=1):
-                try:
-                    message = conn.recv()
-                except EOFError:
-                    self.connection_active.clear()
-                else:
-                    verb, argument = message
-
-                    # Handle
-                    if verb == "CLOSE":
-                        self.bye.emit()
-                        self.connection_active.clear()
-
-    @Slot()
-    def stop_listening(self):
-        """Stop listening to parent messages."""
-        self.connection_active.clear()
-        self.connection_listener.join()
-
-    @Slot()
-    def quit(self):
-        """Quit application."""
-        self.app.closeAllWindows()
-        self.app.quit()
-
-    @Slot()
-    def add_viewer(self):
-        """Add viewer (once application has been started)."""
-        self.mainwindow.setCentralWidget(self.viewer)
-        self.viewer.showMaximized()
-        winid = self.mainwindow.winId()
-        self.parent_send("WINID", winid)
-
-    def exec(self):
-        """Execute application (start event loop)."""
-        if PYSIDE == "PySide6":
-            return self.app.exec()
-        else:
-            return self.app.exec_()
-
-
 def main():
     """The entry point."""
+    # Get arguments
+    parser = argparse.ArgumentParser(
+        prog="Render help",
+        description="Open a help browser for Render Workbench",
+    )
+    parser.add_argument(
+        "path_to_workbench",
+        help="the path to the workbench",
+        type=pathlib.Path,
+    )
+    args = parser.parse_args(ARGS)
 
-    application = HelpApplication(ARGS.path_to_workbench, ARGS.server)
+    # Compute dirs
+    workbench_dir = args.path_to_workbench
+    readme = os.path.join(workbench_dir, "README.md")
+    scripts_dir = os.path.join(THISDIR, "help", "3rdparty")
+
+    # Build application and launch
+    application = RenderPlugin(
+        HelpViewer, QUrl.fromLocalFile(readme), scripts_dir
+    )
     sys.exit(application.exec())
 
 

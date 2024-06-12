@@ -167,6 +167,7 @@ class PythonSubprocess(QProcess):
 
         # Set program and arguments
         self.setProgram(python)
+        self.setWorkingDirectory(os.path.join(PLUGINDIR))
         self.setArguments(args)
 
         # Log
@@ -300,7 +301,7 @@ def start_subapp(script, options=None):
 
 def start_help():
     """Start help sub application."""
-    script = os.path.join(PLUGINDIR, "help", "help.py")
+    script = os.path.join(PLUGINDIR, "help.py")
     script = os.path.normpath(script)
     wbdir = os.path.normpath(WBDIR)
     options = [wbdir]
