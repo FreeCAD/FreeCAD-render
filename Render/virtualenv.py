@@ -250,6 +250,7 @@ def pip_install(package, options=None, log=None, loglevel=0):
     environment = os.environ.copy()
     environment.pop("PYTHONHOME", None)
     environment.pop("PYTHONPATH", None)
+    environment.pop("PIP_USER", None)
     with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -329,7 +330,7 @@ def _create_virtualenv():
             "-u",
             pyz,
             RENDER_VENV_DIR,
-            "--system-site-packages",
+            # "--system-site-packages",  Issue with snap
         ]
         _log(" ".join(command))
         subprocess.run(
