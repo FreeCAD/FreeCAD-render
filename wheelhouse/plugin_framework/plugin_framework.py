@@ -26,10 +26,14 @@ A plugin is an applet that can be launched by Render in a separate process,
 with an access to Render virtual environment.
 """
 import sys
+import os
 import signal
 import argparse
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
+
+
+sys.path.append(os.getcwd())
 
 
 # Partially parse command line

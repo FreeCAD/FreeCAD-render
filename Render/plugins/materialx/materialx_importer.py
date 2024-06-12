@@ -42,11 +42,6 @@ import subprocess
 import json
 import configparser
 
-import FreeCAD as App
-
-import Render.material
-from Render.virtualenv import get_venv_python
-
 
 class MaterialXImporter:
     """A class to import a MaterialX material into a RenderMaterial."""
@@ -54,7 +49,6 @@ class MaterialXImporter:
     def __init__(
         self,
         filename: str,
-        doc: App.Document = None,
         progress_hook: Callable[[int, int], None] = None,
         disp2bump: bool = False,
         polyhaven_size: float = None,
@@ -68,7 +62,6 @@ class MaterialXImporter:
             disp2bump -- a flag to set bump with displacement
         """
         self._filename = filename
-        self._doc = doc or App.ActiveDocument
         self._baker_ready = threading.Event()
         self._request_halt = threading.Event()
         self._progress_hook = progress_hook
@@ -78,7 +71,7 @@ class MaterialXImporter:
 
     def run(self):
         """Import a MaterialX archive as Render material."""
-        executable = get_venv_python()
+        executable = sys.executable
         script = os.path.join(
             os.path.dirname(__file__), "converter", "materialx_converter.py"
         )
@@ -111,7 +104,7 @@ class MaterialXImporter:
                         decode = json.loads(line)
                     except json.JSONDecodeError:
                         # Undecodable: write as-is
-                        App.Console.PrintMessage(line)
+                        print(line)
                     else:
                         # Report progress
                         if self._progress_hook:
@@ -122,10 +115,11 @@ class MaterialXImporter:
             # Check result
             if (returncode := proc.returncode) != 0:
                 if returncode == 255:
-                    App.Console.PrintWarning("IMPORT - INTERRUPTED\n")
+                    print("IMPORT - INTERRUPTED\n", file=sys.stderr)
                 else:
-                    App.Console.PrintError(
-                        f"IMPORT - ABORTED ({returncode})\n"
+                    print(
+                        f"IMPORT - ABORTED ({returncode})\n",
+                        file=sys.stderr,
                     )
                 return returncode
 

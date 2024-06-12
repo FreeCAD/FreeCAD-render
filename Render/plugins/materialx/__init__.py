@@ -20,17 +20,9 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module contains the web engine profile for MaterialX download."""
+"""This module gathers public MaterialX handling features."""
 
-# This module isolates the web engine profile from reloading.
-# DO NOT INCLUDE IT IN 'Render.reload'
-# Indeed, reloading the web engine profile crashes FreeCAD if a web page is
-# open. Thus the web profile has to be created once and for all, and
-# never reloaded...
+from .materialx_importer import MaterialXImporter, import_materialx
 
-try:
-    from PySide2.QtWebEngineWidgets import QWebEngineProfile
-except:
-    from PySide6.QtWebEngineCore import QWebEngineProfile
-
-WEBPROFILE = QWebEngineProfile()
+# TODO
+# from .materialx_downloader import MaterialXDownloader, open_mxdownloader

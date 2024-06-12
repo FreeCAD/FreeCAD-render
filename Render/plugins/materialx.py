@@ -26,50 +26,77 @@ import os.path
 import traceback
 import re
 from urllib.parse import urlparse
+import argparse
+import sys
 
-try:
+from plugin_framework import PYSIDE, ARGS, RenderPlugin
+
+if PYSIDE == "PySide6":
     from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import (
         QWebEnginePage,
         QWebEngineDownloadRequest,
+        QWebEngineProfile,
     )
 
     QWebEngineDownloadItem = QWebEngineDownloadRequest
-except ModuleNotFoundError:
+    from PySide6.QtCore import (
+        Slot,
+        Qt,
+        QThread,
+        Signal,
+        QObject,
+        QEventLoop,
+        QUrl,
+    )
+    from PySide6.QtNetwork import (
+        QNetworkAccessManager,
+        QNetworkRequest,
+    )
+    from PySide6.QtWidgets import (
+        QWidget,
+        QToolBar,
+        QVBoxLayout,
+        QMessageBox,
+        QProgressDialog,
+    )
+
+if PYSIDE == "PySide2":
     from PySide2.QtWebEngineWidgets import (
         QWebEngineView,
         QWebEnginePage,
         QWebEngineDownloadItem,
+        QWebEngineProfile,
     )
 
-from PySide.QtCore import (
-    Slot,
-    Qt,
-    QThread,
-    Signal,
-    QObject,
-    QEventLoop,
-    QUrl,
-)
-from PySide.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest,
-)
-from PySide.QtGui import (
-    QWidget,
-    QToolBar,
-    QVBoxLayout,
-    QMessageBox,
-    QProgressDialog,
-)
+    from PySide2.QtCore import (
+        Slot,
+        Qt,
+        QThread,
+        Signal,
+        QObject,
+        QEventLoop,
+        QUrl,
+    )
+    from PySide2.QtNetwork import (
+        QNetworkAccessManager,
+        QNetworkRequest,
+    )
+    from PySide2.QtWidgets import (
+        QWidget,
+        QToolBar,
+        QVBoxLayout,
+        QMessageBox,
+        QProgressDialog,
+    )
 
-import FreeCADGui as Gui
-import FreeCAD as App
+# TODO
+# import FreeCADGui as Gui
+# import FreeCAD as App
 
-from Render import ImageLight
+# from Render import ImageLight
 
-from .materialx_importer import MaterialXImporter
-from .materialx_profile import WEBPROFILE
+from materialx.materialx_importer import MaterialXImporter
 
 
 # Remark: please do not use:
@@ -89,26 +116,25 @@ class MaterialXDownloader(QWidget):
 
     _download_required = Signal(QWebEngineDownloadItem)
 
-    def __init__(self, fcdoc, parent, disp2bump=False):
+    def __init__(self, url, disp2bump=False):
         """Initialize HelpViewer."""
-        super().__init__(parent)
-        self.parent = parent
-        self.fcdoc = fcdoc
+        super().__init__()
         self.disp2bump = disp2bump
 
         self.setLayout(QVBoxLayout())
+        self.profile = QWebEngineProfile()
 
         # Set subwidgets
         self.toolbar = QToolBar(self)
         self.layout().addWidget(self.toolbar)
         self.view = QWebEngineView(self)
-        self.page = QWebEnginePage(WEBPROFILE, self)
+        self.page = QWebEnginePage(self.profile, self)
         self.page.javaScriptConsoleMessage = _nope  # Hide console messages
         self.view.setPage(self.page)
         self.layout().addWidget(self.view)
 
         # Set download manager
-        WEBPROFILE.downloadRequested.connect(self.download_requested)
+        self.profile.downloadRequested.connect(self.download_requested)
         self._download_required.connect(self.run_download, Qt.QueuedConnection)
 
         # Add actions to toolbar
@@ -116,6 +142,9 @@ class MaterialXDownloader(QWidget):
         self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
         self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
         self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
+
+        # Set url
+        self.view.load(url)
 
     def setUrl(self, url):  # pylint: disable=invalid-name
         """Set viewer url.
@@ -445,22 +474,6 @@ class HdriDownloadWindow(DownloadWindow):
         self.setCancelButtonText("Close")
 
 
-def open_mxdownloader(url, doc, disp2bump=False):
-    """Open a downloader."""
-    if not App.GuiUp:
-        App.Console.PrintError("Fatal: open_mxdownloader requires GUI")
-        return
-
-    viewer = MaterialXDownloader(doc, None, disp2bump)
-    mdiarea = Gui.getMainWindow().centralWidget()
-    subw = mdiarea.addSubWindow(viewer)
-    subw.setWindowTitle("MaterialX Downloader")
-    subw.setVisible(True)
-
-    viewer.setUrl(url)
-    viewer.show()
-
-
 class JavaScriptRunner(QObject):
     """An object to run a JavaScript script on a web page."""
 
@@ -642,3 +655,26 @@ def polyhaven_getsize(page):
         return None
 
     return value
+
+
+def main():
+    """The entry point."""
+    # Get arguments
+    parser = argparse.ArgumentParser(
+        prog="Render MaterialX downloader",
+        description="Open a browser to download MaterialX materials",
+    )
+    parser.add_argument(
+        "url",
+        help="the url of the site",
+        type=urlparse,
+    )
+    args = parser.parse_args(ARGS)
+
+    # Build application and launch
+    application = RenderPlugin(MaterialXDownloader, QUrl(args.url.geturl()))
+    sys.exit(application.exec())
+
+
+if __name__ == "__main__":
+    main()

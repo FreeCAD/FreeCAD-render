@@ -306,3 +306,12 @@ def start_help():
     wbdir = os.path.normpath(WBDIR)
     options = [wbdir]
     start_subapp(script, options)
+
+
+def start_materialx(url=None):
+    """Start materialx sub application"""
+    script = os.path.join(PLUGINDIR, "materialx.py")
+    script = os.path.normpath(script)
+    url = url or "https://matlib.gpuopen.com/"
+    options = [url]
+    start_subapp(script, options)
