@@ -82,9 +82,13 @@ class RenderPlugin(QObject):
         self.mainwindow.showMaximized()
 
         # Central widget
-        self.widget = widget(*args)
-        self.widget.setParent(self.mainwindow)
-        self.widget.setVisible(True)
+        try:
+            self.widget = widget(*args)
+        except:
+            self.widget = None
+        else:
+            self.widget.setParent(self.mainwindow)
+            self.widget.setVisible(True)
 
     def parent_send(self, verb, argument):
         """Send message to parent process."""
@@ -123,8 +127,9 @@ class RenderPlugin(QObject):
     @Slot()
     def add_widget(self):
         """Add viewer (once application has been started)."""
-        self.mainwindow.setCentralWidget(self.widget)
-        self.widget.showMaximized()
+        if self.widget:
+            self.mainwindow.setCentralWidget(self.widget)
+            self.widget.showMaximized()
         winid = self.mainwindow.winId()
         self.parent_send("WINID", winid)
 

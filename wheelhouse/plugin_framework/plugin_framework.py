@@ -85,6 +85,7 @@ class RenderPlugin(QObject):
         try:
             self.widget = widget(*args)
         except:
+            print("WARNING: Could not initialize plugin central widget")
             self.widget = None
         else:
             self.widget.setParent(self.mainwindow)
