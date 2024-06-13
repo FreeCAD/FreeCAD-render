@@ -41,6 +41,7 @@ from typing import Callable
 import subprocess
 import json
 import configparser
+import sys
 
 
 class MaterialXImporter:
@@ -78,11 +79,6 @@ class MaterialXImporter:
         # Proceed with file
         with tempfile.TemporaryDirectory() as working_dir:
             print("STARTING MATERIALX IMPORT")
-            # Check wether there is a FreeCAD destination document
-            if not self._doc:
-                print("No target document for import. Aborting...")
-                return -1
-
             # Prepare converter call
             args = [executable, "-u", script, self._filename, working_dir]
             if self._polyhaven_size:

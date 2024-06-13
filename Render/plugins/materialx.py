@@ -28,8 +28,9 @@ import re
 from urllib.parse import urlparse
 import argparse
 import sys
+import pathlib
 
-from plugin_framework import PYSIDE, ARGS, RenderPlugin
+from plugin_framework import PYSIDE, ARGS, RenderPlugin, log, msg, warn, error
 
 if PYSIDE == "PySide6":
     from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -116,10 +117,11 @@ class MaterialXDownloader(QWidget):
 
     _download_required = Signal(QWebEngineDownloadItem)
 
-    def __init__(self, url, disp2bump=False):
+    def __init__(self, url, temp_path, disp2bump=False):
         """Initialize HelpViewer."""
         super().__init__()
         self.disp2bump = disp2bump
+        self.temp_path = temp_path
 
         self.setLayout(QVBoxLayout())
         self.profile = QWebEngineProfile()
@@ -185,13 +187,12 @@ class MaterialXDownloader(QWidget):
             return
         # Trigger effective download
         self._download_required.emit(download)
-        try:
+        if PYSIDE == "PySide2":
             _, filename = os.path.split(download.path())
-            download.setPath(os.path.join(App.getTempPath(), filename))
-        except AttributeError:
-            # Qt6
+            download.setPath(os.path.join(self.temp_path, filename))
+        if PYSIDE == "PySide6":
             filename = download.downloadFileName()
-            download.setDownloadDirectory(App.getTempPath())
+            download.setDownloadDirectory(self.temp_path)
 
         download.accept()
 
@@ -212,7 +213,7 @@ class MaterialXDownloader(QWidget):
         polyhaven_actual_size = polyhaven_getsize(self.page)
 
         win = MaterialXDownloadWindow(
-            download, self.fcdoc, self, self.disp2bump, polyhaven_actual_size
+            download, self, self.disp2bump, polyhaven_actual_size
         )
         win.open()
 
@@ -234,7 +235,7 @@ class MaterialXDownloader(QWidget):
             # Qt6
             _, ext = os.path.splitext(download.downloadFileName())
         if ext.lower() not in [".exr", ".jpg"]:
-            print(ext)
+            msg(ext)
             return False
 
         # Seems to be one of ours
@@ -251,27 +252,23 @@ class DownloadWindow(QProgressDialog):
     def __init__(
         self,
         download,
-        fcdoc,
         parent,
     ):
         super().__init__(parent)
         self._download = download
-        self._fcdoc = fcdoc
-        try:
+        if PYSIDE == "PySide2":
             _, filename = os.path.split(download.path())
-        except AttributeError:
-            # Qt6
+        if PYSIDE == "PySide6":
             filename = download.downloadFileName()
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
         self.setAutoClose(False)
         self.setAutoReset(False)
 
-        try:
+        if PYSIDE == "PySide2":
             self._download.downloadProgress.connect(self.set_progress)
             download.finished.connect(self.finished_download)
-        except:
-            # Qt6
+        if PYSIDE == "PySide6":
             self._download.receivedBytesChanged.connect(self.set_progress_6)
             download.isFinishedChanged.connect(self.finished_download)
 
@@ -305,13 +302,13 @@ class DownloadWindow(QProgressDialog):
         """
         self.canceled.disconnect(self.cancel)
         if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
-            print("Download cancelled")
+            msg("Download cancelled")
             return
         if (
             self._download.state()
             == QWebEngineDownloadItem.DownloadInterrupted
         ):
-            print("Download interrupted")
+            msg("Download interrupted")
             return
         assert (
             self._download.state() == QWebEngineDownloadItem.DownloadCompleted
@@ -337,12 +334,11 @@ class MaterialXDownloadWindow(DownloadWindow):
     def __init__(
         self,
         download,
-        fcdoc,
         parent,
         disp2bump=False,
         polyhaven_actual_size=None,
     ):
-        super().__init__(download, fcdoc, parent)
+        super().__init__(download, parent)
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_actual_size
 
@@ -367,7 +363,6 @@ class MaterialXDownloadWindow(DownloadWindow):
         self.setValue(0)
         self.worker = ImporterWorker(
             filename,
-            self._fcdoc,
             self.set_progress,
             self._disp2bump,
             self._download.page(),
@@ -411,7 +406,7 @@ class ImporterWorker(QObject):
     """
 
     def __init__(
-        self, filename, fcdoc, progress, disp2bump, page, polyhaven_actual_size
+        self, filename, progress, disp2bump, page, polyhaven_actual_size
     ):
         super().__init__()
         self.filename = filename
@@ -420,7 +415,6 @@ class ImporterWorker(QObject):
 
         self.importer = MaterialXImporter(
             self.filename,
-            fcdoc,
             self._report_progress.emit,
             disp2bump,
             polyhaven_actual_size,
@@ -436,8 +430,8 @@ class ImporterWorker(QObject):
         try:
             res = self.importer.run()
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            App.Console.PrintError("/!\\ IMPORT ERROR /!\\\n")
-            App.Console.PrintError(f"{type(exc)}{exc.args}\n")
+            error("/!\\ IMPORT ERROR /!\\\n")
+            error(f"{type(exc)}{exc.args}\n")
             traceback.print_exception(exc)
             self.finished.emit(-99)  # Uncaught error
         else:
@@ -454,15 +448,16 @@ class HdriDownloadWindow(DownloadWindow):
 
     def do_import(self):
         """Do import of HDRI downloaded file."""
-        try:
+        if PYSIDE == "PySide2":
             filepath = self._download.path()
-        except:
-            # Qt6
+        if PYSIDE == "PySide6":
             filepath = os.path.join(
                 self._download.downloadDirectory(),
                 self._download.downloadFileName(),
             )
         basename = os.path.basename(filepath)
+
+        # TODO
         _, fpo, _ = ImageLight.create(self._fcdoc)
         fpo.Label = basename
         fpo.ImageFile = filepath
@@ -608,7 +603,10 @@ def polyhaven_getsize(page):
     getlink = GetPolyhavenLink(page)
     getlink.done.connect(loop.quit, Qt.QueuedConnection)
     getlink.run()
-    loop.exec_()
+    if PYSIDE == "PySide2":
+        loop.exec_()
+    if PYSIDE == "PySide6":
+        loop.exec()
     if (link := getlink.link) is None:
         return None
 
@@ -631,27 +629,21 @@ def polyhaven_getsize(page):
     try:
         result = next(sizes)
     except StopIteration:
-        App.Console.PrintLog(
-            "[Render][MaterialX] Polyhaven - failed to find tags"
-        )
+        log("[Render][MaterialX] Polyhaven - failed to find tags")
         return None
 
     # Parse quantity
     try:
         quantity = App.Units.parseQuantity(result.group(1))
     except ValueError:
-        App.Console.PrintLog(
-            "[Render][MaterialX] Polyhaven - failed to parse quantity"
-        )
+        log("[Render][MaterialX] Polyhaven - failed to parse quantity")
         return None
 
     # Convert to meters
     try:
         value = quantity.getValueAs("m")
     except ValueError:
-        App.Console.PrintLog(
-            "[Render][MaterialX] Polyhaven - failed to get valye as meters"
-        )
+        log("[Render][MaterialX] Polyhaven - failed to get value as meters")
         return None
 
     return value
@@ -669,10 +661,17 @@ def main():
         help="the url of the site",
         type=urlparse,
     )
+    parser.add_argument(
+        "--tmp",
+        help="a temporary folder",
+        type=pathlib.Path,
+    )
     args = parser.parse_args(ARGS)
 
     # Build application and launch
-    application = RenderPlugin(MaterialXDownloader, QUrl(args.url.geturl()))
+    application = RenderPlugin(
+        MaterialXDownloader, QUrl(args.url.geturl()), str(args.tmp)
+    )
     sys.exit(application.exec())
 
 

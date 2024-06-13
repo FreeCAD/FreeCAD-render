@@ -180,4 +180,4 @@ def warn(msg):
 
 def error(msg):
     """Print message as error."""
-    print(f"{Bcolors.FAILED}{msg}", file=sys.stderr)
+    print(f"{Bcolors.FAIL}{msg}", file=sys.stderr)

@@ -313,5 +313,6 @@ def start_materialx(url=None):
     script = os.path.join(PLUGINDIR, "materialx.py")
     script = os.path.normpath(script)
     url = url or "https://matlib.gpuopen.com/"
-    options = [url]
+    tmp = App.getTempPath()
+    options = [url, "--tmp", tmp]
     start_subapp(script, options)

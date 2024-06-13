@@ -84,8 +84,9 @@ from Render.commands import RENDER_COMMANDS  # noqa: F401
 from Render.prefpage import PreferencesPage  # noqa: F401
 from Render.subcontainer import start_help  # TODO
 
-if PARAMS.GetBool("MaterialX"):
-    from Render.materialx import import_materialx  # noqa: F401
+# TODO
+# if PARAMS.GetBool("MaterialX"):
+# from Render.materialx import import_materialx  # noqa: F401
 
 import FreeCAD as App
 
