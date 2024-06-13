@@ -388,9 +388,7 @@ class MaterialCreatorCommand:
         App.ActiveDocument.commitTransaction()
 
     def IsActive(self):
-        v = hasattr(
-            Gui.getMainWindow().getActiveWindow(), "getSceneGraph"
-        )
+        v = hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
         return v
 
 
