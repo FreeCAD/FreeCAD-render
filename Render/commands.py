@@ -389,7 +389,7 @@ class MaterialCreatorCommand:
 
     def IsActive(self):
         v = hasattr(
-            FreeCADGui.getMainWindow().getActiveWindow(), "getSceneGraph"
+            Gui.getMainWindow().getActiveWindow(), "getSceneGraph"
         )
         return v
 
