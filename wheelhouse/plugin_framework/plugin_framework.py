@@ -31,6 +31,7 @@ import signal
 import argparse
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
+from dataclasses import dataclass
 
 
 sys.path.append(os.getcwd())
@@ -145,3 +146,38 @@ class RenderPlugin(QObject):
             return self.app.exec()
         else:
             return self.app.exec_()
+
+
+@dataclass
+class Bcolors:
+    """Blender terminal colors."""
+
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
+def log(msg):
+    """Print message as log."""
+    print(f"{Bcolors.OKBLUE}{msg}", file=sys.stdout)
+
+
+def msg(msg):
+    """Print message as plain message."""
+    print(msg, file=sys.stdout())
+
+
+def warn(msg):
+    """Print message as warning."""
+    print(f"{Bcolors.WARNING}{msg}", file=sys.stderr)
+
+
+def error(msg):
+    """Print message as error."""
+    print(f"{Bcolors.FAILED}{msg}", file=sys.stderr)
