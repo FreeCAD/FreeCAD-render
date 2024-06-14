@@ -205,19 +205,19 @@ class Bcolors:
 
 def log(msg):
     """Print message as log."""
-    print(f"{Bcolors.OKBLUE}{msg}{Bcolors.COLOROFF}", file=sys.stdout)
+    SOCKET.send("LOG", msg)
 
 
 def msg(msg):
     """Print message as plain message."""
-    print(f"{Bcolors.COLOROFF}{msg}{Bcolors.COLOROFF}", file=sys.stdout)
+    SOCKET.send("MSG", msg)
 
 
 def warn(msg):
     """Print message as warning."""
-    print(f"{Bcolors.WARNING}{msg}{Bcolors.COLOROFF}", file=sys.stderr)
+    SOCKET.send("WARN", msg)
 
 
 def error(msg):
     """Print message as error."""
-    print(f"{Bcolors.FAIL}{msg}{Bcolors.COLOROFF}", file=sys.stderr)
+    SOCKET.send("ERROR", msg)

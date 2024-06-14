@@ -199,10 +199,22 @@ class PythonSubprocess(QProcess):
                     if verb == "WINID":
                         argument = int(argument)
                         self.winid_available.emit(argument)
+                    elif verb == "LOG":
+                        argument = str(argument)
+                        App.Console.PrintLog(argument)
+                    elif verb == "MSG":
+                        argument = str(argument)
+                        App.Console.PrintMessage(argument)
+                    elif verb == "WARN":
+                        argument = str(argument)
+                        App.Console.PrintWarning(argument)
+                    elif verb == "ERROR":
+                        argument = str(argument)
+                        App.Console.PrintError(argument)
                     else:
                         App.Console.PrintError(
                             "[Render][Sub] Unknown verb/argument: "
-                            f"'{verb}' '{argument}')"
+                            f"'{verb}' '{argument}'"
                         )
 
     @Slot()
@@ -308,7 +320,7 @@ def start_help():
     start_subapp(script, options)
 
 
-def start_materialx(url=None):
+def start_materialx(url=None, doc=None, disp2bump=True):
     """Start materialx sub application"""
     script = os.path.join(PLUGINDIR, "materialx.py")
     script = os.path.normpath(script)
