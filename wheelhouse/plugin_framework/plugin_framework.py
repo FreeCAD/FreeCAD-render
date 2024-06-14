@@ -55,36 +55,93 @@ PYSIDE = PLUGIN_ARGS.pyside
 SERVERNAME = PLUGIN_ARGS.server
 
 if PYSIDE == "PySide2":
-    from PySide2.QtCore import QObject, QTimer, Slot, Signal, Qt
-    from PySide2.QtWidgets import QApplication, QMainWindow
+    from PySide2.QtCore import QObject, QTimer, Slot, Signal, Qt, QThread
+    from PySide2.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 if PYSIDE == "PySide6":
-    from PySide6.QtCore import QObject, QTimer, Slot, Signal, Qt
-    from PySide6.QtWidgets import QApplication, QMainWindow
+    from PySide6.QtCore import QObject, QTimer, Slot, Signal, Qt, QThread
+    from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 
-class RenderPlugin(QObject):
+class Singleton(type):
+    _instances = {}
 
-    bye = Signal()
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(
+                *args, **kwargs
+            )
+        return cls._instances[cls]
+
+
+class Socket(object, metaclass=Singleton):
+    """A socket to listen to parent process."""
+
+    def __init__(self):
+        """Initialize socket."""
+        # Communication
+        self._connection = Client(SERVERNAME)
+        self._connection_active = Event()
+        self._connection_active.set()
+        self._connection_listener = Thread(target=self.recv)
+        self._connection_listener.start()
+        self._close_event = Event()
+        self._close_event.clear()
+
+    def send(self, verb, argument):
+        """Send message to parent process."""
+        message = (verb, argument)
+        self._connection.send(message)
+
+    def recv(self):
+        """Receive messages from parent process."""
+        while self._connection_active.is_set():
+            # We use wait to get a timeout parameter
+            for conn in wait([self._connection], timeout=1):
+                try:
+                    message = conn.recv()
+                except EOFError:
+                    self._connection_active.clear()
+                else:
+                    verb, argument = message
+
+                    # Handle
+                    if verb == "CLOSE":
+                        self._close_event.set()
+                        self._connection_active.clear()
+
+    def close(self):
+        """Close socket."""
+        self._connection_active.clear()
+        self._connection_listener.join()
+
+    def wait_for_close(self):
+        """Wait for close event."""
+        self._close_event.wait()
+
+
+SOCKET = Socket()
+signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+
+class RenderPlugin(QApplication):
+    """Plugin base class."""
+
+    quit_plugin = Signal()
 
     def __init__(self, widget, *args):
+        """Initialize plugin."""
         super().__init__()
 
-        # Communication
-        self.connection = Client(SERVERNAME)
-        self.connection_active = Event()
-        self.connection_active.set()
-        self.connection_listener = Thread(target=self.parent_recv)
-        self.connection_listener.start()
-
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        self.bye.connect(self.quit)
-
-        # Application and widget
-        self.app = QApplication()
-        self.app.aboutToQuit.connect(self.stop_listening)
+        # Application and window
+        self.aboutToQuit.connect(self.close_socket)
         self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         self.mainwindow.showMaximized()
+
+        # Close listener
+        self.quit_plugin.connect(self.close_and_quit)
+        self.close_thread = Thread(target=self.wait_for_close)
+        self.close_thread.start()
 
         # Central widget
         try:
@@ -94,41 +151,6 @@ class RenderPlugin(QObject):
             self.widget = None
         else:
             self.widget.setParent(self.mainwindow)
-            self.widget.setVisible(True)
-
-    def parent_send(self, verb, argument):
-        """Send message to parent process."""
-        message = (verb, argument)
-        self.connection.send(message)
-
-    def parent_recv(self):
-        """Receive messages from parent process."""
-        while self.connection_active.is_set():
-            # We use wait to get a timeout parameter
-            for conn in wait([self.connection], timeout=1):
-                try:
-                    message = conn.recv()
-                except EOFError:
-                    self.connection_active.clear()
-                else:
-                    verb, argument = message
-
-                    # Handle
-                    if verb == "CLOSE":
-                        self.bye.emit()
-                        self.connection_active.clear()
-
-    @Slot()
-    def stop_listening(self):
-        """Stop listening to parent messages."""
-        self.connection_active.clear()
-        self.connection_listener.join()
-
-    @Slot()
-    def quit(self):
-        """Quit application."""
-        self.app.closeAllWindows()
-        self.app.quit()
 
     @Slot()
     def add_widget(self):
@@ -136,16 +158,33 @@ class RenderPlugin(QObject):
         if self.widget:
             self.mainwindow.setCentralWidget(self.widget)
             self.widget.showMaximized()
+            self.widget.setVisible(True)
         winid = self.mainwindow.winId()
-        self.parent_send("WINID", winid)
+        SOCKET.send("WINID", winid)
+
+    def wait_for_close(self):
+        """Wait for close event from socket."""
+        SOCKET.wait_for_close()
+        self.quit_plugin.emit()
+
+    @Slot()
+    def close_and_quit(self):
+        """Quit application."""
+        self.closeAllWindows()
+        self.quit()
+
+    @Slot()
+    def close_socket(self):
+        """Close socket (to be called in aboutToQuit)."""
+        SOCKET.close()
 
     def exec(self):
         """Execute application (start event loop)."""
         QTimer.singleShot(0, self.add_widget)
+        if PYSIDE == "PySide2":
+            return super().exec_()
         if PYSIDE == "PySide6":
-            return self.app.exec()
-        else:
-            return self.app.exec_()
+            return super().exec()
 
 
 @dataclass
@@ -161,23 +200,24 @@ class Bcolors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
+    COLOROFF = "\033[0m"
 
 
 def log(msg):
     """Print message as log."""
-    print(f"{Bcolors.OKBLUE}{msg}", file=sys.stdout)
+    print(f"{Bcolors.OKBLUE}{msg}{Bcolors.COLOROFF}", file=sys.stdout)
 
 
 def msg(msg):
     """Print message as plain message."""
-    print(msg, file=sys.stdout())
+    print(f"{Bcolors.COLOROFF}{msg}{Bcolors.COLOROFF}", file=sys.stdout)
 
 
 def warn(msg):
     """Print message as warning."""
-    print(f"{Bcolors.WARNING}{msg}", file=sys.stderr)
+    print(f"{Bcolors.WARNING}{msg}{Bcolors.COLOROFF}", file=sys.stderr)
 
 
 def error(msg):
     """Print message as error."""
-    print(f"{Bcolors.FAIL}{msg}", file=sys.stderr)
+    print(f"{Bcolors.FAIL}{msg}{Bcolors.COLOROFF}", file=sys.stderr)
