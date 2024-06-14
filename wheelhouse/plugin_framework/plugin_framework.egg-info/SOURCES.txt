@@ -1,6 +1,0 @@
-plugin_framework.py
-pyproject.toml
-plugin_framework.egg-info/PKG-INFO
-plugin_framework.egg-info/SOURCES.txt
-plugin_framework.egg-info/dependency_links.txt
-plugin_framework.egg-info/top_level.txt
