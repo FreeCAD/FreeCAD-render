@@ -57,10 +57,7 @@ from Render.subcontainer import start_help
 
 MATERIALX = PARAMS.GetBool("MaterialX")
 if MATERIALX:
-    from Render.materialx import (
-        import_materialx,
-        open_mxdownloader,
-    )
+    from Render.subcontainer import start_materialx
 
 
 class RenderProjectCommand:
@@ -388,9 +385,7 @@ class MaterialCreatorCommand:
         App.ActiveDocument.commitTransaction()
 
     def IsActive(self):
-        v = hasattr(
-            Gui.getMainWindow().getActiveWindow(), "getSceneGraph"
-        )
+        v = hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
         return v
 
 
@@ -455,8 +450,8 @@ class MaterialMaterialXLibrary:
         material.
         """
         doc = App.ActiveDocument
-        url = QUrl("https://matlib.gpuopen.com/")
-        open_mxdownloader(url, doc)
+        url = "https://matlib.gpuopen.com/"
+        start_materialx(url, doc)
 
 
 class MaterialAmbientCGLibrary:
@@ -484,8 +479,8 @@ class MaterialAmbientCGLibrary:
         material.
         """
         doc = App.ActiveDocument
-        url = QUrl("https://ambientcg.com/")
-        open_mxdownloader(url, doc, disp2bump=True)
+        url = "https://ambientcg.com/"
+        start_materialx(url, doc, disp2bump=True)
 
 
 class MaterialRenderSettingsCommand:

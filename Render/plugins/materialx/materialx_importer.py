@@ -43,6 +43,8 @@ import json
 import configparser
 import sys
 
+from plugin_framework import log, msg, warn, error
+
 
 class MaterialXImporter:
     """A class to import a MaterialX material into a RenderMaterial."""
@@ -78,7 +80,7 @@ class MaterialXImporter:
         )
         # Proceed with file
         with tempfile.TemporaryDirectory() as working_dir:
-            print("STARTING MATERIALX IMPORT")
+            msg("STARTING MATERIALX IMPORT")
             # Prepare converter call
             args = [executable, "-u", script, self._filename, working_dir]
             if self._polyhaven_size:
@@ -100,7 +102,7 @@ class MaterialXImporter:
                         decode = json.loads(line)
                     except json.JSONDecodeError:
                         # Undecodable: write as-is
-                        print(line)
+                        msg(line)
                     else:
                         # Report progress
                         if self._progress_hook:
@@ -111,33 +113,31 @@ class MaterialXImporter:
             # Check result
             if (returncode := proc.returncode) != 0:
                 if returncode == 255:
-                    print("IMPORT - INTERRUPTED\n", file=sys.stderr)
+                    warn("IMPORT - INTERRUPTED")
                 else:
-                    print(
-                        f"IMPORT - ABORTED ({returncode})\n",
-                        file=sys.stderr,
-                    )
+                    error(f"IMPORT - ABORTED ({returncode})")
                 return returncode
 
-            # Import result
-            in_file = os.path.join(working_dir, "out.FCMat")
-            card = configparser.ConfigParser()
-            card.optionxform = lambda x: x  # Case sensitive
-            card.read(in_file)
-            try:
-                mxname = card["General"]["Name"]
-            except LookupError:
-                mxname = "Material"
-            print(f"Importing material card as FreeCAD material: {mxname}")
-            matdict = dict(card["Render"])
-            mat = Render.material.make_material(name=mxname, doc=self._doc)
-            matdict = mat.Proxy.import_textures(matdict, basepath=None)
+            # TODO
+            # # Import result
+            # in_file = os.path.join(working_dir, "out.FCMat")
+            # card = configparser.ConfigParser()
+            # card.optionxform = lambda x: x  # Case sensitive
+            # card.read(in_file)
+            # try:
+            # mxname = card["General"]["Name"]
+            # except LookupError:
+            # mxname = "Material"
+            # print(f"Importing material card as FreeCAD material: {mxname}")
+            # matdict = dict(card["Render"])
+            # mat = Render.material.make_material(name=mxname, doc=self._doc)
+            # matdict = mat.Proxy.import_textures(matdict, basepath=None)
 
-            # Reminder: Material.Material is not updatable in-place
-            # (FreeCAD bug), thus we have to copy/replace
-            mat.Material = matdict
+            # # Reminder: Material.Material is not updatable in-place
+            # # (FreeCAD bug), thus we have to copy/replace
+            # mat.Material = matdict
 
-            print("IMPORT - SUCCESS")
+            msg("IMPORT - SUCCESS")
             return 0
 
     def cancel(self):

@@ -384,7 +384,14 @@ class MaterialXDownloadWindow(DownloadWindow):
         loop = QEventLoop()
         self.worker.finished.connect(loop.exit, Qt.QueuedConnection)
         self.thread.start(QThread.IdlePriority)
-        if loop.exec_():
+        if PYSIDE == "PySide2":
+            loopexec = loop.exec_()
+        elif PYSIDE == "PySide6":
+            loopexec = loop.exec()
+        else:
+            raise ValueError()
+
+        if loopexec:
             os.remove(filename)
             self.cancel()
             return
@@ -430,9 +437,12 @@ class ImporterWorker(QObject):
         try:
             res = self.importer.run()
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            error("/!\\ IMPORT ERROR /!\\\n")
-            error(f"{type(exc)}{exc.args}\n")
-            traceback.print_exception(exc)
+            error("/!\\ IMPORT ERROR /!\\")
+            error(f"{type(exc)}{exc.args}")
+            trace = traceback.format_exception(exc)
+            for elem in trace:
+                for line in elem.splitlines():
+                    error(line)
             self.finished.emit(-99)  # Uncaught error
         else:
             self.finished.emit(res)
