@@ -430,3 +430,17 @@ def _binpath():
     else:
         raise VenvError(2)  # Unknown os.name
     return path
+
+
+def get_venv_sitepackages():
+    """Get site packages directory for virtual environment."""
+    args = [
+        get_venv_python(),
+        "-c",
+        "import sysconfig; print(sysconfig.get_paths()['purelib'])",
+    ]
+    env = os.environ
+    env.pop("PYTHONHOME", None)
+    result = subprocess.run(args, capture_output=True, text=True, env=env)
+    result.check_returncode()
+    return result.stdout.strip()

@@ -52,7 +52,11 @@ import FreeCADGui as Gui
 import FreeCAD as App
 
 from Render.constants import WBDIR, PKGDIR, FCDVERSION, PLUGINDIR
-from Render.virtualenv import get_venv_python, get_venv_pyside_version
+from Render.virtualenv import (
+    get_venv_python,
+    get_venv_pyside_version,
+    get_venv_sitepackages,
+)
 from PySide import __version_info__ as pyside_version_info
 
 if FCDVERSION > (0, 19):
@@ -140,6 +144,16 @@ class PythonSubprocess(QProcess):
         environment.remove("QTWEBENGINE_DISABLE_SANDBOX")
         if not environment.contains("SNAP"):
             environment.remove("LD_LIBRARY_PATH")
+        resources = os.path.join(
+            get_venv_sitepackages(),
+            get_venv_pyside_version(),
+            "Qt",
+            "resources",
+        )
+        environment.insert("QTWEBENGINE_RESOURCES_PATH", resources)
+        App.Console.PrintLog(
+            f"[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to '{resources}'\n"
+        )
         self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing
