@@ -63,6 +63,11 @@ if PYSIDE == "PySide6":
     from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 
+def debug(msg):
+    """Show pop-up for debugging."""
+    QMessageBox.information(None, "Debug", msg)
+
+
 class Singleton(type):
     _instances = {}
 
@@ -83,10 +88,6 @@ class Socket(object, metaclass=Singleton):
         self._connection = Client(SERVERNAME)
         self._connection_active = Event()
         self._connection_active.set()
-        self._connection_listener = Thread(target=self.recv)
-        self._connection_listener.start()
-        self._close_event = Event()
-        self._close_event.clear()
 
     def send(self, verb, argument):
         """Send message to parent process."""
@@ -94,30 +95,30 @@ class Socket(object, metaclass=Singleton):
         self._connection.send(message)
 
     def recv(self):
-        """Receive messages from parent process."""
+        """Receive messages from parent process.
+
+        Blocking till message or connection deactivation.
+        """
         while self._connection_active.is_set():
             # We use wait to get a timeout parameter
+            # and check periodically connection is active
             for conn in wait([self._connection], timeout=1):
                 try:
                     message = conn.recv()
                 except EOFError:
                     self._connection_active.clear()
                 else:
-                    verb, argument = message
+                    return message
+        else:
+            return None
 
-                    # Handle
-                    if verb == "CLOSE":
-                        self._close_event.set()
-                        self._connection_active.clear()
-
-    def close(self):
-        """Close socket."""
+    def stop_recv(self):
+        """Stop on-going receiving."""
         self._connection_active.clear()
-        self._connection_listener.join()
 
-    def wait_for_close(self):
-        """Wait for close event."""
-        self._close_event.wait()
+    def __del__(self):
+        """Finalize - stop on-going receiving if any."""
+        self._connection_active.clear()
 
 
 SOCKET = Socket()
@@ -127,21 +128,22 @@ signal.signal(signal.SIGTERM, signal.SIG_DFL)
 class RenderPlugin(QApplication):
     """Plugin base class."""
 
-    quit_plugin = Signal()
+    quit_signal = Signal()
 
     def __init__(self, widget, *args):
         """Initialize plugin."""
         super().__init__()
 
         # Application and window
-        self.aboutToQuit.connect(self.close_socket)
         self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         self.mainwindow.showMaximized()
 
-        # Close listener
-        self.quit_plugin.connect(self.close_and_quit)
-        self.close_thread = Thread(target=self.wait_for_close)
-        self.close_thread.start()
+        # Listen to entering messages
+        self.quit_signal.connect(self.close_and_quit, Qt.QueuedConnection)
+        self.listen_thread = QThread()
+        setattr(self.listen_thread, "run", self.listen)
+        self.listen_thread.finished.connect(self.listen_thread.deleteLater)
+        self.listen_thread.start()
 
         # Central widget
         try:
@@ -162,21 +164,33 @@ class RenderPlugin(QApplication):
         winid = self.mainwindow.winId()
         SOCKET.send("WINID", winid)
 
-    def wait_for_close(self):
-        """Wait for close event from socket."""
-        SOCKET.wait_for_close()
-        self.quit_plugin.emit()
+    def listen(self):
+        """Listen to messages from the socket."""
+        while message := SOCKET.recv():
+            verb, argument = message
+            if verb == "CLOSE":
+                SOCKET.stop_recv()
+                self.quit_signal.emit()
+            else:
+                cb_handle_message(message)
+
+    def cb_handle_message(self, message):
+        """Handle messages sent by parent process - Callback.
+
+        To be overriden by subclass.
+        """
+        pass
 
     @Slot()
     def close_and_quit(self):
-        """Quit application."""
+        """Gracefully quit application."""
+        SOCKET.stop_recv()
+        self.listen_thread.quit()
+        if not self.listen_thread.wait(5000):
+            # Occurs only if something went wrong...
+            self.listen_thread.terminate()
         self.closeAllWindows()
         self.quit()
-
-    @Slot()
-    def close_socket(self):
-        """Close socket (to be called in aboutToQuit)."""
-        SOCKET.close()
 
     def exec(self):
         """Execute application (start event loop)."""
