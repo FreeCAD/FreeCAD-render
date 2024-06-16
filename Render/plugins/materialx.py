@@ -34,7 +34,7 @@ import tempfile
 from plugin_framework import (
     PYSIDE,
     ARGS,
-    RenderPlugin,
+    RenderPluginApplication,
     log,
     msg,
     warn,
@@ -734,8 +734,8 @@ def main():
     # Build application and launch
     application = RenderPluginApplication(
         MaterialXDownloader,
-        QUrl(args_url.geturl()),
-        str(args_tmpfolder),
+        QUrl(args.url.geturl()),
+        str(args.tmp),
     )
     sys.exit(application.exec())
 

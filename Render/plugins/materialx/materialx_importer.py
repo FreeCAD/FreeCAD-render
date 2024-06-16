@@ -53,7 +53,6 @@ class MaterialXImporter:
     def __init__(
         self,
         filename: str,
-        output_path: pathlib.Path,
         progress_hook: Callable[[int, int], None] = None,
         disp2bump: bool = False,
         polyhaven_size: float = None,
