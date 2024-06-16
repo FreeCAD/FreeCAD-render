@@ -267,6 +267,7 @@ class MaterialXDownloader(QWidget):
             if verb == "RELEASE_MAT":
                 self.release_material_signal.emit()
             return True
+
         return super().event(event)
 
 
@@ -432,11 +433,6 @@ class MaterialXDownloadWindow(DownloadWindow):
         self.setLabelText("Done")
         self.canceled.connect(self.cancel)
         self.setCancelButtonText("Close")
-
-    Slot()
-
-    def release_material(self):
-        pass
 
 
 class ImporterWorker(QObject):
@@ -618,9 +614,6 @@ class GetPolyhavenLink(JavaScriptRunner):
         return self._link
 
 
-ACCESS_MANAGER = QNetworkAccessManager()
-
-
 class GetPolyhavenData(QObject):
     """A class to get data from polyhaven.com, for gpuopen.
 
@@ -637,11 +630,12 @@ class GetPolyhavenData(QObject):
         self._link = QUrl(link)
         self._data = None
         self._reply = None
+        self._accessmanager = QNetworkAccessManager()
 
     def run(self):
         """Run get request."""
         request = QNetworkRequest(self._link)
-        self._reply = ACCESS_MANAGER.get(request)
+        self._reply = self._access_manager.get(request)
         self._reply.finished.connect(self._process_reply, Qt.QueuedConnection)
 
     @Slot()
