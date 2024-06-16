@@ -444,6 +444,10 @@ class ImporterWorker(QObject):
     - to return a result code
     """
 
+    # Signals
+    finished = Signal(int)
+    _report_progress = Signal(int, int)
+
     def __init__(
         self,
         filename,
@@ -469,10 +473,6 @@ class ImporterWorker(QObject):
 
         self.worker_loop = None
 
-    # Signals
-    finished = Signal(int)
-    _report_progress = Signal(int, int)
-
     def run(self):
         """Run in worker thread."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -495,7 +495,7 @@ class ImporterWorker(QObject):
             # Wait for acknowledgement
             self.worker_loop = QEventLoop()
             self.release_material_signal.connect(
-                self.worker_loop.quit(), Qt.QueuedConnection
+                self.worker_loop.quit, Qt.QueuedConnection
             )
             self.worker_loop.exec()
 
