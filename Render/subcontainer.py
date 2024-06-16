@@ -46,6 +46,8 @@ import sys
 import re
 from multiprocessing.connection import Client, Listener, Connection, wait
 from threading import Thread, Event
+import pathlib
+import configparser
 
 
 import FreeCADGui as Gui
@@ -57,6 +59,7 @@ from Render.virtualenv import (
     get_venv_pyside_version,
     get_venv_sitepackages,
 )
+from Render.material import make_material
 from PySide import __version_info__ as pyside_version_info
 
 if FCDVERSION > (0, 19):
@@ -225,6 +228,10 @@ class PythonSubprocess(QProcess):
                     elif verb == "ERROR":
                         argument = str(argument)
                         App.Console.PrintError(argument)
+                    elif verb == "MATERIAL":
+                        argument = pathlib.Path(argument)
+                        import_material(argument, App.ActiveDocument)
+                        self.child_send("RELEASE_MAT")
                     else:
                         App.Console.PrintError(
                             "[Render][Sub] Unknown verb/argument: "
@@ -253,8 +260,27 @@ class PythonSubprocess(QProcess):
             print("[Render][Sub] " + str(line, encoding="utf-8"))
 
 
+def import_material(path, doc):
+    """Import a material card."""
+    card = configparser.ConfigParser()
+    card.optionxform = lambda x: x  # Case sensitive
+    card.read(path)
+    try:
+        mxname = card["General"]["Name"]
+    except LookupError:
+        mxname = "Material"
+    print(f"Importing material card as FreeCAD material: {mxname}")
+    matdict = dict(card["Render"])
+    mat = make_material(name=mxname, doc=doc)
+    matdict = mat.Proxy.import_textures(matdict, basepath=None)
+
+    # Reminder: Material.Material is not updatable in-place
+    # (FreeCAD bug), thus we have to copy/replace
+    mat.Material = matdict
+
+
 class PythonSubprocessWindow(QMdiSubWindow):
-    """A window for a Python subprocess, intended for MDI area."""
+    """A window to embed a Python subprocess, intended for MDI area."""
 
     def __init__(self, python, args):
         super().__init__()  # Parent will be set at start
@@ -282,7 +308,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
     @Slot(int)
     def attach_process(self, winid):
         """Attach subprocess."""
-        # Create and embed container
+        # Create container and embed process inside
         self.window = QWindow.fromWinId(winid)
         self.window.setObjectName("RenderWindowFromWinid")
         self.container = QWidget.createWindowContainer(

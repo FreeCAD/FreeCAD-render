@@ -32,6 +32,7 @@ import argparse
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
 from dataclasses import dataclass
+import traceback
 
 
 sys.path.append(os.getcwd())
@@ -55,11 +56,27 @@ PYSIDE = PLUGIN_ARGS.pyside
 SERVERNAME = PLUGIN_ARGS.server
 
 if PYSIDE == "PySide2":
-    from PySide2.QtCore import QObject, QTimer, Slot, Signal, Qt, QThread
+    from PySide2.QtCore import (
+        QObject,
+        QTimer,
+        Slot,
+        Signal,
+        Qt,
+        QThread,
+        QEvent,
+    )
     from PySide2.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 if PYSIDE == "PySide6":
-    from PySide6.QtCore import QObject, QTimer, Slot, Signal, Qt, QThread
+    from PySide6.QtCore import (
+        QObject,
+        QTimer,
+        Slot,
+        Signal,
+        Qt,
+        QThread,
+        QEvent,
+    )
     from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 
@@ -100,8 +117,8 @@ class Socket(object, metaclass=Singleton):
         Blocking till message or connection deactivation.
         """
         while self._connection_active.is_set():
-            # We use wait to get a timeout parameter
-            # and check periodically connection is active
+            # We use 'wait' to get a timeout parameter
+            # and check periodically if connection is active
             for conn in wait([self._connection], timeout=1):
                 try:
                     message = conn.recv()
@@ -125,6 +142,21 @@ SOCKET = Socket()
 signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
 
+class PluginMessageEvent(QEvent):
+    """A Qt even to post to widget for incoming messages."""
+
+    TYPE = QEvent.Type(QEvent.registerEventType())
+
+    def __init__(self, message):
+        super().__init__(self.TYPE)
+        self._message = message
+
+    @property
+    def message(self):
+        return self._message
+
+
+# TODO Rename to RenderPluginApplication
 class RenderPlugin(QApplication):
     """Plugin base class."""
 
@@ -148,9 +180,12 @@ class RenderPlugin(QApplication):
         # Central widget
         try:
             self.widget = widget(*args)
-        except:
+        except Exception as err:
             print("WARNING: Could not initialize plugin central widget")
             self.widget = None
+            lines = traceback.format_exception(err)
+            for line in lines:
+                error(line)
         else:
             self.widget.setParent(self.mainwindow)
 
@@ -172,14 +207,9 @@ class RenderPlugin(QApplication):
                 SOCKET.stop_recv()
                 self.quit_signal.emit()
             else:
-                cb_handle_message(message)
-
-    def cb_handle_message(self, message):
-        """Handle messages sent by parent process - Callback.
-
-        To be overriden by subclass.
-        """
-        pass
+                event = PluginMessageEvent(message)
+                if self.widget:
+                    self.postEvent(self.widget, event)
 
     @Slot()
     def close_and_quit(self):
@@ -219,19 +249,19 @@ class Bcolors:
 
 def log(msg):
     """Print message as log."""
-    SOCKET.send("LOG", msg)
+    SOCKET.send("LOG", msg + "\n")
 
 
 def msg(msg):
     """Print message as plain message."""
-    SOCKET.send("MSG", msg)
+    SOCKET.send("MSG", msg + "\n")
 
 
 def warn(msg):
     """Print message as warning."""
-    SOCKET.send("WARN", msg)
+    SOCKET.send("WARN", msg + "\n")
 
 
 def error(msg):
     """Print message as error."""
-    SOCKET.send("ERROR", msg)
+    SOCKET.send("ERROR", msg + "\n")

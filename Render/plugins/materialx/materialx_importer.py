@@ -42,16 +42,18 @@ import subprocess
 import json
 import configparser
 import sys
+import pathlib
 
-from plugin_framework import log, msg, warn, error
+from plugin_framework import log, msg, warn, error, SOCKET
 
 
 class MaterialXImporter:
-    """A class to import a MaterialX material into a RenderMaterial."""
+    """A class to import a MaterialX material into a FCMat file."""
 
     def __init__(
         self,
         filename: str,
+        output_path: pathlib.Path,
         progress_hook: Callable[[int, int], None] = None,
         disp2bump: bool = False,
         polyhaven_size: float = None,
@@ -60,9 +62,9 @@ class MaterialXImporter:
 
         Args:
             filename -- the name of the file to import
-            doc -- the FreeCAD document where to create material
             progress_hook -- a hook to call to report progress (current, max)
             disp2bump -- a flag to set bump with displacement
+            polyhaven_size -- the size of the textures, from polyhaven.com
         """
         self._filename = filename
         self._baker_ready = threading.Event()
@@ -72,73 +74,52 @@ class MaterialXImporter:
         self._polyhaven_size = polyhaven_size
         self._proc = None
 
-    def run(self):
+    def run(self, working_dir):
         """Import a MaterialX archive as Render material."""
         executable = sys.executable
         script = os.path.join(
             os.path.dirname(__file__), "converter", "materialx_converter.py"
         )
-        # Proceed with file
-        with tempfile.TemporaryDirectory() as working_dir:
-            msg("STARTING MATERIALX IMPORT")
-            # Prepare converter call
-            args = [executable, "-u", script, self._filename, working_dir]
-            if self._polyhaven_size:
-                args += ["--polyhaven-size", str(self._polyhaven_size)]
-            if self._disp2bump:
-                args += ["--disp2bump"]
 
-            # Run converter
-            with subprocess.Popen(
-                args,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                bufsize=0,  # Unbuffered
-                universal_newlines=True,
-            ) as proc:
-                self._proc = proc
-                for line in proc.stdout:
-                    try:
-                        decode = json.loads(line)
-                    except json.JSONDecodeError:
-                        # Undecodable: write as-is
-                        msg(line)
-                    else:
-                        # Report progress
-                        if self._progress_hook:
-                            self._progress_hook(
-                                decode["value"], decode["maximum"]
-                            )
+        msg("STARTING MATERIALX IMPORT")
 
-            # Check result
-            if (returncode := proc.returncode) != 0:
-                if returncode == 255:
-                    warn("IMPORT - INTERRUPTED")
+        # Prepare converter call
+        args = [executable, "-u", script, self._filename, working_dir]
+        if self._polyhaven_size:
+            args += ["--polyhaven-size", str(self._polyhaven_size)]
+        if self._disp2bump:
+            args += ["--disp2bump"]
+
+        # Run converter
+        with subprocess.Popen(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=0,  # Unbuffered
+            universal_newlines=True,
+        ) as proc:
+            self._proc = proc
+            for line in proc.stdout:
+                try:
+                    decode = json.loads(line)
+                except json.JSONDecodeError:
+                    # Undecodable: write as-is
+                    for subline in line.splitlines():
+                        msg(subline)
                 else:
-                    error(f"IMPORT - ABORTED ({returncode})")
-                return returncode
+                    # Report progress
+                    if self._progress_hook:
+                        self._progress_hook(decode["value"], decode["maximum"])
 
-            # TODO
-            # # Import result
-            # in_file = os.path.join(working_dir, "out.FCMat")
-            # card = configparser.ConfigParser()
-            # card.optionxform = lambda x: x  # Case sensitive
-            # card.read(in_file)
-            # try:
-            # mxname = card["General"]["Name"]
-            # except LookupError:
-            # mxname = "Material"
-            # print(f"Importing material card as FreeCAD material: {mxname}")
-            # matdict = dict(card["Render"])
-            # mat = Render.material.make_material(name=mxname, doc=self._doc)
-            # matdict = mat.Proxy.import_textures(matdict, basepath=None)
+        # Check result
+        if (returncode := proc.returncode) != 0:
+            if returncode == 255:
+                warn("IMPORT - INTERRUPTED")
+            else:
+                error(f"IMPORT - ABORTED ({returncode})")
+            return returncode
 
-            # # Reminder: Material.Material is not updatable in-place
-            # # (FreeCAD bug), thus we have to copy/replace
-            # mat.Material = matdict
-
-            msg("IMPORT - SUCCESS")
-            return 0
+        return 0
 
     def cancel(self):
         """Request process to halt.

@@ -29,8 +29,19 @@ from urllib.parse import urlparse
 import argparse
 import sys
 import pathlib
+import tempfile
 
-from plugin_framework import PYSIDE, ARGS, RenderPlugin, log, msg, warn, error
+from plugin_framework import (
+    PYSIDE,
+    ARGS,
+    RenderPlugin,
+    log,
+    msg,
+    warn,
+    error,
+    SOCKET,
+    PluginMessageEvent,
+)
 
 if PYSIDE == "PySide6":
     from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -49,6 +60,7 @@ if PYSIDE == "PySide6":
         QObject,
         QEventLoop,
         QUrl,
+        QEvent,
     )
     from PySide6.QtNetwork import (
         QNetworkAccessManager,
@@ -78,6 +90,7 @@ if PYSIDE == "PySide2":
         QObject,
         QEventLoop,
         QUrl,
+        QEvent,
     )
     from PySide2.QtNetwork import (
         QNetworkAccessManager,
@@ -99,6 +112,7 @@ if PYSIDE == "PySide2":
 
 from materialx.materialx_importer import MaterialXImporter
 
+MX_EVENT_TYPE = QEvent.registerEventType()
 
 # Remark: please do not use:
 # - QWebEngineProfile.setDownloadPath
@@ -116,6 +130,7 @@ class MaterialXDownloader(QWidget):
     """
 
     _download_required = Signal(QWebEngineDownloadItem)
+    release_material_signal = Signal()
 
     def __init__(self, url, temp_path, disp2bump=False):
         """Initialize HelpViewer."""
@@ -213,7 +228,11 @@ class MaterialXDownloader(QWidget):
         polyhaven_actual_size = polyhaven_getsize(self.page)
 
         win = MaterialXDownloadWindow(
-            download, self, self.disp2bump, polyhaven_actual_size
+            download,
+            self,
+            self.release_material_signal,
+            self.disp2bump,
+            polyhaven_actual_size,
         )
         win.open()
 
@@ -240,6 +259,15 @@ class MaterialXDownloader(QWidget):
 
         # Seems to be one of ours
         return True
+
+    def event(self, event):
+        """Handle event (Qt callback)."""
+        if event.type() == PluginMessageEvent.TYPE:
+            verb, argument = event.message
+            if verb == "RELEASE_MAT":
+                self.release_material_signal.emit()
+            return True
+        return super().event(event)
 
 
 class DownloadWindow(QProgressDialog):
@@ -335,12 +363,14 @@ class MaterialXDownloadWindow(DownloadWindow):
         self,
         download,
         parent,
+        release_material_signal,
         disp2bump=False,
         polyhaven_actual_size=None,
     ):
         super().__init__(download, parent)
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_actual_size
+        self._release_material_signal = release_material_signal
 
         self.thread = None
         self.worker = None
@@ -367,6 +397,7 @@ class MaterialXDownloadWindow(DownloadWindow):
             self._disp2bump,
             self._download.page(),
             self._polyhaven_size,
+            self._release_material_signal,
         )
         self.thread = QThread()
         self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
@@ -402,6 +433,11 @@ class MaterialXDownloadWindow(DownloadWindow):
         self.canceled.connect(self.cancel)
         self.setCancelButtonText("Close")
 
+    Slot()
+
+    def release_material(self):
+        pass
+
 
 class ImporterWorker(QObject):
     """A worker for import.
@@ -413,7 +449,13 @@ class ImporterWorker(QObject):
     """
 
     def __init__(
-        self, filename, progress, disp2bump, page, polyhaven_actual_size
+        self,
+        filename,
+        progress,
+        disp2bump,
+        page,
+        polyhaven_actual_size,
+        release_material_signal,
     ):
         super().__init__()
         self.filename = filename
@@ -427,6 +469,9 @@ class ImporterWorker(QObject):
             polyhaven_actual_size,
         )
         self.page = page
+        self.release_material_signal = release_material_signal
+
+        self.worker_loop = None
 
     # Signals
     finished = Signal(int)
@@ -434,17 +479,31 @@ class ImporterWorker(QObject):
 
     def run(self):
         """Run in worker thread."""
-        try:
-            res = self.importer.run()
-        except Exception as exc:  # pylint: disable=broad-exception-caught
-            error("/!\\ IMPORT ERROR /!\\")
-            error(f"{type(exc)}{exc.args}")
-            trace = traceback.format_exception(exc)
-            for elem in trace:
-                for line in elem.splitlines():
-                    error(line)
-            self.finished.emit(-99)  # Uncaught error
-        else:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            try:
+                res = self.importer.run(tmpdir)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                error("/!\\ IMPORT ERROR /!\\")
+                error(f"{type(exc)}{exc.args}")
+                trace = traceback.format_exception(exc)
+                for elem in trace:
+                    for line in elem.splitlines():
+                        error(line)
+                self.finished.emit(-99)  # Uncaught error
+                return
+
+            # Notify FreeCAD to import result
+            in_file = os.path.join(tmpdir, "out.FCMat")
+            SOCKET.send("MATERIAL", in_file)
+
+            # Wait for acknowledgement
+            self.worker_loop = QEventLoop()
+            self.release_material_signal.connect(
+                self.worker_loop.quit(), Qt.QueuedConnection
+            )
+            self.worker_loop.exec()
+
+            # Make
             self.finished.emit(res)
 
     @Slot()
@@ -659,6 +718,15 @@ def polyhaven_getsize(page):
     return value
 
 
+class MaterialXApplication(RenderPlugin):
+
+    def __init__(self, args_url, args_tmpfolder):
+        url = QUrl(args_url.geturl())
+        tmpfolder = str(args_tmpfolder)
+
+        super().__init__(MaterialXDownloader, url, tmpfolder)
+
+
 def main():
     """The entry point."""
     # Get arguments
@@ -679,9 +747,7 @@ def main():
     args = parser.parse_args(ARGS)
 
     # Build application and launch
-    application = RenderPlugin(
-        MaterialXDownloader, QUrl(args.url.geturl()), str(args.tmp)
-    )
+    application = MaterialXApplication(args.url, args.tmp)
     sys.exit(application.exec())
 
 
