@@ -712,15 +712,6 @@ def polyhaven_getsize(page):
     return value
 
 
-class MaterialXApplication(RenderPlugin):
-
-    def __init__(self, args_url, args_tmpfolder):
-        url = QUrl(args_url.geturl())
-        tmpfolder = str(args_tmpfolder)
-
-        super().__init__(MaterialXDownloader, url, tmpfolder)
-
-
 def main():
     """The entry point."""
     # Get arguments
@@ -741,7 +732,11 @@ def main():
     args = parser.parse_args(ARGS)
 
     # Build application and launch
-    application = MaterialXApplication(args.url, args.tmp)
+    application = RenderPluginApplication(
+        MaterialXDownloader,
+        QUrl(args_url.geturl()),
+        str(args_tmpfolder),
+    )
     sys.exit(application.exec())
 
 

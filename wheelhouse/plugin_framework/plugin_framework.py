@@ -156,8 +156,7 @@ class PluginMessageEvent(QEvent):
         return self._message
 
 
-# TODO Rename to RenderPluginApplication
-class RenderPlugin(QApplication):
+class RenderPluginApplication(QApplication):
     """Plugin base class."""
 
     quit_signal = Signal()

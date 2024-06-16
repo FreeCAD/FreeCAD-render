@@ -165,7 +165,7 @@ def main():
     scripts_dir = os.path.join(THISDIR, "help", "3rdparty")
 
     # Build application and launch
-    application = RenderPlugin(
+    application = RenderPluginApplication(
         HelpViewer, QUrl.fromLocalFile(readme), scripts_dir
     )
     sys.exit(application.exec())
