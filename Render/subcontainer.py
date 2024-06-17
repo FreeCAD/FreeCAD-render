@@ -229,9 +229,11 @@ class PythonSubprocess(QProcess):
                         argument = str(argument)
                         App.Console.PrintError(argument)
                     elif verb == "MATERIAL":
-                        argument = pathlib.Path(argument)
-                        import_material(argument, App.ActiveDocument)
-                        self.child_send("RELEASE_MAT")
+                        try:
+                            argument = pathlib.Path(argument)
+                            import_material(argument, App.ActiveDocument)
+                        finally:
+                            self.child_send("RELEASE_MAT")
                     else:
                         App.Console.PrintError(
                             "[Render][Sub] Unknown verb/argument: "
