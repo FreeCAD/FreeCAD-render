@@ -7,7 +7,7 @@ require dependencies present neither in the FreeCAD package nor in system-level 
 Practically speaking, plugins are **small applets** written in Python that can be run as **separate subprocesses in a dedicated Python virtual environment**,
 while being **embedded in FreeCAD Gui** and being able to interact with FreeCAD.
 Render workbench provides plugins a dedicated virtual environment (https://docs.python.org/3/library/venv.html) where various additional packages can be installed from PyPi, in addition to those accessible at system-level.
-Examples of installed packages include PySide6 addons (QWebEngine), MaterialX... but are not restricted to and can be extened.
+Examples of installed packages include PySide6 addons (QWebEngine), MaterialX... but are not restricted to and can be extended.
 
 The major benefit of that virtual environment is that, being hosted in the user directory, it allows new dependencies to be installed and updated
 _without elevation of rights_, and thus in a way that is totally transparent to the user.
