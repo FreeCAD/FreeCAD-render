@@ -505,6 +505,7 @@ class ImporterWorker(QObject):
 
             # Notify finished
             self.finished.emit(returncode)
+            msg(f"Releasing {tmpdir}")
             msg("IMPORT TERMINATED")
 
     @Slot()
@@ -740,6 +741,7 @@ def main():
     args = parser.parse_args(ARGS)
 
     # Build application and launch
+    SOCKET.send("APPNAME", "MaterialX")
     application = RenderPluginApplication(
         MaterialXDownloader,
         QUrl(args.url.geturl()),

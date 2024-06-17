@@ -181,13 +181,14 @@ class PythonSubprocess(QProcess):
         self.connections_listener = Thread(target=self.child_recv)
         self.connections_active = Event()
         self.connections_active.set()
+        self.appname = "Sub"  # 'Sub' by default
 
         # Set program and arguments
         self.setProgram(python)
         self.setWorkingDirectory(os.path.join(PLUGINDIR))
         self.setArguments(args)
 
-        # Log
+        # Log statement
         statement = " ".join([python] + args)
         App.Console.PrintLog(statement + "\n")
 
@@ -197,6 +198,10 @@ class PythonSubprocess(QProcess):
         self.connections.append(connection)
         if not self.connections_listener.is_alive():
             self.connections_listener.start()
+
+    def msgfmt(self, msg):
+        """Format message before display."""
+        return "[Render][{}] {}".format(self.appname, str(msg))
 
     def child_recv(self):
         """Receive messages from subprocess."""
@@ -218,27 +223,27 @@ class PythonSubprocess(QProcess):
                         self.winid_available.emit(argument)
                     elif verb == "LOG":
                         argument = str(argument)
-                        App.Console.PrintLog(argument)
+                        App.Console.PrintLog(self.msgfmt(argument))
                     elif verb == "MSG":
                         argument = str(argument)
-                        App.Console.PrintMessage(argument)
+                        App.Console.PrintMessage(self.msgfmt(argument))
                     elif verb == "WARN":
                         argument = str(argument)
-                        App.Console.PrintWarning(argument)
+                        App.Console.PrintWarning(self.msgfmt(argument))
                     elif verb == "ERROR":
                         argument = str(argument)
-                        App.Console.PrintError(argument)
+                        App.Console.PrintError(self.msgfmt(argument))
                     elif verb == "MATERIAL":
                         try:
                             argument = pathlib.Path(argument)
-                            import_material(argument, App.ActiveDocument)
+                            self.import_material(argument, App.ActiveDocument)
                         finally:
                             self.child_send("RELEASE_MAT")
+                    elif verb == "APPNAME":
+                        self.appname = str(argument)
                     else:
-                        App.Console.PrintError(
-                            "[Render][Sub] Unknown verb/argument: "
-                            f"'{verb}' '{argument}'"
-                        )
+                        msg = f"Unknown verb/argument: '{verb}' '{argument}'"
+                        App.Console.PrintError(self.msgfmt(msg))
 
     @Slot()
     def stop_listening(self):
@@ -259,26 +264,31 @@ class PythonSubprocess(QProcess):
         raw = self.readAllStandardOutput()
         lines = raw.split("\n")
         for line in lines:
-            print("[Render][Sub] " + str(line, encoding="utf-8"))
+            App.Console.PrintLog(
+                f"[Render][Sub] {str(line, encoding='utf-8')}\n"
+            )
 
+    def import_material(self, path, doc):
+        """Import a material card."""
+        card = configparser.ConfigParser()
+        card.optionxform = lambda x: x  # Case sensitive
+        card.read(path)
+        try:
+            mxname = card["General"]["Name"]
+        except LookupError:
+            mxname = "Material"
+        App.Console.PrintMessage(
+            self.msgfmt(
+                f"Importing material card as FreeCAD material: {mxname}\n"
+            )
+        )
+        matdict = dict(card["Render"])
+        mat = make_material(name=mxname, doc=doc)
+        matdict = mat.Proxy.import_textures(matdict, basepath=None)
 
-def import_material(path, doc):
-    """Import a material card."""
-    card = configparser.ConfigParser()
-    card.optionxform = lambda x: x  # Case sensitive
-    card.read(path)
-    try:
-        mxname = card["General"]["Name"]
-    except LookupError:
-        mxname = "Material"
-    print(f"Importing material card as FreeCAD material: {mxname}")
-    matdict = dict(card["Render"])
-    mat = make_material(name=mxname, doc=doc)
-    matdict = mat.Proxy.import_textures(matdict, basepath=None)
-
-    # Reminder: Material.Material is not updatable in-place
-    # (FreeCAD bug), thus we have to copy/replace
-    mat.Material = matdict
+        # Reminder: Material.Material is not updatable in-place
+        # (FreeCAD bug), thus we have to copy/replace
+        mat.Material = matdict
 
 
 class PythonSubprocessWindow(QMdiSubWindow):
