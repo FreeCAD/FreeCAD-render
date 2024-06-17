@@ -105,6 +105,17 @@ Optionally, you may tweak some particulars of your scene:
 
 These adjustments should take place between steps 2 and 3.
 
+## FAQ
+### How to solve library conflicts within a FreeCAD AppImage
+
+When using an AppImage, you might be confronted with an error like this on execution of the "Render" command:
+
+`.../usr/lib/libstdc++.so.6: version 'CXXABI_1.3.15' not found`
+
+This is due to different library versions of your host system and the AppImage. As a workaround, provide your host libraries to the rendering command using the "Prefix" field in the Render WB configuration:
+
+`env LD_LIBRARY_PATH="/usr/lib64"`
+
 ## Contributing
 
 Any contributions are welcome! Please read our
