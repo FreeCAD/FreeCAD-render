@@ -477,7 +477,7 @@ class ImporterWorker(QObject):
         """Run in worker thread."""
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
-                res = self.importer.run(tmpdir)
+                returncode = self.importer.run(tmpdir)
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 error("/!\\ IMPORT ERROR /!\\")
                 error(f"{type(exc)}{exc.args}")
@@ -488,19 +488,24 @@ class ImporterWorker(QObject):
                 self.finished.emit(-99)  # Uncaught error
                 return
 
-            # Notify FreeCAD to import result
-            in_file = os.path.join(tmpdir, "out.FCMat")
-            SOCKET.send("MATERIAL", in_file)
+            if not returncode:  # Import succeeded
+                # Notify FreeCAD to import result
+                in_file = os.path.join(tmpdir, "out.FCMat")
+                SOCKET.send("MATERIAL", in_file)
 
-            # Wait for acknowledgement
-            self.worker_loop = QEventLoop()
-            self.release_material_signal.connect(
-                self.worker_loop.quit, Qt.QueuedConnection
-            )
-            self.worker_loop.exec()
+                # Wait for acknowledgement
+                self.worker_loop = QEventLoop()
+                self.release_material_signal.connect(
+                    self.worker_loop.quit, Qt.QueuedConnection
+                )
+                if PYSIDE == "PySide6":
+                    self.worker_loop.exec()
+                if PYSIDE == "PySide2":
+                    self.worker_loop.exec_()
 
-            # Make
-            self.finished.emit(res)
+            # Notify finished
+            self.finished.emit(returncode)
+            msg("IMPORT TERMINATED")
 
     @Slot()
     def cancel(self):
@@ -618,7 +623,7 @@ class GetPolyhavenData(QObject):
     """A class to get data from polyhaven.com, for gpuopen.
 
     Some dimensions in gpuopen, for materials originating from polyhaven.com,
-    are wrong. To remedy, this class can retrieve those information querying
+    are wrong. To remedy, this class can retrieve those data querying
     polyhaven.com.
     """
 
@@ -677,7 +682,10 @@ def polyhaven_getsize(page):
     getdata = GetPolyhavenData(link)
     getdata.done.connect(loop.exit, Qt.QueuedConnection)
     getdata.run()
-    loop.exec_()
+    if PYSIDE == "PySide2":
+        loop.exec_()
+    if PYSIDE == "PySide6":
+        loop.exec()
     data = getdata.data
 
     # Search size
