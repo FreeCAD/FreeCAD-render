@@ -36,7 +36,7 @@ In this file:
 * create a widget corresponding to the target application
 * instantiate `plugin_framework.RenderPluginApplication`
 
-Render side:
+Workbench side:
 * In `subcontainer.py`, add a `start_xxx` method based on an existing one.
-* In `virtualenv.py', add any additional required modules in "Step 5".
+* In `virtualenv.py`, add any additional required modules in "Step 5".
 Remark: I'm aware that this way of doing things is a bit manual, but I'm not sure there's any point in packaging any more than that.
