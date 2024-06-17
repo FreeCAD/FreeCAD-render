@@ -41,4 +41,5 @@ In this file:
 Workbench side:
 * In `subcontainer.py`, add a `start_xxx` method based on an existing one.
 * In `virtualenv.py`, add any additional required modules in "Step 5".
+
 Remark: I'm aware that this way of doing things is a bit manual, but I'm not sure it would be worth packaging a complete API.
