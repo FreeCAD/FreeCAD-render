@@ -19,6 +19,11 @@ In the future, this could be extended to headless applications, GTK-based apps e
 Plugins are run by `subcontainer.py`. They are launched as subprocesses and are provided a framework containing a set of features to interact with Render & FreeCAD. 
 The framework is hosted in the virtual environment, so that it can simply be imported in the plugin, like any Python module.
 
+The framework takes care of:
+* keeping the virtual environment available and up-to-date
+* embedding plugin's main window into FreeCAD Gui
+* establishing the means for Plugin / Render communication.
+
 Plugins can interact with Render / FreeCAD in two ways:
 * stdout, which is piped to FreeCAD console (log level).
 * a bidirectional socket, based on localhost or named pipes, according to OS 
