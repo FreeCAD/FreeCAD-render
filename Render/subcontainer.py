@@ -153,10 +153,16 @@ class PythonSubprocess(QProcess):
             "Qt",
             "resources",
         )
-        environment.insert("QTWEBENGINE_RESOURCES_PATH", resources)
-        App.Console.PrintLog(
-            f"[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to '{resources}'\n"
-        )
+        if os.path.exists(resources):
+            environment.insert("QTWEBENGINE_RESOURCES_PATH", resources)
+            App.Console.PrintLog(
+                f"[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to '{resources}'\n"
+            )
+        else:
+            App.Console.PrintLog(
+                "[Render][Sub] COULD NOT set QTWEBENGINE_RESOURCES_PATH to "
+                f"'{resources}'\n"
+            )
         self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing
