@@ -30,6 +30,7 @@ import argparse
 import sys
 import pathlib
 import tempfile
+import itertools
 
 from plugin_framework import (
     PYSIDE,
@@ -603,8 +604,7 @@ class GetPolyhavenLink(JavaScriptRunner):
         polyhaven_links = (
             l
             for l in res
-            if urlparse(l).hostname
-            and urlparse(l).hostname.endswith(".polyhaven.com")
+            if urlparse(l).netloc and urlparse(l).netloc == "polyhaven.com"
         )
         try:
             link = next(polyhaven_links)
@@ -636,7 +636,7 @@ class GetPolyhavenData(QObject):
         self._link = QUrl(link)
         self._data = None
         self._reply = None
-        self._accessmanager = QNetworkAccessManager()
+        self._access_manager = QNetworkAccessManager()
 
     def run(self):
         """Run get request."""
@@ -704,21 +704,50 @@ def polyhaven_getsize(page):
         log("[Render][MaterialX] Polyhaven - failed to find tags")
         return None
 
-    # Parse quantity
+    # Extract and clean quantity
     try:
-        quantity = App.Units.parseQuantity(result.group(1))
+        quantity = result.group(1)
+    except IndexError:
+        log("[Render][MaterialX] Polyhaven - failed to extract quantity")
+        return None
+    quantity = bytes(filter(lambda x: x != 32, quantity))  # Remove spaces
+    quantity = quantity.lower()
+
+    # Parse amount/unit
+    amount_bytes = bytes(
+        itertools.takewhile(lambda x: x in b"0123456789.", quantity)
+    )
+    unit = quantity[len(amount_bytes) :]
+    try:
+        amount = float(amount_bytes)
     except ValueError:
-        log("[Render][MaterialX] Polyhaven - failed to parse quantity")
+        log(
+            "[Render][MaterialX] Polyhaven - "
+            "failed to parse amount from quantity ('{quantity}')"
+        )
         return None
 
-    # Convert to meters
+    # Normalize amount
+    factors = {
+        b"mm": 0.001,
+        b"cm": 0.01,
+        b"dm": 0.1,
+        b"m": 1.0,
+        b"dam": 10.0,
+        b"hm": 100.0,
+        b"km": 1000.0,
+        b"": 1.0,
+    }
     try:
-        value = quantity.getValueAs("m")
-    except ValueError:
-        log("[Render][MaterialX] Polyhaven - failed to get value as meters")
+        factor = factors[unit]
+    except:
+        log(
+            "[Render][MaterialX] Polyhaven - "
+            "failed to parse unit from quantity ('{quantity}')"
+        )
         return None
 
-    return value
+    return amount * factor
 
 
 def main():
