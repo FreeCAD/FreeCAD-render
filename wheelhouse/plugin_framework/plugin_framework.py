@@ -248,19 +248,19 @@ class Bcolors:
 
 def log(msg):
     """Print message as log."""
-    SOCKET.send("LOG", msg + "\n")
+    SOCKET.send("LOG", str(msg) + "\n")
 
 
 def msg(msg):
     """Print message as plain message."""
-    SOCKET.send("MSG", msg + "\n")
+    SOCKET.send("MSG", str(msg) + "\n")
 
 
 def warn(msg):
     """Print message as warning."""
-    SOCKET.send("WARN", msg + "\n")
+    SOCKET.send("WARN", str(msg) + "\n")
 
 
 def error(msg):
     """Print message as error."""
-    SOCKET.send("ERROR", msg + "\n")
+    SOCKET.send("ERROR", str(msg) + "\n")
