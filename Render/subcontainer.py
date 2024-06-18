@@ -191,10 +191,12 @@ class PythonSubprocess(QProcess):
 
         # Set program and arguments
         self.setProgram(python)
+        working_directory = os.path.join(PLUGINDIR)
         self.setWorkingDirectory(os.path.join(PLUGINDIR))
         self.setArguments(args)
 
         # Log statement
+        App.Console.PrintLog(f"cd '{working_directory}'\n")
         statement = " ".join([python] + args)
         App.Console.PrintLog(statement + "\n")
 

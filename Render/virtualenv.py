@@ -233,7 +233,7 @@ def get_venv_python_version():
 
 def get_venv_pyside_version():
     python_version = get_venv_python_version()
-    _log(str(python_version))
+    _log(f"Virtual environment Python version: {str(python_version)}")
     if python_version >= (3, 9):
         return "PySide6"
     else:
