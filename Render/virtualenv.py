@@ -154,6 +154,7 @@ def rendervenv_worker():
                         "--no-warn-script-location",
                         "--only-binary=:all:",
                         f"--find-links={WHEELSDIR}",
+                        f'--global-option="--bdist-dir={App.getTempPath()}"',
                     ],
                     loglevel=1,
                 ): package
