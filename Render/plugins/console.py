@@ -25,10 +25,14 @@
 import sys
 import argparse
 
-from renderplugin import RenderPluginApplication, ARGS
+from renderplugin import RenderPluginApplication, ARGS, PYSIDE
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtCore import QProcess
+if PYSIDE == "PySide6":
+    from PySide6.QtWidgets import QWidget, QVBoxLayout
+    from PySide6.QtCore import QProcess
+if PYSIDE == "PyQt6":
+    from PyQt6.QtWidgets import QWidget, QVBoxLayout
+    from PyQt6.QtCore import QProcess
 
 
 class Terminal(QWidget):

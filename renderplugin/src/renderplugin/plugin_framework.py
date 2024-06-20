@@ -49,7 +49,7 @@ plugin_parser.add_argument(
     "--pyside",
     help="pyside version",
     type=str,
-    choices=("PySide2", "PySide6"),
+    choices=("PySide2", "PySide6", "PyQt5", "PyQt6"),
 )
 PLUGIN_ARGS, ARGS = plugin_parser.parse_known_args()
 PYSIDE = PLUGIN_ARGS.pyside
@@ -78,6 +78,30 @@ if PYSIDE == "PySide6":
         QEvent,
     )
     from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
+
+if PYSIDE == "PyQt5":
+    from PyQt5.QtCore import (
+        QObject,
+        QTimer,
+        pyqtSlot as Slot,
+        pyqtSignal as Signal,
+        Qt,
+        QThread,
+        QEvent,
+    )
+    from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
+
+if PYSIDE == "PyQt6":
+    from PyQt6.QtCore import (
+        QObject,
+        QTimer,
+        pyqtSlot as Slot,
+        pyqtSignal as Signal,
+        Qt,
+        QThread,
+        QEvent,
+    )
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 
 def debug(msg):
@@ -163,14 +187,21 @@ class RenderPluginApplication(QApplication):
 
     def __init__(self, widget, *args):
         """Initialize plugin."""
-        super().__init__()
+        super().__init__(sys.argv)
+
+        if PYSIDE.startswith("PyQt"):
+            flags = Qt.WindowType.FramelessWindowHint
+            queue = Qt.ConnectionType.QueuedConnection
+        else:
+            flags = Qt.FramelessWindowHint
+            queue = Qt.QueuedConnection
 
         # Application and window
-        self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
+        self.mainwindow = QMainWindow(flags=flags)
         self.mainwindow.showMaximized()
 
         # Listen to entering messages
-        self.quit_signal.connect(self.close_and_quit, Qt.QueuedConnection)
+        self.quit_signal.connect(self.close_and_quit, queue)
         self.listen_thread = QThread()
         setattr(self.listen_thread, "run", self.listen)
         self.listen_thread.finished.connect(self.listen_thread.deleteLater)
@@ -195,7 +226,7 @@ class RenderPluginApplication(QApplication):
             self.mainwindow.setCentralWidget(self.widget)
             self.widget.showMaximized()
             self.widget.setVisible(True)
-        winid = self.mainwindow.winId()
+        winid = int(self.mainwindow.winId())
         SOCKET.send("WINID", winid)
 
     def listen(self):
@@ -224,10 +255,11 @@ class RenderPluginApplication(QApplication):
     def exec(self):
         """Execute application (start event loop)."""
         QTimer.singleShot(0, self.add_widget)
-        if PYSIDE == "PySide2":
+        if PYSIDE in ("PySide2", "PyQt5"):
             return super().exec_()
-        if PYSIDE == "PySide6":
+        if PYSIDE in ("PySide6", "PyQt6"):
             return super().exec()
+        log("Exiting")
 
 
 @dataclass

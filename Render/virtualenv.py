@@ -60,6 +60,7 @@ RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
 
 # RENDERVENV = RenderVirtualEnv()  # Not workable yet
 RENDERVENV = None
+QTBASE = "PyQt"  # in ("PyQt", "PySide")
 
 # API
 
@@ -131,12 +132,18 @@ def rendervenv_worker():
             )
 
         # Step 5: Check for needed packages - binaries
+        pyside = get_venv_pyside_version()  # PySide
         packages = [
+            pyside,
             "setuptools",
             "wheel",
-            get_venv_pyside_version(),  # PySide
             "renderplugin",
         ]
+
+        if pyside == "PyQt6":
+            packages.append("PyQt6-WebEngine")
+        if pyside == "PyQt5":
+            packages.append("PyQtWebEngine")
 
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
@@ -148,7 +155,14 @@ def rendervenv_worker():
             f"--find-links={WHEELSDIR}",
         ]
         commands = [
-            (pip_install, package, options, _log, 1) for package in packages
+            (
+                pip_install,
+                package,
+                options + (["-I"] if package == "renderplugin" else []),
+                _log,
+                1,
+            )
+            for package in packages
         ]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -231,10 +245,18 @@ def get_venv_python_version():
 def get_venv_pyside_version():
     python_version = get_venv_python_version()
     _log(f"Virtual environment Python version: {str(python_version)}")
-    if python_version >= (3, 9):
-        return "PySide6"
+    if QTBASE == "PySide":
+        if python_version >= (3, 9):
+            return "PySide6"
+        else:
+            return "PySide2"
+    elif QTBASE == "PyQt":
+        if python_version >= (3, 8):
+            return "PyQt6"
+        else:
+            return "PyQt5"
     else:
-        return "PySide2"
+        raise ValueError(QTBASE)
 
 
 def pip_run(verb, package, options=None, log=None, loglevel=0):
