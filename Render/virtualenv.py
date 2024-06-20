@@ -96,7 +96,7 @@ def rendervenv_worker():
                     ">>> Environment does not provide Python "
                     "- Recreating environment"
                 )
-                _remove_virtualenv()
+                _remove_virtualenv(purge=False)
                 _create_virtualenv()
             else:
                 _log(">>> Environment provides Python: OK")
@@ -343,9 +343,10 @@ def _create_virtualenv():
         )
 
 
-def _remove_virtualenv():
+def _remove_virtualenv(purge=True):
     """Remove Render virtual environment."""
-    pip_run("cache", "purge")
+    if purge:
+        pip_run("cache", "purge")
     shutil.rmtree(RENDER_VENV_DIR, ignore_errors=True)
 
 
