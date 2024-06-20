@@ -388,3 +388,12 @@ def start_materialx(url=None, doc=None, disp2bump=True):
     tmp = App.getTempPath()
     options = [url, "--tmp", tmp]
     start_subapp(script, options)
+
+
+def start_console(term="urxvt"):
+    """Start help sub application."""
+    script = os.path.join(PLUGINDIR, "console.py")
+    script = os.path.normpath(script)
+    wbdir = os.path.normpath(WBDIR)
+    options = ["--term", term]
+    start_subapp(script, options)
