@@ -60,6 +60,7 @@ from Render.virtualenv import (
     get_venv_sitepackages,
 )
 from Render.material import make_material
+from Render.lights import ImageLight
 from PySide import __version_info__ as pyside_version_info
 
 if FCDVERSION > (0, 19):
@@ -246,9 +247,17 @@ class PythonSubprocess(QProcess):
                             argument = pathlib.Path(argument)
                             self.import_material(argument, App.ActiveDocument)
                         finally:
-                            self.child_send("RELEASE_MAT")
+                            self.child_send("RELEASE")
                     elif verb == "APPNAME":
                         self.appname = str(argument)
+                    elif verb == "IMAGELIGHT":
+                        try:
+                            basename, filepath = argument
+                            _, fpo, _ = ImageLight.create(App.ActiveDocument)
+                            fpo.Label = basename
+                            fpo.ImageFile = filepath
+                        finally:
+                            self.child_send("RELEASE")
                     else:
                         msg = f"Unknown verb/argument: '{verb}' '{argument}'"
                         App.Console.PrintError(self.msgfmt(msg))

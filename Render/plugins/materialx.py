@@ -105,11 +105,6 @@ if PYSIDE == "PySide2":
         QProgressDialog,
     )
 
-# TODO
-# import FreeCADGui as Gui
-# import FreeCAD as App
-
-# from Render import ImageLight
 
 from materialx.materialx_importer import MaterialXImporter
 
@@ -221,7 +216,9 @@ class MaterialXDownloader(QWidget):
         """
         # Special case: HDRI
         if self._is_hdri_download(download):
-            win = HdriDownloadWindow(download, self.fcdoc, self)
+            win = HdriDownloadWindow(
+                download, self, self.release_material_signal
+            )
             win.open()
             return
 
@@ -265,7 +262,7 @@ class MaterialXDownloader(QWidget):
         """Handle event (Qt callback)."""
         if event.type() == PluginMessageEvent.TYPE:
             verb, argument = event.message
-            if verb == "RELEASE_MAT":
+            if verb == "RELEASE":
                 self.release_material_signal.emit()
             return True
 
@@ -283,9 +280,11 @@ class DownloadWindow(QProgressDialog):
         self,
         download,
         parent,
+        release_material_signal,
     ):
         super().__init__(parent)
         self._download = download
+        self._release_material_signal = release_material_signal
         if PYSIDE == "PySide2":
             _, filename = os.path.split(download.path())
         if PYSIDE == "PySide6":
@@ -357,6 +356,18 @@ class DownloadWindow(QProgressDialog):
         To be overriden by specialized widgets.
         """
 
+    def wait_for_release(self):
+        """Wait for the host to release transmitted file."""
+        # Wait for acknowledgement
+        worker_loop = QEventLoop()
+        self._release_material_signal.connect(
+            worker_loop.quit, Qt.QueuedConnection
+        )
+        if PYSIDE == "PySide6":
+            worker_loop.exec()
+        if PYSIDE == "PySide2":
+            worker_loop.exec_()
+
 
 class MaterialXDownloadWindow(DownloadWindow):
     """A simple widget to handle MaterialX download and import from the web."""
@@ -369,10 +380,9 @@ class MaterialXDownloadWindow(DownloadWindow):
         disp2bump=False,
         polyhaven_actual_size=None,
     ):
-        super().__init__(download, parent)
+        super().__init__(download, parent, release_material_signal)
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_actual_size
-        self._release_material_signal = release_material_signal
 
         self.thread = None
         self.worker = None
@@ -399,7 +409,7 @@ class MaterialXDownloadWindow(DownloadWindow):
             self._disp2bump,
             self._download.page(),
             self._polyhaven_size,
-            self._release_material_signal,
+            self.wait_for_release,
         )
         self.thread = QThread()
         self.canceled.connect(self.worker.cancel, type=Qt.DirectConnection)
@@ -456,7 +466,7 @@ class ImporterWorker(QObject):
         disp2bump,
         page,
         polyhaven_actual_size,
-        release_material_signal,
+        wait_for_release,
     ):
         super().__init__()
         self.filename = filename
@@ -470,9 +480,7 @@ class ImporterWorker(QObject):
             polyhaven_actual_size,
         )
         self.page = page
-        self.release_material_signal = release_material_signal
-
-        self.worker_loop = None
+        self._wait_for_release = wait_for_release
 
     def run(self):
         """Run in worker thread."""
@@ -493,16 +501,7 @@ class ImporterWorker(QObject):
                 # Notify FreeCAD to import result
                 in_file = os.path.join(tmpdir, "out.FCMat")
                 SOCKET.send("MATERIAL", in_file)
-
-                # Wait for acknowledgement
-                self.worker_loop = QEventLoop()
-                self.release_material_signal.connect(
-                    self.worker_loop.quit, Qt.QueuedConnection
-                )
-                if PYSIDE == "PySide6":
-                    self.worker_loop.exec()
-                if PYSIDE == "PySide2":
-                    self.worker_loop.exec_()
+                self._wait_for_release()
 
             # Notify finished
             self.finished.emit(returncode)
@@ -529,10 +528,8 @@ class HdriDownloadWindow(DownloadWindow):
             )
         basename = os.path.basename(filepath)
 
-        # TODO
-        _, fpo, _ = ImageLight.create(self._fcdoc)
-        fpo.Label = basename
-        fpo.ImageFile = filepath
+        SOCKET.send("IMAGELIGHT", (basename, filepath))
+        self.wait_for_release()
 
         # Finalize (success)
         os.remove(filepath)

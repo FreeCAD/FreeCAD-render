@@ -60,7 +60,7 @@ RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
 
 # RENDERVENV = RenderVirtualEnv()  # Not workable yet
 RENDERVENV = None
-QTBASE = "PyQt"  # in ("PyQt", "PySide")
+QTBASE = "PySide"  # in ("PyQt", "PySide")
 
 # API
 
