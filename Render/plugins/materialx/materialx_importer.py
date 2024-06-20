@@ -44,7 +44,7 @@ import configparser
 import sys
 import pathlib
 
-from plugin_framework import log, msg, warn, error, SOCKET
+from renderplugin import log, msg, warn, error, SOCKET
 
 
 class MaterialXImporter:

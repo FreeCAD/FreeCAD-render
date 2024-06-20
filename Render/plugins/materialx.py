@@ -32,7 +32,7 @@ import pathlib
 import tempfile
 import itertools
 
-from plugin_framework import (
+from renderplugin import (
     PYSIDE,
     ARGS,
     RenderPluginApplication,

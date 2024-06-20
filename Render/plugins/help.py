@@ -30,7 +30,7 @@ import signal
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
 
-from plugin_framework import PYSIDE, ARGS, RenderPluginApplication
+from renderplugin import PYSIDE, ARGS, RenderPluginApplication
 
 # Imports
 if PYSIDE == "PySide6":

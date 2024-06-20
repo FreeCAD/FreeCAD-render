@@ -16,7 +16,7 @@ At the moment, plugins are designed as a single-window Qt-based application, wit
 In the future, this could be extended to headless applications, GTK-based apps etc. (but there is no plan for that in the short term).
 
 ## How do Plugins work?
-Plugins are run by `subcontainer.py`. They are launched as subprocesses and are provided a framework containing a set of features to interact with Render & FreeCAD. 
+Plugins are run by `subcontainer.py`. They are launched as subprocesses and are provided a framework containing a set of features to interact with Render & FreeCAD.
 The framework is hosted in the virtual environment, so that it can simply be imported in the plugin, like any Python module.
 
 The framework takes care of:
@@ -26,7 +26,7 @@ The framework takes care of:
 
 Plugins can interact with Render / FreeCAD in two ways:
 * stdout, which is piped to FreeCAD console (log level).
-* a bidirectional socket, based on localhost or named pipes, according to OS 
+* a bidirectional socket, based on localhost or named pipes, according to OS
 Both ways are provided by framework.
 
 The socket is a particularly flexible tool, enabling the transmission of multiple types of information:
@@ -34,14 +34,14 @@ The socket is a particularly flexible tool, enabling the transmission of multipl
 - user messages (log, warn, error...)
 - serialized objects
 in both directions: Workbench -> Plugin and Plugin -> Workbench.
- 
+
 ## How to write a Plugin?
 Applet side:
 Create a Python file in `Render/plugins` folder.
 In this file:
-* import `plugin_framework`
+* import `renderplugin`
 * create a widget class corresponding to your target application - here comes all the customization
-* instantiate `plugin_framework.RenderPluginApplication`, passing it your widget class and your parameters
+* instantiate `renderplugin.RenderPluginApplication`, passing it your widget class and your parameters
 * call the `exec` method of the above instance
 
 Workbench side:

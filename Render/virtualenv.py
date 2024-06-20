@@ -45,6 +45,7 @@ import tempfile
 import subprocess
 import shutil
 import concurrent.futures
+import functools
 
 import FreeCAD as App
 
@@ -134,31 +135,26 @@ def rendervenv_worker():
             "setuptools",
             "wheel",
             get_venv_pyside_version(),  # PySide
-            os.path.join(WHEELSDIR, "plugin_framework"),
+            "renderplugin",
         ]
 
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
 
-        # TODO
-        # if pyside_version == "5.15.2":
-        # pyside_version = "5.15.2.1"  # For Ubuntu 22.04
-        # packages.append(f"PySide2=={pyside_version}")
+        # Commands for binaries
+        options = [
+            "--no-warn-script-location",
+            "--only-binary=:all:",
+            f"--find-links={WHEELSDIR}",
+        ]
+        commands = [
+            (pip_install, package, options, _log, 1) for package in packages
+        ]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
-                executor.submit(
-                    pip_install,
-                    package,
-                    options=[
-                        "--no-warn-script-location",
-                        "--only-binary=:all:",
-                        f"--find-links={WHEELSDIR}",
-                        f'--global-option="--bdist-dir={App.getTempPath()}"',
-                    ],
-                    loglevel=1,
-                ): package
-                for package in packages
+                executor.submit(*command): package
+                for command, package in zip(commands, packages)
             }
             errors = {}
             for future in concurrent.futures.as_completed(futures):
@@ -172,7 +168,7 @@ def rendervenv_worker():
                     )
                     errors[package] = return_code
 
-        # Step 7: Report errors to user
+        # Step 6: Report errors to user
         if errors:
             failed = ", ".join(f"'{p}'" for p in errors.keys())
             _warn(
@@ -241,7 +237,7 @@ def get_venv_pyside_version():
         return "PySide2"
 
 
-def pip_install(package, options=None, log=None, loglevel=0):
+def pip_run(verb, package, options=None, log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
     Returns: a subprocess.CompletedInstance"""
@@ -249,7 +245,7 @@ def pip_install(package, options=None, log=None, loglevel=0):
     log = log or _log
     if not (executable := get_venv_python()):
         raise VenvError(3)
-    cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
+    cmd = [executable, "-u", "-m", "pip", verb] + options + [package]
     log(" ".join([">>>"] + cmd))
     environment = os.environ.copy()
     environment.pop("PYTHONHOME", None)
@@ -266,6 +262,10 @@ def pip_install(package, options=None, log=None, loglevel=0):
         for line in proc.stdout:
             log(f"{pads} {line}")
     return proc.returncode
+
+
+pip_install = functools.partial(pip_run, "install")
+pip_wheel = functools.partial(pip_run, "wheel")
 
 
 def pip_uninstall(package):
@@ -345,6 +345,7 @@ def _create_virtualenv():
 
 def _remove_virtualenv():
     """Remove Render virtual environment."""
+    pip_run("cache", "purge")
     shutil.rmtree(RENDER_VENV_DIR, ignore_errors=True)
 
 
