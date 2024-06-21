@@ -164,6 +164,7 @@ class PythonSubprocess(QProcess):
                 "[Render][Sub] COULD NOT set QTWEBENGINE_RESOURCES_PATH to "
                 f"'{resources}'\n"
             )
+        environment.insert("QT_API", get_venv_pyside_version())
         self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing

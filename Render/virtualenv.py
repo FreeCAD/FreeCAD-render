@@ -138,6 +138,7 @@ def rendervenv_worker():
             "setuptools",
             "wheel",
             "renderplugin",
+            "QtPy",
         ]
 
         if pyside == "PyQt6":
