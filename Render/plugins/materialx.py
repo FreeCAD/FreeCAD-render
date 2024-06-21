@@ -43,23 +43,29 @@ from renderplugin import (
     SOCKET,
     PluginMessageEvent,
 )
-from qtpy import (PYQT5, PYQT6, PYSIDE2, PYSIDE6)
+from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
 
 from qtpy.QtWebEngineWidgets import (
     QWebEngineView,
     QWebEnginePage,
     QWebEngineProfile,
 )
-# TODO
-if PYQT5:
-    from qtpy.QtWebEngineCore import QWebEngineDownloadItem
-elif PYSIDE2:
-    from qtpy.QtWebEngineCore import QWebEngineDownloadItem
-elif PYQT6 or PYSIDE6:
-    from qtpy.QtWebEngineCore import QWebEngineDownloadRequest
-    QWebEngineDownloadItem = QWebEngineDownloadRequest
 
-# from qtpy.QtWebEngineCore import QWebEngineDownloadItem
+if PYQT5:
+    from PyQt5.QtWebEngineCore import QWebEngineDownloadItem
+elif PYSIDE2:
+    from PySide2.QtWebEngineCore import QWebEngineDownloadItem
+elif PYQT6:
+    from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
+
+    QWebEngineDownloadItem = QWebEngineDownloadRequest
+elif PYSIDE6:
+    from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
+
+    QWebEngineDownloadItem = QWebEngineDownloadRequest
+else:
+    raise ImportError()
+
 from qtpy.QtCore import (
     Slot,
     Qt,
@@ -151,7 +157,7 @@ class MaterialXDownloader(QWidget):
         self.view = None
         self.page = None
 
-    @Slot()
+    @Slot(QWebEngineDownloadItem)
     def download_requested(self, download):
         """Answer to download_requested signal."""
         # For unknown reason, I can't manage to run a QEventLoop in this
@@ -175,15 +181,12 @@ class MaterialXDownloader(QWidget):
             return
         # Trigger effective download
         self._download_required.emit(download)
-        _, filename = os.path.split(download.path())
-        download.setPath(os.path.join(self.temp_path, filename))
-        # TODO
-        # if PYSIDE == "PySide2":
-            # _, filename = os.path.split(download.path())
-            # download.setPath(os.path.join(self.temp_path, filename))
-        # if PYSIDE == "PySide6":
-            # filename = download.downloadFileName()
-            # download.setDownloadDirectory(self.temp_path)
+        if PYQT5 or PYSIDE2:
+            _, filename = os.path.split(download.path())
+            download.setPath(os.path.join(self.temp_path, filename))
+        elif PYQT6 or PYSIDE6:
+            filename = download.downloadFileName()
+            download.setDownloadDirectory(self.temp_path)
 
         download.accept()
 
@@ -249,6 +252,33 @@ class MaterialXDownloader(QWidget):
         return super().event(event)
 
 
+def get_download_filename(download):
+    """Get file name from download."""
+    if PYQT5 or PYSIDE2:
+        _, filename = os.path.split(download.path())
+    elif PYQT6 or PYSIDE6:
+        filename = download.downloadFileName()
+    else:
+        RuntimeError()
+
+    return filename
+
+
+def get_download_filepath(download):
+    """Get file path from download."""
+    if PYQT5 or PYSIDE2:
+        filepath = download.path()
+    elif PYQT6 or PYSIDE6:
+        filepath = os.path.join(
+            download.downloadDirectory(),
+            download.downloadFileName(),
+        )
+    else:
+        RuntimeError()
+
+    return filepath
+
+
 class DownloadWindow(QProgressDialog):
     """A simple widget to handle download and import from the web.
 
@@ -265,26 +295,18 @@ class DownloadWindow(QProgressDialog):
         super().__init__(parent)
         self._download = download
         self._release_material_signal = release_material_signal
-        _, filename = os.path.split(download.path())
-        # TODO
-        # if PYSIDE == "PySide2":
-            # _, filename = os.path.split(download.path())
-        # if PYSIDE == "PySide6":
-            # filename = download.downloadFileName()
+        filename = get_download_filename(download)
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
         self.setAutoClose(False)
         self.setAutoReset(False)
 
-        self._download.downloadProgress.connect(self.set_progress)
-        download.finished.connect(self.finished_download)
-        # TODO
-        # if PYSIDE == "PySide2":
-            # self._download.downloadProgress.connect(self.set_progress)
-            # download.finished.connect(self.finished_download)
-        # if PYSIDE == "PySide6":
-            # self._download.receivedBytesChanged.connect(self.set_progress_6)
-            # download.isFinishedChanged.connect(self.finished_download)
+        if PYQT5 or PYSIDE2:
+            self._download.downloadProgress.connect(self.set_progress)
+            download.finished.connect(self.finished_download)
+        if PYQT6 or PYSIDE6:
+            self._download.receivedBytesChanged.connect(self.set_progress_6)
+            download.isFinishedChanged.connect(self.finished_download)
 
         self.canceled.connect(download.cancel)
 
@@ -315,23 +337,16 @@ class DownloadWindow(QProgressDialog):
         to avoid blocking UI.
         """
         self.canceled.disconnect(self.cancel)
-        if self._download.state() == QWebEngineDownloadItem.DownloadCancelled:
+        state = self._download.state()
+        if state == QWebEngineDownloadItem.DownloadCancelled:
             msg("Download cancelled")
             return
-        if (
-            self._download.state()
-            == QWebEngineDownloadItem.DownloadInterrupted
-        ):
+        if state == QWebEngineDownloadItem.DownloadInterrupted:
             msg("Download interrupted")
             return
-        assert (
-            self._download.state() == QWebEngineDownloadItem.DownloadCompleted
-        )
-        try:
-            _, filenameshort = os.path.split(self._download.path())
-        except AttributeError:
-            # Qt6
-            filenameshort = self._download.downloadFileName()
+        assert state == QWebEngineDownloadItem.DownloadCompleted
+
+        filenameshort = get_download_filename(self._download)
         self.setLabelText(f"Importing '{filenameshort}'...")
         self.do_import()
 
@@ -351,9 +366,9 @@ class DownloadWindow(QProgressDialog):
         worker_loop.exec()
         # TODO
         # if PYSIDE == "PySide6":
-            # worker_loop.exec()
+        # worker_loop.exec()
         # if PYSIDE == "PySide2":
-            # worker_loop.exec_()
+        # worker_loop.exec_()
 
 
 class MaterialXDownloadWindow(DownloadWindow):
@@ -417,11 +432,11 @@ class MaterialXDownloadWindow(DownloadWindow):
         loopexec = loop.exec()
         # TODO
         # if PYSIDE == "PySide2":
-            # loopexec = loop.exec_()
+        # loopexec = loop.exec_()
         # elif PYSIDE == "PySide6":
-            # loopexec = loop.exec()
+        # loopexec = loop.exec()
         # else:
-            # raise ValueError()
+        # raise ValueError()
 
         if loopexec:
             os.remove(filename)
@@ -508,15 +523,7 @@ class HdriDownloadWindow(DownloadWindow):
 
     def do_import(self):
         """Do import of HDRI downloaded file."""
-        filepath = self._download.path()
-        # TODO
-        # if PYSIDE == "PySide2":
-            # filepath = self._download.path()
-        # if PYSIDE == "PySide6":
-            # filepath = os.path.join(
-                # self._download.downloadDirectory(),
-                # self._download.downloadFileName(),
-            # )
+        filepath = get_download_filepath(self._download)
         basename = os.path.basename(filepath)
 
         SOCKET.send("IMAGELIGHT", (basename, filepath))
@@ -660,15 +667,15 @@ def polyhaven_getsize(page):
     getlink = GetPolyhavenLink(page)
     getlink.done.connect(loop.quit, Qt.QueuedConnection)
     getlink.run()
-    loop.exec_()
+    loop.exec()
 
     # TODO
     # if PYSIDE == "PySide2":
-        # loop.exec_()
+    # loop.exec_()
     # if PYSIDE == "PySide6":
-        # loop.exec()
-    # if (link := getlink.link) is None:
-        # return None
+    # loop.exec()
+    if (link := getlink.link) is None:
+        return None
 
     # Get data in polyhaven page
     getdata = GetPolyhavenData(link)
@@ -678,9 +685,9 @@ def polyhaven_getsize(page):
 
     # TODO
     # if PYSIDE == "PySide2":
-        # loop.exec_()
+    # loop.exec_()
     # if PYSIDE == "PySide6":
-        # loop.exec()
+    # loop.exec()
     data = getdata.data
 
     # Search size
