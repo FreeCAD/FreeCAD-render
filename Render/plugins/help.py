@@ -30,64 +30,20 @@ import signal
 from multiprocessing.connection import Client, wait
 from threading import Thread, Event
 
-from renderplugin import PYSIDE, ARGS, RenderPluginApplication
+from renderplugin import ARGS, RenderPluginApplication
 
-# Imports
-if PYSIDE == "PySide6":
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-    from PySide6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PySide6.QtCore import QUrl, Slot, QObject, Signal
-    from PySide6.QtWidgets import (
-        QWidget,
-        QToolBar,
-        QVBoxLayout,
-    )
+from qtpy.QtWebEngineWidgets import (
+    QWebEngineView,
+    QWebEngineScript,
+    QWebEnginePage,
+)
+from qtpy.QtCore import QUrl, Slot, QObject, Signal
+from qtpy.QtWidgets import (
+    QWidget,
+    QToolBar,
+    QVBoxLayout,
+)
 
-if PYSIDE == "PySide2":
-    from PySide2.QtWebEngineWidgets import (
-        QWebEngineView,
-        QWebEngineScript,
-        QWebEnginePage,
-    )
-    from PySide2.QtCore import QUrl, Slot, QObject, Signal
-    from PySide2.QtWidgets import (
-        QWidget,
-        QToolBar,
-        QVBoxLayout,
-    )
-
-if PYSIDE == "PyQt6":
-    from PyQt6.QtWebEngineWidgets import QWebEngineView
-    from PyQt6.QtWebEngineCore import QWebEngineScript, QWebEnginePage
-    from PyQt6.QtCore import (
-        QUrl,
-        pyqtSlot as Slot,
-        QObject,
-        pyqtSignal as Signal,
-    )
-    from PyQt6.QtWidgets import (
-        QWidget,
-        QToolBar,
-        QVBoxLayout,
-    )
-
-if PYSIDE == "PyQt5":
-    from PyQt5.QtWebEngineWidgets import (
-        QWebEngineView,
-        QWebEngineScript,
-        QWebEnginePage,
-    )
-    from PyQt5.QtCore import (
-        QUrl,
-        pyqtSlot as Slot,
-        QObject,
-        pyqtSignal as Signal,
-    )
-    from PyQt5.QtWidgets import (
-        QWidget,
-        QToolBar,
-        QVBoxLayout,
-    )
 
 THISDIR = os.path.dirname(__file__)
 
@@ -119,15 +75,10 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
-        webaction = (
-            QWebEnginePage
-            if PYSIDE.startswith("PySide")
-            else QWebEnginePage.WebAction
-        )
-        self.toolbar.addAction(self.view.pageAction(webaction.Back))
-        self.toolbar.addAction(self.view.pageAction(webaction.Forward))
-        self.toolbar.addAction(self.view.pageAction(webaction.Reload))
-        self.toolbar.addAction(self.view.pageAction(webaction.Stop))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
+        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
 
         # Prepare scripts
         jquery_path = os.path.join(scripts_dir, "jQuery.js")
@@ -158,22 +109,17 @@ class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
         script_jquery = QWebEngineScript()
         script_jquery.setSourceCode(script_jquery_source)
 
-        injectionpoint = (
-            QWebEngineScript
-            if PYSIDE.startswith("PySide")
-            else QWebEngineScript.InjectionPoint
-        )
-        script_jquery.setInjectionPoint(injectionpoint.DocumentCreation)
+        script_jquery.setInjectionPoint(QWebEngineScript.DocumentCreation)
         scripts.insert(script_jquery)
 
         script_marked = QWebEngineScript()
         script_marked.setSourceCode(script_marked_source)
-        script_marked.setInjectionPoint(injectionpoint.DocumentCreation)
+        script_marked.setInjectionPoint(QWebEngineScript.DocumentCreation)
         scripts.insert(script_marked)
 
         script_run = QWebEngineScript()
         script_run.setSourceCode(script_run_source)
-        script_run.setInjectionPoint(injectionpoint.DocumentReady)
+        script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
         scripts.insert(script_run)
 
         # Set starting url
