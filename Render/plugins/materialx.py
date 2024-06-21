@@ -43,67 +43,44 @@ from renderplugin import (
     SOCKET,
     PluginMessageEvent,
 )
+from qtpy import (PYQT5, PYQT6, PYSIDE2, PYSIDE6)
 
-if PYSIDE == "PySide6":
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-    from PySide6.QtWebEngineCore import (
-        QWebEnginePage,
-        QWebEngineDownloadRequest,
-        QWebEngineProfile,
-    )
-
+from qtpy.QtWebEngineWidgets import (
+    QWebEngineView,
+    QWebEnginePage,
+    QWebEngineProfile,
+)
+# TODO
+if PYQT5:
+    from qtpy.QtWebEngineCore import QWebEngineDownloadItem
+elif PYSIDE2:
+    from qtpy.QtWebEngineCore import QWebEngineDownloadItem
+elif PYQT6 or PYSIDE6:
+    from qtpy.QtWebEngineCore import QWebEngineDownloadRequest
     QWebEngineDownloadItem = QWebEngineDownloadRequest
-    from PySide6.QtCore import (
-        Slot,
-        Qt,
-        QThread,
-        Signal,
-        QObject,
-        QEventLoop,
-        QUrl,
-        QEvent,
-    )
-    from PySide6.QtNetwork import (
-        QNetworkAccessManager,
-        QNetworkRequest,
-    )
-    from PySide6.QtWidgets import (
-        QWidget,
-        QToolBar,
-        QVBoxLayout,
-        QMessageBox,
-        QProgressDialog,
-    )
 
-if PYSIDE == "PySide2":
-    from PySide2.QtWebEngineWidgets import (
-        QWebEngineView,
-        QWebEnginePage,
-        QWebEngineDownloadItem,
-        QWebEngineProfile,
-    )
-
-    from PySide2.QtCore import (
-        Slot,
-        Qt,
-        QThread,
-        Signal,
-        QObject,
-        QEventLoop,
-        QUrl,
-        QEvent,
-    )
-    from PySide2.QtNetwork import (
-        QNetworkAccessManager,
-        QNetworkRequest,
-    )
-    from PySide2.QtWidgets import (
-        QWidget,
-        QToolBar,
-        QVBoxLayout,
-        QMessageBox,
-        QProgressDialog,
-    )
+# from qtpy.QtWebEngineCore import QWebEngineDownloadItem
+from qtpy.QtCore import (
+    Slot,
+    Qt,
+    QThread,
+    Signal,
+    QObject,
+    QEventLoop,
+    QUrl,
+    QEvent,
+)
+from qtpy.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest,
+)
+from qtpy.QtWidgets import (
+    QWidget,
+    QToolBar,
+    QVBoxLayout,
+    QMessageBox,
+    QProgressDialog,
+)
 
 
 from materialx.materialx_importer import MaterialXImporter
@@ -198,12 +175,15 @@ class MaterialXDownloader(QWidget):
             return
         # Trigger effective download
         self._download_required.emit(download)
-        if PYSIDE == "PySide2":
-            _, filename = os.path.split(download.path())
-            download.setPath(os.path.join(self.temp_path, filename))
-        if PYSIDE == "PySide6":
-            filename = download.downloadFileName()
-            download.setDownloadDirectory(self.temp_path)
+        _, filename = os.path.split(download.path())
+        download.setPath(os.path.join(self.temp_path, filename))
+        # TODO
+        # if PYSIDE == "PySide2":
+            # _, filename = os.path.split(download.path())
+            # download.setPath(os.path.join(self.temp_path, filename))
+        # if PYSIDE == "PySide6":
+            # filename = download.downloadFileName()
+            # download.setDownloadDirectory(self.temp_path)
 
         download.accept()
 
@@ -285,21 +265,26 @@ class DownloadWindow(QProgressDialog):
         super().__init__(parent)
         self._download = download
         self._release_material_signal = release_material_signal
-        if PYSIDE == "PySide2":
-            _, filename = os.path.split(download.path())
-        if PYSIDE == "PySide6":
-            filename = download.downloadFileName()
+        _, filename = os.path.split(download.path())
+        # TODO
+        # if PYSIDE == "PySide2":
+            # _, filename = os.path.split(download.path())
+        # if PYSIDE == "PySide6":
+            # filename = download.downloadFileName()
         self.setWindowTitle("Import from MaterialX Library")
         self.setLabelText(f"Downloading '{filename}'...")
         self.setAutoClose(False)
         self.setAutoReset(False)
 
-        if PYSIDE == "PySide2":
-            self._download.downloadProgress.connect(self.set_progress)
-            download.finished.connect(self.finished_download)
-        if PYSIDE == "PySide6":
-            self._download.receivedBytesChanged.connect(self.set_progress_6)
-            download.isFinishedChanged.connect(self.finished_download)
+        self._download.downloadProgress.connect(self.set_progress)
+        download.finished.connect(self.finished_download)
+        # TODO
+        # if PYSIDE == "PySide2":
+            # self._download.downloadProgress.connect(self.set_progress)
+            # download.finished.connect(self.finished_download)
+        # if PYSIDE == "PySide6":
+            # self._download.receivedBytesChanged.connect(self.set_progress_6)
+            # download.isFinishedChanged.connect(self.finished_download)
 
         self.canceled.connect(download.cancel)
 
@@ -363,10 +348,12 @@ class DownloadWindow(QProgressDialog):
         self._release_material_signal.connect(
             worker_loop.quit, Qt.QueuedConnection
         )
-        if PYSIDE == "PySide6":
-            worker_loop.exec()
-        if PYSIDE == "PySide2":
-            worker_loop.exec_()
+        worker_loop.exec()
+        # TODO
+        # if PYSIDE == "PySide6":
+            # worker_loop.exec()
+        # if PYSIDE == "PySide2":
+            # worker_loop.exec_()
 
 
 class MaterialXDownloadWindow(DownloadWindow):
@@ -427,12 +414,14 @@ class MaterialXDownloadWindow(DownloadWindow):
         loop = QEventLoop()
         self.worker.finished.connect(loop.exit, Qt.QueuedConnection)
         self.thread.start(QThread.IdlePriority)
-        if PYSIDE == "PySide2":
-            loopexec = loop.exec_()
-        elif PYSIDE == "PySide6":
-            loopexec = loop.exec()
-        else:
-            raise ValueError()
+        loopexec = loop.exec()
+        # TODO
+        # if PYSIDE == "PySide2":
+            # loopexec = loop.exec_()
+        # elif PYSIDE == "PySide6":
+            # loopexec = loop.exec()
+        # else:
+            # raise ValueError()
 
         if loopexec:
             os.remove(filename)
@@ -519,13 +508,15 @@ class HdriDownloadWindow(DownloadWindow):
 
     def do_import(self):
         """Do import of HDRI downloaded file."""
-        if PYSIDE == "PySide2":
-            filepath = self._download.path()
-        if PYSIDE == "PySide6":
-            filepath = os.path.join(
-                self._download.downloadDirectory(),
-                self._download.downloadFileName(),
-            )
+        filepath = self._download.path()
+        # TODO
+        # if PYSIDE == "PySide2":
+            # filepath = self._download.path()
+        # if PYSIDE == "PySide6":
+            # filepath = os.path.join(
+                # self._download.downloadDirectory(),
+                # self._download.downloadFileName(),
+            # )
         basename = os.path.basename(filepath)
 
         SOCKET.send("IMAGELIGHT", (basename, filepath))
@@ -669,21 +660,27 @@ def polyhaven_getsize(page):
     getlink = GetPolyhavenLink(page)
     getlink.done.connect(loop.quit, Qt.QueuedConnection)
     getlink.run()
-    if PYSIDE == "PySide2":
-        loop.exec_()
-    if PYSIDE == "PySide6":
-        loop.exec()
-    if (link := getlink.link) is None:
-        return None
+    loop.exec_()
+
+    # TODO
+    # if PYSIDE == "PySide2":
+        # loop.exec_()
+    # if PYSIDE == "PySide6":
+        # loop.exec()
+    # if (link := getlink.link) is None:
+        # return None
 
     # Get data in polyhaven page
     getdata = GetPolyhavenData(link)
     getdata.done.connect(loop.exit, Qt.QueuedConnection)
     getdata.run()
-    if PYSIDE == "PySide2":
-        loop.exec_()
-    if PYSIDE == "PySide6":
-        loop.exec()
+    loop.exec()
+
+    # TODO
+    # if PYSIDE == "PySide2":
+        # loop.exec_()
+    # if PYSIDE == "PySide6":
+        # loop.exec()
     data = getdata.data
 
     # Search size
