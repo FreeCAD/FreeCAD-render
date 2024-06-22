@@ -60,7 +60,14 @@ if MATERIALX:
     from Render.subcontainer import start_materialx
 
 
-class RenderProjectCommand:
+class _IsActiveMixin:
+    """Mixin class to make command active only when a doc is active."""
+
+    def IsActive(self):
+        return hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
+
+
+class RenderProjectCommand(_IsActiveMixin):
     """GUI command to create a rendering project."""
 
     def __init__(self, renderer):
@@ -103,7 +110,7 @@ class RenderProjectCommand:
         )
 
 
-class RenderViewCommand:
+class RenderViewCommand(_IsActiveMixin):
     """GUI command to create a rendering view of an object in a project.
 
     The command operates on the selected object(s) and the selected project,
@@ -163,7 +170,7 @@ class RenderViewCommand:
         QApplication.restoreOverrideCursor()
 
 
-class RenderCommand:
+class RenderCommand(_IsActiveMixin):
     """GUI command to render a selected Render project."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -201,7 +208,7 @@ class RenderCommand:
         project.Proxy.render()
 
 
-class CameraCommand:
+class CameraCommand(_IsActiveMixin):
     """GUI command to create a Camera object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -224,7 +231,7 @@ class CameraCommand:
         Camera.create()
 
 
-class PointLightCommand:
+class PointLightCommand(_IsActiveMixin):
     """GUI command to create a Point Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -246,7 +253,7 @@ class PointLightCommand:
         PointLight.create()
 
 
-class AreaLightCommand:
+class AreaLightCommand(_IsActiveMixin):
     """GUI command to create an Area Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -268,7 +275,7 @@ class AreaLightCommand:
         AreaLight.create()
 
 
-class SunskyLightCommand:
+class SunskyLightCommand(_IsActiveMixin):
     """GUI command to create an Sunsky Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -292,7 +299,7 @@ class SunskyLightCommand:
         SunskyLight.create()
 
 
-class ImageLightCommand:
+class ImageLightCommand(_IsActiveMixin):
     """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -314,7 +321,7 @@ class ImageLightCommand:
         ImageLight.create()
 
 
-class DistantLightCommand:
+class DistantLightCommand(_IsActiveMixin):
     """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -338,7 +345,7 @@ class DistantLightCommand:
         DistantLight.create()
 
 
-class MaterialCreatorCommand:
+class MaterialCreatorCommand(_IsActiveMixin):
     """GUI command to create a material."""
 
     def __init__(self, newname=False):
@@ -384,12 +391,8 @@ class MaterialCreatorCommand:
             Gui.doCommand(cmd)
         App.ActiveDocument.commitTransaction()
 
-    def IsActive(self):
-        v = hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
-        return v
 
-
-class MaterialMaterialXImportCommand:
+class MaterialMaterialXImportCommand(_IsActiveMixin):
     """GUI command to import a MaterialX material."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -425,7 +428,7 @@ class MaterialMaterialXImportCommand:
         App.ActiveDocument.commitTransaction()
 
 
-class MaterialMaterialXLibrary:
+class MaterialMaterialXLibrary(_IsActiveMixin):
     """GUI command to open MaterialX online library."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -454,7 +457,7 @@ class MaterialMaterialXLibrary:
         start_materialx(url, doc)
 
 
-class MaterialAmbientCGLibrary:
+class MaterialAmbientCGLibrary(_IsActiveMixin):
     """GUI command to open AmbientCG online library."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -483,7 +486,7 @@ class MaterialAmbientCGLibrary:
         start_materialx(url, doc, disp2bump=True)
 
 
-class MaterialRenderSettingsCommand:
+class MaterialRenderSettingsCommand(_IsActiveMixin):
     """GUI command to set render settings of a material object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -513,7 +516,7 @@ class MaterialRenderSettingsCommand:
         App.ActiveDocument.commitTransaction()
 
 
-class MaterialApplierCommand:
+class MaterialApplierCommand(_IsActiveMixin):
     """GUI command to apply a material to an object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -697,7 +700,7 @@ class SettingsCommand:
 # ===========================================================================
 
 
-class CommandGroup:
+class CommandGroup(_IsActiveMixin):
     """Group of commands for GUI (toolbar, menu...)."""
 
     def __init__(self, cmdlist, menu, tooltip=None):
