@@ -671,44 +671,41 @@ def _get_rends_from_window(obj, name, material, mesher, **kwargs):
         # Build renderables (WindowParts-based)
         return [Renderable(*r) for r in zip(names, meshes, mats, colors)]
 
-    else:
-        # Type-based
-        # Components are given by obj.Base (which should be an App::Part)
-        rends = get_renderables(obj.Base, name, material, mesher, **kwargs)
+    # Type-based
+    # Components are given by obj.Base (which should be an App::Part)
+    rends = get_renderables(obj.Base, name, material, mesher, **kwargs)
 
-        # Adjust placements
-        def _adjust(rend, origin, upper_material):
-            """Reposition to origin and set material of the given renderable."""
-            origin_matrix = origin.toMatrix()
-            new_mesh = rend.mesh.copy()
-            new_mesh.transformation.apply_placement(origin_matrix, left=True)
-            new_mat = _get_material(rend, upper_material)
-            new_color = rend.defcolor
-            return Renderable(rend.name, new_mesh, new_mat, new_color)
+    # Adjust placements
+    def _adjust(rend, origin, upper_material):
+        """Reposition renderable to origin and set its material."""
+        origin_matrix = origin.toMatrix()
+        new_mesh = rend.mesh.copy()
+        new_mesh.transformation.apply_placement(origin_matrix, left=True)
+        new_mat = _get_material(rend, upper_material)
+        new_color = rend.defcolor
+        return Renderable(rend.name, new_mesh, new_mat, new_color)
 
-        origin = obj.Placement
-        rends = [_adjust(r, origin, material) for r in rends]
+    origin = obj.Placement
+    rends = [_adjust(r, origin, material) for r in rends]
 
-        # Adjust colors
-        transparency_boost = kwargs.get("transparency_boost", 0)
-        faces_len = [len(s.Faces) for s in obj.Shape.Solids]
-        if obj.ViewObject is not None:  # Gui is up
-            colors = [
-                _boost_tp(
-                    RGB.from_fcd_rgba(obj.ViewObject.DiffuseColor[i]),
-                    transparency_boost,
-                )
-                for i in itertools.accumulate([0] + faces_len[:-1])
-            ]
-        else:
-            colors = [WHITE] * len(rends)
-
-        for i, rend in enumerate(rends):
-            rends[i] = Renderable(
-                rend.name, rend.mesh, rend.material, colors[i]
+    # Adjust colors
+    transparency_boost = kwargs.get("transparency_boost", 0)
+    faces_len = [len(s.Faces) for s in obj.Shape.Solids]
+    if obj.ViewObject is not None:  # Gui is up
+        colors = [
+            _boost_tp(
+                RGB.from_fcd_rgba(obj.ViewObject.DiffuseColor[i]),
+                transparency_boost,
             )
+            for i in itertools.accumulate([0] + faces_len[:-1])
+        ]
+    else:
+        colors = [WHITE] * len(rends)
 
-        return rends
+    for i, rend in enumerate(rends):
+        rends[i] = Renderable(rend.name, rend.mesh, rend.material, colors[i])
+
+    return rends
 
 
 def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
@@ -775,7 +772,7 @@ def _get_rends_from_wall(obj, name, material, mesher, **kwargs):
         # This code is copy/paste from 'part' and there should be
         # a merge, one day...
         def _adjust(rend, origin, upper_material):
-            """Reposition to origin and set material of the given renderable."""
+            """Reposition renderable to origin and set its material."""
             origin_matrix = origin.toMatrix()
             new_mesh = rend.mesh.copy()
             new_mesh.transformation.apply_placement(origin_matrix, left=True)
