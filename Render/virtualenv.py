@@ -149,6 +149,9 @@ def rendervenv_worker():
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
 
+        if PARAMS.GetBool("pylint"):
+            packages.append("pylint")
+
         # Commands for binaries
         options = [
             "--no-warn-script-location",
