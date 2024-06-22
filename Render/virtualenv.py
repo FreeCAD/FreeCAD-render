@@ -185,7 +185,7 @@ def rendervenv_worker():
 
         # Step 6: Report errors to user
         if errors:
-            failed = ", ".join(f"'{p}'" for p in errors.keys())
+            failed = ", ".join(f"'{p}'" for p in errors)
             _warn(
                 f"WARNING - The following dependencies could not be installed:"
                 f"{failed}"
@@ -238,26 +238,24 @@ def get_venv_python():
 def get_venv_python_version():
     """Get version of virtual environment Python interpreter."""
     path = get_venv_python()
-    res = subprocess.run([path, "--version"], capture_output=True)
+    res = subprocess.run([path, "--version"], capture_output=True, check=False)
     res = tuple(int(c) for c in res.stdout.lstrip(b"Python ").split(b"."))
     return res
 
 
 def get_venv_pyside_version():
+    """Get version of PySide in virtual environment."""
     python_version = get_venv_python_version()
     _log(f"Virtual environment Python version: {str(python_version)}")
     if QTBASE == "PySide":
         if python_version >= (3, 9):
             return "PySide6"
-        else:
-            return "PySide2"
-    elif QTBASE == "PyQt":
+        return "PySide2"
+    if QTBASE == "PyQt":
         if python_version >= (3, 8):
             return "PyQt6"
-        else:
-            return "PyQt5"
-    else:
-        raise ValueError(QTBASE)
+        return "PyQt5"
+    raise ValueError(QTBASE)
 
 
 def pip_run(verb, package, options=None, log=None, loglevel=0):
@@ -467,6 +465,8 @@ def get_venv_sitepackages():
     ]
     env = os.environ
     env.pop("PYTHONHOME", None)
-    result = subprocess.run(args, capture_output=True, text=True, env=env)
+    result = subprocess.run(
+        args, capture_output=True, text=True, env=env, check=False
+    )
     result.check_returncode()
     return result.stdout.strip()
