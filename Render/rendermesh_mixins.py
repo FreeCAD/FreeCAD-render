@@ -221,8 +221,7 @@ class RenderMeshMultiprocessingMixin:
         """
         debug("Object", self.name, "Compute connected components (mp)")
 
-        if debug_flag := PARAMS.GetBool("Debug"):
-            tm0 = time.time()
+        tm0 = time.time()
 
         # Init variables
         path = os.path.join(PKGDIR, "rendermesh_mp", "autosmooth.py")
@@ -284,8 +283,9 @@ class RenderMeshMultiprocessingMixin:
 
         See write_objfile for more details.
         """
-        if debug_flag := PARAMS.GetBool("Debug"):
-            tm0 = time.time()
+        tm0 = time.time()
+        debug_flag = PARAMS.GetBool("Debug")
+
         # Initialize
         path = os.path.join(PKGDIR, "rendermesh_mp", "writeobj.py")
 
@@ -538,8 +538,7 @@ class RenderMeshNumpyMixin:
 
         debug("Object", self.name, "Compute uvmap (np)")
 
-        if debug_flag := PARAMS.GetBool("Debug"):
-            time0 = time.time()
+        time0 = time.time()
 
         # Set common parameters
         count_facets = self.count_facets
@@ -619,7 +618,7 @@ class RenderMeshNumpyMixin:
         self._points = new_points
         self._uvmap = uvs
 
-        if debug_flag:
+        if PARAMS.GetBool("Debug"):
             print("numpy", time.time() - time0)
 
     def _make_uvmap_positive(self):
@@ -647,9 +646,9 @@ class RenderMeshNumpyMixin:
         """
         debug("Object", self.name, "Compute vertex normals (np)")
 
+        tm0 = time.time()
         if debug_flag := PARAMS.GetBool("Debug"):
             print("compute vnormals Numpy")
-            tm0 = time.time()
 
         # Prepare parameters
         points = np.array(self._points, dtype="f4")
@@ -725,10 +724,10 @@ class RenderMeshNumpyMixin:
         Returns a list of sets of facet indices (adjacency list).
         Numpy version
         """
+        tm0 = time.time()
         if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print(f"compute adjacency lists (np) - {self.count_facets} facets")
-            tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
         # Compute mesh edges (assume triangles)
@@ -909,10 +908,10 @@ class RenderMeshNumpyMixin:
         """
         debug_flag = PARAMS.GetBool("Debug")
         tags = self._connected_components(split_angle)
+        tm0 = time.time()
         if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print("distinct tags", len(set(tags)))
-            tm0 = time.time()
             np.set_printoptions(edgeitems=600)
 
         points = self._points
@@ -954,8 +953,8 @@ class RenderMeshNumpyMixin:
         """
         # TODO REFACTOR
         # pylint: disable=invalid-name
+        tm0 = time.time()
         if debug_flag := PARAMS.GetBool("Debug"):
-            tm0 = time.time()
             print("Start compute_tspaces")
 
         # Lengyel, Eric.
