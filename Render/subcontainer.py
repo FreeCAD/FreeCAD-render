@@ -153,8 +153,8 @@ class PythonSubprocess(QProcess):
         if os.path.exists(resources):
             environment.insert("QTWEBENGINE_RESOURCES_PATH", resources)
             App.Console.PrintLog(
-                f"[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to "
-                "'{resources}'\n"
+                "[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to "
+                f"'{resources}'\n"
             )
         else:
             App.Console.PrintLog(
