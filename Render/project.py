@@ -410,6 +410,7 @@ class Project(FeatureBase):
             Output file path
         """
         # Create memcheck object (debug)
+        snapshot1 = 0.0
         if memcheck_flag := PARAMS.GetBool("Memcheck"):
             tracemalloc.start()
             snapshot1 = tracemalloc.take_snapshot()
