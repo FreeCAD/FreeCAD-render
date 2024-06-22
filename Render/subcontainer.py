@@ -364,15 +364,16 @@ class PythonSubprocessWindow(QMdiSubWindow):
                 self.process.kill()
 
 
-def start_subapp(script, options=None):
+def start_subapp(app, options=None):
     """Start sub application."""
     # Process arguments
-    script = str(script)
+    path = os.path.join(PLUGINDIR, str(app))
+    path = os.path.normpath(path)
     options = options or []
     options = list(options)
 
     python = get_venv_python()
-    args = ["-u", script] + options
+    args = ["-u", app] + options
 
     subw = PythonSubprocessWindow(python, args)
     subw.start()
@@ -383,27 +384,21 @@ def start_subapp(script, options=None):
 
 def start_help():
     """Start help sub application."""
-    script = os.path.join(PLUGINDIR, "help.py")
-    script = os.path.normpath(script)
     wbdir = os.path.normpath(WBDIR)
     options = [wbdir]
-    start_subapp(script, options)
+    start_subapp("help", options)
 
 
 def start_materialx(url=None, doc=None, disp2bump=True):
     """Start materialx sub application"""
-    script = os.path.join(PLUGINDIR, "materialx.py")
-    script = os.path.normpath(script)
     url = url or "https://matlib.gpuopen.com/"
     tmp = App.getTempPath()
     options = [url, "--tmp", tmp]
-    start_subapp(script, options)
+    start_subapp("materialx", options)
 
 
 def start_console(term="urxvt"):
     """Start help sub application."""
-    script = os.path.join(PLUGINDIR, "console.py")
-    script = os.path.normpath(script)
     wbdir = os.path.normpath(WBDIR)
     options = ["--term", term]
-    start_subapp(script, options)
+    start_subapp("console", options)
