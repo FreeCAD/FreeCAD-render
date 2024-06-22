@@ -40,6 +40,7 @@ from math import pi, atan2, asin, isclose, radians, cos, hypot
 import copy
 import cmath
 import uuid
+from typing import NamedTuple
 
 import FreeCAD as App
 import Mesh
@@ -1190,10 +1191,10 @@ class RenderMeshBase:
         Returns a list of sets of facet indices (adjacency list).
         Single process version.
         """
+        tm0 = time.time()
         if debug_flag := PARAMS.GetBool("Debug"):
             print()
             print(f"compute adjacency lists (sp) - {self.count_facets} facets")
-            tm0 = time.time()
 
         # For each point, compute facets that contain this point as a vertex
         iterator = (
@@ -1384,8 +1385,8 @@ class RenderMeshBase:
 
     def compute_tspaces(self):
         """Compute tangent spaces."""
-        # TODO Refactor/lint
-        # Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
+        # Lengyel, Eric. “Computing Tangent Space Basis Vectors
+        # for an Arbitrary Mesh”.
         # Terathon Software 3D Graphics Library, 2001.
         # http://www.terathon.com/code/tangent.html
         points = self.points
@@ -1393,37 +1394,37 @@ class RenderMeshBase:
         tan1 = [App.Vector() for _ in range(self.count_points)]
         tan2 = [App.Vector() for _ in range(self.count_points)]
         for facet in self.facets:
-            v1, v2, v3 = (App.Vector(points[i]) for i in facet)
-            w1, w2, w3 = (uvmap[i] for i in facet)
+            pv1, pv2, pv3 = (App.Vector(points[i]) for i in facet)
+            uw1, uw2, uw3 = (uvmap[i] for i in facet)
 
-            x1 = v2.x - v1.x
-            x2 = v3.x - v1.x
-            y1 = v2.y - v1.y
-            y2 = v3.y - v1.y
-            z1 = v2.z - v1.z
-            z2 = v3.z - v1.z
+            dx1 = pv2.x - pv1.x
+            dx2 = pv3.x - pv1.x
+            dy1 = pv2.y - pv1.y
+            dy2 = pv3.y - pv1.y
+            dz1 = pv2.z - pv1.z
+            dz2 = pv3.z - pv1.z
 
-            s1 = w2.real - w1.real
-            s2 = w3.real - w1.real
-            t1 = w2.imag - w1.imag
-            t2 = w3.imag - w1.imag
+            ds1 = uw2.real - uw1.real
+            ds2 = uw3.real - uw1.real
+            dt1 = uw2.imag - uw1.imag
+            dt2 = uw3.imag - uw1.imag
 
-            det = s1 * t2 - s2 * t1
-            if not det:
+            det = ds1 * dt2 - ds2 * dt1
+            if not (det := ds1 * dt2 - ds2 * dt1):
                 # Degenerated, we skip
                 continue
 
-            r = 1.0 / det
+            ratio = 1.0 / det
 
             sdir = App.Vector(
-                (t2 * x1 - t1 * x2) * r,
-                (t2 * y1 - t1 * y2) * r,
-                (t2 * z1 - t1 * z2) * r,
+                (dt2 * dx1 - dt1 * dx2) * ratio,
+                (dt2 * dy1 - dt1 * dy2) * ratio,
+                (dt2 * dz1 - dt1 * dz2) * ratio,
             )
             tdir = App.Vector(
-                (s1 * x2 - s2 * x1) * r,
-                (s1 * y2 - s2 * y1) * r,
-                (s1 * z2 - s2 * z1) * r,
+                (ds1 * dx2 - ds2 * dx1) * ratio,
+                (ds1 * dy2 - ds2 * dy1) * ratio,
+                (ds1 * dz2 - ds2 * dz1) * ratio,
             )
 
             for i in facet:
@@ -1433,9 +1434,9 @@ class RenderMeshBase:
         tangents = []
         tangent_signs = []
         vnormals = (App.Vector(vn) for vn in self.vnormals)
-        for n, t, b in zip(vnormals, tan1, tan2):
+        for nor, tan, bitan in zip(vnormals, tan1, tan2):
             # Gram-Schmidt orthogonalize
-            tangent = t - n * n.dot(t)
+            tangent = tan - nor * nor.dot(tan)
             try:
                 tangent.normalize()
             except App.Base.FreeCADError:
@@ -1444,8 +1445,8 @@ class RenderMeshBase:
 
             tangents.append(tuple(tangent))
             # Handedness
-            h = -1.0 if b.dot(n.cross(t)) < 0.0 else 1.0
-            tangent_signs.append(h)
+            handedness = -1.0 if bitan.dot(nor.cross(tan)) < 0.0 else 1.0
+            tangent_signs.append(handedness)
 
         self.tangents = tangents
         self.tangent_signs = tangent_signs
@@ -1585,14 +1586,26 @@ class _UnitCubeFaceEnum(enum.IntEnum):
     ZMINUS = 5
 
 
+class _CubeNormal(NamedTuple):
+    """Normal vector for cube faces."""
+
+    dirx: float
+    diry: float
+    dirz: float
+
+    def abs(self):
+        """Absolute value."""
+        return abs(self.dirx), abs(self.diry), abs(self.dirz)
+
+
 # Normals of the faces of the unit cube
 _UNIT_CUBE_FACES_NORMALS = {
-    _UnitCubeFaceEnum.XPLUS: (1.0, 0.0, 0.0),
-    _UnitCubeFaceEnum.XMINUS: (-1.0, 0.0, 0.0),
-    _UnitCubeFaceEnum.YPLUS: (0.0, 1.0, 0.0),
-    _UnitCubeFaceEnum.YMINUS: (0.0, -1.0, 0.0),
-    _UnitCubeFaceEnum.ZPLUS: (0.0, 0.0, 1.0),
-    _UnitCubeFaceEnum.ZMINUS: (0.0, 0.0, -1.0),
+    _UnitCubeFaceEnum.XPLUS: _CubeNormal(1.0, 0.0, 0.0),
+    _UnitCubeFaceEnum.XMINUS: _CubeNormal(-1.0, 0.0, 0.0),
+    _UnitCubeFaceEnum.YPLUS: _CubeNormal(0.0, 1.0, 0.0),
+    _UnitCubeFaceEnum.YMINUS: _CubeNormal(0.0, -1.0, 0.0),
+    _UnitCubeFaceEnum.ZPLUS: _CubeNormal(0.0, 0.0, 1.0),
+    _UnitCubeFaceEnum.ZMINUS: _CubeNormal(0.0, 0.0, -1.0),
 }
 
 
@@ -1607,7 +1620,7 @@ def _intersect_unitcube_face(direction):
         A face from the unit cube (_UnitCubeFaceEnum)
     """
     dirx, diry, dirz = direction
-    dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
+    dabsx, dabsy, dabsz = direction.abs()
 
     if dabsx >= dabsy and dabsx >= dabsz:
         return (
