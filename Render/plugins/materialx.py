@@ -430,13 +430,6 @@ class MaterialXDownloadWindow(DownloadWindow):
         self.worker.finished.connect(loop.exit, Qt.QueuedConnection)
         self.thread.start(QThread.IdlePriority)
         loopexec = loop.exec()
-        # TODO
-        # if PYSIDE == "PySide2":
-        # loopexec = loop.exec_()
-        # elif PYSIDE == "PySide6":
-        # loopexec = loop.exec()
-        # else:
-        # raise ValueError()
 
         if loopexec:
             os.remove(filename)
