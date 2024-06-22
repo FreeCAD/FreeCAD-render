@@ -42,9 +42,7 @@ This module reduces Render dependencies to FreeCAD and PySide.
 
 
 import os
-import sys
-import re
-from multiprocessing.connection import Client, Listener, Connection, wait
+from multiprocessing.connection import Listener, Connection, wait
 from threading import Thread, Event
 import pathlib
 import configparser
@@ -53,7 +51,7 @@ import configparser
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import WBDIR, PKGDIR, FCDVERSION, PLUGINDIR
+from Render.constants import WBDIR, FCDVERSION, PLUGINDIR
 from Render.virtualenv import (
     get_venv_python,
     get_venv_pyside_version,
@@ -61,7 +59,6 @@ from Render.virtualenv import (
 )
 from Render.material import make_material
 from Render.lights import ImageLight
-from PySide import __version_info__ as pyside_version_info
 
 if FCDVERSION > (0, 19):
     from PySide.QtCore import (
@@ -70,10 +67,9 @@ if FCDVERSION > (0, 19):
         QObject,
         Signal,
         Slot,
-        QEventLoop,
         Qt,
     )
-    from PySide.QtWidgets import QWidget, QLabel
+    from PySide.QtWidgets import QWidget
     from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
 else:
     from PySide.QtCore import (
@@ -82,12 +78,10 @@ else:
         QObject,
         Signal,
         Slot,
-        QEventLoop,
         Qt,
     )
     from PySide.QtGui import (
         QWidget,
-        QLabel,
         QWindow,
         QMdiSubWindow,
         QGuiApplication,
@@ -95,6 +89,8 @@ else:
 
 
 class ConnectionServer(QObject):
+    """A server to connect the host process and the sub process."""
+
     new_connection = Signal(Connection)
 
     def __init__(self, parent=None):
@@ -157,7 +153,8 @@ class PythonSubprocess(QProcess):
         if os.path.exists(resources):
             environment.insert("QTWEBENGINE_RESOURCES_PATH", resources)
             App.Console.PrintLog(
-                f"[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to '{resources}'\n"
+                f"[Render][Sub] QTWEBENGINE_RESOURCES_PATH set to "
+                "'{resources}'\n"
             )
         else:
             App.Console.PrintLog(
@@ -211,7 +208,7 @@ class PythonSubprocess(QProcess):
 
     def msgfmt(self, msg):
         """Format message before display."""
-        return "[Render][{}] {}".format(self.appname, str(msg))
+        return f"[Render][{self.appname}] {str(msg)}"
 
     def child_recv(self):
         """Receive messages from subprocess."""
@@ -348,15 +345,13 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.setWidget(self.container)
         self.showMaximized()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event):  # pylint: disable=unused-argument
         """Respond to close event."""
         self.process.child_send("CLOSE")
         QGuiApplication.instance().processEvents()
-        finished = self.process.waitForFinished(3000)
-        if not finished:
+        if not self.process.waitForFinished(3000):
             self.process.terminate()
-            finished = self.process.waitForFinished(3000)
-            if not finished:
+            if not self.process.waitForFinished(3000):
                 App.Console.PrintWarning(
                     "[Render][Sub] Subprocess terminate timeout, "
                     "have to kill it\n"
@@ -389,8 +384,9 @@ def start_help():
     start_subapp("help", options)
 
 
-def start_materialx(url=None, doc=None, disp2bump=True):
+def start_materialx(url=None, doc=None):
     """Start materialx sub application"""
+    # TODO doc
     url = url or "https://matlib.gpuopen.com/"
     tmp = App.getTempPath()
     options = [url, "--tmp", tmp]
@@ -399,6 +395,5 @@ def start_materialx(url=None, doc=None, disp2bump=True):
 
 def start_console(term="urxvt"):
     """Start help sub application."""
-    wbdir = os.path.normpath(WBDIR)
     options = ["--term", term]
     start_subapp("console", options)
