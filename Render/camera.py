@@ -85,54 +85,58 @@ class Camera(PointableFeatureMixin, FeatureBase):
             "App::PropertyEnumeration",
             "Camera",
             QT_TRANSLATE_NOOP(
-                "Render", "Type of projection: Perspective/Orthographic"
+                "App::Property", "Type of projection: Perspective/Orthographic"
             ),
             ("Perspective", "Orthographic"),
         ),
         "ViewportMapping": Prop(
             "App::PropertyEnumeration",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "(See Coin documentation)"),
+            QT_TRANSLATE_NOOP("App::Property", "(See Coin documentation)"),
             VIEWPORTMAPPINGENUM,
         ),
         "AspectRatio": Prop(
             "App::PropertyFloat",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Ratio width/height of the camera."),
+            QT_TRANSLATE_NOOP(
+                "App::Property", "Ratio width/height of the camera."
+            ),
             1.0,
         ),
         "NearDistance": Prop(
             "App::PropertyDistance",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Near distance, for clipping"),
+            QT_TRANSLATE_NOOP("App::Property", "Near distance, for clipping"),
             0.0,
         ),
         "FarDistance": Prop(
             "App::PropertyDistance",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Far distance, for clipping"),
+            QT_TRANSLATE_NOOP("App::Property", "Far distance, for clipping"),
             200.0,
         ),
         "FocalDistance": Prop(
             "App::PropertyDistance",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Focal distance"),
+            QT_TRANSLATE_NOOP("App::Property", "Focal distance"),
             100.0,
         ),
         "Height": Prop(
             "App::PropertyLength",
             "Camera",
-            QT_TRANSLATE_NOOP("Render", "Height, for orthographic camera"),
+            QT_TRANSLATE_NOOP(
+                "App::Property", "Height, for orthographic camera"
+            ),
             5.0,
         ),
         "HeightAngle": Prop(
             "App::PropertyAngle",
             "Camera",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Height angle, for perspective camera, in "
                 "degrees. Important: This value will be sent as "
-                "'Field of View' to the renderers. Please note it is a"
+                "'Field of View' to the renderers. Please note it is a "
                 "*vertical* field-of-view.",
             ),
             60,

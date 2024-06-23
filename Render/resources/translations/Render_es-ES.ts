@@ -2,7 +2,7 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="es-ES" sourcelanguage="en">
   <context>
-    <name>RaytracingGui::DlgSettingsRay</name>
+    <name>RenderSettings</name>
     <message>
       <location filename="../ui/RenderSettings.ui" line="14"/>
       <source>Render preferences</source>

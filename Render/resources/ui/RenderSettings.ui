@@ -389,7 +389,7 @@
       <locale language="English" country="UnitedStates"/>
      </property>
      <property name="title">
-      <string>LuxCore</string>
+      <string notr="true">LuxCore</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="1">
@@ -467,47 +467,47 @@
         </property>
         <item>
          <property name="text">
-          <string>PATHCPU</string>
+          <string notr="true">PATHCPU</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>TILEPATHCPU</string>
+          <string notr="true">TILEPATHCPU</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>BIDIRCPU</string>
+          <string notr="true">BIDIRCPU</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>RTPATHCPU</string>
+          <string notr="true">RTPATHCPU</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>PATHOCL</string>
+          <string notr="true">PATHOCL</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>RTPATHOCL</string>
+          <string notr="true">RTPATHOCL</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>TILEPATHOCL</string>
+          <string notr="true">TILEPATHOCL</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>BIDIRVMCPU</string>
+          <string notr="true">BIDIRVMCPU</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>LIGHTCPU</string>
+          <string notr="true">LIGHTCPU</string>
          </property>
         </item>
        </widget>
@@ -592,7 +592,7 @@
       <locale language="English" country="UnitedStates"/>
      </property>
      <property name="title">
-      <string>OspRay</string>
+      <string notr="true">OspRay</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_9">
       <item row="0" column="0">
@@ -771,7 +771,7 @@
       <locale language="English" country="UnitedStates"/>
      </property>
      <property name="title">
-      <string>Appleseed</string>
+      <string notr="true">Appleseed</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="2" column="0">
@@ -890,7 +890,7 @@
       <locale language="English" country="UnitedStates"/>
      </property>
      <property name="title">
-      <string>PovRay</string>
+      <string notr="true">PovRay</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="0" column="1">
@@ -967,7 +967,7 @@
    <item row="7" column="1">
     <widget class="QGroupBox" name="PbrtGroup">
      <property name="title">
-      <string>Pbrt</string>
+      <string notr="true">Pbrt</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_7">
       <item row="1" column="0">
@@ -1044,7 +1044,7 @@
       <locale language="English" country="UnitedStates"/>
      </property>
      <property name="title">
-      <string>Cycles</string>
+      <string notr="true">Cycles</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
       <item row="1" column="1">
