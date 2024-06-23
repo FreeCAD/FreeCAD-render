@@ -123,9 +123,3 @@ class MaterialXImporter:
         """
         if self._proc:
             self._proc.terminate()
-
-
-def import_materialx(filename, fcdoc):
-    """Import MaterialX (function version)."""
-    importer = MaterialXImporter(filename, fcdoc)
-    importer.run()
