@@ -26,29 +26,26 @@ import os.path
 import pathlib
 import argparse
 import sys
-import signal
-from multiprocessing.connection import Client, wait
-from threading import Thread, Event
-
-from renderplugin import ARGS, RenderPluginApplication
 
 from qtpy.QtWebEngineWidgets import (
     QWebEngineView,
     QWebEngineScript,
     QWebEnginePage,
 )
-from qtpy.QtCore import QUrl, Slot, QObject, Signal
+from qtpy.QtCore import QUrl
 from qtpy.QtWidgets import (
     QWidget,
     QToolBar,
     QVBoxLayout,
 )
 
+from renderplugin import ARGS, RenderPluginApplication
+
 
 THISDIR = os.path.dirname(__file__)
 
 
-class HelpViewer(QWidget):  # pylint: disable=too-few-public-methods
+class HelpViewer(QWidget):
     """A help viewer widget.
 
     The help viewer is an html viewer but is able to render (local) markdown
