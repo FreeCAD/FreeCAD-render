@@ -25,17 +25,15 @@
 import sys
 import argparse
 
-from renderplugin import RenderPluginApplication, ARGS, PYSIDE
+from qtpy.QtWidgets import QWidget, QVBoxLayout
+from qtpy.QtCore import QProcess
 
-if PYSIDE == "PySide6":
-    from PySide6.QtWidgets import QWidget, QVBoxLayout
-    from PySide6.QtCore import QProcess
-if PYSIDE == "PyQt6":
-    from PyQt6.QtWidgets import QWidget, QVBoxLayout
-    from PyQt6.QtCore import QProcess
+from renderplugin import RenderPluginApplication, ARGS
 
 
 class Terminal(QWidget):
+    """Terminal widget, the central widget for embedded console."""
+
     def __init__(self, terminal):
         super().__init__()
         self.process = QProcess(self)
