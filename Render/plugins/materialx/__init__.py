@@ -22,7 +22,4 @@
 
 """This module gathers public MaterialX handling features."""
 
-from .materialx_importer import MaterialXImporter, import_materialx
-
-# TODO
-# from .materialx_downloader import MaterialXDownloader, open_mxdownloader
+from .materialx_importer import MaterialXImporter
