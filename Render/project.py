@@ -625,9 +625,9 @@ class Project(FeatureBase):
             prefix += " "
 
         try:
-            output = self.fpo.OutputImage
-            assert output  # TODO don't use assert here
-        except (AttributeError, AssertionError):
+            if not (output := self.fpo.OuputImage):
+                raise ValueError()
+        except (AttributeError, ValueError):
             fname = f"{self.fpo.Name}_output.png"
             output = os.path.join(self.fpo.Document.TransientDir, fname)
 
