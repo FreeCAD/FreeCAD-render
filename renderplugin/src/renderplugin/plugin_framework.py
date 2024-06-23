@@ -30,9 +30,20 @@ import os
 import signal
 import argparse
 from multiprocessing.connection import Client, wait
-from threading import Thread, Event
+from threading import Event
 from dataclasses import dataclass
 import traceback
+from functools import partial
+
+from qtpy.QtCore import (
+    QTimer,
+    Slot,
+    Signal,
+    Qt,
+    QThread,
+    QEvent,
+)
+from qtpy.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 
 sys.path.append(os.getcwd())
@@ -56,24 +67,14 @@ PYSIDE = PLUGIN_ARGS.pyside
 SERVERNAME = PLUGIN_ARGS.server
 
 
-from qtpy.QtCore import (
-    QObject,
-    QTimer,
-    Slot,
-    Signal,
-    Qt,
-    QThread,
-    QEvent,
-)
-from qtpy.QtWidgets import QApplication, QMainWindow, QMessageBox
-
-
-def debug(msg):
+def debug(debug_message):
     """Show pop-up for debugging."""
-    QMessageBox.information(None, "Debug", msg)
+    QMessageBox.information(None, "Debug", debug_message)
 
 
 class Singleton(type):
+    """A metaclass to create singleton classes."""
+
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -84,7 +85,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class Socket(object, metaclass=Singleton):
+class Socket(metaclass=Singleton):
     """A socket to listen to parent process."""
 
     def __init__(self):
@@ -114,8 +115,7 @@ class Socket(object, metaclass=Singleton):
                     self._connection_active.clear()
                 else:
                     return message
-        else:
-            return None
+        return None
 
     def stop_recv(self):
         """Stop on-going receiving."""
@@ -141,6 +141,7 @@ class PluginMessageEvent(QEvent):
 
     @property
     def message(self):
+        """Get message content (property)."""
         return self._message
 
 
@@ -167,7 +168,7 @@ class RenderPluginApplication(QApplication):
         # Central widget
         try:
             self.widget = widget(*args)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             print("WARNING: Could not initialize plugin central widget")
             self.widget = None
             lines = traceback.format_exception(err)
@@ -189,7 +190,7 @@ class RenderPluginApplication(QApplication):
     def listen(self):
         """Listen to messages from the socket."""
         while message := SOCKET.recv():
-            verb, argument = message
+            verb, _ = message
             if verb == "CLOSE":
                 SOCKET.stop_recv()
                 self.quit_signal.emit()
@@ -212,8 +213,9 @@ class RenderPluginApplication(QApplication):
     def exec(self):
         """Execute application (start event loop)."""
         QTimer.singleShot(0, self.add_widget)
-        return super().exec()
+        res = super().exec()
         log("Exiting")
+        return res
 
 
 @dataclass
@@ -232,21 +234,12 @@ class Bcolors:
     COLOROFF = "\033[0m"
 
 
-def log(msg):
-    """Print message as log."""
-    SOCKET.send("LOG", str(msg) + "\n")
+def _plugin_print(msgtype, message):
+    """Print message to host."""
+    SOCKET.send(msgtype, str(message) + "\n")
 
 
-def msg(msg):
-    """Print message as plain message."""
-    SOCKET.send("MSG", str(msg) + "\n")
-
-
-def warn(msg):
-    """Print message as warning."""
-    SOCKET.send("WARN", str(msg) + "\n")
-
-
-def error(msg):
-    """Print message as error."""
-    SOCKET.send("ERROR", str(msg) + "\n")
+log = partial(_plugin_print, "LOG")
+msg = partial(_plugin_print, "MSG")
+warn = partial(_plugin_print, "WARN")
+error = partial(_plugin_print, "ERROR")
