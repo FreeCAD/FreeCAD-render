@@ -32,40 +32,8 @@ import pathlib
 import tempfile
 import itertools
 
-from renderplugin import (
-    PYSIDE,
-    ARGS,
-    RenderPluginApplication,
-    log,
-    msg,
-    warn,
-    error,
-    SOCKET,
-    PluginMessageEvent,
-)
+
 from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
-
-from qtpy.QtWebEngineWidgets import (
-    QWebEngineView,
-    QWebEnginePage,
-    QWebEngineProfile,
-)
-
-if PYQT5:
-    from PyQt5.QtWebEngineCore import QWebEngineDownloadItem
-elif PYSIDE2:
-    from PySide2.QtWebEngineCore import QWebEngineDownloadItem
-elif PYQT6:
-    from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
-
-    QWebEngineDownloadItem = QWebEngineDownloadRequest
-elif PYSIDE6:
-    from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
-
-    QWebEngineDownloadItem = QWebEngineDownloadRequest
-else:
-    raise ImportError()
-
 from qtpy.QtCore import (
     Slot,
     Qt,
@@ -87,9 +55,39 @@ from qtpy.QtWidgets import (
     QMessageBox,
     QProgressDialog,
 )
-
+from qtpy.QtWebEngineWidgets import (
+    QWebEngineView,
+    QWebEnginePage,
+    QWebEngineProfile,
+)
 
 from materialx.materialx_importer import MaterialXImporter
+
+from renderplugin import (
+    ARGS,
+    RenderPluginApplication,
+    log,
+    msg,
+    error,
+    SOCKET,
+    PluginMessageEvent,
+)
+
+if PYQT5:
+    from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem
+elif PYSIDE2:
+    from PySide2.QtWebEngineWidgets import QWebEngineDownloadItem
+elif PYQT6:
+    from PyQt6.QtWebEngineCore import (
+        QWebEngineDownloadRequest as QWebEngineDownloadItem,
+    )
+elif PYSIDE6:
+    from PySide6.QtWebEngineCore import (
+        QWebEngineDownloadRequest as QWebEngineDownloadItem,
+    )
+else:
+    raise ImportError()
+
 
 MX_EVENT_TYPE = QEvent.registerEventType()
 
@@ -244,7 +242,7 @@ class MaterialXDownloader(QWidget):
     def event(self, event):
         """Handle event (Qt callback)."""
         if event.type() == PluginMessageEvent.TYPE:
-            verb, argument = event.message
+            verb, _ = event.message
             if verb == "RELEASE":
                 self.release_material_signal.emit()
             return True
@@ -259,7 +257,7 @@ def get_download_filename(download):
     elif PYQT6 or PYSIDE6:
         filename = download.downloadFileName()
     else:
-        RuntimeError()
+        raise RuntimeError()
 
     return filename
 
@@ -267,16 +265,15 @@ def get_download_filename(download):
 def get_download_filepath(download):
     """Get file path from download."""
     if PYQT5 or PYSIDE2:
-        filepath = download.path()
-    elif PYQT6 or PYSIDE6:
-        filepath = os.path.join(
+        return download.path()
+
+    if PYQT6 or PYSIDE6:
+        return os.path.join(
             download.downloadDirectory(),
             download.downloadFileName(),
         )
-    else:
-        RuntimeError()
 
-    return filepath
+    raise RuntimeError()
 
 
 class DownloadWindow(QProgressDialog):
@@ -364,11 +361,6 @@ class DownloadWindow(QProgressDialog):
             worker_loop.quit, Qt.QueuedConnection
         )
         worker_loop.exec()
-        # TODO
-        # if PYSIDE == "PySide6":
-        # worker_loop.exec()
-        # if PYSIDE == "PySide2":
-        # worker_loop.exec_()
 
 
 class MaterialXDownloadWindow(DownloadWindow):
@@ -429,9 +421,8 @@ class MaterialXDownloadWindow(DownloadWindow):
         loop = QEventLoop()
         self.worker.finished.connect(loop.exit, Qt.QueuedConnection)
         self.thread.start(QThread.IdlePriority)
-        loopexec = loop.exec()
 
-        if loopexec:
+        if loop.exec():
             os.remove(filename)
             self.cancel()
             return
@@ -662,11 +653,6 @@ def polyhaven_getsize(page):
     getlink.run()
     loop.exec()
 
-    # TODO
-    # if PYSIDE == "PySide2":
-    # loop.exec_()
-    # if PYSIDE == "PySide6":
-    # loop.exec()
     if (link := getlink.link) is None:
         return None
 
@@ -675,12 +661,6 @@ def polyhaven_getsize(page):
     getdata.done.connect(loop.exit, Qt.QueuedConnection)
     getdata.run()
     loop.exec()
-
-    # TODO
-    # if PYSIDE == "PySide2":
-    # loop.exec_()
-    # if PYSIDE == "PySide6":
-    # loop.exec()
     data = getdata.data
 
     # Search size
@@ -734,7 +714,7 @@ def polyhaven_getsize(page):
     }
     try:
         factor = factors[unit]
-    except:
+    except KeyError:
         log(
             "[Render][MaterialX] Polyhaven - "
             "failed to parse unit from quantity ('{quantity}')"
