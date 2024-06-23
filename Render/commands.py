@@ -27,7 +27,7 @@
 import os
 import itertools as it
 
-from PySide.QtCore import QT_TRANSLATE_NOOP, Qt, QUrl
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
 from PySide.QtGui import (
     QMessageBox,
     QInputDialog,
@@ -55,15 +55,19 @@ from Render.lights import (
 from Render.rendermaterial import is_multimat
 from Render.subcontainer import start_help
 
-MATERIALX = PARAMS.GetBool("MaterialX")
-if MATERIALX:
+if MATERIALX := PARAMS.GetBool("MaterialX"):
     from Render.subcontainer import start_materialx
+else:
+
+    def start_materialx(*_):
+        """No operation."""
 
 
-class _IsActiveMixin:
+class _IsActiveMixin:  # pylint: disable=too-few-public-methods
     """Mixin class to make command active only when a doc is active."""
 
-    def IsActive(self):
+    def IsActive(self):  # pylint: disable=no-self-use
+        """Indicate if the command is active (callback)."""
         return hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
 
 
@@ -368,7 +372,8 @@ class MaterialCreatorCommand(_IsActiveMixin):
             "ToolTip": (
                 QT_TRANSLATE_NOOP(
                     "MaterialCreatorCommand",
-                    "Create a new Material in current document from internal library",
+                    "Create a new Material in current document from "
+                    "internal library",
                 )
             ),
         }
