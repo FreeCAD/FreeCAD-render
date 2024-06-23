@@ -23,7 +23,6 @@
 
 """This module implements GUI commands for Render workbench."""
 
-
 import os
 import itertools as it
 
@@ -85,14 +84,13 @@ class RenderProjectCommand(_IsActiveMixin):
     def GetResources(self):
         """Get command's resources (callback)."""
         rdr = self.renderer
+        # FIXME: MenuText and ToolTip to create render projects don't work
         return {
             "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand", "%s Project")
-            % rdr,
-            "ToolTip": QT_TRANSLATE_NOOP(
-                "RenderProjectCommand", "Create a %s project"
-            )
-            % rdr,
+            "MenuText": translate("Render_Projects", "{} Project").format(rdr),
+            "ToolTip": translate(
+                "Render_Projects", "Create a {} project"
+            ).format(rdr),
         }
 
     def Activated(self):
@@ -124,11 +122,9 @@ class RenderViewCommand(_IsActiveMixin):
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "RenderView.svg"),
-            "MenuText": QT_TRANSLATE_NOOP(
-                "RenderViewCommand", "Rendering View"
-            ),
+            "MenuText": QT_TRANSLATE_NOOP("Render_View", "Rendering View"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "RenderViewCommand",
+                "Render_View",
                 "Create a Rendering View of the "
                 "selected object(s) in the selected "
                 "project or the default project",
@@ -180,9 +176,9 @@ class RenderCommand(_IsActiveMixin):
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "Render.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderCommand", "Render"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_Render", "Render project"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "RenderCommand",
+                "Render_Render",
                 "Perform the rendering of a "
                 "selected project or the default "
                 "project",
@@ -218,9 +214,9 @@ class CameraCommand(_IsActiveMixin):
         """Get command's resources (callback)."""
         return {
             "Pixmap": ":/icons/camera-photo.svg",
-            "MenuText": QT_TRANSLATE_NOOP("CameraCommand", "Camera"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_Camera", "Camera"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "CameraCommand",
+                "Render_Camera",
                 "Create a Camera object from the current camera position",
             ),
         }
@@ -241,9 +237,9 @@ class PointLightCommand(_IsActiveMixin):
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "PointLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("PointLightCommand", "Point Light"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_PointLight", "Point Light"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "PointLightCommand", "Create a Point Light object"
+                "Render_PointLight", "Create a Point Light object"
             ),
         }
 
@@ -263,9 +259,9 @@ class AreaLightCommand(_IsActiveMixin):
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "AreaLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("AreaLightCommand", "Area Light"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_AreaLight", "Area Light"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "AreaLightCommand", "Create an Area Light object"
+                "Render_AreaLight", "Create an Area Light object"
             ),
         }
 
@@ -286,10 +282,10 @@ class SunskyLightCommand(_IsActiveMixin):
         return {
             "Pixmap": os.path.join(ICONDIR, "SunskyLight.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "SunskyLightCommand", "Sunsky Light"
+                "Render_SunskyLight", "Sunsky Light"
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "SunskyLightCommand", "Create a Sunsky Light object"
+                "Render_SunskyLight", "Create a Sunsky Light object"
             ),
         }
 
@@ -309,9 +305,9 @@ class ImageLightCommand(_IsActiveMixin):
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "ImageLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("ImageLightCommand", "Image Light"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_ImageLight", "Image Light"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "ImageLightCommand", "Create an Image Light object"
+                "Render_ImageLight", "Create an Image Light object"
             ),
         }
 
@@ -332,10 +328,10 @@ class DistantLightCommand(_IsActiveMixin):
         return {
             "Pixmap": os.path.join(ICONDIR, "DistantLight.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "DistantLightCommand", "Distant Light"
+                "Render_DistantLight", "Distant Light"
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "DistantLightCommand", "Create an Distant Light object"
+                "Render_DistantLight", "Create an Distant Light object"
             ),
         }
 
@@ -361,16 +357,16 @@ class MaterialCreatorCommand(_IsActiveMixin):
             "Pixmap": "Arch_Material_Group",
             "MenuText": (
                 QT_TRANSLATE_NOOP(
-                    "MaterialCreatorCommand", "Internal Material Library"
+                    "Render_MaterialCreator", "Internal Material Library"
                 )
                 if self._newname
                 else QT_TRANSLATE_NOOP(
-                    "MaterialCreatorCommand", "Create Material"
+                    "Render_MaterialCreator", "Create Material"
                 )
             ),
             "ToolTip": (
                 QT_TRANSLATE_NOOP(
-                    "MaterialCreatorCommand",
+                    "Render_MaterialCreator",
                     "Create a new Material in current document from "
                     "internal library",
                 )
@@ -499,11 +495,11 @@ class MaterialRenderSettingsCommand(_IsActiveMixin):
         return {
             "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "MaterialRenderSettingsCommand",
+                "Render_MaterialRenderSettings",
                 "Edit Material Render Settings",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "MaterialRenderSettingsCommand",
+                "Render_MaterialRenderSettings",
                 "Edit rendering parameters of the selected Material",
             ),
         }
@@ -529,10 +525,10 @@ class MaterialApplierCommand(_IsActiveMixin):
         return {
             "Pixmap": os.path.join(ICONDIR, "ApplyMaterial.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "MaterialApplierCommand", "Apply Material"
+                "Render_MaterialApplier", "Apply Material"
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "MaterialApplierCommand", "Apply a Material to selection"
+                "Render_MaterialApplier", "Apply a Material to selection"
             ),
         }
 
@@ -661,9 +657,9 @@ class HelpCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "Help.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("HelpCommand", "Help"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_Help", "Help"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "HelpCommand",
+                "Render_Help",
                 "Open Render help",
             ),
         }
@@ -684,9 +680,11 @@ class SettingsCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "settings.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("SettingsCommand", "Render"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "Render_Settings", "Render settings"
+            ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "SettingsCommand",
+                "Render_Settings",
                 "Open Render workbench settings",
             ),
         }
@@ -753,7 +751,9 @@ def _init_gui_commands():
 
     projects_cmd = [(r, RenderProjectCommand(r)) for r in VALID_RENDERERS]
     projects_group = CommandGroup(
-        projects_cmd, "Projects", "Create a Rendering Project"
+        projects_cmd,
+        QT_TRANSLATE_NOOP("Render_Projects", "Projects"),
+        QT_TRANSLATE_NOOP("Render_Projects", "Create a Rendering Project"),
     )
 
     lights_cmd = [
@@ -763,13 +763,21 @@ def _init_gui_commands():
         ("ImageLight", ImageLightCommand()),
         ("DistantLight", DistantLightCommand()),
     ]
-    lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
+    lights_group = CommandGroup(
+        lights_cmd,
+        QT_TRANSLATE_NOOP("Render_Lights", "Lights"),
+        QT_TRANSLATE_NOOP("Render_Lights", "Create a Light"),
+    )
 
     mats_cmd = [
         ("MaterialApplier", MaterialApplierCommand()),
         ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
     ]
-    materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
+    materials_group = CommandGroup(
+        mats_cmd,
+        QT_TRANSLATE_NOOP("Render_Materials", "Materials"),
+        QT_TRANSLATE_NOOP("Render_Materials", "Manage Materials"),
+    )
 
     libs_cmd = [
         ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
@@ -778,7 +786,11 @@ def _init_gui_commands():
         ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
     ]
     libraries_group = CommandGroup(
-        libs_cmd, "Libraries", "Download from material libraries"
+        libs_cmd,
+        QT_TRANSLATE_NOOP("Render_Libraries", "Libraries"),
+        QT_TRANSLATE_NOOP(
+            "Render_Libraries", "Download from material libraries"
+        ),
     )
 
     if MATERIALX:

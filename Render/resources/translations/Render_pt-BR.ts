@@ -2,7 +2,7 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="pt-BR" sourcelanguage="en">
   <context>
-    <name>RaytracingGui::DlgSettingsRay</name>
+    <name>RenderSettings</name>
     <message>
       <location filename="../ui/RenderSettings.ui" line="14"/>
       <source>Render preferences</source>
@@ -310,7 +310,7 @@
     </message>
   </context>
   <context>
-    <name>AreaLightCommand</name>
+    <name>Render_AreaLight</name>
     <message>
       <location filename="../Render.py" line="1085"/>
       <source>Area Light</source>
@@ -323,7 +323,7 @@
     </message>
   </context>
   <context>
-    <name>CameraCommand</name>
+    <name>Render_Camera</name>
     <message>
       <location filename="../Render.py" line="1044"/>
       <source>Camera</source>
@@ -336,7 +336,7 @@
     </message>
   </context>
   <context>
-    <name>ImageLightCommand</name>
+    <name>Render_ImageLight</name>
     <message>
       <location filename="../Render.py" line="1125"/>
       <source>Image Light</source>
@@ -349,7 +349,7 @@
     </message>
   </context>
   <context>
-    <name>MaterialApplierCommand</name>
+    <name>Render_MaterialApplier</name>
     <message>
       <location filename="../Render.py" line="1190"/>
       <source>Apply Material</source>
@@ -362,7 +362,7 @@
     </message>
   </context>
   <context>
-    <name>MaterialCreatorCommand</name>
+    <name>Render_MaterialCreator</name>
     <message>
       <location filename="../Render.py" line="1148"/>
       <source>Create Material</source>
@@ -375,7 +375,7 @@
     </message>
   </context>
   <context>
-    <name>MaterialRenderSettingsCommand</name>
+    <name>MaterialRenderRender_Settings</name>
     <message>
       <location filename="../Render.py" line="1162"/>
       <source>Edit Material Render Settings</source>
@@ -396,7 +396,7 @@
     </message>
   </context>
   <context>
-    <name>PointLightCommand</name>
+    <name>Render_PointLight</name>
     <message>
       <location filename="../Render.py" line="1065"/>
       <source>Point Light</source>
@@ -733,7 +733,7 @@ Are you sure you want to continue?</translation>
     </message>
   </context>
   <context>
-    <name>RenderCommand</name>
+    <name>Render_Render</name>
     <message>
       <location filename="../Render.py" line="1010"/>
       <source>Render</source>
@@ -759,7 +759,7 @@ Are you sure you want to continue?</translation>
     </message>
   </context>
   <context>
-    <name>RenderViewCommand</name>
+    <name>Render_View</name>
     <message>
       <location filename="../Render.py" line="963"/>
       <source>Rendering View</source>
@@ -772,7 +772,7 @@ Are you sure you want to continue?</translation>
     </message>
   </context>
   <context>
-    <name>SunskyLightCommand</name>
+    <name>Render_SunskyLight</name>
     <message>
       <location filename="../Render.py" line="1105"/>
       <source>Sunsky Light</source>
