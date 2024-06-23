@@ -27,24 +27,20 @@
 # Version1
 # Write announcement
 # Assign material with right-click
-# Address 0.22 compatibility
 #
 # Version 2
 # Add a mix normal/height map to Ospray
 # Add Poly Haven (gltf)
 
 
-import tempfile
 import os
 import threading
 from typing import Callable
 import subprocess
 import json
-import configparser
 import sys
-import pathlib
 
-from renderplugin import log, msg, warn, error, SOCKET
+from renderplugin import msg, warn, error
 
 
 class MaterialXImporter:
