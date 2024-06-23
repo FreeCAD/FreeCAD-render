@@ -345,7 +345,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.setWidget(self.container)
         self.showMaximized()
 
-    def closeEvent(self, event):  # pylint: disable=unused-argument
+    def closeEvent(self, event):
         """Respond to close event."""
         self.process.child_send("CLOSE")
         QGuiApplication.instance().processEvents()
@@ -384,9 +384,8 @@ def start_help():
     start_subapp("help", options)
 
 
-def start_materialx(url=None, doc=None):
+def start_materialx(url=None):
     """Start materialx sub application"""
-    # TODO doc
     url = url or "https://matlib.gpuopen.com/"
     tmp = App.getTempPath()
     options = [url, "--tmp", tmp]
