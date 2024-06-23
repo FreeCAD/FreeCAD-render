@@ -22,6 +22,8 @@
 
 """Script for adjacency lists computation in multiprocessing mode."""
 
+# pylint: disable=possibly-used-before-assignment
+
 import sys
 import os
 import functools
@@ -627,9 +629,7 @@ def init(shared):
     global SHARED_VNORMALS_SHM_SIZE
     SHARED_VNORMALS_SHM_SIZE = shared["vnormals_shm_size"]
 
-    use_numpy = USE_NUMPY and shared["enable_numpy"]
-
-    if use_numpy:
+    if USE_NUMPY and shared["enable_numpy"]:
         global SHARED_HASHES_NP
         SHARED_HASHES_NP = np.array(
             shared["hashes"], copy=False, dtype=np.int64
