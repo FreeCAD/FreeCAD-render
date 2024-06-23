@@ -53,7 +53,6 @@ def init(*args):
     global SHARED_SMM
     SHARED_SMM = SharedMemoryManager(address=smm_address)
 
-    # pylint: disable=invalid-name
     global fmt_v, fmt_vt, fmt_vn, fmt_f, join_f, add1
     fmt_f = functools.partial(str.format, mask_f)
     join_f = functools.partial(str.join, "")
@@ -87,7 +86,7 @@ def format_chunk(shared_array, group, format_function, chunk):
     shm = SHARED_SMM.SharedMemory(len(concat))
     shm.buf[:] = concat
     name = shm.name
-    global SHMS
+    global SHMS  # pylint: disable=global-variable-not-assigned
     SHMS.append(shm)
 
     return name, len(concat)
@@ -139,7 +138,7 @@ if __name__ == "__main__":
     try:
         PYTHON
     except NameError:
-        PYTHON = None  # pylint: disable=invalid-name
+        PYTHON = None
 
     assert PYTHON, "No Python executable provided."
 
