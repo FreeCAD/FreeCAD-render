@@ -29,8 +29,8 @@ def fovy_to_fovx(fovy, width, height):
     """Convert vertical field of view (fovy) to horizontal (fovx).
 
     This function is useful for renderers that expect horizontal field of view,
-    like Luxcore, Appleseed and Povray. Indeed, FreeCAD camera fov is a vertical
-    one...
+    like Luxcore, Appleseed and Povray. Indeed, FreeCAD camera fov is a
+    vertical one...
 
     Args:
         fovy -- Vertical field of view, in degrees (float)
