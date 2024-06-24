@@ -457,9 +457,8 @@ class MaterialMaterialXLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        doc = App.ActiveDocument
         url = "https://matlib.gpuopen.com/"
-        start_materialx(url, doc)
+        start_materialx(url)
 
 
 class MaterialAmbientCGLibrary(_IsActiveMixin):
