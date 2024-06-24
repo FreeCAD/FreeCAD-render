@@ -148,7 +148,7 @@ def main():
     # Compute dirs
     workbench_dir = args.path_to_workbench
     readme = os.path.join(workbench_dir, "README.md")
-    scripts_dir = os.path.join(THISDIR, "help", "3rdparty")
+    scripts_dir = os.path.join(THISDIR, "3rdparty")
 
     # Build application and launch
     application = RenderPluginApplication(

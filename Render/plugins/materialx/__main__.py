@@ -61,8 +61,6 @@ from qtpy.QtWebEngineWidgets import (
     QWebEngineProfile,
 )
 
-from materialx.materialx_importer import MaterialXImporter
-
 from renderplugin import (
     ARGS,
     RenderPluginApplication,
@@ -72,6 +70,8 @@ from renderplugin import (
     SOCKET,
     PluginMessageEvent,
 )
+
+from .materialx_importer import MaterialXImporter
 
 if PYQT5:
     from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem

@@ -181,7 +181,8 @@ class PythonSubprocess(QProcess):
             "--pyside",
             get_venv_pyside_version(),
         ]
-        args = ["-I"] + args + subcontainer_args
+        # args = args + subcontainer_args
+        args = ["-E"] + args + subcontainer_args
         self.connections = []
         self.connections_listener = Thread(target=self.child_recv)
         self.connections_active = Event()
@@ -190,8 +191,8 @@ class PythonSubprocess(QProcess):
 
         # Set program and arguments
         self.setProgram(python)
-        working_directory = os.path.join(PLUGINDIR)
-        self.setWorkingDirectory(os.path.join(PLUGINDIR))
+        working_directory = PLUGINDIR
+        self.setWorkingDirectory(working_directory)
         self.setArguments(args)
 
         # Log statement
@@ -362,13 +363,13 @@ class PythonSubprocessWindow(QMdiSubWindow):
 def start_subapp(app, options=None):
     """Start sub application."""
     # Process arguments
-    path = os.path.join(PLUGINDIR, str(app))
+    path = os.path.join(PLUGINDIR, f"{app}")
     path = os.path.normpath(path)
     options = options or []
     options = list(options)
 
     python = get_venv_python()
-    args = ["-u", app] + options
+    args = ["-u", "-m", app] + options
 
     subw = PythonSubprocessWindow(python, args)
     subw.start()

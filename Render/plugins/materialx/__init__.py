@@ -22,4 +22,4 @@
 
 """This module gathers public MaterialX handling features."""
 
-from .materialx_importer import MaterialXImporter
+from materialx.materialx_importer import MaterialXImporter
