@@ -99,8 +99,8 @@ MX_EVENT_TYPE = QEvent.registerEventType()
 # (2024-04-24)
 
 
-class MaterialXDownloader(QWidget):
-    """A MaterialX downloader widget.
+class MaterialXViewer(QWidget):
+    """A MaterialX website viewer widget.
 
     This is an embedded html viewer that catches download requests and triggers
     MaterialX import accordingly.
@@ -749,7 +749,7 @@ def main():
     # Build application and launch
     SOCKET.send("APPNAME", "MaterialX")
     application = RenderPluginApplication(
-        MaterialXDownloader,
+        MaterialXViewer,
         QUrl(args.url.geturl()),
         str(args.tmp),
     )
