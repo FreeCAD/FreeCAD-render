@@ -26,9 +26,6 @@ import os.path
 import traceback
 import re
 from urllib.parse import urlparse
-import argparse
-import sys
-import pathlib
 import tempfile
 import itertools
 
@@ -42,36 +39,22 @@ from qtpy.QtCore import (
     QObject,
     QEventLoop,
     QUrl,
-    QEvent,
 )
 from qtpy.QtNetwork import (
     QNetworkAccessManager,
     QNetworkRequest,
 )
 from qtpy.QtWidgets import (
-    QWidget,
-    QToolBar,
-    QVBoxLayout,
-    QMessageBox,
     QProgressDialog,
 )
-from qtpy.QtWebEngineWidgets import (
-    QWebEngineView,
-    QWebEnginePage,
-    QWebEngineProfile,
-)
 
+from materialx.importer import MaterialXImporter
 from renderplugin import (
-    ARGS,
-    RenderPluginApplication,
     log,
     msg,
     error,
     SOCKET,
-    PluginMessageEvent,
 )
-
-from .materialx_importer import MaterialXImporter
 
 if PYQT5:
     from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem
@@ -89,14 +72,13 @@ else:
     raise ImportError()
 
 
-MX_EVENT_TYPE = QEvent.registerEventType()
-
 # Remark: please do not use:
 # - QWebEngineProfile.setDownloadPath
 # - QWebEngineDownloadItem.downloadFileName
 # - QWebEngineDownloadItem.downloadDirectory
 # as they may not be compatible with old PySide (and old Ubuntu)
 # (2024-04-24)
+
 
 def get_download_filename(download):
     """Get file name from download."""
@@ -122,7 +104,6 @@ def get_download_filepath(download):
         )
 
     raise RuntimeError()
-
 
 
 class DownloadWindow(QProgressDialog):

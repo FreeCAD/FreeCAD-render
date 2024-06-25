@@ -30,37 +30,25 @@ Workflow is:
 """
 
 import os.path
-import traceback
-import re
 from urllib.parse import urlparse
 import argparse
 import sys
 import pathlib
-import tempfile
-import itertools
 
 
 from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
 from qtpy.QtCore import (
     Slot,
     Qt,
-    QThread,
     Signal,
-    QObject,
-    QEventLoop,
     QUrl,
     QEvent,
-)
-from qtpy.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest,
 )
 from qtpy.QtWidgets import (
     QWidget,
     QToolBar,
     QVBoxLayout,
     QMessageBox,
-    QProgressDialog,
 )
 from qtpy.QtWebEngineWidgets import (
     QWebEngineView,
@@ -68,18 +56,16 @@ from qtpy.QtWebEngineWidgets import (
     QWebEngineProfile,
 )
 
+from materialx.downloader import MaterialXDownloadWindow, HdriDownloadWindow
+from materialx.polyhaven import polyhaven_getsize
+
 from renderplugin import (
     ARGS,
     RenderPluginApplication,
-    log,
     msg,
-    error,
     SOCKET,
     PluginMessageEvent,
 )
-
-from .materialx_downloader import MaterialXDownloadWindow, HdriDownloadWindow
-from .materialx_polyhaven import polyhaven_getsize
 
 if PYQT5:
     from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem
@@ -257,10 +243,9 @@ class MaterialXViewer(QWidget):
 
         return super().event(event)
 
+
 def _nope(*_):
     """No operation function."""
-
-
 
 
 def main():

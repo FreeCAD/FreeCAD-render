@@ -27,81 +27,27 @@ gpuopen web site. This hook fetches the right dimension from original
 site.
 """
 
-import os.path
-import traceback
 import re
 from urllib.parse import urlparse
-import argparse
-import sys
-import pathlib
-import tempfile
 import itertools
 
 
-from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
 from qtpy.QtCore import (
     Slot,
     Qt,
-    QThread,
     Signal,
     QObject,
     QEventLoop,
     QUrl,
-    QEvent,
 )
 from qtpy.QtNetwork import (
     QNetworkAccessManager,
     QNetworkRequest,
 )
-from qtpy.QtWidgets import (
-    QWidget,
-    QToolBar,
-    QVBoxLayout,
-    QMessageBox,
-    QProgressDialog,
-)
-from qtpy.QtWebEngineWidgets import (
-    QWebEngineView,
-    QWebEnginePage,
-    QWebEngineProfile,
-)
 
 from renderplugin import (
-    ARGS,
-    RenderPluginApplication,
     log,
-    msg,
-    error,
-    SOCKET,
-    PluginMessageEvent,
 )
-
-from .materialx_importer import MaterialXImporter
-
-if PYQT5:
-    from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem
-elif PYSIDE2:
-    from PySide2.QtWebEngineWidgets import QWebEngineDownloadItem
-elif PYQT6:
-    from PyQt6.QtWebEngineCore import (
-        QWebEngineDownloadRequest as QWebEngineDownloadItem,
-    )
-elif PYSIDE6:
-    from PySide6.QtWebEngineCore import (
-        QWebEngineDownloadRequest as QWebEngineDownloadItem,
-    )
-else:
-    raise ImportError()
-
-
-MX_EVENT_TYPE = QEvent.registerEventType()
-
-# Remark: please do not use:
-# - QWebEngineProfile.setDownloadPath
-# - QWebEngineDownloadItem.downloadFileName
-# - QWebEngineDownloadItem.downloadDirectory
-# as they may not be compatible with old PySide (and old Ubuntu)
-# (2024-04-24)
 
 
 class JavaScriptRunner(QObject):

@@ -22,17 +22,6 @@
 
 """This module provides features to import MaterialX materials in Render WB."""
 
-# TODO list
-#
-# Version1
-# Write announcement
-# Assign material with right-click
-#
-# Version 2
-# Add a mix normal/height map to Ospray
-# Add Poly Haven (gltf)
-
-
 import os
 import threading
 from typing import Callable
