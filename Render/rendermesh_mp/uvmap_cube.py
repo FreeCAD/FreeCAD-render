@@ -449,6 +449,7 @@ def init(shared):
 # *****************************************************************************
 
 
+# pylint: disable=too-many-arguments
 def main(
     python,
     points,

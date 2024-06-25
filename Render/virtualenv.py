@@ -175,10 +175,10 @@ def rendervenv_worker():
             for future in concurrent.futures.as_completed(futures):
                 package = futures[future]
                 if not (return_code := future.result()):
-                    _msg(f"Checked package '{package}' - OK")
+                    _msg(f"Checking package '{package}' - OK")
                 else:
                     _warn(
-                        f"Checked package '{package}' - ERROR "
+                        f"Checking package '{package}' - ERROR "
                         f"(return code: {return_code})"
                     )
                     errors[package] = return_code
