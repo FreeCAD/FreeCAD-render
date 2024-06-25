@@ -13,6 +13,7 @@ init-hook='import sys; sys.path.append("/usr/lib/freecad/lib"); sys.path.append(
 # paths.
 ignore=CVS
 
+
 # Python version
 # 2024-02-15: we target 3.8, same as FreeCAD 0.21
 py-version=3.8
@@ -39,6 +40,9 @@ unsafe-load-any-extension=no
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
 extension-pkg-allow-list=PySide2,
+                         PySide6,
+                         PyQt5,
+                         PyQt6,
                          PySide,
                          FreeCAD,
                          FreeCADGui,
