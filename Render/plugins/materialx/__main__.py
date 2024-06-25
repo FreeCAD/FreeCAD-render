@@ -277,6 +277,7 @@ def get_download_filepath(download):
 
 
 class DownloadWindow(QProgressDialog):
+    # pylint: disable=too-many-ancestors
     """A simple widget to handle download and import from the web.
 
     This is mainly a QProgressDialog, with ability to trace progress of a
@@ -364,6 +365,7 @@ class DownloadWindow(QProgressDialog):
 
 
 class MaterialXDownloadWindow(DownloadWindow):
+    # pylint: disable=too-many-ancestors
     """A simple widget to handle MaterialX download and import from the web."""
 
     def __init__(
@@ -503,6 +505,7 @@ class ImporterWorker(QObject):
 
 
 class HdriDownloadWindow(DownloadWindow):
+    # pylint: disable=too-many-ancestors
     """A simple widget to handle HDRI download and import from the web."""
 
     def do_import(self):
