@@ -258,7 +258,9 @@ class LocalChooser(QWidget):
 
         # Subwidgets
         self.setLayout(QVBoxLayout())
-        self.label = QLabel("<b><big>Select a MaterialX file:</big></b>")
+        self.label = QLabel(
+            "<b><big>Select a MaterialX file:</big></b>", parent=self
+        )
         self.filedialog = QFileDialog()
         self.layout().addWidget(self.label)
         self.layout().addWidget(self.filedialog)
@@ -267,6 +269,7 @@ class LocalChooser(QWidget):
         filters = ["MaterialX (*.mtlx *.zip)", "All files (*.*)"]
         self.filedialog.setNameFilters(filters)
         self.filedialog.setDirectory(QDir.home())
+        self.filedialog.setParent(self)
 
         # Connect
         self.filedialog.finished.connect(self.end)
