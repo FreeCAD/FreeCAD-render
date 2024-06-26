@@ -66,6 +66,7 @@ from renderplugin import (
     ARGS,
     RenderPluginApplication,
     msg,
+    log,
     SOCKET,
     PluginMessageEvent,
 )
@@ -315,6 +316,7 @@ def main():
             str(args.tmp),
         )
     sys.exit(application.exec())
+    log("Exiting plugin")
 
 
 if __name__ == "__main__":
