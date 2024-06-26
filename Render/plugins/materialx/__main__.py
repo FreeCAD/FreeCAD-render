@@ -268,7 +268,7 @@ class LocalChooser(QWidget):
         # File dialog settings
         filters = ["MaterialX (*.mtlx *.zip)", "All files (*.*)"]
         self.filedialog.setNameFilters(filters)
-        self.filedialog.setDirectory(QDir.home())
+        # self.filedialog.setDirectory(QDir.home())
         self.filedialog.setParent(self)
 
         # Connect
