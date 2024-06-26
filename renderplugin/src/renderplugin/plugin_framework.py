@@ -170,7 +170,6 @@ class RenderPluginApplication(QApplication):
                 error(line)
         else:
             self.widget.setParent(self.mainwindow)
-            self.widget.show()
 
     @Slot()
     def add_widget(self):
