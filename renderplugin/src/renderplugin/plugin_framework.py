@@ -150,6 +150,7 @@ class RenderPluginApplication(QApplication):
         # Application and window
         self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
         self.mainwindow.showMaximized()
+        setattr(self.mainwindow, "application", self)
 
         # Listen to entering messages
         self.quit_signal.connect(self.close_and_quit, Qt.QueuedConnection)

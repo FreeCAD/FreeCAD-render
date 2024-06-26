@@ -23,7 +23,7 @@
 """This module implements a web viewer for MaterialX as a Render plugin.
 
 Workflow is:
-- view (browse)
+- choose
 - download
 - convert (from materialx to fccard)
 - import (into FreeCAD)
@@ -43,12 +43,15 @@ from qtpy.QtCore import (
     Signal,
     QUrl,
     QEvent,
+    QDir,
 )
 from qtpy.QtWidgets import (
     QWidget,
     QToolBar,
     QVBoxLayout,
     QMessageBox,
+    QLabel,
+    QFileDialog,
 )
 from qtpy.QtWebEngineWidgets import (
     QWebEngineView,
@@ -93,8 +96,8 @@ MX_EVENT_TYPE = QEvent.registerEventType()
 # (2024-04-24)
 
 
-class MaterialXViewer(QWidget):
-    """A MaterialX website viewer widget.
+class WebChooser(QWidget):
+    """A MaterialX website chooser widget.
 
     This is an embedded html viewer that catches download requests and triggers
     MaterialX import accordingly.
@@ -104,7 +107,7 @@ class MaterialXViewer(QWidget):
     release_material_signal = Signal()
 
     def __init__(self, url, temp_path, disp2bump=False):
-        """Initialize HelpViewer."""
+        """Initialize chooser."""
         super().__init__()
         self.disp2bump = disp2bump
         self.temp_path = temp_path
@@ -248,6 +251,31 @@ def _nope(*_):
     """No operation function."""
 
 
+class LocalChooser(QWidget):
+    def __init__(self, tmp):
+        super().__init__()
+        self.temp_path = tmp
+
+        # Subwidgets
+        self.setLayout(QVBoxLayout())
+        self.label = QLabel("<b><big>Select a MaterialX file:</big></b>")
+        self.filedialog = QFileDialog()
+        self.layout().addWidget(self.label)
+        self.layout().addWidget(self.filedialog)
+
+        # File dialog settings
+        filters = ["MaterialX (*.mtlx *.zip)", "All files (*.*)"]
+        self.filedialog.setNameFilters(filters)
+        self.filedialog.setDirectory(QDir.home())
+
+        # Connect
+        self.filedialog.finished.connect(self.end)
+
+    @Slot(int)
+    def end(self, result):
+        SOCKET.send("DETACH", None)
+
+
 def main():
     """The entry point."""
     # Get arguments
@@ -258,7 +286,7 @@ def main():
     parser.add_argument(
         "url",
         help="the url of the site",
-        type=urlparse,
+        type=str,
     )
     parser.add_argument(
         "--tmp",
@@ -269,11 +297,17 @@ def main():
 
     # Build application and launch
     SOCKET.send("APPNAME", "MaterialX")
-    application = RenderPluginApplication(
-        MaterialXViewer,
-        QUrl(args.url.geturl()),
-        str(args.tmp),
-    )
+    if args.url != "LOCAL":
+        application = RenderPluginApplication(
+            WebChooser,
+            QUrl(args.url),
+            str(args.tmp),
+        )
+    else:
+        application = RenderPluginApplication(
+            LocalChooser,
+            str(args.tmp),
+        )
     sys.exit(application.exec())
 
 

@@ -133,6 +133,7 @@ class PythonSubprocess(QProcess):
     """
 
     winid_available = Signal(int)
+    detach_required = Signal()
 
     def __init__(self, python, args, parent=None):
         super().__init__(parent)
@@ -226,6 +227,8 @@ class PythonSubprocess(QProcess):
                     if verb == "WINID":
                         argument = int(argument)
                         self.winid_available.emit(argument)
+                    elif verb == "DETACH":
+                        self.detach_required.emit()
                     elif verb == "LOG":
                         argument = str(argument)
                         App.Console.PrintLog(self.msgfmt(argument))
@@ -316,6 +319,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
         # Signal/slot connections
         self.process.winid_available.connect(self.attach_process)
+        self.process.detach_required.connect(self.detach_process)
 
     def start(self):
         """Start window."""
@@ -342,6 +346,11 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
         self.showMaximized()
+
+    @Slot()
+    def detach_process(self):
+        self.window.setParent(None)
+        self.close()
 
     def closeEvent(self, event):
         """Respond to close event."""

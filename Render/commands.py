@@ -421,16 +421,19 @@ class MaterialMaterialXImportCommand(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
-        caption = translate("Render", "Select MaterialX")
-        openfilename = QFileDialog.getOpenFileName(
-            Gui.getMainWindow(), caption, "", filefilter
-        )
-        if not (materialx_file := openfilename[0]):
-            return
-        App.ActiveDocument.openTransaction("MaterialXImport")
-        import_materialx(materialx_file, Gui.ActiveDocument.Document)
-        App.ActiveDocument.commitTransaction()
+        url = "LOCAL"
+        start_materialx(url)
+        # TODO
+        # filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
+        # caption = translate("Render", "Select MaterialX")
+        # openfilename = QFileDialog.getOpenFileName(
+        # Gui.getMainWindow(), caption, "", filefilter
+        # )
+        # if not (materialx_file := openfilename[0]):
+        # return
+        # App.ActiveDocument.openTransaction("MaterialXImport")
+        # import_materialx(materialx_file, Gui.ActiveDocument.Document)
+        # App.ActiveDocument.commitTransaction()
 
 
 class MaterialMaterialXLibrary(_IsActiveMixin):
