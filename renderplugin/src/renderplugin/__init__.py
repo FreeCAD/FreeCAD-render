@@ -28,7 +28,6 @@ The framework gives ability to plugins:
 """
 
 from .plugin_framework import (
-    PYSIDE,
     ARGS,
     RenderPluginApplication,
     PluginMessageEvent,

@@ -56,14 +56,7 @@ plugin_parser.add_argument(
     help="the communication server name",
     type=str,
 )
-plugin_parser.add_argument(
-    "--pyside",
-    help="pyside version",
-    type=str,
-    choices=("PySide2", "PySide6", "PyQt5", "PyQt6"),
-)
 PLUGIN_ARGS, ARGS = plugin_parser.parse_known_args()
-PYSIDE = PLUGIN_ARGS.pyside
 SERVERNAME = PLUGIN_ARGS.server
 
 
@@ -235,7 +228,10 @@ class Bcolors:
 
 
 def _plugin_print(msgtype, message):
-    """Print message to host."""
+    """Send message to host to be printed.
+
+    4 possible types: LOG, MSG, WARN, ERROR.
+    """
     SOCKET.send(msgtype, str(message) + "\n")
 
 

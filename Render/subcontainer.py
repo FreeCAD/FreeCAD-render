@@ -178,10 +178,7 @@ class PythonSubprocess(QProcess):
         subcontainer_args = [
             "--server",
             server_name,
-            "--pyside",
-            get_venv_pyside_version(),
         ]
-        # args = args + subcontainer_args
         args = ["-E"] + args + subcontainer_args
         self.connections = []
         self.connections_listener = Thread(target=self.child_recv)
