@@ -255,6 +255,7 @@ class LocalChooser(QWidget):
     def __init__(self, tmp):
         super().__init__()
         self.temp_path = tmp
+        self.setObjectName("RenderLocalChooser")
 
         # Subwidgets
         self.setLayout(QVBoxLayout())
@@ -270,8 +271,8 @@ class LocalChooser(QWidget):
         filters = ["MaterialX (*.mtlx *.zip)", "All files (*.*)"]
         self.filedialog.setNameFilters(filters)
         self.filedialog.setDirectory(QDir.home())
+        self.setObjectName("RenderLocalChooserFileDialog")
         self.filedialog.setParent(self)
-        self.filedialog.show()
 
         # Connect
         self.filedialog.finished.connect(self.end)
