@@ -262,6 +262,7 @@ class LocalChooser(QWidget):
             "<b><big>Select a MaterialX file:</big></b>", parent=self
         )
         self.filedialog = QFileDialog()
+        self.filedialog.setOption(QFileDialog.DontUseNativeDialog, True)
         self.layout().addWidget(self.label)
         self.layout().addWidget(self.filedialog)
 

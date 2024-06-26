@@ -345,7 +345,6 @@ class PythonSubprocessWindow(QMdiSubWindow):
         )
         self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
-        self.container.show()
         self.showMaximized()
 
     @Slot()
