@@ -281,6 +281,7 @@ class LocalChooser(QWidget):
     @Slot(int)
     def end(self, result):
         SOCKET.send("DETACH", None)
+        self.close()
 
 
 def main():
