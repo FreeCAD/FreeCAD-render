@@ -113,7 +113,7 @@ class WebChooser(QWidget):
         self.disp2bump = disp2bump
         self.temp_path = temp_path
 
-        self.setLayout(QVBoxLayout())
+        self._layout = QVBoxLayout(self)
         self.profile = QWebEngineProfile()
 
         # Set subwidgets
@@ -259,7 +259,7 @@ class LocalChooser(QWidget):
         self.setObjectName("RenderLocalChooser")
 
         # Subwidgets
-        self.setLayout(QVBoxLayout())
+        self._layout = QVBoxLayout(self)
         self.label = QLabel(
             "<b><big>Select a MaterialX file:</big></b>", parent=self
         )
@@ -276,10 +276,17 @@ class LocalChooser(QWidget):
         self.filedialog.setParent(self)
 
         # Connect
-        self.filedialog.finished.connect(self.end)
+        self.filedialog.accepted.connect(self.accepted)
+        self.filedialog.rejected.connect(self.rejected)
 
-    @Slot(int)
-    def end(self, result):
+    @Slot()
+    def accepted(self):
+        SOCKET.send("DETACH", None)
+        self.close()
+
+    @Slot()
+    def rejected(self):
+        log("Import canceled")
         SOCKET.send("DETACH", None)
         self.close()
 
