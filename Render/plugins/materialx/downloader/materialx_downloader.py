@@ -236,7 +236,6 @@ class MaterialXDownloadWindow(DownloadWindow):
             filename,
             self.set_progress,
             self._disp2bump,
-            self._download.page(),
             self._polyhaven_size,
             self.wait_for_release,
         )
@@ -287,7 +286,6 @@ class ImporterWorker(QObject):
         filename,
         progress,
         disp2bump,
-        page,
         polyhaven_actual_size,
         wait_for_release,
     ):
@@ -302,7 +300,6 @@ class ImporterWorker(QObject):
             disp2bump,
             polyhaven_actual_size,
         )
-        self.page = page
         self._wait_for_release = wait_for_release
 
     def run(self):
