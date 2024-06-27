@@ -131,12 +131,12 @@ class DownloadWindow(QProgressDialog):
 
         if PYQT5 or PYSIDE2:
             self._download.downloadProgress.connect(self.set_progress)
-            download.finished.connect(self.finished_download)
+            self._download.finished.connect(self.finished_download)
         if PYQT6 or PYSIDE6:
             self._download.receivedBytesChanged.connect(self.set_progress_6)
-            download.isFinishedChanged.connect(self.finished_download)
+            self._download.isFinishedChanged.connect(self.finished_download)
 
-        self.canceled.connect(download.cancel)
+        self.canceled.connect(self._download.cancel)
 
         self.thread = None
         self.worker = None
