@@ -145,6 +145,11 @@ class RenderPluginApplication(QApplication):
 
     def __init__(self, widget, *args):
         """Initialize plugin."""
+        # Application options
+        self.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings, True)
+        self.setAttribute(Qt.AA_PluginApplication, True)
+
+        # Init parent class
         super().__init__(sys.argv)
 
         # Application and window

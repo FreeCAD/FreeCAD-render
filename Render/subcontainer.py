@@ -341,10 +341,13 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.window = QWindow.fromWinId(winid)
         self.window.setObjectName("RenderWindowFromWinid")
         self.container = QWidget.createWindowContainer(
-            self.window, None, Qt.FramelessWindowHint | Qt.ForeignWindow
+            self.window,
+            parent=None,
+            flags=Qt.FramelessWindowHint | Qt.ForeignWindow,
         )
         self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
+        self.container.setParent(self)
         self.showMaximized()
 
     @Slot()
