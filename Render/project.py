@@ -690,10 +690,30 @@ def _instantiate_template(template, objstrings, defaultcam):
 
     if "RaytracingCamera" in template:
         template = re.sub("(.*RaytracingCamera.*)", defaultcam, template)
-        template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
+        content = renderobjs
     else:
         content = defaultcam + "\n" + renderobjs
+
+    content = "\n\n\n\n\nBefore\nPretitle\nTitle \nhello \ngoodbye\n\F\nno error\none\ntwo\nthree\nfour\nFive"
+
+    try:
         template = re.sub("(.*RaytracingContent.*)", content, template)
+    except re.error as err:
+        if lineno := err.lineno:
+            split_content = content.splitlines()
+            begin = max(0, lineno - 5)
+            end = min(len(split_content), lineno + 4)
+            App.Console.PrintError(
+                "[Render][Project] Merge error - Offending content:\n"
+            )
+            pad = math.ceil(math.log10(end)) if end > 0 else 1
+            pad = max(pad, 3)
+
+            for index in range(begin, end):
+                line = split_content[index]
+                tick = ">>" if index == lineno - 1 else "  "
+                App.Console.PrintError(f"{tick} {index+1:0{pad}}   {line}\n")
+        raise
 
     version_major = sys.version_info.major
 
