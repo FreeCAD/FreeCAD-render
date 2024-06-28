@@ -1620,7 +1620,7 @@ def _intersect_unitcube_face(direction):
         A face from the unit cube (_UnitCubeFaceEnum)
     """
     dirx, diry, dirz = direction
-    dabsx, dabsy, dabsz = direction.abs()
+    dabsx, dabsy, dabsz = abs(dirx), abs(diry), abs(dirz)
 
     if dabsx >= dabsy and dabsx >= dabsz:
         return (
