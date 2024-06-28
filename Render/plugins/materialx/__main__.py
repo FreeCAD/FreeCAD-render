@@ -255,6 +255,7 @@ def _nope(*_):
 
 class LocalChooser(QWidget):
     release_material_signal = Signal()
+
     def __init__(self, temp_path, disp2bump=False):
         super().__init__()
         self.temp_path = temp_path
@@ -317,23 +318,29 @@ class LocalChooser(QWidget):
 
         return super().event(event)
 
+
 class LocalDownload(QObject):
 
+    # PySide2
     downloadProgress = Signal(int, int)
     finished = Signal()
 
-    # TODO PySide6
-
+    # PySide6
+    receivedBytesChanged = Signal()
+    isFinishedChanged = Signal()
 
     def __init__(self, filepath):
         super().__init__()
         self.filepath = filepath
 
     def set_ready(self):
+        # PySide2
         self.downloadProgress.emit(1, 1)
         self.finished.emit()
 
-
+        # PySide6
+        self.receivedBytesChanged.emit()
+        self.isFinishedChanged.emit()
 
     def path(self):
         return self.filepath
@@ -353,6 +360,11 @@ class LocalDownload(QObject):
     def state(self):
         return QWebEngineDownloadItem.DownloadCompleted
 
+    def receivedBytes(self):
+        return 1
+
+    def totalBytes(self):
+        return 1
 
 
 def main():
