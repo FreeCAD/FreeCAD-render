@@ -130,13 +130,13 @@ class DownloadWindow(QProgressDialog):
         self.setAutoReset(False)
 
         if PYQT5 or PYSIDE2:
-            self._download.downloadProgress.connect(self.set_progress)
-            self._download.finished.connect(self.finished_download)
+            self._download.downloadProgress.connect(self.set_progress, Qt.QueuedConnection)
+            self._download.finished.connect(self.finished_download, Qt.QueuedConnection)
         if PYQT6 or PYSIDE6:
-            self._download.receivedBytesChanged.connect(self.set_progress_6)
-            self._download.isFinishedChanged.connect(self.finished_download)
+            self._download.receivedBytesChanged.connect(self.set_progress_6, Qt.QueuedConnection)
+            self._download.isFinishedChanged.connect(self.finished_download, Qt.QueuedConnection)
 
-        self.canceled.connect(self._download.cancel)
+        self.canceled.connect(self._download.cancel, Qt.QueuedConnection)
 
         self.thread = None
         self.worker = None
@@ -208,10 +208,12 @@ class MaterialXDownloadWindow(DownloadWindow):
         release_material_signal,
         disp2bump=False,
         polyhaven_actual_size=None,
+        remove_after_import=True,
     ):
         super().__init__(download, parent, release_material_signal)
         self._disp2bump = disp2bump
         self._polyhaven_size = polyhaven_actual_size
+        self._remove_after_import = bool(remove_after_import)
 
         self.thread = None
         self.worker = None
@@ -262,7 +264,8 @@ class MaterialXDownloadWindow(DownloadWindow):
             return
 
         # Finalize (success)
-        os.remove(filename)
+        if self._remove_after_import:
+            os.remove(filename)
         self.setLabelText("Done")
         self.canceled.connect(self.cancel)
         self.setCancelButtonText("Close")

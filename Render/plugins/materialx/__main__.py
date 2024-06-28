@@ -44,6 +44,7 @@ from qtpy.QtCore import (
     QUrl,
     QEvent,
     QDir,
+    QObject,
 )
 from qtpy.QtWidgets import (
     QWidget,
@@ -253,9 +254,11 @@ def _nope(*_):
 
 
 class LocalChooser(QWidget):
-    def __init__(self, tmp):
+    release_material_signal = Signal()
+    def __init__(self, temp_path, disp2bump=False):
         super().__init__()
-        self.temp_path = tmp
+        self.temp_path = temp_path
+        self.disp2bump = disp2bump
         self.setObjectName("RenderLocalChooser")
 
         # Subwidgets
@@ -281,14 +284,75 @@ class LocalChooser(QWidget):
 
     @Slot()
     def accepted(self):
-        SOCKET.send("DETACH", None)
-        self.close()
+        for file in self.filedialog.selectedFiles():
+
+            download = LocalDownload(file)
+            win = MaterialXDownloadWindow(
+                download,
+                self,
+                self.release_material_signal,
+                self.disp2bump,
+                None,  # polyhaven
+                False,  # remove_after_import
+            )
+            download.set_ready()
+            win.open()
+        # TODO
+        # SOCKET.send("DETACH", None)
+        # self.close()
 
     @Slot()
     def rejected(self):
         log("Import canceled")
         SOCKET.send("DETACH", None)
         self.close()
+
+    def event(self, event):
+        """Handle event (Qt callback)."""
+        if event.type() == PluginMessageEvent.TYPE:
+            verb, _ = event.message
+            if verb == "RELEASE":
+                self.release_material_signal.emit()
+            return True
+
+        return super().event(event)
+
+class LocalDownload(QObject):
+
+    downloadProgress = Signal(int, int)
+    finished = Signal()
+
+    # TODO PySide6
+
+
+    def __init__(self, filepath):
+        super().__init__()
+        self.filepath = filepath
+
+    def set_ready(self):
+        self.downloadProgress.emit(1, 1)
+        self.finished.emit()
+
+
+
+    def path(self):
+        return self.filepath
+
+    def downloadFileName(self):
+        _, filename = os.path.split(self.filepath)
+        return filename
+
+    def downloadDirectory(self):
+        directory, _ = os.path.split(self.filepath)
+        return directory
+
+    @Slot()
+    def cancel(self):
+        pass
+
+    def state(self):
+        return QWebEngineDownloadItem.DownloadCompleted
+
 
 
 def main():
