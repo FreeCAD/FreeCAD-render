@@ -694,8 +694,6 @@ def _instantiate_template(template, objstrings, defaultcam):
     else:
         content = defaultcam + "\n" + renderobjs
 
-    content = "\n\n\n\n\nBefore\nPretitle\nTitle \nhello \ngoodbye\n\F\nno error\none\ntwo\nthree\nfour\nFive"
-
     try:
         template = re.sub("(.*RaytracingContent.*)", content, template)
     except re.error as err:
