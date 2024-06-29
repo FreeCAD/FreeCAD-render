@@ -130,11 +130,19 @@ class DownloadWindow(QProgressDialog):
         self.setAutoReset(False)
 
         if PYQT5 or PYSIDE2:
-            self._download.downloadProgress.connect(self.set_progress, Qt.QueuedConnection)
-            self._download.finished.connect(self.finished_download, Qt.QueuedConnection)
+            self._download.downloadProgress.connect(
+                self.set_progress, Qt.QueuedConnection
+            )
+            self._download.finished.connect(
+                self.finished_download, Qt.QueuedConnection
+            )
         if PYQT6 or PYSIDE6:
-            self._download.receivedBytesChanged.connect(self.set_progress_6, Qt.QueuedConnection)
-            self._download.isFinishedChanged.connect(self.finished_download, Qt.QueuedConnection)
+            self._download.receivedBytesChanged.connect(
+                self.set_progress_6, Qt.QueuedConnection
+            )
+            self._download.isFinishedChanged.connect(
+                self.finished_download, Qt.QueuedConnection
+            )
 
         self.canceled.connect(self._download.cancel, Qt.QueuedConnection)
 
@@ -259,7 +267,8 @@ class MaterialXDownloadWindow(DownloadWindow):
         self.thread.start(QThread.IdlePriority)
 
         if loop.exec():
-            os.remove(filename)
+            if self._remove_after_import:
+                os.remove(filename)
             self.cancel()
             return
 
