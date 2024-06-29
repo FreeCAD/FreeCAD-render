@@ -33,7 +33,6 @@ from PySide.QtGui import (
     QInputDialog,
     QApplication,
     QCursor,
-    QFileDialog,
 )
 
 import FreeCAD as App
