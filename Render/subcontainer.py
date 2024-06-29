@@ -336,7 +336,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
     @Slot(int)
     def attach_process(self, winid):
-        """Attach subprocess."""
+        """Attach subprocess to FreeCAD Gui."""
         # Create container and embed process inside
         self.window = QWindow.fromWinId(winid)
         self.window.setObjectName("RenderWindowFromWinid")
@@ -352,6 +352,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
     @Slot()
     def detach_process(self):
+        """Detach subprocess from FreeCAD Gui."""
         self.window.setParent(None)
         self.close()
 
