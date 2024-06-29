@@ -59,6 +59,7 @@ from materialx_baker import RenderTextureBaker
 
 MATERIALXDIR = os.path.dirname(__file__)
 TEXNAME = "Texture"  # Texture name
+CONNECTION = None
 
 
 class ConverterError(Exception):
@@ -168,7 +169,7 @@ class MaterialXConverter:
                 raise ConverterError(255)  # Interrupted
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
-                msg(f"Extracting to {working_dir}")
+                message(f"Extracting to {working_dir}")
                 matzip.extractall(path=working_dir)
                 # Find materialx file
                 files = (
@@ -205,7 +206,7 @@ class MaterialXConverter:
         """Read materialx file to translate."""
         assert self._state.mtlx_filename
 
-        msg("Reading MaterialX file")
+        message("Reading MaterialX file")
 
         # Read doc
         mxdoc = mx.createDocument()
@@ -288,7 +289,7 @@ class MaterialXConverter:
 
     def _translate_materialx(self):
         """Translate MaterialX from StandardSurface to RenderPBR."""
-        msg("Translating material to Render format")
+        message("Translating material to Render format")
 
         assert self._state.search_path
         assert self._state.mtlx_input_doc
@@ -346,7 +347,7 @@ class MaterialXConverter:
         except StopIteration:
             return
 
-        msg(
+        message(
             "Polyhaven material detected: will use actual texture size from "
             "polyhaven.com "
             f"('{size} {'meters' if size > 1 else 'meter'}')"
@@ -491,7 +492,7 @@ class MaterialXConverter:
         mxname = mxmat.getAttribute("original_name")
 
         outfilename = os.path.join(self._destdir, "out.FCMat")
-        msg(f"Creating material card: {outfilename}")
+        message(f"Creating material card: {outfilename}")
 
         # Get images
         images, outputs = _get_images_from_mxdoc(mxdoc)
@@ -631,7 +632,7 @@ def log(msg):
         print(msg)
 
 
-def msg(msg):
+def message(msg):
     """Emit plain message during MaterialX processing."""
     try:
         CONNECTION.send(("MSG", msg + "\n"))
