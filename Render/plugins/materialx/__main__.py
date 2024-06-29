@@ -53,6 +53,7 @@ from qtpy.QtWidgets import (
     QMessageBox,
     QLabel,
     QFileDialog,
+    QLayoutItem,
 )
 from qtpy.QtWebEngineWidgets import (
     QWebEngineView,
@@ -253,7 +254,7 @@ def _nope(*_):
     """No operation function."""
 
 
-class LocalChooser(QWidget):
+class LocalChooser(QFileDialog):
     release_material_signal = Signal()
 
     def __init__(self, temp_path, disp2bump=False):
@@ -263,29 +264,21 @@ class LocalChooser(QWidget):
         self.setObjectName("RenderLocalChooser")
 
         # Subwidgets
-        self._layout = QVBoxLayout(self)
-        self.label = QLabel(
-            "<b><big>Select a MaterialX file:</big></b>", parent=self
+        self.setLabelText(
+            QFileDialog.LookIn,
+            "<b><big>Select a MaterialX file:</big></b>",
         )
-        self.filedialog = QFileDialog()
-        self.filedialog.setOption(QFileDialog.DontUseNativeDialog, True)
-        self.layout().addWidget(self.label)
-        self.layout().addWidget(self.filedialog)
 
-        # File dialog settings
+        self.setOption(QFileDialog.DontUseNativeDialog, True)
         filters = ["MaterialX (*.mtlx *.zip)", "All files (*.*)"]
-        self.filedialog.setNameFilters(filters)
-        self.filedialog.setDirectory(QDir.home())
+        self.setNameFilters(filters)
+        self.setDirectory(QDir.home())
+        self.setFileMode(QFileDialog.ExistingFiles)
         self.setObjectName("RenderLocalChooserFileDialog")
-        self.filedialog.setParent(self)
-
-        # Connect
-        self.filedialog.accepted.connect(self.accepted)
-        self.filedialog.rejected.connect(self.rejected)
 
     @Slot()
-    def accepted(self):
-        for file in self.filedialog.selectedFiles():
+    def accept(self):
+        for file in self.selectedFiles():
 
             download = LocalDownload(file)
             win = MaterialXDownloadWindow(
@@ -297,16 +290,12 @@ class LocalChooser(QWidget):
                 False,  # remove_after_import
             )
             download.set_ready()
-            win.open()
-        # TODO
-        # SOCKET.send("DETACH", None)
-        # self.close()
+            win.exec()
 
     @Slot()
-    def rejected(self):
-        log("Import canceled")
+    def reject(self):
+        log("Closing dialog")
         SOCKET.send("DETACH", None)
-        self.close()
 
     def event(self, event):
         """Handle event (Qt callback)."""
