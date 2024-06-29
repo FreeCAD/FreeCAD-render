@@ -51,7 +51,7 @@ import configparser
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import WBDIR, FCDVERSION, PLUGINDIR
+from Render.constants import WBDIR, FCDVERSION, PLUGINDIR, PARAMS
 from Render.virtualenv import (
     get_venv_python,
     get_venv_pyside_version,
@@ -68,6 +68,7 @@ if FCDVERSION > (0, 19):
         Signal,
         Slot,
         Qt,
+        QEventLoop,
     )
     from PySide.QtWidgets import QWidget
     from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
@@ -79,6 +80,7 @@ else:
         Signal,
         Slot,
         Qt,
+        QEventLoop,
     )
     from PySide.QtGui import (
         QWidget,
@@ -180,6 +182,8 @@ class PythonSubprocess(QProcess):
             "--server",
             server_name,
         ]
+        if PARAMS.GetBool("PluginDisableEmbedding"):
+            subcontainer_args += ["--disable-embedding"]
         args = ["-E"] + args + subcontainer_args
         self.connections = []
         self.connections_listener = Thread(target=self.child_recv)
@@ -326,9 +330,9 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.process.start()
         mdiarea = Gui.getMainWindow().centralWidget()
         if not mdiarea.subWindowList():
-            # Hack: if we don't do that, FreeCAD crashes at next "newDocument"
-            # I haven't found out the reason of the crash, but the following
-            # open/close trick will avoid that
+            # Hack: if we don't do that, FreeCAD crashes at next
+            # "newDocument" I haven't found out the reason of the crash,
+            # but the following open/close trick will avoid that
             doc = App.newDocument()
             App.closeDocument(doc.Name)
         self.setWindowTitle("Render")
@@ -370,6 +374,44 @@ class PythonSubprocessWindow(QMdiSubWindow):
                 self.process.kill()
 
 
+class PythonSubprocessExternal(QObject):
+    def __init__(self, python, args):
+        super().__init__()  # Parent will be set at start
+        self.process = PythonSubprocess(python, args, parent=self)
+
+        # Signal/slot connections
+        self.process.winid_available.connect(self.attach_process)
+        self.process.detach_required.connect(self.detach_process)
+
+    def start(self):
+        """Start window."""
+        self.process.start()
+        loop = QEventLoop()
+        loop.exec_()
+
+    @Slot(int)
+    def attach_process(self, winid):
+        """Attach subprocess to FreeCAD Gui."""
+
+    @Slot()
+    def detach_process(self):
+        """Detach subprocess from FreeCAD Gui."""
+        self.deleteLater()
+
+    def closeEvent(self, event):
+        """Respond to close event."""
+        self.process.child_send("CLOSE")
+        QGuiApplication.instance().processEvents()
+        if not self.process.waitForFinished(3000):
+            self.process.terminate()
+            if not self.process.waitForFinished(3000):
+                App.Console.PrintWarning(
+                    "[Render][Sub] Subprocess terminate timeout, "
+                    "have to kill it\n"
+                )
+                self.process.kill()
+
+
 def start_subapp(app, options=None):
     """Start sub application."""
     # Process arguments
@@ -381,7 +423,11 @@ def start_subapp(app, options=None):
     python = get_venv_python()
     args = ["-u", "-m", app] + options
 
-    subw = PythonSubprocessWindow(python, args)
+    if not PARAMS.GetBool("PluginDisableEmbedding"):
+        subw = PythonSubprocessWindow(python, args)
+    else:
+        subw = PythonSubprocessExternal(python, args)
+
     subw.start()
 
 

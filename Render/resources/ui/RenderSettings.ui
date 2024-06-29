@@ -7,13 +7,670 @@
     <x>0</x>
     <y>0</y>
     <width>453</width>
-    <height>1163</height>
+    <height>1184</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Render preferences</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_10">
+   <item row="10" column="1">
+    <widget class="QGroupBox" name="AdvancedGroup">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Advanced and Debug parameters&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt; - Do not modify if you don't know what you do - Unexpected behaviours may result...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="statusTip">
+      <string>Advanced and Debug parameters WARNING - Do not modify if you don't know what you do - Unexpected behaviours may result...</string>
+     </property>
+     <property name="whatsThis">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Advanced and Debug parameters&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt; - Do not modify if you don't know what you do - Unexpected behaviours may result...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
+     <property name="title">
+      <string>Advanced &amp;&amp; Debug</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_8">
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_24">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable multiprocessing &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_4">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>EnableMultiprocessing</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_3">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>UseFCDMaterials</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_5">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>EnableNumpy</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_6">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>NoShapecolorImpact</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_25">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Multiprocessing threshold &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(number of points)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>DryRun</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_26">
+        <property name="text">
+         <string>Do not modify ShapeColor when assigning material</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_23">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use FreeCAD materials directory &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(not recommended)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable Numpy if available &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="2">
+       <widget class="Gui::PrefSpinBox" name="spinBox_3">
+        <property name="maximum">
+         <number>999999999</number>
+        </property>
+        <property name="singleStep">
+         <number>1000</number>
+        </property>
+        <property name="value">
+         <number>50000</number>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>MultiprocessingThreshold</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_18">
+        <property name="text">
+         <string>Clear report view before each run</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="Gui::PrefCheckBox" name="checkBox_2">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>ClearReport</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="8" column="1">
+    <widget class="QGroupBox" name="LuxrenderGroup">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
+     <property name="title">
+      <string>LuxRender (deprecated)</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_6">
+      <item row="2" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_5">
+        <property name="toolTip">
+         <string>Optional parameters to be passed to Luxrender when rendering</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_14">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>LuxRender UI path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_6">
+        <property name="toolTip">
+         <string>The path to the luxrender UI executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxRenderPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_16">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_15">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>LuxRender command (cli) path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_5">
+        <property name="toolTip">
+         <string>The path to the Luxrender console (luxconsole) executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxConsolePath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QGroupBox" name="LuxcoreGroup">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
+     <property name="title">
+      <string>LuxCore</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="1" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_2">
+        <property name="toolTip">
+         <string>The path to the luxrender UI executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxCorePath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser">
+        <property name="toolTip">
+         <string>The path to the Luxrender console (luxconsole) executable</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxCoreConsolePath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>LuxCore command (cli) path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>LuxCore UI path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="Gui::PrefComboBox" name="comboBox">
+        <property name="toolTip">
+         <string extracomment="The render engine Luxcore will use (see Luxcore documentation for more details)."/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxCoreEngine</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+        <item>
+         <property name="text">
+          <string>PATHCPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TILEPATHCPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>BIDIRCPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RTPATHCPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>PATHOCL</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RTPATHOCL</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TILEPATHOCL</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>BIDIRVMCPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>LIGHTCPU</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_25">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>LuxCore engine</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_4">
+        <property name="toolTip">
+         <string>Optional parameters to be passed to Luxrender when rendering</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>LuxCoreParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="LuxcoreCli_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Luxcore</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QPushButton" name="LuxcoreUi_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Luxcore</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="12" column="1">
+    <spacer>
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="6" column="1">
+    <widget class="QGroupBox" name="OsprayGroup">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
+     <property name="title">
+      <string>OspRay</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_9">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_19">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>OspStudio executable path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_6">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>OspParameters</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_20">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Render parameters</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefFileChooser" name="fileChooser_8">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>OspPath</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="Ospray_Test">
+        <property name="text">
+         <string>Test</string>
+        </property>
+        <property name="renderer" stdset="0">
+         <string notr="true">Ospray</string>
+        </property>
+        <property name="batch" stdset="0">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QGroupBox" name="GeneralGroup">
+     <property name="locale">
+      <locale language="English" country="UnitedStates"/>
+     </property>
+     <property name="title">
+      <string>General</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_8">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Default render width</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="Gui::PrefSpinBox" name="spinBox_2">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="suffix">
+         <string notr="true">px</string>
+        </property>
+        <property name="maximum">
+         <number>9999</number>
+        </property>
+        <property name="value">
+         <number>600</number>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>RenderHeight</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="Gui::PrefSpinBox" name="spinBox">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="suffix">
+         <string notr="true">px</string>
+        </property>
+        <property name="maximum">
+         <number>9999</number>
+        </property>
+        <property name="value">
+         <number>800</number>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>RenderWidth</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Prefix</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_9">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Default render height</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="Gui::PrefLineEdit" name="lineEdit_3">
+        <property name="toolTip">
+         <string>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</string>
+        </property>
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string notr="true"/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>Prefix</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
    <item row="2" column="1">
     <widget class="QGroupBox" name="AppleseedGroup">
      <property name="locale">
@@ -213,211 +870,6 @@
      </layout>
     </widget>
    </item>
-   <item row="9" column="1">
-    <widget class="QGroupBox" name="AdvancedGroup">
-     <property name="toolTip">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Advanced and Debug parameters&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt; - Do not modify if you don't know what you do - Unexpected behaviours may result...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-     </property>
-     <property name="statusTip">
-      <string>Advanced and Debug parameters WARNING - Do not modify if you don't know what you do - Unexpected behaviours may result...</string>
-     </property>
-     <property name="whatsThis">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Advanced and Debug parameters&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt; - Do not modify if you don't know what you do - Unexpected behaviours may result...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-     </property>
-     <property name="locale">
-      <locale language="English" country="UnitedStates"/>
-     </property>
-     <property name="title">
-      <string>Advanced &amp;&amp; Debug</string>
-     </property>
-     <property name="checkable">
-      <bool>false</bool>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_8">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_23">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use FreeCAD materials directory &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(not recommended)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_18">
-        <property name="text">
-         <string>Clear report view before each run</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_26">
-        <property name="text">
-         <string>Do not modify ShapeColor when assigning material</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_6">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>NoShapecolorImpact</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable Numpy if available &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="label_24">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable multiprocessing &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(experimental)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_17">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dry run &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(won't run renderer - debug purpose only)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="2">
-       <widget class="Gui::PrefSpinBox" name="spinBox_3">
-        <property name="maximum">
-         <number>999999999</number>
-        </property>
-        <property name="singleStep">
-         <number>1000</number>
-        </property>
-        <property name="value">
-         <number>50000</number>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>MultiprocessingThreshold</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_3">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>UseFCDMaterials</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="label_25">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Multiprocessing threshold &lt;span style=&quot; font-size:8pt; font-style:italic;&quot;&gt;(number of points)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_2">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>ClearReport</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_5">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>EnableNumpy</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_4">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>EnableMultiprocessing</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>DryRun</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="2">
-       <widget class="Gui::PrefCheckBox" name="checkBox_7">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>MaterialX</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="0">
-       <widget class="QLabel" name="label_27">
-        <property name="text">
-         <string>Enable MaterialX features</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
    <item row="7" column="1">
     <widget class="QGroupBox" name="PbrtGroup">
      <property name="title">
@@ -483,481 +935,6 @@
         </property>
         <property name="renderer" stdset="0">
          <string notr="true">Pbrt</string>
-        </property>
-        <property name="batch" stdset="0">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QGroupBox" name="LuxcoreGroup">
-     <property name="locale">
-      <locale language="English" country="UnitedStates"/>
-     </property>
-     <property name="title">
-      <string>LuxCore</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_2">
-        <property name="toolTip">
-         <string>The path to the luxrender UI executable</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxCorePath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser">
-        <property name="toolTip">
-         <string>The path to the Luxrender console (luxconsole) executable</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxCoreConsolePath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>LuxCore command (cli) path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>LuxCore UI path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_13">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Render parameters</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="Gui::PrefComboBox" name="comboBox">
-        <property name="toolTip">
-         <string extracomment="The render engine Luxcore will use (see Luxcore documentation for more details)."/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxCoreEngine</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-        <item>
-         <property name="text">
-          <string>PATHCPU</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>TILEPATHCPU</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>BIDIRCPU</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>RTPATHCPU</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>PATHOCL</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>RTPATHOCL</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>TILEPATHOCL</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>BIDIRVMCPU</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>LIGHTCPU</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_25">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>LuxCore engine</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_4">
-        <property name="toolTip">
-         <string>Optional parameters to be passed to Luxrender when rendering</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxCoreParameters</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="LuxcoreCli_Test">
-        <property name="text">
-         <string>Test</string>
-        </property>
-        <property name="renderer" stdset="0">
-         <string notr="true">Luxcore</string>
-        </property>
-        <property name="batch" stdset="0">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QPushButton" name="LuxcoreUi_Test">
-        <property name="text">
-         <string>Test</string>
-        </property>
-        <property name="renderer" stdset="0">
-         <string notr="true">Luxcore</string>
-        </property>
-        <property name="batch" stdset="0">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="10" column="1">
-    <spacer>
-     <property name="locale">
-      <locale language="English" country="UnitedStates"/>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="8" column="1">
-    <widget class="QGroupBox" name="LuxrenderGroup">
-     <property name="locale">
-      <locale language="English" country="UnitedStates"/>
-     </property>
-     <property name="title">
-      <string>LuxRender (deprecated)</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_6">
-      <item row="2" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_5">
-        <property name="toolTip">
-         <string>Optional parameters to be passed to Luxrender when rendering</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxParameters</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_14">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>LuxRender UI path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_6">
-        <property name="toolTip">
-         <string>The path to the luxrender UI executable</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxRenderPath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_16">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Render parameters</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_15">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>LuxRender command (cli) path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_5">
-        <property name="toolTip">
-         <string>The path to the Luxrender console (luxconsole) executable</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>LuxConsolePath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QGroupBox" name="GeneralGroup">
-     <property name="locale">
-      <locale language="English" country="UnitedStates"/>
-     </property>
-     <property name="title">
-      <string>General</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_4">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Default render width</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="2">
-       <widget class="Gui::PrefSpinBox" name="spinBox_2">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="suffix">
-         <string notr="true">px</string>
-        </property>
-        <property name="maximum">
-         <number>9999</number>
-        </property>
-        <property name="value">
-         <number>600</number>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>RenderHeight</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="Gui::PrefSpinBox" name="spinBox">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="suffix">
-         <string notr="true">px</string>
-        </property>
-        <property name="maximum">
-         <number>9999</number>
-        </property>
-        <property name="value">
-         <number>800</number>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>RenderWidth</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_11">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Prefix</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_9">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Default render height</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_3">
-        <property name="toolTip">
-         <string>A prefix that can be added before the renderer executable. This is useful, for example, to add environment variable or run the renderer inside a GPU switcher such as primusrun or optirun on linux</string>
-        </property>
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>Prefix</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="6" column="1">
-    <widget class="QGroupBox" name="OsprayGroup">
-     <property name="locale">
-      <locale language="English" country="UnitedStates"/>
-     </property>
-     <property name="title">
-      <string>OspRay</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_9">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_19">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>OspStudio executable path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="Gui::PrefLineEdit" name="lineEdit_6">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string notr="true"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>OspParameters</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_20">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="text">
-         <string>Render parameters</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="Gui::PrefFileChooser" name="fileChooser_8">
-        <property name="locale">
-         <locale language="English" country="UnitedStates"/>
-        </property>
-        <property name="prefEntry" stdset="0">
-         <cstring>OspPath</cstring>
-        </property>
-        <property name="prefPath" stdset="0">
-         <cstring>Mod/Render</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="Ospray_Test">
-        <property name="text">
-         <string>Test</string>
-        </property>
-        <property name="renderer" stdset="0">
-         <string notr="true">Ospray</string>
         </property>
         <property name="batch" stdset="0">
          <bool>false</bool>
@@ -1035,6 +1012,70 @@
         </property>
         <property name="batch" stdset="0">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="9" column="1">
+    <widget class="QGroupBox" name="PluginGroup">
+     <property name="title">
+      <string>Plugins</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_12">
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_27">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Disable GUI embedding</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="Gui::PrefCheckBox" name="checkBox_7">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>MaterialX</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_28">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string>Enable MaterialX features</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="Gui::PrefCheckBox" name="checkBox_14">
+        <property name="locale">
+         <locale language="English" country="UnitedStates"/>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="prefEntry" stdset="0">
+         <cstring>PluginDisableEmbedding</cstring>
+        </property>
+        <property name="prefPath" stdset="0">
+         <cstring>Mod/Render</cstring>
         </property>
        </widget>
       </item>

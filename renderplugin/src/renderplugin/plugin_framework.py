@@ -56,8 +56,14 @@ plugin_parser.add_argument(
     help="the communication server name",
     type=str,
 )
+plugin_parser.add_argument(
+    "--disable-embedding",
+    help="disable plugin embedding in FreeCAD Gui",
+    action="store_true",
+)
 PLUGIN_ARGS, ARGS = plugin_parser.parse_known_args()
 SERVERNAME = PLUGIN_ARGS.server
+DISABLE_EMBEDDING = PLUGIN_ARGS.disable_embedding
 
 
 def debug(debug_message):
@@ -153,7 +159,11 @@ class RenderPluginApplication(QApplication):
         super().__init__(sys.argv)
 
         # Application and window
-        self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
+        if not DISABLE_EMBEDDING:
+            self.mainwindow = QMainWindow(flags=Qt.FramelessWindowHint)
+        else:
+            self.mainwindow = QMainWindow()
+        self.mainwindow.setWindowTitle("FreeCAD Render")
         self.mainwindow.showMaximized()
         setattr(self.mainwindow, "application", self)
 
