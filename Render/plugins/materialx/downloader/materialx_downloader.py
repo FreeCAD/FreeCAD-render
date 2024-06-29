@@ -24,10 +24,7 @@
 
 import os.path
 import traceback
-import re
-from urllib.parse import urlparse
 import tempfile
-import itertools
 
 
 from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
@@ -38,11 +35,6 @@ from qtpy.QtCore import (
     Signal,
     QObject,
     QEventLoop,
-    QUrl,
-)
-from qtpy.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest,
 )
 from qtpy.QtWidgets import (
     QProgressDialog,
@@ -50,7 +42,6 @@ from qtpy.QtWidgets import (
 
 from materialx.importer import MaterialXImporter
 from renderplugin import (
-    log,
     msg,
     error,
     SOCKET,
