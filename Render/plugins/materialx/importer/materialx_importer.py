@@ -29,7 +29,7 @@ import subprocess
 import json
 import sys
 
-from renderplugin import msg, warn, error
+from renderplugin import msg, warn, error, SERVERNAME
 
 
 class MaterialXImporter:
@@ -73,6 +73,7 @@ class MaterialXImporter:
             args += ["--polyhaven-size", str(self._polyhaven_size)]
         if self._disp2bump:
             args += ["--disp2bump"]
+        args += ["--hostpipe", SERVERNAME]
 
         # Run converter
         with subprocess.Popen(

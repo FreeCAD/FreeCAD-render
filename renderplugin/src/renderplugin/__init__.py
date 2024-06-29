@@ -36,4 +36,5 @@ from .plugin_framework import (
     warn,
     error,
     SOCKET,
+    SERVERNAME,
 )
