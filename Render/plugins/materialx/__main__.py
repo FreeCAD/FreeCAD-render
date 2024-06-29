@@ -51,9 +51,7 @@ from qtpy.QtWidgets import (
     QToolBar,
     QVBoxLayout,
     QMessageBox,
-    QLabel,
     QFileDialog,
-    QLayoutItem,
 )
 from qtpy.QtWebEngineWidgets import (
     QWebEngineView,
@@ -255,6 +253,13 @@ def _nope(*_):
 
 
 class LocalChooser(QFileDialog):
+    """A MaterialX local chooser widget.
+
+    This is a file dialog that allows to select and import a materialx file
+    into FreeCAD.
+    """
+
+    # pylint: disable=too-many-ancestors
     release_material_signal = Signal()
 
     def __init__(self, temp_path, disp2bump=False):
@@ -309,6 +314,14 @@ class LocalChooser(QFileDialog):
 
 
 class LocalDownload(QObject):
+    """A download object for MaterialX local import.
+
+    This object mimics QWebEngineDownloadItem (duck typing), for local import
+    use case. Basically, it tricks the downloader into thinking that a local
+    file has actually been downloaded, even though it was there all along. This
+    allows the entire download mechanism to be reused in the simpler case of
+    importing a local file.
+    """
 
     # PySide2
     downloadProgress = Signal(int, int)
@@ -318,11 +331,20 @@ class LocalDownload(QObject):
     receivedBytesChanged = Signal()
     isFinishedChanged = Signal()
 
+    DUMMY_DOWNLOAD_SIZE = 1
+    DUMMY_DOWNLOAD_STATE = QWebEngineDownloadItem.DownloadCompleted
+
     def __init__(self, filepath):
+        """Initialize object."""
         super().__init__()
         self.filepath = filepath
 
     def set_ready(self):
+        """Set download object to ready state.
+
+        As there is no actual download in local import, the 'ready' state
+        emits a 'finished' event.
+        """
         # PySide2
         self.downloadProgress.emit(1, 1)
         self.finished.emit()
@@ -332,28 +354,46 @@ class LocalDownload(QObject):
         self.isFinishedChanged.emit()
 
     def path(self):
+        """Get downloaded file path."""
         return self.filepath
 
-    def downloadFileName(self):
+    def downloadFileName(self):  # pylint: disable=invalid-name
+        """Get downloaded file name."""
         _, filename = os.path.split(self.filepath)
         return filename
 
-    def downloadDirectory(self):
+    def downloadDirectory(self):  # pylint: disable=invalid-name
+        """Get downloaded file directory."""
         directory, _ = os.path.split(self.filepath)
         return directory
 
     @Slot()
     def cancel(self):
-        pass
+        """Cancel download callback.
+
+        As no actual download occurs, this callback is inactive.
+        """
 
     def state(self):
-        return QWebEngineDownloadItem.DownloadCompleted
+        """Return downloading state.
 
-    def receivedBytes(self):
-        return 1
+        This state is always 'download completed'.
+        """
+        return self.DUMMY_DOWNLOAD_STATE
 
-    def totalBytes(self):
-        return 1
+    def receivedBytes(self):  # pylint: disable=invalid-name
+        """Return received bytes.
+
+        Returns dummy value
+        """
+        return self.DUMMY_DOWNLOAD_SIZE
+
+    def totalBytes(self):  # pylint: disable=invalid-name
+        """Return total bytes.
+
+        Always 1 (dummy)
+        """
+        return self.DUMMY_DOWNLOAD_SIZE
 
 
 def main():
@@ -388,8 +428,9 @@ def main():
             LocalChooser,
             str(args.tmp),
         )
-    sys.exit(application.exec())
-    log("Exiting plugin")
+    res = application.exec()
+    log(f"Exiting plugin (return code: {res})")
+    sys.exit(res)
 
 
 if __name__ == "__main__":

@@ -213,7 +213,7 @@ class RenderPluginApplication(QApplication):
         """Execute application (start event loop)."""
         QTimer.singleShot(0, self.add_widget)
         res = super().exec()
-        log("Exiting")
+        log("Closing application")
         return res
 
 
