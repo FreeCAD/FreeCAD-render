@@ -441,6 +441,9 @@ class RenderMeshBase:
                 basename = name
             else:
                 basename = uuid.uuid4().hex
+            if PARAMS.GetBool("UUID_FILENAMES"):
+                namespace = uuid.UUID(int=hash("RenderWB"))
+                basename = uuid.uuid3(namespace, basename).hex
             basename += extension
             filename = os.path.join(export_directory, basename)
 
