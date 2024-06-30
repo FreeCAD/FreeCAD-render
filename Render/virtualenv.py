@@ -48,6 +48,7 @@ import concurrent.futures
 import functools
 
 import FreeCAD as App
+import FreeCADGui as Gui
 
 from PySide import __version__ as PYSIDE_VERSION
 
@@ -364,7 +365,7 @@ def _create_virtualenv():
         )
 
 
-def _remove_virtualenv(purge=True):
+def remove_virtualenv(purge=True):
     """Remove Render virtual environment."""
     if purge:
         pip_run("cache", "purge")
@@ -433,6 +434,7 @@ def _msg(message):
     if message.endswith("\n"):
         message = message[:-1]
     App.Console.PrintMessage(f"[Render][Init] {message}\n")
+    _status(message)
 
 
 def _warn(message):
@@ -443,6 +445,20 @@ def _warn(message):
     if message.endswith("\n"):
         message = message[:-1]
     App.Console.PrintWarning(f"[Render][Init] {message}\n")
+    _status(message)
+
+
+def _status(message):
+    """Print to status bar."""
+    if not message:
+        return
+    # Trim ending newline
+    if message.endswith("\n"):
+        message = message[:-1]
+    if App.GuiUp:
+        Gui.getMainWindow().statusBar().showMessage(
+            f"Render Initialization - {message}\n"
+        )
 
 
 def _binpath():
