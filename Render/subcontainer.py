@@ -145,6 +145,7 @@ class PythonSubprocess(QProcess):
         environment.remove("PYTHONHOME")
         environment.remove("PYTHONPATH")
         environment.remove("QTWEBENGINE_DISABLE_SANDBOX")
+        environment.remove("SESSION_MANAGER")
         if not environment.contains("SNAP"):
             environment.remove("LD_LIBRARY_PATH")
         resources = os.path.join(
@@ -375,6 +376,8 @@ class PythonSubprocessWindow(QMdiSubWindow):
 
 
 class PythonSubprocessExternal(QObject):
+    """A class to launch a plugin as external (no embedding in FreeCAD GUI)."""
+
     def __init__(self, python, args):
         super().__init__()  # Parent will be set at start
         self.process = PythonSubprocess(python, args, parent=self)
