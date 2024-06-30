@@ -21,7 +21,6 @@ Designed as a modern replacement for deprecated internal Raytracing Workbench.</
       <subdirectory>./</subdirectory>
       <icon>Render/resources/icons/Render.svg</icon>
       <classname>RenderWorkbench</classname>
-      <depend optional="true" type="python">materialx</depend>
     </workbench>
   </content>
 
