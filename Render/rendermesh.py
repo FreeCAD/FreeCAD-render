@@ -442,7 +442,7 @@ class RenderMeshBase:
             else:
                 basename = uuid.uuid4().hex
             if PARAMS.GetBool("UUID_FILENAMES"):
-                namespace = uuid.UUID(int=hash("RenderWB"))
+                namespace = uuid.UUID(bytes=b"RenderWB" * 2)
                 basename = uuid.uuid3(namespace, basename).hex
             basename += extension
             filename = os.path.join(export_directory, basename)
@@ -452,6 +452,7 @@ class RenderMeshBase:
             res = os.path.relpath(filename, self.dirs.project_directory)
         else:
             res = filename
+        res = os.path.normpath(res)
 
         # Escape characters
         res = res.encode("unicode_escape").decode("utf-8")
