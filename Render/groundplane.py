@@ -62,9 +62,10 @@ class _GroundPlane:
         self.Document = project.fpo.Document
         self.Placement = App.Placement()
 
+        color = project.fpo.GroundPlaneColor  # Keep it in FCD format
+
         if bbox.isValid():
             zpos = project.fpo.GroundPlaneZ
-            color = project.fpo.GroundPlaneColor  # Keep it in FCD format
             sizefactor = project.fpo.GroundPlaneSizeFactor
 
             margin = bbox.DiagonalLength / 2 * sizefactor

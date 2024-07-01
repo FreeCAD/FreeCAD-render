@@ -20,14 +20,11 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module gathers public MaterialX handling features."""
+"""This module implements a hook for polyhaven materials in gpuopen.
 
-from FreeCAD import GuiUp
+For polyhaven materials (polyhaven.com), texture size is usually wrong on
+gpuopen web site. This hook fetches the right dimension from original
+site.
+"""
 
-from .materialx_importer import MaterialXImporter, import_materialx
-
-if GuiUp:
-    from .materialx_downloader import MaterialXDownloader, open_mxdownloader
-else:
-    MaterialXDownloader = None  # pylint: disable=invalid-name
-    open_mxdownloader = None  # pylint: disable=invalid-name
+from .materialx_polyhaven import polyhaven_getsize

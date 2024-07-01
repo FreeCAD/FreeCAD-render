@@ -4,8 +4,8 @@
   <description>A workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines.
 
 Designed as a modern replacement for deprecated internal Raytracing Workbench.</description>
-  <version>2024.06.05</version>
-  <date>2024-06-05</date>
+  <version>2024.06.13</version>
+  <date>2024-06-13</date>
   <maintainer email="@howetuft">howetuft</maintainer>
   <maintainer email="@yorikvanhavre">Yorik Van Havre</maintainer>
   <license file="LICENSE">LGPL-2.1-or-later</license>
@@ -21,7 +21,6 @@ Designed as a modern replacement for deprecated internal Raytracing Workbench.</
       <subdirectory>./</subdirectory>
       <icon>Render/resources/icons/Render.svg</icon>
       <classname>RenderWorkbench</classname>
-      <depend optional="true" type="python">materialx</depend>
     </workbench>
   </content>
 

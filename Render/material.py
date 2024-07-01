@@ -83,7 +83,7 @@ def get_material_container():
             "App::DocumentObjectGroupPython", "MaterialContainer"
         )
         container.Label = "Materials"
-        _ArchMaterialContainer(obj)
+        _ArchMaterialContainer(container)
         if App.GuiUp:
             _ViewProviderArchMaterialContainer(container.ViewObject)
     return container

@@ -22,9 +22,10 @@
 
 """Script for cubic uvmap computation in multiprocessing mode."""
 
+# pylint: disable=possibly-used-before-assignment
+
 import sys
 import os
-import gc
 import traceback
 
 try:
@@ -413,9 +414,8 @@ def init(shared):
 
     # pylint: disable=global-statement
     global USE_NUMPY
-    USE_NUMPY = USE_NUMPY and shared["enable_numpy"]
 
-    if USE_NUMPY:
+    if USE_NUMPY := USE_NUMPY and shared["enable_numpy"]:
         global SHARED_NORMALS_NP
         SHARED_NORMALS_NP = np.ctypeslib.as_array(SHARED_NORMALS)
         SHARED_NORMALS_NP.shape = (-1, 3)
@@ -449,6 +449,7 @@ def init(shared):
 # *****************************************************************************
 
 
+# pylint: disable=too-many-arguments
 def main(
     python,
     points,

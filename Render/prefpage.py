@@ -43,14 +43,16 @@ from PySide.QtGui import (
     QStyle,
     QSpacerItem,
     QSizePolicy,
+    QApplication,
 )
-from PySide.QtCore import Slot
+from PySide.QtCore import Slot, Qt
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.constants import PREFPAGE
 from Render.rdrhandler import RendererHandler
+from Render.virtualenv import ensure_rendervenv, remove_virtualenv
 
 
 # ===========================================================================
@@ -92,6 +94,10 @@ class PreferencesPage(QWidget):
             button = self.findChild(QPushButton, name)
             button.clicked.connect(self.test_dispatcher)
 
+        # Connect reset venv button
+        button = self.findChild(QPushButton, "ResetVenv")
+        button.clicked.connect(self.reset_venv)
+
     def loadSettings(self):  # pylint: disable=invalid-name
         """Load settings to widget (callback).
 
@@ -129,6 +135,31 @@ class PreferencesPage(QWidget):
         renderer = sender.property("renderer")
         batch = sender.property("batch")
         _test_dispatcher_helper(renderer, batch, self)
+
+    @Slot()
+    def reset_venv(self):
+        """Reset virtual environment."""
+        # Ask for confirmation
+        if (
+            QMessageBox.question(
+                self,
+                "Reset virtual environment",
+                "Do you really want to reset plugins virtual environment?\n\n"
+                "This will remove and reinstall all plugins dependencies...",
+            )
+            == QMessageBox.No
+        ):
+            return
+
+        # Erase and recreate
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.processEvents()
+        try:
+            remove_virtualenv(purge=True)
+            ensure_rendervenv()
+        finally:
+            QApplication.restoreOverrideCursor()
+            QApplication.processEvents()
 
 
 # ===========================================================================

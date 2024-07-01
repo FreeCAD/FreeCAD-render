@@ -43,6 +43,7 @@ import json
 import signal
 import sys
 import site
+from multiprocessing.connection import Client
 
 try:
     import MaterialX as mx
@@ -58,6 +59,7 @@ from materialx_baker import RenderTextureBaker
 
 MATERIALXDIR = os.path.dirname(__file__)
 TEXNAME = "Texture"  # Texture name
+CONNECTION = None
 
 
 class ConverterError(Exception):
@@ -167,7 +169,7 @@ class MaterialXConverter:
                 raise ConverterError(255)  # Interrupted
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
-                log(f"Extracting to {working_dir}")
+                message(f"Extracting to {working_dir}")
                 matzip.extractall(path=working_dir)
                 # Find materialx file
                 files = (
@@ -204,7 +206,7 @@ class MaterialXConverter:
         """Read materialx file to translate."""
         assert self._state.mtlx_filename
 
-        log("Reading MaterialX file")
+        message("Reading MaterialX file")
 
         # Read doc
         mxdoc = mx.createDocument()
@@ -287,7 +289,7 @@ class MaterialXConverter:
 
     def _translate_materialx(self):
         """Translate MaterialX from StandardSurface to RenderPBR."""
-        log("Translating material to Render format")
+        message("Translating material to Render format")
 
         assert self._state.search_path
         assert self._state.mtlx_input_doc
@@ -345,7 +347,7 @@ class MaterialXConverter:
         except StopIteration:
             return
 
-        log(
+        message(
             "Polyhaven material detected: will use actual texture size from "
             "polyhaven.com "
             f"('{size} {'meters' if size > 1 else 'meter'}')"
@@ -490,7 +492,7 @@ class MaterialXConverter:
         mxname = mxmat.getAttribute("original_name")
 
         outfilename = os.path.join(self._destdir, "out.FCMat")
-        log(f"Creating material card: {outfilename}")
+        message(f"Creating material card: {outfilename}")
 
         # Get images
         images, outputs = _get_images_from_mxdoc(mxdoc)
@@ -584,7 +586,7 @@ def _write_fcmat_to_disk(matdict, name, outfilename):
 def _set_progress(value, maximum):
     """Report progress."""
     msg = json.dumps({"value": value, "maximum": maximum})
-    log(msg)
+    print(msg)
 
 
 def _interrupt(signum, stackframe):
@@ -624,17 +626,34 @@ class TermColors:
 
 def log(msg):
     """Emit log message during MaterialX processing."""
-    print(msg)
+    try:
+        CONNECTION.send(("LOG", msg + "\n"))
+    except AttributeError:
+        print(msg)
+
+
+def message(msg):
+    """Emit plain message during MaterialX processing."""
+    try:
+        CONNECTION.send(("MSG", msg + "\n"))
+    except AttributeError:
+        print(msg)
 
 
 def warn(msg):
     """Emit warning during MaterialX processing."""
-    print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
+    try:
+        CONNECTION.send(("WARN", msg + "\n"))
+    except AttributeError:
+        print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
 
 
 def error(msg):
     """Emit error message during MaterialX processing."""
-    print(TermColors.FAIL + msg + TermColors.ENDC, file=sys.stderr)
+    try:
+        CONNECTION.send(("ERROR", msg + "\n"))
+    except AttributeError:
+        print(TermColors.FAIL + msg + TermColors.ENDC, file=sys.stderr)
 
 
 # Main
@@ -644,7 +663,13 @@ if __name__ == "__main__":
     parser.add_argument("destdir", type=pathlib.Path)
     parser.add_argument("--polyhaven-size", type=float)
     parser.add_argument("--disp2bump", action="store_true")
+    parser.add_argument("--hostpipe", type=str)
     program_args = parser.parse_args()
+
+    try:
+        CONNECTION = Client(program_args.hostpipe)
+    except ValueError:
+        CONNECTION = None
 
     try:
         signal.signal(signal.SIGTERM, _interrupt)

@@ -33,8 +33,8 @@
 # - Refactoring some parts of the code to make it more pythonic or simply more
 #   readable in Python
 # - Adaptating to FreeCAD Render Workbench needs, in particular giving ability
-#   to handle ALL shaders of a material (incl. displacement) and adding progress
-#   reporting feature.
+#   to handle ALL shaders of a material (incl. displacement) and adding
+#   progress reporting feature.
 
 
 """This module provides features to import MaterialX materials in Render WB."""
@@ -660,7 +660,8 @@ class RenderTextureBaker:
                         baked_constant = self.BakedConstant(color=base_color)
                         self._baked_constant_map[output_id] = baked_constant
 
-        def optimize_uniform_outputs_at_default():
+        def optimize_uniform_outputs_at_df():
+            """Optimize uniform outputs at their default value."""
             if not (shader_nodedef := shader.getNodeDef()):
                 return
 
@@ -713,12 +714,11 @@ class RenderTextureBaker:
         optimize_fully_uniform_outputs()
 
         # Check for uniform outputs at their default values
-        optimize_uniform_outputs_at_default()
+        optimize_uniform_outputs_at_df()
 
         # Remove baked images that have been replaced by constant values
         clean_baked_image_map()
 
-    # pylint: disable=too-many-arguments
     def _connect_baked_input(
         self,
         baked_input: mx.Input,

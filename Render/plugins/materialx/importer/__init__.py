@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2023 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -20,30 +20,6 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""Miscellaneous utilities for renderers."""
+"""This module implements an importer from MaterialX to FreeCAD."""
 
-from math import radians, degrees, tan, atan
-
-
-def fovy_to_fovx(fovy, width, height):
-    """Convert vertical field of view (fovy) to horizontal (fovx).
-
-    This function is useful for renderers that expect horizontal field of view,
-    like Luxcore, Appleseed and Povray. Indeed, FreeCAD camera fov is a
-    vertical one...
-
-    Args:
-        fovy -- Vertical field of view, in degrees (float)
-        width -- Width of frame (float)
-        height -- Height of frame (float)
-
-    Returns:
-        Horizontal field of view, in degrees (float)
-    """
-    assert width > 0
-    assert height > 0
-    aspect_ratio = width / height
-    fovy = radians(fovy)
-    fovx = 2 * atan(tan(fovy / 2) * aspect_ratio)
-    fovx = degrees(fovx)
-    return fovx
+from .materialx_importer import MaterialXImporter
