@@ -98,7 +98,7 @@ def rendervenv_worker():
                     ">>> Environment does not provide Python "
                     "- Recreating environment"
                 )
-                _remove_virtualenv(purge=False)
+                remove_virtualenv(purge=False)
                 _create_virtualenv()
             else:
                 _log(">>> Environment provides Python: OK")
@@ -133,19 +133,14 @@ def rendervenv_worker():
             )
 
         # Step 5: Check for needed packages - binaries
-        pyside = get_venv_pyside_version()  # PySide
         packages = [
-            pyside,
+            "PyQt6",
+            "PyQt6-WebEngine",
             "setuptools",
             "wheel",
             "renderplugin",
             "QtPy",
         ]
-
-        if pyside == "PyQt6":
-            packages.append("PyQt6-WebEngine")
-        if pyside == "PyQt5":
-            packages.append("PyQtWebEngine")
 
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
