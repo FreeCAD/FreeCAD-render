@@ -27,7 +27,6 @@ import traceback
 import tempfile
 
 
-from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
 from qtpy.QtCore import (
     Slot,
     Qt,
@@ -41,26 +40,13 @@ from qtpy.QtWidgets import (
 )
 
 from materialx.importer import MaterialXImporter
+from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
+
 from renderplugin import (
     msg,
     error,
     SOCKET,
 )
-
-if PYQT5:
-    from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem
-elif PYSIDE2:
-    from PySide2.QtWebEngineWidgets import QWebEngineDownloadItem
-elif PYQT6:
-    from PyQt6.QtWebEngineCore import (
-        QWebEngineDownloadRequest as QWebEngineDownloadItem,
-    )
-elif PYSIDE6:
-    from PySide6.QtWebEngineCore import (
-        QWebEngineDownloadRequest as QWebEngineDownloadItem,
-    )
-else:
-    raise ImportError()
 
 
 # Remark: please do not use:
@@ -73,28 +59,16 @@ else:
 
 def get_download_filename(download):
     """Get file name from download."""
-    if PYQT5 or PYSIDE2:
-        _, filename = os.path.split(download.path())
-    elif PYQT6 or PYSIDE6:
-        filename = download.downloadFileName()
-    else:
-        raise RuntimeError()
-
+    filename = download.downloadFileName()
     return filename
 
 
 def get_download_filepath(download):
     """Get file path from download."""
-    if PYQT5 or PYSIDE2:
-        return download.path()
-
-    if PYQT6 or PYSIDE6:
-        return os.path.join(
-            download.downloadDirectory(),
-            download.downloadFileName(),
-        )
-
-    raise RuntimeError()
+    return os.path.join(
+        download.downloadDirectory(),
+        download.downloadFileName(),
+    )
 
 
 class DownloadWindow(QProgressDialog):
@@ -120,20 +94,12 @@ class DownloadWindow(QProgressDialog):
         self.setAutoClose(False)
         self.setAutoReset(False)
 
-        if PYQT5 or PYSIDE2:
-            self._download.downloadProgress.connect(
-                self.set_progress, Qt.QueuedConnection
-            )
-            self._download.finished.connect(
-                self.finished_download, Qt.QueuedConnection
-            )
-        if PYQT6 or PYSIDE6:
-            self._download.receivedBytesChanged.connect(
-                self.set_progress_6, Qt.QueuedConnection
-            )
-            self._download.isFinishedChanged.connect(
-                self.finished_download, Qt.QueuedConnection
-            )
+        self._download.receivedBytesChanged.connect(
+            self.set_progress, Qt.QueuedConnection
+        )
+        self._download.isFinishedChanged.connect(
+            self.finished_download, Qt.QueuedConnection
+        )
 
         self.canceled.connect(self._download.cancel, Qt.QueuedConnection)
 
@@ -141,14 +107,7 @@ class DownloadWindow(QProgressDialog):
         self.worker = None
 
     @Slot()
-    def set_progress(self, bytes_received, bytes_total):
-        """Set value of widget progress bar (Qt5)."""
-        # Caveat: this slot must be executed in DownloadWindow thread
-        self.setMaximum(bytes_total)
-        self.setValue(bytes_received)
-
-    @Slot()
-    def set_progress_6(self):
+    def set_progress(self):
         """Set value of widget progress bar (Qt6)."""
         # Caveat: this slot must be executed in DownloadWindow thread
         bytes_total = self._download.totalBytes()
@@ -165,13 +124,14 @@ class DownloadWindow(QProgressDialog):
         """
         self.canceled.disconnect(self.cancel)
         state = self._download.state()
-        if state == QWebEngineDownloadItem.DownloadCancelled:
+        downloadstate = QWebEngineDownloadRequest.DownloadState
+        if state == downloadstate.DownloadCancelled:
             msg("Download cancelled")
             return
-        if state == QWebEngineDownloadItem.DownloadInterrupted:
+        if state == downloadstate.DownloadInterrupted:
             msg("Download interrupted")
             return
-        assert state == QWebEngineDownloadItem.DownloadCompleted
+        assert state == downloadstate.DownloadCompleted
 
         filenameshort = get_download_filename(self._download)
         self.setLabelText(f"Importing '{filenameshort}'...")
@@ -223,13 +183,10 @@ class MaterialXDownloadWindow(DownloadWindow):
         This function handles import. Import is executed in a separate thread
         to avoid blocking UI.
         """
-        try:
-            filename = self._download.path()
-        except AttributeError:
-            filename = os.path.join(
-                self._download.downloadDirectory(),
-                self._download.downloadFileName(),
-            )
+        filename = os.path.join(
+            self._download.downloadDirectory(),
+            self._download.downloadFileName(),
+        )
 
         # Start import
         self.setValue(0)

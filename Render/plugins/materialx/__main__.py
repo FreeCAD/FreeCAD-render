@@ -36,7 +36,6 @@ import sys
 import pathlib
 
 
-from qtpy import PYQT5, PYQT6, PYSIDE2, PYSIDE6
 from qtpy.QtCore import (
     Slot,
     Qt,
@@ -62,6 +61,8 @@ from qtpy.QtWebEngineWidgets import (
 from materialx.downloader import MaterialXDownloadWindow, HdriDownloadWindow
 from materialx.polyhaven import polyhaven_getsize
 
+from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
+
 from renderplugin import (
     ARGS,
     RenderPluginApplication,
@@ -70,21 +71,6 @@ from renderplugin import (
     SOCKET,
     PluginMessageEvent,
 )
-
-if PYQT5:
-    from PyQt5.QtWebEngineWidgets import QWebEngineDownloadItem
-elif PYSIDE2:
-    from PySide2.QtWebEngineWidgets import QWebEngineDownloadItem
-elif PYQT6:
-    from PyQt6.QtWebEngineCore import (
-        QWebEngineDownloadRequest as QWebEngineDownloadItem,
-    )
-elif PYSIDE6:
-    from PySide6.QtWebEngineCore import (
-        QWebEngineDownloadRequest as QWebEngineDownloadItem,
-    )
-else:
-    raise ImportError()
 
 
 MX_EVENT_TYPE = QEvent.registerEventType()
@@ -104,7 +90,7 @@ class WebChooser(QWidget):
     MaterialX import accordingly.
     """
 
-    _download_required = Signal(QWebEngineDownloadItem)
+    _download_required = Signal(QWebEngineDownloadRequest)
     release_material_signal = Signal()
 
     def __init__(self, url, temp_path, disp2bump=False):
@@ -130,10 +116,11 @@ class WebChooser(QWidget):
         self._download_required.connect(self.run_download, Qt.QueuedConnection)
 
         # Add actions to toolbar
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
+        webaction = QWebEnginePage.WebAction
+        self.toolbar.addAction(self.view.pageAction(webaction.Back))
+        self.toolbar.addAction(self.view.pageAction(webaction.Forward))
+        self.toolbar.addAction(self.view.pageAction(webaction.Reload))
+        self.toolbar.addAction(self.view.pageAction(webaction.Stop))
 
         # Set url
         self.view.load(url)
@@ -153,7 +140,7 @@ class WebChooser(QWidget):
         self.view = None
         self.page = None
 
-    @Slot(QWebEngineDownloadItem)
+    @Slot(QWebEngineDownloadRequest)
     def download_requested(self, download):
         """Answer to download_requested signal."""
         # For unknown reason, I can't manage to run a QEventLoop in this
@@ -177,16 +164,11 @@ class WebChooser(QWidget):
             return
         # Trigger effective download
         self._download_required.emit(download)
-        if PYQT5 or PYSIDE2:
-            _, filename = os.path.split(download.path())
-            download.setPath(os.path.join(self.temp_path, filename))
-        elif PYQT6 or PYSIDE6:
-            filename = download.downloadFileName()
-            download.setDownloadDirectory(self.temp_path)
+        download.setDownloadDirectory(self.temp_path)
 
         download.accept()
 
-    @Slot()
+    @Slot(QWebEngineDownloadRequest)
     def run_download(self, download):
         """Run download actually.
 
@@ -225,11 +207,7 @@ class WebChooser(QWidget):
             return False
 
         # And only for a restricted list of file extensions
-        try:
-            _, ext = os.path.splitext(download.path())
-        except AttributeError:
-            # Qt6
-            _, ext = os.path.splitext(download.downloadFileName())
+        _, ext = os.path.splitext(download.downloadFileName())
         if ext.lower() not in [".exr", ".jpg"]:
             msg(ext)
             return False
@@ -323,16 +301,13 @@ class LocalDownload(QObject):
     importing a local file.
     """
 
-    # PySide2
-    downloadProgress = Signal(int, int)
-    finished = Signal()
-
-    # PySide6
     receivedBytesChanged = Signal()
     isFinishedChanged = Signal()
 
     DUMMY_DOWNLOAD_SIZE = 1
-    DUMMY_DOWNLOAD_STATE = QWebEngineDownloadItem.DownloadCompleted
+    DUMMY_DOWNLOAD_STATE = (
+        QWebEngineDownloadRequest.DownloadState.DownloadCompleted
+    )
 
     def __init__(self, filepath):
         """Initialize object."""
@@ -345,11 +320,6 @@ class LocalDownload(QObject):
         As there is no actual download in local import, the 'ready' state
         emits a 'finished' event.
         """
-        # PySide2
-        self.downloadProgress.emit(1, 1)
-        self.finished.emit()
-
-        # PySide6
         self.receivedBytesChanged.emit()
         self.isFinishedChanged.emit()
 

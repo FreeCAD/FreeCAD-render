@@ -72,10 +72,11 @@ class HelpViewer(QWidget):
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
+        webaction = QWebEnginePage.WebAction
+        self.toolbar.addAction(self.view.pageAction(webaction.Back))
+        self.toolbar.addAction(self.view.pageAction(webaction.Forward))
+        self.toolbar.addAction(self.view.pageAction(webaction.Reload))
+        self.toolbar.addAction(self.view.pageAction(webaction.Stop))
 
         # Prepare scripts
         jquery_path = os.path.join(scripts_dir, "jQuery.js")
@@ -106,17 +107,19 @@ class HelpViewer(QWidget):
         script_jquery = QWebEngineScript()
         script_jquery.setSourceCode(script_jquery_source)
 
-        script_jquery.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        injection_point = QWebEngineScript.InjectionPoint
+
+        script_jquery.setInjectionPoint(injection_point.DocumentCreation)
         scripts.insert(script_jquery)
 
         script_marked = QWebEngineScript()
         script_marked.setSourceCode(script_marked_source)
-        script_marked.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        script_marked.setInjectionPoint(injection_point.DocumentCreation)
         scripts.insert(script_marked)
 
         script_run = QWebEngineScript()
         script_run.setSourceCode(script_run_source)
-        script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
+        script_run.setInjectionPoint(injection_point.DocumentReady)
         scripts.insert(script_run)
 
         # Set starting url
