@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -98,7 +98,7 @@ def rendervenv_worker():
                     ">>> Environment does not provide Python "
                     "- Recreating environment"
                 )
-                _remove_virtualenv(purge=False)
+                remove_virtualenv(purge=False)
                 _create_virtualenv()
             else:
                 _log(">>> Environment provides Python: OK")
@@ -121,31 +121,24 @@ def rendervenv_worker():
 
         # Step 4: Update pip (optional)
         if PARAMS.GetBool("UpdatePip"):
-            _log(">>> Updating pip (if needed)")
+            _log(">>> Updating pip")
             pip_install(
                 "pip",
                 options=[
                     "--upgrade",
-                    "--no-warn-script-location",
-                    "--only-binary",
                 ],
                 loglevel=1,
             )
 
         # Step 5: Check for needed packages - binaries
-        pyside = get_venv_pyside_version()  # PySide
         packages = [
-            pyside,
+            "PyQt6",
+            "PyQt6-WebEngine",
             "setuptools",
             "wheel",
             "renderplugin",
             "QtPy",
         ]
-
-        if pyside == "PyQt6":
-            packages.append("PyQt6-WebEngine")
-        if pyside == "PyQt5":
-            packages.append("PyQtWebEngine")
 
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")

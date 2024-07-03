@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -165,7 +165,7 @@ class PythonSubprocess(QProcess):
                 "[Render][Sub] COULD NOT set QTWEBENGINE_RESOURCES_PATH to "
                 f"'{resources}'\n"
             )
-        environment.insert("QT_API", get_venv_pyside_version())
+        environment.insert("QT_API", "pyqt6")
         self.setProcessEnvironment(environment)
 
         # Set stdout/stderr echoing
@@ -248,19 +248,25 @@ class PythonSubprocess(QProcess):
                         App.Console.PrintError(self.msgfmt(argument))
                     elif verb == "MATERIAL":
                         try:
+                            App.ActiveDocument.openTransaction(
+                                "MaterialXImport"
+                            )
                             argument = pathlib.Path(argument)
                             self.import_material(argument, App.ActiveDocument)
                         finally:
+                            App.ActiveDocument.commitTransaction()
                             self.child_send("RELEASE")
                     elif verb == "APPNAME":
                         self.appname = str(argument)
                     elif verb == "IMAGELIGHT":
                         try:
+                            App.ActiveDocument.openTransaction("HDRIImport")
                             basename, filepath = argument
                             _, fpo, _ = ImageLight.create(App.ActiveDocument)
                             fpo.Label = basename
                             fpo.ImageFile = filepath
                         finally:
+                            App.ActiveDocument.commitTransaction()
                             self.child_send("RELEASE")
                     else:
                         msg = f"Unknown verb/argument: '{verb}' '{argument}'"
@@ -415,8 +421,8 @@ class PythonSubprocessExternal(QObject):
                 self.process.kill()
 
 
-def start_subapp(app, options=None):
-    """Start sub application."""
+def start_plugin(app, options=None):
+    """Start plugin."""
     # Process arguments
     path = os.path.join(PLUGINDIR, f"{app}")
     path = os.path.normpath(path)
@@ -432,27 +438,3 @@ def start_subapp(app, options=None):
         subw = PythonSubprocessExternal(python, args)
 
     subw.start()
-
-
-# Specialized starters
-
-
-def start_help():
-    """Start help sub application."""
-    wbdir = os.path.normpath(WBDIR)
-    options = [wbdir]
-    start_subapp("help", options)
-
-
-def start_materialx(url=None):
-    """Start materialx sub application"""
-    url = url or "https://matlib.gpuopen.com/"
-    tmp = App.getTempPath()
-    options = [url, "--tmp", tmp]
-    start_subapp("materialx", options)
-
-
-def start_console(term="urxvt"):
-    """Start help sub application."""
-    options = ["--term", term]
-    start_subapp("console", options)

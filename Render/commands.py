@@ -5,7 +5,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -51,14 +51,9 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.subcontainer import start_help
+from Render.subcontainer import start_plugin
 
-if MATERIALX := PARAMS.GetBool("MaterialX"):
-    from Render.subcontainer import start_materialx
-else:
-
-    def start_materialx(*_):
-        """No operation."""
+MATERIALX = PARAMS.GetBool("MaterialX")
 
 
 class _IsActiveMixin:  # pylint: disable=too-few-public-methods
@@ -416,19 +411,10 @@ class MaterialMaterialXImportCommand(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            return
         url = "LOCAL"
-        start_materialx(url)
-        # TODO
-        # filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
-        # caption = translate("Render", "Select MaterialX")
-        # openfilename = QFileDialog.getOpenFileName(
-        # Gui.getMainWindow(), caption, "", filefilter
-        # )
-        # if not (materialx_file := openfilename[0]):
-        # return
-        # App.ActiveDocument.openTransaction("MaterialXImport")
-        # import_materialx(materialx_file, Gui.ActiveDocument.Document)
-        # App.ActiveDocument.commitTransaction()
+        start_plugin("materialx", [url])
 
 
 class MaterialMaterialXLibrary(_IsActiveMixin):
@@ -455,8 +441,10 @@ class MaterialMaterialXLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            return
         url = "https://matlib.gpuopen.com/"
-        start_materialx(url)
+        start_plugin("materialx", [url])
 
 
 class MaterialAmbientCGLibrary(_IsActiveMixin):
@@ -483,8 +471,10 @@ class MaterialAmbientCGLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            return
         url = "https://ambientcg.com/"
-        start_materialx(url)
+        start_plugin("materialx", [url])
 
 
 class MaterialRenderSettingsCommand(_IsActiveMixin):
@@ -670,7 +660,8 @@ class HelpCommand:
         This code is executed when the command is run in FreeCAD.
         It opens a help browser in Gui.
         """
-        start_help()
+        wbdir = os.path.normpath(WBDIR)
+        start_plugin("help", [wbdir])
 
 
 class SettingsCommand:

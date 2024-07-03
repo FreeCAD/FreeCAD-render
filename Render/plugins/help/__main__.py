@@ -1,26 +1,26 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2022 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
-# *   This program is free software; you can redistribute it and/or modify  *
-# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
-# *   the License, or (at your option) any later version.                   *
-# *   for detail see the LICENCE text file.                                 *
+# *   This program is free software: you can redistribute it and/or modify  *
+# *   it under the terms of the GNU General Public License as published by  *
+# *   the Free Software Foundation, either version 3 of the License, or     *
+# *   (at your option) any later version.                                   *
 # *                                                                         *
 # *   This program is distributed in the hope that it will be useful,       *
 # *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-# *   GNU Library General Public License for more details.                  *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *
+# *   See the GNU General Public License for more details.                  *
 # *                                                                         *
-# *   You should have received a copy of the GNU Library General Public     *
-# *   License along with this program; if not, write to the Free Software   *
-# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
-# *   USA                                                                   *
+# *   You should have received a copy of the GNU General Public License     *
+# *   along with this program. If not, see <https://www.gnu.org/licenses/>. *
 # *                                                                         *
 # ***************************************************************************
 
-"""This module implements a help viewer for Render workbench."""
+"""This module implements a help viewer for Render workbench.
+
+This feature is implemented as an independent plugin.
+"""
 
 import os.path
 import pathlib
@@ -72,10 +72,11 @@ class HelpViewer(QWidget):
         self.layout().addWidget(self.view)
 
         # Add actions to toolbar
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Back))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Forward))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Reload))
-        self.toolbar.addAction(self.view.pageAction(QWebEnginePage.Stop))
+        webaction = QWebEnginePage.WebAction
+        self.toolbar.addAction(self.view.pageAction(webaction.Back))
+        self.toolbar.addAction(self.view.pageAction(webaction.Forward))
+        self.toolbar.addAction(self.view.pageAction(webaction.Reload))
+        self.toolbar.addAction(self.view.pageAction(webaction.Stop))
 
         # Prepare scripts
         jquery_path = os.path.join(scripts_dir, "jQuery.js")
@@ -106,17 +107,19 @@ class HelpViewer(QWidget):
         script_jquery = QWebEngineScript()
         script_jquery.setSourceCode(script_jquery_source)
 
-        script_jquery.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        injection_point = QWebEngineScript.InjectionPoint
+
+        script_jquery.setInjectionPoint(injection_point.DocumentCreation)
         scripts.insert(script_jquery)
 
         script_marked = QWebEngineScript()
         script_marked.setSourceCode(script_marked_source)
-        script_marked.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        script_marked.setInjectionPoint(injection_point.DocumentCreation)
         scripts.insert(script_marked)
 
         script_run = QWebEngineScript()
         script_run.setSourceCode(script_run_source)
-        script_run.setInjectionPoint(QWebEngineScript.DocumentReady)
+        script_run.setInjectionPoint(injection_point.DocumentReady)
         scripts.insert(script_run)
 
         # Set starting url
