@@ -1,4 +1,8 @@
 <?xml version="1.0"?>
+<!--
+SPDX-FileCopyrightText: howetuft@gmail.com
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
 <materialx version="1.38">
 
   <nodedef name="standard_surface_to_render_pbr" node="standard_surface_to_render_pbr" nodegroup="translation">

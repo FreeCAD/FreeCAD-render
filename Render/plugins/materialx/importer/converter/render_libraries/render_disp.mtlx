@@ -1,4 +1,8 @@
 <?xml version="1.0"?>
+<!--
+SPDX-FileCopyrightText: howetuft@gmail.com
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
 <materialx version="1.38" colorspace="lin_rec709">
 
   <nodedef name="ND_render_pbr_displacementshader" node="render_disp" nodegroup="pbr">

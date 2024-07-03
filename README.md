@@ -78,7 +78,8 @@ FreeCAD model is just a 4-steps process:
    src=./Render/resources/icons/RenderView.svg height=32>
 
 
-3. **Set your point of view:** [Navigate in FreeCAD 3D View](https://wiki.freecadweb.org/Manual:Navigating_in_the_3D_view)
+3. **Set your point of view:**
+[Navigate in FreeCAD 3D View](https://wiki.freecadweb.org/Manual:Navigating_in_the_3D_view)
    to the desired position and switch to _Perspective_ mode.
 
 
@@ -90,7 +91,8 @@ FreeCAD model is just a 4-steps process:
 <br /> **...and you should get a first rendering of your model.** <br />
 
 
-You may also find a short tutorial on how to get started here: https://www.youtube.com/watch?v=8wsOnwjKG9M
+You may also find a short tutorial on how to get started here:
+https://www.youtube.com/watch?v=8wsOnwjKG9M
 
 
 ## More features
@@ -108,11 +110,14 @@ These adjustments should take place between steps 2 and 3.
 ## FAQ
 ### How to solve library conflicts within a FreeCAD AppImage
 
-When using an AppImage, you might be confronted with an error like this on execution of the "Render" command:
+When using an AppImage, you might be confronted with an error like this on
+execution of the "Render" command:
 
 `.../usr/lib/libstdc++.so.6: version 'CXXABI_1.3.15' not found`
 
-This is due to different library versions of your host system and the AppImage. As a workaround, provide your host libraries to the rendering command using the "Prefix" field in the Render WB configuration:
+This is due to different library versions of your host system and the AppImage.
+As a workaround, provide your host libraries to the rendering command using the
+"Prefix" field in the Render WB configuration:
 
 `env LD_LIBRARY_PATH="/usr/lib64"`
 
@@ -132,3 +137,11 @@ This project is covered by FreeCAD [Code of
 Conduct](https://github.com/FreeCAD/FreeCAD/blob/master/CODE_OF_CONDUCT.md).
 Please comply to this code in all your contributions (issue openings, pull
 requests...).
+
+## License
+
+The Render Workbench is licensed under the terms of GNU Lesser General Public
+License (GNU LGPL) version 2 or any later version, except plugins `help` and
+`materialx` (located in [Render/plugins](./Render/plugins) directory), that are
+licensed under the terms of GNU General Public License (GNU GPL) version 3 or
+any later version. See [COPYING](./COPYING) file for more information.
