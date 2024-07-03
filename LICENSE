@@ -1,18 +1,22 @@
 LICENSE
 
 The Render Workbench is licensed under the terms of GNU Lesser General Public
-License (LGPL) version 2 or, at your option, any later version, with the exception
-of the following components:
+License (LGPL) version 2.1 or, at your option, any later version.
+
+By way of exception, however, the following components are subject to a
+different licensing policy:
+
 - Plugin `help`, located in ./Render/plugins/help, is licensed under the terms
   of GNU General Public License (GNU GPL) version 3 or, at your option, any
   later version.
+
 - Plugin `materialx`, located in ./Render/plugins/materialx, is licensed under
   the terms of GNU General Public License (GNU GPL) version 3 or, at your
   option, any later version.
 
 Each source file contains its own licensing information. Source files with no
 licensing information are released under the GNU Lesser General Public License,
-version 2 or, at your option, any later version.
+version 2.1 or, at your option, any later version.
 
 All contributions to The Render Workbench are subject to this LICENSE file.
 
