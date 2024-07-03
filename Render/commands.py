@@ -52,14 +52,9 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.subcontainer import start_help
+from Render.subcontainer import start_plugin
 
-if MATERIALX := PARAMS.GetBool("MaterialX"):
-    from Render.subcontainer import start_materialx
-else:
-
-    def start_materialx(*_):
-        """No operation."""
+MATERIALX = PARAMS.GetBool("MaterialX")
 
 
 class _IsActiveMixin:  # pylint: disable=too-few-public-methods
@@ -420,8 +415,10 @@ class MaterialMaterialXImportCommand(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            return
         url = "LOCAL"
-        start_materialx(url)
+        start_plugin("materialx", [url])
         # TODO
         # filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
         # caption = translate("Render", "Select MaterialX")
@@ -459,8 +456,10 @@ class MaterialMaterialXLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            return
         url = "https://matlib.gpuopen.com/"
-        start_materialx(url)
+        start_plugin("materialx", [url])
 
 
 class MaterialAmbientCGLibrary(_IsActiveMixin):
@@ -487,8 +486,10 @@ class MaterialAmbientCGLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
+        if not MATERIALX:
+            return
         url = "https://ambientcg.com/"
-        start_materialx(url)
+        start_plugin("materialx", [url])
 
 
 class MaterialRenderSettingsCommand(_IsActiveMixin):
@@ -674,7 +675,8 @@ class HelpCommand:
         This code is executed when the command is run in FreeCAD.
         It opens a help browser in Gui.
         """
-        start_help()
+        wbdir = os.path.normpath(WBDIR)
+        start_plugin("help", [wbdir])
 
 
 class SettingsCommand:

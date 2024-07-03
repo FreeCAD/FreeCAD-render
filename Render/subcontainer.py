@@ -415,8 +415,8 @@ class PythonSubprocessExternal(QObject):
                 self.process.kill()
 
 
-def start_subapp(app, options=None):
-    """Start sub application."""
+def start_plugin(app, options=None):
+    """Start plugin."""
     # Process arguments
     path = os.path.join(PLUGINDIR, f"{app}")
     path = os.path.normpath(path)
@@ -432,27 +432,3 @@ def start_subapp(app, options=None):
         subw = PythonSubprocessExternal(python, args)
 
     subw.start()
-
-
-# Specialized starters
-
-
-def start_help():
-    """Start help sub application."""
-    wbdir = os.path.normpath(WBDIR)
-    options = [wbdir]
-    start_subapp("help", options)
-
-
-def start_materialx(url=None):
-    """Start materialx sub application"""
-    url = url or "https://matlib.gpuopen.com/"
-    tmp = App.getTempPath()
-    options = [url, "--tmp", tmp]
-    start_subapp("materialx", options)
-
-
-def start_console(term="urxvt"):
-    """Start help sub application."""
-    options = ["--term", term]
-    start_subapp("console", options)

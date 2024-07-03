@@ -90,11 +90,10 @@ class WebChooser(QWidget):
     _download_required = Signal(QWebEngineDownloadRequest)
     release_material_signal = Signal()
 
-    def __init__(self, url, temp_path, disp2bump=False):
+    def __init__(self, url, disp2bump=False):
         """Initialize chooser."""
         super().__init__()
         self.disp2bump = disp2bump
-        self.temp_path = temp_path
 
         self._layout = QVBoxLayout(self)
         self.profile = QWebEngineProfile()
@@ -161,7 +160,6 @@ class WebChooser(QWidget):
             return
         # Trigger effective download
         self._download_required.emit(download)
-        download.setDownloadDirectory(self.temp_path)
 
         download.accept()
 
@@ -237,9 +235,8 @@ class LocalChooser(QFileDialog):
     # pylint: disable=too-many-ancestors
     release_material_signal = Signal()
 
-    def __init__(self, temp_path, disp2bump=False):
+    def __init__(self, disp2bump=False):
         super().__init__()
-        self.temp_path = temp_path
         self.disp2bump = disp2bump
         self.setObjectName("RenderLocalChooser")
 
@@ -375,11 +372,6 @@ def main():
         help="the url of the site",
         type=str,
     )
-    parser.add_argument(
-        "--tmp",
-        help="a temporary folder",
-        type=pathlib.Path,
-    )
     args = parser.parse_args(ARGS)
 
     # Build application and launch
@@ -388,13 +380,9 @@ def main():
         application = RenderPluginApplication(
             WebChooser,
             QUrl(args.url),
-            str(args.tmp),
         )
     else:
-        application = RenderPluginApplication(
-            LocalChooser,
-            str(args.tmp),
-        )
+        application = RenderPluginApplication(LocalChooser)
     res = application.exec()
     log(f"Exiting plugin (return code: {res})")
     sys.exit(res)
