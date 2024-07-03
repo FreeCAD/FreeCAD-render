@@ -238,7 +238,7 @@ class Project(FeatureBase):
             chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "Activate caustics in Appleseed (usefull for interior scenes "
+                "Activate caustics in Appleseed (useful for interior scenes "
                 "ligthened by external light sources through glass)\n"
                 "SPECIFIC TO APPLESEED",
             ),
