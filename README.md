@@ -144,4 +144,4 @@ The Render Workbench is licensed under the terms of GNU Lesser General Public
 License (GNU LGPL) version 2 or any later version, except plugins `help` and
 `materialx` (located in [Render/plugins](./Render/plugins) directory), that are
 licensed under the terms of GNU General Public License (GNU GPL) version 3 or
-any later version. See [COPYING](./COPYING) file for more information.
+any later version. See [LICENSE](./LICENSE) file for more information.
