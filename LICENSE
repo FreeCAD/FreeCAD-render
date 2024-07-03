@@ -9,10 +9,11 @@ following components:
 - Plugin `materialx`, located in ./Render/plugins/materialx, is licensed under
   the terms of GNU General Public License (GNU GPL) version 3 or (at your
   option) any later version.
+
 (https://www.gnu.org/licenses/gpl-faq.en.html#GPLPlugins)
 
 Each source file contains its own licensing information. Source files with no
-licensing information are released under the GNU General Public License,
+licensing information are released under the GNU Lesser General Public License,
 version 2 or (at your option) any later version.
 
 All contributions to Render Workbench are subject to this COPYING file.
