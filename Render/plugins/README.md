@@ -63,4 +63,6 @@ Workbench side:
 
 ## License
 Please note that plugins, as separate programs, can be licensed under different
-terms that Render Workbench.
+terms that The Render Workbench. Please refer to license information placed
+into plugin directory and license notices inserted into source file for more
+information.
