@@ -37,7 +37,7 @@ from PySide.QtGui import (
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS
+from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS, WBDIR
 from Render.utils import translate
 from Render.rdrhandler import RendererHandler
 from Render.taskpanels import MaterialSettingsTaskPanel

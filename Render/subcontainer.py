@@ -27,7 +27,7 @@ removal of QtWebEngine from FreeCAD dependencies (May 2024).
 This module reduces Render dependencies to FreeCAD and PySide.
 """
 
-# A few design comments:
+# A few comments about design:
 # - Communication between Render and embedded app is done by pipes, thanks to
 #   Python. I did not opt for QLocalServer/QLocalSocket, as QtNetwork is not
 #   available in all FreeCAD versions (and could be removed in the future?)
@@ -51,7 +51,7 @@ import configparser
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import WBDIR, FCDVERSION, PLUGINDIR, PARAMS
+from Render.constants import FCDVERSION, PLUGINDIR, PARAMS
 from Render.virtualenv import (
     get_venv_python,
     get_venv_pyside_version,
