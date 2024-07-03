@@ -37,7 +37,7 @@ from PySide.QtGui import (
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS
+from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS, WBDIR
 from Render.utils import translate
 from Render.rdrhandler import RendererHandler
 from Render.taskpanels import MaterialSettingsTaskPanel
@@ -79,13 +79,12 @@ class RenderProjectCommand(_IsActiveMixin):
     def GetResources(self):
         """Get command's resources (callback)."""
         rdr = self.renderer
-        # FIXME: MenuText and ToolTip to create render projects don't work
+        menu_text = translate("Render_Projects", "{} Project")
+        tool_tip = translate("Render_Projects", "Create a {} project")
         return {
             "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
-            "MenuText": translate("Render_Projects", "{} Project").format(rdr),
-            "ToolTip": translate(
-                "Render_Projects", "Create a {} project"
-            ).format(rdr),
+            "MenuText": menu_text.format(rdr),
+            "ToolTip": tool_tip.format(rdr),
         }
 
     def Activated(self):

@@ -30,7 +30,6 @@ import os.path
 from urllib.parse import urlparse
 import argparse
 import sys
-import pathlib
 
 
 from qtpy.QtCore import (
