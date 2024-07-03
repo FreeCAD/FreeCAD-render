@@ -248,19 +248,25 @@ class PythonSubprocess(QProcess):
                         App.Console.PrintError(self.msgfmt(argument))
                     elif verb == "MATERIAL":
                         try:
+                            App.ActiveDocument.openTransaction(
+                                "MaterialXImport"
+                            )
                             argument = pathlib.Path(argument)
                             self.import_material(argument, App.ActiveDocument)
                         finally:
+                            App.ActiveDocument.commitTransaction()
                             self.child_send("RELEASE")
                     elif verb == "APPNAME":
                         self.appname = str(argument)
                     elif verb == "IMAGELIGHT":
                         try:
+                            App.ActiveDocument.openTransaction("HDRIImport")
                             basename, filepath = argument
                             _, fpo, _ = ImageLight.create(App.ActiveDocument)
                             fpo.Label = basename
                             fpo.ImageFile = filepath
                         finally:
+                            App.ActiveDocument.commitTransaction()
                             self.child_send("RELEASE")
                     else:
                         msg = f"Unknown verb/argument: '{verb}' '{argument}'"

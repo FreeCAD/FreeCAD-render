@@ -419,17 +419,6 @@ class MaterialMaterialXImportCommand(_IsActiveMixin):
             return
         url = "LOCAL"
         start_plugin("materialx", [url])
-        # TODO
-        # filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
-        # caption = translate("Render", "Select MaterialX")
-        # openfilename = QFileDialog.getOpenFileName(
-        # Gui.getMainWindow(), caption, "", filefilter
-        # )
-        # if not (materialx_file := openfilename[0]):
-        # return
-        # App.ActiveDocument.openTransaction("MaterialXImport")
-        # import_materialx(materialx_file, Gui.ActiveDocument.Document)
-        # App.ActiveDocument.commitTransaction()
 
 
 class MaterialMaterialXLibrary(_IsActiveMixin):
