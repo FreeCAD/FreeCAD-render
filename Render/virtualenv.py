@@ -121,13 +121,11 @@ def rendervenv_worker():
 
         # Step 4: Update pip (optional)
         if PARAMS.GetBool("UpdatePip"):
-            _log(">>> Updating pip (if needed)")
+            _log(">>> Updating pip")
             pip_install(
                 "pip",
                 options=[
                     "--upgrade",
-                    "--no-warn-script-location",
-                    "--only-binary",
                 ],
                 loglevel=1,
             )
