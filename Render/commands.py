@@ -53,18 +53,34 @@ from Render.lights import (
 from Render.rendermaterial import is_multimat
 from Render.subcontainer import start_plugin
 
-MATERIALX = PARAMS.GetBool("MaterialX")
 
-
-class _IsActiveMixin:  # pylint: disable=too-few-public-methods
+class _DocIsActiveMixin:  # pylint: disable=too-few-public-methods
     """Mixin class to make command active only when a doc is active."""
 
-    def IsActive(self):  # pylint: disable=no-self-use
+    def IsActive(self):
         """Indicate if the command is active (callback)."""
-        return hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
+        try:
+            res = super().IsActive()
+        except AttributeError:
+            res = True
+        return res and hasattr(
+            Gui.getMainWindow().getActiveWindow(), "getSceneGraph"
+        )
 
 
-class RenderProjectCommand(_IsActiveMixin):
+class _MaterialXIsActiveMixin:  # pylint: disable=too-few-public-methods
+    """Mixin class to make command active only when MaterialX is enabled."""
+
+    def IsActive(self):
+        """Indicate if the command is active (callback)."""
+        try:
+            res = super().IsActive()
+        except AttributeError:
+            res = True
+        return res and PARAMS.GetBool("MaterialX")
+
+
+class RenderProjectCommand(_DocIsActiveMixin):
     """GUI command to create a rendering project."""
 
     def __init__(self, renderer):
@@ -105,7 +121,7 @@ class RenderProjectCommand(_IsActiveMixin):
         )
 
 
-class RenderViewCommand(_IsActiveMixin):
+class RenderViewCommand(_DocIsActiveMixin):
     """GUI command to create a rendering view of an object in a project.
 
     The command operates on the selected object(s) and the selected project,
@@ -163,7 +179,7 @@ class RenderViewCommand(_IsActiveMixin):
         QApplication.restoreOverrideCursor()
 
 
-class RenderCommand(_IsActiveMixin):
+class RenderCommand(_DocIsActiveMixin):
     """GUI command to render a selected Render project."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -201,7 +217,7 @@ class RenderCommand(_IsActiveMixin):
         project.Proxy.render()
 
 
-class CameraCommand(_IsActiveMixin):
+class CameraCommand(_DocIsActiveMixin):
     """GUI command to create a Camera object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -224,7 +240,7 @@ class CameraCommand(_IsActiveMixin):
         Camera.create()
 
 
-class PointLightCommand(_IsActiveMixin):
+class PointLightCommand(_DocIsActiveMixin):
     """GUI command to create a Point Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -246,7 +262,7 @@ class PointLightCommand(_IsActiveMixin):
         PointLight.create()
 
 
-class AreaLightCommand(_IsActiveMixin):
+class AreaLightCommand(_DocIsActiveMixin):
     """GUI command to create an Area Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -268,7 +284,7 @@ class AreaLightCommand(_IsActiveMixin):
         AreaLight.create()
 
 
-class SunskyLightCommand(_IsActiveMixin):
+class SunskyLightCommand(_DocIsActiveMixin):
     """GUI command to create an Sunsky Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -292,7 +308,7 @@ class SunskyLightCommand(_IsActiveMixin):
         SunskyLight.create()
 
 
-class ImageLightCommand(_IsActiveMixin):
+class ImageLightCommand(_DocIsActiveMixin):
     """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -314,7 +330,7 @@ class ImageLightCommand(_IsActiveMixin):
         ImageLight.create()
 
 
-class DistantLightCommand(_IsActiveMixin):
+class DistantLightCommand(_DocIsActiveMixin):
     """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -338,7 +354,7 @@ class DistantLightCommand(_IsActiveMixin):
         DistantLight.create()
 
 
-class MaterialCreatorCommand(_IsActiveMixin):
+class MaterialCreatorCommand(_DocIsActiveMixin):
     """GUI command to create a material."""
 
     def __init__(self, newname=False):
@@ -386,7 +402,9 @@ class MaterialCreatorCommand(_IsActiveMixin):
         App.ActiveDocument.commitTransaction()
 
 
-class MaterialMaterialXImportCommand(_IsActiveMixin):
+class MaterialMaterialXImportCommand(
+    _DocIsActiveMixin, _MaterialXIsActiveMixin
+):
     """GUI command to import a MaterialX material."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -410,13 +428,13 @@ class MaterialMaterialXImportCommand(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
+        if not PARAMS.GetBool("MaterialX"):
             return
         url = "LOCAL"
         start_plugin("materialx", [url])
 
 
-class MaterialMaterialXLibrary(_IsActiveMixin):
+class MaterialMaterialXLibrary(_DocIsActiveMixin, _MaterialXIsActiveMixin):
     """GUI command to open MaterialX online library."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -440,13 +458,13 @@ class MaterialMaterialXLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
+        if not PARAMS.GetBool("MaterialX"):
             return
         url = "https://matlib.gpuopen.com/"
         start_plugin("materialx", [url])
 
 
-class MaterialAmbientCGLibrary(_IsActiveMixin):
+class MaterialAmbientCGLibrary(_DocIsActiveMixin, _MaterialXIsActiveMixin):
     """GUI command to open AmbientCG online library."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -470,13 +488,13 @@ class MaterialAmbientCGLibrary(_IsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not MATERIALX:
+        if not PARAMS.GetBool("MaterialX"):
             return
         url = "https://ambientcg.com/"
         start_plugin("materialx", [url])
 
 
-class MaterialRenderSettingsCommand(_IsActiveMixin):
+class MaterialRenderSettingsCommand(_DocIsActiveMixin):
     """GUI command to set render settings of a material object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -506,7 +524,7 @@ class MaterialRenderSettingsCommand(_IsActiveMixin):
         App.ActiveDocument.commitTransaction()
 
 
-class MaterialApplierCommand(_IsActiveMixin):
+class MaterialApplierCommand(_DocIsActiveMixin):
     """GUI command to apply a material to an object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -693,7 +711,7 @@ class SettingsCommand:
 # ===========================================================================
 
 
-class CommandGroup(_IsActiveMixin):
+class CommandGroup(_DocIsActiveMixin):
     """Group of commands for GUI (toolbar, menu...)."""
 
     def __init__(self, cmdlist, menu, tooltip=None):
@@ -770,9 +788,9 @@ def _init_gui_commands():
     )
 
     libs_cmd = [
+        ("MaterialCreator", MaterialCreatorCommand()),
         ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
         ("MaterialAmbientCGLibrary", MaterialAmbientCGLibrary()),
-        ("MaterialCreator", MaterialCreatorCommand()),
         ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
     ]
     libraries_group = CommandGroup(
@@ -783,38 +801,21 @@ def _init_gui_commands():
         ),
     )
 
-    if MATERIALX:
-        render_commands = [
-            ("Projects", projects_group),
-            separator,
-            ("Camera", CameraCommand()),
-            ("Lights", lights_group),
-            ("View", RenderViewCommand()),
-            separator,
-            ("Libraries", libraries_group),
-            ("Materials", materials_group),
-            separator,
-            ("Render", RenderCommand()),
-            separator,
-            ("Settings", SettingsCommand()),
-            ("Help", HelpCommand()),
-        ]
-    else:
-        mats_cmd.insert(0, ("MaterialCreator", MaterialCreatorCommand()))
-        render_commands = [
-            ("Projects", projects_group),
-            separator,
-            ("Camera", CameraCommand()),
-            ("Lights", lights_group),
-            ("View", RenderViewCommand()),
-            separator,
-            ("Materials", materials_group),
-            separator,
-            ("Render", RenderCommand()),
-            separator,
-            ("Settings", SettingsCommand()),
-            ("Help", HelpCommand()),
-        ]
+    render_commands = [
+        ("Projects", projects_group),
+        separator,
+        ("Camera", CameraCommand()),
+        ("Lights", lights_group),
+        ("View", RenderViewCommand()),
+        separator,
+        ("Libraries", libraries_group),
+        ("Materials", materials_group),
+        separator,
+        ("Render", RenderCommand()),
+        separator,
+        ("Settings", SettingsCommand()),
+        ("Help", HelpCommand()),
+    ]
 
     result = []
 
