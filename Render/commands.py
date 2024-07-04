@@ -54,6 +54,11 @@ from Render.rendermaterial import is_multimat
 from Render.subcontainer import start_plugin
 
 
+# ===========================================================================
+#                  Mixins (additional features for commands)
+# ===========================================================================
+
+
 class _DocIsActiveMixin:  # pylint: disable=too-few-public-methods
     """Mixin class to make command active only when a doc is active."""
 
@@ -80,6 +85,11 @@ class _MaterialXIsActiveMixin:  # pylint: disable=too-few-public-methods
         return res and PARAMS.GetBool("MaterialX")
 
 
+# ===========================================================================
+#                               Commands
+# ===========================================================================
+
+
 class RenderProjectCommand(_DocIsActiveMixin):
     """GUI command to create a rendering project."""
 
@@ -95,8 +105,8 @@ class RenderProjectCommand(_DocIsActiveMixin):
     def GetResources(self):
         """Get command's resources (callback)."""
         rdr = self.renderer
-        menu_text = translate("Render_Projects", "{} Project")
-        tool_tip = translate("Render_Projects", "Create a {} project")
+        menu_text = QT_TRANSLATE_NOOP("Render_Projects", "{} Project")
+        tool_tip = QT_TRANSLATE_NOOP("Render_Projects", "Create a {} project")
         return {
             "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
             "MenuText": menu_text.format(rdr),
