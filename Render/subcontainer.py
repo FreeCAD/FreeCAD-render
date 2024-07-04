@@ -359,7 +359,7 @@ class PythonSubprocessWindow(QMdiSubWindow):
         self.container.setObjectName("RenderProcessWindowContainer")
         self.setWidget(self.container)
         self.container.setParent(self)
-        self.showMaximized()
+        self.show()
 
     @Slot()
     def detach_process(self):
