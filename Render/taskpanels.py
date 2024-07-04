@@ -5,7 +5,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -925,7 +925,7 @@ please edit 'Render settings' from material context menu.*"""
         label.setTextFormat(Qt.TextFormat.MarkdownText)
         self.form.layout().addWidget(label)
 
-    def fillMaterialCombo(self):  # pylint: disable=invalid-name
+    def fillMaterialCombo(self):
         """Fill Material combo box.
 
         Look for cards in both Workbench directory and Materials sub-folder
@@ -959,11 +959,6 @@ please edit 'Render settings' from material context menu.*"""
         parser.optionxform = lambda x: x  # Case sensitive
         in_file = self.cards[card]
         parser.read(in_file)
-        try:
-            matname = parser["General"]["Name"]
-        except LookupError:
-            matname = "Material"
-
         self.material = {
             key: value
             for section in parser.values()
@@ -993,6 +988,6 @@ please edit 'Render settings' from material context menu.*"""
         super().accept()
         return True
 
-    def reject(self):  # pylint: disable=no-self-use
+    def reject(self):
         """Respond to user rejection."""
         return True

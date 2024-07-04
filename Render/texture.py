@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -81,38 +81,38 @@ class Texture(FeatureBase):
 
     VIEWPROVIDER = "ViewProviderTexture"
 
-    IMAGE_GROUP = QT_TRANSLATE_NOOP("Render", "Image(s)")
-    MAPPING_GROUP = QT_TRANSLATE_NOOP("Render", "Mapping")
+    IMAGE_GROUP = QT_TRANSLATE_NOOP("App::Property", "Image(s)")
+    MAPPING_GROUP = QT_TRANSLATE_NOOP("App::Property", "Mapping")
 
     PROPERTIES = {
         "Image": Prop(
             "App::PropertyFileIncluded",
             IMAGE_GROUP,
-            QT_TRANSLATE_NOOP("Render", "Texture Image File"),
+            QT_TRANSLATE_NOOP("App::Property", "Texture Image File"),
             "",
         ),
         "Rotation": Prop(
             "App::PropertyAngle",
             MAPPING_GROUP,
-            QT_TRANSLATE_NOOP("Render", "UV rotation (in degrees)"),
+            QT_TRANSLATE_NOOP("App::Property", "UV rotation (in degrees)"),
             0,
         ),
         "Scale": Prop(
             "App::PropertyFloat",
             MAPPING_GROUP,
-            QT_TRANSLATE_NOOP("Render", "UV scale"),
+            QT_TRANSLATE_NOOP("App::Property", "UV scale"),
             1.0,
         ),
         "TranslationU": Prop(
             "App::PropertyDistance",
             MAPPING_GROUP,
-            QT_TRANSLATE_NOOP("Render", "UV translation - U component"),
+            QT_TRANSLATE_NOOP("App::Property", "UV translation - U component"),
             0,
         ),
         "TranslationV": Prop(
             "App::PropertyDistance",
             MAPPING_GROUP,
-            QT_TRANSLATE_NOOP("Render", "UV translation - V component"),
+            QT_TRANSLATE_NOOP("App::Property", "UV translation - V component"),
             0,
         ),
     }

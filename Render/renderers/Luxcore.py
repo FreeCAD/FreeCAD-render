@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -501,6 +501,7 @@ def _write_texture(**kwargs):
     texname = f"{objname}_{propvalue.name}_{propvalue.subname}"
     gamma = 2.2 if proptype == "RGB" else 1.0
     filename = os.path.relpath(propvalue.file, project_directory)
+    filename = filename.replace("\\", r"\\")
     rotation = float(propvalue.rotation)
     scale = 1 / float(propvalue.scale)
     trans_u = float(propvalue.translation_u)

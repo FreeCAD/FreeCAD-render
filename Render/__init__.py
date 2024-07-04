@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -25,11 +25,7 @@
 
 It imports all the public symbols which make up the Render Workbench API.
 """
-
-# First ensure we've got a Python virtual environment
-from Render.virtualenv import ensure_rendervenv  # noqa: F401
-
-ensure_rendervenv()
+import FreeCAD as App
 
 from Render.constants import (  # noqa: F401
     WBDIR,
@@ -82,12 +78,12 @@ from Render.utils import (  # noqa: F401
 )
 from Render.commands import RENDER_COMMANDS  # noqa: F401
 from Render.prefpage import PreferencesPage  # noqa: F401
-from Render.subcontainer import start_help  # TODO
 
-if PARAMS.GetBool("MaterialX"):
-    from Render.materialx import import_materialx  # noqa: F401
+from Render.virtualenv import ensure_rendervenv  # noqa: F401
 
-import FreeCAD as App
+# Ensure we've got a Python virtual environment
+ensure_rendervenv()
+
 
 if App.GuiUp:
     import FreeCADGui as Gui

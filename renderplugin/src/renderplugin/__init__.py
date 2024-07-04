@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -20,14 +20,21 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module gathers public MaterialX handling features."""
+"""This module implements framework for Render plugins.
 
-from FreeCAD import GuiUp
+The framework gives ability to plugins:
+- to be embedded into FreeCAD Gui
+- to communicate with Render and therefore with FreeCAD
+"""
 
-from .materialx_importer import MaterialXImporter, import_materialx
-
-if GuiUp:
-    from .materialx_downloader import MaterialXDownloader, open_mxdownloader
-else:
-    MaterialXDownloader = None  # pylint: disable=invalid-name
-    open_mxdownloader = None  # pylint: disable=invalid-name
+from .plugin_framework import (
+    ARGS,
+    RenderPluginApplication,
+    PluginMessageEvent,
+    log,
+    msg,
+    warn,
+    error,
+    SOCKET,
+    SERVERNAME,
+)

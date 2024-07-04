@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -21,6 +21,8 @@
 # ***************************************************************************
 
 """Script for adjacency lists computation in multiprocessing mode."""
+
+# pylint: disable=possibly-used-before-assignment
 
 import sys
 import os
@@ -627,9 +629,7 @@ def init(shared):
     global SHARED_VNORMALS_SHM_SIZE
     SHARED_VNORMALS_SHM_SIZE = shared["vnormals_shm_size"]
 
-    use_numpy = USE_NUMPY and shared["enable_numpy"]
-
-    if use_numpy:
+    if USE_NUMPY and shared["enable_numpy"]:
         global SHARED_HASHES_NP
         SHARED_HASHES_NP = np.array(
             shared["hashes"], copy=False, dtype=np.int64

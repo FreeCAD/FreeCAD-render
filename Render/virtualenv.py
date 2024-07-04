@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -45,8 +45,10 @@ import tempfile
 import subprocess
 import shutil
 import concurrent.futures
+import functools
 
 import FreeCAD as App
+import FreeCADGui as Gui
 
 from PySide import __version__ as PYSIDE_VERSION
 
@@ -59,6 +61,7 @@ RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
 
 # RENDERVENV = RenderVirtualEnv()  # Not workable yet
 RENDERVENV = None
+QTBASE = "PySide"  # in ("PyQt", "PySide")
 
 # API
 
@@ -95,7 +98,7 @@ def rendervenv_worker():
                     ">>> Environment does not provide Python "
                     "- Recreating environment"
                 )
-                _remove_virtualenv()
+                remove_virtualenv(purge=False)
                 _create_virtualenv()
             else:
                 _log(">>> Environment provides Python: OK")
@@ -118,59 +121,65 @@ def rendervenv_worker():
 
         # Step 4: Update pip (optional)
         if PARAMS.GetBool("UpdatePip"):
-            _log(">>> Updating pip (if needed)")
+            _log(">>> Updating pip")
             pip_install(
                 "pip",
                 options=[
                     "--upgrade",
-                    "--no-warn-script-location",
-                    "--only-binary",
                 ],
                 loglevel=1,
             )
 
         # Step 5: Check for needed packages - binaries
-        packages = ["setuptools", "wheel"]
+        packages = [
+            "PyQt6",
+            "PyQt6-WebEngine",
+            "setuptools",
+            "wheel",
+            "renderplugin",
+            "QtPy",
+        ]
 
         if PARAMS.GetBool("MaterialX"):
             packages.append("materialx")
 
-        packages.append(get_venv_pyside_version())
-
-        # TODO
-        # if pyside_version == "5.15.2":
-        # pyside_version = "5.15.2.1"  # For Ubuntu 22.04
-        # packages.append(f"PySide2=={pyside_version}")
+        # Commands for binaries
+        options = [
+            "--no-warn-script-location",
+            "--only-binary=:all:",
+            f"--find-links={WHEELSDIR}",
+        ]
+        commands = [
+            (
+                pip_install,
+                package,
+                options + (["-I"] if package == "renderplugin" else []),
+                _log,
+                1,
+            )
+            for package in packages
+        ]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
-                executor.submit(
-                    pip_install,
-                    package,
-                    options=[
-                        "--no-warn-script-location",
-                        "--only-binary=:all:",
-                        f"--find-links={WHEELSDIR}",
-                    ],
-                    loglevel=1,
-                ): package
-                for package in packages
+                executor.submit(*command): package
+                for command, package in zip(commands, packages)
             }
             errors = {}
             for future in concurrent.futures.as_completed(futures):
                 package = futures[future]
                 if not (return_code := future.result()):
-                    _msg(f"Checked package '{package}' - OK")
+                    _msg(f"Checking package '{package}' - OK")
                 else:
                     _warn(
-                        f"Checked package '{package}' - ERROR "
+                        f"Checking package '{package}' - ERROR "
                         f"(return code: {return_code})"
                     )
                     errors[package] = return_code
 
-        # Step 7: Report errors to user
+        # Step 6: Report errors to user
         if errors:
-            failed = ", ".join(f"'{p}'" for p in errors.keys())
+            failed = ", ".join(f"'{p}'" for p in errors)
             _warn(
                 f"WARNING - The following dependencies could not be installed:"
                 f"{failed}"
@@ -223,21 +232,27 @@ def get_venv_python():
 def get_venv_python_version():
     """Get version of virtual environment Python interpreter."""
     path = get_venv_python()
-    res = subprocess.run([path, "--version"], capture_output=True)
+    res = subprocess.run([path, "--version"], capture_output=True, check=False)
     res = tuple(int(c) for c in res.stdout.lstrip(b"Python ").split(b"."))
     return res
 
 
 def get_venv_pyside_version():
+    """Get version of PySide in virtual environment."""
     python_version = get_venv_python_version()
-    _log(str(python_version))
-    if python_version >= (3, 9):
-        return "PySide6"
-    else:
+    _log(f"Virtual environment Python version: {str(python_version)}")
+    if QTBASE == "PySide":
+        if python_version >= (3, 9):
+            return "PySide6"
         return "PySide2"
+    if QTBASE == "PyQt":
+        if python_version >= (3, 8):
+            return "PyQt6"
+        return "PyQt5"
+    raise ValueError(QTBASE)
 
 
-def pip_install(package, options=None, log=None, loglevel=0):
+def pip_run(verb, package, options=None, log=None, loglevel=0):
     """Install package with pip in Render virtual environment.
 
     Returns: a subprocess.CompletedInstance"""
@@ -245,7 +260,7 @@ def pip_install(package, options=None, log=None, loglevel=0):
     log = log or _log
     if not (executable := get_venv_python()):
         raise VenvError(3)
-    cmd = [executable, "-u", "-m", "pip", "install"] + options + [package]
+    cmd = [executable, "-u", "-m", "pip", verb] + options + [package]
     log(" ".join([">>>"] + cmd))
     environment = os.environ.copy()
     environment.pop("PYTHONHOME", None)
@@ -262,6 +277,10 @@ def pip_install(package, options=None, log=None, loglevel=0):
         for line in proc.stdout:
             log(f"{pads} {line}")
     return proc.returncode
+
+
+pip_install = functools.partial(pip_run, "install")
+pip_wheel = functools.partial(pip_run, "wheel")
 
 
 def pip_uninstall(package):
@@ -339,8 +358,10 @@ def _create_virtualenv():
         )
 
 
-def _remove_virtualenv():
+def remove_virtualenv(purge=True):
     """Remove Render virtual environment."""
+    if purge:
+        pip_run("cache", "purge")
     shutil.rmtree(RENDER_VENV_DIR, ignore_errors=True)
 
 
@@ -406,6 +427,7 @@ def _msg(message):
     if message.endswith("\n"):
         message = message[:-1]
     App.Console.PrintMessage(f"[Render][Init] {message}\n")
+    _status(message)
 
 
 def _warn(message):
@@ -416,6 +438,20 @@ def _warn(message):
     if message.endswith("\n"):
         message = message[:-1]
     App.Console.PrintWarning(f"[Render][Init] {message}\n")
+    _status(message)
+
+
+def _status(message):
+    """Print to status bar."""
+    if not message:
+        return
+    # Trim ending newline
+    if message.endswith("\n"):
+        message = message[:-1]
+    if App.GuiUp:
+        Gui.getMainWindow().statusBar().showMessage(
+            f"Render Initialization - {message}\n"
+        )
 
 
 def _binpath():
@@ -427,3 +463,19 @@ def _binpath():
     else:
         raise VenvError(2)  # Unknown os.name
     return path
+
+
+def get_venv_sitepackages():
+    """Get site packages directory for virtual environment."""
+    args = [
+        get_venv_python(),
+        "-c",
+        "import sysconfig; print(sysconfig.get_paths()['purelib'])",
+    ]
+    env = os.environ
+    env.pop("PYTHONHOME", None)
+    result = subprocess.run(
+        args, capture_output=True, text=True, env=env, check=False
+    )
+    result.check_returncode()
+    return result.stdout.strip()

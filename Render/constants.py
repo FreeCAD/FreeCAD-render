@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -43,6 +43,7 @@ WHEELSDIR = os.path.join(WBDIR, "wheelhouse")
 TRANSDIR = os.path.join(PKGDIR, "resources", "translations")
 PREFPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderSettings.ui")
 TASKPAGE = os.path.join(PKGDIR, "resources", "ui", "RenderMaterial.ui")
+PLUGINDIR = os.path.join(PKGDIR, "plugins")
 
 # Renderers lists
 RENDERERS = {

@@ -6,7 +6,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -56,6 +56,7 @@ TEMPLATE_FILTER = "Appleseed templates (appleseed_*.appleseed)"
 
 SHADERS_DIR = os.path.join(os.path.dirname(__file__), "as_shaders")
 
+PARAMS = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
 
 # ===========================================================================
 #                             Write functions
@@ -1238,13 +1239,12 @@ def test_cmdline(batch):
 
     This function allows to test if renderer settings (path...) are correct
     """
-    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if not batch:
         # GUI
-        rpath = params.GetString("AppleseedStudioPath", "")
+        rpath = PARAMS.GetString("AppleseedStudioPath", "")
     else:
         # Console
-        rpath = params.GetString("AppleseedCliPath", "")
+        rpath = PARAMS.GetString("AppleseedCliPath", "")
     return [rpath, "--help"]
 
 
@@ -1489,16 +1489,15 @@ def render(
         f.write(template)
 
     # Prepare command line parameters and rpath
-    params = App.ParamGet("User parameter:BaseApp/Preferences/Mod/Render")
     if not batch:
         # GUI
-        rpath = params.GetString("AppleseedStudioPath", "")
+        rpath = PARAMS.GetString("AppleseedStudioPath", "")
         args = ""
         output_file = None
     else:
         # Console
-        rpath = params.GetString("AppleseedCliPath", "")
-        if args := params.GetString("AppleseedParameters", ""):
+        rpath = PARAMS.GetString("AppleseedCliPath", "")
+        if args := PARAMS.GetString("AppleseedParameters", ""):
             args += " "
         args += f"""--output "{output_file}" """
         if spp:

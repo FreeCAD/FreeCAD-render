@@ -1,22 +1,19 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2024 Howefuft <howetuft-at-gmail>                       *
+# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
-# *   This program is free software; you can redistribute it and/or modify  *
-# *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
-# *   the License, or (at your option) any later version.                   *
-# *   for detail see the LICENCE text file.                                 *
+# *   This program is free software: you can redistribute it and/or modify  *
+# *   it under the terms of the GNU General Public License as published by  *
+# *   the Free Software Foundation, either version 3 of the License, or     *
+# *   (at your option) any later version.                                   *
 # *                                                                         *
 # *   This program is distributed in the hope that it will be useful,       *
 # *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-# *   GNU Library General Public License for more details.                  *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *
+# *   See the GNU General Public License for more details.                  *
 # *                                                                         *
-# *   You should have received a copy of the GNU Library General Public     *
-# *   License along with this program; if not, write to the Free Software   *
-# *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
-# *   USA                                                                   *
+# *   You should have received a copy of the GNU General Public License     *
+# *   along with this program. If not, see <https://www.gnu.org/licenses/>. *
 # *                                                                         *
 # ***************************************************************************
 
@@ -43,6 +40,7 @@ import json
 import signal
 import sys
 import site
+from multiprocessing.connection import Client
 
 try:
     import MaterialX as mx
@@ -58,6 +56,7 @@ from materialx_baker import RenderTextureBaker
 
 MATERIALXDIR = os.path.dirname(__file__)
 TEXNAME = "Texture"  # Texture name
+CONNECTION = None
 
 
 class ConverterError(Exception):
@@ -167,7 +166,7 @@ class MaterialXConverter:
                 raise ConverterError(255)  # Interrupted
             with zipfile.ZipFile(self._filename, "r") as matzip:
                 # Unzip material
-                log(f"Extracting to {working_dir}")
+                message(f"Extracting to {working_dir}")
                 matzip.extractall(path=working_dir)
                 # Find materialx file
                 files = (
@@ -204,7 +203,7 @@ class MaterialXConverter:
         """Read materialx file to translate."""
         assert self._state.mtlx_filename
 
-        log("Reading MaterialX file")
+        message("Reading MaterialX file")
 
         # Read doc
         mxdoc = mx.createDocument()
@@ -287,7 +286,7 @@ class MaterialXConverter:
 
     def _translate_materialx(self):
         """Translate MaterialX from StandardSurface to RenderPBR."""
-        log("Translating material to Render format")
+        message("Translating material to Render format")
 
         assert self._state.search_path
         assert self._state.mtlx_input_doc
@@ -345,7 +344,7 @@ class MaterialXConverter:
         except StopIteration:
             return
 
-        log(
+        message(
             "Polyhaven material detected: will use actual texture size from "
             "polyhaven.com "
             f"('{size} {'meters' if size > 1 else 'meter'}')"
@@ -490,7 +489,7 @@ class MaterialXConverter:
         mxname = mxmat.getAttribute("original_name")
 
         outfilename = os.path.join(self._destdir, "out.FCMat")
-        log(f"Creating material card: {outfilename}")
+        message(f"Creating material card: {outfilename}")
 
         # Get images
         images, outputs = _get_images_from_mxdoc(mxdoc)
@@ -584,7 +583,7 @@ def _write_fcmat_to_disk(matdict, name, outfilename):
 def _set_progress(value, maximum):
     """Report progress."""
     msg = json.dumps({"value": value, "maximum": maximum})
-    log(msg)
+    print(msg)
 
 
 def _interrupt(signum, stackframe):
@@ -624,17 +623,34 @@ class TermColors:
 
 def log(msg):
     """Emit log message during MaterialX processing."""
-    print(msg)
+    try:
+        CONNECTION.send(("LOG", msg + "\n"))
+    except AttributeError:
+        print(msg)
+
+
+def message(msg):
+    """Emit plain message during MaterialX processing."""
+    try:
+        CONNECTION.send(("MSG", msg + "\n"))
+    except AttributeError:
+        print(msg)
 
 
 def warn(msg):
     """Emit warning during MaterialX processing."""
-    print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
+    try:
+        CONNECTION.send(("WARN", msg + "\n"))
+    except AttributeError:
+        print(TermColors.WARNING + msg + TermColors.ENDC, file=sys.stderr)
 
 
 def error(msg):
     """Emit error message during MaterialX processing."""
-    print(TermColors.FAIL + msg + TermColors.ENDC, file=sys.stderr)
+    try:
+        CONNECTION.send(("ERROR", msg + "\n"))
+    except AttributeError:
+        print(TermColors.FAIL + msg + TermColors.ENDC, file=sys.stderr)
 
 
 # Main
@@ -644,7 +660,13 @@ if __name__ == "__main__":
     parser.add_argument("destdir", type=pathlib.Path)
     parser.add_argument("--polyhaven-size", type=float)
     parser.add_argument("--disp2bump", action="store_true")
+    parser.add_argument("--hostpipe", type=str)
     program_args = parser.parse_args()
+
+    try:
+        CONNECTION = Client(program_args.hostpipe)
+    except ValueError:
+        CONNECTION = None
 
     try:
         signal.signal(signal.SIGTERM, _interrupt)

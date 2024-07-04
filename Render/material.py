@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -83,7 +83,7 @@ def get_material_container():
             "App::DocumentObjectGroupPython", "MaterialContainer"
         )
         container.Label = "Materials"
-        _ArchMaterialContainer(obj)
+        _ArchMaterialContainer(container)
         if App.GuiUp:
             _ViewProviderArchMaterialContainer(container.ViewObject)
     return container

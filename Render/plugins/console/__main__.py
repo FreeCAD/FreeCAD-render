@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -20,17 +20,56 @@
 # *                                                                         *
 # ***************************************************************************
 
-"""This module contains the web engine profile for MaterialX download."""
+"""This module implements an embedded console (debugging purpose)."""
 
-# This module isolates the web engine profile from reloading.
-# DO NOT INCLUDE IT IN 'Render.reload'
-# Indeed, reloading the web engine profile crashes FreeCAD if a web page is
-# open. Thus the web profile has to be created once and for all, and
-# never reloaded...
+import sys
+import argparse
 
-try:
-    from PySide2.QtWebEngineWidgets import QWebEngineProfile
-except:
-    from PySide6.QtWebEngineCore import QWebEngineProfile
+from qtpy.QtWidgets import QWidget, QVBoxLayout
+from qtpy.QtCore import QProcess
 
-WEBPROFILE = QWebEngineProfile()
+from renderplugin import RenderPluginApplication, ARGS
+
+
+class Terminal(QWidget):
+    """Terminal widget, the central widget for embedded console."""
+
+    def __init__(self, terminal):
+        super().__init__()
+        self.process = QProcess(self)
+        self.terminal = QWidget(self)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.terminal)
+        wid = str(int(self.terminal.winId()))
+        if terminal == "uxrvt":
+            options = ["-embed", wid]
+        elif terminal == "xterm":
+            options = ["-into", wid]
+        else:
+            options = ["-embed", wid]
+        self.process.start(terminal, options)
+
+    def closeEvent(self, event):
+        self.process.terminate()
+        self.process.waitForFinished(1000)
+
+
+def main():
+    """Entry point."""
+    # Get arguments
+    parser = argparse.ArgumentParser(
+        prog="Render help",
+        description="Open a terminal emulator",
+    )
+    parser.add_argument(
+        "--term",
+        help="the terminal emulator to open",
+        type=str,
+    )
+    args = parser.parse_args(ARGS)
+    application = RenderPluginApplication(Terminal, args.term)
+    sys.exit(application.exec())
+
+
+if __name__ == "__main__":
+    main()

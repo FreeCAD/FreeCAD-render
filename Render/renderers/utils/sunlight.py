@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -800,7 +800,7 @@ class ColorXYZ:
         # rng -- range of integration
         rng = CIE_STD_OBSERVER_RANGE
         d_w = float(rng.step)
-        color = sum([cls(*CIE_STD_OBSERVER[w]) * srd[w] * d_w for w in rng])
+        color = sum(cls(*CIE_STD_OBSERVER[w]) * srd[w] * d_w for w in rng)
 
         # Normalization
         color *= MAX_PHOTOPIC_LUMINOUS_EFFICACY
@@ -1001,7 +1001,7 @@ def sunlight(theta, turbidity):
     solid_angle_1m2 = 1.0 * SUN_MEAN_DISTANCE**-2  # sr.m-2
 
     # Radiometric quantities
-    radiance = sum([attenuated_srd[w] for w in range(380, 760)])  # W.sr-1.m-2
+    radiance = sum(attenuated_srd[w] for w in range(380, 760))  # W.sr-1.m-2
     radiant_intensity = PI * SUN_RADIUS**2 * radiance  # W.sr-1
     irradiance = radiant_intensity * solid_angle_1m2  # W.m-2
 

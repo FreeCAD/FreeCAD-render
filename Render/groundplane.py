@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -62,9 +62,10 @@ class _GroundPlane:
         self.Document = project.fpo.Document
         self.Placement = App.Placement()
 
+        color = project.fpo.GroundPlaneColor  # Keep it in FCD format
+
         if bbox.isValid():
             zpos = project.fpo.GroundPlaneZ
-            color = project.fpo.GroundPlaneColor  # Keep it in FCD format
             sizefactor = project.fpo.GroundPlaneSizeFactor
 
             margin = bbox.DiagonalLength / 2 * sizefactor

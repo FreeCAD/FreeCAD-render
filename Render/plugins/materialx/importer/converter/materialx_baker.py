@@ -1,25 +1,28 @@
 # ***************************************************************************
 # *                                                                         *
-# * Copyright Contributors to the MaterialX Project                         *
-# * Copyright (c) 2024 Howefuft <howetuft-at-gmail>                         *
+# *   Copyright Contributors to the MaterialX Project                         *
+# *   Copyright (c) 2024 Howefuft <howetuft-at-gmail>                         *
 # *                                                                         *
-# * Licensed under the Apache License, Version 2.0 (the "License");         *
-# * you may not use this file except in compliance with the License.        *
-# * You may obtain a copy of the License at                                 *
+# *   This program is free software: you can redistribute it and/or modify  *
+# *   it under the terms of the GNU General Public License as published by  *
+# *   the Free Software Foundation, either version 3 of the License, or     *
+# *   (at your option) any later version.                                   *
 # *                                                                         *
-# * http://www.apache.org/licenses/LICENSE-2.0                              *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *
+# *   See the GNU General Public License for more details.                  *
 # *                                                                         *
-# * Unless required by applicable law or agreed to in writing, software     *
-# * distributed under the License is distributed on an "AS IS" BASIS,       *
-# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.*
-# * See the License for the specific language governing permissions and     *
-# * limitations under the License.                                          *
+# *   You should have received a copy of the GNU General Public License     *
+# *   along with this program. If not, see <https://www.gnu.org/licenses/>. *
 # *                                                                         *
 # ***************************************************************************
 
-# This code is derived from MaterialX TextureBaker C++ implementation,
-# licensed under Apache 2.0
-# The original code has been found here (2024):
+# IMPORTANT NOTE - LICENSE & COPYRIGHTS:
+#
+# This code is DERIVED FROM MaterialX TextureBaker C++ implementation.
+# The original implementation is licensed under Apache 2.0, under copyright
+# of "Contributors to the MaterialX Project". It has been found here (2024):
 #
 # https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/
 #
@@ -27,14 +30,17 @@
 # - source/MaterialXRender/TextureBaker.inl
 # - source/MaterialXRender/TextureBaker.h
 #
-# Derivative work, under Howetuft's copyright, mainly consists in (but may not
-# be restricted to):
+#
+# The present Derivative Work, under Howetuft's copyright, mainly consists in
+# (but may not be restricted to):
 # - Transposing original code from C++ to Python language
 # - Refactoring some parts of the code to make it more pythonic or simply more
 #   readable in Python
 # - Adaptating to FreeCAD Render Workbench needs, in particular giving ability
-#   to handle ALL shaders of a material (incl. displacement) and adding progress
-#   reporting feature.
+#   to handle ALL shaders of a material (incl. displacement) and adding
+#   progress reporting feature.
+#
+# The present Derivative Work has been licensed under GNU GPL v3.
 
 
 """This module provides features to import MaterialX materials in Render WB."""
@@ -660,7 +666,8 @@ class RenderTextureBaker:
                         baked_constant = self.BakedConstant(color=base_color)
                         self._baked_constant_map[output_id] = baked_constant
 
-        def optimize_uniform_outputs_at_default():
+        def optimize_uniform_outputs_at_df():
+            """Optimize uniform outputs at their default value."""
             if not (shader_nodedef := shader.getNodeDef()):
                 return
 
@@ -713,12 +720,11 @@ class RenderTextureBaker:
         optimize_fully_uniform_outputs()
 
         # Check for uniform outputs at their default values
-        optimize_uniform_outputs_at_default()
+        optimize_uniform_outputs_at_df()
 
         # Remove baked images that have been replaced by constant values
         clean_baked_image_map()
 
-    # pylint: disable=too-many-arguments
     def _connect_baked_input(
         self,
         baked_input: mx.Input,

@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -30,11 +30,17 @@ class RenderWorkbench(Gui.Workbench):
     def __init__(self):
         """Initialize object."""
         # pylint: disable=import-outside-toplevel
-        from PySide.QtCore import QT_TRANSLATE_NOOP
+        from Render.utils import translate
+        from Render import TRANSDIR
+
+        from FreeCADGui import addLanguagePath, updateLocale
+
+        addLanguagePath(TRANSDIR)
+        updateLocale()
 
         self.__class__.MenuText = "Render"
-        self.__class__.ToolTip = QT_TRANSLATE_NOOP(
-            "Render",
+        self.__class__.ToolTip = translate(
+            "Workbench",
             "The Render workbench is a "
             "modern replacement for "
             "the Raytracing workbench",
@@ -102,11 +108,11 @@ static char * Render_xpm[] = {
         """
         # pylint: disable=import-outside-toplevel
         from PySide.QtCore import QT_TRANSLATE_NOOP
+        from Render.utils import translate
         from FreeCAD import Console
-        from FreeCADGui import addIconPath, addPreferencePage, addLanguagePath
-        from Render import RENDER_COMMANDS, TRANSDIR, ICONDIR, PreferencesPage
+        from FreeCADGui import addIconPath, addPreferencePage
+        from Render import RENDER_COMMANDS, ICONDIR, PreferencesPage
 
-        addLanguagePath(TRANSDIR)
         self.appendToolbar(
             QT_TRANSLATE_NOOP("Workbench", "Render"), RENDER_COMMANDS
         )
@@ -115,9 +121,7 @@ static char * Render_xpm[] = {
         )
         addIconPath(ICONDIR)
         addPreferencePage(PreferencesPage, "Render")
-        msg = (
-            QT_TRANSLATE_NOOP("Render", "Loading Render module... done") + "\n"
-        )
+        msg = translate("Workbench", "Loading Render module... done") + "\n"
         Console.PrintLog(msg)
 
     def GetClassName(self):  # pylint: disable=no-self-use

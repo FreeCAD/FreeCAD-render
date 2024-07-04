@@ -1,0 +1,1 @@
+Help plugin is licensed under the terms of GNU General Public License, version 3 or any later (at your option).

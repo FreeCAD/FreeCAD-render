@@ -4,7 +4,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -29,7 +29,6 @@ Light objects allow to illuminate rendering scenes.
 # ===========================================================================
 #                           Module imports
 # ===========================================================================
-
 
 import itertools
 import math
@@ -96,26 +95,26 @@ class PointLight(FeatureBase):
         "Location": Prop(
             "App::PropertyVector",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Location of light"),
+            QT_TRANSLATE_NOOP("App::Property", "Location of light"),
             (0, 0, 15),
         ),
         "Color": Prop(
             "App::PropertyColor",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Color of light"),
+            QT_TRANSLATE_NOOP("App::Property", "Color of light"),
             (1.0, 1.0, 1.0),
         ),
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Rendering power"),
+            QT_TRANSLATE_NOOP("App::Property", "Rendering power"),
             60.0,
         ),
         "Radius": Prop(
             "App::PropertyLength",
             "Light",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Light representation radius.\n"
                 "Note: This parameter has no impact "
                 "on rendering",
@@ -195,31 +194,31 @@ class AreaLight(PointableFeatureMixin, FeatureBase):
         "SizeU": Prop(
             "App::PropertyLength",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Size on U axis"),
+            QT_TRANSLATE_NOOP("App::Property", "Size on U axis"),
             4.0,
         ),
         "SizeV": Prop(
             "App::PropertyLength",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Size on V axis"),
+            QT_TRANSLATE_NOOP("App::Property", "Size on V axis"),
             2.0,
         ),
         "Color": Prop(
             "App::PropertyColor",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Color of light"),
+            QT_TRANSLATE_NOOP("App::Property", "Color of light"),
             (1.0, 1.0, 1.0),
         ),
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Rendering power"),
+            QT_TRANSLATE_NOOP("App::Property", "Rendering power"),
             60.0,
         ),
         "Transparent": Prop(
             "App::PropertyBool",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Area light transparency"),
+            QT_TRANSLATE_NOOP("App::Property", "Area light transparency"),
             False,
         ),
     }
@@ -273,7 +272,7 @@ class SunskyLight(FeatureBase):
             "App::PropertyVector",
             "Light",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Direction of sun from observer's point of view "
                 "-- (0,0,1) is zenith",
             ),
@@ -283,7 +282,7 @@ class SunskyLight(FeatureBase):
             "App::PropertyFloat",
             "Light",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Atmospheric haziness (turbidity can go from 2.0 to 30+. 2-6 "
                 "are most useful for clear days)",
             ),
@@ -293,7 +292,7 @@ class SunskyLight(FeatureBase):
             "App::PropertyFloatConstraint",
             "Light",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Ground albedo = reflection coefficient of the ground",
             ),
             (0.3, 0.0, 1.0, 0.01),
@@ -302,7 +301,7 @@ class SunskyLight(FeatureBase):
             "App::PropertyFloat",
             "Light - Advanced",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Factor to tune sun light intensity. Default at 1.0",
             ),
             1.0,
@@ -311,7 +310,7 @@ class SunskyLight(FeatureBase):
             "App::PropertyFloat",
             "Light - Advanced",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Factor to tune sky light intensity. "
                 "Default at 1.0. "
                 "WARNING: not supported by Ospray.",
@@ -393,7 +392,9 @@ class ImageLight(FeatureBase):
         "ImageFile": Prop(
             "App::PropertyFileIncluded",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Image file (included in document)"),
+            QT_TRANSLATE_NOOP(
+                "App::Property", "Image file (included in document)"
+            ),
             "",
         ),
     }
@@ -424,20 +425,21 @@ class DistantLight(FeatureBase):
         "Color": Prop(
             "App::PropertyColor",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Color of light"),
+            QT_TRANSLATE_NOOP("App::Property", "Color of light"),
             (1.0, 1.0, 1.0),
         ),
         "Power": Prop(
             "App::PropertyFloat",
             "Light",
-            QT_TRANSLATE_NOOP("Render", "Rendering power"),
+            QT_TRANSLATE_NOOP("App::Property", "Rendering power"),
             5.0,
         ),
         "Direction": Prop(
             "App::PropertyVector",
             "Light",
             QT_TRANSLATE_NOOP(
-                "Render", "Direction of light from light's point of view "
+                "App::Property",
+                "Direction of light from light's point of view ",
             ),
             (-1, 1, -1),
         ),
@@ -445,7 +447,7 @@ class DistantLight(FeatureBase):
             "App::PropertyAngle",
             chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
-                "Render",
+                "App::Property",
                 "Apparent size of the light source, as an angle. "
                 "Must be > 0 for soft shadows.\n"
                 "Not all renderers support this parameter, please refer to "

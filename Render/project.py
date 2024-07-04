@@ -6,7 +6,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -238,7 +238,7 @@ class Project(FeatureBase):
             chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "Activate caustics in Appleseed (usefull for interior scenes "
+                "Activate caustics in Appleseed (useful for interior scenes "
                 "ligthened by external light sources through glass)\n"
                 "SPECIFIC TO APPLESEED",
             ),
@@ -410,6 +410,7 @@ class Project(FeatureBase):
             Output file path
         """
         # Create memcheck object (debug)
+        snapshot1 = 0.0
         if memcheck_flag := PARAMS.GetBool("Memcheck"):
             tracemalloc.start()
             snapshot1 = tracemalloc.take_snapshot()
@@ -624,9 +625,9 @@ class Project(FeatureBase):
             prefix += " "
 
         try:
-            output = self.fpo.OutputImage
-            assert output  # TODO don't use assert here
-        except (AttributeError, AssertionError):
+            if not (output := self.fpo.OuputImage):
+                raise ValueError()
+        except (AttributeError, ValueError):
             fname = f"{self.fpo.Name}_output.png"
             output = os.path.join(self.fpo.Document.TransientDir, fname)
 
@@ -689,10 +690,28 @@ def _instantiate_template(template, objstrings, defaultcam):
 
     if "RaytracingCamera" in template:
         template = re.sub("(.*RaytracingCamera.*)", defaultcam, template)
-        template = re.sub("(.*RaytracingContent.*)", renderobjs, template)
+        content = renderobjs
     else:
         content = defaultcam + "\n" + renderobjs
+
+    try:
         template = re.sub("(.*RaytracingContent.*)", content, template)
+    except re.error as err:
+        if lineno := err.lineno:
+            split_content = content.splitlines()
+            begin = max(0, lineno - 5)
+            end = min(len(split_content), lineno + 4)
+            App.Console.PrintError(
+                "[Render][Project] Merge error - Offending content:\n"
+            )
+            pad = math.ceil(math.log10(end)) if end > 0 else 1
+            pad = max(pad, 3)
+
+            for index in range(begin, end):
+                line = split_content[index]
+                tick = ">>" if index == lineno - 1 else "  "
+                App.Console.PrintError(f"{tick} {index+1:0{pad}}   {line}\n")
+        raise
 
     version_major = sys.version_info.major
 

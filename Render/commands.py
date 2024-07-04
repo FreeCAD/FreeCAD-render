@@ -5,7 +5,7 @@
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
-# *   as published by the Free Software Foundation; either version 2 of     *
+# *   as published by the Free Software Foundation; either version 2.1 of   *
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
@@ -23,23 +23,21 @@
 
 """This module implements GUI commands for Render workbench."""
 
-
 import os
 import itertools as it
 
-from PySide.QtCore import QT_TRANSLATE_NOOP, Qt, QUrl
+from PySide.QtCore import QT_TRANSLATE_NOOP, Qt
 from PySide.QtGui import (
     QMessageBox,
     QInputDialog,
     QApplication,
     QCursor,
-    QFileDialog,
 )
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS
+from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS, WBDIR
 from Render.utils import translate
 from Render.rdrhandler import RendererHandler
 from Render.taskpanels import MaterialSettingsTaskPanel
@@ -53,17 +51,46 @@ from Render.lights import (
     DistantLight,
 )
 from Render.rendermaterial import is_multimat
-from Render.subcontainer import start_help
-
-MATERIALX = PARAMS.GetBool("MaterialX")
-if MATERIALX:
-    from Render.materialx import (
-        import_materialx,
-        open_mxdownloader,
-    )
+from Render.subcontainer import start_plugin
 
 
-class RenderProjectCommand:
+# ===========================================================================
+#                  Mixins (additional features for commands)
+# ===========================================================================
+
+
+class _DocIsActiveMixin:  # pylint: disable=too-few-public-methods
+    """Mixin class to make command active only when a doc is active."""
+
+    def IsActive(self):
+        """Indicate if the command is active (callback)."""
+        try:
+            res = super().IsActive()
+        except AttributeError:
+            res = True
+        return res and hasattr(
+            Gui.getMainWindow().getActiveWindow(), "getSceneGraph"
+        )
+
+
+class _MaterialXIsActiveMixin:  # pylint: disable=too-few-public-methods
+    """Mixin class to make command active only when MaterialX is enabled."""
+
+    def IsActive(self):
+        """Indicate if the command is active (callback)."""
+        try:
+            res = super().IsActive()
+        except AttributeError:
+            res = True
+        return res and PARAMS.GetBool("MaterialX")
+
+
+# ===========================================================================
+#                               Commands
+# ===========================================================================
+
+
+class RenderProjectCommand(_DocIsActiveMixin):
     """GUI command to create a rendering project."""
 
     def __init__(self, renderer):
@@ -78,14 +105,12 @@ class RenderProjectCommand:
     def GetResources(self):
         """Get command's resources (callback)."""
         rdr = self.renderer
+        menu_text = QT_TRANSLATE_NOOP("Render_Projects", "{} Project")
+        tool_tip = QT_TRANSLATE_NOOP("Render_Projects", "Create a {} project")
         return {
             "Pixmap": os.path.join(ICONDIR, rdr + ".svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderProjectCommand", "%s Project")
-            % rdr,
-            "ToolTip": QT_TRANSLATE_NOOP(
-                "RenderProjectCommand", "Create a %s project"
-            )
-            % rdr,
+            "MenuText": menu_text.format(rdr),
+            "ToolTip": tool_tip.format(rdr),
         }
 
     def Activated(self):
@@ -106,7 +131,7 @@ class RenderProjectCommand:
         )
 
 
-class RenderViewCommand:
+class RenderViewCommand(_DocIsActiveMixin):
     """GUI command to create a rendering view of an object in a project.
 
     The command operates on the selected object(s) and the selected project,
@@ -117,11 +142,9 @@ class RenderViewCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "RenderView.svg"),
-            "MenuText": QT_TRANSLATE_NOOP(
-                "RenderViewCommand", "Rendering View"
-            ),
+            "MenuText": QT_TRANSLATE_NOOP("Render_View", "Rendering View"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "RenderViewCommand",
+                "Render_View",
                 "Create a Rendering View of the "
                 "selected object(s) in the selected "
                 "project or the default project",
@@ -166,16 +189,16 @@ class RenderViewCommand:
         QApplication.restoreOverrideCursor()
 
 
-class RenderCommand:
+class RenderCommand(_DocIsActiveMixin):
     """GUI command to render a selected Render project."""
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "Render.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("RenderCommand", "Render"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_Render", "Render project"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "RenderCommand",
+                "Render_Render",
                 "Perform the rendering of a "
                 "selected project or the default "
                 "project",
@@ -204,16 +227,16 @@ class RenderCommand:
         project.Proxy.render()
 
 
-class CameraCommand:
+class CameraCommand(_DocIsActiveMixin):
     """GUI command to create a Camera object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
             "Pixmap": ":/icons/camera-photo.svg",
-            "MenuText": QT_TRANSLATE_NOOP("CameraCommand", "Camera"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_Camera", "Camera"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "CameraCommand",
+                "Render_Camera",
                 "Create a Camera object from the current camera position",
             ),
         }
@@ -227,16 +250,16 @@ class CameraCommand:
         Camera.create()
 
 
-class PointLightCommand:
+class PointLightCommand(_DocIsActiveMixin):
     """GUI command to create a Point Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "PointLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("PointLightCommand", "Point Light"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_PointLight", "Point Light"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "PointLightCommand", "Create a Point Light object"
+                "Render_PointLight", "Create a Point Light object"
             ),
         }
 
@@ -249,16 +272,16 @@ class PointLightCommand:
         PointLight.create()
 
 
-class AreaLightCommand:
+class AreaLightCommand(_DocIsActiveMixin):
     """GUI command to create an Area Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "AreaLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("AreaLightCommand", "Area Light"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_AreaLight", "Area Light"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "AreaLightCommand", "Create an Area Light object"
+                "Render_AreaLight", "Create an Area Light object"
             ),
         }
 
@@ -271,7 +294,7 @@ class AreaLightCommand:
         AreaLight.create()
 
 
-class SunskyLightCommand:
+class SunskyLightCommand(_DocIsActiveMixin):
     """GUI command to create an Sunsky Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -279,10 +302,10 @@ class SunskyLightCommand:
         return {
             "Pixmap": os.path.join(ICONDIR, "SunskyLight.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "SunskyLightCommand", "Sunsky Light"
+                "Render_SunskyLight", "Sunsky Light"
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "SunskyLightCommand", "Create a Sunsky Light object"
+                "Render_SunskyLight", "Create a Sunsky Light object"
             ),
         }
 
@@ -295,16 +318,16 @@ class SunskyLightCommand:
         SunskyLight.create()
 
 
-class ImageLightCommand:
+class ImageLightCommand(_DocIsActiveMixin):
     """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "ImageLight.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("ImageLightCommand", "Image Light"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_ImageLight", "Image Light"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "ImageLightCommand", "Create an Image Light object"
+                "Render_ImageLight", "Create an Image Light object"
             ),
         }
 
@@ -317,7 +340,7 @@ class ImageLightCommand:
         ImageLight.create()
 
 
-class DistantLightCommand:
+class DistantLightCommand(_DocIsActiveMixin):
     """GUI command to create an Image Light object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -325,10 +348,10 @@ class DistantLightCommand:
         return {
             "Pixmap": os.path.join(ICONDIR, "DistantLight.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "DistantLightCommand", "Distant Light"
+                "Render_DistantLight", "Distant Light"
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "DistantLightCommand", "Create an Distant Light object"
+                "Render_DistantLight", "Create an Distant Light object"
             ),
         }
 
@@ -341,7 +364,7 @@ class DistantLightCommand:
         DistantLight.create()
 
 
-class MaterialCreatorCommand:
+class MaterialCreatorCommand(_DocIsActiveMixin):
     """GUI command to create a material."""
 
     def __init__(self, newname=False):
@@ -354,17 +377,18 @@ class MaterialCreatorCommand:
             "Pixmap": "Arch_Material_Group",
             "MenuText": (
                 QT_TRANSLATE_NOOP(
-                    "MaterialCreatorCommand", "Internal Material Library"
+                    "Render_MaterialCreator", "Internal Material Library"
                 )
                 if self._newname
                 else QT_TRANSLATE_NOOP(
-                    "MaterialCreatorCommand", "Create Material"
+                    "Render_MaterialCreator", "Create Material"
                 )
             ),
             "ToolTip": (
                 QT_TRANSLATE_NOOP(
-                    "MaterialCreatorCommand",
-                    "Create a new Material in current document from internal library",
+                    "Render_MaterialCreator",
+                    "Create a new Material in current document from "
+                    "internal library",
                 )
             ),
         }
@@ -387,12 +411,10 @@ class MaterialCreatorCommand:
             Gui.doCommand(cmd)
         App.ActiveDocument.commitTransaction()
 
-    def IsActive(self):
-        v = hasattr(Gui.getMainWindow().getActiveWindow(), "getSceneGraph")
-        return v
 
-
-class MaterialMaterialXImportCommand:
+class MaterialMaterialXImportCommand(
+    _DocIsActiveMixin, _MaterialXIsActiveMixin
+):
     """GUI command to import a MaterialX material."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -416,19 +438,13 @@ class MaterialMaterialXImportCommand:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        filefilter = "MaterialX (*.mtlx *.zip);;All files (*.*)"
-        caption = translate("Render", "Select MaterialX")
-        openfilename = QFileDialog.getOpenFileName(
-            Gui.getMainWindow(), caption, "", filefilter
-        )
-        if not (materialx_file := openfilename[0]):
+        if not PARAMS.GetBool("MaterialX"):
             return
-        App.ActiveDocument.openTransaction("MaterialXImport")
-        import_materialx(materialx_file, Gui.ActiveDocument.Document)
-        App.ActiveDocument.commitTransaction()
+        url = "LOCAL"
+        start_plugin("materialx", [url])
 
 
-class MaterialMaterialXLibrary:
+class MaterialMaterialXLibrary(_DocIsActiveMixin, _MaterialXIsActiveMixin):
     """GUI command to open MaterialX online library."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -452,12 +468,13 @@ class MaterialMaterialXLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        doc = App.ActiveDocument
-        url = QUrl("https://matlib.gpuopen.com/")
-        open_mxdownloader(url, doc)
+        if not PARAMS.GetBool("MaterialX"):
+            return
+        url = "https://matlib.gpuopen.com/"
+        start_plugin("materialx", [url])
 
 
-class MaterialAmbientCGLibrary:
+class MaterialAmbientCGLibrary(_DocIsActiveMixin, _MaterialXIsActiveMixin):
     """GUI command to open AmbientCG online library."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -481,12 +498,13 @@ class MaterialAmbientCGLibrary:
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        doc = App.ActiveDocument
-        url = QUrl("https://ambientcg.com/")
-        open_mxdownloader(url, doc, disp2bump=True)
+        if not PARAMS.GetBool("MaterialX"):
+            return
+        url = "https://ambientcg.com/"
+        start_plugin("materialx", [url])
 
 
-class MaterialRenderSettingsCommand:
+class MaterialRenderSettingsCommand(_DocIsActiveMixin):
     """GUI command to set render settings of a material object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -494,11 +512,11 @@ class MaterialRenderSettingsCommand:
         return {
             "Pixmap": os.path.join(ICONDIR, "MaterialSettings.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "MaterialRenderSettingsCommand",
+                "Render_MaterialRenderSettings",
                 "Edit Material Render Settings",
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "MaterialRenderSettingsCommand",
+                "Render_MaterialRenderSettings",
                 "Edit rendering parameters of the selected Material",
             ),
         }
@@ -516,7 +534,7 @@ class MaterialRenderSettingsCommand:
         App.ActiveDocument.commitTransaction()
 
 
-class MaterialApplierCommand:
+class MaterialApplierCommand(_DocIsActiveMixin):
     """GUI command to apply a material to an object."""
 
     def GetResources(self):  # pylint: disable=no-self-use
@@ -524,10 +542,10 @@ class MaterialApplierCommand:
         return {
             "Pixmap": os.path.join(ICONDIR, "ApplyMaterial.svg"),
             "MenuText": QT_TRANSLATE_NOOP(
-                "MaterialApplierCommand", "Apply Material"
+                "Render_MaterialApplier", "Apply Material"
             ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "MaterialApplierCommand", "Apply a Material to selection"
+                "Render_MaterialApplier", "Apply a Material to selection"
             ),
         }
 
@@ -656,9 +674,9 @@ class HelpCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "Help.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("HelpCommand", "Help"),
+            "MenuText": QT_TRANSLATE_NOOP("Render_Help", "Help"),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "HelpCommand",
+                "Render_Help",
                 "Open Render help",
             ),
         }
@@ -669,7 +687,8 @@ class HelpCommand:
         This code is executed when the command is run in FreeCAD.
         It opens a help browser in Gui.
         """
-        start_help()
+        wbdir = os.path.normpath(WBDIR)
+        start_plugin("help", [wbdir])
 
 
 class SettingsCommand:
@@ -679,9 +698,11 @@ class SettingsCommand:
         """Get command's resources (callback)."""
         return {
             "Pixmap": os.path.join(ICONDIR, "settings.svg"),
-            "MenuText": QT_TRANSLATE_NOOP("SettingsCommand", "Render"),
+            "MenuText": QT_TRANSLATE_NOOP(
+                "Render_Settings", "Render settings"
+            ),
             "ToolTip": QT_TRANSLATE_NOOP(
-                "SettingsCommand",
+                "Render_Settings",
                 "Open Render workbench settings",
             ),
         }
@@ -700,7 +721,7 @@ class SettingsCommand:
 # ===========================================================================
 
 
-class CommandGroup:
+class CommandGroup(_DocIsActiveMixin):
     """Group of commands for GUI (toolbar, menu...)."""
 
     def __init__(self, cmdlist, menu, tooltip=None):
@@ -748,7 +769,9 @@ def _init_gui_commands():
 
     projects_cmd = [(r, RenderProjectCommand(r)) for r in VALID_RENDERERS]
     projects_group = CommandGroup(
-        projects_cmd, "Projects", "Create a Rendering Project"
+        projects_cmd,
+        QT_TRANSLATE_NOOP("Render_Projects", "Projects"),
+        QT_TRANSLATE_NOOP("Render_Projects", "Create a Rendering Project"),
     )
 
     lights_cmd = [
@@ -758,56 +781,51 @@ def _init_gui_commands():
         ("ImageLight", ImageLightCommand()),
         ("DistantLight", DistantLightCommand()),
     ]
-    lights_group = CommandGroup(lights_cmd, "Lights", "Create a Light")
+    lights_group = CommandGroup(
+        lights_cmd,
+        QT_TRANSLATE_NOOP("Render_Lights", "Lights"),
+        QT_TRANSLATE_NOOP("Render_Lights", "Create a Light"),
+    )
 
     mats_cmd = [
         ("MaterialApplier", MaterialApplierCommand()),
         ("MaterialRenderSettings", MaterialRenderSettingsCommand()),
     ]
-    materials_group = CommandGroup(mats_cmd, "Materials", "Manage Materials")
+    materials_group = CommandGroup(
+        mats_cmd,
+        QT_TRANSLATE_NOOP("Render_Materials", "Materials"),
+        QT_TRANSLATE_NOOP("Render_Materials", "Manage Materials"),
+    )
 
     libs_cmd = [
+        ("MaterialCreator", MaterialCreatorCommand()),
         ("MaterialMaterialXLibrary", MaterialMaterialXLibrary()),
         ("MaterialAmbientCGLibrary", MaterialAmbientCGLibrary()),
-        ("MaterialCreator", MaterialCreatorCommand()),
         ("MaterialMaterialXImporter", MaterialMaterialXImportCommand()),
     ]
     libraries_group = CommandGroup(
-        libs_cmd, "Libraries", "Download from material libraries"
+        libs_cmd,
+        QT_TRANSLATE_NOOP("Render_Libraries", "Libraries"),
+        QT_TRANSLATE_NOOP(
+            "Render_Libraries", "Download from material libraries"
+        ),
     )
 
-    if MATERIALX:
-        render_commands = [
-            ("Projects", projects_group),
-            separator,
-            ("Camera", CameraCommand()),
-            ("Lights", lights_group),
-            ("View", RenderViewCommand()),
-            separator,
-            ("Libraries", libraries_group),
-            ("Materials", materials_group),
-            separator,
-            ("Render", RenderCommand()),
-            separator,
-            ("Settings", SettingsCommand()),
-            ("Help", HelpCommand()),
-        ]
-    else:
-        mats_cmd.insert(0, ("MaterialCreator", MaterialCreatorCommand()))
-        render_commands = [
-            ("Projects", projects_group),
-            separator,
-            ("Camera", CameraCommand()),
-            ("Lights", lights_group),
-            ("View", RenderViewCommand()),
-            separator,
-            ("Materials", materials_group),
-            separator,
-            ("Render", RenderCommand()),
-            separator,
-            ("Settings", SettingsCommand()),
-            ("Help", HelpCommand()),
-        ]
+    render_commands = [
+        ("Projects", projects_group),
+        separator,
+        ("Camera", CameraCommand()),
+        ("Lights", lights_group),
+        ("View", RenderViewCommand()),
+        separator,
+        ("Libraries", libraries_group),
+        ("Materials", materials_group),
+        separator,
+        ("Render", RenderCommand()),
+        separator,
+        ("Settings", SettingsCommand()),
+        ("Help", HelpCommand()),
+    ]
 
     result = []
 
