@@ -89,7 +89,7 @@ class WebChooser(QWidget):
     _download_required = Signal(QWebEngineDownloadRequest)
     release_material_signal = Signal()
 
-    def __init__(self, url, disp2bump=False):
+    def __init__(self, url, disp2bump=True):
         """Initialize chooser."""
         super().__init__()
         self.disp2bump = disp2bump
@@ -234,7 +234,7 @@ class LocalChooser(QFileDialog):
     # pylint: disable=too-many-ancestors
     release_material_signal = Signal()
 
-    def __init__(self, disp2bump=False):
+    def __init__(self, disp2bump=True):
         super().__init__()
         self.disp2bump = disp2bump
         self.setObjectName("RenderLocalChooser")
