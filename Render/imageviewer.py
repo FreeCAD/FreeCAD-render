@@ -57,7 +57,7 @@ class ImageViewer(QWidget):
 
         self.imglabel = QLabel()
         self.imglabel.setBackgroundRole(QPalette.Base)
-        self.imglabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.imglabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.imglabel.setScaledContents(True)  # Resize pixmap along with label
         self.imglabel.setAlignment(Qt.AlignCenter)
         self.imglabel.setText("(No image yet)")
@@ -68,6 +68,17 @@ class ImageViewer(QWidget):
         self.scrollarea.setWidget(self.imglabel)
         self.scrollarea.setWidgetResizable(False)
         self.scrollarea.setAlignment(Qt.AlignCenter)
+        self.previous_scrollarea_wheel = self.scrollarea.wheelEvent
+
+        # Scrollarea: do not handle CTRL+Wheel
+        def handle_wheel(event):
+            if event.modifiers() == Qt.CTRL:
+                event.ignore()
+            else:
+                self.previous_scrollarea_wheel(event)
+                event.accept()
+
+        setattr(self.scrollarea, "wheelEvent", handle_wheel)
 
         self.layout().addWidget(self.scrollarea)
         self.layout().addWidget(self.namelabel)
@@ -142,9 +153,27 @@ class ImageViewer(QWidget):
         Args:
             factor -- Factor to apply (float)
         """
-        self.scale_factor *= float(factor)
-        new_size = self.scale_factor * self._initial_size
-        self.resize_image(new_size)
+        ok = (factor > 1.0 and self.scale_factor < 3.0) or (
+            factor < 1.0 and self.scale_factor > 0.2
+        )
+        if ok:
+            self.scale_factor *= float(factor)
+            new_size = self.scale_factor * self._initial_size
+            self.resize_image(new_size)
+
+    def adjust_scrollbars(self, factor):
+        """Adjust scrollbars of scroll area to zoom factor."""
+        factor = float(factor)
+        scrollbars = [
+            self.scrollarea.horizontalScrollBar(),
+            self.scrollarea.verticalScrollBar(),
+        ]
+        for scrollbar in scrollbars:
+            value = float(scrollbar.value())
+            pagestep = float(scrollbar.pageStep())
+            scrollbar.setValue(
+                round(factor * value + (factor - 1.0) * pagestep / 2.0)
+            )
 
     @Slot()
     def zoom_in(self):
@@ -155,6 +184,18 @@ class ImageViewer(QWidget):
     def zoom_out(self):
         """Zoom embedded image out (slot)."""
         self.scale_image(0.8)
+
+    def zoom_from_wheel(self, num_steps):
+        """Zoom from wheel event."""
+        steps = num_steps.y() / 120
+        if steps > 0:
+            scale = 1.25**steps
+        elif steps < 0:
+            scale = 0.80 ** (-steps)
+        else:
+            return
+        self.scale_image(scale)
+        self.adjust_scrollbars(scale)
 
     @Slot()
     def normal_size(self):
@@ -187,6 +228,24 @@ class ImageViewer(QWidget):
     def show_context_menu(self, pos):
         """Show context menu."""
         self.menu.exec_(self.mapToGlobal(pos))
+
+    def wheelEvent(self, event):
+        """Catch wheel event (callback)."""
+        if event.modifiers() != Qt.CTRL:
+            event.ignore()
+            return
+
+        num_pixels = event.pixelDelta()
+        num_degrees = event.angleDelta() / 8
+        position = event.position()
+
+        if num_pixels is not None:
+            self.zoom_from_wheel(num_pixels)
+        elif num_degrees is not None:
+            num_steps = num_degrees / 15
+            self.zoom_from_wheel(num_steps)
+
+        event.accept()
 
 
 @Slot(str)
