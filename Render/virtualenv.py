@@ -147,6 +147,7 @@ def rendervenv_worker():
         options = [
             "--no-warn-script-location",
             "--only-binary=:all:",
+            "--upgrade",
             f"--find-links={WHEELSDIR}",
         ]
         commands = [
