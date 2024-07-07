@@ -153,10 +153,10 @@ class ImageViewer(QWidget):
         Args:
             factor -- Factor to apply (float)
         """
-        ok = (factor > 1.0 and self.scale_factor < 3.0) or (
+        zoom_limits = (factor > 1.0 and self.scale_factor < 3.0) or (
             factor < 1.0 and self.scale_factor > 0.2
         )
-        if ok:
+        if zoom_limits:
             self.scale_factor *= float(factor)
             new_size = self.scale_factor * self._initial_size
             self.resize_image(new_size)
@@ -237,7 +237,6 @@ class ImageViewer(QWidget):
 
         num_pixels = event.pixelDelta()
         num_degrees = event.angleDelta() / 8
-        position = event.position()
 
         if num_pixels is not None:
             self.zoom_from_wheel(num_pixels)
