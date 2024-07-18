@@ -134,8 +134,6 @@ def rendervenv_worker():
         packages = [
             "PyQt6",
             "PyQt6-WebEngine",
-            "setuptools",
-            "wheel",
             "renderplugin",
             "QtPy",
         ]
