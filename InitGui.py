@@ -21,6 +21,7 @@
 # ***************************************************************************
 """Gui initialization module for Render Workbench."""
 
+import FreeCAD as App
 import FreeCADGui as Gui
 
 
@@ -30,11 +31,11 @@ class RenderWorkbench(Gui.Workbench):
     def __init__(self):
         """Initialize object."""
         # pylint: disable=import-outside-toplevel
-        from Render.utils import translate
-        from Render import TRANSDIR
+        from Render.constants import TRANSDIR
 
         from FreeCADGui import addLanguagePath, updateLocale
 
+        translate = App.Qt.translate
         addLanguagePath(TRANSDIR)
         updateLocale()
 
