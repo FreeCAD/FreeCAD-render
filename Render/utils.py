@@ -56,6 +56,14 @@ except (ModuleNotFoundError, ImportError):
 translate = _translate
 
 
+def dont_translate(string):
+    """Explicitely mark string not to be translated."""
+    return string
+
+
+DONT_TRANSLATE = dont_translate
+
+
 def debug(domain, object_name, msg):
     """Print debug message."""
     msg = f"[Render][{domain}] '{object_name}': {msg}\n"

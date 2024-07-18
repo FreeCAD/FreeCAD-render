@@ -38,7 +38,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 from Render.constants import ICONDIR, VALID_RENDERERS, PARAMS, WBDIR
-from Render.utils import translate
+from Render.utils import translate, DONT_TRANSLATE
 from Render.rdrhandler import RendererHandler
 from Render.taskpanels import MaterialSettingsTaskPanel
 from Render.project import Project, user_select_template
@@ -126,9 +126,13 @@ class RenderProjectCommand(_DocIsActiveMixin):
             return
 
         # Create project
-        Project.create(
-            App.ActiveDocument, renderer=self.renderer, template=template
-        )
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create project"))
+        try:
+            Project.create(
+                App.ActiveDocument, renderer=self.renderer, template=template
+            )
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class RenderViewCommand(_DocIsActiveMixin):
@@ -185,8 +189,12 @@ class RenderViewCommand(_DocIsActiveMixin):
 
         # Finally, add objects to target project
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-        target_project.Proxy.add_views(objs)
-        QApplication.restoreOverrideCursor()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create views"))
+        try:
+            target_project.Proxy.add_views(objs)
+        finally:
+            QApplication.restoreOverrideCursor()
+            App.ActiveDocument.commitTransaction()
 
 
 class RenderCommand(_DocIsActiveMixin):
@@ -247,7 +255,11 @@ class CameraCommand(_DocIsActiveMixin):
         This code is executed when the command is run in FreeCAD.
         It creates a new camera into the active document.
         """
-        Camera.create()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create camera"))
+        try:
+            Camera.create()
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class PointLightCommand(_DocIsActiveMixin):
@@ -269,7 +281,11 @@ class PointLightCommand(_DocIsActiveMixin):
         This code is executed when the command is run in FreeCAD.
         It creates a new point light into the active document.
         """
-        PointLight.create()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create pointlight"))
+        try:
+            PointLight.create()
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class AreaLightCommand(_DocIsActiveMixin):
@@ -291,7 +307,11 @@ class AreaLightCommand(_DocIsActiveMixin):
         This code is executed when the command is run in FreeCAD.
         It creates a new area light into the active document.
         """
-        AreaLight.create()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create arealight"))
+        try:
+            AreaLight.create()
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class SunskyLightCommand(_DocIsActiveMixin):
@@ -315,7 +335,11 @@ class SunskyLightCommand(_DocIsActiveMixin):
         This code is executed when the command is run in FreeCAD.
         It creates a new sunsky light into the active document.
         """
-        SunskyLight.create()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create sunsky"))
+        try:
+            SunskyLight.create()
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class ImageLightCommand(_DocIsActiveMixin):
@@ -337,7 +361,11 @@ class ImageLightCommand(_DocIsActiveMixin):
         This code is executed when the command is run in FreeCAD.
         It creates a new image light into the active document.
         """
-        ImageLight.create()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create IBL"))
+        try:
+            ImageLight.create()
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class DistantLightCommand(_DocIsActiveMixin):
@@ -361,7 +389,11 @@ class DistantLightCommand(_DocIsActiveMixin):
         This code is executed when the command is run in FreeCAD.
         It creates a new image light into the active document.
         """
-        DistantLight.create()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("Create distant"))
+        try:
+            DistantLight.create()
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class MaterialCreatorCommand(_DocIsActiveMixin):
@@ -399,17 +431,19 @@ class MaterialCreatorCommand(_DocIsActiveMixin):
         App.ActiveDocument.openTransaction(
             translate("Render", "Create material")
         )
-        Gui.Control.closeDialog()
-        Gui.addModule("Render")
-        cmds = [
-            "obj = Render.make_material()",
-            "Gui.Selection.clearSelection()",
-            "Gui.Selection.addSelection(obj.Document.Name, obj.Name)",
-            "obj.ViewObject.Document.setEdit(obj.ViewObject, 0)",
-        ]
-        for cmd in cmds:
-            Gui.doCommand(cmd)
-        App.ActiveDocument.commitTransaction()
+        try:
+            Gui.Control.closeDialog()
+            Gui.addModule("Render")
+            cmds = [
+                "obj = Render.make_material()",
+                "Gui.Selection.clearSelection()",
+                "Gui.Selection.addSelection(obj.Document.Name, obj.Name)",
+                "obj.ViewObject.Document.setEdit(obj.ViewObject, 0)",
+            ]
+            for cmd in cmds:
+                Gui.doCommand(cmd)
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class MaterialMaterialXImportCommand(
@@ -528,10 +562,12 @@ class MaterialRenderSettingsCommand(_DocIsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        App.ActiveDocument.openTransaction("MaterialSettings")
-        task = MaterialSettingsTaskPanel()
-        Gui.Control.showDialog(task)
-        App.ActiveDocument.commitTransaction()
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("MaterialSettings"))
+        try:
+            task = MaterialSettingsTaskPanel()
+            Gui.Control.showDialog(task)
+        finally:
+            App.ActiveDocument.commitTransaction()
 
 
 class MaterialApplierCommand(_DocIsActiveMixin):
@@ -611,7 +647,7 @@ class MaterialApplierCommand(_DocIsActiveMixin):
         material = next(m for m in mats if m.Label == userinput)
 
         # Update selected objects
-        App.ActiveDocument.openTransaction("MaterialApplier")
+        App.ActiveDocument.openTransaction(DONT_TRANSLATE("MaterialApplier"))
         for obj in selection:
             # Add Material property to the object if it hasn't got one
             if "Material" not in obj.PropertiesList:

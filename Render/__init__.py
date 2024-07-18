@@ -85,7 +85,7 @@ from Render.virtualenv import ensure_rendervenv  # noqa: F401
 ensure_rendervenv()
 
 
-if App.GuiUp:
+if App.GuiUp and PARAMS.GetBool("AutoImport"):
     import FreeCADGui as Gui
 
     Gui.doCommand("import Render")

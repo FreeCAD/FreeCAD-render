@@ -134,8 +134,6 @@ def rendervenv_worker():
         packages = [
             "PyQt6",
             "PyQt6-WebEngine",
-            "setuptools",
-            "wheel",
             "renderplugin",
             "QtPy",
         ]
@@ -147,6 +145,7 @@ def rendervenv_worker():
         options = [
             "--no-warn-script-location",
             "--only-binary=:all:",
+            "--upgrade",
             f"--find-links={WHEELSDIR}",
         ]
         commands = [
