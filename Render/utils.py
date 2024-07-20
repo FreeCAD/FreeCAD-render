@@ -32,11 +32,6 @@ import functools
 import shutil
 import os
 
-try:
-    from draftutils.translate import translate as _translate  # 0.19
-except ImportError:
-    from Draft import translate as _translate  # 0.18
-
 from PySide.QtGui import QDockWidget, QTextEdit
 from PySide import __version__ as pyside_version
 
@@ -49,11 +44,15 @@ try:
     if not App.GuiUp:
         # assembly3 needs Gui...
         raise ImportError()
+    App.Console.PrintLog("[Render][Init] Importing 'Assembly3'\n")
     from freecad.asm3.assembly import AsmBase
 except (ModuleNotFoundError, ImportError):
     AsmBase = type(None)
+else:
+    App.Console.PrintLog("[Render][Init] Importing 'Assembly3'... done\n")
 
-translate = _translate
+
+translate = App.Qt.translate
 
 
 def dont_translate(string):

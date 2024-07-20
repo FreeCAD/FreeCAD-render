@@ -27,6 +27,8 @@ It imports all the public symbols which make up the Render Workbench API.
 """
 import FreeCAD as App
 
+App.Console.PrintLog("[Render][Init] Starting Render initialization\n")
+
 from Render.constants import (  # noqa: F401
     WBDIR,
     RDRDIR,
@@ -40,6 +42,19 @@ from Render.constants import (  # noqa: F401
     VALID_RENDERERS,
     FCDVERSION,
     PARAMS,
+)
+from Render.utils import (  # noqa: F401
+    reload,
+    last_cmd,
+    set_dryrun,
+    set_dryrun_on,
+    set_dryrun_off,
+    set_debug,
+    set_debug_on,
+    set_debug_off,
+    set_memcheck,
+    set_memcheck_on,
+    set_memcheck_off,
 )
 
 from Render.project import Project, ViewProviderProject  # noqa: F401
@@ -63,19 +78,6 @@ from Render.material import (  # noqa: F401
     ViewProviderMaterial,
     make_material,
 )
-from Render.utils import (  # noqa: F401
-    reload,
-    last_cmd,
-    set_dryrun,
-    set_dryrun_on,
-    set_dryrun_off,
-    set_debug,
-    set_debug_on,
-    set_debug_off,
-    set_memcheck,
-    set_memcheck_on,
-    set_memcheck_off,
-)
 from Render.commands import RENDER_COMMANDS  # noqa: F401
 from Render.prefpage import PreferencesPage  # noqa: F401
 
@@ -85,7 +87,7 @@ from Render.virtualenv import ensure_rendervenv  # noqa: F401
 ensure_rendervenv()
 
 
-if App.GuiUp:
+if App.GuiUp and PARAMS.GetBool("AutoImport"):
     import FreeCADGui as Gui
 
     Gui.doCommand("import Render")
