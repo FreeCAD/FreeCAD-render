@@ -121,7 +121,7 @@ def rendervenv_worker():
 
         # Step 4: Update pip (optional)
         if PARAMS.GetBool("UpdatePip"):
-            _log(">>> Updating pip")
+            _msg(">>> Updating pip")
             pip_install(
                 "pip",
                 options=[
@@ -337,8 +337,42 @@ def _create_virtualenv():
     # Instead, we will bootstrap everything from pypi
     # https://pypi.org/project/bootstrap-env
     url = "https://bootstrap.pypa.io/virtualenv.pyz"
+
+    # Check Python
     if not (python := find_python()):
         raise VenvError(0)
+
+    # Issue #431: we introduce the option to try system virtualenv
+    # prior to download a fresh one
+    if PARAMS.GetBool("UseSystemVenv"):
+        _log("Using system virtualenv package (as required by settings)")
+        command = [
+            python,
+            "-I",
+            "-u",
+            "-m",
+            "venv",
+            RENDER_VENV_DIR,
+        ]
+        _log(" ".join(command))
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+        except subprocess.CalledProcessError as err:
+            msg = (
+                f"Error using system 'venv' package - return code = {err.returncode}\n"
+                f"{err.stdout}"
+                "Falling back to download 'venv' from pypa.io"
+            )
+            _warn(msg)
+        else:
+            return
+
     with tempfile.TemporaryDirectory() as tmp:
         pyz = os.path.join(tmp, "virtualenv.pyz")
         urllib.request.urlretrieve(url, pyz)

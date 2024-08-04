@@ -21,7 +21,10 @@
 # ***************************************************************************
 """Gui initialization module for Render Workbench."""
 
+import FreeCAD as App
 import FreeCADGui as Gui
+
+# Caveat: do not import Render here (too early, will slow down global startup)
 
 
 class RenderWorkbench(Gui.Workbench):
@@ -29,20 +32,21 @@ class RenderWorkbench(Gui.Workbench):
 
     def __init__(self):
         """Initialize object."""
+        # Caveat: do not import Render here
+        # (too early, will slow down global startup)
+
         # pylint: disable=import-outside-toplevel
-        from Render.utils import translate
-        from Render import TRANSDIR
+        import FreeCAD
 
-        from FreeCADGui import addLanguagePath, updateLocale
-
-        addLanguagePath(TRANSDIR)
-        updateLocale()
+        try:
+            translate = FreeCAD.Qt.translate
+        except AttributeError:
+            translate = lambda _, x: x
 
         self.__class__.MenuText = "Render"
         self.__class__.ToolTip = translate(
             "Workbench",
-            "The Render workbench is a "
-            "modern replacement for "
+            "The Render workbench is a modern replacement for "
             "the Raytracing workbench",
         )
         self.__class__.Icon = """
@@ -110,9 +114,20 @@ static char * Render_xpm[] = {
         from PySide.QtCore import QT_TRANSLATE_NOOP
         from Render.utils import translate
         from FreeCAD import Console
-        from FreeCADGui import addIconPath, addPreferencePage
-        from Render import RENDER_COMMANDS, ICONDIR, PreferencesPage
+        from FreeCADGui import (
+            addIconPath,
+            addPreferencePage,
+            addLanguagePath,
+            updateLocale,
+        )
 
+        from Render import RENDER_COMMANDS, ICONDIR, TRANSDIR, PreferencesPage
+
+        # Translations
+        addLanguagePath(TRANSDIR)
+        updateLocale()
+
+        # GUI
         self.appendToolbar(
             QT_TRANSLATE_NOOP("Workbench", "Render"), RENDER_COMMANDS
         )
