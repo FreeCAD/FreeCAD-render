@@ -241,7 +241,7 @@ class CameraCommand(_DocIsActiveMixin):
     def GetResources(self):  # pylint: disable=no-self-use
         """Get command's resources (callback)."""
         return {
-            "Pixmap": ":/icons/camera-photo.svg",
+            "Pixmap": os.path.join(ICONDIR, "Camera-photo.svg"),
             "MenuText": QT_TRANSLATE_NOOP("Render_Camera", "Camera"),
             "ToolTip": QT_TRANSLATE_NOOP(
                 "Render_Camera",
