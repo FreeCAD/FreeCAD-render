@@ -474,7 +474,7 @@ class Project(FeatureBase):
 
         # Build a default camera, to be used if no camera is present in the
         # scene
-        defaultcam = _get_default_cam(renderer, self.fpo)
+        defaultcam = self._get_default_cam(renderer)
 
         # Get objects rendering strings (including lights, cameras...)
         objstrings = self._get_objstrings(renderer)
@@ -659,26 +659,27 @@ class Project(FeatureBase):
 
         return Params(prefix, output, width, height, batch, spp, denoise)
 
+    def _get_default_cam(self, renderer):
+        """Build a default camera for rendering.
 
-def _get_default_cam(renderer, project):
-    """Build a default camera for rendering.
-
-    This function is a (private) subroutine of `render` method.
-    If GUI is up, the default camera is built from the ActiveView camera, ie
-    the camera from which objects are seen in FreeCAD viewport. Otherwise
-    (console mode), the camera is built from a hardcoded value, hosted in
-    DEFAULT_CAMERA_STRING constant.
-    """
-    camstr = (
-        Gui.ActiveDocument.ActiveView.getCamera()
-        if App.GuiUp
-        else DEFAULT_CAMERA_STRING
-    )
-    try:
-        camsource = get_cam_from_coin_string(camstr)
-    except ValueError:
-        camsource = get_cam_from_coin_string(DEFAULT_CAMERA_STRING)
-    return renderer.get_camsource_string(camsource, project)
+        This function is a (private) subroutine of `render` method.
+        If GUI is up, the default camera is built from the ActiveView camera, ie
+        the camera from which objects are seen in FreeCAD viewport. Otherwise
+        (console mode), the camera is built from a hardcoded value, hosted in
+        DEFAULT_CAMERA_STRING constant.
+        """
+        project = self.fpo
+        docname = project.Document.Name
+        if App.GuiUp:
+            App.setActiveDocument(docname)
+            camstr = Gui.ActiveDocument.ActiveView.getCamera()
+        else:
+            camstr = DEFAULT_CAMERA_STRING
+        try:
+            camsource = get_cam_from_coin_string(camstr)
+        except ValueError:
+            camsource = get_cam_from_coin_string(DEFAULT_CAMERA_STRING)
+        return renderer.get_camsource_string(camsource, project)
 
 
 def _instantiate_template(template, objstrings, defaultcam):
