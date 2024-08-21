@@ -372,13 +372,16 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
                             os.path.basename(org_path),
                         )
                     )
-                    # Remove before copying
+                    debug(
+                        "Object",
+                        name,
+                        f"A2P - Copying texture '{org_path}' -> '{dst_path}'",
+                    )
+                    # Copy to main doc transient dir (NB: replace if exists)
                     try:
-                        os.remove(dst_path)
-                    except FileNotFoundError:
+                        shutil.copyfile(org_path, dst_path)
+                    except shutil.SameFileError:
                         pass
-                    # Copy to main doc transient dir
-                    shutil.copyfile(org_path, dst_path)
 
     debug("Object", name, f"A2P - Leaving '{subdoc.Name}'")
     return [r for r in rends if r.mesh.count_facets]
