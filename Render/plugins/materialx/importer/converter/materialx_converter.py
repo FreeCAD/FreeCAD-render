@@ -300,9 +300,11 @@ class MaterialXConverter:
         library_folders.append("render_libraries")
         mx.loadLibraries(library_folders, search_path, mxlib)
         mxdoc.importLibrary(mxlib)
+        log("MaterialX libraries imported")
 
         # Translate surface shader
         translator = mx_gen_shader.ShaderTranslator.create()
+        log("Translator created")
         try:
             translator.translateAllMaterials(mxdoc, "render_pbr")
         except mx.Exception as err:
