@@ -309,6 +309,7 @@ class MaterialXConverter:
             translator.translateAllMaterials(mxdoc, "render_pbr")
         except mx.Exception as err:
             raise ConverterError(6) from err
+        log("Materials translation done")
 
         # Translate displacement shader
         dispnodes = [
@@ -321,6 +322,7 @@ class MaterialXConverter:
                 translator.translateShader(dispnode, "render_disp")
         except mx.Exception as err:
             raise ConverterError(7) from err
+        log("Displacement translation done")
 
         self._state.translated = mxdoc
 
