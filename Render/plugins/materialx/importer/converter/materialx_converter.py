@@ -308,7 +308,11 @@ class MaterialXConverter:
         try:
             translator.translateAllMaterials(mxdoc, "render_pbr")
         except mx.Exception as err:
+            log("Translation mx error")
             raise ConverterError(6) from err
+        except Exception as err:
+            log("Translation unknown error")
+            raise ConverterError(255) from err
         log("Materials translation done")
 
         # Translate displacement shader
