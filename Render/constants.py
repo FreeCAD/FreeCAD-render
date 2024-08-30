@@ -56,16 +56,18 @@ VALID_RENDERERS = sorted(RENDERERS - DEPRECATED_RENDERERS)
 
 # FreeCAD version
 APPVERSION = App.Version()
-if APPVERSION[2]:
+try:
+    subminor = int(APPVERSION[2])
+except ValueError:
     FCDVERSION = (
         int(APPVERSION[0]),
         int(APPVERSION[1]),
-        int(APPVERSION[2]),
     )
 else:
     FCDVERSION = (
         int(APPVERSION[0]),
         int(APPVERSION[1]),
+        subminor,
     )
 
 
