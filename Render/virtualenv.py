@@ -139,7 +139,10 @@ def rendervenv_worker():
         ]
 
         if PARAMS.GetBool("MaterialX"):
-            packages.append("materialx")
+            if os.name == "nt" and get_venv_python_version() < (3, 9, 0):
+                packages.append("materialx==1.38.10")
+            else:
+                packages.append("materialx")
 
         # Commands for binaries
         options = [
