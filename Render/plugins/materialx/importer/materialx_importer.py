@@ -26,7 +26,7 @@ import subprocess
 import json
 import sys
 
-from renderplugin import msg, warn, error, SERVERNAME
+from renderplugin import log, msg, warn, error, SERVERNAME
 
 
 class MaterialXImporter:
@@ -71,6 +71,7 @@ class MaterialXImporter:
         if self._disp2bump:
             args += ["--disp2bump"]
         args += ["--hostpipe", SERVERNAME]
+        log(" ".join(args))
 
         # Run converter
         with subprocess.Popen(

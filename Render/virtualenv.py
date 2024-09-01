@@ -139,7 +139,10 @@ def rendervenv_worker():
         ]
 
         if PARAMS.GetBool("MaterialX"):
-            packages.append("materialx")
+            if os.name == "nt" and get_venv_python_version() < (3, 9, 0):
+                packages.append("materialx==1.38.10")
+            else:
+                packages.append("materialx")
 
         # Commands for binaries
         options = [
@@ -393,7 +396,7 @@ def _create_virtualenv():
 
 def remove_virtualenv(purge=True):
     """Remove Render virtual environment."""
-    if purge:
+    if purge and _get_venv_pip():
         pip_run("cache", "purge")
     shutil.rmtree(RENDER_VENV_DIR, ignore_errors=True)
 
