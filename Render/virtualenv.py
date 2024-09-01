@@ -393,7 +393,7 @@ def _create_virtualenv():
 
 def remove_virtualenv(purge=True):
     """Remove Render virtual environment."""
-    if purge:
+    if purge and _get_venv_pip():
         pip_run("cache", "purge")
     shutil.rmtree(RENDER_VENV_DIR, ignore_errors=True)
 
