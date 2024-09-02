@@ -51,7 +51,7 @@ import configparser
 import FreeCADGui as Gui
 import FreeCAD as App
 
-from Render.constants import FCDVERSION, PLUGINDIR, PARAMS
+from Render.constants import PLUGINDIR, PARAMS
 from Render.virtualenv import (
     get_venv_python,
     get_venv_pyside_version,
@@ -60,34 +60,21 @@ from Render.virtualenv import (
 from Render.material import make_material
 from Render.lights import ImageLight
 
-if FCDVERSION > (0, 19):
-    from PySide.QtCore import (
-        QProcess,
-        QProcessEnvironment,
-        QObject,
-        Signal,
-        Slot,
-        Qt,
-        QEventLoop,
-    )
-    from PySide.QtWidgets import QWidget
-    from PySide.QtGui import QWindow, QMdiSubWindow, QGuiApplication
-else:
-    from PySide.QtCore import (
-        QProcess,
-        QProcessEnvironment,
-        QObject,
-        Signal,
-        Slot,
-        Qt,
-        QEventLoop,
-    )
-    from PySide.QtGui import (
-        QWidget,
-        QWindow,
-        QMdiSubWindow,
-        QGuiApplication,
-    )
+from PySide.QtCore import (
+    QProcess,
+    QProcessEnvironment,
+    QObject,
+    Signal,
+    Slot,
+    Qt,
+    QEventLoop,
+)
+from PySide.QtGui import (
+    QWidget,
+    QWindow,
+    QMdiSubWindow,
+    QGuiApplication,
+)
 
 
 class ConnectionServer(QObject):
