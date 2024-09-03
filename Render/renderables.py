@@ -198,7 +198,11 @@ def get_renderables(obj, name, upper_material, mesher, **kwargs):
         )
 
     # Array, PathArray
-    elif obj_is_partfeature and obj_type in ("Array", "PathArray"):
+    elif obj_is_partfeature and obj_type in (
+        "Array",
+        "PathArray",
+        "PathTwistedArray",
+    ):
         debug("Object", label, f"'{obj_type}' detected")
         expand_array = getattr(obj, "ExpandArray", False)
         renderables = (
