@@ -41,6 +41,7 @@ import FreeCAD as App
 from Render.utils import (
     parse_csv_str,
     debug as ru_debug,
+    warn,
     getproxyattr,
     translate as _tr,
     RGB,
@@ -231,7 +232,7 @@ def get_rendering_material(meshname, material, renderer, default_color):
                 )
                 for p in params
             )
-            res = RenderMaterial.build_standard(shadertype, values, doc)
+            res = RenderMaterial.build_standard(shadertype, values, doc, name)
             return res
 
     # Climb up to Father
@@ -295,7 +296,7 @@ class RenderMaterial:
     # Factory methods (static)
 
     @staticmethod
-    def build_standard(shadertype, values, doc):
+    def build_standard(shadertype, values, doc, matname=""):
         """Build standard material."""
         res = RenderMaterial(shadertype, doc)
 
@@ -304,6 +305,12 @@ class RenderMaterial:
             try:
                 value = cast_function(val, doc, objcol)
             except (TypeError, ValueError):
+                warn(
+                    "Material",
+                    matname,
+                    f"Error in field '{nam}' "
+                    "- Falling back to default material",
+                )
                 value = cast_function(dft, doc, objcol)
             res.setshaderparam(nam, value, typ)
 
@@ -896,7 +903,8 @@ def _caststr(*args):
 
 def _make_rendertexture(imageid, doc, scalar=None):
     """Make a RenderTexture from an ImageId (helper to cast)."""
-    texobject = doc.getObject(imageid.texture)  # Texture object
+    if (texobject := doc.getObject(imageid.texture)) is None:  # Texture object
+        raise ValueError("texobject cannot be found")
     file = texobject.getPropertyByName(imageid.image)
     res = RenderTexture(
         name=texobject.Label,
