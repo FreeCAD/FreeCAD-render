@@ -344,8 +344,27 @@ def _get_rends_from_a2plus(obj, name, material, mesher, **kwargs):
 
     rends = []
 
-    # Only first level objects
-    for subobj in top_objects(subdoc):
+    # Objects to render
+    if not (source_part := getattr(obj, "sourcePart", "")):
+        objects_to_render = top_objects(subdoc)  # All top objects
+    else:
+        objects_to_render = subdoc.getObjectsByLabel(source_part)
+
+    if not objects_to_render:
+        warn(
+            "Object",
+            name,
+            (
+                f"A2P - file '{subdoc_path}' - no object to render"
+                "- Downgrading to part::feature"
+            ),
+        )
+        return _get_rends_from_partfeature(
+            obj, name, material, mesher, **kwargs
+        )
+
+    # Compute renderables
+    for subobj in objects_to_render:
         subname = subobj.Name
         kwargs["ignore_unknown"] = True
         base_rends = get_renderables(
