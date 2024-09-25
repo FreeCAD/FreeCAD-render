@@ -52,7 +52,7 @@ import MeshPart
 import Mesh
 
 import Render.rendermesh
-from Render.utils import translate, debug, message, getproxyattr, RGB
+from Render.utils import translate, debug, message, warn, getproxyattr, RGB
 from Render.constants import PARAMS
 from Render import renderables
 from Render import rendermaterial
@@ -367,7 +367,12 @@ class RendererHandler:
 
         # Fallback/default: render it as an 'object'
         message("Objstrings", name, msg)
-        return RendererHandler._render_object(self, name, view)
+        try:
+            result = RendererHandler._render_object(self, name, view)
+        except renderables.RenderableError as err:
+            warn("Objstrings", name, err.msg)
+            return ""
+        return result
 
     def get_camsource_string(self, camsource, project):
         """Get a rendering string from a camera in 'view.Source' format."""
