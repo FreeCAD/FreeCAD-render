@@ -335,7 +335,7 @@ class RenderMeshMultiprocessingMixin:
 
         args = (path,)
         init_globals["CONNECTION"] = sub_conn
-        init_globals["ENABLE_NUMPY"] = PARAMS.GetBool("EnableNumpy")
+        init_globals["ENABLE_NUMPY"] = not PARAMS.GetBool("DisableNumpy")
         kwargs = {"init_globals": init_globals, "run_name": "__main__"}
 
         mp.set_executable(self.python)
@@ -1078,7 +1078,7 @@ def numpy_enabled():
     """Check if multiprocessing can be enabled."""
     conditions = (
         "np" in globals(),
-        PARAMS.GetBool("EnableNumpy"),
+        not PARAMS.GetBool("DisableNumpy"),
     )
     return all(conditions)
 

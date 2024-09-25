@@ -29,12 +29,14 @@ later for rendering.
 from math import degrees, radians
 from types import SimpleNamespace
 import shlex
+import os
 
 from pivy import coin
 from PySide.QtCore import QT_TRANSLATE_NOOP
 import FreeCAD as App
 import FreeCADGui as Gui
 
+from Render.constants import ICONDIR
 from Render.base import (
     FeatureBase,
     PointableFeatureMixin,
@@ -161,7 +163,7 @@ class ViewProviderCamera(
 ):
     """View Provider of Camera class."""
 
-    ICON = ":/icons/camera-photo.svg"
+    ICON = os.path.join(ICONDIR, "Camera-photo.svg")
     CONTEXT_MENU = [
         CtxMenuItem(
             QT_TRANSLATE_NOOP("Render", "Set GUI to this camera"),
