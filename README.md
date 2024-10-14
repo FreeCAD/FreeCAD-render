@@ -108,18 +108,32 @@ Optionally, you may tweak some particulars of your scene:
 These adjustments should take place between steps 2 and 3.
 
 ## FAQ
-### How to solve library conflicts within a FreeCAD AppImage
+### How to solve library issues (conflicts, not found etc.) within a FreeCAD AppImage
 
 When using an AppImage, you might be confronted with an error like this on
 execution of the "Render" command:
 
 `.../usr/lib/libstdc++.so.6: version 'CXXABI_1.3.15' not found`
 
-This is due to different library versions of your host system and the AppImage.
-As a workaround, provide your host libraries to the rendering command using the
+This is due to different library versions between your host system and the AppImage.
+As a workaround, provide your host system libraries to the rendering command using the
 "Prefix" field in the Render WB configuration:
 
 `env LD_LIBRARY_PATH="/usr/lib64"`
+
+The target path must be fitted to your distro.
+
+You may also use such a wrapper (Luxcore example):
+
+```
+#!/bin/bash
+LUXCORE_BIN=$(readlink -f $(dirname $0))
+LUXCORE_LIB=/lib/x86_64-linux-gnu/
+export LD_LIBRARY_PATH=$LUXCORE_LIB:$LD_LIBRARY_PATH
+$LUXCORE_BIN/luxcoreui "$@"
+```
+(thanks to @ysard contribution in issue #456 and @jphigham in issue #159).
+
 
 ## Contributing
 
