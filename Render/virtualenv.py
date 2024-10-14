@@ -58,6 +58,7 @@ from Render.rdrexecutor import RendererExecutor, ExporterWorker
 
 RENDER_VENV_FOLDER = ".rendervenv"
 RENDER_VENV_DIR = os.path.join(App.getUserAppDataDir(), RENDER_VENV_FOLDER)
+STATUS = False
 
 # RENDERVENV = RenderVirtualEnv()  # Not workable yet
 RENDERVENV = None
@@ -479,6 +480,8 @@ def _warn(message):
 
 def _status(message):
     """Print to status bar."""
+    if not STATUS:
+        return
     if not message:
         return
     # Trim ending newline
