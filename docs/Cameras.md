@@ -57,7 +57,7 @@ viewport.  This viewport relies on
 implementing the [Open
 Inventor](https://web.archive.org/web/20041120092542/http://oss.sgi.com/projects/inventor/)
 standard.  This is why we refer you to [Open
-Inventor](https://developer.openinventor.com/UserGuides/Oiv9/Inventor_Mentor/Cameras_and_Lights/Cameras.html)
+Inventor](https://developer.openinventor.com/UserGuides/10.12/Inventor_Mentor/Cameras_and_Lights/Cameras.html)
 and [Coin](https://grey.colorado.edu/coin3d/classSoCamera.html#pub-attribs)
 camera documentations for more details about Render Camera parameters.
 
