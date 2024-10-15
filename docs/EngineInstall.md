@@ -12,7 +12,8 @@ We are aware that installation, particularly the set up of a rendering engine, c
 a daunting and even dissuasive step.
 Therefore, if you encounter any difficulty, **please do not hesitate to report an issue** in order
 for us to help you and also to improve the process for other users.
-
+Also, do not forget to consult the [Miscellaneous section below](#miscellaneous),
+or the [FAQ section](../README.md#faq) on the README for AppImage related problems.
 
 
 ### Step 1: Install external rendering engines on your system
