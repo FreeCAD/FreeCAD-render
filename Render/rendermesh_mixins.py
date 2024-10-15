@@ -36,6 +36,7 @@ import operator
 import functools
 from math import radians, cos
 import copy
+import concurrent.futures
 
 try:
     import numpy as np
@@ -992,34 +993,49 @@ class RenderMeshNumpyMixin:
         e = e[:, valid_indices]
         d = d[:, :, valid_indices]
 
-        # # Normalize factor
-        # r = 1.0 / det
-
         # Combine flattened faces for calculation
         flat_facets = np.ravel(facets)
 
-        # Compute tangents vectors
-        sdir = np.column_stack(
-            [
-                (d[1, 1] * e[0, ..., k] - d[1, 0] * e[1, ..., k]) / det
-                for k in range(3)
-            ]
-        )
-        sdir = np.repeat(sdir, 3, axis=0)
-        tan1 = np.column_stack(
-            [np.bincount(flat_facets, weights=sdir[k]) for k in range(3)]
-        )
+        with concurrent.futures.ThreadPoolExecutor() as executor:
 
-        tdir = np.column_stack(
-            [
-                (d[0, 0] * e[1, ..., k] - d[0, 1] * e[0, ..., k]) / det
-                for k in range(3)
-            ]
-        )
-        tdir = np.repeat(tdir, 3, axis=0)
-        tan2 = np.column_stack(
-            [np.bincount(flat_facets, weights=tdir[k]) for k in range(3)]
-        )
+            def compute_dir(vec, coord):
+                if vec == 0:
+                    return (
+                        d[1, 1] * e[0, ..., coord] - d[1, 0] * e[1, ..., coord]
+                    ) / det
+                elif vec == 1:
+                    return (
+                        d[0, 0] * e[1, ..., coord] - d[0, 1] * e[0, ..., coord]
+                    ) / det
+                else:
+                    raise ValueError()
+
+            dirs = {
+                (vec, coord): executor.submit(compute_dir, vec, coord)
+                for vec in range(2)
+                for coord in range(3)
+            }
+            concurrent.futures.wait(dirs.values())
+            sdir = np.column_stack([dirs[0, k].result() for k in range(3)])
+            tdir = np.column_stack([dirs[1, k].result() for k in range(3)])
+            sdir = np.repeat(sdir, 3, axis=0)
+            tdir = np.repeat(tdir, 3, axis=0)
+
+            def compute_tan(vec, coord):
+                if vec == 0:
+                    return np.bincount(flat_facets, weights=sdir[coord])
+                elif vec == 1:
+                    return np.bincount(flat_facets, weights=tdir[coord])
+                else:
+                    raise ValueError()
+
+            tans = {
+                (vec, coord): executor.submit(compute_tan, vec, coord)
+                for vec in range(2)
+                for coord in range(3)
+            }
+            tan1 = np.column_stack([tans[0, k].result() for k in range(3)])
+            tan2 = np.column_stack([tans[1, k].result() for k in range(3)])
 
         # Gram-Schmidt process
         dot_norm_tan1 = (normals * tan1).sum(axis=1, keepdims=True)
