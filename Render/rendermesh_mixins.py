@@ -992,32 +992,31 @@ class RenderMeshNumpyMixin:
         e = e[:, valid_indices]
         d = d[:, :, valid_indices]
 
-        # Normalize factor
-        r = 1.0 / det
-
-        # Compute direction vectors using broadcasting
-        sdir = np.column_stack(
-            [
-                (d[1, 1] * e[0, ..., k] - d[1, 0] * e[1, ..., k]) * r
-                for k in range(3)
-            ]
-        )
-        tdir = np.column_stack(
-            [
-                (d[0, 0] * e[1, ..., k] - d[0, 1] * e[0, ..., k]) * r
-                for k in range(3)
-            ]
-        )
-        sdir = np.repeat(sdir, 3, axis=0)
-        tdir = np.repeat(tdir, 3, axis=0)
+        # # Normalize factor
+        # r = 1.0 / det
 
         # Combine flattened faces for calculation
         flat_facets = np.ravel(facets)
 
-        # Aggregate tangents
+        # Compute tangents vectors
+        sdir = np.column_stack(
+            [
+                (d[1, 1] * e[0, ..., k] - d[1, 0] * e[1, ..., k]) / det
+                for k in range(3)
+            ]
+        )
+        sdir = np.repeat(sdir, 3, axis=0)
         tan1 = np.column_stack(
             [np.bincount(flat_facets, weights=sdir[k]) for k in range(3)]
         )
+
+        tdir = np.column_stack(
+            [
+                (d[0, 0] * e[1, ..., k] - d[0, 1] * e[0, ..., k]) / det
+                for k in range(3)
+            ]
+        )
+        tdir = np.repeat(tdir, 3, axis=0)
         tan2 = np.column_stack(
             [np.bincount(flat_facets, weights=tdir[k]) for k in range(3)]
         )
