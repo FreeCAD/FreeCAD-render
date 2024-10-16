@@ -680,45 +680,55 @@ class RenderMeshNumpyMixin:
             angles = np.arccos(dots)
             return angles
 
-        # Reminder:
-        # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
-        # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
-        # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
-        angles0 = _angles(0, 1, 2)
-        angles1 = _angles(1, 0, 2)
-        angles2 = np.pi - angles1 - angles0
-        # Debug
-        # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
-        vertex_angles = np.concatenate((angles0, angles1, angles2))
-        if debug_flag:
-            print("angles", time.time() - tm0)
-
-        # Compute weighted normals for each vertex of the triangles
-        vertex_areas = np.concatenate((areas, areas, areas))
-        weights = vertex_areas * vertex_angles
-        weights = np.expand_dims(weights, axis=1)
-
-        vertex_normals = np.concatenate((normals, normals, normals), axis=0)
-        weighted_normals = vertex_normals * weights
-
-        if debug_flag:
-            print("vertex weighted normals", time.time() - tm0)
-
-        # Weighted sum of normals
-        point_normals = np.column_stack(
-            (
-                np.bincount(indices, weighted_normals[..., 0]),
-                np.bincount(indices, weighted_normals[..., 1]),
-                np.bincount(indices, weighted_normals[..., 2]),
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Reminder:
+            # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
+            # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
+            # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
+            angles0 = executor.submit(_angles, 0, 1, 2)
+            angles1 = executor.submit(_angles, 1, 0, 2)
+            angles2 = executor.submit(_angles, 0, 2, 1)
+            concurrent.futures.wait((angles0, angles1, angles2))
+            # angles2 = np.pi - angles1.result() - angles0.result()
+            # Debug
+            # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
+            vertex_angles = np.concatenate(
+                (angles0.result(), angles1.result(), angles2.result())
             )
-        )
-        point_normals = self._safe_normalize_np(point_normals)
+            if debug_flag:
+                print("angles", time.time() - tm0)
 
-        # self.vnormals = point_normals.tolist()
-        self.vnormals = point_normals
+            # Compute weighted normals for each vertex of the triangles
+            vertex_areas = np.concatenate((areas, areas, areas))
+            weights = vertex_areas * vertex_angles
+            weights = np.expand_dims(weights, axis=1)
 
-        if debug_flag:
-            print(time.time() - tm0)
+            vertex_normals = np.concatenate(
+                (normals, normals, normals), axis=0
+            )
+            weighted_normals = vertex_normals * weights
+
+            if debug_flag:
+                print("vertex weighted normals", time.time() - tm0)
+
+            # Weighted sum of normals
+            point_normals_fs = [
+                executor.submit(
+                    np.bincount, indices, weighted_normals[..., coord]
+                )
+                for coord in range(3)
+            ]
+            concurrent.futures.wait(point_normals_fs)
+            point_normals = np.column_stack(
+                [point_normals_fs[i].result() for i in range(3)]
+            )
+            point_normals = self._safe_normalize_np(point_normals)
+
+            # self.vnormals = point_normals.tolist()
+            self.vnormals = point_normals
+
+            if debug_flag:
+                print("end compute vnormals", time.time() - tm0)
 
     def _adjacent_facets(self, split_angle=radians(30)):
         """Compute the adjacent facets for each facet of the mesh.
