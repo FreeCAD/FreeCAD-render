@@ -14,8 +14,8 @@ made with Render Workbench" width="800">
 This software is free: we contributors do not make any profit from its use by anyone.
 We develop it voluntarily in the sole hope that it will be useful to someone,
 and our only reward is the recognition it receives.
-Therefore if you think Render Workbench deserves it, do not hesitate to give it a **star** on Github:
-it makes our day! Thank you....
+Therefore if you think Render Workbench deserves it, do not hesitate to give it a **star** :star: on Github:
+it will make our day! Thank you...
 
 ## Introduction
 
