@@ -10,6 +10,13 @@ rendering engines.
 <img src=./docs/freecad-june-09.jpg alt="ShowCase" title="Examples of rendering
 made with Render Workbench" width="800">
 
+## Foreword
+This software is free: we contributors do not make any profit from its use by anyone.
+We develop it voluntarily in the sole hope that it will be useful to someone,
+and our only reward is the recognition it receives.
+Therefore if you think Render Workbench deserves it, do not hesitate to give it a **star** on Github:
+it makes our day! Thank you....
+
 ## Introduction
 
 The Render Workbench is a replacement for the built-in [Raytracing
