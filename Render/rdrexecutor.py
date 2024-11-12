@@ -72,8 +72,10 @@ class RendererWorker(QObject):
         self.cmd = cmd
         self.img = img
         self.cwd = cwd
-        if open_after_render:
-            self.result_ready.connect(display_image)
+        self.open_after_render = open_after_render
+        # TODO
+        # if open_after_render:
+        # self.result_ready.connect(display_image)
 
     def run(self):
         """Run worker.
@@ -211,6 +213,8 @@ class RendererExecutorGui(QObject):
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.finished.connect(self.thread.exit)
         self.thread.finished.connect(self.thread.deleteLater)
+        if getattr(self.worker, "open_after_render", False):
+            self.worker.result_ready.connect(self.display_result)
         # self.thread.finished.connect(lambda: print("Thread finished")) # Dbg
 
         # Start the thread
@@ -225,6 +229,13 @@ class RendererExecutorGui(QObject):
         loop = QEventLoop()
         self.thread.finished.connect(loop.quit, Qt.QueuedConnection)
         loop.exec_(flags=QEventLoop.ExcludeUserInputEvents)
+
+    @Slot(str)
+    def display_result(self, img_path):
+        """Display result in GUI (slot)."""
+        # Very important: must execute in main (GUI) thread!
+        # Therefore, not callable directly from worker
+        display_image(img_path)
 
 
 class RendererExecutorCli(threading.Thread):

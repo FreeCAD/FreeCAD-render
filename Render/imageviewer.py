@@ -37,6 +37,7 @@ from PySide.QtGui import (
     QGuiApplication,
     QMenu,
     QFileDialog,
+    QApplication,
 )
 from PySide.QtCore import Qt, Slot, QSize, QPoint
 
@@ -260,7 +261,7 @@ def display_image(img_path):
         return
 
     # Create widget and subwindow
-    viewer = ImageViewer(Gui.getMainWindow())
+    viewer = ImageViewer(None)
     mdiarea = Gui.getMainWindow().centralWidget()
     subw = mdiarea.addSubWindow(viewer)
     subw.setWindowTitle("Rendering result")
