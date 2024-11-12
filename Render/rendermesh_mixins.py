@@ -637,6 +637,7 @@ class RenderMeshNumpyMixin:
     @staticmethod
     def _safe_normalize_np(vect_array):
         """Safely normalize an array of vectors."""
+        # TODO Use linalg (multithreaded...)
         magnitudes = np.sqrt((vect_array**2).sum(-1))
         magnitudes = np.expand_dims(magnitudes, axis=1)
         return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
@@ -674,6 +675,7 @@ class RenderMeshNumpyMixin:
 
             # Compute dot products
             # (Clip to avoid precision issues)
+            # TODO use linalg.dot (multithreaded)
             dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
 
             # Compute arccos of dot products
