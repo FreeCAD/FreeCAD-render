@@ -445,7 +445,9 @@ class Project(FeatureBase):
 
         # Set export directories
         project_directory = self.fpo.Document.TransientDir
+        project_directory = os.path.normpath(project_directory)
         object_directory = os.path.join(project_directory, self.fpo.Name)
+        object_directory = os.path.normpath(object_directory)
         if not os.path.exists(object_directory):
             os.mkdir(object_directory)
 
