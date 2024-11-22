@@ -627,11 +627,12 @@ class Project(FeatureBase):
             prefix += " "
 
         try:
-            if not (output := self.fpo.OuputImage):
+            if not (output := self.fpo.OutputImage):
                 raise ValueError()
         except (AttributeError, ValueError):
             fname = f"{self.fpo.Name}_output.png"
             output = os.path.join(self.fpo.Document.TransientDir, fname)
+            output = os.path.normpath(output)
 
         try:
             width = int(self.fpo.RenderWidth)
