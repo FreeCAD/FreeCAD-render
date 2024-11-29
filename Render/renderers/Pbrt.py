@@ -43,9 +43,9 @@
 #
 # (same as povray)
 
+import itertools
 import os
 import re
-import itertools
 import textwrap
 
 import FreeCAD as App
@@ -111,7 +111,7 @@ AttributeBegin
 {matval.write_textures()}
 {material}
   Shape "plymesh"
-    "string filename" [ "{plyfile}" ]
+    "string filename" [ "{_pbrt_escape_string(plyfile)}" ]
 AttributeEnd
 # ~Object '{name}'
 """
@@ -219,7 +219,7 @@ AttributeBegin
     LightSource "infinite" "string filename" "{m}"
 AttributeEnd
 # ~Imagelight '{n}'\n"""
-    return snippet.format(n=name, m=image)
+    return snippet.format(n=name, m=_pbrt_escape_string(image))
 
 
 def write_distantlight(name, color, power, direction, angle, **kwargs):
@@ -466,7 +466,7 @@ def _write_texture(**kwargs):
 
     # Compute snippet (transformation is in uv...)
     snippet = f"""  Texture "{texname}" "{textype}" "imagemap"
-    "string filename" "{filebasename}"
+    "string filename" "{_pbrt_escape_string(filebasename)}"
     "string mapping" "uv"
     "string encoding" "{encoding}"
 """
@@ -583,6 +583,29 @@ def _write_texref(**kwargs):
 # ===========================================================================
 #                              Helpers
 # ===========================================================================
+
+
+def _pbrt_escape_string(s):
+    """
+    Escapes special characters in a string to ensure it can be safely written
+    as a string in pbrt file.
+
+    Character list comes from: https://github.com/mmp/pbrt-v4/blob/master/src/pbrt/parser.cpp#L100
+    """
+    return s.translate(
+        str.maketrans(
+            {
+                "\b": r"\b",
+                "\f": r"\f",
+                "\n": r"\n",
+                "\r": r"\r",
+                "\t": r"\t",
+                "\\": r"\\",
+                "'": r"\'",
+                '"': r"\"",
+            }
+        )
+    )
 
 
 def _format_list(inlist, elements_per_line, indentation=6):
