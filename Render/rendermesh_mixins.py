@@ -37,6 +37,7 @@ import functools
 from math import radians, cos
 import copy
 import concurrent.futures
+import copy
 
 try:
     import numpy as np
@@ -503,6 +504,7 @@ class RenderMeshNumpyMixin:
         if PARAMS.GetBool("Debug"):
             tm1 = time.time() - tm0
             print(f"Setup internals {tm1}")
+        print(self._points)  # TODO
 
     def has_uvmap(self):
         """Check if object has a uv map."""
