@@ -35,6 +35,7 @@ import itertools
 import operator
 import functools
 from math import radians, cos
+import copy
 
 try:
     import numpy as np
@@ -944,6 +945,9 @@ class RenderMeshNumpyMixin:
 
         Numpy version.
         """
+        # Make a private copy of points (otherwise, in copied structures
+        # like array, points are shared and scale is applied N times)
+        self._points = copy.deepcopy(self._points)
         self._points *= ratio
 
     def compute_tspaces(self):
