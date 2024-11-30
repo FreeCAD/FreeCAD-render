@@ -502,7 +502,6 @@ class RenderMeshNumpyMixin:
         if PARAMS.GetBool("Debug"):
             tm1 = time.time() - tm0
             print(f"Setup internals {tm1}")
-        print(self._points)  # TODO
 
     def has_uvmap(self):
         """Check if object has a uv map."""
