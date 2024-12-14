@@ -300,7 +300,7 @@ def reload(module_name=None):
             "Render.rendermesh_mixins",
             "Render",
         ]
-        if PARAMS.GetBool("MaterialX"):
+        if not PARAMS.GetBool("DisableMaterialX"):
             mods += [
                 "Render.materialx",
                 "Render.materialx.materialx_importer",

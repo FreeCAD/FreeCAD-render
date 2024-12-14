@@ -82,7 +82,7 @@ class _MaterialXIsActiveMixin:  # pylint: disable=too-few-public-methods
             res = super().IsActive()
         except AttributeError:
             res = True
-        return res and PARAMS.GetBool("MaterialX")
+        return res and not PARAMS.GetBool("DisableMaterialX")
 
 
 # ===========================================================================
@@ -472,7 +472,7 @@ class MaterialMaterialXImportCommand(
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not PARAMS.GetBool("MaterialX"):
+        if PARAMS.GetBool("DisableMaterialX"):
             return
         url = "LOCAL"
         start_plugin("materialx", [url])
@@ -502,7 +502,7 @@ class MaterialMaterialXLibrary(_DocIsActiveMixin, _MaterialXIsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not PARAMS.GetBool("MaterialX"):
+        if PARAMS.GetBool("DisableMaterialX"):
             return
         url = "https://matlib.gpuopen.com/"
         start_plugin("materialx", [url])
@@ -532,7 +532,7 @@ class MaterialAmbientCGLibrary(_DocIsActiveMixin, _MaterialXIsActiveMixin):
         It opens a dialog to set the rendering parameters of the selected
         material.
         """
-        if not PARAMS.GetBool("MaterialX"):
+        if PARAMS.GetBool("DisableMaterialX"):
             return
         url = "https://ambientcg.com/"
         start_plugin("materialx", [url])
