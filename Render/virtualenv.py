@@ -139,7 +139,7 @@ def rendervenv_worker():
             "QtPy",
         ]
 
-        if PARAMS.GetBool("MaterialX"):
+        if not PARAMS.GetBool("DisableMaterialX"):
             if os.name == "nt" and get_venv_python_version() < (3, 9, 0):
                 packages.append("materialx==1.38.10")
             else:

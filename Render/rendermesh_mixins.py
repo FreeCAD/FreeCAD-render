@@ -36,6 +36,9 @@ import operator
 import functools
 from math import radians, cos
 import copy
+import concurrent.futures
+import copy
+import concurrent.futures
 
 try:
     import numpy as np
@@ -502,6 +505,7 @@ class RenderMeshNumpyMixin:
         if PARAMS.GetBool("Debug"):
             tm1 = time.time() - tm0
             print(f"Setup internals {tm1}")
+        print(self._points)  # TODO
 
     def has_uvmap(self):
         """Check if object has a uv map."""
@@ -636,6 +640,7 @@ class RenderMeshNumpyMixin:
     @staticmethod
     def _safe_normalize_np(vect_array):
         """Safely normalize an array of vectors."""
+        # TODO Use linalg (multithreaded...)
         magnitudes = np.sqrt((vect_array**2).sum(-1))
         magnitudes = np.expand_dims(magnitudes, axis=1)
         return np.divide(vect_array, magnitudes, where=magnitudes != 0.0)
@@ -673,51 +678,62 @@ class RenderMeshNumpyMixin:
 
             # Compute dot products
             # (Clip to avoid precision issues)
+            # TODO use linalg.dot (multithreaded)
             dots = (vec1 * vec2).sum(axis=1).clip(-1.0, 1.0)
 
             # Compute arccos of dot products
             angles = np.arccos(dots)
             return angles
 
-        # Reminder:
-        # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
-        # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
-        # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
-        angles0 = _angles(0, 1, 2)
-        angles1 = _angles(1, 0, 2)
-        angles2 = np.pi - angles1 - angles0
-        # Debug
-        # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
-        vertex_angles = np.concatenate((angles0, angles1, angles2))
-        if debug_flag:
-            print("angles", time.time() - tm0)
-
-        # Compute weighted normals for each vertex of the triangles
-        vertex_areas = np.concatenate((areas, areas, areas))
-        weights = vertex_areas * vertex_angles
-        weights = np.expand_dims(weights, axis=1)
-
-        vertex_normals = np.concatenate((normals, normals, normals), axis=0)
-        weighted_normals = vertex_normals * weights
-
-        if debug_flag:
-            print("vertex weighted normals", time.time() - tm0)
-
-        # Weighted sum of normals
-        point_normals = np.column_stack(
-            (
-                np.bincount(indices, weighted_normals[..., 0]),
-                np.bincount(indices, weighted_normals[..., 1]),
-                np.bincount(indices, weighted_normals[..., 2]),
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Reminder:
+            # local a1 = AngleBetweenVectors (v1-v0) (v2-v0)
+            # local a2 = AngleBetweenVectors (v0-v1) (v2-v1)
+            # local a3 = AngleBetweenVectors (v0-v2) (v1-v2)
+            angles0 = executor.submit(_angles, 0, 1, 2)
+            angles1 = executor.submit(_angles, 1, 0, 2)
+            angles2 = executor.submit(_angles, 0, 2, 1)
+            concurrent.futures.wait((angles0, angles1, angles2))
+            # angles2 = np.pi - angles1.result() - angles0.result()
+            # Debug
+            # assert np.all(np.isclose(angles0+angles1+_angles(2, 0, 1),np.pi))
+            vertex_angles = np.concatenate(
+                (angles0.result(), angles1.result(), angles2.result())
             )
-        )
-        point_normals = self._safe_normalize_np(point_normals)
+            if debug_flag:
+                print("angles", time.time() - tm0)
 
-        # self.vnormals = point_normals.tolist()
-        self.vnormals = point_normals
+            # Compute weighted normals for each vertex of the triangles
+            vertex_areas = np.concatenate((areas, areas, areas))
+            weights = vertex_areas * vertex_angles
+            weights = np.expand_dims(weights, axis=1)
 
-        if debug_flag:
-            print(time.time() - tm0)
+            vertex_normals = np.concatenate(
+                (normals, normals, normals), axis=0
+            )
+            weighted_normals = vertex_normals * weights
+
+            if debug_flag:
+                print("vertex weighted normals", time.time() - tm0)
+
+            # Weighted sum of normals
+            point_normals_fs = [
+                executor.submit(
+                    np.bincount, indices, weighted_normals[..., coord]
+                )
+                for coord in range(3)
+            ]
+            concurrent.futures.wait(point_normals_fs)
+            point_normals = np.column_stack(
+                [point_normals_fs[i].result() for i in range(3)]
+            )
+            point_normals = self._safe_normalize_np(point_normals)
+
+            # self.vnormals = point_normals.tolist()
+            self.vnormals = point_normals
+
+            if debug_flag:
+                print("end compute vnormals", time.time() - tm0)
 
     def _adjacent_facets(self, split_angle=radians(30)):
         """Compute the adjacent facets for each facet of the mesh.
@@ -951,116 +967,107 @@ class RenderMeshNumpyMixin:
         self._points *= ratio
 
     def compute_tspaces(self):
-        """Compute tangent spaces.
-
-        Numpy version.
-        """
-        # TODO REFACTOR
-        # pylint: disable=invalid-name
+        """Compute tangent spaces using NumPy."""
+        debug("Object", self.name, "Compute tangent spaces 2 (np)")
         tm0 = time.time()
         if debug_flag := PARAMS.GetBool("Debug"):
             print("Start compute_tspaces")
 
-        # Lengyel, Eric.
-        # “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
-        # Terathon Software 3D Graphics Library, 2001.
-        # http://www.terathon.com/code/tangent.html
-        facets = self._facets
-        points = self._points
-        uvmap = self._uvmap
+        facets = self._facets  # Shape: (num_facets, 3)
         normals = self._vnormals
 
-        v1, v2, v3 = (
-            points[facets[..., 0]],
-            points[facets[..., 1]],
-            points[facets[..., 2]],
-        )
-        w1, w2, w3 = (
-            uvmap[facets[..., 0]],
-            uvmap[facets[..., 1]],
-            uvmap[facets[..., 2]],
-        )
+        # Compute edge vectors
+        points = self._points
+        v = (
+            points[facets].reshape(-1, 3, 3).transpose(1, 0, 2)
+        )  # Shape: (3, num_facets, 3)
+        e = np.array([v[1] - v[0], v[2] - v[0]])  # Shape: (2, num_facets, 3)
 
-        x1 = v2[..., 0] - v1[..., 0]
-        x2 = v3[..., 0] - v1[..., 0]
-        y1 = v2[..., 1] - v1[..., 1]
-        y2 = v3[..., 1] - v1[..., 1]
-        z1 = v2[..., 2] - v1[..., 2]
-        z2 = v3[..., 2] - v1[..., 2]
+        # Compute the UV differences
+        uvmap = np.column_stack(
+            (self._uvmap.real, self._uvmap.imag)
+        )  # Shape: (num_facets, 2)
+        w = (
+            uvmap[facets].reshape(-1, 3, 2).transpose(1, 0, 2)
+        )  # Shape: (3, num_facets, 2)
+        d = np.array(
+            [
+                [w[1, ..., 0] - w[0, ..., 0], w[2, ..., 0] - w[0, ..., 0]],
+                [w[1, ..., 1] - w[0, ..., 1], w[2, ..., 1] - w[0, ..., 1]],
+            ]
+        )  # Shape: (2, 2, num_facets)
 
-        s1 = w2.real - w1.real
-        s2 = w3.real - w1.real
-        t1 = w2.imag - w1.imag
-        t2 = w3.imag - w1.imag
+        # Determinant and filtering
+        det = d[0, 0] * d[1, 1] - d[0, 1] * d[1, 0]  # Shape: (num_facets,)
+        det_nz = det != 0.0
 
-        det = s1 * t2 - s2 * t1
+        # Filter only non-zero determinants
+        valid_indices = np.where(det_nz)
+        det = det[valid_indices]
+        facets = facets[valid_indices]
+        e = e[:, valid_indices]
+        d = d[:, :, valid_indices]
 
-        det_nz = np.where(det != 0.0)
-
-        det = det[det_nz]
-        x1 = x1[det_nz]
-        x2 = x2[det_nz]
-        y1 = y1[det_nz]
-        y2 = y2[det_nz]
-        z1 = z1[det_nz]
-        z2 = z2[det_nz]
-        s1 = s1[det_nz]
-        s2 = s2[det_nz]
-        facets = facets[det_nz]
-
-        r = 1.0 / det
-
-        sdir = np.column_stack(
-            (
-                (t2 * x1 - t1 * x2) * r,
-                (t2 * y1 - t1 * y2) * r,
-                (t2 * z1 - t1 * z2) * r,
-            )
-        )
-        tdir = np.column_stack(
-            (
-                (s1 * x2 - s2 * x1) * r,
-                (s1 * y2 - s2 * y1) * r,
-                (s1 * z2 - s2 * z1) * r,
-            )
-        )
-
-        sdir = np.repeat(sdir, 3, axis=0)
-        tdir = np.repeat(tdir, 3, axis=0)
+        # Combine flattened faces for calculation
         flat_facets = np.ravel(facets)
 
-        tan1 = np.column_stack(
-            (
-                np.bincount(flat_facets, weights=sdir[..., 0]),
-                np.bincount(flat_facets, weights=sdir[..., 1]),
-                np.bincount(flat_facets, weights=sdir[..., 2]),
-            )
-        )
-        tan2 = np.column_stack(
-            (
-                np.bincount(flat_facets, weights=tdir[..., 0]),
-                np.bincount(flat_facets, weights=tdir[..., 1]),
-                np.bincount(flat_facets, weights=tdir[..., 2]),
-            )
-        )
+        with concurrent.futures.ThreadPoolExecutor() as executor:
 
-        # Gram-Schmidt
-        dot_norm_tan1 = (normals * tan1).sum(1)
-        dot_norm_tan1 = np.expand_dims(dot_norm_tan1, axis=1)
+            def compute_dir(vec, coord):
+                if vec == 0:
+                    return (
+                        d[1, 1] * e[0, ..., coord] - d[1, 0] * e[1, ..., coord]
+                    ) / det
+                elif vec == 1:
+                    return (
+                        d[0, 0] * e[1, ..., coord] - d[0, 1] * e[0, ..., coord]
+                    ) / det
+                else:
+                    raise ValueError()
+
+            dirs = {
+                (vec, coord): executor.submit(compute_dir, vec, coord)
+                for vec in range(2)
+                for coord in range(3)
+            }
+            concurrent.futures.wait(dirs.values())
+            sdir = np.column_stack([dirs[0, k].result() for k in range(3)])
+            tdir = np.column_stack([dirs[1, k].result() for k in range(3)])
+            sdir = np.repeat(sdir, 3, axis=0)
+            tdir = np.repeat(tdir, 3, axis=0)
+
+            def compute_tan(vec, coord):
+                if vec == 0:
+                    return np.bincount(flat_facets, weights=sdir[coord])
+                elif vec == 1:
+                    return np.bincount(flat_facets, weights=tdir[coord])
+                else:
+                    raise ValueError()
+
+            tans = {
+                (vec, coord): executor.submit(compute_tan, vec, coord)
+                for vec in range(2)
+                for coord in range(3)
+            }
+            tan1 = np.column_stack([tans[0, k].result() for k in range(3)])
+            tan2 = np.column_stack([tans[1, k].result() for k in range(3)])
+
+        # Gram-Schmidt process
+        dot_norm_tan1 = (normals * tan1).sum(axis=1, keepdims=True)
         tangents = tan1 - normals * dot_norm_tan1
         tangents = self._safe_normalize_np(tangents)
 
-        # Handedness
-        dot_cross_tan2 = (tan2 * np.cross(normals, tan1)).sum(1)
-        tangent_signs = np.sign(dot_cross_tan2)
-        tangent_signs[np.where(tangent_signs == 0.0)] = 1.0
+        # Set handedness
+        tangent_signs = np.sign(
+            (tan2 * np.cross(normals, tangents)).sum(axis=1)
+        )
+        tangent_signs[tangent_signs == 0] = 1.0  # Set zero signs to 1
 
         self._tangents = tangents
         self._tangent_signs = tangent_signs
 
         if debug_flag:
-            tm1 = time.time()
-            print(f"End compute_tspaces: {tm1 - tm0}")
+            print(f"End compute_tspaces: {time.time() - tm0:.6f} seconds")
 
 
 # ===========================================================================
