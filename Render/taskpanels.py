@@ -954,6 +954,7 @@ please edit 'Render settings' from material context menu.*"""
 
         Override Arch initial method (buggy).
         """
+        card = self.form.comboBox_MaterialsInDir.currentText()
         assert card in self.cards
         parser = configparser.ConfigParser(interpolation=None)
         parser.optionxform = lambda x: x  # Case sensitive
