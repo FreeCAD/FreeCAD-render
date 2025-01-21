@@ -103,8 +103,8 @@ In Render, you can use textures in your materials via a four steps process:
 
 #### Step 1: Prepare
 The first thing to do is to obtain the texture. Textures for rendering can be
-downloaded from various sites, including [AmbientCG](www.ambientcg.com),
-[MaterialX](matlib.gpuopen.com) etc.
+downloaded from various sites, including [AmbientCG](https://www.ambientcg.com),
+[MaterialX](https://matlib.gpuopen.com) etc.
 
 Since it's usually shipped as a compressed file, you first have to unzip it
 into a temporary directory. At this stage, you usually get a set of image files
