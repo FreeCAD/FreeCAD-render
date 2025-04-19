@@ -37,7 +37,7 @@ eventually be installed:
 - without having to bother with distro's package management
 - without requiring any elevation of user rights (sudo etc.)
 - without depending on core FreeCAD packages and taking the risk any package
-  would be not provided, outdated or removed (it happens)
+  would be refused, outdated or removed (it happens)
 """
 
 import os
