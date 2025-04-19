@@ -1,6 +1,6 @@
 # ***************************************************************************
 # *                                                                         *
-# *   Copyright (c) 2024 Howetuft <howetuft@gmail.com>                      *
+# *   Copyright (c) 2025 Howetuft <howetuft@gmail.com>                      *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -28,14 +28,16 @@ This solution is preferred to system-wide ('pip install') or even
 user-restricted installation ('pip install --user') via pip, as the new
 'externally-managed-environment' feature starting from Python 3.11 will prevent
 such installations.
-But please note also this virtual environment is installed via bootstrap from
+Please note also this virtual environment is installed via bootstrap from
 Pypa, and not from system venv module. Indeed, 'venv' is deliberately
-omitted in base install by certain distributions (Ubuntu, Debian...).
+omitted in standard install by certain distributions (Ubuntu, Debian...).
 
 With our bootstrapped virtual environment, the required external modules can
 eventually be installed:
 - without having to bother with distro's package management
-- without requiring any elevation of user rights (sudo etc.).
+- without requiring any elevation of user rights (sudo etc.)
+- without depending on core FreeCAD packages and taking the risk any package
+  would be not provided, outdated or removed (it happens)
 """
 
 import os
@@ -256,9 +258,10 @@ def get_venv_pyside_version():
 
 
 def pip_run(verb, package, options=None, log=None, loglevel=0):
-    """Install package with pip in Render virtual environment.
+    """Run pip in Render virtual environment.
 
-    Returns: a subprocess.CompletedInstance"""
+    Returns: a subprocess.CompletedInstance
+    """
     options = options or []
     log = log or _log
     if not (executable := get_venv_python()):
@@ -287,9 +290,10 @@ pip_wheel = functools.partial(pip_run, "wheel")
 
 
 def pip_uninstall(package):
-    """Install (or uninstall) package with pip.
+    """Uninstall package in Render virtual environment.
 
-    Returns: a subprocess.CompletedInstance"""
+    Returns: a subprocess.CompletedInstance
+    """
     if not (executable := get_venv_python()):
         raise VenvError(3)
     result = subprocess.run(
@@ -330,7 +334,7 @@ def _get_venv_pip():
     return path
 
 
-# Repair
+# Repair virtual environment
 
 
 def _create_virtualenv():
