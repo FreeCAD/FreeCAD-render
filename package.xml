@@ -1,27 +1,90 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
-  <name>Render</name>
-  <description>A workbench to produce high-quality rendered images from your FreeCAD document, using open-source external rendering engines.
+<?xml
+    version = '1.0'
+    encoding = 'UTF-8'
+    standalone = 'no'
+?>
+<package
+    format = '1'
+    xmlns = 'https://wiki.freecad.org/Package_Metadata'
+>
 
-Designed as a modern replacement for deprecated internal Raytracing Workbench.</description>
-  <version>2024.12.15</version>
-  <date>2024-12-15</date>
-  <maintainer email="@howetuft">howetuft</maintainer>
-  <maintainer email="@yorikvanhavre">Yorik Van Havre</maintainer>
-  <license file="LICENSE">LGPL-2.1-or-later</license>
-  <url type="repository" branch="master">https://github.com/FreeCAD/FreeCAD-render</url>
-  <url type="bugtracker">https://github.com/FreeCAD/FreeCAD-render/issues</url>
-  <url type="readme">https://github.com/FreeCAD/FreeCAD-render/blob/master/README.md</url>
-  <icon>Render/resources/icons/Render.svg</icon>
-  <pythonmin>3.8</pythonmin>
+    <!--[ Versions ]―――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
 
-  <content>
-    <workbench>
-      <name>Render Workbench</name>
-      <subdirectory>./</subdirectory>
-      <icon>Render/resources/icons/Render.svg</icon>
-      <classname>RenderWorkbench</classname>
-    </workbench>
-  </content>
+    <!-- <freecadmin>1.0.0</freecadmin> -->
+    <pythonmin>3.8</pythonmin>
+    <version>2024.12.15</version>
+    <date>2024-12-15</date>
+
+    <!--[ Dependencies ]―――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <!--[ Info ]―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <description>Render high-quality images of your models.</description>
+    <name>Render</name>
+
+    <!--[ Tags ]―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <tag>Denoising</tag>
+    <tag>Material</tag>
+    <tag>Texture</tag>
+    <tag>Control</tag>
+    <tag>Render</tag>
+    <tag>Camera</tag>
+    <tag>Light</tag>
+    <tag>Batch</tag>
+    
+    <tag>Blender Cycles</tag>
+    <tag>LuxCoreRender</tag>
+    <tag>Intel Ospray</tag>
+    <tag>Appleseed</tag>
+    <tag>POV-Ray</tag>
+    <tag>PBRT v4</tag>
+
+    <!--[ Maintainers ]――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <maintainer>Yorik Van Havre</maintainer>
+
+    <!--[ Authors ]――――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <author>Yorik Van Havre</author>
+    <author>howetuft</author>
+
+    <!--[ Licenses ]―――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <license
+        file = 'LICENSE'
+    >LGPL-2.1-or-later</license>
+
+    <!--[ Icon ]―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <icon>Render/resources/icons/Render.svg</icon>
+
+    <!--[ Urls ]―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <url
+        type = 'documentation'
+    >https://github.com/FreeCAD/FreeCAD-render?tab=readme-ov-file#usage</url>
+
+    <url
+        branch = 'master'
+        type = 'repository'
+    >https://github.com/FreeCAD/FreeCAD-render</url>
+
+    <url
+        type = 'bugtracker'
+    >https://github.com/FreeCAD/FreeCAD-render/issues</url>
+
+    <url
+        type = 'readme'
+    >https://github.com/FreeCAD/FreeCAD-render/blob/master/README.md</url>
+
+    <!--[ Content ]――――――――――――――――――――――――――――――――――――――――――――――――――――――――――-->
+
+    <content>
+        <workbench>
+            <subdirectory>.</subdirectory>
+            <classname>RenderWorkbench</classname>
+        </workbench>
+    </content>
 
 </package>
