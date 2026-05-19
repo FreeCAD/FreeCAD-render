@@ -46,7 +46,7 @@ from multiprocessing.connection import Listener, Connection, wait
 from threading import Thread, Event
 import pathlib
 import configparser
-
+import sys
 
 import FreeCADGui as Gui
 import FreeCAD as App
@@ -69,12 +69,15 @@ from PySide.QtCore import (
     Qt,
     QEventLoop,
 )
+
 from PySide.QtGui import (
     QWidget,
     QWindow,
     QMdiSubWindow,
     QGuiApplication,
 )
+
+from PySide.QtWidgets import QWidget, QLabel, QVBoxLayout
 
 
 class ConnectionServer(QObject):
@@ -336,17 +339,34 @@ class PythonSubprocessWindow(QMdiSubWindow):
     def attach_process(self, winid):
         """Attach subprocess to FreeCAD Gui."""
         # Create container and embed process inside
-        self.window = QWindow.fromWinId(winid)
-        self.window.setObjectName("RenderWindowFromWinid")
-        self.container = QWidget.createWindowContainer(
-            self.window,
-            parent=None,
-            flags=Qt.FramelessWindowHint | Qt.ForeignWindow,
-        )
-        self.container.setObjectName("RenderProcessWindowContainer")
-        self.setWidget(self.container)
-        self.container.setParent(self)
-        self.show()
+        # QWindow.fromWinId is not supported on macOS and QT <6, so open a new window instead.
+        if sys.platform == "darwin":
+            print(
+                "QWindow.fromWinId not supported on macOS – showing placeholder window."
+            )
+            self.container = QWidget()
+            layout = QVBoxLayout(self.container)
+            label = QLabel(
+                "Renderer running in external window.\nEmbedding not supported on macOS."
+            )
+            label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(label)
+            self.setWidget(self.container)
+            self.container.setParent(self)
+            self.show()
+            return
+        else:
+            self.window = QWindow.fromWinId(winid)
+            self.window.setObjectName("RenderWindowFromWinid")
+            self.container = QWidget.createWindowContainer(
+                self.window,
+                parent=None,
+                flags=Qt.FramelessWindowHint | Qt.ForeignWindow,
+            )
+            self.container.setObjectName("RenderProcessWindowContainer")
+            self.setWidget(self.container)
+            self.container.setParent(self)
+            self.show()
 
     @Slot()
     def detach_process(self):
