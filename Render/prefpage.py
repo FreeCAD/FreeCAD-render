@@ -54,6 +54,62 @@ from Render.constants import PREFPAGE
 from Render.rdrhandler import RendererHandler
 from Render.virtualenv import ensure_rendervenv, remove_virtualenv
 
+_TAB_ORDER = (
+    # General
+    "lineEdit_3",
+    "spinBox",
+    "spinBox_2",
+    # Appleseed
+    "prefFileChooser2",
+    "AppleseedCli_Test",
+    "prefFileChooser3",
+    "AppleseedStudio_Test",
+    "prefLineEdit1",
+    # Cycles
+    "fileChooser_4",
+    "Cycles_Test",
+    "lineEdit_2",
+    # LuxCore
+    "fileChooser",
+    "LuxcoreCli_Test",
+    "fileChooser_2",
+    "LuxcoreUi_Test",
+    "comboBox",
+    "lineEdit_4",
+    # PovRay
+    "fileChooser_3",
+    "Povray_Test",
+    "lineEdit",
+    # OSPRay
+    "fileChooser_8",
+    "Ospray_Test",
+    "lineEdit_6",
+    # PBRT
+    "fileChooser_9",
+    "Pbrt_Test",
+    "lineEdit_7",
+    # LuxRender (deprecated)
+    "fileChooser_5",
+    "fileChooser_6",
+    "lineEdit_5",
+    # Plugins
+    "checkBox_7",
+    "checkBox_9",
+    "checkBox_14",
+    "checkBox_11",
+    "ResetVenv",
+    # Advanced
+    "checkBox_8",
+    "checkBox_10",
+    "checkBox_3",
+    "checkBox_6",
+    "checkBox",
+    "checkBox_2",
+    "checkBox_4",
+    "spinBox_3",
+    "checkBox_5",
+)
+
 # ===========================================================================
 #                                Main class
 # ===========================================================================
@@ -76,6 +132,7 @@ class PreferencesPage(QWidget):
         page = Gui.PySideUic.loadUi(PREFPAGE, self)
         self.setLayout(page.layout())
         self.setWindowTitle(page.windowTitle())
+        _set_tab_order(self)
 
         # Connect test buttons
         test_buttons = (
@@ -164,6 +221,39 @@ class PreferencesPage(QWidget):
 # ===========================================================================
 #                                Helpers
 # ===========================================================================
+
+
+def _set_tab_order(page):
+    """Set a visual top-to-bottom tab order for preference controls."""
+    controls = []
+    missing = []
+    for name in _TAB_ORDER:
+        widget = page.findChild(QWidget, name)
+        if widget is None:
+            missing.append(name)
+            continue
+
+        if widget.metaObject().className() == "Gui::PrefFileChooser":
+            children = [
+                child
+                for child in widget.children()
+                if isinstance(child, QWidget)
+                and child.focusPolicy() & Qt.TabFocus
+            ]
+            controls.extend(children)
+            if not children:
+                missing.append(name)
+        else:
+            controls.append(widget)
+
+    if missing:
+        App.Console.PrintWarning(
+            "Render preferences: cannot set complete tab order; "
+            f"missing controls: {', '.join(missing)}\n"
+        )
+
+    for current, following in zip(controls, controls[1:]):
+        QWidget.setTabOrder(current, following)
 
 
 def _load_settings_helper(widget):
