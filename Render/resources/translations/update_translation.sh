@@ -13,7 +13,7 @@
 # 	'Italian': 'it', 'Japanese': 'ja', 'Kabyle': 'kab', 'Korean': 'ko', 'Lithuanian': 'lt',
 # 	'Norwegian': 'no', 'Polish': 'pl', 'Portuguese': 'pt-PT', 'Portuguese, Brazilian': 'pt-BR',
 # 	'Romanian': 'ro', 'Russian': 'ru', 'Serbian': 'sr', 'Serbian, Latin': 'sr-CS', 'Slovak': 'sk',
-# 	'Slovenian': 'sl', 'Spanish': 'es-ES', 'Spanish, Argentina': 'es-AR', 'Swedish': 'sv-SE',
+# 	'Slovenian': 'sl', 'Spanish': 'es-ES', 'Spanish, Argentina': 'es-AR', 'Swedish': 'sv',
 # 	'Turkish': 'tr', 'Ukrainian': 'uk', 'Valencian': 'val-ES', 'Vietnamese': 'vi'}
 #
 # NOTE: PREPARATION
@@ -50,7 +50,7 @@ supported_locales=(
 	"en" "af" "ar" "eu" "be" "bg" "ca" "zh-CN" "zh-TW" "hr"
 	"cs" "da" "nl" "fil" "fi" "fr" "gl" "ka" "de" "el"
 	"hu" "id" "it" "ja" "kab" "ko" "lt" "no" "pl" "pt-PT"
-	"pt-BR" "ro" "ru" "sr" "sr-CS" "sk" "sl" "es-ES" "es-AR" "sv-SE"
+	"pt-BR" "ro" "ru" "sr" "sr-CS" "sk" "sl" "es-ES" "es-AR" "sv"
 	"tr" "uk" "val-ES" "vi"
 )
 

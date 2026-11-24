@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<TS version="2.1" language="sv_SE">
+<TS version="2.1" language="sv">
   <context>
     <name>App::Property</name>
     <message>
