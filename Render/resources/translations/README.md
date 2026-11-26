@@ -59,7 +59,7 @@ As of 2024/10/28 the supported locales on FreeCAD
  'Polish': 'pl', 'Portuguese': 'pt-PT', 'Portuguese, Brazilian': 'pt-BR',
  'Romanian': 'ro', 'Russian': 'ru', 'Serbian': 'sr', 'Serbian, Latin': 'sr-CS',
  'Slovak': 'sk', 'Slovenian': 'sl', 'Spanish': 'es-ES', 'Spanish, Argentina': 'es-AR',
-'Swedish': 'sv-SE', 'Turkish': 'tr', 'Ukrainian': 'uk', 'Valencian': 'val-ES',
+'Swedish': 'sv', 'Turkish': 'tr', 'Ukrainian': 'uk', 'Valencian': 'val-ES',
 'Vietnamese': 'vi'}
 ```
 
