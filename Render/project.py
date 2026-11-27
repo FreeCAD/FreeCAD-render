@@ -244,6 +244,16 @@ class Project(FeatureBase):
             ),
             False,
         ),
+        "CyclesTransparentBackground": Prop(
+            "App::PropertyBool",
+            chr(127) + "Specifics",
+            QT_TRANSLATE_NOOP(
+                "App::Property",
+                "Activate transparent background\n"
+                "SPECIFIC TO CYCLES",
+            ),
+            False,
+        ),
     }
 
     ON_CHANGED = {
