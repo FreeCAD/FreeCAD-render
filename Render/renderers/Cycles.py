@@ -1020,14 +1020,14 @@ def render(
             return rpath
         return f'"{rpath}"'
 
-    # Transparent background  
-    if getattr(project, "CyclesTransparentBackground", False):  
-        tree = et.parse(input_file)  
-        root = tree.getroot()  
-        if (background := root.find("background")) is None:  
-            background = et.Element("background")  
-            root.append(background)  
-        background.set("transparent", "true")  
+    # Transparent background
+    if getattr(project, "CyclesTransparentBackground", False):
+        tree = et.parse(input_file)
+        root = tree.getroot()
+        if (background := root.find("background")) is None:
+            background = et.Element("background")
+            root.append(background)
+        background.set("transparent", "true")
         tree.write(input_file, encoding="unicode")
 
     # Denoise

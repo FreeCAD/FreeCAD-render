@@ -249,8 +249,7 @@ class Project(FeatureBase):
             chr(127) + "Specifics",
             QT_TRANSLATE_NOOP(
                 "App::Property",
-                "Activate transparent background\n"
-                "SPECIFIC TO CYCLES",
+                "Activate transparent background\n" "SPECIFIC TO CYCLES",
             ),
             False,
         ),
